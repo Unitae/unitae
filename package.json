@@ -1,0 +1,72 @@
+{
+    "name": "unitae",
+    "private": true,
+    "sideEffects": false,
+    "type": "module",
+    "scripts": {
+        "build": "react-router build",
+        "build:format": "biome check --write",
+        "build:db": "prisma generate",
+        "start": "react-router-serve ./build/server/index.js",
+        "db:migrate": "pnpm prisma migrate deploy",
+        "db:seed": "pnpm prisma db seed",
+        "start:dev": "react-router dev",
+        "start:emails": "email dev",
+        "start:worker": "pnpm tsx ./workers/sync-worker.server.ts",
+        "test:lint": "biome lint",
+        "test:typecheck": "react-router typegen && tsc"
+    },
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.1024.0",
+        "@heroicons/react": "^2.2.0",
+        "@mjackson/form-data-parser": "^0.9.1",
+        "@prisma/adapter-pg": "^7.6.0",
+        "@prisma/client": "7.6.0",
+        "@react-email/components": "^1.0.11",
+        "@react-pdf/renderer": "^4.3.3",
+        "@react-router/node": "^7.14.0",
+        "@react-router/serve": "^7.14.0",
+        "@vis.gl/react-google-maps": "^1.8.2",
+        "bullmq": "^5.73.0",
+        "csv": "^6.5.1",
+        "dotenv": "^17.4.0",
+        "exceljs": "^4.4.0",
+        "ioredis": "^5.10.1",
+        "isbot": "^5.1.37",
+        "jszip": "^3.10.1",
+        "react": "^19.2.4",
+        "react-dom": "^19.2.4",
+        "react-router": "^7.14.0",
+        "recharts": "^3.8.1",
+        "resend": "^6.10.0",
+        "tsx": "^4.21.0",
+        "winston": "^3.19.0"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.4.10",
+        "@react-router/dev": "^7.14.0",
+        "@tailwindcss/vite": "^4.2.2",
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+        "prisma": "^7.6.0",
+        "react-email": "5.2.10",
+        "tailwindcss": "^4.2.2",
+        "ts-node": "^10.9.2",
+        "typescript": "^6.0.2",
+        "vite": "^8.0.3"
+    },
+    "engines": {
+        "node": ">=22.0.0"
+    },
+    "pnpm": {
+        "overrides": {
+            "esbuild": "^0.25.8"
+        },
+        "onlyBuiltDependencies": [
+            "@prisma/engines",
+            "better-sqlite3",
+            "prisma"
+        ]
+    },
+    "packageManager": "pnpm@10.26.1+sha512.664074abc367d2c9324fdc18037097ce0a8f126034160f709928e9e9f95d98714347044e5c3164d65bd5da6c59c6be362b107546292a8eecb7999196e5ce58fa"
+}

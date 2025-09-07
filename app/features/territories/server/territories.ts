@@ -1,0 +1,38 @@
+import type { Prisma } from '~/database/generated/client'
+import { db } from '~/shared/libs/db.server'
+import { paginationFromUrl } from '~/shared/libs/pagination.server'
+
+export async function findTerritoriesWithDetailsPaginated(selectors: Prisma.TerritoryWhereInput, url: URL) {
+  const total = await db.territory.count({ where: selectors })
+  const pagination = paginationFromUrl(url, total)
+
+  const territories = await db.territory.findMany({
+    skip: pagination.offset,
+    take: pagination.size,
+    where: selectors,
+    include: {
+      entrances: { include: { buildings: { where: { active: true } } } },
+      attributions: { where: { endDate: null }, include: { publisher: true } },
+    },
+  })
+
+  return { territories, pagination }
+}
+
+export async function findAvailableTerritoriesPaginated(selectors: Prisma.TerritoryWhereInput, url: URL) {
+  const total = await db.territory.count({ where: selectors })
+  const pagination = paginationFromUrl(url, total)
+
+  const territories = await db.territory.findMany({
+    skip: pagination.offset,
+    take: pagination.size,
+    where: selectors,
+    include: {
+      entrances: { include: { buildings: true } },
+      attributions: { orderBy: { endDate: 'desc' }, take: 1 },
+    },
+    orderBy: { attributions: { _count: 'asc' } },
+  })
+
+  return { territories, pagination }
+}

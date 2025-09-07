@@ -1,0 +1,88 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true,
+        "defaultBranch": "main"
+    },
+    "files": {
+        "ignoreUnknown": false,
+        "includes": ["**"]
+    },
+    "formatter": {
+        "enabled": true,
+        "indentStyle": "space"
+    },
+    "assist": { "actions": { "source": { "organizeImports": "on" } } },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "recommended": true,
+            "style": {
+                "useForOf": "error",
+                "useShorthandAssign": "error",
+                "useShorthandFunctionType": "error",
+                "useNamingConvention": "error",
+                "useFragmentSyntax": "error",
+                "useExponentiationOperator": "error",
+                "noYodaExpression": "error",
+                "noShoutyConstants": "info",
+                "useConsistentArrayType": {
+                    "level": "error",
+                    "options": { "syntax": "shorthand" }
+                },
+                "useArrayLiterals": "error"
+            },
+            "suspicious": {
+                "useAwait": "warn",
+                "useErrorMessage": "warn",
+                "noConsole": "error"
+            },
+            "performance": {
+                "useTopLevelRegex": "error"
+            },
+            "correctness": {
+                "useHookAtTopLevel": "error"
+            },
+            "complexity": {
+                "noExcessiveCognitiveComplexity": "warn"
+            },
+            "nursery": {
+                "useSortedClasses": "info"
+            }
+        }
+    },
+    "javascript": {
+        "formatter": {
+            "quoteStyle": "single",
+            "jsxQuoteStyle": "double",
+            "trailingCommas": "all",
+            "semicolons": "asNeeded",
+            "bracketSpacing": true,
+            "bracketSameLine": false,
+            "arrowParentheses": "asNeeded",
+            "lineWidth": 120
+        }
+    },
+    "json": {
+        "formatter": {
+            "indentWidth": 4,
+            "trailingCommas": "none"
+        }
+    },
+    "graphql": {
+        "formatter": {
+            "indentWidth": 4
+        }
+    },
+    "css": {
+        "parser": {
+            "cssModules": false,
+            "tailwindDirectives": true
+        },
+        "linter": {
+            "enabled": true
+        }
+    }
+}

@@ -1,0 +1,83 @@
+import { AsyncLocalStorage } from 'node:async_hooks'
+import { PrismaClient } from '~/database/generated/client'
+import { PrismaPg } from '@prisma/adapter-pg'
+
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+
+// Unscoped client for global operations (UserRole, setup, login, health checks)
+const unscopedDb = new PrismaClient({ adapter })
+
+// Congregation context carried per-request via AsyncLocalStorage
+type CongregationContext = {
+  congregationId: number
+  congregation?: import('~/shared/libs/congregation.server').CongregationInfo
+}
+export const congregationContext = new AsyncLocalStorage<CongregationContext>()
+
+const SCOPED_MODELS = new Set([
+  'User',
+  'Territory',
+  'Building',
+  'BuildingEntrance',
+  'Attribution',
+  'PublisherGroup',
+  'PublisherActivity',
+  'BoardSection',
+  'BoardDocument',
+  'Event',
+  'EventKind',
+  'Setting',
+])
+
+const READ_OPERATIONS = new Set([
+  'findMany',
+  'findFirst',
+  'findUnique',
+  'findFirstOrThrow',
+  'findUniqueOrThrow',
+  'count',
+  'aggregate',
+  'groupBy',
+])
+
+const WRITE_OPERATIONS = new Set(['create', 'createMany', 'createManyAndReturn'])
+const UPDATE_OPERATIONS = new Set(['update', 'updateMany', 'upsert', 'delete', 'deleteMany'])
+
+// Tenant-scoped client — auto-injects congregationId on all scoped models
+const db = unscopedDb.$extends({
+  query: {
+    $allOperations({ model, operation, args, query }) {
+      if (!model || !SCOPED_MODELS.has(model)) return query(args)
+
+      const ctx = congregationContext.getStore()
+      if (!ctx) {
+        return query(args)
+      }
+
+      const { congregationId } = ctx
+
+      if (READ_OPERATIONS.has(operation)) {
+        args.where = { ...args.where, congregationId }
+      }
+
+      if (WRITE_OPERATIONS.has(operation)) {
+        if (Array.isArray(args.data)) {
+          args.data = args.data.map((d: Record<string, unknown>) => ({ ...d, congregationId }))
+        } else if (args.data) {
+          args.data = { ...args.data, congregationId }
+        }
+      }
+
+      if (UPDATE_OPERATIONS.has(operation)) {
+        args.where = { ...args.where, congregationId }
+        if (operation === 'upsert' && args.create) {
+          args.create = { ...args.create, congregationId }
+        }
+      }
+
+      return query(args)
+    },
+  },
+})
+
+export { db, unscopedDb }

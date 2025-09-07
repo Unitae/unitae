@@ -1,0 +1,18 @@
+import { unscopedDb as db } from '~/shared/libs/db.server'
+import { redis } from '~/shared/libs/redis.server'
+
+export async function loader() {
+  try {
+    await Promise.all([redis.ping(), db.user.count()])
+
+    return new Response('OK', {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain' },
+    })
+  } catch (_error) {
+    return new Response('Service Unavailable', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain' },
+    })
+  }
+}

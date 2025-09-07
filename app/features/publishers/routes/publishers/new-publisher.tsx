@@ -1,0 +1,103 @@
+import { Form, redirect } from 'react-router'
+
+import { HeroHeader } from '~/shared/ui/HeroHeader'
+import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
+import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
+import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
+import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
+import { Role } from '~/features/authorization/model/roles.type'
+import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { db } from '~/shared/libs/db.server'
+import { LimitService } from '~/shared/libs/limits.server'
+import { requireCongregation } from '~/shared/libs/congregation.server'
+
+import type { Route } from './+types/new-publisher'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Fiche Proclamateur - Unitae' }]
+}
+
+export async function loader({ request }: Route.LoaderArgs) {
+  await verifySession(request)
+  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+
+  if (!canManagePublisher) {
+    throw redirect('/')
+  }
+
+  const groups = await db.publisherGroup.findMany()
+
+  return { groups, hideAuxiliaryPioneer: false }
+}
+
+export default function NewPublisher({ loaderData }: Route.ComponentProps) {
+  const { groups, hideAuxiliaryPioneer } = loaderData
+
+  return (
+    <div className="flex flex-col">
+      <HeroHeader title="Nouveau proclamateur" subtitle="Créer la fiche d'un nouveau proclamateur" />
+
+      <Form method="post" className="my-5 flex flex-col gap-3">
+        <PublisherPersonalInformationForm />
+        <PublisherNominationForm />
+        <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
+
+        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
+          Créer le proclamateur
+        </button>
+      </Form>
+    </div>
+  )
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const form = await request.formData()
+  const firstname = String(form.get('firstname'))
+  const lastname = String(form.get('lastname'))
+  const email = String(form.get('email'))
+  const gender = form.get('gender')
+  const birthDate = form.get('birthDate')
+  const baptismDate = form.get('baptismDate')
+  const isHelder = form.get('isHelder')
+  const isServant = form.get('isServant')
+  const isAnointed = form.get('isAnointed')
+  const groupId = Number(form.get('group'))
+  const type = form.get('type')
+
+  if (firstname.length < 1 || lastname.length < 1) {
+    throw redirect('/congregation/publishers/new')
+  }
+
+  const congregation = requireCongregation()
+  const limits = new LimitService(congregation)
+  await limits.errorIfWouldGoOverLimit('publishers')
+
+  const user = await db.user.create({
+    data: {
+      firstname: firstname,
+      lastname: lastname,
+      email:
+        form.has('email') && email.length > 0 ? email : `${firstname}.${lastname}@placeholder.unitae.app`.toLowerCase(),
+      active: true,
+      password: 'password',
+      isPublisher: true,
+      isMale: String(gender) === 'male',
+      baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
+      birthDate: birthDate ? new Date(birthDate.toString()) : null,
+      isHelder: Boolean(isHelder),
+      isServant: Boolean(isServant),
+      isAnointed: Boolean(isAnointed),
+      publisherGroupId: Number.isNaN(groupId) ? null : groupId,
+      type: String(type),
+      congregationId: 0 as number,
+    },
+  })
+
+  const session = await getSession(request.headers.get('Cookie'))
+  session.flash('success', `La fiche de proclammateur pour ${user.firstname} à été créé avec succès`)
+  return redirect(`/congregation/publishers/${user.id}/edit`, {
+    headers: {
+      'Set-Cookie': await commitSession(session),
+    },
+  })
+}

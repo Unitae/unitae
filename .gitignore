@@ -1,0 +1,11 @@
+node_modules
+
+/.cache
+/build
+.env
+/prisma/*.db
+**/*.DS_Store
+/content
+
+.react-router/
+app/database/generated/

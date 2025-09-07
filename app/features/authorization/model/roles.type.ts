@@ -1,0 +1,16 @@
+export enum Role {
+  Admin = 'admin',
+  BoardUploader = 'board-uploader',
+  BoardValidator = 'board-validator',
+  TerritoriesViewer = 'territories-viewer',
+  TerritoriesManager = 'territories-manager',
+  ProspectionViewer = 'prospection-viewer',
+  ProspectionManager = 'prospection-manager',
+  SettingsUserManager = 'settings-user-manager',
+  PublisherViewer = 'publisher-viewer',
+  PublisherManager = 'publisher-manager',
+  ActivityViewer = 'activity-viewer',
+  ActivityManager = 'activity-manager',
+  ProgramViewer = 'program-viewer',
+  ProgramManager = 'program-manager',
+}

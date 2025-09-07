@@ -1,0 +1,50 @@
+name: Proposition de fonctionnalité
+description: Proposer une nouvelle fonctionnalité ou amélioration
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de proposer cette amélioration ! Décrivez votre idée le plus clairement possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problème
+      description: Quel problème cette fonctionnalité résoudrait-elle ?
+      placeholder: "Je suis souvent frustré quand..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Solution proposée
+      description: Décrivez la solution que vous aimeriez voir.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives envisagées
+      description: Avez-vous envisagé d'autres approches ?
+
+  - type: dropdown
+    id: feature-area
+    attributes:
+      label: Domaine fonctionnel
+      options:
+        - Territoires
+        - Proclamateurs
+        - Tableau d'affichage
+        - Evénements / Programme
+        - Paramètres
+        - Authentification
+        - Autre
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexte additionnel
+      description: Tout autre contexte utile (maquettes, captures d'écran, exemples d'autres outils).

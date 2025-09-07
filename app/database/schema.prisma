@@ -1,0 +1,311 @@
+generator client {
+  provider = "prisma-client"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Congregation {
+  id              Int     @id @default(autoincrement())
+  name            String
+  slug            String  @unique
+  domain          String? @unique
+  displayName     String?
+  emailFromName   String?
+  emailFromAddress String?
+  baseUrl         String?
+  locale          String  @default("fr")
+  timezone        String  @default("Europe/Paris")
+  active          Boolean @default(true)
+
+  // Plan & limits (null = unlimited, written by control plane)
+  plan              String?
+  maxPublishers     Int?
+  maxTerritories    Int?
+  maxUsers          Int?
+  maxStorageBytes   BigInt?
+  maxBoardDocuments Int?
+  trialEndsAt       DateTime?
+  suspendedAt       DateTime?
+  suspendedReason   String?
+
+  // Stripe references (only used by control plane)
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  users              User[]
+  territories        Territory[]
+  buildings          Building[]
+  buildingEntrances  BuildingEntrance[]
+  attributions       Attribution[]
+  publisherGroups    PublisherGroup[]
+  publisherActivities PublisherActivity[]
+  boardSections      BoardSection[]
+  boardDocuments     BoardDocument[]
+  events             Event[]
+  eventKinds         EventKind[]
+  settings           Setting[]
+  userRoles          CongregationUserRole[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  firstname String?
+  lastname  String?
+  email     String     @unique
+  password  String
+  active        Boolean    @default(true)
+  platformAdmin Boolean    @default(false)
+  congregationRoles CongregationUserRole[]
+
+  isPublisher Boolean   @default(false)
+  type        String    @default("normal")
+  isMale      Boolean?
+  phone       String?
+  address     String?
+  birthDate   DateTime?
+  baptismDate DateTime?
+  isHelder    Boolean   @default(false)
+  isServant   Boolean   @default(false)
+  isAnointed  Boolean   @default(false)
+
+  publisherGroupId Int?
+  publisherGroup   PublisherGroup? @relation("group", fields: [publisherGroupId], references: [id])
+  responsibleFor   PublisherGroup? @relation("groupResponsible")
+  deputyFor        PublisherGroup? @relation("groupDeputy")
+
+  attributions  Attribution[]       @relation("publisher")
+  activities    PublisherActivity[] @relation("publisherActivity")
+  eventsCreated Event[]             @relation("createdBy")
+
+  documentsViewed     BoardDocument[]      @relation("viewedBy")
+  passwordResetTokens PasswordResetToken[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model UserRole {
+  id          Int    @id @default(autoincrement())
+  key         String @unique
+  description String @default("")
+  congregationRoles CongregationUserRole[]
+}
+
+model CongregationUserRole {
+  id             Int          @id @default(autoincrement())
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  role           UserRole     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId         Int
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@unique([userId, roleId, congregationId])
+}
+
+model BoardSection {
+  id        Int             @id @default(autoincrement())
+  name      String
+  order     Int?
+  documents BoardDocument[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model BoardDocument {
+  id            Int          @id @default(autoincrement())
+  title         String
+  uri           String?
+  section       BoardSection @relation(fields: [sectionId], references: [id])
+  sectionId     Int
+  order         Int?
+  type          String?
+  visibleFrom   DateTime?
+  visibleUntil  DateTime?
+  viewedBy      User[]       @relation("viewedBy")
+  isHighlighted Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model Territory {
+  id           Int                @id @default(autoincrement())
+  number       String
+  type         String             @default("doors-to-doors")
+  notes        String             @default("")
+  attributions Attribution[]      @relation("territory")
+  entrances    BuildingEntrance[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model Attribution {
+  id          Int       @id @default(autoincrement())
+  type        String    @default("default")
+  publisher   User      @relation("publisher", fields: [publisherId], references: [id])
+  territory   Territory @relation("territory", fields: [territoryId], references: [id])
+  publisherId Int
+  territoryId Int
+  startDate   DateTime  @default(now())
+  endDate     DateTime?
+  lateDate    DateTime
+  notes       String    @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model BuildingEntrance {
+  id          Int         @id @default(autoincrement())
+  territories Territory[]
+  buildings   Building[]
+
+  access        Int?
+  isPMR         Boolean?
+  isOpenEarly   Boolean?
+  isMailboxOpen Boolean?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model Building {
+  id          Int      @id @default(autoincrement())
+  number      String
+  street      String
+  zip         String
+  latitude    Float?
+  longitude   Float?
+  active      Boolean  @default(true)
+  inTerritory Boolean  @default(true)
+  inOpenData  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  homes           Int?
+  phones          Int?
+  liberals        Int?
+  hasShops        Boolean?
+  shopKind        String            @default("")
+  hasCampus       Boolean?
+  hasHotel        Boolean?
+  hasLandromat    Boolean?
+  prospectionDate DateTime?
+  entranceId      Int?
+  entrance        BuildingEntrance? @relation(fields: [entranceId], references: [id])
+
+  notes          String @default("")
+  importantNotes String @default("")
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([number, street, zip, congregationId], name: "address")
+}
+
+model Setting {
+  id    Int    @id @default(autoincrement())
+  key   String
+  value String
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([key, congregationId])
+}
+
+model PublisherGroup {
+  id            Int    @id @default(autoincrement())
+  name          String
+  adress        String
+  members       User[] @relation("group")
+  responsible   User   @relation("groupResponsible", fields: [responsibleId], references: [id])
+  responsibleId Int    @unique
+  deputy        User   @relation("groupDeputy", fields: [deputyId], references: [id])
+  deputyId      Int    @unique
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model PublisherActivity {
+  id          Int  @id @default(autoincrement())
+  month       Int
+  year        Int
+  publisher   User @relation("publisherActivity", fields: [publisherId], references: [id])
+  publisherId Int
+
+  hours       Int?
+  studies     Int     @default(0)
+  type        String  @default("normal")
+  isPublisher Boolean @default(false)
+  notes       String  @default("")
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@index([publisherId, month, year], name: "activityId")
+}
+
+model Event {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String     @default("")
+  kind        EventKind? @relation("kind", fields: [kindId], references: [id])
+  kindId      Int?
+  startDate   DateTime
+  endDate     DateTime
+
+  createdBy   User     @relation("createdBy", fields: [createdById], references: [id])
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model EventKind {
+  id      Int    @id @default(autoincrement())
+  name    String
+  key     String
+  color   String
+  weekDay Int?
+
+  events Event[] @relation("kind")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([key, congregationId])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
