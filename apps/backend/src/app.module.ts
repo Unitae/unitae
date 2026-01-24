@@ -16,7 +16,7 @@ import { User } from './users/user.entity';
       type: 'sqlite',
       database: 'database.sqlite',
       entities: [User],
-      synchronize: true, // Don't use this in production
+      synchronize: process.env.NODE_ENV !== 'production',
     }),
     AuthModule,
     UsersModule,
