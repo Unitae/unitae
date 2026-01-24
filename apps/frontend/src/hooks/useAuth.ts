@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { authService, LoginCredentials, RegisterCredentials } from '@/services/auth.service';
+import { authService, type LoginCredentials, type RegisterCredentials } from '@/services/auth.service';
 import { useNavigate } from 'react-router-dom';
 
 export function useAuth() {
