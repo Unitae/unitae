@@ -164,6 +164,9 @@ importers:
       replicache:
         specifier: ^15.3.0
         version: 15.3.0
+      replicache-react:
+        specifier: ^6.0.0
+        version: 6.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       tailwind-merge:
         specifier: ^3.4.0
         version: 3.4.0
@@ -3607,6 +3610,12 @@ packages:
 
   reflect-metadata@0.2.2:
     resolution: {integrity: sha512-urBwgfrvVP/eAyXx4hluJivBKzuEbSQs9rKWCrCkbSxNv8mxPcUZKeuoF3Uy4mJl3Lwprp6yy5/39VWigZ4K6Q==}
+
+  replicache-react@6.0.0:
+    resolution: {integrity: sha512-ozZAqweKyePtoxQvKiXDJ0ghyxflSuqYR0pxli7kWXsBe3dundgnmL/PkqbcnDBba9i/SwBPplzrRKl/Nqe5Og==}
+    peerDependencies:
+      react: ^19.0.0
+      react-dom: ^19.0.0
 
   replicache@15.3.0:
     resolution: {integrity: sha512-XE9NbpG5bVuJNcj61vzbZBwesNx9q51l6/o0J8wT4v1YZhKoqj9GExwc3pLUYSi/AyrQtkX44wOyrSMLHzFIaA==}
@@ -8094,6 +8103,11 @@ snapshots:
   readdirp@4.1.2: {}
 
   reflect-metadata@0.2.2: {}
+
+  replicache-react@6.0.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+    dependencies:
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
 
   replicache@15.3.0:
     dependencies:

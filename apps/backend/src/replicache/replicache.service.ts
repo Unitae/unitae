@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { ReplicacheClient } from './replicache-client.entity';
 import { ReplicacheSpaceVersion } from './replicache-space-version.entity';
 import { PullRequestDto, PushRequestDto } from './dto/replicache.dto';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class ReplicacheService {
@@ -12,6 +13,7 @@ export class ReplicacheService {
     private replicacheClientRepository: Repository<ReplicacheClient>,
     @InjectRepository(ReplicacheSpaceVersion)
     private spaceVersionRepository: Repository<ReplicacheSpaceVersion>,
+    private usersService: UsersService,
   ) {}
 
   async pull(userId: string, pullRequest: PullRequestDto) {
@@ -29,11 +31,24 @@ export class ReplicacheService {
     const lastPulledVersion = pullRequest.cookie?.version || 0;
 
     // Return changes since last pull
-    // In a real implementation, you would query your data entities here
-    // and return only the changes since lastPulledVersion
     const patch: any[] = [];
 
-    // Example: Add your data entities here
+    // Include user profile if it has been updated
+    const user = await this.usersService.findByIdWithMinVersion(userId, lastPulledVersion);
+    if (user) {
+      patch.push({
+        op: 'put',
+        key: `user/${user.id}`,
+        value: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          version: user.version,
+        },
+      });
+    }
+
+    // Example: Add your other data entities here
     // const items = await this.itemsRepository.find({
     //   where: { userId, version: MoreThan(lastPulledVersion) }
     // });
@@ -82,6 +97,9 @@ export class ReplicacheService {
     // Handle different mutation types
     // This is where you would implement your business logic
     switch (mutation.name) {
+      case 'updateUser':
+        await this.handleUpdateUser(userId, mutation.args);
+        break;
       case 'createItem':
         // Example: await this.itemsService.create(userId, mutation.args);
         break;
@@ -94,6 +112,17 @@ export class ReplicacheService {
       default:
         console.warn(`Unknown mutation: ${mutation.name}`);
     }
+  }
+
+  private async handleUpdateUser(userId: string, args: any) {
+    // Get the new space version for this update
+    const spaceId = `user-${userId}`;
+    const newVersion = await this.getSpaceVersion(spaceId) + 1;
+
+    // Update the user with the new version
+    await this.usersService.update(userId, {
+      name: args.name,
+    }, newVersion);
   }
 
   private async getOrCreateClient(

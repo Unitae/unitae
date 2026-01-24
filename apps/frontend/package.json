@@ -19,6 +19,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
     "replicache": "^15.3.0",
+    "replicache-react": "^6.0.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

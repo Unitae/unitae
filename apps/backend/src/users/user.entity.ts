@@ -14,6 +14,9 @@ export class User {
   @Column({ nullable: true })
   name: string;
 
+  @Column({ type: 'integer', default: 1 })
+  version: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

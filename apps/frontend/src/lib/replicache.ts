@@ -1,4 +1,4 @@
-import { Replicache } from 'replicache';
+import { Replicache, type WriteTransaction } from 'replicache';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -7,21 +7,40 @@ function getAuthToken(): string | null {
   return localStorage.getItem('token');
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  version: number;
+}
+
+export type ReplicacheMutators = {
+  updateUser: (tx: WriteTransaction, updates: { name?: string }) => Promise<void>;
+};
+
 export function createReplicache(userId: string) {
-  return new Replicache({
+  const rep = new Replicache({
     name: `user-${userId}`,
     licenseKey: import.meta.env.VITE_REPLICACHE_LICENSE_KEY || '',
     
     // Define your mutators here
     mutators: {
-      // Example mutators - customize based on your data model
+      // Update user profile
+      updateUser: async (tx: WriteTransaction, updates: { name?: string }) => {
+        const user = (await tx.get(`user/${userId}`)) as User | undefined;
+        if (user) {
+          await tx.set(`user/${userId}`, { ...user, ...updates });
+        }
+      },
+
+      // Example mutators for other data - customize based on your data model
       // async createItem(tx, item) {
-      //   await tx.put(`item/${item.id}`, item);
+      //   await tx.set(`item/${item.id}`, item);
       // },
       // async updateItem(tx, { id, ...updates }) {
       //   const item = await tx.get(`item/${id}`);
       //   if (item) {
-      //     await tx.put(`item/${id}`, { ...item, ...updates });
+      //     await tx.set(`item/${id}`, { ...item, ...updates });
       //   }
       // },
       // async deleteItem(tx, id) {
@@ -75,6 +94,10 @@ export function createReplicache(userId: string) {
       return await response.json();
     },
   });
+
+  return rep as typeof rep & {
+    mutate: ReplicacheMutators;
+  };
 }
 
 // Hook to use Replicache in components
@@ -84,7 +107,7 @@ export function createReplicache(userId: string) {
 //
 // export function useReplicache() {
 //   const { user } = useAuth();
-//   const [rep, setRep] = useState<Replicache | null>(null);
+//   const [rep, setRep] = useState<ReturnType<typeof createReplicache> | null>(null);
 //
 //   useEffect(() => {
 //     if (user) {
