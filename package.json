@@ -1,0 +1,27 @@
+{
+  "name": "unitae",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Local-first application with authentication",
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r clean && rm -rf node_modules"
+  },
+  "keywords": [
+    "monorepo",
+    "nestjs",
+    "react",
+    "replicache",
+    "local-first"
+  ],
+  "author": "Unitae",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@10.28.1"
+}
