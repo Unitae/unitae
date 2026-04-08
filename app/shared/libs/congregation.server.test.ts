@@ -38,13 +38,13 @@ const baseCongregation = {
 
 describe('resolveCongregation', () => {
   it('lance une erreur si la congrégation n\'existe pas', async () => {
-    vi.mocked(db.congregation.findUnique).mockResolvedValue(null)
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
 
     await expect(resolveCongregation(999)).rejects.toThrow('Congregation 999 not found')
   })
 
   it('utilise le nom comme displayName par défaut', async () => {
-    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation)
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
     expect(result.displayName).toBe('Congrégation Test')
@@ -54,14 +54,14 @@ describe('resolveCongregation', () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue({
       ...baseCongregation,
       displayName: 'Nom affiché',
-    })
+    } as never)
 
     const result = await resolveCongregation(1)
     expect(result.displayName).toBe('Nom affiché')
   })
 
   it('utilise l\'email par défaut quand emailFromAddress est null', async () => {
-    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation)
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
     expect(result.emailFrom).toBe('Unitae <noreply@unitae.app>')
@@ -72,7 +72,7 @@ describe('resolveCongregation', () => {
       ...baseCongregation,
       emailFromName: 'Ma Congré',
       emailFromAddress: 'contact@congregation.org',
-    })
+    } as never)
 
     const result = await resolveCongregation(1)
     expect(result.emailFrom).toBe('Ma Congré <contact@congregation.org>')
@@ -82,14 +82,14 @@ describe('resolveCongregation', () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue({
       ...baseCongregation,
       emailFromAddress: 'contact@test.org',
-    })
+    } as never)
 
     const result = await resolveCongregation(1)
     expect(result.emailFrom).toBe('Congrégation Test <contact@test.org>')
   })
 
   it('construit le baseUrl à partir du slug quand baseUrl est null', async () => {
-    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation)
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
     expect(result.baseUrl).toBe('https://test.unitae.app')
@@ -99,7 +99,7 @@ describe('resolveCongregation', () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue({
       ...baseCongregation,
       baseUrl: 'https://custom.example.com',
-    })
+    } as never)
 
     const result = await resolveCongregation(1)
     expect(result.baseUrl).toBe('https://custom.example.com')
@@ -114,7 +114,7 @@ describe('resolveCongregation', () => {
       maxUsers: 10,
       maxStorageBytes: 1000000n,
       maxBoardDocuments: 25,
-    })
+    } as never)
 
     const result = await resolveCongregation(1)
     expect(result.plan).toBe('pro')
@@ -131,7 +131,7 @@ describe('resolveCongregation', () => {
       ...baseCongregation,
       suspendedAt: suspendedDate,
       suspendedReason: 'Impayé',
-    })
+    } as never)
 
     const result = await resolveCongregation(1)
     expect(result.suspendedAt).toBe(suspendedDate)
@@ -141,7 +141,7 @@ describe('resolveCongregation', () => {
 
 describe('getCongregationFromContext', () => {
   it('retourne null quand le contexte n\'est pas défini', () => {
-    vi.mocked(congregationContext.getStore).mockReturnValue(undefined)
+    vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
 
     expect(getCongregationFromContext()).toBeNull()
   })
@@ -151,7 +151,7 @@ describe('getCongregationFromContext', () => {
     vi.mocked(congregationContext.getStore).mockReturnValue({
       congregationId: 1,
       congregation: fakeCongregation,
-    })
+    } as never)
 
     expect(getCongregationFromContext()).toBe(fakeCongregation)
   })
@@ -167,7 +167,7 @@ describe('getCongregationFromContext', () => {
 
 describe('requireCongregation', () => {
   it('lance une erreur quand le contexte n\'est pas défini', () => {
-    vi.mocked(congregationContext.getStore).mockReturnValue(undefined)
+    vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
 
     expect(() => requireCongregation()).toThrow('Congregation context is required but not set')
   })
@@ -177,7 +177,7 @@ describe('requireCongregation', () => {
     vi.mocked(congregationContext.getStore).mockReturnValue({
       congregationId: 1,
       congregation: fakeCongregation,
-    })
+    } as never)
 
     expect(requireCongregation()).toBe(fakeCongregation)
   })

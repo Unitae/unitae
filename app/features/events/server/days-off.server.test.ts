@@ -37,8 +37,8 @@ describe('createDayOff', () => {
 
   it('crée un événement quand les dates sont valides', async () => {
     const fakeEvent = { id: 1, name: 'Absence' }
-    vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' })
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent)
+    vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' } as never)
+    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
     expect(result).toEqual(fakeEvent)
@@ -47,8 +47,8 @@ describe('createDayOff', () => {
   it('crée un événement même quand startDate == endDate', async () => {
     const sameDate = new Date(2025, 3, 8)
     const fakeEvent = { id: 2, name: 'Absence' }
-    vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' })
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent)
+    vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' } as never)
+    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(1, sameDate, sameDate, 1)
     expect(result).toEqual(fakeEvent)
@@ -56,8 +56,8 @@ describe('createDayOff', () => {
 
   it('crée l\'événement même sans eventKind trouvé', async () => {
     const fakeEvent = { id: 3, name: 'Absence' }
-    vi.mocked(db.eventKind.findFirst).mockResolvedValue(null)
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent)
+    vi.mocked(db.eventKind.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
     expect(result).toEqual(fakeEvent)

@@ -33,19 +33,19 @@ beforeEach(() => {
 
 describe('verifyPlatformAdmin', () => {
   it('retourne userId et email pour un admin plateforme', async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42'))
+    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({
       id: 42,
       email: 'admin@unitae.app',
       platformAdmin: true,
-    })
+    } as never)
 
     const result = await verifyPlatformAdmin(makeRequest())
     expect(result).toEqual({ userId: 42, email: 'admin@unitae.app' })
   })
 
   it('lance une redirection vers /login quand le userId est invalide', async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession(undefined))
+    vi.mocked(getSession).mockResolvedValue(makeSession(undefined) as never)
 
     try {
       await verifyPlatformAdmin(makeRequest())
@@ -58,12 +58,12 @@ describe('verifyPlatformAdmin', () => {
   })
 
   it('lance une redirection vers / quand l\'utilisateur n\'est pas admin plateforme', async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42'))
+    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({
       id: 42,
       email: 'user@test.com',
       platformAdmin: false,
-    })
+    } as never)
 
     try {
       await verifyPlatformAdmin(makeRequest())
@@ -76,8 +76,8 @@ describe('verifyPlatformAdmin', () => {
   })
 
   it('lance une redirection vers / quand l\'utilisateur n\'existe pas', async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42'))
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null)
+    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
+    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null as never)
 
     try {
       await verifyPlatformAdmin(makeRequest())

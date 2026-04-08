@@ -11,7 +11,7 @@ const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.building.update).mockResolvedValue({ id: 1 })
+  vi.mocked(db.building.update).mockResolvedValue({ id: 1 } as never)
 })
 
 function makeFormData(entries: Record<string, string>) {

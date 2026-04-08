@@ -21,12 +21,12 @@ const { getTerritoryPolygon } = await import('./get-territory-polygon.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: false })
+  vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: false } as never)
 })
 
 describe('editBuilding', () => {
   it('met à jour un bâtiment sans coordonnées (inTerritory = true par défaut)', async () => {
-    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true })
+    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true } as never)
 
     await editBuilding(1, {
       address: { number: '12', street: 'Rue Test', zip: '75001' },
@@ -37,9 +37,9 @@ describe('editBuilding', () => {
   })
 
   it('vérifie les coordonnées contre le polygone du territoire', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([[0, 0], [0, 10], [10, 10], [10, 0]])
-    vi.mocked(pointInPolygon).mockReturnValue(true)
-    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true })
+    vi.mocked(getTerritoryPolygon).mockResolvedValue([[0, 0], [0, 10], [10, 10], [10, 0]] as never)
+    vi.mocked(pointInPolygon).mockReturnValue(true as never)
+    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true } as never)
 
     const result = await editBuilding(1, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
@@ -50,7 +50,7 @@ describe('editBuilding', () => {
   })
 
   it('ne vérifie pas le polygone avec coordonnées partielles', async () => {
-    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true })
+    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true } as never)
 
     await editBuilding(1, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
@@ -62,8 +62,8 @@ describe('editBuilding', () => {
   })
 
   it('considère le bâtiment dans le territoire quand le polygone est vide (non configuré)', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([])
-    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true })
+    vi.mocked(getTerritoryPolygon).mockResolvedValue([] as never)
+    vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true } as never)
 
     await editBuilding(1, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },

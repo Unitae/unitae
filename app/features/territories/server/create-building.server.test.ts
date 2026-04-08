@@ -21,12 +21,12 @@ const { getTerritoryPolygon } = await import('./get-territory-polygon.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.building.create).mockResolvedValue({ id: 1, inTerritory: false })
+  vi.mocked(db.building.create).mockResolvedValue({ id: 1, inTerritory: false } as never)
 })
 
 describe('createBuilding', () => {
   it('crée un bâtiment sans coordonnées (inTerritory = true par défaut)', async () => {
-    vi.mocked(db.building.create).mockResolvedValue({ id: 1, inTerritory: true })
+    vi.mocked(db.building.create).mockResolvedValue({ id: 1, inTerritory: true } as never)
 
     const result = await createBuilding({
       address: { number: '12', street: 'Rue Test', zip: '75001' },
@@ -39,9 +39,9 @@ describe('createBuilding', () => {
   })
 
   it('vérifie les coordonnées contre le polygone du territoire', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([[0, 0], [0, 10], [10, 10], [10, 0]])
-    vi.mocked(pointInPolygon).mockReturnValue(true)
-    vi.mocked(db.building.create).mockResolvedValue({ id: 2, inTerritory: true })
+    vi.mocked(getTerritoryPolygon).mockResolvedValue([[0, 0], [0, 10], [10, 10], [10, 0]] as never)
+    vi.mocked(pointInPolygon).mockReturnValue(true as never)
+    vi.mocked(db.building.create).mockResolvedValue({ id: 2, inTerritory: true } as never)
 
     const result = await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },
@@ -75,8 +75,8 @@ describe('createBuilding', () => {
   })
 
   it('considère le bâtiment dans le territoire quand le polygone est vide (non configuré)', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([])
-    vi.mocked(db.building.create).mockResolvedValue({ id: 4, inTerritory: true })
+    vi.mocked(getTerritoryPolygon).mockResolvedValue([] as never)
+    vi.mocked(db.building.create).mockResolvedValue({ id: 4, inTerritory: true } as never)
 
     await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },
@@ -89,9 +89,9 @@ describe('createBuilding', () => {
   })
 
   it('marque inTerritory false quand le point est hors du polygone', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([[0, 0], [0, 10], [10, 10], [10, 0]])
-    vi.mocked(pointInPolygon).mockReturnValue(false)
-    vi.mocked(db.building.create).mockResolvedValue({ id: 3, inTerritory: false })
+    vi.mocked(getTerritoryPolygon).mockResolvedValue([[0, 0], [0, 10], [10, 10], [10, 0]] as never)
+    vi.mocked(pointInPolygon).mockReturnValue(false as never)
+    vi.mocked(db.building.create).mockResolvedValue({ id: 3, inTerritory: false } as never)
 
     const result = await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },

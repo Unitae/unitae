@@ -6,7 +6,7 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
 }))
 
-const { findTerritoriesWithDetailsPaginated, findAvailableTerritoriesPaginated } = await import('./territories.ts')
+const { findTerritoriesWithDetailsPaginated, findAvailableTerritoriesPaginated } = await import('./territories')
 const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
@@ -15,8 +15,8 @@ beforeEach(() => {
 
 describe('findTerritoriesWithDetailsPaginated', () => {
   it('retourne les territoires avec pagination', async () => {
-    vi.mocked(db.territory.count).mockResolvedValue(50)
-    vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 1 }, { id: 2 }])
+    vi.mocked(db.territory.count).mockResolvedValue(50 as never)
+    vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 1 }, { id: 2 }] as never)
 
     const result = await findTerritoriesWithDetailsPaginated({}, new URL('http://localhost/?page=1&pageSize=25'))
 
@@ -26,8 +26,8 @@ describe('findTerritoriesWithDetailsPaginated', () => {
   })
 
   it('retourne un résultat vide quand il n\'y a pas de territoires', async () => {
-    vi.mocked(db.territory.count).mockResolvedValue(0)
-    vi.mocked(db.territory.findMany).mockResolvedValue([])
+    vi.mocked(db.territory.count).mockResolvedValue(0 as never)
+    vi.mocked(db.territory.findMany).mockResolvedValue([] as never)
 
     const result = await findTerritoriesWithDetailsPaginated({}, new URL('http://localhost/'))
 
@@ -38,8 +38,8 @@ describe('findTerritoriesWithDetailsPaginated', () => {
 
 describe('findAvailableTerritoriesPaginated', () => {
   it('retourne les territoires disponibles avec pagination', async () => {
-    vi.mocked(db.territory.count).mockResolvedValue(10)
-    vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 3 }])
+    vi.mocked(db.territory.count).mockResolvedValue(10 as never)
+    vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 3 }] as never)
 
     const result = await findAvailableTerritoriesPaginated({}, new URL('http://localhost/'))
 

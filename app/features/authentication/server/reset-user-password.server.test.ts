@@ -7,7 +7,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 }))
 
 vi.mock('~/shared/libs/crypto.server', () => ({
-  hash: vi.fn().mockResolvedValue('new-hashed-password'),
+  hash: vi.fn().mockResolvedValue('new-hashed-password' as never),
 }))
 
 const { resetUserPassword } = await import('./reset-user-password.server')
@@ -15,7 +15,7 @@ const { unscopedDb: db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.user.update).mockResolvedValue({})
+  vi.mocked(db.user.update).mockResolvedValue({} as never)
 })
 
 describe('resetUserPassword', () => {

@@ -24,12 +24,12 @@ const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.buildingEntrance.deleteMany).mockResolvedValue({ count: 0 })
+  vi.mocked(db.buildingEntrance.deleteMany).mockResolvedValue({ count: 0 } as never)
 })
 
 describe('updateBuildingsInEntrance', () => {
   it('ne fait rien si l\'entrée n\'existe pas', async () => {
-    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue(null)
+    vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue(null as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
@@ -47,18 +47,18 @@ describe('updateBuildingsInEntrance', () => {
       isPMR: false,
       isOpenEarly: false,
       buildings: [{ id: 1 }, { id: 2 }, { id: 3 }],
-    })
+    } as never)
 
     // $transaction exécute le callback
-    vi.mocked(db.$transaction).mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
+    vi.mocked(db.$transaction).mockImplementation((async (fn: (tx: unknown) => Promise<void>) => {
       const tx = {
         buildingEntrance: {
-          update: vi.fn().mockResolvedValue({}),
-          createMany: vi.fn().mockResolvedValue({}),
+          update: vi.fn().mockResolvedValue({} as never),
+          createMany: vi.fn().mockResolvedValue({} as never),
         },
       }
       await fn(tx)
-    })
+    }) as never)
 
     // buildingIds [1, 4] → ajouter 4, déconnecter 2 et 3
     await updateBuildingsInEntrance(10, [1, 4], 1)
@@ -76,17 +76,17 @@ describe('updateBuildingsInEntrance', () => {
       isPMR: false,
       isOpenEarly: false,
       buildings: [{ id: 1 }],
-    })
+    } as never)
 
-    vi.mocked(db.$transaction).mockImplementation(async (fn: (tx: unknown) => Promise<void>) => {
+    vi.mocked(db.$transaction).mockImplementation((async (fn: (tx: unknown) => Promise<void>) => {
       const tx = {
         buildingEntrance: {
-          update: vi.fn().mockResolvedValue({}),
-          createMany: vi.fn().mockResolvedValue({}),
+          update: vi.fn().mockResolvedValue({} as never),
+          createMany: vi.fn().mockResolvedValue({} as never),
         },
       }
       await fn(tx)
-    })
+    }) as never)
 
     await updateBuildingsInEntrance(10, [1], 1)
 
@@ -103,7 +103,7 @@ describe('updateBuildingsInEntrance', () => {
       isPMR: false,
       isOpenEarly: false,
       buildings: [{ id: 1 }],
-    })
+    } as never)
 
     vi.mocked(db.$transaction).mockRejectedValue(new Error('Transaction failed'))
 

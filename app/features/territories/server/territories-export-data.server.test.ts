@@ -17,15 +17,15 @@ const { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } = await im
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(getBeginingDateOfTheocraticYear).mockReturnValue(new Date(2025, 8, 1))
-  vi.mocked(getEndDateOfTheocraticYear).mockReturnValue(new Date(2026, 7, 31))
-  vi.mocked(db.territory.findMany).mockResolvedValue([])
+  vi.mocked(getBeginingDateOfTheocraticYear).mockReturnValue(new Date(2025, 8, 1) as never)
+  vi.mocked(getEndDateOfTheocraticYear).mockReturnValue(new Date(2026, 7, 31) as never)
+  vi.mocked(db.territory.findMany).mockResolvedValue([] as never)
 })
 
 describe('getTerritoriesExportData', () => {
   it('retourne les territoires avec leurs attributions', async () => {
     const fakeTerritories = [{ id: 1, attributions: [] }]
-    vi.mocked(db.territory.findMany).mockResolvedValue(fakeTerritories)
+    vi.mocked(db.territory.findMany).mockResolvedValue(fakeTerritories as never)
 
     const result = await getTerritoriesExportData(2025)
     expect(result).toEqual(fakeTerritories)

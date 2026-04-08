@@ -16,14 +16,14 @@ beforeEach(() => {
 describe('getBuildingDetails', () => {
   it('retourne les détails du bâtiment', async () => {
     const fakeBuilding = { id: 1, number: '12', entrance: { buildings: [], territories: [] } }
-    vi.mocked(db.building.findUnique).mockResolvedValue(fakeBuilding)
+    vi.mocked(db.building.findUnique).mockResolvedValue(fakeBuilding as never)
 
     const result = await getBuildingDetails(1)
     expect(result).toEqual(fakeBuilding)
   })
 
   it('retourne null quand le bâtiment n\'existe pas', async () => {
-    vi.mocked(db.building.findUnique).mockResolvedValue(null)
+    vi.mocked(db.building.findUnique).mockResolvedValue(null as never)
 
     const result = await getBuildingDetails(999)
     expect(result).toBeNull()

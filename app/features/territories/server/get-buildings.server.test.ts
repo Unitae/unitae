@@ -16,14 +16,14 @@ beforeEach(() => {
 describe('getBuildings', () => {
   it('retourne les bâtiments filtrés par code postal et rue', async () => {
     const fakeBuildings = [{ id: 1, zip: '75001', street: 'Rue Test' }]
-    vi.mocked(db.building.findMany).mockResolvedValue(fakeBuildings)
+    vi.mocked(db.building.findMany).mockResolvedValue(fakeBuildings as never)
 
     const result = await getBuildings('75001', 'Rue Test')
     expect(result).toEqual(fakeBuildings)
   })
 
   it('retourne un tableau vide quand aucun bâtiment ne correspond', async () => {
-    vi.mocked(db.building.findMany).mockResolvedValue([])
+    vi.mocked(db.building.findMany).mockResolvedValue([] as never)
 
     const result = await getBuildings('00000', 'Rue Inexistante')
     expect(result).toEqual([])

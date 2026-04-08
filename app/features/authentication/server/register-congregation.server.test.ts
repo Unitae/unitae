@@ -11,7 +11,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 }))
 
 vi.mock('~/shared/libs/crypto.server', () => ({
-  hash: vi.fn().mockResolvedValue('hashed-password'),
+  hash: vi.fn().mockResolvedValue('hashed-password' as never),
 }))
 
 const { registerCongregation } = await import('./register-congregation.server')
@@ -19,13 +19,13 @@ const { unscopedDb: db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.congregation.findUnique).mockResolvedValue(null)
-  vi.mocked(db.user.findUnique).mockResolvedValue(null)
-  vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test-congre' })
-  vi.mocked(db.user.create).mockResolvedValue({ id: 10 })
-  vi.mocked(db.userRole.findUnique).mockResolvedValue({ id: 5, key: 'admin' })
-  vi.mocked(db.congregationUserRole.create).mockResolvedValue({})
-  vi.mocked(db.eventKind.create).mockResolvedValue({})
+  vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
+  vi.mocked(db.user.findUnique).mockResolvedValue(null as never)
+  vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test-congre' } as never)
+  vi.mocked(db.user.create).mockResolvedValue({ id: 10 } as never)
+  vi.mocked(db.userRole.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
+  vi.mocked(db.congregationUserRole.create).mockResolvedValue({} as never)
+  vi.mocked(db.eventKind.create).mockResolvedValue({} as never)
 })
 
 describe('registerCongregation', () => {
@@ -36,7 +36,7 @@ describe('registerCongregation', () => {
   })
 
   it('retourne une erreur si le slug est déjà pris', async () => {
-    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 99, slug: 'test-congre' })
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 99, slug: 'test-congre' } as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
 
@@ -45,7 +45,7 @@ describe('registerCongregation', () => {
   })
 
   it('retourne une erreur si l\'email existe déjà', async () => {
-    vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' })
+    vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
 
@@ -55,7 +55,7 @@ describe('registerCongregation', () => {
 
   it('normalise l\'email en minuscules pour la vérification', async () => {
     // Simule un utilisateur existant avec l'email en minuscules
-    vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' })
+    vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'ADMIN@TEST.COM', 'motdepasse')
 
@@ -63,7 +63,7 @@ describe('registerCongregation', () => {
   })
 
   it('fonctionne même si le rôle admin n\'existe pas', async () => {
-    vi.mocked(db.userRole.findUnique).mockResolvedValue(null)
+    vi.mocked(db.userRole.findUnique).mockResolvedValue(null as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
 

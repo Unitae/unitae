@@ -28,8 +28,8 @@ afterEach(() => {
 
 describe('createPasswordResetToken', () => {
   it('retourne un token non vide', async () => {
-    vi.mocked(db.passwordResetToken.deleteMany).mockResolvedValue({ count: 0 })
-    vi.mocked(db.passwordResetToken.create).mockResolvedValue({ id: 1, token: 'abc', userId: 42, expiresAt: new Date() })
+    vi.mocked(db.passwordResetToken.deleteMany).mockResolvedValue({ count: 0 } as never)
+    vi.mocked(db.passwordResetToken.create).mockResolvedValue({ id: 1, token: 'abc', userId: 42, expiresAt: new Date() } as never)
 
     const token = await createPasswordResetToken(42)
     expect(token).toBeTruthy()
@@ -50,14 +50,14 @@ describe('verifyPasswordResetToken', () => {
       userId: 42,
       expiresAt: futureDate,
       user: fakeUser,
-    })
+    } as never)
 
     const result = await verifyPasswordResetToken('valid-token')
     expect(result).toEqual(fakeUser)
   })
 
   it('retourne null pour un token inexistant', async () => {
-    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null)
+    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null as never)
 
     const result = await verifyPasswordResetToken('inexistant')
     expect(result).toBeNull()
@@ -73,7 +73,7 @@ describe('verifyPasswordResetToken', () => {
       userId: 42,
       expiresAt: pastDate,
       user: { id: 42 },
-    })
+    } as never)
     vi.mocked(db.passwordResetToken.delete).mockResolvedValue({} as never)
 
     const result = await verifyPasswordResetToken('expired-token')
@@ -88,14 +88,14 @@ describe('consumePasswordResetToken', () => {
       token: 'to-consume',
       userId: 42,
       expiresAt: new Date(),
-    })
+    } as never)
     vi.mocked(db.passwordResetToken.delete).mockResolvedValue({} as never)
 
     await expect(consumePasswordResetToken('to-consume')).resolves.toBeUndefined()
   })
 
   it('ne lance pas d\'erreur pour un token inexistant', async () => {
-    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null)
+    vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null as never)
 
     await expect(consumePasswordResetToken('inexistant')).resolves.toBeUndefined()
   })

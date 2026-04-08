@@ -22,23 +22,23 @@ describe('validateCredentials', () => {
   const fakeUser = { id: 42, email: 'test@example.com', password: 'hashed.password', active: true }
 
   it('retourne l\'id de l\'utilisateur pour des identifiants valides', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser)
-    vi.mocked(compare).mockResolvedValue(true)
+    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(compare).mockResolvedValue(true as never)
 
     const result = await validateCredentials('test@example.com', 'motdepasse')
     expect(result).toBe(42)
   })
 
   it('normalise l\'email en minuscules', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser)
-    vi.mocked(compare).mockResolvedValue(true)
+    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(compare).mockResolvedValue(true as never)
 
     const result = await validateCredentials('TEST@EXAMPLE.COM', 'motdepasse')
     expect(result).toBe(42)
   })
 
   it('retourne undefined pour un utilisateur inexistant', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(null)
+    vi.mocked(db.user.findFirst).mockResolvedValue(null as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
@@ -48,7 +48,7 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined pour un utilisateur inactif', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue({ ...fakeUser, active: false })
+    vi.mocked(db.user.findFirst).mockResolvedValue({ ...fakeUser, active: false } as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
@@ -58,8 +58,8 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined pour un mauvais mot de passe', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser)
-    vi.mocked(compare).mockResolvedValue(false)
+    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(compare).mockResolvedValue(false as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
@@ -69,7 +69,7 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined si compare lance une erreur', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser)
+    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockRejectedValue(new Error('crypto error'))
 
     const sentinel = Symbol('sentinel')

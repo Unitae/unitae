@@ -16,7 +16,7 @@ beforeEach(() => {
 describe('setBuildingNotes', () => {
   it('met à jour les notes du bâtiment', async () => {
     const fakeBuilding = { id: 1, notes: 'Nouvelle note', importantNotes: 'Important!' }
-    vi.mocked(db.building.update).mockResolvedValue(fakeBuilding)
+    vi.mocked(db.building.update).mockResolvedValue(fakeBuilding as never)
 
     const result = await setBuildingNotes(1, { notes: 'Nouvelle note', importantNotes: 'Important!' })
     expect(result).toEqual(fakeBuilding)

@@ -15,7 +15,7 @@ beforeEach(() => {
 
 describe('getTerritoryPolygon', () => {
   it('retourne un tableau vide quand le setting n\'existe pas', async () => {
-    vi.mocked(db.setting.findFirst).mockResolvedValue(null)
+    vi.mocked(db.setting.findFirst).mockResolvedValue(null as never)
 
     const result = await getTerritoryPolygon()
     expect(result).toEqual([])
@@ -26,7 +26,7 @@ describe('getTerritoryPolygon', () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue({
       key: 'territory',
       value: JSON.stringify(polygon),
-    })
+    } as never)
 
     const result = await getTerritoryPolygon()
     expect(result).toEqual(polygon)
