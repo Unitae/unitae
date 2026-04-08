@@ -3,7 +3,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { congregationContext, db } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -210,6 +210,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
+  const { congregation } = await verifySession(request)
   const canManageUser = await verifyRole(request, Role.SettingsUserManager)
 
   if (!canManageUser) {
@@ -224,8 +225,6 @@ export async function action({ request, params }: Route.ActionArgs) {
   const roles = form.getAll('roles')
 
   const userId = requireParamId(params.userId, '/settings/users')
-  const ctx = congregationContext.getStore()
-  if (!ctx) throw redirect('/')
 
   await db.user.update({
     where: { id: userId },
@@ -239,7 +238,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // Update congregation-scoped roles: delete existing, create new
   await db.congregationUserRole.deleteMany({
-    where: { userId, congregationId: ctx.congregationId },
+    where: { userId, congregationId: congregation.id },
   })
 
   const roleRecords = await db.userRole.findMany({
@@ -251,7 +250,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       data: roleRecords.map(role => ({
         userId,
         roleId: role.id,
-        congregationId: ctx.congregationId,
+        congregationId: congregation.id,
       })),
     })
   }

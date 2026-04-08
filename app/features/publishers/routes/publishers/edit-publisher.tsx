@@ -91,6 +91,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
+  await verifySession(request)
   const form = await request.formData()
   const firstname = form.get('firstname')
   const lastname = form.get('lastname')

@@ -225,6 +225,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
+  await verifySession(request)
   const previousPage = request.headers.get('referer')
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
 
