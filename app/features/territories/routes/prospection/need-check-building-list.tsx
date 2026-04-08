@@ -30,11 +30,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const prospectionValidity = await getSetting(TerritorySettingKey.ProspectionValidity)
-  const staleDate = new Date()
-  staleDate.setMonth(staleDate.getMonth() - Number(prospectionValidity ?? '0'))
-  const inactiveStaleDate = new Date()
-  inactiveStaleDate.setMonth(inactiveStaleDate.getMonth() - Number(prospectionValidity ?? '0') * 2)
+  const prospectionValidity = Number(await getSetting(TerritorySettingKey.ProspectionValidity) ?? '0')
+  const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
+  if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
+  const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
+  if (prospectionValidity > 0) inactiveStaleDate.setMonth(inactiveStaleDate.getMonth() - prospectionValidity * 2)
   const warningDate = new Date()
   warningDate.setMonth(warningDate.getMonth() - 3)
 
