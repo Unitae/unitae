@@ -2,7 +2,6 @@ import {
   Building2,
   CalendarCheck,
   CalendarOff,
-  Church,
   FileText,
   FolderOpen,
   LayoutGrid,
@@ -147,7 +146,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                 {permissions.canManageSettings && (
                   <>
                     <SidebarNavItem to="/settings/territories" icon={Map} label="Réglages territoires" />
-                    <SidebarNavItem to="/settings/congregation" icon={Church} label="Réglages assemblée" />
+                    <SidebarNavItem to="/settings/congregation" icon={Building2} label="Réglages assemblée" />
                   </>
                 )}
               </SidebarMenu>
