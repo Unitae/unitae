@@ -54,6 +54,7 @@ The project uses [Biome](https://biomejs.dev/) for formatting and linting:
 pnpm build:format    # Auto-format and fix
 pnpm test:lint       # Check linting
 pnpm test:typecheck  # Check TypeScript types
+pnpm test:unit       # Run unit tests
 ```
 
 ### Architecture
@@ -66,6 +67,20 @@ Each feature is organized under `app/features/` with its own segments:
 - `model/` — TypeScript type definitions
 
 Business logic belongs in service functions (`features/*/server/`), not in route loaders/actions.
+
+### Testing
+
+Unit tests use [Vitest](https://vitest.dev/) with co-located test files (`*.server.test.ts` next to source).
+
+- **Black-box testing**: assert on return values and thrown errors, not mock call counts
+- **Mocking**: use `vi.mock()` for external dependencies (`db.server`, `redis.server`, `crypto.server`)
+- Run `pnpm test:unit` before submitting a PR
+
+### Key Patterns
+
+- **Route actions must call `verifySession(request)`** and use the returned `congregation` object for `congregationId`. Do not use `congregationContext.getStore()` in actions — AsyncLocalStorage context can be lost after Prisma queries.
+- **Service functions that create records** should accept `congregationId` as an explicit parameter. Do not use `congregationId: 0 as number`.
+- **File storage** works with both S3 and local filesystem — the driver is selected automatically based on `S3_ENDPOINT`.
 
 ### Commits
 
@@ -88,6 +103,7 @@ docs: update deployment guide
    pnpm build:format
    pnpm test:typecheck
    pnpm test:lint
+   pnpm test:unit
    pnpm build
    ```
 5. **Open a pull request** with a clear description of your changes

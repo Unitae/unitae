@@ -12,7 +12,7 @@ Open-source web application for managing Jehovah's Witnesses congregations. Mana
 
 ## Tech Stack
 
-React Router v7 · TypeScript · PostgreSQL · Prisma 7 · TailwindCSS 4 · Redis · BullMQ · S3-compatible storage
+React Router v7 · TypeScript · PostgreSQL · Prisma 7 · TailwindCSS 4 · Redis · BullMQ · Vitest · S3 or local file storage
 
 ## Quick Start
 
@@ -81,6 +81,9 @@ pnpm start:worker
 | `pnpm build:format` | Format and lint (Biome) |
 | `pnpm test:lint` | Check linting |
 | `pnpm test:typecheck` | TypeScript type checking |
+| `pnpm test:unit` | Run unit tests |
+| `pnpm test:unit:watch` | Run unit tests in watch mode |
+| `pnpm test:unit:coverage` | Run unit tests with coverage |
 | `pnpm prisma migrate deploy` | Apply database migrations |
 | `pnpm prisma db seed` | Seed initial data |
 
@@ -99,11 +102,12 @@ pnpm start:worker
 | `COOKIE_DOMAIN` | No | — | Session cookie domain (set in production) |
 | `LOG_LEVEL` | No | `info` | Winston log level |
 | `RESEND_API_KEY` | No | — | Resend API key for emails |
-| `S3_ENDPOINT` | No | — | S3-compatible storage endpoint |
+| `S3_ENDPOINT` | No | — | S3-compatible storage endpoint. When absent, local filesystem is used |
 | `S3_REGION` | No | `auto` | S3 region |
 | `S3_BUCKET` | No | `unitae` | S3 bucket for file uploads |
 | `S3_ACCESS_KEY` | No | — | S3 access key |
 | `S3_SECRET_KEY` | No | — | S3 secret key |
+| `LOCAL_STORAGE_PATH` | No | `content/uploads` | Local file storage path (used when `S3_ENDPOINT` is absent) |
 
 See [`.env.example`](.env.example) for a complete annotated template.
 
@@ -205,6 +209,7 @@ Before submitting:
 pnpm build:format    # Format code
 pnpm test:typecheck  # Check types
 pnpm test:lint       # Check linting
+pnpm test:unit       # Run unit tests
 ```
 
 ## License
