@@ -188,11 +188,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
       visibleFrom: visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined,
       visibleUntil: visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined,
-      ...(form.has('hightlighted')
-        ? {
-            isHighlighted: isHighlighted,
-          }
-        : {}),
+      isHighlighted,
     },
   })
 
