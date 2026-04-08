@@ -5,7 +5,6 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { saveFile } from '~/features/board/server/document'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
-import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import logger from '~/shared/libs/logger.server'
@@ -133,7 +132,7 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session } = await verifySession(request)
+  const { currentUser, session, congregation } = await verifySession(request)
 
   const canUploadDocument = await verifyRole(request, Role.BoardUploader)
   const canManageBoard = await verifyRole(request, Role.BoardValidator)
@@ -190,7 +189,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/board/documents/new')
   }
 
-  const congregation = requireCongregation()
   const limits = new LimitService(congregation)
   await limits.errorIfWouldGoOverLimit('boardDocuments')
 
@@ -203,7 +201,7 @@ export async function action({ request }: Route.ActionArgs) {
       uri: storageKey,
       sectionId: sectionId,
       order: 0,
-      congregationId: 0 as number,
+      congregationId: congregation.id,
       ...(visibleFrom.getTime() > 0
         ? {
             visibleFrom,

@@ -5,7 +5,7 @@ import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 import { fetchOpenData } from './fetch-open-data.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
-export async function importOpenData(progressCallback: (percent: number) => void = () => {}) {
+export async function importOpenData(congregationId: number, progressCallback: (percent: number) => void = () => {}) {
   const wantedZips = await getAllowedZips()
   const territory = await getTerritoryPolygon()
   await db.building.updateMany({
@@ -48,7 +48,7 @@ export async function importOpenData(progressCallback: (percent: number) => void
               number,
               street,
               zip,
-              congregationId: 0 as number,
+              congregationId,
             },
           },
           create: {
@@ -60,8 +60,8 @@ export async function importOpenData(progressCallback: (percent: number) => void
             inOpenData: true,
             active: isActive,
             inTerritory: isActive,
-            entrance: { create: { congregation: { connect: { id: 0 as number } } } },
-            congregation: { connect: { id: 0 as number } },
+            entrance: { create: { congregation: { connect: { id: congregationId } } } },
+            congregation: { connect: { id: congregationId } },
           },
           update: {
             inTerritory: isActive,

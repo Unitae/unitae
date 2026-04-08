@@ -75,14 +75,14 @@ export default function DaysOffPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session } = await verifySession(request)
+  const { currentUser, session, congregation } = await verifySession(request)
   const formData = await request.formData()
   const startDate = new Date(String(formData.get('start_date')))
   const endDate = new Date(String(formData.get('end_date')))
 
   logger.info(`Creating new days off. User ID: ${currentUser.id}.`)
 
-  const event = createDayOff(currentUser.id, startDate, endDate)
+  const event = createDayOff(currentUser.id, startDate, endDate, congregation.id)
   if (event == null) {
     session.flash('error', `Impossible d'ajouter cette absence. Les dates sont invalides.`)
     logger.info(`Failed to creating new days off. User ID: ${currentUser.id}.`)

@@ -16,22 +16,22 @@ beforeEach(() => {
 
 describe('createDayOff', () => {
   it('retourne null quand startDate est null', async () => {
-    const result = await createDayOff(1, null, new Date(2025, 3, 10))
+    const result = await createDayOff(1, null, new Date(2025, 3, 10), 1)
     expect(result).toBeNull()
   })
 
   it('retourne null quand endDate est null', async () => {
-    const result = await createDayOff(1, new Date(2025, 3, 8), null)
+    const result = await createDayOff(1, new Date(2025, 3, 8), null, 1)
     expect(result).toBeNull()
   })
 
   it('retourne null quand startDate est undefined', async () => {
-    const result = await createDayOff(1, undefined, new Date(2025, 3, 10))
+    const result = await createDayOff(1, undefined, new Date(2025, 3, 10), 1)
     expect(result).toBeNull()
   })
 
   it('retourne null quand startDate > endDate', async () => {
-    const result = await createDayOff(1, new Date(2025, 3, 15), new Date(2025, 3, 10))
+    const result = await createDayOff(1, new Date(2025, 3, 15), new Date(2025, 3, 10), 1)
     expect(result).toBeNull()
   })
 
@@ -40,7 +40,7 @@ describe('createDayOff', () => {
     vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' })
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent)
 
-    const result = await createDayOff(1, new Date(2025, 3, 8), new Date(2025, 3, 10))
+    const result = await createDayOff(1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
     expect(result).toEqual(fakeEvent)
   })
 
@@ -50,7 +50,7 @@ describe('createDayOff', () => {
     vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' })
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent)
 
-    const result = await createDayOff(1, sameDate, sameDate)
+    const result = await createDayOff(1, sameDate, sameDate, 1)
     expect(result).toEqual(fakeEvent)
   })
 
@@ -59,7 +59,7 @@ describe('createDayOff', () => {
     vi.mocked(db.eventKind.findFirst).mockResolvedValue(null)
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent)
 
-    const result = await createDayOff(1, new Date(2025, 3, 8), new Date(2025, 3, 10))
+    const result = await createDayOff(1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
     expect(result).toEqual(fakeEvent)
   })
 })

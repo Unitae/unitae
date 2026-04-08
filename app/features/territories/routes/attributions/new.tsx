@@ -124,7 +124,7 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await verifySession(request)
+  const { congregation } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -153,7 +153,7 @@ export async function action({ request }: Route.ActionArgs) {
       type,
       startDate: new Date(startDateText),
       lateDate: lateDate,
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

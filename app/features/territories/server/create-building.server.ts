@@ -6,9 +6,11 @@ import { getTerritoryPolygon } from './get-territory-polygon.server'
 export async function createBuilding({
   address,
   coordinates = {},
+  congregationId,
 }: {
   address: { number: string; street: string; zip: string }
   coordinates?: { latitude?: number; longitude?: number }
+  congregationId: number
 }): Promise<DetailedBuilding> {
   let isInTerritory = false
   if (coordinates.latitude != null && coordinates.longitude != null) {
@@ -24,8 +26,8 @@ export async function createBuilding({
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
       inTerritory: isInTerritory,
-      entrance: { create: { congregation: { connect: { id: 0 as number } } } },
-      congregation: { connect: { id: 0 as number } },
+      entrance: { create: { congregation: { connect: { id: congregationId } } } },
+      congregation: { connect: { id: congregationId } },
     },
     include: {
       entrance: { include: { buildings: true, territories: true } },

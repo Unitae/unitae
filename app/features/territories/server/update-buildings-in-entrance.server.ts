@@ -1,7 +1,7 @@
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
-export async function updateBuildingsInEntrance(entranceId: number, buildingIds: number[]) {
+export async function updateBuildingsInEntrance(entranceId: number, buildingIds: number[], congregationId: number) {
   const entrance = await db.buildingEntrance.findUnique({
     where: { id: entranceId },
     include: { buildings: true },
@@ -53,7 +53,7 @@ export async function updateBuildingsInEntrance(entranceId: number, buildingIds:
             buildings: {
               connect: { id: disconnectBuildingId },
             },
-            congregationId: 0 as number,
+            congregationId,
           })),
         })
       }

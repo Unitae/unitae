@@ -84,7 +84,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await verifySession(request)
+  const { congregation } = await verifySession(request)
   const canManageSettings = await verifyRole(request, Role.Admin)
 
   if (!canManageSettings) {
@@ -96,7 +96,7 @@ export async function action({ request }: Route.ActionArgs) {
     Boolean(form.get(CongregationSettingKey.AuxiliaryPioneerProfileActivated)),
   )
 
-  await setSetting(CongregationSettingKey.AuxiliaryPioneerProfileActivated, auxiliaryPioneerProfileActivated)
+  await setSetting(CongregationSettingKey.AuxiliaryPioneerProfileActivated, auxiliaryPioneerProfileActivated, congregation.id)
   if (auxiliaryPioneerProfileActivated === 'false') {
     await db.user.updateMany({
       where: {

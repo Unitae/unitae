@@ -4,7 +4,6 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 
@@ -15,7 +14,7 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, congregation } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -48,7 +47,6 @@ export async function action({ request }: Route.ActionArgs) {
 
   const number = `${prefix}${String(count + 1).padStart(3, '0')}`
 
-  const congregation = requireCongregation()
   const limits = new LimitService(congregation)
   await limits.errorIfWouldGoOverLimit('territories')
 
@@ -61,7 +59,7 @@ export async function action({ request }: Route.ActionArgs) {
           .split(',')
           .map(el => ({ id: Number(el) })),
       },
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

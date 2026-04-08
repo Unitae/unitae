@@ -124,7 +124,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, congregation } = await verifySession(request)
   const canManageProspection = await verifyRole(request, Role.ProspectionManager)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
@@ -148,7 +148,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
       try {
-        await updateBuildingsInEntrance(Number(building.entrance?.id), entranceIds)
+        await updateBuildingsInEntrance(Number(building.entrance?.id), entranceIds, congregation.id)
         session.flash('success', 'Le batiment a été correctement modifié')
       } catch (e) {
         logger.error('Error updating building', { error: e, buildingId: params.buildingId })

@@ -109,6 +109,7 @@ export default function NewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const { congregation } = await verifySession(request)
   const previousPage = request.headers.get('referer')
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
 
@@ -155,7 +156,7 @@ export async function action({ request }: Route.ActionArgs) {
           { id: deputyId },
         ],
       },
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

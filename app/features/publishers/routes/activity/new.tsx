@@ -273,7 +273,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session } = await verifySession(request)
+  const { currentUser, session, congregation } = await verifySession(request)
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
   const canManageMyGroupActivity =
     currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
@@ -323,7 +323,7 @@ export async function action({ request }: Route.ActionArgs) {
       hours,
       studies,
       notes: observations,
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

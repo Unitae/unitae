@@ -28,6 +28,7 @@ describe('createBuilding', () => {
   it('crée un bâtiment sans coordonnées (inTerritory = false)', async () => {
     const result = await createBuilding({
       address: { number: '12', street: 'Rue Test', zip: '75001' },
+      congregationId: 1,
     })
 
     expect(result).toEqual({ id: 1, inTerritory: false })
@@ -41,6 +42,7 @@ describe('createBuilding', () => {
     const result = await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
+      congregationId: 1,
     })
 
     expect(result.inTerritory).toBe(true)
@@ -50,6 +52,7 @@ describe('createBuilding', () => {
     await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5 },
+      congregationId: 1,
     })
 
     // getTerritoryPolygon ne devrait pas être appelé car longitude manque
@@ -61,6 +64,7 @@ describe('createBuilding', () => {
     await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { longitude: 5 },
+      congregationId: 1,
     })
 
     expect(vi.mocked(db.building.create)).toBeDefined()
@@ -74,6 +78,7 @@ describe('createBuilding', () => {
     const result = await createBuilding({
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 50, longitude: 50 },
+      congregationId: 1,
     })
 
     expect(result.inTerritory).toBe(false)

@@ -17,7 +17,12 @@ export function getNextDaysOffs(userId: number) {
   })
 }
 
-export async function createDayOff(userId: number, startDate?: Date | null, endDate?: Date | null) {
+export async function createDayOff(
+  userId: number,
+  startDate: Date | null | undefined,
+  endDate: Date | null | undefined,
+  congregationId: number,
+) {
   if (startDate == null || endDate == null) {
     return null
   }
@@ -35,7 +40,7 @@ export async function createDayOff(userId: number, startDate?: Date | null, endD
       endDate,
       createdBy: { connect: { id: userId } },
       name: 'Absence',
-      congregation: { connect: { id: 0 as number } },
+      congregation: { connect: { id: congregationId } },
     },
   })
 }
