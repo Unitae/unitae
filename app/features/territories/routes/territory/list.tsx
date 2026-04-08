@@ -1,4 +1,4 @@
-import { Map, Pencil, Trash2 } from 'lucide-react'
+import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -14,6 +14,7 @@ import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
+
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
@@ -101,7 +102,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <EmptyState
-          icon={Map}
+          icon={MapIcon}
           title="Il n'y a aucun territoire pour le moment !"
           description="Pour ajouter des territoires, utilisez le bouton &laquo; Nouveau territoire &raquo; ou visitez le module de découpage des territoires sur la page de prospection."
         />
@@ -127,88 +128,92 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
       <div className="flex grow flex-col gap-3">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[150px]">Nº</TableHead>
-              <TableHead className="w-[150px] text-center">Type</TableHead>
-              <TableHead className="w-[150px] text-center">Foyer</TableHead>
-              <TableHead className="w-[150px] text-center" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {territories.map(territory => {
-              const attribution = [...territory.attributions].shift()
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nº</TableHead>
+                <TableHead className="text-center">Type</TableHead>
+                <TableHead className="text-center">Foyer</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {territories.map(territory => {
+                const attribution = [...territory.attributions].shift()
 
-              return (
-                <TableRow key={territory.id}>
-                  <TableCell>{territory.number}</TableCell>
-                  <TableCell className="text-center">
-                    {territory.type === TerritoryKind.Classical && 'Porte à porte'}
-                    {territory.type === TerritoryKind.Commerces && 'Commerces'}
-                    {territory.type === TerritoryKind.Phone && 'Téléphones'}
-                    {territory.type === TerritoryKind.Hotel && 'Hôtels'}
-                    {territory.type === TerritoryKind.Univ && 'Universités'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {territory.entrances.reduce(
-                      (countForTerritory, currentEntrance) =>
-                        countForTerritory +
-                        currentEntrance.buildings.reduce(
-                          (countForEntrance, currentBuilding) =>
-                            countForEntrance + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                          0,
-                        ),
-                      0,
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      <TerritoryDownloadLink
-                        territory={territory}
-                        entrances={territory.entrances}
-                        googleMapId={mapId}
-                        googleMapKey={apiKey}
-                        attributionType={attribution?.type as TerritoryAttributionKind}
-                        owner={
-                          attribution
-                            ? `${attribution.publisher.firstname} ${attribution.publisher.lastname
-                                ?.toUpperCase()
-                                .at(0)}.`
-                            : undefined
-                        }
-                        restitutionDate={attribution?.lateDate}
-                        showPhone={!phoneTypeActive}
-                      />
-                      {canManageTerritories && (
-                        <>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to={`./territory/${territory.id}/edit`} title="Modifier le territoire">
-                              <Pencil className="size-4" />
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                            className="text-destructive hover:text-destructive max-sm:hidden"
-                          >
-                            <Link
-                              to={`./territory/${territory.id}/delete`}
-                              title="Supprimer complètement le territoire"
-                            >
-                              <Trash2 className="size-4" />
-                            </Link>
-                          </Button>
-                        </>
+                return (
+                  <TableRow key={territory.id}>
+                    <TableCell>{territory.number}</TableCell>
+                    <TableCell className="text-center">
+                      {territory.type === TerritoryKind.Classical && 'Porte à porte'}
+                      {territory.type === TerritoryKind.Commerces && 'Commerces'}
+                      {territory.type === TerritoryKind.Phone && 'Téléphones'}
+                      {territory.type === TerritoryKind.Hotel && 'Hôtels'}
+                      {territory.type === TerritoryKind.Univ && 'Universités'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {territory.entrances.reduce(
+                        (countForTerritory, currentEntrance) =>
+                          countForTerritory +
+                          currentEntrance.buildings.reduce(
+                            (countForEntrance, currentBuilding) =>
+                              countForEntrance + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
+                            0,
+                          ),
+                        0,
                       )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <TerritoryDownloadLink
+                          territory={territory}
+                          entrances={territory.entrances}
+                          googleMapId={mapId}
+                          googleMapKey={apiKey}
+                          attributionType={attribution?.type as TerritoryAttributionKind}
+                          owner={
+                            attribution
+                              ? `${attribution.publisher.firstname} ${attribution.publisher.lastname
+                                  ?.toUpperCase()
+                                  .at(0)}.`
+                              : undefined
+                          }
+                          restitutionDate={attribution?.lateDate}
+                          showPhone={!phoneTypeActive}
+                        />
+                        {canManageTerritories && (
+                          <>
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link to={`./territory/${territory.id}/edit`} title="Modifier le territoire">
+                                <Pencil className="size-4" />
+                              </Link>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              asChild
+                              className="text-destructive hover:text-destructive max-sm:hidden"
+                            >
+                              <Link
+                                to={`./territory/${territory.id}/delete`}
+                                title="Supprimer complètement le territoire"
+                              >
+                                <Trash2 className="size-4" />
+                              </Link>
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
 
         <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
       </div>

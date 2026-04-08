@@ -24,11 +24,11 @@ export async function saveBoardFile(file: File): Promise<string> {
   return key
 }
 
-export async function getBoardFile(key: string): Promise<{ body: ReadableStream; contentType: string } | null> {
+export function getBoardFile(key: string): Promise<{ body: ReadableStream; contentType: string } | null> {
   return getFile(key)
 }
 
-export async function getBoardFileBuffer(key: string): Promise<Buffer | null> {
+export function getBoardFileBuffer(key: string): Promise<Buffer | null> {
   return getFileBuffer(key)
 }
 

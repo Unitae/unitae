@@ -8,7 +8,7 @@ import { requireParamId } from '~/shared/libs/params.server'
 
 import type { Route } from './+types/enable-building'
 
-export function loader({ request }: Route.LoaderArgs) {
+export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
 }
 

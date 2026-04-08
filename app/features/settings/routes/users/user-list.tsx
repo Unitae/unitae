@@ -8,6 +8,7 @@ import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
+
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -81,73 +82,79 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Prénom</TableHead>
-            <TableHead>Nom</TableHead>
-            <TableHead className="max-sm:hidden">Email</TableHead>
-            <TableHead className="text-center">Proclamateur</TableHead>
-            <TableHead className="text-center max-sm:hidden">Droits</TableHead>
-            <TableHead className="w-[50px]" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map(user => (
-            <TableRow key={user.id}>
-              <TableCell>{user.firstname}</TableCell>
-              <TableCell>{user.lastname?.toLocaleUpperCase()}</TableCell>
-              <TableCell className="max-sm:hidden">{user.email ?? '-'}</TableCell>
-              <TableCell className="text-center">
-                {user.isPublisher ? (
-                  roles.canViewPublishers ? (
-                    <Link
-                      to={`/congregation/publishers/${user.id}/view`}
-                      title="Voir la fiche proclamateur de cet utilisateur"
-                      className="text-primary"
-                    >
-                      <IdCard className="inline size-4" />
-                    </Link>
-                  ) : (
-                    <IdCard className="inline size-4 text-primary" />
-                  )
-                ) : (
-                  roles.canManagePublishers && (
-                    <Form method="POST" action={`./${user.id}/make-publisher`}>
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="icon"
-                        title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
-                      >
-                        <UserPlus className="size-4" />
-                      </Button>
-                    </Form>
-                  )
-                )}
-              </TableCell>
-              <TableCell className="text-center max-sm:hidden">
-                {user.isAdmin ? (
-                  <Badge variant="default" title="Utilisateur ayant les droits administrateur">
-                    <BadgeCheck className="mr-1 size-3" /> Admin
-                  </Badge>
-                ) : user.roles.length > 0 ? (
-                  <Badge variant="secondary" title="Utilisateur qui possède des droits supplémentaires">
-                    <BadgeMinus className="mr-1 size-3" /> Droits
-                  </Badge>
-                ) : null}
-              </TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="icon" asChild>
-                  <Link to={`./${user.id}/edit`}>
-                    <Pencil className="size-4" />
-                  </Link>
-                </Button>
-              </TableCell>
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Prénom</TableHead>
+              <TableHead>Nom</TableHead>
+              <TableHead className="max-sm:hidden">Email</TableHead>
+              <TableHead className="text-center">Proclamateur</TableHead>
+              <TableHead className="text-center max-sm:hidden">Droits</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {users.map(user => (
+              <TableRow key={user.id}>
+                <TableCell>{user.firstname}</TableCell>
+                <TableCell>{user.lastname?.toLocaleUpperCase()}</TableCell>
+                <TableCell className="max-sm:hidden">{user.email ?? '-'}</TableCell>
+                <TableCell className="text-center">
+                  {user.isPublisher ? (
+                    roles.canViewPublishers ? (
+                      <Link
+                        to={`/congregation/publishers/${user.id}/view`}
+                        title="Voir la fiche proclamateur de cet utilisateur"
+                        className="text-primary"
+                      >
+                        <IdCard className="inline size-4" />
+                      </Link>
+                    ) : (
+                      <IdCard className="inline size-4 text-primary" />
+                    )
+                  ) : (
+                    roles.canManagePublishers && (
+                      <Form method="POST" action={`./${user.id}/make-publisher`}>
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="icon"
+                          title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
+                        >
+                          <UserPlus className="size-4" />
+                        </Button>
+                      </Form>
+                    )
+                  )}
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  {user.isAdmin ? (
+                    <Badge variant="default" title="Utilisateur ayant les droits administrateur">
+                      <BadgeCheck className="mr-1 size-3" /> Admin
+                    </Badge>
+                  ) : user.roles.length > 0 ? (
+                    <Badge variant="secondary" title="Utilisateur qui possède des droits supplémentaires">
+                      <BadgeMinus className="mr-1 size-3" /> Droits
+                    </Badge>
+                  ) : null}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link to={`./${user.id}/edit`}>
+                        <Pencil className="size-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

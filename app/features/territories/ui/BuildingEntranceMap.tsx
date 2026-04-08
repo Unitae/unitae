@@ -31,7 +31,9 @@ export default function BuildingEntranceMap({ entrances, apiKey }: { apiKey?: st
                   <GoogleMapMarker
                     key={building.id}
                     position={{
+                      // biome-ignore lint/style/noNonNullAssertion: buildings with map markers always have coordinates
                       lat: building.latitude!,
+                      // biome-ignore lint/style/noNonNullAssertion: buildings with map markers always have coordinates
                       lng: building.longitude!,
                     }}
                   />

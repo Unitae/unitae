@@ -6,7 +6,7 @@ import {
   FolderOpen,
   LayoutGrid,
   LogOut,
-  Map,
+  Map as MapIcon,
   PieChart,
   User,
   UserRoundCog,
@@ -50,6 +50,7 @@ interface AppSidebarProps {
   congregationName?: string
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
 export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
   const showDocuments = permissions.canManageBoard
   const showAssemblee = permissions.canViewPublishers || permissions.canViewPrograms
@@ -61,7 +62,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2 border-sidebar-border border-b px-3 py-4">
-          <span className="truncate font-bold font-display text-lg text-foreground">
+          <span className="truncate font-bold font-display text-foreground text-lg">
             {congregationName || 'Unitae'}
           </span>
         </div>
@@ -122,7 +123,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                   <SidebarNavItem to="/territories/attributions" icon={CalendarCheck} label="Attributions" />
                 )}
                 {permissions.canViewTerritories && (
-                  <SidebarNavItem to="/territories" icon={Map} label="Territoires" end />
+                  <SidebarNavItem to="/territories" icon={MapIcon} label="Territoires" end />
                 )}
                 {permissions.canViewProspection && (
                   <SidebarNavItem to="/territories/buildings" icon={Building2} label="Prospection" />
@@ -145,7 +146,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                 )}
                 {permissions.canManageSettings && (
                   <>
-                    <SidebarNavItem to="/settings/territories" icon={Map} label="Réglages territoires" />
+                    <SidebarNavItem to="/settings/territories" icon={MapIcon} label="Réglages territoires" />
                     <SidebarNavItem to="/settings/congregation" icon={Building2} label="Réglages assemblée" />
                   </>
                 )}

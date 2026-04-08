@@ -10,6 +10,7 @@ import PublisherActivityStats from '~/features/publishers/ui/PublisherActivitySt
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
+
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -159,25 +160,31 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
       <PublisherActivityStats stats={stats} />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
-            <TableHead className="text-center">Nom</TableHead>
-            <TableHead className="text-center">Groupe</TableHead>
-            <TableHead className="text-center max-sm:hidden">Heures</TableHead>
-            <TableHead className="text-center max-sm:hidden">Études</TableHead>
-            <TableHead className="text-center max-sm:hidden">Pionnier</TableHead>
-            <TableHead className="text-center max-sm:hidden">Observations</TableHead>
-            {canManageActivities && <TableHead className="text-center" />}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {publishers.map(publisher => (
-            <PublisherRow key={publisher.id} publisher={publisher} canManageActivities={canManageActivities} />
-          ))}
-        </TableBody>
-      </Table>
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
+              <TableHead className="text-center">Nom</TableHead>
+              <TableHead className="text-center">Groupe</TableHead>
+              <TableHead className="text-center max-sm:hidden">Heures</TableHead>
+              <TableHead className="text-center max-sm:hidden">Études</TableHead>
+              <TableHead className="text-center max-sm:hidden">Pionnier</TableHead>
+              <TableHead className="text-center max-sm:hidden">Observations</TableHead>
+              {canManageActivities && (
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              )}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {publishers.map(publisher => (
+              <PublisherRow key={publisher.id} publisher={publisher} canManageActivities={canManageActivities} />
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
@@ -218,21 +225,23 @@ function PublisherRow({
       <ActivityColumns publisher={publisher} />
 
       {canManageActivities && (
-        <TableCell className="text-center max-sm:text-right">
-          {publisher.lastActivity != null && (
-            <Button asChild variant="ghost" size="icon">
-              <Link to={publisher.editActivityUrl}>
-                <Pencil className="size-4" />
-              </Link>
-            </Button>
-          )}
-          {publisher.lastActivity == null && (
-            <Button asChild variant="ghost" size="icon">
-              <Link to={publisher.newActivityUrl}>
-                <Plus className="size-4" />
-              </Link>
-            </Button>
-          )}
+        <TableCell className="text-right">
+          <div className="flex items-center justify-end gap-1">
+            {publisher.lastActivity != null && (
+              <Button asChild variant="ghost" size="icon">
+                <Link to={publisher.editActivityUrl}>
+                  <Pencil className="size-4" />
+                </Link>
+              </Button>
+            )}
+            {publisher.lastActivity == null && (
+              <Button asChild variant="ghost" size="icon">
+                <Link to={publisher.newActivityUrl}>
+                  <Plus className="size-4" />
+                </Link>
+              </Button>
+            )}
+          </div>
         </TableCell>
       )}
     </TableRow>

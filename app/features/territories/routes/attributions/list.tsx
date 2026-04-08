@@ -15,6 +15,7 @@ import logger from '~/shared/libs/logger.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
+
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
@@ -148,103 +149,110 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
       <div className="flex grow flex-col gap-3">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px] max-sm:w-14 max-sm:text-center">Sortie le</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:w-14">Nº</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:w-14">Proclamateur</TableHead>
-              <TableHead className="w-[250px] text-center max-sm:hidden">Type</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:w-14">Statut</TableHead>
-              <TableHead className="text-center max-sm:hidden">Notes</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:w-12" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {[...attributions]
-              .sort((attrA, attrB) => {
-                const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
-                const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
-                if (aIsLate && !bIsLate) {
-                  return -1
-                }
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Sortie le</TableHead>
+                <TableHead className="text-center">Nº</TableHead>
+                <TableHead className="text-center">Proclamateur</TableHead>
+                <TableHead className="text-center max-sm:hidden">Type</TableHead>
+                <TableHead className="text-center">Statut</TableHead>
+                <TableHead className="max-sm:hidden">Notes</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...attributions]
+                .sort((attrA, attrB) => {
+                  const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
+                  const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
+                  if (aIsLate && !bIsLate) {
+                    return -1
+                  }
 
-                if (!aIsLate && bIsLate) {
-                  return 1
-                }
+                  if (!aIsLate && bIsLate) {
+                    return 1
+                  }
 
-                return 0
-              })
-              .map(attribution => (
-                <TableRow key={attribution.id}>
-                  <TableCell className="max-sm:text-center">
-                    {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
-                    <span className="text-muted-foreground text-xs">
-                      ({((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2)} jours)
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Link to={`/territories/territory/${attribution.territoryId}/edit`} className="hover:text-primary">
-                      {attribution.territory.number}
-                    </Link>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {canViewPublisher ? (
+                  return 0
+                })
+                .map(attribution => (
+                  <TableRow key={attribution.id}>
+                    <TableCell>
+                      {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
+                      <span className="text-muted-foreground text-xs">
+                        ({((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2)} jours)
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
                       <Link
-                        to={`/congregation/publishers/${attribution.publisherId}/view`}
+                        to={`/territories/territory/${attribution.territoryId}/edit`}
                         className="hover:text-primary"
                       >
-                        {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
+                        {attribution.territory.number}
                       </Link>
-                    ) : (
-                      <>
-                        {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
-                      </>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center max-sm:hidden">
-                    {attribution.type === TerritoryAttributionKind.Default && 'Porte à porte'}
-                    {attribution.type === TerritoryAttributionKind.Campaign && 'Campagne de distribution'}
-                    {attribution.type === TerritoryAttributionKind.Phone && 'Téléphones'}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <AttributionStatus attribution={attribution} />
-                  </TableCell>
-                  <TableCell className="text-center max-sm:hidden">
-                    {attribution.notes.length > 0 ? attribution.notes : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-end gap-2">
-                      {canManageTerritories && (
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {canViewPublisher ? (
+                        <Link
+                          to={`/congregation/publishers/${attribution.publisherId}/view`}
+                          className="hover:text-primary"
+                        >
+                          {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
+                        </Link>
+                      ) : (
                         <>
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link to={`./${attribution.id}/edit`}>
-                              <Pencil className="size-4" />
-                            </Link>
-                          </Button>
-                          {attribution.endDate == null && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              asChild
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Link
-                                to={`/territories/attributions/${attribution.id}/delete`}
-                                title="Annuler l'attribution"
-                              >
-                                <X className="size-4" />
-                              </Link>
-                            </Button>
-                          )}
+                          {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                         </>
                       )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                    <TableCell className="text-center max-sm:hidden">
+                      {attribution.type === TerritoryAttributionKind.Default && 'Porte à porte'}
+                      {attribution.type === TerritoryAttributionKind.Campaign && 'Campagne de distribution'}
+                      {attribution.type === TerritoryAttributionKind.Phone && 'Téléphones'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <AttributionStatus attribution={attribution} />
+                    </TableCell>
+                    <TableCell className="max-sm:hidden">
+                      {attribution.notes.length > 0 ? attribution.notes : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canManageTerritories && (
+                          <>
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link to={`./${attribution.id}/edit`}>
+                                <Pencil className="size-4" />
+                              </Link>
+                            </Button>
+                            {attribution.endDate == null && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Link
+                                  to={`/territories/attributions/${attribution.id}/delete`}
+                                  title="Annuler l'attribution"
+                                >
+                                  <X className="size-4" />
+                                </Link>
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
 
         <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
       </div>

@@ -1,4 +1,4 @@
-import { Map, RefreshCw } from 'lucide-react'
+import { Map as MapIcon, RefreshCw } from 'lucide-react'
 import { data, Form, Link, NavLink, Outlet, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -142,7 +142,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
             {canManageTerritories && (
               <Button variant="outline" size="icon" asChild>
                 <Link to="../buildings/split-territories" title="Accéder à l'outil de découpage des territoires">
-                  <Map className="size-4" />
+                  <MapIcon className="size-4" />
                 </Link>
               </Button>
             )}

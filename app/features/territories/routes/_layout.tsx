@@ -30,6 +30,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-export default function BoardLayout({ loaderData }: Route.ComponentProps) {
+export default function BoardLayout() {
   return <Outlet />
 }

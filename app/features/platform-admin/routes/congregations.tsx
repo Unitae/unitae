@@ -5,7 +5,7 @@ import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-pla
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
+
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -48,46 +48,48 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
     <div className="space-y-6">
       <PageHeader title="Congregations" subtitle={`${congregations.length} congregation(s)`} />
 
-      <Card>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead>Slug</TableHead>
-                <TableHead className="text-center">Utilisateurs</TableHead>
-                <TableHead className="text-center">Territoires</TableHead>
-                <TableHead className="text-center">Statut</TableHead>
-                <TableHead className="text-center">Creee le</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {congregations.map(c => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{c.slug}</TableCell>
-                  <TableCell className="text-center">{c.userCount}</TableCell>
-                  <TableCell className="text-center">{c.territoryCount}</TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={c.active ? 'default' : 'destructive'}>{c.active ? 'Active' : 'Inactive'}</Badge>
-                  </TableCell>
-                  <TableCell className="text-center text-muted-foreground">
-                    {new Date(c.createdAt).toLocaleDateString('fr')}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Button variant="ghost" size="icon-xs" asChild>
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead>Slug</TableHead>
+              <TableHead className="text-center">Utilisateurs</TableHead>
+              <TableHead className="text-center">Territoires</TableHead>
+              <TableHead className="text-center">Statut</TableHead>
+              <TableHead className="text-center">Creee le</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {congregations.map(c => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium">{c.name}</TableCell>
+                <TableCell className="text-muted-foreground">{c.slug}</TableCell>
+                <TableCell className="text-center">{c.userCount}</TableCell>
+                <TableCell className="text-center">{c.territoryCount}</TableCell>
+                <TableCell className="text-center">
+                  <Badge variant={c.active ? 'default' : 'destructive'}>{c.active ? 'Active' : 'Inactive'}</Badge>
+                </TableCell>
+                <TableCell className="text-center text-muted-foreground">
+                  {new Date(c.createdAt).toLocaleDateString('fr')}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon" asChild>
                       <Link to={`/platform-admin/congregations/${c.id}/edit`}>
                         <Pencil className="size-4" />
                       </Link>
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

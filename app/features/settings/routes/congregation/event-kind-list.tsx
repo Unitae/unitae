@@ -4,6 +4,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getAllEventType } from '~/features/events/server/event-kind.server'
 import { Badge } from '~/shared/ui/badge'
+
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/event-kind-list'
@@ -36,38 +37,38 @@ export default function EventKindSettingsPage({ loaderData }: Route.ComponentPro
         subtitle="Cette page permet de créer ou de modifier les types d'évènement utilisés dans le module des programmes de l'assemblée"
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead className="text-center max-sm:hidden">Couleur</TableHead>
-            <TableHead className="text-center max-sm:hidden">Jour</TableHead>
-            <TableHead className="w-[50px]" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {kinds.map(kind => (
-            <TableRow key={kind.name}>
-              <TableCell className="font-medium">{kind.name}</TableCell>
-              <TableCell className="text-center max-sm:hidden">
-                {kind.color != null ? (
-                  <span className="inline-block size-5 rounded-full" style={{ backgroundColor: kind.color }} />
-                ) : (
-                  <span className="inline-block size-5 rounded-full bg-muted" />
-                )}
-              </TableCell>
-              <TableCell className="text-center max-sm:hidden">
-                {kind.weekDay != null ? (
-                  <Badge variant="outline">{kind.weekDay}</Badge>
-                ) : (
-                  <span className="text-muted-foreground text-sm">Aucune récurrence</span>
-                )}
-              </TableCell>
-              <TableCell />
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead className="text-center max-sm:hidden">Couleur</TableHead>
+              <TableHead className="text-center max-sm:hidden">Jour</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {kinds.map(kind => (
+              <TableRow key={kind.name}>
+                <TableCell className="font-medium">{kind.name}</TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  {kind.color != null ? (
+                    <span className="inline-block size-5 rounded-full" style={{ backgroundColor: kind.color }} />
+                  ) : (
+                    <span className="inline-block size-5 rounded-full bg-muted" />
+                  )}
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  {kind.weekDay != null ? (
+                    <Badge variant="outline">{kind.weekDay}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Aucune récurrence</span>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

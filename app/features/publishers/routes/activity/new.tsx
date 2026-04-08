@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Activité du proclamateurs - Unitae' }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   const { currentUser } = await verifySession(request)
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
   const canManageMyGroupActivity =

@@ -17,6 +17,7 @@ interface StatsFiltersProps {
   theocraticYear?: number
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: filter component with multiple conditional UI branches
 export default function StatsFilters({
   action,
   phoneTypeActive = false,

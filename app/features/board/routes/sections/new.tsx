@@ -26,7 +26,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return null
 }
 
-export default function NewSectionPage({ loaderData }: Route.ComponentProps) {
+export default function NewSectionPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Nouvelle section" subtitle="Créer une nouvelle section sur le tableau d'affichage" />

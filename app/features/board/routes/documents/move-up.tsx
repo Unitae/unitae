@@ -7,7 +7,7 @@ import { requireParamId } from '~/shared/libs/params.server'
 
 import type { Route } from './+types/move-up'
 
-export function loader({ request, params }: Route.LoaderArgs) {
+export function loader(_args: Route.LoaderArgs) {
   throw redirect('/board/documents')
 }
 

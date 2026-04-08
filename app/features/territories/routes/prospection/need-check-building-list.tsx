@@ -11,6 +11,7 @@ import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReas
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
+
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/need-check-building-list'
@@ -122,37 +123,41 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[150px]">Code Postal</TableHead>
-            <TableHead>Rue</TableHead>
-            <TableHead className="w-[150px] text-center">Nº</TableHead>
-            <TableHead>Raisons</TableHead>
-            <TableHead className="w-[150px] text-center">Statut</TableHead>
-            {canViewProspection && <TableHead className="w-[150px] text-center" />}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {buildings.map(building => (
-            <TableRow key={building.id}>
-              <TableCell>{building.zip}</TableCell>
-              <TableCell>{building.street}</TableCell>
-              <TableCell className="text-center">{building.number}</TableCell>
-              <TableCell>
-                <BuildingCheckReason building={building} options={{ staleDate }} />
-              </TableCell>
-              <TableCell className="text-center">
-                <BuildingStatus building={building} options={{ staleDate }} />
-              </TableCell>
-              {canViewProspection && (
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Code Postal</TableHead>
+              <TableHead>Rue</TableHead>
+              <TableHead className="text-center">Nº</TableHead>
+              <TableHead>Raisons</TableHead>
+              <TableHead className="text-center">Statut</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {buildings.map(building => (
+              <TableRow key={building.id}>
+                <TableCell>{building.zip}</TableCell>
+                <TableCell>{building.street}</TableCell>
+                <TableCell className="text-center">{building.number}</TableCell>
+                <TableCell>
+                  <BuildingCheckReason building={building} options={{ staleDate }} />
+                </TableCell>
                 <TableCell className="text-center">
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link to={`../../building/${building.id}/view`}>
-                        <Eye className="size-4" />
-                      </Link>
-                    </Button>
+                  <BuildingStatus building={building} options={{ staleDate }} />
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    {canViewProspection && (
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`../../building/${building.id}/view`}>
+                          <Eye className="size-4" />
+                        </Link>
+                      </Button>
+                    )}
                     {canManageProspection && (
                       <Button variant="ghost" size="icon" asChild>
                         <Link to={`../../building/${building.id}/edit-prospection`} relative="path">
@@ -162,11 +167,11 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
                     )}
                   </div>
                 </TableCell>
-              )}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
     </>

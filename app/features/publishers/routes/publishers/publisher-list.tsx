@@ -6,6 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -101,66 +102,70 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
-            <TableHead className="text-center">Nom</TableHead>
-            <TableHead className="text-center">Groupe</TableHead>
-            <TableHead className="text-center max-sm:hidden">Contact</TableHead>
-            {canManagePublisher && <TableHead className="text-center" />}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.map(user => (
-            <TableRow key={user.email}>
-              <TableCell className="text-center max-sm:text-left">
-                <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
-                  {user.firstname}
-                </Link>
-              </TableCell>
-              <TableCell className="text-center">
-                <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
-                  {user.lastname?.toLocaleUpperCase()}
-                </Link>
-              </TableCell>
-              <TableCell className="text-center">
-                {user.publisherGroup != null && (
-                  <Link
-                    to={`/congregation/publisher-groups/${user.publisherGroup.id}/edit`}
-                    className="hover:text-primary"
-                  >
-                    {user.publisherGroup.name}
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
+              <TableHead className="text-center">Nom</TableHead>
+              <TableHead className="text-center">Groupe</TableHead>
+              <TableHead className="text-center max-sm:hidden">Contact</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map(user => (
+              <TableRow key={user.email}>
+                <TableCell className="text-center max-sm:text-left">
+                  <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
+                    {user.firstname}
                   </Link>
-                )}
-              </TableCell>
-              <TableCell className="text-center max-sm:hidden">
-                {user.email.includes('@placeholder.unitae.app') === false && (
-                  <Link to={`mailto:${user.email}`} className="hover:text-primary">
-                    <Mail className="inline size-4" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
+                    {user.lastname?.toLocaleUpperCase()}
                   </Link>
-                )}
-              </TableCell>
-              <TableCell>
-                <div className="flex items-stretch justify-end gap-2">
-                  <Button asChild variant="ghost" size="icon">
-                    <Link to={`/congregation/publishers/${user.id}/view`}>
-                      <Eye className="size-4" />
+                </TableCell>
+                <TableCell className="text-center">
+                  {user.publisherGroup != null && (
+                    <Link
+                      to={`/congregation/publisher-groups/${user.publisherGroup.id}/edit`}
+                      className="hover:text-primary"
+                    >
+                      {user.publisherGroup.name}
                     </Link>
-                  </Button>
-                  {canManagePublisher && (
+                  )}
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  {user.email.includes('@placeholder.unitae.app') === false && (
+                    <Link to={`mailto:${user.email}`} className="hover:text-primary">
+                      <Mail className="inline size-4" />
+                    </Link>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`./${user.id}/edit`}>
-                        <Pencil className="size-4" />
+                      <Link to={`/congregation/publishers/${user.id}/view`}>
+                        <Eye className="size-4" />
                       </Link>
                     </Button>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                    {canManagePublisher && (
+                      <Button asChild variant="ghost" size="icon">
+                        <Link to={`./${user.id}/edit`}>
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

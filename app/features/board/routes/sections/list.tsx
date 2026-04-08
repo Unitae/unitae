@@ -6,6 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -64,57 +65,61 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
           description="Lorsque des sections seront crées, elles apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus."
         />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:hidden">Documents</TableHead>
-              <TableHead className="w-[150px] text-center max-sm:w-14">Position</TableHead>
-              <TableHead className="w-[150px] max-sm:w-14" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sections.map(section => (
-              <TableRow key={section.id}>
-                <TableCell>{section.name}</TableCell>
-                <TableCell className="text-center max-sm:hidden">{section.documents.length}</TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-center gap-1">
-                    <Form method="post" action={`/board/sections/${section.id}/move-up`}>
-                      <Button type="submit" variant="ghost" size="icon" className="size-8 text-primary">
-                        <ChevronUp className="size-4" />
-                      </Button>
-                    </Form>
-                    <Form method="post" action={`/board/sections/${section.id}/move-down`}>
-                      <Button type="submit" variant="ghost" size="icon" className="size-8 text-primary">
-                        <ChevronDown className="size-4" />
-                      </Button>
-                    </Form>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" asChild className="size-8 text-primary">
-                      <Link to={`./${section.id}/edit`}>
-                        <Pencil className="size-4" />
-                      </Link>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      asChild
-                      className="size-8 text-destructive hover:text-destructive max-sm:hidden"
-                    >
-                      <Link to={`./${section.id}/delete`} title="Supprimer complètement la section">
-                        <Trash2 className="size-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </TableCell>
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead className="text-center max-sm:hidden">Documents</TableHead>
+                <TableHead className="text-center">Position</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {sections.map(section => (
+                <TableRow key={section.id}>
+                  <TableCell>{section.name}</TableCell>
+                  <TableCell className="text-center max-sm:hidden">{section.documents.length}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      <Form method="post" action={`/board/sections/${section.id}/move-up`}>
+                        <Button type="submit" variant="ghost" size="icon">
+                          <ChevronUp className="size-4" />
+                        </Button>
+                      </Form>
+                      <Form method="post" action={`/board/sections/${section.id}/move-down`}>
+                        <Button type="submit" variant="ghost" size="icon">
+                          <ChevronDown className="size-4" />
+                        </Button>
+                      </Form>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`./${section.id}/edit`}>
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                        className="text-destructive hover:text-destructive max-sm:hidden"
+                      >
+                        <Link to={`./${section.id}/delete`} title="Supprimer complètement la section">
+                          <Trash2 className="size-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       )}
     </div>
   )

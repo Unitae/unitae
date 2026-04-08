@@ -24,6 +24,7 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
     maxAge: process.env.NODE_ENV === 'production' ? 60 * 60 : 60 * 60 * 8,
     path: '/',
     sameSite: 'lax',
+    // biome-ignore lint/style/noNonNullAssertion: validated at startup by env.server.ts
     secrets: [process.env.SESSION_SECRET!],
     secure: process.env.NODE_ENV === 'production',
   },

@@ -6,6 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -87,57 +88,61 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead className="text-center max-sm:hidden">Responsable</TableHead>
-            <TableHead className="text-center max-sm:hidden">Adjoint</TableHead>
-            <TableHead className="text-center max-sm:hidden">Adresse</TableHead>
-            <TableHead className="text-center">Proclamateurs</TableHead>
-            {canManagePublisher && <TableHead className="text-center" />}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {groups.map(group => (
-            <TableRow key={group.name}>
-              <TableCell>
-                <Link to={`./${group.id}/view`} className="font-medium hover:text-primary">
-                  {group.name.toLocaleUpperCase()}
-                </Link>
-              </TableCell>
-              <TableCell className="text-center max-sm:hidden">
-                <Link to={`/congregation/publishers/${group.responsibleId}/view`} className="hover:text-primary">
-                  {group.responsible.firstname} {group.responsible.lastname?.toLocaleUpperCase()}
-                </Link>
-              </TableCell>
-              <TableCell className="text-center max-sm:hidden">
-                <Link to={`/congregation/publishers/${group.deputyId}/view`} className="hover:text-primary">
-                  {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
-                </Link>
-              </TableCell>
-              <TableCell className="text-center max-sm:hidden">{group.adress}</TableCell>
-              <TableCell className="text-center">{group._count.members}</TableCell>
-              <TableCell>
-                <div className="flex justify-end gap-1">
-                  {canManagePublisher && (
+      <div className="overflow-hidden rounded-xl border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Nom</TableHead>
+              <TableHead className="text-center max-sm:hidden">Responsable</TableHead>
+              <TableHead className="text-center max-sm:hidden">Adjoint</TableHead>
+              <TableHead className="text-center max-sm:hidden">Adresse</TableHead>
+              <TableHead className="text-center">Proclamateurs</TableHead>
+              <TableHead className="w-0">
+                <span className="sr-only">Actions</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {groups.map(group => (
+              <TableRow key={group.name}>
+                <TableCell>
+                  <Link to={`./${group.id}/view`} className="font-medium hover:text-primary">
+                    {group.name.toLocaleUpperCase()}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  <Link to={`/congregation/publishers/${group.responsibleId}/view`} className="hover:text-primary">
+                    {group.responsible.firstname} {group.responsible.lastname?.toLocaleUpperCase()}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  <Link to={`/congregation/publishers/${group.deputyId}/view`} className="hover:text-primary">
+                    {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
+                  </Link>
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">{group.adress}</TableCell>
+                <TableCell className="text-center">{group._count.members}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    {canManagePublisher && (
+                      <Button asChild variant="ghost" size="icon">
+                        <Link to={`./${group.id}/edit`}>
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
+                    )}
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`./${group.id}/edit`}>
-                        <Pencil className="size-4" />
+                      <Link to={`./${group.id}/view`}>
+                        <Eye className="size-4" />
                       </Link>
                     </Button>
-                  )}
-                  <Button asChild variant="ghost" size="icon">
-                    <Link to={`./${group.id}/view`}>
-                      <Eye className="size-4" />
-                    </Link>
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }
