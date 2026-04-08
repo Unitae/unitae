@@ -67,3 +67,44 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
 export function getPlatformName(): string {
   return DEFAULT_PLATFORM_NAME
 }
+
+const DEFAULT_CONGREGATION_NAME = 'Ma Congrégation'
+
+export async function getBrandingName(request?: Request): Promise<string> {
+  let congregation: { name: string; displayName: string | null } | null = null
+
+  if (process.env.MULTI_TENANT === 'true' && request) {
+    const hostname = new URL(request.url).hostname
+    const appBaseUrl = (process.env.APP_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
+    const slug = hostname.endsWith(appBaseUrl) ? hostname.replace(`.${appBaseUrl}`, '') : null
+
+    if (slug) {
+      congregation = await unscopedDb.congregation.findUnique({
+        where: { slug },
+        select: { name: true, displayName: true },
+      })
+    }
+    if (!congregation) {
+      congregation = await unscopedDb.congregation.findFirst({
+        where: { domain: hostname },
+        select: { name: true, displayName: true },
+      })
+    }
+  } else {
+    congregation = await unscopedDb.congregation.findFirst({
+      select: { name: true, displayName: true },
+    })
+  }
+
+  if (!congregation) return DEFAULT_PLATFORM_NAME
+
+  if (congregation.displayName && congregation.displayName !== DEFAULT_CONGREGATION_NAME) {
+    return congregation.displayName
+  }
+
+  if (congregation.name !== DEFAULT_CONGREGATION_NAME) {
+    return congregation.name
+  }
+
+  return DEFAULT_PLATFORM_NAME
+}

@@ -4,12 +4,13 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
-import { db } from '~/shared/libs/db.server'
+import { db, unscopedDb } from '~/shared/libs/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/settings'
@@ -19,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { congregation } = await verifySession(request)
   const canManageSettings = await verifyRole(request, Role.Admin)
 
   if (!canManageSettings) {
@@ -30,17 +31,39 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return {
     auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
+    congregationDisplayName: congregation.displayName,
   }
 }
 
 export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
-  const { auxiliaryPioneerProfileActivated } = loaderData
+  const { auxiliaryPioneerProfileActivated, congregationDisplayName } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Assemblée" subtitle='Paramètres du module "Assemblée"' />
 
       <Form method="post" className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Congrégation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <Label htmlFor="displayName">Nom affiché</Label>
+              <Input
+                id="displayName"
+                name="displayName"
+                type="text"
+                placeholder="Nom affiché de la congrégation"
+                defaultValue={congregationDisplayName}
+              />
+              <p className="text-muted-foreground text-xs">
+                Ce nom est utilisé dans l'interface et dans les emails envoyés par l'application.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Proclamateurs</CardTitle>
@@ -92,9 +115,15 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const form = await request.formData()
+  const displayName = form.get('displayName')
   const auxiliaryPioneerProfileActivated = String(
     Boolean(form.get(CongregationSettingKey.AuxiliaryPioneerProfileActivated)),
   )
+
+  await unscopedDb.congregation.update({
+    where: { id: congregation.id },
+    data: { displayName: displayName ? String(displayName) : null },
+  })
 
   await setSetting(CongregationSettingKey.AuxiliaryPioneerProfileActivated, auxiliaryPioneerProfileActivated, congregation.id)
   if (auxiliaryPioneerProfileActivated === 'false') {

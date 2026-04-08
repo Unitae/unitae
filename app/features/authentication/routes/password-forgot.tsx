@@ -3,7 +3,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { resolveCongregation } from '~/shared/libs/congregation.server'
+import { getBrandingName, resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -19,9 +19,10 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request.headers.get('Cookie'))
+  const brandingName = await getBrandingName(request)
 
   return data(
-    { error: session.get('error'), success: session.get('success') },
+    { error: session.get('error'), success: session.get('success'), brandingName },
     {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -31,14 +32,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
-  const { error, success } = loaderData
+  const { error, success, brandingName } = loaderData
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md overflow-hidden shadow-md">
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
           <p className="text-muted-foreground text-sm">Indiquez votre adresse email pour retrouver votre compte</p>
         </CardHeader>
         <CardContent>

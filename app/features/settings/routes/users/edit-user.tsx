@@ -174,7 +174,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-wrap gap-4 max-sm:flex-col">
               {publisherNotUser ? (
                 <p className="text-center text-muted-foreground text-sm">
-                  Cette personne n'est pas utilisatrice de Unitae. Vous ne pouvez donner des droits qu'à des
+                  Cette personne n'est pas utilisatrice de l'application. Vous ne pouvez donner des droits qu'à des
                   utilisateurs.
                   <br />
                   Pour transformer ce proclamateur en utilisateur, ajoutez lui une adresse email et réinitialisez son

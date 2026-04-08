@@ -1,5 +1,6 @@
 import { Form, redirect } from 'react-router'
 
+import { getBrandingName } from '~/shared/libs/congregation.server'
 import {
   consumePasswordResetToken,
   verifyPasswordResetToken,
@@ -17,12 +18,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Réinitialiser le mot de passe - Unitae' }]
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
   if (user == null) {
     throw redirect('/')
   }
+
+  const brandingName = await getBrandingName(request)
 
   return {
     email: user.email,
@@ -30,18 +33,19 @@ export async function loader({ params }: Route.LoaderArgs) {
     active: user.active,
     firstname: user.firstname,
     lastname: user.lastname,
+    brandingName,
   }
 }
 
 export default function PasswordResetPage({ loaderData }: Route.ComponentProps) {
-  const user = loaderData
+  const { brandingName, ...user } = loaderData
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md overflow-hidden shadow-md">
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
           <p className="text-muted-foreground text-sm">Réinitialiser votre mot de passe</p>
         </CardHeader>
         <CardContent>
