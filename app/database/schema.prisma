@@ -239,8 +239,8 @@ model PublisherGroup {
   members       User[] @relation("group")
   responsible   User   @relation("groupResponsible", fields: [responsibleId], references: [id])
   responsibleId Int    @unique
-  deputy        User   @relation("groupDeputy", fields: [deputyId], references: [id])
-  deputyId      Int    @unique
+  deputy        User?  @relation("groupDeputy", fields: [deputyId], references: [id])
+  deputyId      Int?   @unique
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int

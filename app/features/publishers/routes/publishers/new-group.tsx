@@ -86,9 +86,8 @@ export default function NewGroup({ loaderData }: Route.ComponentProps) {
                   id="deputy"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                   name="deputy"
-                  required
                 >
-                  <option>Choisir un frère adjoint au responsable de groupe</option>
+                  <option value="">Aucun adjoint</option>
                   {brothers.map(brother => (
                     <option key={brother.id} value={brother.id}>
                       {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
@@ -121,10 +120,11 @@ export async function action({ request }: Route.ActionArgs) {
   const name = form.get('name')
   const address = form.get('address')
   const responsibleId = Number(form.get('responsible'))
-  const deputyId = Number(form.get('deputy'))
+  const deputyRaw = form.get('deputy')
+  const deputyId = deputyRaw ? Number(deputyRaw) : null
 
   const session = await getSession(request.headers.get('Cookie'))
-  if (name == null || address == null || Number.isNaN(responsibleId) || Number.isNaN(deputyId)) {
+  if (name == null || address == null || Number.isNaN(responsibleId)) {
     session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
@@ -133,7 +133,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  if (responsibleId === deputyId) {
+  if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', 'Le responsable de groupe et son adjoint ne peuvent pas être la même personne')
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
@@ -142,20 +142,16 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
+  const membersToConnect = [{ id: responsibleId }]
+  if (deputyId != null) membersToConnect.push({ id: deputyId })
+
   const group = await db.publisherGroup.create({
     data: {
       name: String(name),
       adress: String(address),
       deputyId,
       responsibleId,
-      members: {
-        connect: [
-          {
-            id: responsibleId,
-          },
-          { id: deputyId },
-        ],
-      },
+      members: { connect: membersToConnect },
       congregationId: congregation.id,
     },
   })

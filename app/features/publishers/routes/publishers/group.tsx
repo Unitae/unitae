@@ -35,7 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       canManagePublisher,
       canViewPublishers,
       canManageActivity:
-        canManageActivity || group.responsible.id === currentUser.id || group.deputy.id === currentUser.id,
+        canManageActivity || group.responsible.id === currentUser.id || group.deputy?.id === currentUser.id,
     },
   }
 }
@@ -80,13 +80,17 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           </p>
           <p className="text-muted-foreground text-sm">
             Adjoint au responsable :{' '}
-            <Link
-              to={`../../../publishers/${group.deputy.id}/view`}
-              relative="path"
-              className="font-medium text-primary hover:underline"
-            >
-              {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
-            </Link>
+            {group.deputy ? (
+              <Link
+                to={`../../../publishers/${group.deputy.id}/view`}
+                relative="path"
+                className="font-medium text-primary hover:underline"
+              >
+                {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
+              </Link>
+            ) : (
+              <span className="font-medium text-foreground">Aucun</span>
+            )}
           </p>
           <p className="text-muted-foreground text-sm">
             Adresse : <span className="font-medium text-foreground">{group.address}</span>
@@ -237,10 +241,11 @@ export async function action({ request, params }: Route.ActionArgs) {
   const name = form.get('name')
   const address = form.get('address')
   const responsibleId = Number(form.get('responsible'))
-  const deputyId = Number(form.get('deputy'))
+  const deputyRaw = form.get('deputy')
+  const deputyId = deputyRaw ? Number(deputyRaw) : null
 
   const session = await getSession(request.headers.get('Cookie'))
-  if (name == null || address == null || Number.isNaN(responsibleId) || Number.isNaN(deputyId)) {
+  if (name == null || address == null || Number.isNaN(responsibleId)) {
     session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
@@ -249,7 +254,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  if (responsibleId === deputyId) {
+  if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', 'Le responsable de groupe et son adjoint ne peuvent pas être la même personne')
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
@@ -257,6 +262,9 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
   }
+
+  const membersToConnect = [{ id: responsibleId }]
+  if (deputyId != null) membersToConnect.push({ id: deputyId })
 
   const group = await db.publisherGroup.update({
     where: {
@@ -267,14 +275,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       adress: String(address),
       deputyId,
       responsibleId,
-      members: {
-        connect: [
-          {
-            id: responsibleId,
-          },
-          { id: deputyId },
-        ],
-      },
+      members: { connect: membersToConnect },
     },
   })
 
