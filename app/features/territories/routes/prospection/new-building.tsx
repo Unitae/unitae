@@ -3,7 +3,11 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { createBuilding } from '~/features/territories/server/create-building.server'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new-building'
 
@@ -24,64 +28,40 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function CreateBuildingPage() {
   return (
-    <div className="flex flex-col">
-      <HeroHeader title="Création d'un batiment" subtitle="Créer manuellement un nouveau batiment" />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Création d'un batiment" subtitle="Créer manuellement un nouveau batiment" />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <label>
-          Numéro
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="number"
-            type="text"
-            placeholder="Numéro du batiment"
-            required
-          />
-        </label>
-        <label>
-          Voie
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="street"
-            type="text"
-            placeholder="Nom de la voie"
-            required
-          />
-        </label>
-        <label>
-          Code postal
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="zip"
-            type="text"
-            placeholder="Code postal de la ville"
-            required
-          />
-        </label>
-        <div className="flex gap-3">
-          <label className="grow">
-            Latitude
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="latitude"
-              type="number"
-              step={0.0000001}
-            />
-          </label>
-          <label className="grow">
-            Longitude
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="longitude"
-              type="number"
-              step={0.0000001}
-            />
-          </label>
-        </div>
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Créer le batiment
-        </button>
-      </Form>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Numéro</Label>
+              <Input name="number" type="text" placeholder="Numéro du batiment" required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Voie</Label>
+              <Input name="street" type="text" placeholder="Nom de la voie" required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Code postal</Label>
+              <Input name="zip" type="text" placeholder="Code postal de la ville" required />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label>Latitude</Label>
+                <Input name="latitude" type="number" step={0.0000001} />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label>Longitude</Label>
+                <Input name="longitude" type="number" step={0.0000001} />
+              </div>
+            </div>
+            <Button type="submit" className="mt-2">
+              Créer le batiment
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

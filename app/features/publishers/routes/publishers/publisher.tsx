@@ -1,4 +1,4 @@
-import { ArchiveBoxIcon, ArrowDownTrayIcon, IdentificationIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { verifySession } from '~/features/authentication/server/session.server'
@@ -8,8 +8,10 @@ import { PublisherActivityDownloadLink } from '~/features/publishers/ui/Publishe
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Separator } from '~/shared/ui/separator'
 
 import type { Route } from './+types/publisher'
 
@@ -89,12 +91,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
-  const { publisher, messages, roles } = loaderData
+  const { publisher, roles } = loaderData
 
   return (
-    <div className="flex flex-col gap-5">
-      <AlertMessages messages={messages} />
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title={`${publisher.firstname} ${publisher.lastname}`}
         subtitle="Fiche du proclamateur. Elle affiche les informations liées à ce proclamateur et auxquelles vous avez accès."
         actions={
@@ -102,41 +103,36 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             <>
               {roles.canManageActivity && (
                 <PublisherActivityDownloadLink publisher={publisher}>
-                  <span
-                    className="inline-block rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2"
-                    title="Télécharger la fiche d'activité (S-21)"
-                  >
-                    <ArrowDownTrayIcon className="inline size-6" />
-                  </span>
+                  <Button variant="outline" size="icon" title="Télécharger la fiche d'activité (S-21)" type="button">
+                    <Download className="size-4" />
+                  </Button>
                 </PublisherActivityDownloadLink>
               )}
-              <Link
-                to="../edit"
-                relative="path"
-                title="Modifier le proclamateur"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                <PencilIcon className="inline size-6 max-sm:size-5" />
-              </Link>
+              <Button asChild variant="outline" size="icon" title="Modifier le proclamateur">
+                <Link to="../edit" relative="path">
+                  <Pencil className="size-4" />
+                </Link>
+              </Button>
               {publisher.isPublisher ? (
                 <Form method="post" action={`/settings/users/${publisher.id}/unmake-publisher`}>
-                  <button
+                  <Button
                     type="submit"
+                    variant="secondary"
+                    size="icon"
                     title="Désactiver la fiche proclamateur. L'utilisateur ne sera plus proclamateur dans cette assemblée."
-                    className={'rounded-lg bg-gray-500 p-3 font-semibold text-white hover:bg-gray-700 max-sm:p-2'}
                   >
-                    <ArchiveBoxIcon className={'inline size-6 max-sm:size-5'} />
-                  </button>
+                    <Archive className="size-4" />
+                  </Button>
                 </Form>
               ) : (
                 <Form method="post" action={`/settings/users/${publisher.id}/make-publisher`}>
-                  <button
+                  <Button
                     type="submit"
+                    size="icon"
                     title="Activer la fiche proclamateur. L'utilisateur sera proclamateur dans cette assemblée."
-                    className={'rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2'}
                   >
-                    <IdentificationIcon className={'inline size-6 max-sm:size-5'} />
-                  </button>
+                    <IdCard className="size-4" />
+                  </Button>
                 </Form>
               )}
             </>
@@ -144,73 +140,87 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <section className="flex flex-row gap-3 rounded-md bg-gray-900 p-5 text-white max-sm:flex-col">
-        <div className="flex flex-1/2 flex-col gap-3">
-          <p>
-            Genre : <span className="text-teal-600">{publisher.isMale ? 'Homme' : 'Femme'}</span>
-          </p>
-          <p>
-            Date de naissance :{' '}
-            <span className="text-teal-600">
-              {publisher.birthDate?.toLocaleDateString('fr-FR', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-              })}
-            </span>
-          </p>
-          {publisher.baptismDate != null && (
-            <p>
-              Date de baptême :{' '}
-              <span className="text-teal-600">
-                {publisher.baptismDate?.toLocaleDateString('fr-FR', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                })}
-              </span>
-            </p>
-          )}
-        </div>
-        {publisher.baptismDate != null && (
-          <div className="flex flex-1/2 flex-col gap-3">
-            <p>
-              Oint : <span className="text-teal-600">{publisher.isAnointed ? 'Oui' : 'Non'}</span>
-            </p>
-            {publisher.isMale && (
-              <>
-                <p>
-                  Ancien : <span className="text-teal-600">{publisher.isHelder ? 'Oui' : 'Non'}</span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations personnelles</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="flex flex-1 flex-col gap-3">
+              <p className="text-muted-foreground text-sm">
+                Genre : <span className="font-medium text-foreground">{publisher.isMale ? 'Homme' : 'Femme'}</span>
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Date de naissance :{' '}
+                <span className="font-medium text-foreground">
+                  {publisher.birthDate?.toLocaleDateString('fr-FR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                  })}
+                </span>
+              </p>
+              {publisher.baptismDate != null && (
+                <p className="text-muted-foreground text-sm">
+                  Date de baptême :{' '}
+                  <span className="font-medium text-foreground">
+                    {publisher.baptismDate?.toLocaleDateString('fr-FR', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })}
+                  </span>
                 </p>
-                <p>
-                  Assistant : <span className="text-teal-600">{publisher.isServant ? 'Oui' : 'Non'}</span>
+              )}
+            </div>
+            {publisher.baptismDate != null && (
+              <div className="flex flex-1 flex-col gap-3">
+                <p className="text-muted-foreground text-sm">
+                  Oint : <span className="font-medium text-foreground">{publisher.isAnointed ? 'Oui' : 'Non'}</span>
                 </p>
-              </>
+                {publisher.isMale && (
+                  <>
+                    <p className="text-muted-foreground text-sm">
+                      Ancien : <span className="font-medium text-foreground">{publisher.isHelder ? 'Oui' : 'Non'}</span>
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      Assistant :{' '}
+                      <span className="font-medium text-foreground">{publisher.isServant ? 'Oui' : 'Non'}</span>
+                    </p>
+                  </>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </section>
+        </CardContent>
+      </Card>
 
-      <section className="flex flex-col gap-3 rounded-md bg-gray-900 p-5 text-white">
-        <h2 className="mb-4 text-xl">Informations de contact</h2>
-        <p>
-          Adresse postale : <span className="text-teal-600">{publisher.address ? publisher.address : '...'}</span>
-        </p>
-        <p>
-          Téléphone : <span className="text-teal-600">{publisher.phone ? publisher.phone : '...'}</span>
-        </p>
-        {!publisher.email.includes('@placeholder.unitae.app') && (
-          <p>
-            Adresse email :{' '}
-            <Link to={`mailto:${publisher.email}`} className="text-teal-600">
-              {publisher.email}
-            </Link>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations de contact</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-muted-foreground text-sm">
+            Adresse postale :{' '}
+            <span className="font-medium text-foreground">{publisher.address ? publisher.address : '...'}</span>
           </p>
-        )}
-        <p className="pt-5 text-sm italic">
-          Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
-        </p>
-      </section>
+          <p className="text-muted-foreground text-sm">
+            Téléphone : <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
+          </p>
+          {!publisher.email.includes('@placeholder.unitae.app') && (
+            <p className="text-muted-foreground text-sm">
+              Adresse email :{' '}
+              <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
+                {publisher.email}
+              </Link>
+            </p>
+          )}
+          <Separator className="my-2" />
+          <p className="text-muted-foreground text-xs italic">
+            Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

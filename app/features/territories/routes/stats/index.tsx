@@ -14,7 +14,8 @@ import { computeTerritoryCoverage } from '~/features/territories/server/territor
 import { computeTerritoryCoverageTotal } from '~/features/territories/server/territory-coverage-total.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import StatsFilters from '~/features/territories/ui/StatsFilters'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Card, CardContent } from '~/shared/ui/card'
+import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import type { Route } from './+types/index'
 
@@ -90,118 +91,85 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
   ]
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Statistiques du territoire"
         subtitle="Ensemble de donnée analytique sur le territoire de l'assemblée"
         actions={<S13ExportButton theocraticYear={theocraticYear} />}
       />
 
-      <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">État global</h2>
+      <h2 className="font-display font-semibold text-xl">État global</h2>
 
-      <div className="flex flex-col gap-3 py-3">
-        <div className="flex flex-wrap justify-around gap-5 rounded-md bg-gray-200 p-2 max-sm:gap-3 max-sm:text-sm max-md:justify-between dark:bg-gray-900">
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoires qui ont été créés au total"
-          >
-            <span className="font-black text-8xl max-sm:font-extrabold max-sm:text-5xl">{stats.total}</span>
-            Territoires existants
-          </div>
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoires qui sont disponibles pour la prédication"
-          >
-            <span className="font-black text-8xl max-sm:font-extrabold max-sm:text-5xl">{stats.available}</span>
-            Territoires disponibles
-          </div>
+      <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.total}</span>
+              <span className="text-muted-foreground text-sm">Territoires existants</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.available}</span>
+              <span className="text-muted-foreground text-sm">Territoires disponibles</span>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex flex-wrap justify-around gap-5 rounded-md bg-gray-200 p-2 max-sm:gap-3 max-sm:text-sm max-md:justify-between dark:bg-gray-900">
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoires qui sont sortis (inclus les territoires en retard et les territoires travaillés en ce moment)"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">{stats.working}</span>
-            Territoires sortis
-          </div>
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoires en retard"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">{stats.delayed}</span>
-            Territoires en retard
-          </div>
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoire en repos (indisponible mais ne sont pas travaillés pour le moment)"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">{stats.resting}</span>
-            Territoires en repos
-          </div>
+        <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.working}</span>
+              <span className="text-muted-foreground text-sm">Territoires sortis</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.delayed}</span>
+              <span className="text-muted-foreground text-sm">Territoires en retard</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.resting}</span>
+              <span className="text-muted-foreground text-sm">Territoires en repos</span>
+            </CardContent>
+          </Card>
         </div>
-        <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">Progression</h2>
-        <div className="my-4">
+
+        <h2 className="mt-3 font-display font-semibold text-xl">Progression</h2>
+        <div className="my-2">
           <StatsFilters groups={groups} />
         </div>
-        <div className="flex flex-wrap justify-around gap-5 rounded-md bg-gray-200 p-2 max-sm:gap-3 max-sm:text-sm max-md:justify-between dark:bg-gray-900">
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoires qui sont sortis (inclus les territoires en retard et les territoires travaillés en ce moment)"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">
-              {stats.coverage.toFixed(2)} %
-            </span>
-            Couverture du territoire
-          </div>
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoires en retard"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">
-              {stats.totalCoverage.toFixed(2)} %
-            </span>
-            Couverture complète du territoire
-          </div>
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoire en repos (indisponible mais ne sont pas travaillés pour le moment)"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">-</span>
-            Territoire le plus travaillé
-          </div>
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Nombre de territoire en repos (indisponible mais ne sont pas travaillés pour le moment)"
-          >
-            <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">-</span>
-            Territoire le moins travaillé
-          </div>
+        <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1 max-md:grid-cols-2">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.coverage.toFixed(2)} %</span>
+              <span className="text-muted-foreground text-sm">Couverture du territoire</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">
+                {stats.totalCoverage.toFixed(2)} %
+              </span>
+              <span className="text-muted-foreground text-sm">Couverture complète du territoire</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">-</span>
+              <span className="text-muted-foreground text-sm">Territoire le plus travaillé</span>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              <span className="font-black font-display text-5xl max-sm:text-3xl">-</span>
+              <span className="text-muted-foreground text-sm">Territoire le moins travaillé</span>
+            </CardContent>
+          </Card>
         </div>
-        <div className="flex flex-wrap justify-around gap-5 rounded-md bg-gray-200 p-2 max-sm:gap-3 max-sm:text-sm max-md:justify-between dark:bg-gray-900">
-          <div
-            className={
-              'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-            }
-            title="Ce graphique représente l'état du territoire de l'assemblée (répartition des territoires disponibles, ceux qui sont travaillé, ceux qui sont en repos et ceux qui sont en retard)"
-          >
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
             <PieChart width={300} height={300} onMouseEnter={() => {}}>
               <Pie
                 data={data}
@@ -218,9 +186,9 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                 ))}
               </Pie>
             </PieChart>
-            État du territoire
-          </div>
-        </div>
+            <span className="text-muted-foreground text-sm">État du territoire</span>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

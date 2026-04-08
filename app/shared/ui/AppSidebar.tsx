@@ -52,8 +52,7 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
-  const showPrincipal =
-    permissions.canViewBoard || permissions.canViewPublishers || permissions.canViewPrograms
+  const showPrincipal = permissions.canViewBoard || permissions.canViewPublishers || permissions.canViewPrograms
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
   const showGestion = permissions.canManageSettings || permissions.canManageUsers
@@ -62,11 +61,9 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-3">
-          <span className="font-display font-bold text-xl text-primary">Unitae</span>
+          <span className="font-bold font-display text-primary text-xl">Unitae</span>
         </div>
-        {congregationName && (
-          <p className="truncate px-2 pb-2 text-muted-foreground text-xs">{congregationName}</p>
-        )}
+        {congregationName && <p className="truncate px-2 pb-2 text-muted-foreground text-xs">{congregationName}</p>}
       </SidebarHeader>
 
       <SidebarContent>

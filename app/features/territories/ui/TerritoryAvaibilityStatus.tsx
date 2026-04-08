@@ -1,21 +1,22 @@
 import type { Attribution } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { Badge } from '~/shared/ui/badge'
 
 export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attribution }) {
   const isAvailable = checkAvailabilityStatus(attribution)
 
   if (!isAvailable) {
     return (
-      <span className="inline-block rounded-2xl border border-gray-500 bg-gray-500/25 px-3 text-gray-500 max-sm:h-3 max-sm:w-3 max-sm:px-0">
-        <span className="max-sm:hidden">en repos</span>
-      </span>
+      <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
+        en repos
+      </Badge>
     )
   }
 
   return (
-    <span className="inline-block rounded-2xl border border-blue-500 bg-blue-500/25 px-3 text-blue-500 max-sm:h-3 max-sm:w-3 max-sm:px-0">
-      <span className="max-sm:hidden">disponible</span>
-    </span>
+    <Badge variant="outline" className="border-blue-500 text-blue-500">
+      disponible
+    </Badge>
   )
 }
 

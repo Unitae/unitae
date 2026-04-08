@@ -1,4 +1,4 @@
-import { ChartBarIcon, EnvelopeIcon, EyeIcon, PencilIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -6,6 +6,11 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getGroup } from '~/features/publishers/server/groups'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Separator } from '~/shared/ui/separator'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/group'
 
@@ -43,162 +48,178 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   lastMonth.setMonth(today.getMonth() - 1)
 
   return (
-    <div className="flex flex-col gap-7">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl">{group.name.toLocaleUpperCase()}</h1>
-          <p className="text-gray-500">
-            Toutes les informations disponibles sur ce groupe de predication sont visualisables sur cette page
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {roles.canManagePublisher && (
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={group.name.toLocaleUpperCase()}
+        subtitle="Toutes les informations disponibles sur ce groupe de prédication sont visualisables sur cette page"
+        actions={
+          roles.canManagePublisher && (
+            <Button asChild variant="outline" size="icon" title="Modifier le groupe de prédication">
+              <Link to={'../edit'} relative="path">
+                <Pencil className="size-4" />
+              </Link>
+            </Button>
+          )
+        }
+      />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations du groupe</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          <p className="text-muted-foreground text-sm">
+            Responsable :{' '}
             <Link
-              to={'../edit'}
+              to={`../../../publishers/${group.responsible.id}/view`}
               relative="path"
-              className="rounded-lg bg-teal-500 p-3 font-semibold text-white hover:bg-teal-700 max-sm:p-2"
-              title="Modifier le groupe de prédication"
+              className="font-medium text-primary hover:underline"
             >
-              <PencilIcon className="inline size-5" />
+              {group.responsible.firstname} {group.responsible.lastname?.toLocaleUpperCase()}
             </Link>
-          )}
-        </div>
-      </div>
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Adjoint au responsable :{' '}
+            <Link
+              to={`../../../publishers/${group.deputy.id}/view`}
+              relative="path"
+              className="font-medium text-primary hover:underline"
+            >
+              {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
+            </Link>
+          </p>
+          <p className="text-muted-foreground text-sm">
+            Adresse : <span className="font-medium text-foreground">{group.address}</span>
+          </p>
+          <Separator className="my-2" />
+          <p className="text-muted-foreground text-xs italic">
+            Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
+          </p>
+        </CardContent>
+      </Card>
 
-      <section className="flex flex-col gap-3 rounded-md bg-gray-900 p-5 text-white">
-        <p>
-          Responsable :{' '}
-          <Link to={`../../../publishers/${group.responsible.id}/view`} relative="path" className="text-teal-600">
-            {group.responsible.firstname} {group.responsible.lastname?.toLocaleUpperCase()}
-          </Link>
-        </p>
-        <p>
-          Adjoint au responsable :{' '}
-          <Link to={`../../../publishers/${group.deputy.id}/view`} relative="path" className="text-teal-600">
-            {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
-          </Link>
-        </p>
-        <p>
-          Adresse : <span className="text-teal-600">{group.address}</span>
-        </p>
-        <p className="pt-5 text-sm italic">
-          Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
-        </p>
-      </section>
+      <div className="flex flex-col gap-4">
+        <h2 className="font-bold font-display text-2xl tracking-tight">Membres du groupe</h2>
+        <p className="text-muted-foreground text-sm">Liste de tous les membres de ce groupe de prédication</p>
 
-      <section className="flex flex-col">
-        <h2 className="my-3 font-bold text-2xl">Membres du groupe</h2>
-        <p className="text-gray-500">Liste de tous les membres de ce groupe de prédication</p>
-        <table className="mt-6 table grow border-collapse">
-          <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-            <tr>
-              <th className="w-[150px] py-4 text-center max-sm:w-14 max-sm:text-left">Prénom</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Nom</th>
-              <th className="w-[150px] py-4 text-center max-sm:hidden">Contact</th>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
+              <TableHead className="text-center">Nom</TableHead>
+              <TableHead className="text-center max-sm:hidden">Contact</TableHead>
               {roles.canManageActivity === true && (
                 <>
-                  <th className="w-[150px] py-4 text-center max-sm:w-14">
+                  <TableHead className="text-center">
                     Activité (
                     {lastMonth.toLocaleDateString('fr', {
                       month: 'short',
                       year: 'numeric',
                     })}
                     )
-                  </th>
-                  <th className="w-[150px] py-4 text-center max-sm:hidden">
+                  </TableHead>
+                  <TableHead className="text-center max-sm:hidden">
                     Activité (
                     {today.toLocaleDateString('fr', {
                       month: 'short',
                       year: 'numeric',
                     })}
                     )
-                  </th>
+                  </TableHead>
                 </>
               )}
-              {roles.canManagePublisher && <th className="w-[150px] py-4 text-center max-sm:w-14" />}
-            </tr>
-          </thead>
-          <tbody className="text-left max-sm:text-sm">
+              {roles.canManagePublisher && <TableHead />}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {group.members.map(member => (
-              <tr key={member.email} className="border-b border-b-slate-200 dark:border-b-slate-800">
-                <td className="py-3 text-center max-sm:text-left">
-                  <Link className="hover:text-teal-600" to={`../../../publishers/${member.id}/view`} relative="path">
+              <TableRow key={member.email}>
+                <TableCell className="text-center max-sm:text-left">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
                     {member.firstname}
                   </Link>
-                </td>
-                <td className="py-3 text-center">
-                  <Link className="hover:text-teal-600" to={`../../../publishers/${member.id}/view`} relative="path">
+                </TableCell>
+                <TableCell className="text-center">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
                     {member.lastname?.toLocaleUpperCase()}
                   </Link>
-                </td>
-                <td className="py-3 text-center max-sm:hidden">
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
                   {member.email.includes('@placeholder.unitae.app') === false && (
-                    <Link to={`mailto:${member.email}`} className="hover:text-teal-600">
-                      <EnvelopeIcon className="inline size-5" />
+                    <Link to={`mailto:${member.email}`} className="hover:text-primary">
+                      <Mail className="inline size-4" />
                     </Link>
                   )}
-                </td>
+                </TableCell>
                 {roles.canManageActivity === true && (
                   <>
-                    <td className="py-3 text-center">
-                      <Link
-                        to={
-                          member.previousActivity != null
-                            ? `/congregation/publishers/activity/${member.previousActivity?.id}/edit`
-                            : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
-                        }
-                        className="text-teal-600"
-                        title="Modifier l'activité du proclamateur pour le mois courant"
-                      >
-                        {member.previousActivity ? (
-                          <>
-                            <ChartBarIcon className="inline size-5" /> Voir
-                          </>
-                        ) : (
-                          <>
-                            <PlusIcon className="inline size-5" /> Ajouter
-                          </>
-                        )}
-                      </Link>
-                    </td>
-                    <td className="py-3 text-center max-sm:hidden">
-                      <Link
-                        to={
-                          member.currentActivity != null
-                            ? `/congregation/publishers/activity/${member.currentActivity?.id}/edit`
-                            : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
-                        }
-                        className="text-teal-600"
-                        title="Modifier l'activité du proclamateur pour le mois courant"
-                      >
-                        {member.currentActivity ? (
-                          <>
-                            <ChartBarIcon className="inline size-5" /> Voir
-                          </>
-                        ) : (
-                          <>
-                            <PlusIcon className="inline size-5" /> Ajouter
-                          </>
-                        )}
-                      </Link>
-                    </td>
+                    <TableCell className="text-center">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link
+                          to={
+                            member.previousActivity != null
+                              ? `/congregation/publishers/activity/${member.previousActivity?.id}/edit`
+                              : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
+                          }
+                          title="Modifier l'activité du proclamateur pour le mois courant"
+                        >
+                          {member.previousActivity ? (
+                            <>
+                              <BarChart3 className="size-4" /> Voir
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="size-4" /> Ajouter
+                            </>
+                          )}
+                        </Link>
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-center max-sm:hidden">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link
+                          to={
+                            member.currentActivity != null
+                              ? `/congregation/publishers/activity/${member.currentActivity?.id}/edit`
+                              : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
+                          }
+                          title="Modifier l'activité du proclamateur pour le mois courant"
+                        >
+                          {member.currentActivity ? (
+                            <>
+                              <BarChart3 className="size-4" /> Voir
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="size-4" /> Ajouter
+                            </>
+                          )}
+                        </Link>
+                      </Button>
+                    </TableCell>
                   </>
                 )}
-                <td className="flex justify-end gap-3 py-3">
-                  <Link to={`../../../publishers/${member.id}/view`} relative="path" className="hover:text-teal-600">
-                    <EyeIcon className="inline size-5" />
-                  </Link>
-                  {roles.canManagePublisher && (
-                    <Link to={`../../../publishers/${member.id}/edit`} relative="path" className="text-teal-600">
-                      <PencilIcon className="inline size-5" />
-                    </Link>
-                  )}
-                </td>
-              </tr>
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button asChild variant="ghost" size="icon">
+                      <Link to={`../../../publishers/${member.id}/view`} relative="path">
+                        <Eye className="size-4" />
+                      </Link>
+                    </Button>
+                    {roles.canManagePublisher && (
+                      <Button asChild variant="ghost" size="icon">
+                        <Link to={`../../../publishers/${member.id}/edit`} relative="path">
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-      </section>
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

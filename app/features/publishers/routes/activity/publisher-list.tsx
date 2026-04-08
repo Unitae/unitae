@@ -1,11 +1,4 @@
-import {
-  ArrowLeftCircleIcon,
-  ArrowRightCircleIcon,
-  DocumentArrowDownIcon,
-  PencilIcon,
-  PlusIcon,
-} from '@heroicons/react/24/outline'
-import { useState } from 'react'
+import { ChevronLeft, ChevronRight, Download, Pencil, Plus } from 'lucide-react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { verifySession } from '~/features/authentication/server/session.server'
@@ -16,7 +9,10 @@ import { getPublisherWithActivities } from '~/features/publishers/server/get-pub
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
@@ -80,17 +76,16 @@ type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType extends read
 export default function NewActivity({ loaderData }: Route.ComponentProps) {
   const { publishers, selectedMonth, firstMonth, stats, canManageActivities } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
-  const [shouldShowExport, setShouldShowExport] = useState(false)
   const selectedDate = new Date()
   selectedDate.setMonth(selectedMonth.month)
   selectedDate.setFullYear(selectedMonth.year)
 
-  const handleMonthIncrease = (_month: number) => {
+  const handleMonthIncrease = () => {
     searchParams.set('month', String(selectedMonth.month === 11 ? 0 : selectedMonth.month + 1))
     searchParams.set('year', String(selectedMonth.month === 11 ? selectedMonth.year + 1 : selectedMonth.year))
     setSearchParams(searchParams)
   }
-  const handleMonthDecrease = (_month: number) => {
+  const handleMonthDecrease = () => {
     searchParams.set('month', String(selectedMonth.month === 0 ? 11 : selectedMonth.month - 1))
     searchParams.set('year', String(selectedMonth.month === 0 ? selectedMonth.year - 1 : selectedMonth.year))
     setSearchParams(searchParams)
@@ -98,13 +93,13 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
   if (publishers.length < 1) {
     return (
-      <div className="flex flex-col">
-        <HeroHeader
+      <div className="flex flex-col gap-6">
+        <PageHeader
           title="Activité des proclamateurs"
           subtitle="Visualisation des fiches de proclamateurs et de l'activité associée"
         />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
+        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
           <p>Il n'y a aucun proclamateur pour le moment !</p>
           <p>
             Il est donc possible d'afficher l'activité des proclamateurs. Pour ajouter des proclamateurs créez des
@@ -116,52 +111,48 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="flex flex-col gap-7">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Activité des proclamateurs"
         subtitle="Visualisation des fiches de proclamateurs et de l'activité associée"
         actions={
           <>
-            <div className="relative max-sm:hidden">
-              <button
-                type="button"
-                className="flex cursor-pointer items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-                title="Télécharger les exports"
-                onClick={() => setShouldShowExport(!shouldShowExport)}
-              >
-                <DocumentArrowDownIcon className="inline size-6 max-sm:size-5" />
-              </button>
-              <div
-                className={`${shouldShowExport ? 'flex' : 'hidden'} absolute top-13 right-0 w-64 flex-col items-stretch gap-1 max-sm:top-10 max-sm:right-auto max-sm:left-0`}
-              >
-                <Link
-                  to={`./export/${firstMonth.year}/xlsx`}
-                  className="rounded-lg bg-white p-3 text-gray-700 hover:text-teal-600 max-sm:p-2 max-sm:text-sm"
-                  title={`Télécharger le fichier Excel de toutes les activités des proclamateurs durant l'année ${firstMonth.year}`}
-                  reloadDocument
-                >
-                  Exporter un fichier Excel
-                </Link>
-                <Link
-                  to={`./export/${firstMonth.year}/pdfs`}
-                  className="rounded-lg bg-white p-3 text-gray-700 hover:text-teal-600 max-sm:p-2 max-sm:text-sm"
-                  reloadDocument
-                >
-                  Exporter l'ensemble des S-21
-                </Link>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button type="button" className="m-2 hover:text-teal-600" onClick={() => handleMonthDecrease(1)}>
-                <ArrowLeftCircleIcon className="inline size-7" />
-              </button>
-              {selectedDate.toLocaleDateString('fr', {
-                month: 'long',
-                year: 'numeric',
-              })}
-              <button type="button" className="m-2 hover:text-teal-600" onClick={() => handleMonthIncrease(1)}>
-                <ArrowRightCircleIcon className="inline size-7" />
-              </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title="Télécharger les exports" className="max-sm:hidden">
+                  <Download className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem asChild>
+                  <Link
+                    to={`./export/${firstMonth.year}/xlsx`}
+                    title={`Télécharger le fichier Excel de toutes les activités des proclamateurs durant l'année ${firstMonth.year}`}
+                    reloadDocument
+                  >
+                    Exporter un fichier Excel
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={`./export/${firstMonth.year}/pdfs`} reloadDocument>
+                    Exporter l'ensemble des S-21
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={handleMonthDecrease}>
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="min-w-[140px] text-center font-medium text-sm">
+                {selectedDate.toLocaleDateString('fr', {
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </span>
+              <Button variant="ghost" size="icon" onClick={handleMonthIncrease}>
+                <ChevronRight className="size-4" />
+              </Button>
             </div>
           </>
         }
@@ -169,25 +160,25 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
       <PublisherActivityStats stats={stats} />
 
-      <table className="mt-6 table grow border-collapse">
-        <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-          <tr>
-            <th className="w-[150px] py-4 text-center max-sm:w-14 max-sm:text-left">Prénom</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">Nom</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">Groupe</th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Heures</th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Études</th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Pionnier</th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Observations</th>
-            {canManageActivities && <th className="w-[150px] py-4 text-center max-sm:w-14" />}
-          </tr>
-        </thead>
-        <tbody className="text-left max-sm:text-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
+            <TableHead className="text-center">Nom</TableHead>
+            <TableHead className="text-center">Groupe</TableHead>
+            <TableHead className="text-center max-sm:hidden">Heures</TableHead>
+            <TableHead className="text-center max-sm:hidden">Études</TableHead>
+            <TableHead className="text-center max-sm:hidden">Pionnier</TableHead>
+            <TableHead className="text-center max-sm:hidden">Observations</TableHead>
+            {canManageActivities && <TableHead className="text-center" />}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {publishers.map(publisher => (
             <PublisherRow key={publisher.id} publisher={publisher} canManageActivities={canManageActivities} />
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }
@@ -200,77 +191,81 @@ function PublisherRow({
   canManageActivities: boolean
 }) {
   return (
-    <tr
+    <TableRow
       key={publisher.email}
-      className={`border-b border-b-slate-200 dark:border-b-slate-800 ${publisher.notRegular && 'bg-red-100 text-red-600 dark:bg-gray-950'}`}
+      className={publisher.notRegular ? 'bg-destructive/10 text-destructive dark:bg-destructive/5' : ''}
     >
-      <td className="py-3 text-center max-sm:text-left">
-        <Link to={`/congregation/publishers/${publisher.id}/view`} className="hover:text-teal-600">
+      <TableCell className="text-center max-sm:text-left">
+        <Link to={`/congregation/publishers/${publisher.id}/view`} className="hover:text-primary">
           {publisher.firstname}
         </Link>
-      </td>
-      <td className="py-3 text-center">
-        <Link to={`/congregation/publishers/${publisher.id}/view`} className="hover:text-teal-600">
+      </TableCell>
+      <TableCell className="text-center">
+        <Link to={`/congregation/publishers/${publisher.id}/view`} className="hover:text-primary">
           {publisher.lastname?.toLocaleUpperCase()}
         </Link>
-      </td>
-      <td className="py-3 text-center">
+      </TableCell>
+      <TableCell className="text-center">
         {publisher.publisherGroup != null && (
           <Link
             to={`/congregation/publisher-groups/${publisher.publisherGroup.id}/edit`}
-            className="hover:text-teal-600"
+            className="hover:text-primary"
           >
             {publisher.publisherGroup.name}
           </Link>
         )}
-      </td>
+      </TableCell>
 
       <ActivityColumns publisher={publisher} />
 
       {canManageActivities && (
-        <td className="py-3 text-center max-sm:text-right">
+        <TableCell className="text-center max-sm:text-right">
           {publisher.lastActivity != null && (
-            <Link to={publisher.editActivityUrl} className="text-teal-600">
-              <PencilIcon className="inline size-5" />
-            </Link>
+            <Button asChild variant="ghost" size="icon">
+              <Link to={publisher.editActivityUrl}>
+                <Pencil className="size-4" />
+              </Link>
+            </Button>
           )}
           {publisher.lastActivity == null && (
-            <Link to={publisher.newActivityUrl} className="text-teal-600">
-              <PlusIcon className="inline size-5" />
-            </Link>
+            <Button asChild variant="ghost" size="icon">
+              <Link to={publisher.newActivityUrl}>
+                <Plus className="size-4" />
+              </Link>
+            </Button>
           )}
-        </td>
+        </TableCell>
       )}
-    </tr>
+    </TableRow>
   )
 }
 
 function ActivityColumns({ publisher }: { publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']> }) {
   if (publisher.lastActivity == null) {
     return (
-      <td className="py-3 text-center text-sm italic max-sm:hidden" colSpan={4}>
+      <TableCell className="text-center text-muted-foreground text-sm italic max-sm:hidden" colSpan={4}>
         Le proclamateur n'a pas rendu son rapport
-      </td>
+      </TableCell>
     )
   }
 
   return (
     <>
-      <td className="py-3 text-center max-sm:hidden">
+      <TableCell className="text-center max-sm:hidden">
         {publisher.lastActivity.type === PublisherType.Normal && publisher.lastActivity.isPublisher && 'a préché'}
         {publisher.lastActivity.type !== PublisherType.Normal && `${publisher.lastActivity?.hours}h`}
-      </td>
-      <td className="py-3 text-center max-sm:hidden">{publisher.lastActivity?.studies}</td>
-      <td className="py-3 text-center max-sm:hidden">
+      </TableCell>
+      <TableCell className="text-center max-sm:hidden">{publisher.lastActivity?.studies}</TableCell>
+      <TableCell className="text-center max-sm:hidden">
         {publisher.lastActivity?.type === PublisherType.PionnierAuxiliaires && 'PA'}
         {publisher.lastActivity?.type === PublisherType.PionnierPermanant && 'PP'}
         {publisher.lastActivity?.type === PublisherType.PionnierSpecial && 'PS'}
         {publisher.lastActivity?.type === PublisherType.Missionnaire && 'M'}
         {publisher.lastActivity?.type === PublisherType.Normal && '-'}
-      </td>
-      <td className="py-3 text-center max-sm:hidden">
+      </TableCell>
+      <TableCell className="text-center max-sm:hidden">
         {publisher.lastActivity?.notes.length < 1 ? '-' : publisher.lastActivity?.notes}
-      </td>
+      </TableCell>
     </>
   )
 }

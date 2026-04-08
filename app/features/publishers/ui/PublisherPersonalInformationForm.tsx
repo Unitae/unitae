@@ -1,125 +1,115 @@
 import type { UserInput } from '~/shared/types/user-input'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 export default function PublisherPersonalInformationForm({ user }: { user?: UserInput }) {
   return (
-    <>
-      <h2 className="font-semibold text-xl max-sm:text-lg">Information personnelles</h2>
-      <div className="flex gap-3">
-        <label className="flex-1">
-          Prénom
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="firstname"
-            type="text"
-            placeholder="Prénom"
-            required
-            defaultValue={user?.firstname ?? ''}
-          />
-        </label>
-        <label className="flex-1">
-          Nom
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="lastname"
-            type="text"
-            placeholder="Nom"
-            defaultValue={user?.lastname ?? ''}
-            required
-          />
-        </label>
-      </div>
-      <div className="flex gap-3">
-        <label className="flex-1">
-          Date de naissance
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="birthDate"
-            type="date"
-            defaultValue={user?.birthDate?.toLocaleDateString('en-CA') ?? ''}
-          />
-        </label>
-        <label className="flex-1">
-          Date de baptême
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="baptismDate"
-            type="date"
-            defaultValue={user?.baptismDate?.toLocaleDateString('en-CA') ?? ''}
-          />
-        </label>
-      </div>
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <p>Genre :</p>
-          <div className="flex flex-grow items-center gap-3">
-            <label className="flex gap-1">
-              Homme
-              <input
-                className="rounded-md border dark:border-gray-300"
-                name="gender"
-                type="radio"
-                value="male"
-                required
-                defaultChecked={user?.isMale === true}
-              />
-            </label>
-            <label className="flex gap-1">
-              Femme
-              <input
-                className="rounded-md border dark:border-gray-300"
-                name="gender"
-                type="radio"
-                value="female"
-                required
-                defaultChecked={user?.isMale === false}
-              />
-            </label>
+    <Card>
+      <CardHeader>
+        <CardTitle>Informations personnelles</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="firstname">Prénom</Label>
+            <Input
+              id="firstname"
+              name="firstname"
+              type="text"
+              placeholder="Prénom"
+              required
+              defaultValue={user?.firstname ?? ''}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastname">Nom</Label>
+            <Input
+              id="lastname"
+              name="lastname"
+              type="text"
+              placeholder="Nom"
+              defaultValue={user?.lastname ?? ''}
+              required
+            />
           </div>
         </div>
-        <label className="flex flex-1 items-center gap-1 max-sm:gap-3">
-          <input
-            className="rounded-md border dark:border-gray-300"
-            name="isAnointed"
-            type="checkbox"
-            defaultChecked={user?.isAnointed}
-          />
-          <span>
-            Le proclamateur est <span className="font-bold text-teal-600">oint</span>.
-          </span>
-        </label>
-      </div>
-      <label className="flex-1">
-        Email
-        <input
-          className="w-full rounded-md border p-1 dark:border-gray-300"
-          name="email"
-          type="email"
-          placeholder="Email"
-          defaultValue={user?.email ?? ''}
-        />
-      </label>
-      <div className="flex gap-3">
-        <label className="flex-1">
-          Téléphone
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="phone"
-            type="text"
-            placeholder="Téléphone"
-            defaultValue={user?.phone ?? ''}
-          />
-        </label>
-        <label className="flex-1">
-          Adresse
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="address"
-            type="text"
-            placeholder="Domicile"
-            defaultValue={user?.address ?? ''}
-          />
-        </label>
-      </div>
-    </>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="birthDate">Date de naissance</Label>
+            <Input
+              id="birthDate"
+              name="birthDate"
+              type="date"
+              defaultValue={user?.birthDate?.toLocaleDateString('en-CA') ?? ''}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="baptismDate">Date de baptême</Label>
+            <Input
+              id="baptismDate"
+              name="baptismDate"
+              type="date"
+              defaultValue={user?.baptismDate?.toLocaleDateString('en-CA') ?? ''}
+            />
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Genre</Label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  className="size-4 border border-input"
+                  name="gender"
+                  type="radio"
+                  value="male"
+                  required
+                  defaultChecked={user?.isMale === true}
+                />
+                Homme
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  className="size-4 border border-input"
+                  name="gender"
+                  type="radio"
+                  value="female"
+                  required
+                  defaultChecked={user?.isMale === false}
+                />
+                Femme
+              </label>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 self-end">
+            <input
+              className="size-4 rounded border border-input"
+              name="isAnointed"
+              type="checkbox"
+              id="isAnointed"
+              defaultChecked={user?.isAnointed}
+            />
+            <Label htmlFor="isAnointed" className="font-normal">
+              Le proclamateur est <span className="font-bold text-primary">oint</span>.
+            </Label>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" placeholder="Email" defaultValue={user?.email ?? ''} />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="phone">Téléphone</Label>
+            <Input id="phone" name="phone" type="text" placeholder="Téléphone" defaultValue={user?.phone ?? ''} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="address">Adresse</Label>
+            <Input id="address" name="address" type="text" placeholder="Domicile" defaultValue={user?.address ?? ''} />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

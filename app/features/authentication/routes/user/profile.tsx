@@ -46,19 +46,19 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
         <CardContent className="grid gap-3">
           <div className="flex justify-between border-b pb-2">
             <span className="text-muted-foreground text-sm">Nom</span>
-            <span className="text-sm font-medium">{user.lastname?.toLocaleUpperCase() ?? '—'}</span>
+            <span className="font-medium text-sm">{user.lastname?.toLocaleUpperCase() ?? '—'}</span>
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="text-muted-foreground text-sm">Prénom</span>
-            <span className="text-sm font-medium">{user.firstname ?? '—'}</span>
+            <span className="font-medium text-sm">{user.firstname ?? '—'}</span>
           </div>
           <div className="flex justify-between border-b pb-2">
             <span className="text-muted-foreground text-sm">Adresse email</span>
-            <span className="text-sm font-medium">{user.email.toLocaleLowerCase()}</span>
+            <span className="font-medium text-sm">{user.email.toLocaleLowerCase()}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground text-sm">Proclamateur à Unitae</span>
-            <span className="text-sm font-medium">{user.isPublisher ? 'Oui' : 'Non'}</span>
+            <span className="font-medium text-sm">{user.isPublisher ? 'Oui' : 'Non'}</span>
           </div>
           <p className="mt-2 text-muted-foreground text-xs italic">
             Si certaines de ces informations ne sont pas bonnes, merci de contacter ton responsable de groupe de

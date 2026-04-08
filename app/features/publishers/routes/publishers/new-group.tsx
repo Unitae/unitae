@@ -4,6 +4,11 @@ import { commitSession, getSession, verifySession } from '~/features/authenticat
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new-group'
 
@@ -35,72 +40,70 @@ export default function NewGroup({ loaderData }: Route.ComponentProps) {
   const { brothers } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <h1 className="my-3 font-bold text-4xl">Nouveau groupe</h1>
-      <p className="text-gray-500">Créer un nouveau groupe de predication</p>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Nouveau groupe" subtitle="Créer un nouveau groupe de prédication" />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Nom
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="name"
-              type="text"
-              placeholder="Nom du groupe"
-              required
-            />
-          </label>
-        </div>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Adresse
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="address"
-              type="text"
-              placeholder="Adresse du groupe de prédication"
-              required
-            />
-          </label>
-        </div>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Responsable
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-              name="responsible"
-              required
-            >
-              <option>Choisir un frère responsable de groupe</option>
-              {brothers.map(brother => (
-                <option key={brother.id} value={brother.id}>
-                  {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex-1">
-            Adjoint
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-              name="deputy"
-              required
-            >
-              <option>Choisir un frère adjoint au responsable de groupe</option>
-              {brothers.map(brother => (
-                <option key={brother.id} value={brother.id}>
-                  {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations du groupe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="name">Nom</Label>
+                <Input id="name" name="name" type="text" placeholder="Nom du groupe" required />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  type="text"
+                  placeholder="Adresse du groupe de prédication"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="responsible">Responsable</Label>
+                <select
+                  id="responsible"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                  name="responsible"
+                  required
+                >
+                  <option>Choisir un frère responsable de groupe</option>
+                  {brothers.map(brother => (
+                    <option key={brother.id} value={brother.id}>
+                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deputy">Adjoint</Label>
+                <select
+                  id="deputy"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                  name="deputy"
+                  required
+                >
+                  <option>Choisir un frère adjoint au responsable de groupe</option>
+                  {brothers.map(brother => (
+                    <option key={brother.id} value={brother.id}>
+                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Créer le groupe
-        </button>
-      </Form>
+            <Button type="submit" className="self-start">
+              Créer le groupe
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,10 +1,15 @@
-import { Form, redirect } from 'react-router'
+import { Trash2 } from 'lucide-react'
+import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/edit-group'
 
@@ -40,86 +45,90 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
   const { brothers, group } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl">Modification d'un groupe</h1>
-          <p className="text-gray-500">Modifier un groupe de predication</p>
-        </div>
-        <div className="flex gap-2">
-          <DeleteLink
-            title="Supprimer complètement le groupe de prédication"
-            action={`/congregation/publisher-groups/${group.id}/delete`}
-          />
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Modification d'un groupe"
+        subtitle="Modifier un groupe de prédication"
+        actions={
+          <Button asChild variant="destructive" size="icon" title="Supprimer complètement le groupe de prédication">
+            <Link to={`/congregation/publisher-groups/${group.id}/delete`}>
+              <Trash2 className="size-4" />
+            </Link>
+          </Button>
+        }
+      />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Nom
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="name"
-              type="text"
-              placeholder="Nom du groupe"
-              defaultValue={group.name}
-              required
-            />
-          </label>
-        </div>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Adresse
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="address"
-              type="text"
-              placeholder="Adresse du groupe de prédication"
-              defaultValue={group.adress}
-              required
-            />
-          </label>
-        </div>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Responsable
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-              name="responsible"
-              required
-              defaultValue={group.responsibleId}
-            >
-              <option disabled>Choisir un frère responsable de groupe</option>
-              {brothers.map(brother => (
-                <option key={brother.id} value={brother.id}>
-                  {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex-1">
-            Adjoint
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-              name="deputy"
-              required
-              defaultValue={group.deputyId}
-            >
-              <option disabled>Choisir un frère adjoint au responsable de groupe</option>
-              {brothers.map(brother => (
-                <option key={brother.id} value={brother.id}>
-                  {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Informations du groupe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="name">Nom</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Nom du groupe"
+                  defaultValue={group.name}
+                  required
+                />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label htmlFor="address">Adresse</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  type="text"
+                  placeholder="Adresse du groupe de prédication"
+                  defaultValue={group.adress}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="responsible">Responsable</Label>
+                <select
+                  id="responsible"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                  name="responsible"
+                  required
+                  defaultValue={group.responsibleId}
+                >
+                  <option disabled>Choisir un frère responsable de groupe</option>
+                  {brothers.map(brother => (
+                    <option key={brother.id} value={brother.id}>
+                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="deputy">Adjoint</Label>
+                <select
+                  id="deputy"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                  name="deputy"
+                  required
+                  defaultValue={group.deputyId}
+                >
+                  <option disabled>Choisir un frère adjoint au responsable de groupe</option>
+                  {brothers.map(brother => (
+                    <option key={brother.id} value={brother.id}>
+                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Enregistrer
-        </button>
-      </Form>
+            <Button type="submit" className="self-start">
+              Enregistrer
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

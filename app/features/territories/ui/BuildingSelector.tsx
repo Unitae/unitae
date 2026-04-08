@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Label } from '~/shared/ui/label'
 
 export default function BuildingSelector({
   zips = [],
@@ -21,103 +24,101 @@ export default function BuildingSelector({
 
   if (shouldShowSearchBox) {
     return (
-      <div className="flex flex-col gap-1 rounded-md bg-gray-50 p-2">
-        <div className="flex gap-3">
-          <label className="flex-1 text-slate-950">
-            Code postal
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300 dark:bg-white"
-              onChange={event => {
-                searchParams.set('zip', event.target.value)
-                setSearchParams(searchParams)
-              }}
-              defaultValue={searchParams.get('zip') ?? ''}
-            >
-              <option disabled selected={!searchParams.has('zip')}>
-                Sélectionner un code postal
-              </option>
-              {zips.map(el => (
-                <option key={el.zip} value={el.zip}>
-                  {el.zip}
-                </option>
-              ))}
-            </select>
-          </label>
-          {streets.length > 0 && (
-            <label className="flex-1 text-slate-950">
-              Voie
+      <Card>
+        <CardContent className="flex flex-col gap-3 pt-4">
+          <div className="flex gap-3">
+            <div className="flex flex-1 flex-col gap-1.5">
+              <Label>Code postal</Label>
               <select
-                className="w-full appearance-none rounded-md border p-1 dark:border-gray-300 dark:bg-white"
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 onChange={event => {
-                  searchParams.set('street', event.target.value)
+                  searchParams.set('zip', event.target.value)
                   setSearchParams(searchParams)
                 }}
-                defaultValue={searchParams.get('street') ?? ''}
+                defaultValue={searchParams.get('zip') ?? ''}
               >
-                <option disabled selected={!searchParams.has('street')}>
-                  Sélectionner une voie
+                <option disabled selected={!searchParams.has('zip')}>
+                  Sélectionner un code postal
                 </option>
-                {streets.map(el => (
-                  <option key={el.street} value={el.street}>
-                    {el.street}
+                {zips.map(el => (
+                  <option key={el.zip} value={el.zip}>
+                    {el.zip}
                   </option>
                 ))}
               </select>
-            </label>
+            </div>
+            {streets.length > 0 && (
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label>Voie</Label>
+                <select
+                  className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  onChange={event => {
+                    searchParams.set('street', event.target.value)
+                    setSearchParams(searchParams)
+                  }}
+                  defaultValue={searchParams.get('street') ?? ''}
+                >
+                  <option disabled selected={!searchParams.has('street')}>
+                    Sélectionner une voie
+                  </option>
+                  {streets.map(el => (
+                    <option key={el.street} value={el.street}>
+                      {el.street}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          {entrances.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <Label>Allée</Label>
+              <select
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                onChange={event => {
+                  selectEntrance(Number(event.target.value))
+                }}
+              >
+                <option disabled selected={selectedEntrance == null}>
+                  Sélectionner un numéro
+                </option>
+                {entrances
+                  .filter(el => !selection.map(tbuilding => tbuilding.id).includes(el.id))
+                  .map(el => (
+                    <option key={el.id} value={el.id}>
+                      {el.number} {el.street}, {el.zip}
+                    </option>
+                  ))}
+              </select>
+            </div>
           )}
-        </div>
-        {entrances.length > 0 && (
-          <label className="flex-1 text-slate-950">
-            Allée
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300 dark:bg-white"
-              onChange={event => {
-                selectEntrance(Number(event.target.value))
+          {selectedEntrance != null && (
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => {
+                const tempList = selection.filter(el => el.id !== selectedEntrance)
+                const newBuilding = entrances.find(el => el.id === selectedEntrance)
+                if (newBuilding != null) {
+                  tempList.push(newBuilding)
+                }
+
+                onSelectionChange(tempList)
+                selectEntrance(null)
+                showSearchBox(false)
               }}
             >
-              <option disabled selected={selectedEntrance == null}>
-                Sélectionner un numéro
-              </option>
-              {entrances
-                .filter(el => !selection.map(tbuilding => tbuilding.id).includes(el.id))
-                .map(el => (
-                  <option key={el.id} value={el.id}>
-                    {el.number} {el.street}, {el.zip}
-                  </option>
-                ))}
-            </select>
-          </label>
-        )}
-        {selectedEntrance != null && (
-          <button
-            className="mt-2 rounded-lg bg-slate-600 p-1 font-semibold text-white hover:bg-slate-900"
-            type="button"
-            onClick={() => {
-              const tempList = selection.filter(el => el.id !== selectedEntrance)
-              const newBuilding = entrances.find(el => el.id === selectedEntrance)
-              if (newBuilding != null) {
-                tempList.push(newBuilding)
-              }
-
-              onSelectionChange(tempList)
-              selectEntrance(null)
-              showSearchBox(false)
-            }}
-          >
-            Ajouter l'allée au territoire
-          </button>
-        )}
-      </div>
+              Ajouter l'allée au territoire
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <button
-      type="button"
-      className="mt-2 rounded-lg bg-slate-600 p-1 font-semibold text-white hover:bg-slate-900"
-      onClick={() => showSearchBox(true)}
-    >
+    <Button type="button" variant="secondary" onClick={() => showSearchBox(true)}>
       Ajouter une allée
-    </button>
+    </Button>
   )
 }

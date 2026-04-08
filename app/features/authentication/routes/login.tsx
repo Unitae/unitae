@@ -48,7 +48,7 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-display font-bold text-3xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-3xl tracking-tight">Unitae</h1>
         </CardHeader>
         <CardContent>
           {error && (
@@ -63,7 +63,6 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
                 id="email"
                 name="email"
                 type="email"
-                // biome-ignore lint/a11y/noAutofocus: Here it is a better UX to focus on the field
                 autoFocus={true}
                 autoComplete="username"
                 required

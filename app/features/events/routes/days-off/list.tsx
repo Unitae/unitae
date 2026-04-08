@@ -1,9 +1,11 @@
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { X } from 'lucide-react'
 import { Link } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import logger from '~/shared/libs/logger.server'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/list'
 
@@ -28,41 +30,37 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
   const { events } = loaderData
 
   return (
-    <div className="flex h-screen flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Mes absences"
         subtitle="Gérez vos absences. Dès que vous avez prévu de vous absenter, ajoutez une absence pour que les frères en charge des programmes puissent en tenir compte."
         actions={
-          <Link
-            to={'./new'}
-            title="Ajouter une absence"
-            className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-          >
-            Nouvelle absence
-          </Link>
+          <Button asChild>
+            <Link to="./new">Nouvelle absence</Link>
+          </Button>
         }
       />
 
-      <div className="my-4">
-        {events.length > 0 ? (
-          <ul className="flex list-none flex-col gap-3 pl-0">
-            {events.map(event => (
-              <li key={event.id} className="flex justify-between rounded-md bg-slate-50 p-3 shadow-md dark:bg-gray-800">
-                <span>
+      {events.length > 0 ? (
+        <div className="flex flex-col gap-3">
+          {events.map(event => (
+            <Card key={event.id}>
+              <CardContent className="flex items-center justify-between py-3">
+                <span className="text-sm">
                   du {new Date(event.startDate).toLocaleDateString()} au {new Date(event.endDate).toLocaleDateString()}
                 </span>
-                <span>
-                  <Link to={`/me/days-off/${event.id}/delete`} title="Annuler l'attribution" className={'text-red-600'}>
-                    <XMarkIcon className={'inline size-6'} />
+                <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
+                  <Link to={`/me/days-off/${event.id}/delete`} title="Supprimer l'absence">
+                    <X className="size-4" />
                   </Link>
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>Aucune absence prévue.</p>
-        )}
-      </div>
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <p className="text-muted-foreground">Aucune absence prévue.</p>
+      )}
     </div>
   )
 }

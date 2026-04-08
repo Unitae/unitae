@@ -1,8 +1,8 @@
 import { Outlet } from 'react-router'
-import { Toaster } from '~/shared/ui/sonner'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/shared/ui/sidebar'
-import { Separator } from '~/shared/ui/separator'
 import { AppSidebar, type AppSidebarPermissions } from '~/shared/ui/AppSidebar'
+import { Separator } from '~/shared/ui/separator'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/shared/ui/sidebar'
+import { Toaster } from '~/shared/ui/sonner'
 
 interface AppLayoutProps {
   permissions: AppSidebarPermissions

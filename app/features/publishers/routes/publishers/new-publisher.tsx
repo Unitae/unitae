@@ -8,7 +8,8 @@ import PublisherPersonalInformationForm from '~/features/publishers/ui/Publisher
 import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new-publisher'
 
@@ -33,17 +34,17 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
   const { groups, hideAuxiliaryPioneer } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader title="Nouveau proclamateur" subtitle="Créer la fiche d'un nouveau proclamateur" />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Nouveau proclamateur" subtitle="Créer la fiche d'un nouveau proclamateur" />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
+      <Form method="post" className="flex flex-col gap-6">
         <PublisherPersonalInformationForm />
         <PublisherNominationForm />
         <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
+        <Button type="submit" size="lg" className="self-start">
           Créer le proclamateur
-        </button>
+        </Button>
       </Form>
     </div>
   )

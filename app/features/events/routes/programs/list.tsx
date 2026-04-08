@@ -7,7 +7,8 @@ import EventFilters from '~/features/events/ui/EventFilters'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 
 import type { Route } from './+types/list'
@@ -57,18 +58,15 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const { events = [], pagination, roles } = loaderData
 
   return (
-    <div className="flex flex-col gap-5">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Programmes"
         subtitle="Liste de tous les évènements de l'assemblée"
         actions={
           roles.canManagePrograms && (
-            <Link
-              to="./new"
-              className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-            >
-              Nouvel évènement
-            </Link>
+            <Button asChild>
+              <Link to="./new">Nouvel évènement</Link>
+            </Button>
           )
         }
       />
@@ -89,15 +87,17 @@ function ProgramEventList({
 }) {
   if (events.length < 1) {
     return (
-      <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
+      <div className="my-12 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
         <p>Il n'y a aucun évènement de planifié pour le moment !</p>
-        <p>Pour planifier un évènement, utilise le bouton "Nouvel évènement" en haut à droite de cette page. </p>
+        <p className="text-sm">
+          Pour planifier un évènement, utilise le bouton "Nouvel évènement" en haut à droite de cette page.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="flex grow flex-col gap-3">
+    <div className="flex flex-col gap-3">
       <ul className="flex list-none flex-col gap-3 pl-0">{/* events */}</ul>
 
       <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />

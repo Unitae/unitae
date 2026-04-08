@@ -12,7 +12,7 @@ function getCongregationId(): number {
   return ctx?.congregationId ?? 0
 }
 
-export function getStorageKey(filename?: string): string {
+export function getStorageKey(_filename?: string): string {
   const uuid = crypto.randomUUID()
   return buildStorageKey(getCongregationId(), 'board', `${uuid}.pdf`)
 }

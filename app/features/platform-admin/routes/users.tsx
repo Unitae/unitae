@@ -1,5 +1,9 @@
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import { unscopedDb } from '~/shared/libs/db.server'
+import { Badge } from '~/shared/ui/badge'
+import { Card, CardContent } from '~/shared/ui/card'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/users'
 
@@ -36,48 +40,41 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
   const { users } = loaderData
 
   return (
-    <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="font-bold text-2xl">Utilisateurs</h2>
-        <span className="text-sm text-gray-500">{users.length} utilisateur(s)</span>
-      </div>
+    <div className="space-y-6">
+      <PageHeader title="Utilisateurs" subtitle={`${users.length} utilisateur(s)`} />
 
-      <table className="w-full border-collapse">
-        <thead className="border-b border-slate-300 text-left text-sm font-semibold dark:border-slate-600">
-          <tr>
-            <th className="py-3">Nom</th>
-            <th className="py-3">Email</th>
-            <th className="py-3">Congrégation</th>
-            <th className="py-3 text-center">Statut</th>
-            <th className="py-3 text-center">Admin plateforme</th>
-          </tr>
-        </thead>
-        <tbody className="text-sm">
-          {users.map(u => (
-            <tr key={u.id} className="border-b border-slate-200 dark:border-slate-700">
-              <td className="py-3 font-medium">
-                {u.firstname ?? ''} {u.lastname ?? ''}
-              </td>
-              <td className="py-3 text-gray-500">{u.email}</td>
-              <td className="py-3">{u.congregationName}</td>
-              <td className="py-3 text-center">
-                <span
-                  className={`inline-block rounded-full px-2 py-0.5 text-xs ${u.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-                >
-                  {u.active ? 'Actif' : 'Inactif'}
-                </span>
-              </td>
-              <td className="py-3 text-center">
-                {u.platformAdmin && (
-                  <span className="inline-block rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700">
-                    Admin
-                  </span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Card>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Congregation</TableHead>
+                <TableHead className="text-center">Statut</TableHead>
+                <TableHead className="text-center">Admin plateforme</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map(u => (
+                <TableRow key={u.id}>
+                  <TableCell className="font-medium">
+                    {u.firstname ?? ''} {u.lastname ?? ''}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                  <TableCell>{u.congregationName}</TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={u.active ? 'default' : 'destructive'}>{u.active ? 'Actif' : 'Inactif'}</Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {u.platformAdmin && <Badge variant="secondary">Admin</Badge>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   )
 }

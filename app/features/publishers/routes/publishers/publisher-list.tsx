@@ -1,11 +1,13 @@
-import { ChartBarIcon, EnvelopeIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { BarChart3, Eye, Mail, Pencil } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
 import logger from '~/shared/libs/logger.server'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/publisher-list'
 
@@ -53,26 +55,23 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
 
   if (users.length < 1) {
     return (
-      <div className="flex flex-col">
-        <HeroHeader
+      <div className="flex flex-col gap-6">
+        <PageHeader
           title="Proclamateurs"
           subtitle="Liste de tous les fiches de proclamateurs de l'assemblée"
           actions={
             canManagePublisher && (
-              <Link
-                to="./new"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                Créer proclamateur
-              </Link>
+              <Button asChild>
+                <Link to="./new">Créer proclamateur</Link>
+              </Button>
             )
           }
         />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
+        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
           <p>Il n'y a aucun proclamateur pour le moment !</p>
           <p>
-            Pour ajouter des proclamateurs utilisez le bouton "Créer proclamateur" an haut à droite de cette page ou
+            Pour ajouter des proclamateurs utilisez le bouton "Créer proclamateur" en haut à droite de cette page ou
             créez des fiches de proclamateur à partir des utilisateurs.
           </p>
         </div>
@@ -81,89 +80,88 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
   }
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Proclamateurs"
         subtitle="Liste de tous les fiches de proclamateurs de l'assemblée"
         actions={
           <>
             {canViewActivities && (
-              <Link
-                to="./activity"
-                title="Consulter l'activité des proclamateurs"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                <ChartBarIcon className="inline size-6 max-sm:size-5" />
-              </Link>
+              <Button asChild variant="outline" size="icon" title="Consulter l'activité des proclamateurs">
+                <Link to="./activity">
+                  <BarChart3 className="size-4" />
+                </Link>
+              </Button>
             )}
             {canManagePublisher && (
-              <Link
-                to="./new"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                Créer proclamateur
-              </Link>
+              <Button asChild>
+                <Link to="./new">Créer proclamateur</Link>
+              </Button>
             )}
           </>
         }
       />
 
-      <table className="mt-6 table grow border-collapse">
-        <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-          <tr>
-            <th className="w-[150px] py-4 text-center max-sm:w-14 max-sm:text-left">Prénom</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">Nom</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">Groupe</th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Contact</th>
-            {canManagePublisher && <th className="w-[150px] py-4 text-center max-sm:w-14" />}
-          </tr>
-        </thead>
-        <tbody className="text-left max-sm:text-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
+            <TableHead className="text-center">Nom</TableHead>
+            <TableHead className="text-center">Groupe</TableHead>
+            <TableHead className="text-center max-sm:hidden">Contact</TableHead>
+            {canManagePublisher && <TableHead className="text-center" />}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {users.map(user => (
-            <tr key={user.email} className="border-b border-b-slate-200 dark:border-b-slate-800">
-              <td className="py-3 text-center max-sm:text-left">
-                <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-teal-600">
+            <TableRow key={user.email}>
+              <TableCell className="text-center max-sm:text-left">
+                <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
                   {user.firstname}
                 </Link>
-              </td>
-              <td className="py-3 text-center">
-                <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-teal-600">
+              </TableCell>
+              <TableCell className="text-center">
+                <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
                   {user.lastname?.toLocaleUpperCase()}
                 </Link>
-              </td>
-              <td className="py-3 text-center">
+              </TableCell>
+              <TableCell className="text-center">
                 {user.publisherGroup != null && (
                   <Link
                     to={`/congregation/publisher-groups/${user.publisherGroup.id}/edit`}
-                    className="hover:text-teal-600"
+                    className="hover:text-primary"
                   >
                     {user.publisherGroup.name}
                   </Link>
                 )}
-              </td>
-              <td className="py-3 text-center max-sm:hidden">
+              </TableCell>
+              <TableCell className="text-center max-sm:hidden">
                 {user.email.includes('@placeholder.unitae.app') === false && (
-                  <Link to={`mailto:${user.email}`} className="hover:text-teal-600">
-                    <EnvelopeIcon className="inline size-5" />
+                  <Link to={`mailto:${user.email}`} className="hover:text-primary">
+                    <Mail className="inline size-4" />
                   </Link>
                 )}
-              </td>
-              <td>
-                <div className="flex items-stretch justify-end gap-3">
-                  <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-teal-600">
-                    <EyeIcon className="inline size-5" />
-                  </Link>
-                  {canManagePublisher && (
-                    <Link to={`./${user.id}/edit`} className="text-teal-600">
-                      <PencilIcon className="inline size-5" />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-stretch justify-end gap-2">
+                  <Button asChild variant="ghost" size="icon">
+                    <Link to={`/congregation/publishers/${user.id}/view`}>
+                      <Eye className="size-4" />
                     </Link>
+                  </Button>
+                  {canManagePublisher && (
+                    <Button asChild variant="ghost" size="icon">
+                      <Link to={`./${user.id}/edit`}>
+                        <Pencil className="size-4" />
+                      </Link>
+                    </Button>
                   )}
                 </div>
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

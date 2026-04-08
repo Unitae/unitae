@@ -1,10 +1,4 @@
-import {
-  CheckBadgeIcon,
-  IdentificationIcon,
-  PencilIcon,
-  PercentBadgeIcon,
-  UserPlusIcon,
-} from '@heroicons/react/24/outline'
+import { BadgeCheck, BadgeMinus, IdCard, Pencil, UserPlus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 
 import { verifySession } from '~/features/authentication/server/session.server'
@@ -12,6 +6,10 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
+import { Badge } from '~/shared/ui/badge'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/user-list'
 
@@ -72,83 +70,84 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
   const { users, roles } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Utilisateurs</h1>
-          <p className="text-gray-500 max-sm:text-sm">Liste de tous les utilisateurs de Unitae</p>
-        </div>
-        <div>
-          <Link
-            to="./new"
-            className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-          >
-            Nouvel utilisateur
-          </Link>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Utilisateurs"
+        subtitle="Liste de tous les utilisateurs de Unitae"
+        actions={
+          <Button asChild>
+            <Link to="./new">Nouvel utilisateur</Link>
+          </Button>
+        }
+      />
 
-      <table className="mt-6 table grow border-collapse">
-        <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-          <tr>
-            <th className="w-[150px] py-4 max-sm:w-14">Prénom</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">Nom</th>
-            <th className="px-1 py-4 text-center max-sm:hidden">Email</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">Proclamateur</th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Droits</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14 max-sm:text-right" />
-          </tr>
-        </thead>
-        <tbody className="text-left max-sm:text-sm">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Prénom</TableHead>
+            <TableHead>Nom</TableHead>
+            <TableHead className="max-sm:hidden">Email</TableHead>
+            <TableHead className="text-center">Proclamateur</TableHead>
+            <TableHead className="text-center max-sm:hidden">Droits</TableHead>
+            <TableHead className="w-[50px]" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {users.map(user => (
-            <tr key={user.email} className="border-b border-b-slate-200 dark:border-b-slate-800">
-              <td className="py-3">{user.firstname}</td>
-              <td className="py-3 text-center">{user.lastname?.toLocaleUpperCase()}</td>
-              <td className="py-3 text-center max-sm:hidden">{user.email ?? '-'}</td>
-              <td className="py-3 text-center text-teal-600">
+            <TableRow key={user.id}>
+              <TableCell>{user.firstname}</TableCell>
+              <TableCell>{user.lastname?.toLocaleUpperCase()}</TableCell>
+              <TableCell className="max-sm:hidden">{user.email ?? '-'}</TableCell>
+              <TableCell className="text-center">
                 {user.isPublisher ? (
                   roles.canViewPublishers ? (
                     <Link
                       to={`/congregation/publishers/${user.id}/view`}
                       title="Voir la fiche proclamateur de cet utilisateur"
+                      className="text-primary"
                     >
-                      <IdentificationIcon className="inline size-5" />
+                      <IdCard className="inline size-4" />
                     </Link>
                   ) : (
-                    <IdentificationIcon className="inline size-5" />
+                    <IdCard className="inline size-4 text-primary" />
                   )
                 ) : (
                   roles.canManagePublishers && (
                     <Form method="POST" action={`./${user.id}/make-publisher`}>
-                      <button type="submit" title="Créer automatiquement une fiche proclamateur pour cet utilisateur">
-                        <UserPlusIcon className="inline size-5" />
-                      </button>
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="icon"
+                        title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
+                      >
+                        <UserPlus className="size-4" />
+                      </Button>
                     </Form>
                   )
                 )}
-              </td>
-              <td className="py-3 text-center text-sm max-sm:hidden">
+              </TableCell>
+              <TableCell className="text-center max-sm:hidden">
                 {user.isAdmin ? (
-                  <CheckBadgeIcon
-                    className="inline size-5 text-yellow-500"
-                    title="Utilisateur ayant les droits administrateur"
-                  />
+                  <Badge variant="default" title="Utilisateur ayant les droits administrateur">
+                    <BadgeCheck className="mr-1 size-3" /> Admin
+                  </Badge>
                 ) : user.roles.length > 0 ? (
-                  <PercentBadgeIcon
-                    className="inline size-5 text-slate-500"
-                    title="Utilisateur qui possède des droits supplémentaires"
-                  />
+                  <Badge variant="secondary" title="Utilisateur qui possède des droits supplémentaires">
+                    <BadgeMinus className="mr-1 size-3" /> Droits
+                  </Badge>
                 ) : null}
-              </td>
-              <td className="py-3 text-center max-sm:text-right">
-                <Link to={`./${user.id}/edit`} className="text-teal-600">
-                  <PencilIcon className="inline size-5" />
-                </Link>
-              </td>
-            </tr>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button variant="ghost" size="icon" asChild>
+                  <Link to={`./${user.id}/edit`}>
+                    <Pencil className="size-4" />
+                  </Link>
+                </Button>
+              </TableCell>
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   )
 }

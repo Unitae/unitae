@@ -1,4 +1,5 @@
-import { data, Form, redirect } from 'react-router'
+import { Trash2 } from 'lucide-react'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
@@ -7,8 +8,11 @@ import { getBuildingDetails } from '~/features/territories/server/get-building-d
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/edit-building'
 
@@ -52,85 +56,66 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, messages } = loaderData
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-6">
       <AlertMessages messages={messages} />
 
-      <HeroHeader
+      <PageHeader
         title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
         subtitle="Modifier les informations d'un batiment"
         actions={
-          <DeleteLink
-            action={`/territories/building/${building.id}/delete`}
-            title="Supprimer complètement le batiment"
-          />
+          <Button variant="destructive" size="icon" asChild>
+            <Link to={`/territories/building/${building.id}/delete`} title="Supprimer complètement le batiment">
+              <Trash2 className="size-4" />
+            </Link>
+          </Button>
         }
       />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">Identification</h2>
-        <label>
-          Numéro
-          <input
-            className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-            name="number"
-            type="text"
-            placeholder="Numéro du batiment"
-            required
-            defaultValue={building.number}
-          />
-        </label>
-        <label>
-          Voie
-          <input
-            className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-            name="street"
-            type="text"
-            placeholder="Nom de la voie"
-            required
-            defaultValue={building.street}
-          />
-        </label>
-        <label>
-          Code postal
-          <input
-            className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-            name="zip"
-            type="text"
-            placeholder="Code postal de la ville"
-            required
-            defaultValue={building.zip}
-          />
-        </label>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Latitude
-            <input
-              className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-              defaultValue={building.latitude ?? ''}
-              name="latitude"
-              type="number"
-              step={0.0000001}
-            />
-          </label>
-          <label className="flex-1">
-            Longitude
-            <input
-              className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-              defaultValue={building.longitude ?? ''}
-              name="longitude"
-              type="number"
-              step={0.0000001}
-            />
-          </label>
-        </div>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <h2 className="font-semibold text-lg">Identification</h2>
+            <div className="flex flex-col gap-1.5">
+              <Label>Numéro</Label>
+              <Input
+                name="number"
+                type="text"
+                placeholder="Numéro du batiment"
+                required
+                defaultValue={building.number}
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Voie</Label>
+              <Input name="street" type="text" placeholder="Nom de la voie" required defaultValue={building.street} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Code postal</Label>
+              <Input
+                name="zip"
+                type="text"
+                placeholder="Code postal de la ville"
+                required
+                defaultValue={building.zip}
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label>Latitude</Label>
+                <Input defaultValue={building.latitude ?? ''} name="latitude" type="number" step={0.0000001} />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label>Longitude</Label>
+                <Input defaultValue={building.longitude ?? ''} name="longitude" type="number" step={0.0000001} />
+              </div>
+            </div>
 
-        <button
-          className="my-4 inline-flex items-center justify-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-          type="submit"
-        >
-          Modifier le batiment
-        </button>
-      </Form>
+            <Button type="submit" className="mt-2">
+              Modifier le batiment
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

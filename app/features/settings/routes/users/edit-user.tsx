@@ -1,11 +1,18 @@
-import { IdentificationIcon, UserPlusIcon } from '@heroicons/react/24/outline'
+import { IdCard, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { congregationContext, db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Checkbox } from '~/shared/ui/checkbox'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Separator } from '~/shared/ui/separator'
 
 import type { Route } from './+types/edit-user'
 
@@ -63,125 +70,141 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
   const publisherNotUser = user.email == null
 
   return (
-    <div className="flex flex-col">
-      <AlertMessages messages={messages} />
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Modification d'utilisateur</h1>
-          <p className="text-gray-500 max-sm:text-sm">Modifier un utilisateur</p>
-        </div>
-        <div className="flex gap-2">
-          {user.isPublisher === true ? (
-            <Link
-              to={`/congregation/publishers/${user.id}/edit`}
-              className="rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900"
-              title="Voir la fiche proclamateur de cet utilisateur"
-            >
-              <IdentificationIcon className="inline size-6" />
-            </Link>
-          ) : (
-            <Form method="POST" action={`/settings/users/${user.id}/make-publisher`}>
-              <button
-                type="submit"
-                className="rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900"
-                title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
-              >
-                <UserPlusIcon className="inline-block size-6" />
-              </button>
-            </Form>
-          )}
-          <Form method="post" action={`/password/${user.id}/invalidate`}>
-            <button
-              type="submit"
-              className={`rounded-lg bg-teal-600 p-3 font-semibold text-white ${user.email == null ? 'cursor-not-allowed' : 'hover:bg-teal-900'}`}
-              disabled={user.email == null}
-              title={
-                user.email == null
-                  ? `Ajoutez d'abord une adresse email pour créer le compte utilisateur`
-                  : `Envoi un email à l'utilisateur pour lui demander modifier son mot de passe`
-              }
-            >
-              Réinitialiser le mot de passe
-            </button>
-          </Form>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      {messages.error && (
+        <Alert variant="destructive">
+          <AlertDescription>{messages.error}</AlertDescription>
+        </Alert>
+      )}
+      {messages.success && (
+        <Alert>
+          <AlertDescription>{messages.success}</AlertDescription>
+        </Alert>
+      )}
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Prénom
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="firstname"
-              type="text"
-              placeholder="Prénom"
-              defaultValue={user.firstname ?? ''}
-            />
-          </label>
-          <label className="flex-1">
-            Nom
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="lastname"
-              type="text"
-              placeholder="Nom"
-              defaultValue={user.lastname ?? ''}
-            />
-          </label>
-        </div>
-        <label>
-          Email
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="email"
-            type="email"
-            placeholder="Email"
-            defaultValue={user.email ?? ''}
-            required
-          />
-        </label>
-        <label>
-          <input
-            className="mr-2 rounded-md border p-1 dark:border-gray-300"
-            name="active"
-            type="checkbox"
-            defaultChecked={publisherNotUser ? false : user.active}
-            disabled={publisherNotUser}
-          />
-          L'utilisateur peut se connecter et utiliser l'application
-        </label>
-        <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">Droits utilisateur</h2>
-        <div className="flex flex-wrap gap-3 max-sm:flex-col">
-          {publisherNotUser ? (
-            <p className="text-center text-sm">
-              Cette personne n'est pas utilisatrice de Unitae. Vous ne pouvez donner des droits qu'à des utilisateurs.
-              <br />
-              Pour transformer ce proclamateur en utilisateur, ajoutez lui une adresse email et réinitialisez son mot de
-              passe.
-            </p>
-          ) : (
-            roleList.map(role => (
-              <label
-                key={role.id}
-                className={`flex-1 basis-5/12 ${role.key === 'admin' && !isAdmin ? 'pointer-events-none' : ''}`}
+      <PageHeader
+        title="Modification d'utilisateur"
+        subtitle="Modifier un utilisateur"
+        actions={
+          <>
+            {user.isPublisher === true ? (
+              <Button asChild variant="outline" size="icon" title="Voir la fiche proclamateur de cet utilisateur">
+                <Link to={`/congregation/publishers/${user.id}/edit`}>
+                  <IdCard className="size-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Form method="POST" action={`/settings/users/${user.id}/make-publisher`}>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  size="icon"
+                  title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
+                >
+                  <UserPlus className="size-4" />
+                </Button>
+              </Form>
+            )}
+            <Form method="post" action={`/password/${user.id}/invalidate`}>
+              <Button
+                type="submit"
+                variant="outline"
+                disabled={user.email == null}
+                title={
+                  user.email == null
+                    ? `Ajoutez d'abord une adresse email pour créer le compte utilisateur`
+                    : `Envoi un email à l'utilisateur pour lui demander modifier son mot de passe`
+                }
               >
-                <input
-                  className="mr-2 rounded-md border p-1 dark:border-gray-300"
-                  type="checkbox"
-                  name="roles"
-                  value={role.key}
-                  defaultChecked={user.roles.map(el => el.key).includes(role.key)}
-                />{' '}
-                {role.description}
-              </label>
-            ))
-          )}
-        </div>
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Modifier l'utilisateur
-        </button>
-      </Form>
+                Réinitialiser le mot de passe
+              </Button>
+            </Form>
+          </>
+        }
+      />
+
+      <Card>
+        <CardContent>
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex gap-4 max-sm:flex-col">
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="firstname">Prénom</Label>
+                <Input
+                  id="firstname"
+                  name="firstname"
+                  type="text"
+                  placeholder="Prénom"
+                  defaultValue={user.firstname ?? ''}
+                />
+              </div>
+              <div className="flex-1 space-y-2">
+                <Label htmlFor="lastname">Nom</Label>
+                <Input id="lastname" name="lastname" type="text" placeholder="Nom" defaultValue={user.lastname ?? ''} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="Email"
+                defaultValue={user.email ?? ''}
+                required
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="active"
+                name="active"
+                value="on"
+                defaultChecked={publisherNotUser ? false : user.active}
+                disabled={publisherNotUser}
+              />
+              <Label htmlFor="active" className="font-normal">
+                L'utilisateur peut se connecter et utiliser l'application
+              </Label>
+            </div>
+
+            <Separator />
+
+            <CardHeader className="p-0">
+              <CardTitle className="text-lg">Droits utilisateur</CardTitle>
+            </CardHeader>
+            <div className="flex flex-wrap gap-4 max-sm:flex-col">
+              {publisherNotUser ? (
+                <p className="text-center text-muted-foreground text-sm">
+                  Cette personne n'est pas utilisatrice de Unitae. Vous ne pouvez donner des droits qu'à des
+                  utilisateurs.
+                  <br />
+                  Pour transformer ce proclamateur en utilisateur, ajoutez lui une adresse email et réinitialisez son
+                  mot de passe.
+                </p>
+              ) : (
+                roleList.map(role => (
+                  <div
+                    key={role.id}
+                    className={`flex flex-1 basis-5/12 items-center gap-2 ${role.key === 'admin' && !isAdmin ? 'pointer-events-none opacity-50' : ''}`}
+                  >
+                    <Checkbox
+                      id={`role-${role.id}`}
+                      name="roles"
+                      value={role.key}
+                      defaultChecked={user.roles.map(el => el.key).includes(role.key)}
+                    />
+                    <Label htmlFor={`role-${role.id}`} className="font-normal">
+                      {role.description}
+                    </Label>
+                  </div>
+                ))
+              )}
+            </div>
+            <Button type="submit" className="mt-2">
+              Modifier l'utilisateur
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

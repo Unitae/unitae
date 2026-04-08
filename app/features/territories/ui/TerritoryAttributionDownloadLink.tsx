@@ -1,5 +1,5 @@
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { PDFDownloadLink } from '@react-pdf/renderer'
+import { Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Attribution, Territory, User } from '~/database/generated/client'
 import { TerritoryAttributionDocument } from './TerritoryAttributionDocument'
@@ -26,7 +26,7 @@ export function TerritoryAttributionDownloadLink({
           document={<TerritoryAttributionDocument year={year} territories={territories} />}
           fileName={`S-13_F-${year}.pdf`}
         >
-          {children ?? <ArrowDownTrayIcon className="inline size-6 text-teal-600" />}
+          {children ?? <Download className="inline size-5 text-primary" />}
         </PDFDownloadLink>
       )}
     </>

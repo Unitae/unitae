@@ -1,4 +1,4 @@
-import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -13,8 +13,10 @@ import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownlo
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/list'
 
@@ -83,25 +85,21 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       <div className="flex flex-col gap-5">
         <AlertMessages messages={messages} />
 
-        <HeroHeader
+        <PageHeader
           title="Territoires"
           subtitle="Liste des territoires de l'assemblée locale"
           actions={
             canManageTerritories && (
-              <Link
-                to="./territory/new"
-                title="Créer manuellement un nouveau territoire"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                Nouveau territoire
-              </Link>
+              <Button asChild>
+                <Link to="./territory/new">Nouveau territoire</Link>
+              </Button>
             )
           }
         />
 
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
+        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
           <p>Il n'y a aucun territoire pour le moment !</p>
           <p>
             Pour ajouter des territoires, utilisez le bouton "Nouveau territoire" ou visitez le module de découpage des
@@ -115,18 +113,14 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
-      <HeroHeader
+      <PageHeader
         title="Territoires"
         subtitle="Liste des territoires de l'assemblée locale"
         actions={
           canManageTerritories && (
-            <Link
-              to="./territory/new"
-              title="Créer manuellement un nouveau territoire"
-              className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-            >
-              Nouveau territoire
-            </Link>
+            <Button asChild>
+              <Link to="./territory/new">Nouveau territoire</Link>
+            </Button>
           )
         }
       />
@@ -134,30 +128,30 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
       <div className="flex grow flex-col gap-3">
-        <table className="table grow border-collapse">
-          <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-            <tr>
-              <th className="w-[150px] py-4 max-sm:w-14 max-sm:text-center">Nº</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Type</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Foyer</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-12" />
-            </tr>
-          </thead>
-          <tbody className="text-left max-sm:text-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[150px]">Nº</TableHead>
+              <TableHead className="w-[150px] text-center">Type</TableHead>
+              <TableHead className="w-[150px] text-center">Foyer</TableHead>
+              <TableHead className="w-[150px] text-center" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {territories.map(territory => {
               const attribution = [...territory.attributions].shift()
 
               return (
-                <tr key={territory.id} className="border-b border-b-slate-200 dark:border-b-slate-800">
-                  <td className="py-3 max-sm:text-center">{territory.number}</td>
-                  <td className="py-3 text-center">
+                <TableRow key={territory.id}>
+                  <TableCell>{territory.number}</TableCell>
+                  <TableCell className="text-center">
                     {territory.type === TerritoryKind.Classical && 'Porte à porte'}
                     {territory.type === TerritoryKind.Commerces && 'Commerces'}
                     {territory.type === TerritoryKind.Phone && 'Téléphones'}
                     {territory.type === TerritoryKind.Hotel && 'Hôtels'}
                     {territory.type === TerritoryKind.Univ && 'Universités'}
-                  </td>
-                  <td className="py-3 text-center">
+                  </TableCell>
+                  <TableCell className="text-center">
                     {territory.entrances.reduce(
                       (countForTerritory, currentEntrance) =>
                         countForTerritory +
@@ -168,9 +162,9 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         ),
                       0,
                     )}
-                  </td>
-                  <td>
-                    <div className="flex items-stretch justify-end gap-3">
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-end gap-2">
                       <TerritoryDownloadLink
                         territory={territory}
                         entrances={territory.entrances}
@@ -189,29 +183,33 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                       />
                       {canManageTerritories && (
                         <>
-                          <Link
-                            to={`./territory/${territory.id}/edit`}
-                            className="text-teal-600"
-                            title="Modifier le territoire"
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link to={`./territory/${territory.id}/edit`} title="Modifier le territoire">
+                              <Pencil className="size-4" />
+                            </Link>
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                            className="text-destructive hover:text-destructive max-sm:hidden"
                           >
-                            <PencilIcon className="inline size-6" />
-                          </Link>
-                          <Link
-                            to={`./territory/${territory.id}/delete`}
-                            title="Supprimer complètement le territoire"
-                            className="inline text-red-600 max-sm:hidden"
-                          >
-                            <TrashIcon className={'inline size-6 max-sm:size-5'} />
-                          </Link>
+                            <Link
+                              to={`./territory/${territory.id}/delete`}
+                              title="Supprimer complètement le territoire"
+                            >
+                              <Trash2 className="size-4" />
+                            </Link>
+                          </Button>
                         </>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
 
         <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
       </div>

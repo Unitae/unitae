@@ -3,7 +3,12 @@ import { Form, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import logger from '~/shared/libs/logger.server'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
+
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -21,48 +26,50 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
+export default function DaysOffPage() {
   const [startDate, setStartDate] = useState('')
 
   const minimumEndDate = new Date(startDate.length > 0 ? startDate : new Date().toISOString().split('T')[0])
   minimumEndDate.setDate(minimumEndDate.getDate() + 1)
 
   return (
-    <div className="flex h-screen flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Ajouter une absence"
         subtitle="Ajoutez une absence pour que les frères en charge des programmes puissent en tenir compte."
       />
 
-      <div className="my-4">
-        <Form method="post" className="flex flex-col gap-3">
-          <label className="flex flex-col">
-            Date de début
-            <input
-              type="date"
-              name="start_date"
-              className="rounded-md border border-gray-300 p-2 focus:border-teal-500 focus:outline-none"
-              min={new Date().toISOString().split('T')[0]}
-              onChange={e => setStartDate(e.target.value)}
-              value={startDate}
-              required
-            />
-          </label>
-          <label className="flex flex-col">
-            Date de fin
-            <input
-              type="date"
-              name="end_date"
-              className="rounded-md border border-gray-300 p-2 focus:border-teal-500 focus:outline-none"
-              min={minimumEndDate.toISOString().split('T')[0]}
-              required
-            />
-          </label>
-          <button type="submit" className="mt-3 rounded-lg bg-teal-600 p-2 font-semibold text-white hover:bg-teal-900">
-            Enregistrer
-          </button>
-        </Form>
-      </div>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="start_date">Date de début</Label>
+              <Input
+                id="start_date"
+                type="date"
+                name="start_date"
+                min={new Date().toISOString().split('T')[0]}
+                onChange={e => setStartDate(e.target.value)}
+                value={startDate}
+                required
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="end_date">Date de fin</Label>
+              <Input
+                id="end_date"
+                type="date"
+                name="end_date"
+                min={minimumEndDate.toISOString().split('T')[0]}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-fit">
+              Enregistrer
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

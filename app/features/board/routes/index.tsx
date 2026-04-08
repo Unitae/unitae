@@ -101,36 +101,34 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
 
   if (nonEmptyFolders.length < 1) {
     return (
-      <div>
+      <div className="flex flex-col gap-6">
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p>Il n'y a aucun document pour le moment !</p>
-          <p>Lorsque des documents seront ajoutés, ils apparaîtront ici.</p>
+          <p className="text-muted-foreground">Il n'y a aucun document pour le moment !</p>
+          <p className="text-muted-foreground">Lorsque des documents seront ajoutés, ils apparaîtront ici.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div>
-      <div>
-        <div>
-          <div className="mb-5 flex flex-wrap gap-3 max-sm:flex-col">
-            {hightlightedDocuments.map(file => (
+    <div className="flex flex-col gap-6">
+      {hightlightedDocuments.length > 0 && (
+        <div className="flex flex-wrap gap-3 max-sm:flex-col">
+          {hightlightedDocuments.map(file => (
+            <DocumentCard key={file.id} file={file} alreadyViewed={file.viewedBy.length > 0} />
+          ))}
+        </div>
+      )}
+      {nonEmptyFolders.map(folder => (
+        <div key={folder.id}>
+          <h2 className="mb-3 font-bold font-display text-xl tracking-tight">{folder.name}</h2>
+          <div className="flex flex-wrap gap-3 max-sm:flex-col">
+            {folder.documents.map(file => (
               <DocumentCard key={file.id} file={file} alreadyViewed={file.viewedBy.length > 0} />
             ))}
           </div>
         </div>
-        {nonEmptyFolders.map(folder => (
-          <div key={folder.id}>
-            <h1 className="mt-7 font-bold text-xl">{folder.name}</h1>
-            <div className="my-5 flex flex-wrap gap-3 max-sm:flex-col">
-              {folder.documents.map(file => (
-                <DocumentCard key={file.id} file={file} alreadyViewed={file.viewedBy.length > 0} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   )
 }

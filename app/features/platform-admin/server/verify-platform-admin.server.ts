@@ -12,7 +12,7 @@ export async function verifyPlatformAdmin(request: Request) {
 
   const user = await unscopedDb.user.findUnique({ where: { id: userId } })
 
-  if (!user || !user.platformAdmin) {
+  if (!user?.platformAdmin) {
     throw redirect('/')
   }
 

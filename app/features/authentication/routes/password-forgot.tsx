@@ -37,7 +37,7 @@ export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-display font-bold text-3xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-3xl tracking-tight">Unitae</h1>
           <p className="text-muted-foreground text-sm">Indiquez votre adresse email pour retrouver votre compte</p>
         </CardHeader>
         <CardContent>
@@ -59,7 +59,6 @@ export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
                 name="email"
                 type="email"
                 autoComplete="username"
-                // biome-ignore lint/a11y/noAutofocus: Here it is a better UX to focus on the field
                 autoFocus={true}
                 required
               />

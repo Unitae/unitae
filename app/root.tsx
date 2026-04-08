@@ -48,7 +48,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function ErrorBoundary() {
   return (
     <div className="flex h-screen flex-col items-center justify-center">
-      <h1 className="m-5 font-display font-bold text-4xl">Oops ! Quelque chose s'est mal passé...</h1>
+      <h1 className="m-5 font-bold font-display text-4xl">Oops ! Quelque chose s'est mal passé...</h1>
       <p>
         <Link to="/" className="text-primary underline">
           Revenir à l'accueil

@@ -1,4 +1,4 @@
-import { ArchiveBoxIcon, IdentificationIcon } from '@heroicons/react/24/outline'
+import { Archive, IdCard } from 'lucide-react'
 import { Form, redirect } from 'react-router'
 import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -10,7 +10,8 @@ import { getBoolSetting } from '~/features/settings/server/settings'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit-publisher'
 
 export const meta: Route.MetaFunction = () => {
@@ -50,43 +51,40 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
   const { user, groups, hideAuxiliaryPioneer } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Modification d'un proclamateur"
         subtitle="Modifier la fiche d'un proclamateur"
         actions={
           user.isPublisher ? (
             <Form method="post" action={`/settings/users/${user.id}/unmake-publisher`}>
-              <button
+              <Button
                 type="submit"
+                variant="secondary"
+                size="icon"
                 title="Désactiver la fiche proclamateur. L'utilisateur ne sera plus proclamateur dans cette assemblée."
-                className={'rounded-lg bg-gray-500 p-3 font-semibold text-white hover:bg-gray-700 max-sm:p-2'}
               >
-                <ArchiveBoxIcon className={'inline size-6 max-sm:size-5'} />
-              </button>
+                <Archive className="size-4" />
+              </Button>
             </Form>
           ) : (
             <Form method="post" action={`/settings/users/${user.id}/make-publisher`}>
-              <button
-                type="submit"
-                title="Activer le batiment"
-                className={'rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2'}
-              >
-                <IdentificationIcon className={'inline size-6 max-sm:size-5'} />
-              </button>
+              <Button type="submit" size="icon" title="Activer le batiment">
+                <IdCard className="size-4" />
+              </Button>
             </Form>
           )
         }
       />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
+      <Form method="post" className="flex flex-col gap-6">
         <PublisherPersonalInformationForm user={user} />
         <PublisherNominationForm user={user} />
         <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
+        <Button type="submit" size="lg" className="self-start">
           Modifier le proclamateur
-        </button>
+        </Button>
       </Form>
     </div>
   )
