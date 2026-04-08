@@ -1,8 +1,10 @@
-import type { PublisherGroup } from '~/database/generated/client'
 import { useState } from 'react'
+import type { PublisherGroup } from '~/database/generated/client'
 
 import { PublisherType } from '~/shared/types/publisher-type'
 import type { UserInput } from '~/shared/types/user-input'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Label } from '~/shared/ui/label'
 
 export default function PublisherFieldServiceForm({
   user,
@@ -16,13 +18,16 @@ export default function PublisherFieldServiceForm({
   const [type, setType] = useState(user?.type ?? PublisherType.Normal)
 
   return (
-    <>
-      <h2 className="font-semibold text-xl max-sm:text-lg">Prédication</h2>
-      <div className="flex gap-3">
-        <label className="flex-1">
-          Groupe de prédication
+    <Card>
+      <CardHeader>
+        <CardTitle>Prédication</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="group">Groupe de prédication</Label>
           <select
-            className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
+            id="group"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
             name="group"
             defaultValue={user?.publisherGroupId ?? ''}
           >
@@ -33,14 +38,13 @@ export default function PublisherFieldServiceForm({
               </option>
             ))}
           </select>
-        </label>
-      </div>
+        </div>
 
-      <div className="flex gap-3">
-        <label className="flex-1">
-          Profil du proclamateur
+        <div className="space-y-2">
+          <Label htmlFor="type">Profil du proclamateur</Label>
           <select
-            className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
+            id="type"
+            className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
             name="type"
             value={type}
             onChange={e => {
@@ -54,14 +58,14 @@ export default function PublisherFieldServiceForm({
             <option value={PublisherType.Missionnaire}>Missionnaire</option>
           </select>
           {type === PublisherType.PionnierAuxiliaires && (
-            <p className="mt-1 text-gray-500 text-sm italic dark:text-gray-400">
+            <p className="text-muted-foreground text-xs italic">
               Attention, ce profil sera appliqué chaque mois automatiquement sans interruption. Si le proclamateur ne
               prend le service de pionnier que pour quelques mois ou moins, il est préférable d'indiquer qu'il est
               pionnier auxiliaire dans le rapport de service.
             </p>
           )}
-        </label>
-      </div>
-    </>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

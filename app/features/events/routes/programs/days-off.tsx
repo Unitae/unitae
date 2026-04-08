@@ -1,16 +1,19 @@
+import { CalendarOff } from 'lucide-react'
 import { redirect } from 'react-router'
-
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import Pagination from '~/shared/ui/Pagination'
-import EventFilters from '~/features/events/ui/EventFilters'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { computeFilters } from '~/features/events/server/event-filters.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { computeFilters } from '~/features/events/server/event-filters.server'
+import EventFilters from '~/features/events/ui/EventFilters'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
+import { Card, CardContent } from '~/shared/ui/card'
+import { EmptyState } from '~/shared/ui/EmptyState'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import Pagination from '~/shared/ui/Pagination'
+
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
@@ -58,57 +61,36 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
   const { events = [], pagination } = loaderData
 
-  if (events.length < 1) {
-    return (
-      <div className="flex flex-col gap-5">
-        <HeroHeader title="Absences" subtitle="Liste de toutes les absences à la date sélectionnée." />
-
-        <EventFilters />
-
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p>Il n'y a aucune absence planifié pour cette date !</p>
-          <p>Les absences s'afficheront une fois que les proclamateurs les auront indiqué dans leur profile</p>
-          <p>Essayez de recharger la page ou de vérifier vos paramètres de filtre.</p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-col gap-5">
-      <HeroHeader
-        title="Absences"
-        subtitle="Liste de toutes les absences"
-        // actions={
-        //   canManagePrograms && (
-        //     <Link
-        //       to="./new"
-        //       className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-        //     >
-        //       Nouvel évènement
-        //     </Link>
-        //   )
-        // }
-      />
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Absences" subtitle="Liste de toutes les absences à la date sélectionnée." />
 
       <EventFilters />
 
-      <div className="flex grow flex-col gap-3">
-        <ul className="flex list-none flex-col gap-3 pl-0">
+      {events.length < 1 ? (
+        <EmptyState
+          icon={CalendarOff}
+          title="Il n'y a aucune absence planifiée pour cette date !"
+          description="Les absences s'afficheront une fois que les proclamateurs les auront indiquées dans leur profil."
+        />
+      ) : (
+        <div className="flex flex-col gap-3">
           {events.map(event => (
-            <li key={event.id} className="flex justify-between rounded-md bg-slate-50 p-3 shadow-md dark:bg-gray-800">
-              <span>
-                Absence de {event.createdBy.firstname} {event.createdBy.lastname?.toLocaleUpperCase()}
-              </span>
-              <span>
-                du {new Date(event.startDate).toLocaleDateString()} au {new Date(event.endDate).toLocaleDateString()}
-              </span>
-            </li>
+            <Card key={event.id}>
+              <CardContent className="flex items-center justify-between py-3">
+                <span className="font-medium text-sm">
+                  Absence de {event.createdBy.firstname} {event.createdBy.lastname?.toLocaleUpperCase()}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  du {new Date(event.startDate).toLocaleDateString()} au {new Date(event.endDate).toLocaleDateString()}
+                </span>
+              </CardContent>
+            </Card>
           ))}
-        </ul>
 
-        <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
-      </div>
+          <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
+        </div>
+      )}
     </div>
   )
 }

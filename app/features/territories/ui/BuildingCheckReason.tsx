@@ -1,5 +1,6 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import { Badge } from '~/shared/ui/badge'
 
 export function BuildingCheckReason({
   building,
@@ -9,32 +10,58 @@ export function BuildingCheckReason({
   options: { staleDate: Date }
 }) {
   if (checkIncoherentAccessWithHomes(building)) {
-    return <p className="max-w-fit text-sm max-sm:text-xs">Possible d'entrer mais nombre de logements indisponible</p>
+    return (
+      <Badge variant="secondary" className="max-w-fit text-xs">
+        Possible d'entrer mais nombre de logements indisponible
+      </Badge>
+    )
   }
 
   if (checkIncoherentAccessWithPhones(building)) {
     return (
-      <p className="max-w-fit text-sm max-sm:text-xs">Impossible d'entrer mais nombre de téléphones indisponible</p>
+      <Badge variant="secondary" className="max-w-fit text-xs">
+        Impossible d'entrer mais nombre de téléphones indisponible
+      </Badge>
     )
   }
 
   if (checkMissingAccess(building)) {
-    return <p className="max-w-fit text-sm max-sm:text-xs">Nombre de logement indiqué mais pas le mode d'accés</p>
+    return (
+      <Badge variant="secondary" className="max-w-fit text-xs">
+        Nombre de logement indiqué mais pas le mode d'accés
+      </Badge>
+    )
   }
 
   if (checkOldData(building, options)) {
-    return <p className="max-w-fit text-sm max-sm:text-xs">Données de prospection trop vielles</p>
+    return (
+      <Badge variant="secondary" className="max-w-fit text-xs">
+        Données de prospection trop vielles
+      </Badge>
+    )
   }
 
   if (checkOldData(building, options) && building.active === false) {
-    return <p className="max-w-fit text-sm max-sm:text-xs">Le batiment ne devrait peut-être plus être inactif</p>
+    return (
+      <Badge variant="secondary" className="max-w-fit text-xs">
+        Le batiment ne devrait peut-être plus être inactif
+      </Badge>
+    )
   }
 
   if (checkNotInTerritory(building)) {
-    return <p className="max-w-fit text-sm max-sm:text-xs">Ce batiment n'est pas dans le territoire mais actif</p>
+    return (
+      <Badge variant="secondary" className="max-w-fit text-xs">
+        Ce batiment n'est pas dans le territoire mais actif
+      </Badge>
+    )
   }
 
-  return <p className="max-w-fit text-sm max-sm:text-xs">Rien à vérifier</p>
+  return (
+    <Badge variant="outline" className="max-w-fit text-xs">
+      Rien à vérifier
+    </Badge>
+  )
 }
 
 function checkOldData(building: Building & { entrance: BuildingEntrance | null }, options: { staleDate: Date }) {

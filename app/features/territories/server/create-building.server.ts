@@ -1,7 +1,6 @@
+import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
 import { db } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
-
-import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
 export async function createBuilding({

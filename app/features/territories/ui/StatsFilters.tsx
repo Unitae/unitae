@@ -1,9 +1,14 @@
-import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
-import type { PublisherGroup } from '~/database/generated/client'
+import { SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Form, useSearchParams } from 'react-router'
+import type { PublisherGroup } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { Badge } from '~/shared/ui/badge'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 interface StatsFiltersProps {
   action?: string
@@ -12,6 +17,7 @@ interface StatsFiltersProps {
   theocraticYear?: number
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: filter component with multiple conditional UI branches
 export default function StatsFilters({
   action,
   phoneTypeActive = false,
@@ -33,72 +39,62 @@ export default function StatsFilters({
   return (
     <>
       <div className="mb-4 flex flex-row flex-wrap gap-2">
-        <span className="rounded-md border-2 border-teal-500 bg-slate-950 px-2 py-1 text-white italic">
+        <Badge variant="outline" className="border-primary text-primary">
           {new Date(startDate).toLocaleDateString('fr-FR')} - {new Date(endDate).toLocaleDateString('fr-FR')}
-        </span>
-        <span className="rounded-md border-2 border-orange-500 bg-slate-950 px-2 py-1 text-white italic">
+        </Badge>
+        <Badge variant="outline" className="border-orange-500 text-orange-500">
           {TerritoryKind.Classical === kind && `Territoire "Porte à Porte"`}
           {TerritoryKind.Phone === kind && `Territoire "Téléphone"`}
           {TerritoryKind.Commerces === kind && `Territoire "Commerce"`}
           {TerritoryKind.Hotel === kind && `Territoire "Hôtel"`}
           {TerritoryKind.Univ === kind && `Territoire "Université"`}
-        </span>
+        </Badge>
         {attributionKinds.map(attribution => (
-          <span
-            key={attribution}
-            className="rounded-md border-2 border-amber-500 bg-slate-950 px-2 py-1 text-white italic"
-          >
+          <Badge key={attribution} variant="outline" className="border-amber-500 text-amber-500">
             {TerritoryAttributionKind.Campaign === attribution && `Sortie pour une campagne de distribution`}
             {TerritoryAttributionKind.Default === attribution && phoneTypeActive === true && `Sortie classique`}
             {TerritoryAttributionKind.Default === attribution &&
               phoneTypeActive === false &&
               `Sortie pour du porte à porte`}
             {TerritoryAttributionKind.Phone === attribution && `Sortie pour du téléphone`}
-          </span>
+          </Badge>
         ))}
         {group != null && (
-          <span className="rounded-md border-2 border-violet-500 bg-slate-950 px-2 py-1 text-white italic">
+          <Badge variant="outline" className="border-violet-500 text-violet-500">
             {`Sortie par ${groups?.find(g => g.id === Number(group))?.name.toLocaleUpperCase() ?? ''}`}
-          </span>
+          </Badge>
         )}
       </div>
-      <button
-        type="button"
-        className="inline-flex flex-row items-center justify-center gap-1 rounded-md border border-slate-300 bg-slate-300 px-2 py-1 text-slate-500 shadow-slate-50 hover:border-teal-600 hover:text-teal-600 hover:shadow-lg"
-        onClick={() => setIsOpen(!isOpen)}
-      >
+      <Button type="button" variant="outline" size="sm" className="w-fit gap-1.5" onClick={() => setIsOpen(!isOpen)}>
+        <SlidersHorizontal className="size-4" />
         Modifier les filtres
-      </button>
+      </Button>
       {isOpen && (
         <div className="fixed top-0 left-0 z-50 flex h-full w-full items-center justify-center bg-black/50 p-4">
-          <div className="mt-3 flex w-full max-w-3xl flex-col rounded-md border border-slate-300 bg-slate-100 p-4 text-black shadow-sm">
-            <h2 className="mb-6 text-center font-semibold text-4xl max-sm:text-lg">Filtres</h2>
-            <span className="text-slate-700 text-sm italic">(L'année théo. va du 1er septembre au 31 aout)</span>
-            <Form className="flex flex-col" action={action} onSubmit={() => setIsOpen(false)}>
-              <div className="flex flex-wrap gap-3">
-                <label>
-                  Date de début :
-                  <input
-                    type="date"
-                    name="startDate"
-                    className="ml-1 inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
-                    defaultValue={startDate}
-                  />
-                </label>
-                <label>
-                  Date de fin :
-                  <input
-                    type="date"
-                    name="endDate"
-                    className="ml-1 inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
-                    defaultValue={endDate}
-                  />
-                </label>
+          <Card className="w-full max-w-3xl">
+            <CardHeader>
+              <CardTitle className="text-center font-display text-2xl">Filtres</CardTitle>
+              <p className="text-center text-muted-foreground text-sm italic">
+                (L'année théo. va du 1er septembre au 31 aout)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <Form className="flex flex-col gap-4" action={action} onSubmit={() => setIsOpen(false)}>
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Date de début :</Label>
+                    <Input type="date" name="startDate" defaultValue={startDate} />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <Label>Date de fin :</Label>
+                    <Input type="date" name="endDate" defaultValue={endDate} />
+                  </div>
+                </div>
 
-                <label className="w-full">
-                  Type de territoire : <br />
+                <div className="flex flex-col gap-1.5">
+                  <Label>Type de territoire :</Label>
                   <select
-                    className="inline-block w-full appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                     name="kind"
                     defaultValue={kind}
                   >
@@ -109,43 +105,48 @@ export default function StatsFilters({
                     <option value={TerritoryKind.Hotel}>Territoire "Hôtel"</option>
                     <option value={TerritoryKind.Univ}>Territoire "Université"</option>
                   </select>
-                </label>
-                <div className="w-full">
-                  Mode de sortie : <br />
-                  <label className="block w-full">
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <Label>Mode de sortie :</Label>
+                  <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
                       name="attributionKind"
                       value={TerritoryAttributionKind.Default}
                       defaultChecked={attributionKinds.includes(TerritoryAttributionKind.Default)}
-                    />{' '}
+                      className="rounded border border-input"
+                    />
                     {phoneTypeActive ? 'Sortie classique' : 'Sortie pour du porte à porte'}
                   </label>
                   {!phoneTypeActive && (
-                    <label className="block w-full">
+                    <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         name="attributionKind"
                         value={TerritoryAttributionKind.Phone}
                         defaultChecked={attributionKinds.includes(TerritoryAttributionKind.Phone)}
-                      />{' '}
+                        className="rounded border border-input"
+                      />
                       Sortie pour du téléphone
                     </label>
                   )}
-                  <label className="block w-full">
+                  <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
                       name="attributionKind"
                       value={TerritoryAttributionKind.Campaign}
                       defaultChecked={attributionKinds.includes(TerritoryAttributionKind.Campaign)}
-                    />{' '}
+                      className="rounded border border-input"
+                    />
                     Sortie pour une campagne de distribution
                   </label>
                 </div>
-                <label className="w-full">
-                  Groupe de prédication : <br />
+
+                <div className="flex flex-col gap-1.5">
+                  <Label>Groupe de prédication :</Label>
                   <select
-                    className="inline-block w-full appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                     name="group"
                     defaultValue={params.get('group') ?? undefined}
                   >
@@ -156,17 +157,15 @@ export default function StatsFilters({
                       </option>
                     ))}
                   </select>
-                </label>
-                <button
-                  className="inline-flex w-full flex-row items-center justify-center gap-1 rounded-md border border-slate-300 bg-slate-300 px-2 py-1 text-slate-500 shadow-slate-50 hover:border-teal-600 hover:text-teal-600 hover:shadow-lg"
-                  type="submit"
-                >
-                  <AdjustmentsHorizontalIcon className="size-6 text-teal-600" />
+                </div>
+
+                <Button type="submit" className="w-full gap-1.5">
+                  <SlidersHorizontal className="size-4" />
                   Filtrer
-                </button>
-              </div>
-            </Form>
-          </div>
+                </Button>
+              </Form>
+            </CardContent>
+          </Card>
         </div>
       )}
     </>

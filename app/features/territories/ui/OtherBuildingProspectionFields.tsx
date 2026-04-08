@@ -2,6 +2,7 @@ import { useState } from 'react'
 
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
+import { Label } from '~/shared/ui/label'
 
 export default function OtherBuildingProspectionFields({
   isDisabled = false,
@@ -12,12 +13,12 @@ export default function OtherBuildingProspectionFields({
 }) {
   const [hasShops, setHasShops] = useState(building.hasShops ?? false)
 
-  const disabledStyle = isDisabled ? 'cursor-not-allowed' : ''
+  const disabledStyle = isDisabled ? 'cursor-not-allowed opacity-50' : ''
   return (
     <>
-      <label className="flex grow items-center gap-1 max-sm:gap-3">
+      <label className="flex items-center gap-2 text-sm">
         <input
-          className={`rounded-md border dark:border-gray-300 ${disabledStyle}`}
+          className={`rounded border border-input ${disabledStyle}`}
           name="shops"
           type="checkbox"
           checked={hasShops}
@@ -28,14 +29,14 @@ export default function OtherBuildingProspectionFields({
           }
         />
         <span>
-          Il y a au moins un <span className="font-bold text-teal-600">commerce</span> à cette adresse
+          Il y a au moins un <span className="font-semibold text-primary">commerce</span> à cette adresse
         </span>
       </label>
       {hasShops && (
-        <label className="flex-1">
-          Catégorie de commerce principale
+        <div className="flex flex-col gap-1.5">
+          <Label>Catégorie de commerce principale</Label>
           <select
-            className={`h-[34px] w-full appearance-none rounded-md border p-1 dark:border-gray-300 ${disabledStyle}`}
+            className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
             defaultValue={building.shopKind ?? ''}
             name="shopkinds"
             disabled={isDisabled}
@@ -54,11 +55,11 @@ export default function OtherBuildingProspectionFields({
             <option value={ShopKind.GasStation}>Station Services</option>
             <option value={ShopKind.Other}>Autres</option>
           </select>
-        </label>
+        </div>
       )}
-      <label className="flex grow items-center gap-1 max-sm:gap-3">
+      <label className="flex items-center gap-2 text-sm">
         <input
-          className={`rounded-md border dark:border-gray-300 ${disabledStyle}`}
+          className={`rounded border border-input ${disabledStyle}`}
           name="campus"
           type="checkbox"
           defaultChecked={building.hasCampus ?? false}
@@ -68,12 +69,13 @@ export default function OtherBuildingProspectionFields({
           }
         />
         <span>
-          Il y a au moins une <span className="font-bold text-teal-600">résidence universitaire</span> à cette adresse
+          Il y a au moins une <span className="font-semibold text-primary">résidence universitaire</span> à cette
+          adresse
         </span>
       </label>
-      <label className="flex grow items-center gap-1 max-sm:gap-3">
+      <label className="flex items-center gap-2 text-sm">
         <input
-          className={`rounded-md border dark:border-gray-300 ${disabledStyle}`}
+          className={`rounded border border-input ${disabledStyle}`}
           name="hotel"
           type="checkbox"
           defaultChecked={building.hasHotel ?? false}
@@ -83,12 +85,12 @@ export default function OtherBuildingProspectionFields({
           }
         />
         <span>
-          Il y a au moins un <span className="font-bold text-teal-600">hotel</span> à cette adresse
+          Il y a au moins un <span className="font-semibold text-primary">hotel</span> à cette adresse
         </span>
       </label>
-      <label className="flex grow items-center gap-1 max-sm:gap-3">
+      <label className="flex items-center gap-2 text-sm">
         <input
-          className={`rounded-md border dark:border-gray-300 ${disabledStyle}`}
+          className={`rounded border border-input ${disabledStyle}`}
           name="landromat"
           type="checkbox"
           defaultChecked={building.hasLandromat ?? false}
@@ -98,12 +100,12 @@ export default function OtherBuildingProspectionFields({
           }
         />
         <span>
-          Il y a au moins une <span className="font-bold text-teal-600">laverie automatique</span> à cette adresse
+          Il y a au moins une <span className="font-semibold text-primary">laverie automatique</span> à cette adresse
         </span>
       </label>
-      <label className={'flex grow items-center gap-1 max-sm:gap-3'}>
+      <label className="flex items-center gap-2 text-sm">
         <input
-          className={`rounded-md border dark:border-gray-300 ${disabledStyle}`}
+          className={`rounded border border-input ${disabledStyle}`}
           name="pmr"
           type="checkbox"
           defaultChecked={building.entrance?.isPMR ?? false}
@@ -114,7 +116,7 @@ export default function OtherBuildingProspectionFields({
         />
         <span>
           Le batiment est{' '}
-          <span className="font-bold text-teal-600">accessible pour les Personnes à Mobilité Réduite</span>
+          <span className="font-semibold text-primary">accessible pour les Personnes à Mobilité Réduite</span>
         </span>
       </label>
     </>

@@ -4,7 +4,7 @@ import { destroySession, getSession } from '~/features/authentication/server/ses
 
 import type { Route } from './+types/logout'
 
-export function loader({ request }: Route.LoaderArgs) {
+export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
 }
 

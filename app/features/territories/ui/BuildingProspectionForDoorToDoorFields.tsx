@@ -1,7 +1,8 @@
 import { useState } from 'react'
-
-import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 export default function BuildingProspectionForDoorToDoorFields({
   isDisabled = false,
@@ -11,15 +12,15 @@ export default function BuildingProspectionForDoorToDoorFields({
   isDisabled: boolean
 }) {
   const [access, setAccess] = useState(building.entrance?.access)
-  const disabledStyled = isDisabled ? 'cursor-not-allowed' : ''
+  const disabledStyled = isDisabled ? 'cursor-not-allowed opacity-50' : ''
 
   return (
     <>
       <div className="flex gap-3">
-        <label className="flex-1">
-          Type de d'accès
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label>Type de d'accès</Label>
           <select
-            className={`h-[34px] w-full appearance-none rounded-md border p-1 dark:border-gray-300 ${disabledStyled}`}
+            className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyled}`}
             defaultValue={building.entrance?.access ?? ''}
             name="access"
             value={access ?? ''}
@@ -31,23 +32,23 @@ export default function BuildingProspectionForDoorToDoorFields({
             <option value={TerritoryAccess.Code}>Digicode</option>
             <option value={TerritoryAccess.Doorbell}>Sonnette extérieur</option>
           </select>
-        </label>
-        <label className="flex-1">
-          Nombre de logements
-          <input
-            className={`h-[34px] w-full rounded-md border p-1 dark:border-gray-300 ${disabledStyled}`}
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label>Nombre de logements</Label>
+          <Input
             defaultValue={building.homes ?? ''}
             name="homes"
             type="number"
             disabled={isDisabled}
+            className={disabledStyled}
           />
-        </label>
+        </div>
       </div>
       {access === TerritoryAccess.Code && (
         <>
-          <label className="flex grow items-center gap-1">
+          <label className="flex items-center gap-2 text-sm">
             <input
-              className={`rounded-md border dark:border-gray-300 ${disabledStyled}`}
+              className={`rounded border border-input ${disabledStyled}`}
               name="doors"
               type="checkbox"
               defaultChecked={building.entrance?.isOpenEarly ?? false}
@@ -58,9 +59,9 @@ export default function BuildingProspectionForDoorToDoorFields({
             />
             Les portes sont ouvertes le matin
           </label>
-          <label className="flex grow items-center gap-1">
+          <label className="flex items-center gap-2 text-sm">
             <input
-              className={`rounded-md border dark:border-gray-300 ${disabledStyled}`}
+              className={`rounded border border-input ${disabledStyled}`}
               name="mailboxes"
               type="checkbox"
               defaultChecked={building.entrance?.isMailboxOpen ?? false}
@@ -74,32 +75,32 @@ export default function BuildingProspectionForDoorToDoorFields({
         </>
       )}
       <div className="flex gap-3">
-        <label className="flex-1">
-          Nombre de téléphones
-          <input
-            className={`h-[34px] w-full rounded-md border p-1 dark:border-gray-300 ${isDisabled ? 'cursor-not-allowed' : ''}`}
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label>Nombre de téléphones</Label>
+          <Input
             defaultValue={building.phones ?? ''}
             name="phones"
             type="number"
             disabled={isDisabled}
+            className={disabledStyled}
             title={
               isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''
             }
           />
-        </label>
-        <label className="flex-1">
-          Nombre de libéraux
-          <input
-            className={`h-[34px] w-full rounded-md border p-1 dark:border-gray-300 ${isDisabled ? 'cursor-not-allowed' : ''}`}
+        </div>
+        <div className="flex flex-1 flex-col gap-1.5">
+          <Label>Nombre de libéraux</Label>
+          <Input
             defaultValue={building.liberals ?? ''}
             name="liberals"
             type="number"
             disabled={isDisabled}
+            className={disabledStyled}
             title={
               isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''
             }
           />
-        </label>
+        </div>
       </div>
     </>
   )

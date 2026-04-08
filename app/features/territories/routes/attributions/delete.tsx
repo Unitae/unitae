@@ -5,6 +5,8 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
 import type { Route } from './+types/delete'
 
@@ -32,20 +34,25 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
   const { attribution } = loaderData
 
   return (
-    <div className="flex flex-col items-center justify-center gap-7 p-7">
-      <p className="text-center">
-        Êtes-vous sûr de vouloir annuler l'attribution de {attribution.publisher.firstname} ? Cette action est
-        irréversible.
-      </p>
-      <Form method="post">
-        <button
-          type="submit"
-          title="Annuler l'attribution du territoire"
-          className={'rounded-lg bg-red-600 p-3 font-semibold text-white hover:bg-red-900 max-sm:p-2'}
-        >
-          Annuler l'attribution du territoire {attribution.territory.number}
-        </button>
-      </Form>
+    <div className="flex items-center justify-center p-7">
+      <Card className="max-w-lg">
+        <CardHeader>
+          <CardTitle className="text-center">Annuler l'attribution</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground">
+            Êtes-vous sûr de vouloir annuler l'attribution de {attribution.publisher.firstname} ? Cette action est
+            irréversible.
+          </p>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Form method="post">
+            <Button type="submit" variant="destructive">
+              Annuler l'attribution du territoire {attribution.territory.number}
+            </Button>
+          </Form>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

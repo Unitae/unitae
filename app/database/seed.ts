@@ -1,6 +1,6 @@
 import 'dotenv/config'
-import { PrismaClient } from '~/database/generated/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
 import { EventKind } from '~/features/events/model/event-kind.type'
 

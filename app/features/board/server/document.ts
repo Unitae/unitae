@@ -2,7 +2,7 @@ import type { BoardDocument } from '~/database/generated/client'
 import logger from '~/shared/libs/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage'
 
-export async function saveFile(file: File): Promise<string> {
+export function saveFile(file: File): Promise<string> {
   return saveBoardFile(file)
 }
 

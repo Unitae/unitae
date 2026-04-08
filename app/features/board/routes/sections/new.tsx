@@ -3,6 +3,11 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new'
 
@@ -21,31 +26,24 @@ export async function loader({ request }: Route.LoaderArgs) {
   return null
 }
 
-export default function NewSectionPage({ loaderData }: Route.ComponentProps) {
+export default function NewSectionPage() {
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Nouvelle section</h1>
-          <p className="text-gray-500 max-sm:text-sm">Créer une nouvelle section sur le tableau d'affichage</p>
-        </div>
-        <div />
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Nouvelle section" subtitle="Créer une nouvelle section sur le tableau d'affichage" />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <label>
-          Nom
-          <input
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            name="name"
-            type="text"
-            placeholder="Nom de la section"
-          />
-        </label>
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Créer la section
-        </button>
-      </Form>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="name">Nom</Label>
+              <Input id="name" name="name" type="text" placeholder="Nom de la section" />
+            </div>
+            <Button type="submit" className="w-fit">
+              Créer la section
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

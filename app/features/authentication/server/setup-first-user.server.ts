@@ -1,7 +1,12 @@
 import { hash } from '~/shared/libs/crypto.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 
-export async function setupFirstUser(email: string, password: string, congregationName: string, congregationSlug: string) {
+export async function setupFirstUser(
+  email: string,
+  password: string,
+  congregationName: string,
+  congregationSlug: string,
+) {
   const hashedPassword = await hash(password)
 
   const congregation = await db.congregation.create({

@@ -1,8 +1,10 @@
-import { XMarkIcon } from '@heroicons/react/24/outline'
-import type { Building } from '~/database/generated/client'
+import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import type { Building } from '~/database/generated/client'
 
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { Badge } from '~/shared/ui/badge'
+import { Label } from '~/shared/ui/label'
 
 export default function SharedEntranceField({
   building,
@@ -26,9 +28,9 @@ export default function SharedEntranceField({
   return (
     <>
       <div className="flex gap-3">
-        <label className="flex grow items-center gap-1 max-sm:gap-3">
+        <label className="flex items-center gap-2 text-sm">
           <input
-            className="rounded-md border dark:border-gray-300"
+            className="rounded border border-input"
             type="checkbox"
             checked={hasSharedEntrance}
             onChange={e => setHasSharedEntrance(e.target.checked)}
@@ -38,57 +40,48 @@ export default function SharedEntranceField({
         </label>
       </div>
       {hasSharedEntrance && (
-        <div className="flex gap-3">
-          <div className="flex flex-col gap-1">
-            Batiments liés au même accès :
-            <input
-              type="hidden"
-              name="shared-entrance-buildings"
-              value={sharedEntranceBuildings.map(b => b.id).join(',')}
-            />
-            <div className="flex flex-wrap gap-3">
-              {sharedEntranceBuildings.map(building => (
-                <button
-                  key={building.id}
-                  type="button"
-                  className="flex items-center gap-1 rounded-md bg-teal-400 px-3 py-1 text-gray-900 text-sm"
-                  onClick={() => setSharedEntranceBuildings(sharedEntranceBuildings.filter(b => b.id !== building.id))}
-                  onKeyDown={e => {
-                    if (e.key !== 'Enter') {
-                      return
-                    }
-
-                    setSharedEntranceBuildings(sharedEntranceBuildings.filter(b => b.id !== building.id))
-                  }}
-                >
-                  {building.number} {building.street} <XMarkIcon className="inline size-3" />
-                </button>
-              ))}
-              {sharedEntranceBuildings.length === 0 && (
-                <span className="flex items-center gap-1 rounded-md border-1 border-gray-400 border-dashed px-3 py-1 text-gray-400 text-sm italic">
-                  Aucun batiment
-                </span>
-              )}
-              <select
-                className="flex items-center gap-1 rounded-md border-1 border-gray-400 px-3 py-1 text-gray-400 text-sm"
-                onChange={e => {
-                  const selectedBuilding = avaibleBuildings.find(b => b.id === Number(e.target.value))
-                  if (selectedBuilding == null) {
-                    return
-                  }
-                  setSharedEntranceBuildings([...sharedEntranceBuildings, selectedBuilding])
-                }}
+        <div className="flex flex-col gap-2">
+          <Label>Batiments liés au même accès :</Label>
+          <input
+            type="hidden"
+            name="shared-entrance-buildings"
+            value={sharedEntranceBuildings.map(b => b.id).join(',')}
+          />
+          <div className="flex flex-wrap gap-2">
+            {sharedEntranceBuildings.map(building => (
+              <Badge
+                key={building.id}
+                variant="secondary"
+                className="cursor-pointer gap-1"
+                onClick={() => setSharedEntranceBuildings(sharedEntranceBuildings.filter(b => b.id !== building.id))}
               >
-                <option>Séléctionner un autre batiment</option>
-                {avaibleBuildings
-                  .filter(streetBuilding => !sharedEntranceBuildings.map(el => el.id).includes(streetBuilding.id))
-                  .map(building => (
-                    <option key={building.id} value={building.id}>
-                      {building.number} {building.street}
-                    </option>
-                  ))}
-              </select>
-            </div>
+                {building.number} {building.street} <X className="size-3" />
+              </Badge>
+            ))}
+            {sharedEntranceBuildings.length === 0 && (
+              <span className="rounded-md border border-muted-foreground border-dashed px-3 py-1 text-muted-foreground text-sm italic">
+                Aucun batiment
+              </span>
+            )}
+            <select
+              className="rounded-md border border-input bg-background px-3 py-1 text-sm"
+              onChange={e => {
+                const selectedBuilding = avaibleBuildings.find(b => b.id === Number(e.target.value))
+                if (selectedBuilding == null) {
+                  return
+                }
+                setSharedEntranceBuildings([...sharedEntranceBuildings, selectedBuilding])
+              }}
+            >
+              <option>Séléctionner un autre batiment</option>
+              {avaibleBuildings
+                .filter(streetBuilding => !sharedEntranceBuildings.map(el => el.id).includes(streetBuilding.id))
+                .map(building => (
+                  <option key={building.id} value={building.id}>
+                    {building.number} {building.street}
+                  </option>
+                ))}
+            </select>
           </div>
         </div>
       )}

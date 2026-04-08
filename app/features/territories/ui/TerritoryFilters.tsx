@@ -1,9 +1,11 @@
-import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
-import type { Prisma } from '~/database/generated/client'
+import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
+import type { Prisma } from '~/database/generated/client'
+import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { ShopKind } from '~/features/territories/model/shop-kind.type'
+import { Button } from '~/shared/ui/button'
+import { Input } from '~/shared/ui/input'
 
 interface TerritoryFiltersProps {
   action?: string
@@ -27,12 +29,12 @@ export default function TerritoryFilters({
   const [params] = useSearchParams()
 
   return (
-    <Form className="flex flex-col" action={action}>
-      <span className="font-medium text-sm">Filtres :</span>
-      <div className="flex flex-wrap gap-3">
+    <Form className="flex flex-col gap-1.5" action={action}>
+      <span className="font-medium text-muted-foreground text-sm">Filtres :</span>
+      <div className="flex flex-wrap gap-2">
         {showZip && (
           <select
-            className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
             name="zip"
             defaultValue={params.get('zip') ?? undefined}
           >
@@ -46,7 +48,7 @@ export default function TerritoryFilters({
         )}
         {showType && (
           <select
-            className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
             name="type"
             defaultValue={params.get('type') ?? undefined}
           >
@@ -60,7 +62,7 @@ export default function TerritoryFilters({
         )}
         {showAccess && (
           <select
-            className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
             name="access"
             defaultValue={params.get('access') ?? undefined}
           >
@@ -72,7 +74,7 @@ export default function TerritoryFilters({
         )}
         {showShops && (
           <select
-            className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
             name="shops"
             defaultValue={params.get('shops') ?? undefined}
           >
@@ -91,21 +93,18 @@ export default function TerritoryFilters({
           </select>
         )}
         {showSearch && (
-          <input
+          <Input
             type="text"
             name="search"
-            className="inline-block rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+            className="w-auto max-sm:flex-1"
             placeholder="Recherche"
             defaultValue={params.get('search') ?? undefined}
           />
         )}
-        <button
-          className="inline-flex appearance-none flex-row items-center justify-center gap-1 rounded-md border border-slate-300 bg-slate-300 px-2 py-1 text-slate-500 shadow-slate-50 hover:border-teal-600 hover:text-teal-600 hover:shadow-lg"
-          type="submit"
-        >
-          <AdjustmentsHorizontalIcon className="size-6 text-teal-600" />
+        <Button type="submit" variant="outline" size="sm" className="gap-1.5">
+          <SlidersHorizontal className="size-4" />
           Filtrer
-        </button>
+        </Button>
       </div>
     </Form>
   )

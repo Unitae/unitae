@@ -4,6 +4,7 @@ import {
   Marker as GoogleMapMarker,
 } from '@vis.gl/react-google-maps'
 import type { Entrance } from '~/shared/types/entrance'
+import { Card, CardContent } from '~/shared/ui/card'
 
 export default function BuildingEntranceMap({ entrances, apiKey }: { apiKey?: string; entrances: Entrance[] }) {
   if (apiKey == null) return null
@@ -14,27 +15,33 @@ export default function BuildingEntranceMap({ entrances, apiKey }: { apiKey?: st
   }
 
   return (
-    <GoogleMapApiProvider apiKey={apiKey}>
-      <GoogleMap
-        defaultCenter={mapCenter}
-        defaultZoom={17}
-        className="sticky top-0 max-h-screen w-2xl pt-3 max-sm:hidden"
-        disableDefaultUI={true}
-      >
-        {entrances.flatMap(entrance =>
-          entrance.buildings
-            .filter(building => building.latitude != null && building.longitude != null)
-            .map(building => (
-              <GoogleMapMarker
-                key={building.id}
-                position={{
-                  lat: building.latitude!,
-                  lng: building.longitude!,
-                }}
-              />
-            )),
-        )}
-      </GoogleMap>
-    </GoogleMapApiProvider>
+    <Card className="sticky top-0 max-h-screen w-2xl max-sm:hidden">
+      <CardContent className="h-full p-0">
+        <GoogleMapApiProvider apiKey={apiKey}>
+          <GoogleMap
+            defaultCenter={mapCenter}
+            defaultZoom={17}
+            className="h-full min-h-[500px] w-full rounded-lg"
+            disableDefaultUI={true}
+          >
+            {entrances.flatMap(entrance =>
+              entrance.buildings
+                .filter(building => building.latitude != null && building.longitude != null)
+                .map(building => (
+                  <GoogleMapMarker
+                    key={building.id}
+                    position={{
+                      // biome-ignore lint/style/noNonNullAssertion: buildings with map markers always have coordinates
+                      lat: building.latitude!,
+                      // biome-ignore lint/style/noNonNullAssertion: buildings with map markers always have coordinates
+                      lng: building.longitude!,
+                    }}
+                  />
+                )),
+            )}
+          </GoogleMap>
+        </GoogleMapApiProvider>
+      </CardContent>
+    </Card>
   )
 }

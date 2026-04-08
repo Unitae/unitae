@@ -1,10 +1,16 @@
-import { Form, redirect } from 'react-router'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
+import { Trash2 } from 'lucide-react'
+import { Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
+
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = () => {
@@ -34,35 +40,38 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
   const { section } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Modification d'une section</h1>
-          <p className="text-gray-500 max-sm:text-sm">Modifier une section du tableau d'affichage</p>
-        </div>
-        <div className="flex gap-2">
-          <DeleteLink action={`/board/sections/${section.id}/delete`} title="Supprimer complètement la section" />
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Modification d'une section"
+        subtitle="Modifier une section du tableau d'affichage"
+        actions={
+          <Button variant="destructive" size="icon" asChild>
+            <Link to={`/board/sections/${section.id}/delete`} title="Supprimer complètement la section">
+              <Trash2 className="size-4" />
+            </Link>
+          </Button>
+        }
+      />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Nom
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="name"
-              type="text"
-              placeholder="Nom de la section"
-              defaultValue={section.name ?? ''}
-            />
-          </label>
-        </div>
-
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Modifier la section
-        </button>
-      </Form>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="name">Nom</Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder="Nom de la section"
+                defaultValue={section.name ?? ''}
+              />
+            </div>
+            <Button type="submit" className="w-fit">
+              Modifier la section
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,7 +1,9 @@
-import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
-import type { PublisherGroup } from '~/database/generated/client'
+import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
+import type { PublisherGroup } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { Button } from '~/shared/ui/button'
+import { Input } from '~/shared/ui/input'
 
 interface AttributionFiltersProps {
   action?: string
@@ -13,11 +15,11 @@ export default function AttributionFilters({ action, phoneTypeActive = false, gr
   const [params] = useSearchParams()
 
   return (
-    <Form className="flex flex-col" action={action}>
-      <span className="font-medium text-sm">Filtres :</span>
-      <div className="flex flex-wrap gap-3">
+    <Form className="flex flex-col gap-1.5" action={action}>
+      <span className="font-medium text-muted-foreground text-sm">Filtres :</span>
+      <div className="flex flex-wrap gap-2">
         <select
-          className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
           name="type"
           defaultValue={params.get('type') ?? undefined}
         >
@@ -27,7 +29,7 @@ export default function AttributionFilters({ action, phoneTypeActive = false, gr
           <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
         </select>
         <select
-          className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
           name="group"
           defaultValue={params.get('group') ?? undefined}
         >
@@ -39,7 +41,7 @@ export default function AttributionFilters({ action, phoneTypeActive = false, gr
           ))}
         </select>
         <select
-          className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+          className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
           name="status"
           defaultValue={params.get('status') ?? undefined}
         >
@@ -47,20 +49,17 @@ export default function AttributionFilters({ action, phoneTypeActive = false, gr
           <option value={'current'}>En cours</option>
           <option value={'late'}>En retard</option>
         </select>
-        <input
+        <Input
           type="text"
           name="search"
-          className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+          className="w-auto max-sm:flex-1"
           placeholder="Recherche"
           defaultValue={params.get('search') ?? undefined}
         />
-        <button
-          className="inline-flex flex-row items-center justify-center gap-1 rounded-md border border-slate-300 bg-slate-300 px-2 py-1 text-slate-500 shadow-slate-50 hover:border-teal-600 hover:text-teal-600 hover:shadow-lg"
-          type="submit"
-        >
-          <AdjustmentsHorizontalIcon className="size-6 text-teal-600" />
+        <Button type="submit" variant="outline" size="sm" className="gap-1.5">
+          <SlidersHorizontal className="size-4" />
           Filtrer
-        </button>
+        </Button>
       </div>
     </Form>
   )

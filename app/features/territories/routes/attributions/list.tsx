@@ -1,23 +1,26 @@
-import { PencilIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { CalendarCheck, Pencil, X } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-
-import { getGroups } from '~/features/publishers/server/groups'
-import { getBoolSetting } from '~/features/settings/server/settings'
-import { computeFilters } from '~/features/territories/server/attribution-filters'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import Pagination from '~/shared/ui/Pagination'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import AttributionFilters from '~/features/territories/ui/AttributionFilters'
-import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
-import S13ExportButton from '~/shared/ui/S13ExportButton'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getGroups } from '~/features/publishers/server/groups'
+import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
+import { computeFilters } from '~/features/territories/server/attribution-filters'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions'
+import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
+import AttributionFilters from '~/features/territories/ui/AttributionFilters'
+import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import logger from '~/shared/libs/logger.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { Button } from '~/shared/ui/button'
+
+import { EmptyState } from '~/shared/ui/EmptyState'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import Pagination from '~/shared/ui/Pagination'
+import S13ExportButton from '~/shared/ui/S13ExportButton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
@@ -99,20 +102,16 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
     return (
       <div className="flex flex-col gap-5">
         <AlertMessages messages={messages} />
-        <HeroHeader
+        <PageHeader
           title="Attributions"
           subtitle="Liste des attributions en cours"
           actions={
             <>
               <S13ExportButton theocraticYear={theocraticYear} />
               {canManageTerritories && (
-                <Link
-                  to="./new/available-territories"
-                  title="Créer manuellement un nouveau batiment"
-                  className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-                >
-                  Attribuer un territoire
-                </Link>
+                <Button asChild>
+                  <Link to="./new/available-territories">Attribuer un territoire</Link>
+                </Button>
               )}
             </>
           }
@@ -120,13 +119,11 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
 
         <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p>Il n'y a aucune attribution pour le moment !</p>
-          <p>
-            Pour attribuer un territoire à un proclamateur, utilisez le bouton "Attribuer un territoire" en haut à
-            droite de l'écran.
-          </p>
-        </div>
+        <EmptyState
+          icon={CalendarCheck}
+          title="Il n'y a aucune attribution pour le moment !"
+          description="Pour attribuer un territoire à un proclamateur, utilisez le bouton &laquo; Attribuer un territoire &raquo; en haut à droite de l'écran."
+        />
       </div>
     )
   }
@@ -134,20 +131,16 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
   return (
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
-      <HeroHeader
+      <PageHeader
         title="Attributions"
         subtitle="Liste des attributions en cours"
         actions={
           <>
             <S13ExportButton theocraticYear={theocraticYear} />
             {canManageTerritories && (
-              <Link
-                to="./new/available-territories"
-                title="Créer manuellement un nouveau batiment"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                Attribuer un territoire
-              </Link>
+              <Button asChild>
+                <Link to="./new/available-territories">Attribuer un territoire</Link>
+              </Button>
             )}
           </>
         }
@@ -156,95 +149,110 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
       <div className="flex grow flex-col gap-3">
-        <table className="table grow border-collapse">
-          <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-            <tr>
-              <th className="w-[200px] py-4 max-sm:w-14 max-sm:text-center">Sortie le</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Nº</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Proclamateur</th>
-              <th className="w-[250px] py-4 text-center max-sm:hidden">Type</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Statut</th>
-              <th className="py-4 text-center max-sm:hidden">Notes</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-12" />
-            </tr>
-          </thead>
-          <tbody className="text-left max-sm:text-sm">
-            {[...attributions]
-              .sort((attrA, attrB) => {
-                const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
-                const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
-                if (aIsLate && !bIsLate) {
-                  return -1
-                }
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Sortie le</TableHead>
+                <TableHead className="text-center">Nº</TableHead>
+                <TableHead className="text-center">Proclamateur</TableHead>
+                <TableHead className="text-center max-sm:hidden">Type</TableHead>
+                <TableHead className="text-center">Statut</TableHead>
+                <TableHead className="max-sm:hidden">Notes</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...attributions]
+                .sort((attrA, attrB) => {
+                  const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
+                  const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
+                  if (aIsLate && !bIsLate) {
+                    return -1
+                  }
 
-                if (!aIsLate && bIsLate) {
-                  return 1
-                }
+                  if (!aIsLate && bIsLate) {
+                    return 1
+                  }
 
-                return 0
-              })
-              .map(attribution => (
-                <tr key={attribution.id} className="border-b border-b-slate-200 dark:border-b-slate-800">
-                  <td className="py-3 max-sm:text-center">
-                    {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
-                    <span className="text-gray-300 text-xs dark:text-gray-700">
-                      ({((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2)} jours)
-                    </span>
-                  </td>
-                  <td className="py-3 text-center">
-                    <Link to={`/territories/territory/${attribution.territoryId}/edit`} className="hover:text-teal-600">
-                      {attribution.territory.number}
-                    </Link>
-                  </td>
-                  <td className="py-3 text-center">
-                    {canViewPublisher ? (
+                  return 0
+                })
+                .map(attribution => (
+                  <TableRow key={attribution.id}>
+                    <TableCell>
+                      {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
+                      <span className="text-muted-foreground text-xs">
+                        ({((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2)} jours)
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center">
                       <Link
-                        to={`/congregation/publishers/${attribution.publisherId}/view`}
-                        className="hover:text-teal-600"
+                        to={`/territories/territory/${attribution.territoryId}/edit`}
+                        className="hover:text-primary"
                       >
-                        {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
+                        {attribution.territory.number}
                       </Link>
-                    ) : (
-                      <>
-                        {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
-                      </>
-                    )}
-                  </td>
-                  <td className="py-3 text-center max-sm:hidden">
-                    {attribution.type === TerritoryAttributionKind.Default && 'Porte à porte'}
-                    {attribution.type === TerritoryAttributionKind.Campaign && 'Campagne de distribution'}
-                    {attribution.type === TerritoryAttributionKind.Phone && 'Téléphones'}
-                  </td>
-                  <td className="py-3 text-center">
-                    <AttributionStatus attribution={attribution} />
-                  </td>
-                  <td className="py-3 text-center max-sm:hidden">
-                    {attribution.notes.length > 0 ? attribution.notes : '-'}
-                  </td>
-                  <td>
-                    <div className="flex items-stretch justify-end gap-3">
-                      {canManageTerritories && (
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {canViewPublisher ? (
+                        <Link
+                          to={`/congregation/publishers/${attribution.publisherId}/view`}
+                          className="hover:text-primary"
+                        >
+                          {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
+                        </Link>
+                      ) : (
                         <>
-                          <Link to={`./${attribution.id}/edit`} className="text-teal-600">
-                            <PencilIcon className="inline size-5" />
-                          </Link>
-                          {attribution.endDate == null && (
-                            <Link
-                              to={`/territories/attributions/${attribution.id}/delete`}
-                              title="Annuler l'attribution"
-                              className={'text-red-600'}
-                            >
-                              <XMarkIcon className={'inline size-6'} />
-                            </Link>
-                          )}
+                          {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                         </>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+                    </TableCell>
+                    <TableCell className="text-center max-sm:hidden">
+                      {attribution.type === TerritoryAttributionKind.Default && 'Porte à porte'}
+                      {attribution.type === TerritoryAttributionKind.Campaign && 'Campagne de distribution'}
+                      {attribution.type === TerritoryAttributionKind.Phone && 'Téléphones'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <AttributionStatus attribution={attribution} />
+                    </TableCell>
+                    <TableCell className="max-sm:hidden">
+                      {attribution.notes.length > 0 ? attribution.notes : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {canManageTerritories && (
+                          <>
+                            <Button variant="ghost" size="icon" asChild>
+                              <Link to={`./${attribution.id}/edit`}>
+                                <Pencil className="size-4" />
+                              </Link>
+                            </Button>
+                            {attribution.endDate == null && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Link
+                                  to={`/territories/attributions/${attribution.id}/delete`}
+                                  title="Annuler l'attribution"
+                                >
+                                  <X className="size-4" />
+                                </Link>
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </div>
 
         <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
       </div>

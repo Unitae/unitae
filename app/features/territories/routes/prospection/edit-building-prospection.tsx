@@ -1,12 +1,6 @@
-import { PencilIcon } from '@heroicons/react/24/outline'
+import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
-import BuildingProspectionForDoorToDoorFields from '~/features/territories/ui/BuildingProspectionForDoorToDoorFields'
-import OtherBuildingProspectionFields from '~/features/territories/ui/OtherBuildingProspectionFields'
-import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
@@ -16,8 +10,18 @@ import { serializeSharedEntranceFromBuilding } from '~/features/territories/serv
 import { setBuildingProspectionData } from '~/features/territories/server/set-building-prospection-data.server'
 import { unserializeSharedEntranceFormValue } from '~/features/territories/server/unserialize-shared-entrance-form-value.server'
 import { updateBuildingsInEntrance } from '~/features/territories/server/update-buildings-in-entrance.server'
+import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
+import BuildingProspectionForDoorToDoorFields from '~/features/territories/ui/BuildingProspectionForDoorToDoorFields'
+import OtherBuildingProspectionFields from '~/features/territories/ui/OtherBuildingProspectionFields'
+import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
@@ -59,64 +63,62 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col gap-6">
       <AlertMessages messages={messages} />
-      <HeroHeader
+      <PageHeader
         title={`Prospection du ${building.number} ${building.street}, ${building.zip}`}
         subtitle="Modifier les informations de prospection du batiment. Ces informations seront utilisées pour organiser le territoire."
         actions={
           <>
             {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}
             {roles.canManageTerritories && (
-              <Link
-                to="../edit"
-                relative="path"
-                title="Modifier le batiment"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                <PencilIcon className="inline size-6 max-sm:size-5" />
-              </Link>
+              <Button variant="outline" size="icon" asChild>
+                <Link to="../edit" relative="path" title="Modifier le batiment">
+                  <Pencil className="size-4" />
+                </Link>
+              </Button>
             )}
           </>
         }
       />
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <label className="grow">
-          Date de prospection
-          <input
-            className={`h-[34px] w-full rounded-md border p-1 dark:border-gray-300 ${sharedEntranceBuildingsChanged ? 'cursor-not-allowed' : ''}`}
-            defaultValue={building.prospectionDate?.toLocaleDateString('en-CA') ?? ''}
-            name="prospection-date"
-            type="date"
-            disabled={sharedEntranceBuildingsChanged}
-            title={
-              sharedEntranceBuildingsChanged
-                ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer'
-                : ''
-            }
-          />
-        </label>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Date de prospection</Label>
+              <Input
+                className={sharedEntranceBuildingsChanged ? 'cursor-not-allowed opacity-50' : ''}
+                defaultValue={building.prospectionDate?.toLocaleDateString('en-CA') ?? ''}
+                name="prospection-date"
+                type="date"
+                disabled={sharedEntranceBuildingsChanged}
+                title={
+                  sharedEntranceBuildingsChanged
+                    ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer'
+                    : ''
+                }
+              />
+            </div>
 
-        <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">Porte à porte</h2>
-        <BuildingProspectionForDoorToDoorFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
-        {roles.canManageTerritories && (
-          <SharedEntranceField
-            building={building}
-            avaibleBuildings={buildings}
-            onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
-          />
-        )}
+            <h2 className="mt-2 font-semibold text-lg">Porte à porte</h2>
+            <BuildingProspectionForDoorToDoorFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
+            {roles.canManageTerritories && (
+              <SharedEntranceField
+                building={building}
+                avaibleBuildings={buildings}
+                onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
+              />
+            )}
 
-        <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">Autres informations</h2>
-        <OtherBuildingProspectionFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
+            <h2 className="mt-2 font-semibold text-lg">Autres informations</h2>
+            <OtherBuildingProspectionFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
 
-        <button
-          className="my-4 inline-flex items-center justify-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-          type="submit"
-        >
-          Mettre à jour la prospection
-        </button>
-      </Form>
+            <Button type="submit" className="mt-2">
+              Mettre à jour la prospection
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import type { PublisherActivity, User } from '~/database/generated/client'
 import { PDFDownloadLink } from '@react-pdf/renderer'
+import { Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import type { PublisherActivity, User } from '~/database/generated/client'
+import { Button } from '~/shared/ui/button'
 import { PublisherActivityDocument } from './PublisherActivityDocument'
 
 export function PublisherActivityDownloadLink({
@@ -24,7 +25,11 @@ export function PublisherActivityDownloadLink({
           document={<PublisherActivityDocument publisher={publisher} />}
           fileName={`S-21_F-${publisher.firstname}-${publisher.lastname}.pdf`}
         >
-          {children ?? <ArrowDownTrayIcon className="inline size-6 text-teal-600" />}
+          {children ?? (
+            <Button variant="outline" size="icon" type="button">
+              <Download className="size-4" />
+            </Button>
+          )}
         </PDFDownloadLink>
       )}
     </>

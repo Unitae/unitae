@@ -1,20 +1,23 @@
-import { InboxArrowDownIcon } from '@heroicons/react/24/outline'
-import type { Prisma } from '~/database/generated/client'
+import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import { getPublishers } from '~/features/publishers/server/publishers'
-import { getBoolSetting } from '~/features/settings/server/settings'
-import { aggregateEntrance } from '~/features/territories/server/buildings'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
-import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
+import type { Prisma } from '~/database/generated/client'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getPublishers } from '~/features/publishers/server/publishers'
+import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { aggregateEntrance } from '~/features/territories/server/buildings'
+import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/edit'
 
@@ -51,131 +54,134 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
   const [shouldShowEndDate, showEndDate] = useState(false)
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Modifier une attribution"
         subtitle="Mettre à jour l'attribution d'un proclamateur"
         actions={
           attribution.endDate === null && (
             <>
-              <button
+              <Button
+                variant={shouldShowEndDate ? 'default' : 'outline'}
+                size="icon"
                 title="Rentrer le territoire"
-                className={`flex items-center rounded-lg p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm ${shouldShowEndDate ? 'bg-teal-900' : 'bg-teal-600'}`}
                 type="button"
                 onClick={() => showEndDate(state => !state)}
               >
-                <InboxArrowDownIcon className="inline size-6 max-sm:size-5" />
-              </button>
-              <DeleteLink title="Annuler l'attribution" type="cancel" action={`./${attribution.id}/delete`} />
+                <ArrowDownToLine className="size-4" />
+              </Button>
+              <Button variant="destructive" size="sm" asChild>
+                <a href={`./${attribution.id}/delete`} title="Annuler l'attribution">
+                  <X className="size-4" />
+                </a>
+              </Button>
             </>
           )
         }
       />
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <label className="flex-1">
-          Territoire
-          <input type="hidden" name="territory" value={attribution.territory.id} />
-          <TerritoryCardLink territory={attribution.territory} entrances={entrances} />
-        </label>
-        <label className="flex-1">
-          Proclamateur
-          <select
-            className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-            name="publisher"
-            required
-            defaultValue={String(attribution.publisherId)}
-            disabled={attribution.endDate !== null}
-          >
-            <option disabled>Selectionnez un proclamateur</option>
-            {users.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.lastname?.toLocaleUpperCase()} {user.firstname}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex-1">
-          Type d'attribution
-          <select
-            className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-            name="type"
-            required
-            defaultValue={attribution.type}
-            disabled={attribution.endDate !== null}
-          >
-            <option value={TerritoryAttributionKind.Default}>{phoneTypeActive ? 'Classique' : 'Porte à Porte'}</option>
-            {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>Téléphone</option>}
-            <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
-          </select>
-        </label>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Date de sortie
-            <input
-              className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-              name="start-date"
-              type="date"
-              defaultValue={attribution.startDate.toLocaleDateString('en-CA')}
-              readOnly
-            />
-          </label>
-          {attribution.endDate || shouldShowEndDate ? (
-            <label className={'flex-1'}>
-              <span className={attribution.endDate ? '' : 'text-red-500'}>Date de rentrée</span>
-              <input
-                className={`h-[34px] w-full rounded-md border p-1 dark:border-gray-300 ${attribution.endDate ?? 'border-red-500 dark:border-red-500'}`}
-                name="end-date"
-                type="date"
-                defaultValue={
-                  attribution.endDate?.toLocaleDateString('en-CA') ?? new Date().toLocaleDateString('en-CA')
-                }
-                max={new Date().toLocaleDateString('en-CA')}
-                readOnly={attribution.endDate !== null}
-              />
-            </label>
-          ) : (
-            <label className="flex-1">
-              À rentrer le :
-              <input
-                className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-                name="late-date"
-                type="date"
-                defaultValue={attribution.lateDate?.toLocaleDateString('en-CA')}
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Territoire</Label>
+              <input type="hidden" name="territory" value={attribution.territory.id} />
+              <TerritoryCardLink territory={attribution.territory} entrances={entrances} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Proclamateur</Label>
+              <select
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                name="publisher"
+                required
+                defaultValue={String(attribution.publisherId)}
                 disabled={attribution.endDate !== null}
-              />
-            </label>
-          )}
-        </div>
-        <label className="grow">
-          Notes <span className="text-gray-300 text-xs dark:text-gray-700">(Ne sera pas visible du proclamateur)</span>
-          <textarea
-            className="w-full rounded-md border p-1 dark:border-gray-300"
-            rows={4}
-            name="notes"
-            readOnly={attribution.endDate !== null}
-          >
-            {attribution.notes}
-          </textarea>
-        </label>
+              >
+                <option disabled>Selectionnez un proclamateur</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.lastname?.toLocaleUpperCase()} {user.firstname}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Type d'attribution</Label>
+              <select
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                name="type"
+                required
+                defaultValue={attribution.type}
+                disabled={attribution.endDate !== null}
+              >
+                <option value={TerritoryAttributionKind.Default}>
+                  {phoneTypeActive ? 'Classique' : 'Porte à Porte'}
+                </option>
+                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>Téléphone</option>}
+                <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
+              </select>
+            </div>
+            <div className="flex gap-3">
+              <div className="flex flex-1 flex-col gap-1.5">
+                <Label>Date de sortie</Label>
+                <Input
+                  name="start-date"
+                  type="date"
+                  defaultValue={attribution.startDate.toLocaleDateString('en-CA')}
+                  readOnly
+                />
+              </div>
+              {attribution.endDate || shouldShowEndDate ? (
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label className={attribution.endDate ? '' : 'text-destructive'}>Date de rentrée</Label>
+                  <Input
+                    className={attribution.endDate ? '' : 'border-destructive'}
+                    name="end-date"
+                    type="date"
+                    defaultValue={
+                      attribution.endDate?.toLocaleDateString('en-CA') ?? new Date().toLocaleDateString('en-CA')
+                    }
+                    max={new Date().toLocaleDateString('en-CA')}
+                    readOnly={attribution.endDate !== null}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Label>À rentrer le :</Label>
+                  <Input
+                    name="late-date"
+                    type="date"
+                    defaultValue={attribution.lateDate?.toLocaleDateString('en-CA')}
+                    disabled={attribution.endDate !== null}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>
+                Notes <span className="text-muted-foreground text-xs">(Ne sera pas visible du proclamateur)</span>
+              </Label>
+              <textarea
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                rows={4}
+                name="notes"
+                readOnly={attribution.endDate !== null}
+              >
+                {attribution.notes}
+              </textarea>
+            </div>
 
-        {shouldShowEndDate ? (
-          <button
-            className="my-4 rounded-lg bg-red-600 p-3 font-semibold text-white hover:bg-red-900"
-            type="submit"
-            disabled={attribution.endDate !== null}
-          >
-            Rentrer le territoire
-          </button>
-        ) : (
-          <button
-            className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900"
-            type="submit"
-            disabled={attribution.endDate !== null}
-          >
-            Enregistrer l'attribution
-          </button>
-        )}
-      </Form>
+            {shouldShowEndDate ? (
+              <Button variant="destructive" type="submit" disabled={attribution.endDate !== null} className="mt-2">
+                Rentrer le territoire
+              </Button>
+            ) : (
+              <Button type="submit" disabled={attribution.endDate !== null} className="mt-2">
+                Enregistrer l'attribution
+              </Button>
+            )}
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

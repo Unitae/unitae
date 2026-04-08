@@ -1,5 +1,5 @@
-import { redis } from '~/shared/libs/redis.server'
 import logger from '~/shared/libs/logger.server'
+import { redis } from '~/shared/libs/redis.server'
 
 const MAX_ATTEMPTS = 5
 const WINDOW_SECONDS = 15 * 60 // 15 minutes

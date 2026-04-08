@@ -1,11 +1,16 @@
-import { ChevronDownIcon, ChevronUpIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { ChevronDown, ChevronUp, Eye, FileText, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
+import { Button } from '~/shared/ui/button'
+
+import { EmptyState } from '~/shared/ui/EmptyState'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/list'
 
@@ -50,117 +55,102 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
   const { documents } = loaderData
 
-  if (documents.length === 0) {
-    return (
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-          <div>
-            <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Documents</h1>
-            <p className="text-gray-500 max-sm:text-sm">Liste de toutes les documents du tableau d'affichage</p>
-          </div>
-          <div>
-            <Link
-              to="./new"
-              className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-            >
-              Téléverser un document
-            </Link>
-          </div>
-        </div>
-
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p>Il n'y a aucun document pour le moment !</p>
-          <p>
-            Lorsque des documents seront ajoutés, ils apparaîtront ici. Pour en ajouter, cliquez sur le bouton
-            ci-dessus.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Documents</h1>
-          <p className="text-gray-500 max-sm:text-sm">Liste de toutes les documents du tableau d'affichage</p>
-        </div>
-        <div>
-          <Link
-            to="./new"
-            className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-          >
-            Téléverser un document
-          </Link>
-        </div>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Documents"
+        subtitle="Liste de toutes les documents du tableau d'affichage"
+        actions={
+          <Button asChild>
+            <Link to="./new">Téléverser un document</Link>
+          </Button>
+        }
+      />
 
-      <table className="mt-6 table grow border-collapse">
-        <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-          <tr>
-            <th className="py-4 text-left">Nom</th>
-            <th className="py-4 text-left max-sm:w-[110px] max-sm:text-center">
-              Sec<span className="hidden max-sm:inline">.</span>
-              <span className="max-sm:hidden">tion</span>
-            </th>
-            <th className="w-[150px] py-4 text-center max-sm:hidden">Vues uniques</th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">
-              Vis<span className="hidden max-sm:inline">.</span>
-              <span className="max-sm:hidden">ibilité</span>
-            </th>
-            <th className="w-[150px] py-4 text-center max-sm:w-14">
-              Pos<span className="hidden max-sm:inline">.</span>
-              <span className="max-sm:hidden">ition</span>
-            </th>
-            <th className="w-[150px] py-4 text-center max-sm:w-10 max-sm:text-right" />
-          </tr>
-        </thead>
-        <tbody className="text-left max-sm:text-sm">
-          {documents.map(document => (
-            <tr key={document.id} className="border-b border-b-slate-200 dark:border-b-slate-800">
-              <td className="py-3 text-left">{document.title}</td>
-              <td className="py-3 text-left max-sm:hidden">{document.section.name}</td>
-              <td className="hidden py-3 text-center max-sm:table-cell">{(document.section.order ?? 0) / 5 + 1}</td>
-              <td className="py-3 text-center max-sm:hidden">{document.viewedBy.length}</td>
-              <td className="py-3 text-center">
-                <DocumentVisibility document={document} />
-              </td>
-              <td>
-                <div className="flex items-stretch justify-center gap-3">
-                  <Form method="post" action={`./${document.id}/move-up`}>
-                    <button type="submit" className="text-teal-600">
-                      <ChevronUpIcon className="inline size-5" />
-                    </button>
-                  </Form>
-                  <Form method="post" action={`./${document.id}/move-down`}>
-                    <button type="submit" className="text-teal-600">
-                      <ChevronDownIcon className="inline size-5" />
-                    </button>
-                  </Form>
-                </div>
-              </td>
-              <td>
-                <div className="flex items-stretch justify-end gap-3">
-                  <Link reloadDocument to={`./${document.id}/view`} className="text-teal-600">
-                    <EyeIcon className="inline size-5" />
-                  </Link>
-                  <Link to={`./${document.id}/edit`} className="text-teal-600">
-                    <PencilIcon className="inline size-5" />
-                  </Link>
-                  <Link
-                    to={`./${document.id}/delete`}
-                    title="Supprimer complètement le document"
-                    className={'text-red-600 max-sm:hidden'}
-                  >
-                    <TrashIcon className={'inline size-6'} />
-                  </Link>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {documents.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="Il n'y a aucun document pour le moment !"
+          description="Lorsque des documents seront ajoutés, ils apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus."
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nom</TableHead>
+                <TableHead>
+                  Sec<span className="hidden max-sm:inline">.</span>
+                  <span className="max-sm:hidden">tion</span>
+                </TableHead>
+                <TableHead className="text-center max-sm:hidden">Vues uniques</TableHead>
+                <TableHead className="text-center">
+                  Vis<span className="hidden max-sm:inline">.</span>
+                  <span className="max-sm:hidden">ibilité</span>
+                </TableHead>
+                <TableHead className="text-center">
+                  Pos<span className="hidden max-sm:inline">.</span>
+                  <span className="max-sm:hidden">ition</span>
+                </TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map(document => (
+                <TableRow key={document.id}>
+                  <TableCell>{document.title}</TableCell>
+                  <TableCell className="max-sm:hidden">{document.section.name}</TableCell>
+                  <TableCell className="hidden max-sm:table-cell">{(document.section.order ?? 0) / 5 + 1}</TableCell>
+                  <TableCell className="text-center max-sm:hidden">{document.viewedBy.length}</TableCell>
+                  <TableCell className="text-center">
+                    <DocumentVisibility document={document} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-1">
+                      <Form method="post" action={`./${document.id}/move-up`}>
+                        <Button type="submit" variant="ghost" size="icon">
+                          <ChevronUp className="size-4" />
+                        </Button>
+                      </Form>
+                      <Form method="post" action={`./${document.id}/move-down`}>
+                        <Button type="submit" variant="ghost" size="icon">
+                          <ChevronDown className="size-4" />
+                        </Button>
+                      </Form>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link reloadDocument to={`./${document.id}/view`}>
+                          <Eye className="size-4" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link to={`./${document.id}/edit`}>
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        asChild
+                        className="text-destructive hover:text-destructive max-sm:hidden"
+                      >
+                        <Link to={`./${document.id}/delete`} title="Supprimer complètement le document">
+                          <Trash2 className="size-4" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   )
 }

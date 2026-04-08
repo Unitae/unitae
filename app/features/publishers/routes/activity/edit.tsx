@@ -1,14 +1,17 @@
+import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Form, redirect } from 'react-router'
-
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
+import { Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/edit'
 
@@ -60,99 +63,106 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
   date.setFullYear(activity.year)
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title={`Rapport de ${date.toLocaleDateString('fr', {
           month: 'long',
           year: 'numeric',
         })} - ${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`}
         subtitle="Modifier le rapport d'activité du proclamateur"
         actions={
-          <DeleteLink title="Supprimer le rapport" action={`/congregation/publishers/activity/${activity.id}/delete`} />
+          <Button asChild variant="destructive" size="icon" title="Supprimer le rapport">
+            <Link to={`/congregation/publishers/activity/${activity.id}/delete`}>
+              <Trash2 className="size-4" />
+            </Link>
+          </Button>
         }
       />
 
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Service de pionnier
-            <select
-              className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-              name="type"
-              value={type as string}
-              onChange={event => {
-                setType(event.target.value as PublisherType)
-              }}
-              required
-            >
-              <option value={PublisherType.Normal}>Le proclamateur n'a pas pris le service ce mois</option>
-              <option value={PublisherType.PionnierAuxiliaires}>
-                Le proclamateur a pris le service de Pionnier Auxiliaire ce mois
-              </option>
-              <option value={PublisherType.PionnierPermanant}>Le proclamateur était Pionnier Permanent ce mois</option>
-              <option value={PublisherType.PionnierSpecial}>Le proclamateur était Pionnier Spécial ce mois</option>
-              <option value={PublisherType.Missionnaire}>Le proclamateur était Missionnaire ce mois</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="flex gap-3">
-          {[
-            PublisherType.PionnierAuxiliaires,
-            PublisherType.PionnierPermanant,
-            PublisherType.PionnierSpecial,
-            PublisherType.Missionnaire,
-          ].includes(type as PublisherType) ? (
-            <label className="flex-1">
-              Heures
-              <input
-                className="w-full rounded-md border p-1 dark:border-gray-300"
-                name="hours"
-                type="number"
+      <Card>
+        <CardHeader>
+          <CardTitle>Détails du rapport</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="type">Service de pionnier</Label>
+              <select
+                id="type"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                name="type"
+                value={type as string}
+                onChange={event => {
+                  setType(event.target.value as PublisherType)
+                }}
                 required
-                defaultValue={activity.hours ?? 0}
-                min={0}
-              />
-            </label>
-          ) : (
-            <label className="flex flex-1 items-center gap-3">
-              <input
-                className="rounded-md border p-1 dark:border-gray-300"
-                name="preached"
-                type="checkbox"
-                defaultChecked={activity.isPublisher}
-              />
-              <span className="flex-1">Le proclamateur a préché ce mois</span>
-            </label>
-          )}
-          <label className="flex-1">
-            Etudes
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="studies"
-              type="number"
-              defaultValue={activity.studies ?? 0}
-              required
-              min={0}
-            />
-          </label>
-        </div>
+              >
+                <option value={PublisherType.Normal}>Le proclamateur n'a pas pris le service ce mois</option>
+                <option value={PublisherType.PionnierAuxiliaires}>
+                  Le proclamateur a pris le service de Pionnier Auxiliaire ce mois
+                </option>
+                <option value={PublisherType.PionnierPermanant}>
+                  Le proclamateur était Pionnier Permanent ce mois
+                </option>
+                <option value={PublisherType.PionnierSpecial}>Le proclamateur était Pionnier Spécial ce mois</option>
+                <option value={PublisherType.Missionnaire}>Le proclamateur était Missionnaire ce mois</option>
+              </select>
+            </div>
 
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Observations
-            <textarea
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="observations"
-              defaultValue={activity.notes}
-            />
-          </label>
-        </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                PublisherType.PionnierAuxiliaires,
+                PublisherType.PionnierPermanant,
+                PublisherType.PionnierSpecial,
+                PublisherType.Missionnaire,
+              ].includes(type as PublisherType) ? (
+                <div className="space-y-2">
+                  <Label htmlFor="hours">Heures</Label>
+                  <Input id="hours" name="hours" type="number" required defaultValue={activity.hours ?? 0} min={0} />
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 self-end">
+                  <input
+                    className="size-4 rounded border border-input"
+                    name="preached"
+                    type="checkbox"
+                    id="preached"
+                    defaultChecked={activity.isPublisher}
+                  />
+                  <Label htmlFor="preached" className="font-normal">
+                    Le proclamateur a préché ce mois
+                  </Label>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="studies">Études</Label>
+                <Input
+                  id="studies"
+                  name="studies"
+                  type="number"
+                  defaultValue={activity.studies ?? 0}
+                  required
+                  min={0}
+                />
+              </div>
+            </div>
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Enregistrer le rapport
-        </button>
-      </Form>
+            <div className="space-y-2">
+              <Label htmlFor="observations">Observations</Label>
+              <textarea
+                id="observations"
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs"
+                name="observations"
+                defaultValue={activity.notes}
+              />
+            </div>
+
+            <Button type="submit" className="self-start">
+              Enregistrer le rapport
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

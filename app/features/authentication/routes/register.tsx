@@ -1,8 +1,11 @@
 import { data, Form, Link, redirect } from 'react-router'
-
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 import type { Route } from './+types/register'
 
@@ -33,97 +36,68 @@ function slugify(text: string): string {
 }
 
 export default function RegisterPage({ loaderData }: Route.ComponentProps) {
-  const messages = loaderData
+  const { error, success } = loaderData
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="flex w-full max-w-[550px] flex-col items-center gap-8 p-5">
-        <header className="flex flex-col items-center gap-4">
-          <h1 className="font-semibold text-5xl text-gray-900 tracking-tight sm:text-7xl dark:text-gray-100">Unitae</h1>
-          <p className="text-center text-gray-600 dark:text-gray-400">Créer un espace pour votre congrégation</p>
-        </header>
-        <AlertMessages messages={messages} />
-        <Form method="post" className="flex w-full flex-col gap-4">
-          <div>
-            <label
-              htmlFor="congregation-name"
-              className="block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100"
-            >
-              Nom de la congrégation
-            </label>
-            <input
-              id="congregation-name"
-              name="congregation-name"
-              type="text"
-              className="mt-2 block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-teal-600 focus:ring-inset dark:text-gray-100"
-              placeholder="Lyon Confluence"
-              required
-            />
-          </div>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md overflow-hidden shadow-md">
+        <div className="h-1 bg-primary" />
+        <CardHeader className="items-center space-y-2 text-center">
+          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
+          <p className="text-muted-foreground text-sm">Créer un espace pour votre congrégation</p>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert className="mb-4">
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="congregation-name">Nom de la congrégation</Label>
+              <Input
+                id="congregation-name"
+                name="congregation-name"
+                type="text"
+                placeholder="Lyon Confluence"
+                required
+              />
+            </div>
 
-          <div>
-            <label htmlFor="email" className="block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100">
-              Email de l'administrateur
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className="mt-2 block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-teal-600 focus:ring-inset dark:text-gray-100"
-              autoComplete="email"
-              required
-            />
-          </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email de l'administrateur</Label>
+              <Input id="email" name="email" type="email" autoComplete="email" required />
+            </div>
 
-          <div>
-            <label
-              htmlFor="password"
-              className="block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100"
-            >
-              Mot de passe
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              className="mt-2 block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-teal-600 focus:ring-inset dark:text-gray-100"
-              required
-            />
-          </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Mot de passe</Label>
+              <Input id="password" name="password" type="password" autoComplete="new-password" required />
+            </div>
 
-          <div>
-            <label
-              htmlFor="repeat-password"
-              className="block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100"
-            >
-              Confirmer le mot de passe
-            </label>
-            <input
-              id="repeat-password"
-              name="repeat-password"
-              type="password"
-              autoComplete="new-password"
-              className="mt-2 block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-teal-600 focus:ring-inset dark:text-gray-100"
-              required
-            />
-          </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="repeat-password">Confirmer le mot de passe</Label>
+              <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" required />
+            </div>
 
-          <button
-            type="submit"
-            className="mt-4 w-full rounded-md bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-900 focus:bg-teal-800"
-          >
-            Créer la congrégation
-          </button>
-        </Form>
-
-        <p className="text-sm text-gray-500">
-          Déjà un compte ?{' '}
-          <Link to="/login" className="text-teal-600 underline">
-            Se connecter
-          </Link>
-        </p>
-      </div>
+            <Button type="submit" className="mt-4 w-full">
+              Créer la congrégation
+            </Button>
+          </Form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-muted-foreground text-sm">
+            Déjà un compte ?{' '}
+            <Link to="/login" className="text-primary hover:underline">
+              Se connecter
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

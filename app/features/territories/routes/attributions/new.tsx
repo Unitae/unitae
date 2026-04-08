@@ -1,14 +1,18 @@
 import { Form, redirect } from 'react-router'
-import { getBoolSetting } from '~/features/settings/server/settings'
-import { aggregateEntrance } from '~/features/territories/server/buildings'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { aggregateEntrance } from '~/features/territories/server/buildings'
+import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { db } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new'
 
@@ -59,56 +63,62 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
   const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader title="Attribuer un territoire" subtitle="Attribuer manuellement un territoire" />
-      <Form method="post" className="my-5 flex flex-col gap-3">
-        <label className="flex-1">
-          Territoire
-          <input type="hidden" name="territory" value={territory.id} />
-          <TerritoryCardLink territory={territory} entrances={territoryEntrances} />
-        </label>
-        <label className="flex-1">
-          Proclamateur
-          <select
-            className="w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-            name="publisher"
-            required
-          >
-            <option disabled>Selectionnez un proclamateur</option>
-            {users.map(user => (
-              <option key={user.id} value={user.id}>
-                {user.lastname?.toLocaleUpperCase()} {user.firstname}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex-1">
-          Type de sortie
-          <select className="w-full appearance-none rounded-md border p-1 dark:border-gray-300" name="type" required>
-            <option value={TerritoryAttributionKind.Default}>{phoneTypeActive ? 'Classique' : 'Porte à Porte'}</option>
-            {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>Téléphone</option>}
-            <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
-          </select>
-        </label>
-        <label className="grow">
-          Date de sortie
-          <input
-            className="h-[34px] w-full rounded-md border p-1 dark:border-gray-300"
-            name="start-date"
-            type="date"
-            defaultValue={new Date().toLocaleDateString('en-CA')}
-            required
-          />
-        </label>
-        <label className="grow">
-          Notes <span className="text-gray-300 text-xs dark:text-gray-700">(Ne sera pas visible du proclamateur)</span>
-          <textarea className="w-full rounded-md border p-1 dark:border-gray-300" rows={4} name="notes" />
-        </label>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Attribuer un territoire" subtitle="Attribuer manuellement un territoire" />
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <Label>Territoire</Label>
+              <input type="hidden" name="territory" value={territory.id} />
+              <TerritoryCardLink territory={territory} entrances={territoryEntrances} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Proclamateur</Label>
+              <select
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                name="publisher"
+                required
+              >
+                <option disabled>Selectionnez un proclamateur</option>
+                {users.map(user => (
+                  <option key={user.id} value={user.id}>
+                    {user.lastname?.toLocaleUpperCase()} {user.firstname}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Type de sortie</Label>
+              <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" name="type" required>
+                <option value={TerritoryAttributionKind.Default}>
+                  {phoneTypeActive ? 'Classique' : 'Porte à Porte'}
+                </option>
+                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>Téléphone</option>}
+                <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
+              </select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>Date de sortie</Label>
+              <Input name="start-date" type="date" defaultValue={new Date().toLocaleDateString('en-CA')} required />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label>
+                Notes <span className="text-muted-foreground text-xs">(Ne sera pas visible du proclamateur)</span>
+              </Label>
+              <textarea
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                rows={4}
+                name="notes"
+              />
+            </div>
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Enregistrer l'attribution
-        </button>
-      </Form>
+            <Button type="submit" className="mt-2">
+              Enregistrer l'attribution
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -12,13 +12,13 @@ export const links: LinksFunction = () => [
   },
   {
     rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap',
+    href: 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap',
   },
 ]
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -30,8 +30,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <link rel="manifest" href="/site.webmanifest" />
         <Meta />
         <Links />
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: inline script to prevent dark mode flash
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}})()`,
+          }}
+        />
       </head>
-      <body className="dark:bg-slate-950">
+      <body>
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -43,9 +49,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function ErrorBoundary() {
   return (
     <div className="flex h-screen flex-col items-center justify-center">
-      <h1 className="m-5 font-bold text-4xl">Oops ! Quelque chose s'est mal passé...</h1>
+      <h1 className="m-5 font-bold font-display text-4xl">Oops ! Quelque chose s'est mal passé...</h1>
       <p>
-        <Link to="/" className="text-teal-600 underline">
+        <Link to="/" className="text-primary underline">
           Revenir à l'accueil
         </Link>
       </p>

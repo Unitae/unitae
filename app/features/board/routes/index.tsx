@@ -1,9 +1,11 @@
-import { DocumentCard } from '~/features/board/ui/DocumentCard'
+import { FileText } from 'lucide-react'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { DocumentCard } from '~/features/board/ui/DocumentCard'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
+import { EmptyState } from '~/shared/ui/EmptyState'
 
 import type { Route } from './+types/index'
 
@@ -101,36 +103,35 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
 
   if (nonEmptyFolders.length < 1) {
     return (
-      <div>
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p>Il n'y a aucun document pour le moment !</p>
-          <p>Lorsque des documents seront ajoutés, ils apparaîtront ici.</p>
-        </div>
+      <div className="flex flex-col gap-6">
+        <EmptyState
+          icon={FileText}
+          title="Il n'y a aucun document pour le moment !"
+          description="Lorsque des documents seront ajoutés, ils apparaîtront ici."
+        />
       </div>
     )
   }
 
   return (
-    <div>
-      <div>
-        <div>
-          <div className="mb-5 flex flex-wrap gap-3 max-sm:flex-col">
-            {hightlightedDocuments.map(file => (
+    <div className="flex flex-col gap-6">
+      {hightlightedDocuments.length > 0 && (
+        <div className="flex flex-wrap gap-3 max-sm:flex-col">
+          {hightlightedDocuments.map(file => (
+            <DocumentCard key={file.id} file={file} alreadyViewed={file.viewedBy.length > 0} />
+          ))}
+        </div>
+      )}
+      {nonEmptyFolders.map(folder => (
+        <div key={folder.id}>
+          <h2 className="mb-3 font-bold font-display text-xl tracking-tight">{folder.name}</h2>
+          <div className="flex flex-wrap gap-3 max-sm:flex-col">
+            {folder.documents.map(file => (
               <DocumentCard key={file.id} file={file} alreadyViewed={file.viewedBy.length > 0} />
             ))}
           </div>
         </div>
-        {nonEmptyFolders.map(folder => (
-          <div key={folder.id}>
-            <h1 className="mt-7 font-bold text-xl">{folder.name}</h1>
-            <div className="my-5 flex flex-wrap gap-3 max-sm:flex-col">
-              {folder.documents.map(file => (
-                <DocumentCard key={file.id} file={file} alreadyViewed={file.viewedBy.length > 0} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
+      ))}
     </div>
   )
 }

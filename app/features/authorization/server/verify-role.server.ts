@@ -10,15 +10,22 @@ export async function verifyRole(request: Request, roleKey: Role) {
     return false
   }
 
-  const ctx = congregationContext.getStore()
-  if (!ctx) {
-    return false
+  // Prefer AsyncLocalStorage context, but fall back to looking up the user's congregationId
+  // directly. The pg adapter in Prisma 7 can break AsyncLocalStorage context propagation
+  // after awaited queries, causing enterWith() in verifySession to not be visible here.
+  let congregationId = congregationContext.getStore()?.congregationId
+  if (!congregationId) {
+    const user = await unscopedDb.user.findUnique({ where: { id: userId }, select: { congregationId: true } })
+    if (!user) {
+      return false
+    }
+    congregationId = user.congregationId
   }
 
   const adminRole = await unscopedDb.congregationUserRole.findFirst({
     where: {
       userId,
-      congregationId: ctx.congregationId,
+      congregationId,
       role: { key: 'admin' },
     },
   })
@@ -30,7 +37,7 @@ export async function verifyRole(request: Request, roleKey: Role) {
   const role = await unscopedDb.congregationUserRole.findFirst({
     where: {
       userId,
-      congregationId: ctx.congregationId,
+      congregationId,
       role: { key: roleKey },
     },
   })

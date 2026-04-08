@@ -1,7 +1,4 @@
-import { DocumentTextIcon, FolderOpenIcon, Squares2X2Icon } from '@heroicons/react/24/outline'
-import { data, Link, Outlet } from 'react-router'
-import { MainNavigation } from '~/shared/ui/MainNavigation'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { data, Outlet } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
@@ -40,56 +37,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function BoardLayout({ loaderData }: Route.ComponentProps) {
-  const {
-    canUploadDocument,
-    canManageSettings,
-    canViewTerritories,
-    canViewPublishers,
-    canManageBoard,
-    messages,
-    canViewProspection,
-  } = loaderData
+  const { canUploadDocument } = loaderData
 
-  return (
-    <div className="flex h-screen flex-col">
-      <MainNavigation
-        showBoard={true}
-        showCongregation={canViewPublishers}
-        showTerritories={canViewTerritories || canViewProspection}
-        showSettings={canManageSettings}
-      />
-
-      <div className="mx-3 flex flex-row gap-3 max-sm:flex-col">
-        {canUploadDocument && (
-          <aside className="w-fit self-start rounded-md bg-gray-200 max-sm:w-auto max-sm:grow max-sm:self-stretch">
-            <nav className="p-2">
-              <ul className="flex list-none flex-col gap-2 max-sm:flex-row max-sm:flex-wrap max-sm:justify-center">
-                <li className="block rounded-md p-3 hover:bg-teal-700 hover:bg-opacity-50 dark:text-slate-900">
-                  <Link to={'/board'} className="flex items-center gap-2">
-                    <Squares2X2Icon className="inline size-6" /> Tableau d'affichage
-                  </Link>
-                </li>
-                {canManageBoard && (
-                  <li className="block rounded-md p-3 hover:bg-teal-700 hover:bg-opacity-50 dark:text-slate-900">
-                    <Link to={'/board/sections'} className="flex items-center gap-2">
-                      <FolderOpenIcon className="inline size-6" /> Sections
-                    </Link>
-                  </li>
-                )}
-                <li className="block rounded-md p-3 hover:bg-teal-700 hover:bg-opacity-50 dark:text-slate-900">
-                  <Link to={'/board/documents'} className="flex items-center gap-2">
-                    <DocumentTextIcon className="inline size-6" /> Documents
-                  </Link>
-                </li>
-              </ul>
-            </nav>
-          </aside>
-        )}
-        <div className="grow">
-          <AlertMessages messages={messages} />
-          <Outlet context={{ canUploadDocument }} />
-        </div>
-      </div>
-    </div>
-  )
+  return <Outlet context={{ canUploadDocument }} />
 }

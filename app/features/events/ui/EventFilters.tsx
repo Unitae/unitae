@@ -1,33 +1,32 @@
-import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
+import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
 import type { SanitizedUser } from '~/features/authentication/server/sanitize-user.server'
+import { Button } from '~/shared/ui/button'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 interface EventFiltersProps {
   action?: string
   publishers?: SanitizedUser[]
 }
 
-export default function EventFilters({ action, publishers = [] }: EventFiltersProps) {
+export default function EventFilters({ action }: EventFiltersProps) {
   const [params] = useSearchParams()
 
   return (
-    <Form className="flex flex-col" action={action}>
-      <span className="font-medium text-sm">Filtres :</span>
-      <div className="flex flex-wrap gap-3">
-        <input
+    <Form className="flex flex-col gap-2" action={action}>
+      <Label className="font-medium text-muted-foreground text-sm">Filtres :</Label>
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
           type="date"
           name="date"
-          className="inline-block appearance-none rounded-sm border border-slate-400 bg-slate-200 p-2 text-slate-950 max-sm:flex-1"
+          className="w-auto"
           defaultValue={params.get('date') ?? new Date().toISOString().split('T')[0]}
         />
-
-        <button
-          className="inline-flex flex-row items-center justify-center gap-1 rounded-md border border-slate-300 bg-slate-300 px-2 py-1 text-slate-500 shadow-slate-50 hover:border-teal-600 hover:text-teal-600 hover:shadow-lg"
-          type="submit"
-        >
-          <AdjustmentsHorizontalIcon className="size-6 text-teal-600" />
+        <Button type="submit" variant="outline" size="sm">
+          <SlidersHorizontal className="size-4" />
           Filtrer
-        </button>
+        </Button>
       </div>
     </Form>
   )

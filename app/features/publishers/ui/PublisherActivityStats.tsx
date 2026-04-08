@@ -1,3 +1,5 @@
+import { Card, CardContent } from '~/shared/ui/card'
+
 export default function PublisherActivityStats({
   stats,
 }: {
@@ -28,61 +30,56 @@ export default function PublisherActivityStats({
   const iregular = stats.all.count - stats.all.active
 
   return (
-    <div className="flex flex-wrap justify-around gap-5 rounded-md bg-gray-200 p-2 max-sm:gap-3 max-sm:text-sm max-md:justify-between dark:bg-gray-900">
-      <div
-        className={
-          'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-white p-4 text-center text-gray-700 dark:bg-gray-950 dark:text-white'
-        }
-        title="Tous les batiments actifs et donc disponibles pour la prédication."
-      >
-        <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">
-          {stats.all.hours}
-          <span className="text-2xl">h</span> / {stats.all.studies} <span className="text-2xl">études</span>
-        </span>
-        par les {stats.all.count} membres de l'assemblée{' '}
-        {iregular > 0 && (
-          <span className="text-red-500">
-            (dont {iregular} irrégulier{iregular > 1 && 's'})
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
+          <span className="font-black text-4xl tracking-tight">
+            {stats.all.hours}
+            <span className="text-lg text-muted-foreground">h</span> / {stats.all.studies}{' '}
+            <span className="text-lg text-muted-foreground">études</span>
           </span>
-        )}
-      </div>
-      <div
-        className={
-          'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-gray-700 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
-        }
-        title="Tous les batiments enregistrés dans la base de données. Permet de retrouver des batiments qui ont été désactivés précédement."
-      >
-        <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">
-          - / {stats.publishers.studies} <span className="text-2xl">études</span>
-        </span>
-        par les {stats.publishers.count} proclamateurs
-      </div>
-      <div
-        className={
-          'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-gray-700 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
-        }
-        title="Tous les batiments enregistrés dans la base de données. Permet de retrouver des batiments qui ont été désactivés précédement."
-      >
-        <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">
-          {stats.auxiliaryPionneer.hours}
-          <span className="text-2xl">h</span> / {stats.auxiliaryPionneer.studies}{' '}
-          <span className="text-2xl">études</span>
-        </span>
-        par les {stats.auxiliaryPionneer.count} pionniers auxiliaires
-      </div>
-      <div
-        className={
-          'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-gray-700 hover:text-gray-950 dark:text-gray-400 dark:hover:text-white'
-        }
-        title="Tous les batiments enregistrés dans la base de données. Permet de retrouver des batiments qui ont été désactivés précédement."
-      >
-        <span className="font-black text-6xl max-sm:font-extrabold max-sm:text-3xl">
-          {stats.permanentPionneer.hours}
-          <span className="text-2xl">h</span> / {stats.permanentPionneer.studies}{' '}
-          <span className="text-2xl">études</span>
-        </span>
-        par les {stats.permanentPionneer.count} pionniers permanents
-      </div>
+          <span className="text-muted-foreground text-xs">
+            par les {stats.all.count} membres de l'assemblée{' '}
+            {iregular > 0 && (
+              <span className="text-destructive">
+                (dont {iregular} irrégulier{iregular > 1 && 's'})
+              </span>
+            )}
+          </span>
+        </CardContent>
+      </Card>
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
+          <span className="font-black text-4xl text-muted-foreground tracking-tight">
+            - / {stats.publishers.studies} <span className="text-lg">études</span>
+          </span>
+          <span className="text-muted-foreground text-xs">par les {stats.publishers.count} proclamateurs</span>
+        </CardContent>
+      </Card>
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
+          <span className="font-black text-4xl text-muted-foreground tracking-tight">
+            {stats.auxiliaryPionneer.hours}
+            <span className="text-lg">h</span> / {stats.auxiliaryPionneer.studies}{' '}
+            <span className="text-lg">études</span>
+          </span>
+          <span className="text-muted-foreground text-xs">
+            par les {stats.auxiliaryPionneer.count} pionniers auxiliaires
+          </span>
+        </CardContent>
+      </Card>
+      <Card className="border-dashed">
+        <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
+          <span className="font-black text-4xl text-muted-foreground tracking-tight">
+            {stats.permanentPionneer.hours}
+            <span className="text-lg">h</span> / {stats.permanentPionneer.studies}{' '}
+            <span className="text-lg">études</span>
+          </span>
+          <span className="text-muted-foreground text-xs">
+            par les {stats.permanentPionneer.count} pionniers permanents
+          </span>
+        </CardContent>
+      </Card>
     </div>
   )
 }

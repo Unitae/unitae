@@ -1,27 +1,28 @@
-import { ArrowDownTrayIcon, ArrowUpRightIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
-
+import { verifySession } from '~/features/authentication/server/session.server'
+import { Role } from '~/features/authorization/model/roles.type'
+import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBoolSetting, getSetting } from '~/features/settings/server/settings'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
   aggregateEntrance,
   getAvailableEntrances,
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
-import { verifySession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/edit'
 
@@ -136,8 +137,8 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
   }
 
   return (
-    <div className="flex flex-col">
-      <HeroHeader
+    <div className="flex flex-col gap-6">
+      <PageHeader
         title="Modification d'un territoire"
         subtitle="Modifier un territoire existant"
         actions={
@@ -156,146 +157,155 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               showPhone={!phoneTypeActive}
               attributionType={attribution?.type as TerritoryAttributionKind}
             >
-              <span
-                className="inline-block rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2"
-                title="Télécharger le territoire en PDF"
-              >
-                <ArrowDownTrayIcon className="inline size-6" />
-              </span>
+              <Button variant="outline" size="icon" title="Télécharger le territoire en PDF">
+                <Download className="size-4" />
+              </Button>
             </TerritoryDownloadLink>
 
-            <DeleteLink
-              action={`/territories/territory/${territory.id}/delete`}
-              title="Supprimer complètement le territoire"
-            />
+            <Button variant="destructive" size="icon" asChild>
+              <Link to={`/territories/territory/${territory.id}/delete`} title="Supprimer complètement le territoire">
+                <Trash2 className="size-4" />
+              </Link>
+            </Button>
           </>
         }
       />
 
       <div className="flex gap-10 max-sm:flex-col">
-        <Form method="post" className="my-5 flex flex-1 flex-col gap-3">
-          <section className="flex flex-col gap-3 rounded-md bg-gray-900 p-5 text-white">
-            <p>
-              Numéro : <span className="text-teal-600">{territory.number}</span>
-            </p>
-            <p>
-              Type de territoire :{' '}
-              <span className="text-teal-600">
-                {territory.type === TerritoryKind.Classical && 'Porte à Porte'}
-                {territory.type === TerritoryKind.Commerces && 'Commerces'}
-                {territory.type === TerritoryKind.Hotel && 'Hôtels'}
-                {territory.type === TerritoryKind.Phone && 'Téléphone'}
-                {territory.type === TerritoryKind.Univ && 'Université'}
-              </span>
-            </p>
-            <p>
-              Nombre de foyers : <span className="text-teal-600">{quantity}</span>
-            </p>
-            <p className="pt-5 text-sm italic">
-              Si certaines de ces informations ne sont pas bonnes, merci de contacter le service Territoires.
-            </p>
-          </section>
-
-          <h2 className="font-semibold text-xl max-sm:text-lg">Attribution en cours</h2>
-          {attribution != null ? (
-            <div className="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
-              <div className="flex flex-col">
-                <span className="text-slate-950">
-                  {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
-                </span>
-                <span className="text-gray-600 text-sm">
-                  {attribution.startDate.toLocaleDateString('fr-FR')} -{' '}
-                  {attribution.lateDate.toLocaleDateString('fr-FR')}
-                </span>
+        <div className="flex flex-1 flex-col gap-6">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col gap-3">
+                <p>
+                  Numéro : <span className="font-medium text-primary">{territory.number}</span>
+                </p>
+                <p>
+                  Type de territoire :{' '}
+                  <span className="font-medium text-primary">
+                    {territory.type === TerritoryKind.Classical && 'Porte à Porte'}
+                    {territory.type === TerritoryKind.Commerces && 'Commerces'}
+                    {territory.type === TerritoryKind.Hotel && 'Hôtels'}
+                    {territory.type === TerritoryKind.Phone && 'Téléphone'}
+                    {territory.type === TerritoryKind.Univ && 'Université'}
+                  </span>
+                </p>
+                <p>
+                  Nombre de foyers : <span className="font-medium text-primary">{quantity}</span>
+                </p>
+                <p className="pt-3 text-muted-foreground text-sm italic">
+                  Si certaines de ces informations ne sont pas bonnes, merci de contacter le service Territoires.
+                </p>
               </div>
-              <div className="flex gap-3">
-                <Link
-                  to={`../../../attributions/${attribution.id}/edit`}
-                  relative="path"
-                  className="text-teal-600"
-                  title="Voir l'attribution en détail"
-                >
-                  <ArrowUpRightIcon className="inline size-6 text-teal-600" />
-                </Link>
-                {attribution.endDate == null && (
-                  <Link
-                    to={`../../../attributions/${attribution.id}/delete`}
-                    relative="path"
-                    title="Annuler l'attribution"
-                    className={'text-red-600'}
+            </CardContent>
+          </Card>
+
+          <Form method="post" className="flex flex-col gap-4">
+            <h2 className="font-semibold text-lg">Attribution en cours</h2>
+            {attribution != null ? (
+              <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
+                  </span>
+                  <span className="text-muted-foreground text-sm">
+                    {attribution.startDate.toLocaleDateString('fr-FR')} -{' '}
+                    {attribution.lateDate.toLocaleDateString('fr-FR')}
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link
+                      to={`../../../attributions/${attribution.id}/edit`}
+                      relative="path"
+                      title="Voir l'attribution en détail"
+                    >
+                      <ExternalLink className="size-4 text-primary" />
+                    </Link>
+                  </Button>
+                  {attribution.endDate == null && (
+                    <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
+                      <Link
+                        to={`../../../attributions/${attribution.id}/delete`}
+                        relative="path"
+                        title="Annuler l'attribution"
+                      >
+                        <X className="size-4" />
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center justify-center gap-3 rounded-md border p-3">
+                  <span className="text-muted-foreground italic">Aucune attribution en cours pour ce territoire</span>
+                </div>
+                <Button variant="secondary" asChild>
+                  <Link to={`/territories/attributions/new?territory=${territory.id}`}>Attribuer ce territoire</Link>
+                </Button>
+              </>
+            )}
+
+            <h2 className="font-semibold text-lg">Allées</h2>
+            {territoryEntrances.map(entrance => (
+              <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
+                <input type="hidden" name="entrances" value={entrance.id} />
+                <div className="flex flex-col">
+                  <span className="font-medium">
+                    {entrance.number} {entrance.street}, {entrance.zip}
+                  </span>
+                  <span className="text-muted-foreground text-sm">{entrance.homes || entrance.phones} foyers</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="ghost" size="icon" asChild>
+                    <Link
+                      to={`/territories/building/${entrance.buildings[0].id}/view`}
+                      title="Voir le détail de ce batiment"
+                    >
+                      <ExternalLink className="size-4 text-primary" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      const tmpBuilding = territoryEntrances.filter(tb => tb.id !== entrance.id)
+                      setTerritoryEntrances(tmpBuilding)
+                    }}
+                    title="Supprimer le batiment de ce territoire"
                   >
-                    <XMarkIcon className={'inline size-6'} />
-                  </Link>
-                )}
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex items-center justify-center gap-3 rounded-md bg-slate-50 p-3">
-                <span className="text-slate-950 italic">Aucune attribution en cours pour ce territoire</span>
-              </div>
-
-              <Link
-                to={`/territories/attributions/new?territory=${territory.id}`}
-                className="mt-2 rounded-lg bg-slate-600 p-1 text-center font-semibold text-white hover:bg-slate-900"
-              >
-                Attribuer ce territoire
-              </Link>
-            </>
-          )}
-
-          <h2 className="font-semibold text-xl max-sm:text-lg">Allées</h2>
-          {territoryEntrances.map(entrance => (
-            <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md bg-slate-50 p-3">
-              <input type="hidden" name="entrances" value={entrance.id} />
-              <div className="flex flex-col">
-                <span className="text-slate-950">
-                  {entrance.number} {entrance.street}, {entrance.zip}
-                </span>
-                <span className="text-gray-600 text-sm">{entrance.homes || entrance.phones} foyers</span>
-              </div>
-              <div className="flex gap-3">
-                <Link
-                  to={`/territories/building/${entrance.buildings[0].id}/view`}
-                  className="text-teal-600"
-                  title="Voir le détail de ce batiment"
-                >
-                  <ArrowUpRightIcon className="inline size-6 text-teal-600" />
-                </Link>
-                <TrashIcon
-                  className="inline size-6 text-red-600"
-                  onClick={() => {
-                    const tmpBuilding = territoryEntrances.filter(tb => tb.id !== entrance.id)
-                    setTerritoryEntrances(tmpBuilding)
-                  }}
-                  title="Supprimer le batiment de ce territoire"
-                />
-              </div>
-            </div>
-          ))}
-          <BuildingSelector
-            zips={zips}
-            streets={streets}
-            entrances={entrances ?? []}
-            selection={territoryEntrances}
-            onSelectionChange={selection => setTerritoryEntrances(selection)}
-          />
-          <h2 className="mt-3 font-semibold text-xl max-sm:text-lg">Prédication</h2>
-          <label className="grow">
-            Notes{' '}
-            <span className="text-gray-300 text-sm dark:text-gray-700">(Ne sera pas visible sur le territoire)</span>
-            <textarea
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              rows={4}
-              name="notes"
-              defaultValue={territory.notes}
+            ))}
+            <BuildingSelector
+              zips={zips}
+              streets={streets}
+              entrances={entrances ?? []}
+              selection={territoryEntrances}
+              onSelectionChange={selection => setTerritoryEntrances(selection)}
             />
-          </label>
+            <h2 className="mt-3 font-semibold text-lg">Prédication</h2>
+            <div className="flex flex-col gap-1.5">
+              <Label>
+                Notes <span className="text-muted-foreground text-sm">(Ne sera pas visible sur le territoire)</span>
+              </Label>
+              <textarea
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                rows={4}
+                name="notes"
+                defaultValue={territory.notes}
+              />
+            </div>
 
-          <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-            Modifier le territoire
-          </button>
-        </Form>
+            <Button type="submit" className="mt-2">
+              Modifier le territoire
+            </Button>
+          </Form>
+        </div>
         <BuildingEntranceMap apiKey={apiKey} entrances={territoryEntrances} />
       </div>
     </div>

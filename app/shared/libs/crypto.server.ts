@@ -5,7 +5,7 @@ import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto'
  */
 const keyLength = 32
 
-export const hash = async (password: string): Promise<string> => {
+export const hash = (password: string): Promise<string> => {
   return new Promise((resolve, reject) => {
     const salt = randomBytes(16).toString('hex')
 
@@ -16,7 +16,7 @@ export const hash = async (password: string): Promise<string> => {
   })
 }
 
-export const compare = async (password: string, hash: string): Promise<boolean> => {
+export const compare = (password: string, hash: string): Promise<boolean> => {
   return new Promise((resolve, reject) => {
     const [salt, hashKey] = hash.split('.')
 

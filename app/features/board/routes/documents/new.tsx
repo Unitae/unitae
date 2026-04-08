@@ -1,15 +1,19 @@
 import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
-
-import { saveFile } from '~/features/board/server/document'
-import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { saveFile } from '~/features/board/server/document'
+import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
 import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import logger from '~/shared/libs/logger.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new'
 
@@ -45,95 +49,85 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
   const formattedDate = currentDate.toISOString().slice(0, 16)
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
-        <div>
-          <h1 className="my-3 font-bold text-4xl max-sm:text-2xl">Nouveau document</h1>
-          <p className="text-gray-500 max-sm:text-sm">Ajouter un nouveau document sur le tableau d'affichage</p>
-        </div>
-        <div />
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Nouveau document" subtitle="Ajouter un nouveau document sur le tableau d'affichage" />
 
-      <Form method="post" className="my-5 flex flex-col gap-3" encType="multipart/form-data">
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Nom
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="name"
-              type="text"
-              placeholder="Nom du document"
-              autoComplete="off"
-            />
-          </label>
-        </div>
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Section
-            <select
-              className="h-[34px] w-full appearance-none rounded-md border p-1 dark:border-gray-300"
-              name="sectionId"
-            >
-              {sections.map(section => (
-                <option key={section.id} value={section.id}>
-                  {section.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+      <Card>
+        <CardContent className="pt-6">
+          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="name">Nom</Label>
+              <Input id="name" name="name" type="text" placeholder="Nom du document" autoComplete="off" />
+            </div>
 
-        {rights.canManageBoard && (
-          <div className="flex gap-3">
-            <label className="flex-1">
-              Visible à partir du :
-              <input
-                className="w-full rounded-md border p-1 dark:border-gray-300"
-                name="visible-from"
-                type="datetime-local"
-                placeholder="Début de la période de visibilité"
-                defaultValue={formattedDate}
-              />
-            </label>
-            <label className="flex-1">
-              Visible jusqu'au :
-              <input
-                className="w-full rounded-md border p-1 dark:border-gray-300"
-                name="visible-until"
-                type="datetime-local"
-                placeholder="Fin de la période de visibilité"
-              />
-            </label>
-          </div>
-        )}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="sectionId">Section</Label>
+              <select
+                id="sectionId"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                name="sectionId"
+              >
+                {sections.map(section => (
+                  <option key={section.id} value={section.id}>
+                    {section.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="flex gap-3">
-          <label className="flex-1">
-            Fichier à uploader :
-            <br />
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="document"
-              type="file"
-              accept="application/pdf"
-            />
-          </label>
-        </div>
+            {rights.canManageBoard && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="visible-from">Visible à partir du</Label>
+                  <Input
+                    id="visible-from"
+                    name="visible-from"
+                    type="datetime-local"
+                    placeholder="Début de la période de visibilité"
+                    defaultValue={formattedDate}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="visible-until">Visible jusqu'au</Label>
+                  <Input
+                    id="visible-until"
+                    name="visible-until"
+                    type="datetime-local"
+                    placeholder="Fin de la période de visibilité"
+                  />
+                </div>
+              </div>
+            )}
 
-        {rights.canManageBoard && (
-          <label
-            className="flex grow items-center gap-1 max-sm:gap-3"
-            title={`Le document s'affichera également tout en haut du tableau d'affichage pour être visible par tous`}
-          >
-            <input className={'rounded-md border dark:border-gray-300'} name="hightlighted" type="checkbox" />
-            <span>Mettre en avant le document sur le tableau d'affichage</span>
-          </label>
-        )}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="document">Fichier à uploader</Label>
+              <Input id="document" name="document" type="file" accept="application/pdf" />
+            </div>
 
-        <button className="my-4 rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900" type="submit">
-          Envoyer le document
-        </button>
-      </Form>
+            {rights.canManageBoard && (
+              <div className="flex items-center gap-2">
+                <input
+                  id="hightlighted"
+                  className="size-4 rounded border border-input accent-primary"
+                  name="hightlighted"
+                  type="checkbox"
+                />
+                <Label
+                  htmlFor="hightlighted"
+                  className="cursor-pointer font-normal"
+                  title="Le document s'affichera également tout en haut du tableau d'affichage pour être visible par tous"
+                >
+                  Mettre en avant le document sur le tableau d'affichage
+                </Label>
+              </div>
+            )}
+
+            <Button type="submit" className="w-fit">
+              Envoyer le document
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

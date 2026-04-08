@@ -1,12 +1,13 @@
 import { Form, redirect } from 'react-router'
-
-import { deleteFile } from '~/features/board/server/document'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { deleteFile } from '~/features/board/server/document'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
 
 import type { Route } from './+types/delete'
 
@@ -31,20 +32,18 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
   const { document } = loaderData
 
   return (
-    <div className="flex flex-col items-center justify-center gap-7 p-7">
-      <p className="text-center">
-        Êtes-vous sûr de vouloir supprimer le document "{document.title}" ? Cette action est irréversible.
-      </p>
-      <Form method="post">
-        <button
-          type="submit"
-          title="Supprimer le document définitivement"
-          className={'rounded-lg bg-red-600 p-3 font-semibold text-white hover:bg-red-900 max-sm:p-2'}
-        >
-          Supprimer le document
-        </button>
-      </Form>
-    </div>
+    <Card className="mx-auto max-w-lg">
+      <CardContent className="flex flex-col items-center justify-center gap-6 pt-6">
+        <p className="text-center text-muted-foreground">
+          Êtes-vous sûr de vouloir supprimer le document "{document.title}" ? Cette action est irréversible.
+        </p>
+        <Form method="post">
+          <Button type="submit" variant="destructive" title="Supprimer le document définitivement">
+            Supprimer le document
+          </Button>
+        </Form>
+      </CardContent>
+    </Card>
   )
 }
 

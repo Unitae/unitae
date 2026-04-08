@@ -1,17 +1,19 @@
-import { MagnifyingGlassIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { Pencil, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
-import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
-import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
+import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
+import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
+import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent } from '~/shared/ui/card'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/building'
 
@@ -62,60 +64,56 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
-      <HeroHeader
+      <PageHeader
         title={`${building.number} ${building.street}, ${building.zip}`}
         subtitle="Fiche d'un batiment. Elle affiche les informations liées à ce batiment et auxquelles vous avez accès."
         actions={
           roles.canManageProspection && (
             <>
               {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}
-              <Link
-                to="../edit-prospection"
-                relative="path"
-                title="Mettre à jour les données sur ce batiment"
-                className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-              >
-                <MagnifyingGlassIcon className="inline size-6 max-sm:size-5" />
-              </Link>
-              {roles.canManageTerritories && (
-                <Link
-                  to="../edit"
-                  relative="path"
-                  title="Modifier le batiment"
-                  className="flex items-center rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2 max-sm:text-sm"
-                >
-                  <PencilIcon className="inline size-6 max-sm:size-5" />
+              <Button variant="outline" size="icon" asChild>
+                <Link to="../edit-prospection" relative="path" title="Mettre à jour les données sur ce batiment">
+                  <Search className="size-4" />
                 </Link>
+              </Button>
+              {roles.canManageTerritories && (
+                <Button variant="outline" size="icon" asChild>
+                  <Link to="../edit" relative="path" title="Modifier le batiment">
+                    <Pencil className="size-4" />
+                  </Link>
+                </Button>
               )}
             </>
           )
         }
       />
 
-      <section className="flex flex-row gap-3 rounded-md bg-gray-900 p-5 text-white max-sm:flex-col">
-        <div className="flex flex-1/2 flex-col gap-3">
-          <h2 className="mb-4 text-xl">Identification</h2>
-          <p>
-            Adresse :{' '}
-            <span className="text-teal-600">
-              {building.number} {building.street}
-            </span>
-          </p>
-          <p>
-            Code postal : <span className="text-teal-600">{building.zip}</span>
-          </p>
-          <p>
-            Coordonnée GPS :{' '}
-            <span className="text-teal-600">
-              {building.latitude}, {building.longitude}
-            </span>
-          </p>
-          <p className="pt-5 text-sm italic">
-            Si certaines de ces informations ne sont pas bonnes, merci de contacter le préposer au territoire ou le
-            responsable pour la prédication.
-          </p>
-        </div>
-      </section>
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex flex-col gap-3">
+            <h2 className="mb-2 font-display text-xl">Identification</h2>
+            <p>
+              Adresse :{' '}
+              <span className="font-medium text-primary">
+                {building.number} {building.street}
+              </span>
+            </p>
+            <p>
+              Code postal : <span className="font-medium text-primary">{building.zip}</span>
+            </p>
+            <p>
+              Coordonnée GPS :{' '}
+              <span className="font-medium text-primary">
+                {building.latitude}, {building.longitude}
+              </span>
+            </p>
+            <p className="pt-3 text-muted-foreground text-sm italic">
+              Si certaines de ces informations ne sont pas bonnes, merci de contacter le préposer au territoire ou le
+              responsable pour la prédication.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {roles.canViewProspection && <BuildingProspectionInfo buidling={building} />}
 

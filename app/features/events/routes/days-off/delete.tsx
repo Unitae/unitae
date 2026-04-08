@@ -5,6 +5,9 @@ import { EventKind } from '~/features/events/model/event-kind.type'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -24,24 +27,29 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   return { event }
 }
 
-export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
+export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
   const { event } = loaderData
 
   return (
-    <div className="flex flex-col items-center justify-center gap-7 p-7">
-      <p className="text-center">
-        Êtes-vous sûr de vouloir supprimer l'absence du {event.startDate.toLocaleDateString()} ? Cette action est
-        irréversible.
-      </p>
-      <Form method="post">
-        <button
-          type="submit"
-          title="Annuler l'attribution du territoire"
-          className={'rounded-lg bg-red-600 p-3 font-semibold text-white hover:bg-red-900 max-sm:p-2'}
-        >
-          Supprimer l'absence
-        </button>
-      </Form>
+    <div className="flex items-center justify-center p-7">
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle>Supprimer l'absence</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-sm">
+            Êtes-vous sûr de vouloir supprimer l'absence du {event.startDate.toLocaleDateString()} ? Cette action est
+            irréversible.
+          </p>
+        </CardContent>
+        <CardFooter>
+          <Form method="post">
+            <Button type="submit" variant="destructive">
+              Supprimer l'absence
+            </Button>
+          </Form>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

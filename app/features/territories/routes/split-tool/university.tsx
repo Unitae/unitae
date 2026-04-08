@@ -1,18 +1,18 @@
-import type { Prisma } from '~/database/generated/client'
 import { useEffect, useState } from 'react'
 import { Form, redirect } from 'react-router'
-
-import { getSetting } from '~/features/settings/server/settings'
-import { computeFilters } from '~/features/territories/server/building-filters'
-import { findEntrancesPaginated } from '~/features/territories/server/buildings'
-import Pagination from '~/shared/ui/Pagination'
-import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
-import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
+import type { Prisma } from '~/database/generated/client'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { computeFilters } from '~/features/territories/server/building-filters'
+import { findEntrancesPaginated } from '~/features/territories/server/buildings'
+import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
+import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { Button } from '~/shared/ui/button'
+import Pagination from '~/shared/ui/Pagination'
 
 import type { Route } from './+types/university'
 
@@ -61,7 +61,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
 
   if (entrances.length < 1) {
     return (
-      <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
+      <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
         <p>Il n'y a aucun batiment adapté aux territoires "Univ" pour le moment !</p>
         <p>Pour ajouter des batiments revenez sur la page "Prospection".</p>
       </div>
@@ -72,7 +72,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <>
-      <div className="sticky top-0 flex items-center gap-3 py-4 italic max-sm:px-4 dark:bg-slate-950">
+      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-md border bg-background px-4 py-3 text-sm italic shadow-sm">
         {selectedEntranceIds.length > 0 ? (
           <>
             <p>
@@ -94,16 +94,13 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
             <Form action="/territories/buildings/split-territories/create" method="post">
               <input type="hidden" name="type" value={TerritoryKind.Univ} />
               <input type="hidden" name="entranceIds" value={selectedEntranceIds.join(',')} />
-              <button
-                type="submit"
-                className="rounded-lg bg-teal-600 p-3 font-semibold text-white hover:bg-teal-900 max-sm:p-2"
-              >
+              <Button type="submit" size="sm">
                 Créer le territoire
-              </button>
+              </Button>
             </Form>
           </>
         ) : (
-          <p>Aucun batiment sélectionné</p>
+          <p className="text-muted-foreground">Aucun batiment sélectionné</p>
         )}
       </div>
 

@@ -4,6 +4,8 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
 import type { Route } from './+types/delete'
 
@@ -28,19 +30,24 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
   const { territory } = loaderData
 
   return (
-    <div className="flex flex-col items-center justify-center gap-7 p-7">
-      <p className="text-center">
-        Êtes-vous sûr de vouloir supprimer le territoire nº{territory.number} ? Cette action est irréversible.
-      </p>
-      <Form method="post">
-        <button
-          type="submit"
-          title="Supprimer le batiment définitivement"
-          className={'rounded-lg bg-red-600 p-3 font-semibold text-white hover:bg-red-900 max-sm:p-2'}
-        >
-          Supprimer le territoire nº{territory.number}
-        </button>
-      </Form>
+    <div className="flex items-center justify-center p-7">
+      <Card className="max-w-lg">
+        <CardHeader>
+          <CardTitle className="text-center">Supprimer le territoire</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-muted-foreground">
+            Êtes-vous sûr de vouloir supprimer le territoire nº{territory.number} ? Cette action est irréversible.
+          </p>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Form method="post">
+            <Button type="submit" variant="destructive">
+              Supprimer le territoire nº{territory.number}
+            </Button>
+          </Form>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

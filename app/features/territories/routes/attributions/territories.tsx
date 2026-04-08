@@ -1,19 +1,20 @@
-import { ArrowUpRightIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline'
+import { ExternalLink, Send } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-
-import { getZips } from '~/features/territories/server/buildings'
-import { computeFilters } from '~/features/territories/server/territory-filters'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import Pagination from '~/shared/ui/Pagination'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
-import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { getZips } from '~/features/territories/server/buildings'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
+import { computeFilters } from '~/features/territories/server/territory-filters'
+import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
+import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import logger from '~/shared/libs/logger.server'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { Button } from '~/shared/ui/button'
+import { PageHeader } from '~/shared/ui/PageHeader'
+import Pagination from '~/shared/ui/Pagination'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/territories'
 
@@ -69,10 +70,10 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
     return (
       <div className="flex flex-col gap-5">
         <AlertMessages messages={messages} />
-        <HeroHeader title="Territoires disponibles" subtitle="Sélectionnez le territoire à attribuer au proclamateur" />
+        <PageHeader title="Territoires disponibles" subtitle="Sélectionnez le territoire à attribuer au proclamateur" />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
+        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
           <p>Il n'y a aucun territoire disponible pour le moment !</p>
           <p>
             Pour ajouter des territoires, utilisez le bouton "Nouveau territoire" sur la page liste des territoires ou
@@ -86,32 +87,32 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
   return (
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
-      <HeroHeader title="Territoires disponibles" subtitle="Sélectionnez le territoire à attribuer au proclamateur" />
+      <PageHeader title="Territoires disponibles" subtitle="Sélectionnez le territoire à attribuer au proclamateur" />
       <TerritoryFilters zips={zips} showZip showAccess showSearch showType />
 
       <div className="flex grow flex-col gap-3">
-        <table className="table grow border-collapse">
-          <thead className="border-b border-b-slate-300 text-left font-bold max-sm:text-md dark:border-b-slate-500">
-            <tr>
-              <th className="w-[150px] py-4 max-sm:w-14 max-sm:text-center">Nº</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Type</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Foyer</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-14">Statut</th>
-              <th className="w-[150px] py-4 text-center max-sm:w-12" />
-            </tr>
-          </thead>
-          <tbody className="text-left max-sm:text-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[150px]">Nº</TableHead>
+              <TableHead className="w-[150px] text-center">Type</TableHead>
+              <TableHead className="w-[150px] text-center">Foyer</TableHead>
+              <TableHead className="w-[150px] text-center">Statut</TableHead>
+              <TableHead className="w-[150px] text-center" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {territories.map(territory => (
-              <tr key={territory.id} className="border-b border-b-slate-200 dark:border-b-slate-800">
-                <td className="py-3 max-sm:text-center">{territory.number}</td>
-                <td className="py-3 text-center">
+              <TableRow key={territory.id}>
+                <TableCell>{territory.number}</TableCell>
+                <TableCell className="text-center">
                   {territory.type === TerritoryKind.Classical && 'Porte à porte'}
                   {territory.type === TerritoryKind.Commerces && 'Commerces'}
                   {territory.type === TerritoryKind.Phone && 'Téléphones'}
                   {territory.type === TerritoryKind.Hotel && 'Hôtels'}
                   {territory.type === TerritoryKind.Univ && 'Universités'}
-                </td>
-                <td className="py-3 text-center">
+                </TableCell>
+                <TableCell className="text-center">
                   {territory.entrances.reduce(
                     (countForTerritory, currentEntrance) =>
                       countForTerritory +
@@ -122,40 +123,39 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                       ),
                     0,
                   )}
-                </td>
-                <td className="py-3 text-center">
+                </TableCell>
+                <TableCell className="text-center">
                   <TerritoryAvaibilityStatus attribution={[...territory.attributions].shift()} />
-                </td>
-                <td>
-                  <div className="flex justify-end gap-4 px-3 max-sm:px-0">
-                    <Link
-                      to={`/territories/territory/${territory.id}/edit`}
-                      className="hover:text-teal-600"
-                      title="Voir le détail du territoire"
-                    >
-                      <ArrowUpRightIcon className="inline size-5" />
-                    </Link>
-                    {checkAvailabilityStatus([...territory.attributions].shift()) ? (
-                      <Link
-                        to={`/territories/attributions/new?territory=${territory.id}`}
-                        className="inline-flex items-center gap-1 text-teal-600 underline-offset-3 hover:underline"
-                        title="Atrribuer ce territoire"
-                      >
-                        <span className="max-sm:hidden">Attribuer</span>
-                        <PaperAirplaneIcon className="inline size-5 -rotate-12" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link to={`/territories/territory/${territory.id}/edit`} title="Voir le détail du territoire">
+                        <ExternalLink className="size-4" />
                       </Link>
+                    </Button>
+                    {checkAvailabilityStatus([...territory.attributions].shift()) ? (
+                      <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
+                        <Link
+                          to={`/territories/attributions/new?territory=${territory.id}`}
+                          title="Atrribuer ce territoire"
+                        >
+                          <span className="max-sm:hidden">Attribuer</span>
+                          <Send className="size-4 -rotate-12" />
+                        </Link>
+                      </Button>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-gray-600">
+                      <Button variant="ghost" size="sm" disabled className="gap-1.5">
                         <span className="max-sm:hidden">Attribuer</span>
-                        <PaperAirplaneIcon className="inline size-5 -rotate-12" />
-                      </span>
+                        <Send className="size-4 -rotate-12" />
+                      </Button>
                     )}
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
 
         <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
       </div>
