@@ -3,12 +3,14 @@ import {
   Building2,
   CalendarCheck,
   CalendarOff,
+  Church,
   FileText,
+  FolderOpen,
   LayoutGrid,
   LogOut,
   Map,
   PieChart,
-  Settings,
+  Scissors,
   User,
   UserRoundCog,
   Users,
@@ -60,12 +62,9 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center gap-2 border-sidebar-border border-b px-3 py-4">
-          <span className="font-bold font-display text-lg text-primary">Unitae</span>
-          {congregationName && (
-            <span className="truncate rounded-md bg-sidebar-accent px-2 py-0.5 text-[0.65rem] text-muted-foreground">
-              {congregationName}
-            </span>
-          )}
+          <span className="truncate font-bold font-display text-lg text-foreground">
+            {congregationName || 'Unitae'}
+          </span>
         </div>
       </SidebarHeader>
 
@@ -79,7 +78,10 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                   <SidebarNavItem to="/board" icon={LayoutGrid} label="Tableau d'affichage" />
                 )}
                 {permissions.canManageBoard && (
-                  <SidebarNavItem to="/board/documents" icon={FileText} label="Documents" />
+                  <>
+                    <SidebarNavItem to="/board/sections" icon={FolderOpen} label="Sections" />
+                    <SidebarNavItem to="/board/documents" icon={FileText} label="Documents" />
+                  </>
                 )}
                 {permissions.canViewPublishers && (
                   <SidebarNavItem to="/congregation/publishers" icon={Users} label="Proclamateurs" />
@@ -116,6 +118,13 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                 {permissions.canViewProspection && (
                   <SidebarNavItem to="/territories/buildings" icon={Building2} label="Prospection" />
                 )}
+                {permissions.canViewProspection && (
+                  <SidebarNavItem
+                    to="/territories/buildings/split-territories"
+                    icon={Scissors}
+                    label="Découpage"
+                  />
+                )}
                 {permissions.canManageTerritories && (
                   <SidebarNavItem to="/territories/stats" icon={PieChart} label="Statistiques" />
                 )}
@@ -129,7 +138,15 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
             <SidebarGroupLabel>Gestion</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarNavItem to="/settings" icon={Settings} label="Réglages" />
+                {permissions.canManageUsers && (
+                  <SidebarNavItem to="/settings/users" icon={Users} label="Utilisateurs" />
+                )}
+                {permissions.canManageSettings && (
+                  <>
+                    <SidebarNavItem to="/settings/territories" icon={Map} label="Réglages territoires" />
+                    <SidebarNavItem to="/settings/congregation" icon={Church} label="Réglages assemblée" />
+                  </>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

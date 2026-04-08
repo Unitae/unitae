@@ -16,7 +16,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session } = await verifySession(request)
+  const { currentUser, session, congregation } = await verifySession(request)
 
   logger.info(`Loading profile data. User ID: ${currentUser.id}.`)
 
@@ -28,12 +28,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       firstname: currentUser.firstname,
       isPublisher: currentUser.isPublisher,
     },
+    congregationName: congregation.displayName ?? congregation.name,
     error: session.get('error'),
   }
 }
 
 export default function ProfilePage({ loaderData }: Route.ComponentProps) {
-  const { user, error } = loaderData
+  const { user, error, congregationName } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,7 +58,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
             <span className="font-medium text-sm">{user.email.toLocaleLowerCase()}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground text-sm">Proclamateur à Unitae</span>
+            <span className="text-muted-foreground text-sm">Proclamateur à {congregationName}</span>
             <span className="font-medium text-sm">{user.isPublisher ? 'Oui' : 'Non'}</span>
           </div>
           <p className="mt-2 text-muted-foreground text-xs italic">

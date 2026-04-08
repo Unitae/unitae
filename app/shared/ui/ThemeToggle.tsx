@@ -7,9 +7,10 @@ export function ThemeToggle() {
 
   useEffect(() => {
     const stored = localStorage.getItem('theme')
-    if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      setTheme('dark')
-    }
+    const isDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    const resolved = isDark ? 'dark' : 'light'
+    setTheme(resolved)
+    document.documentElement.classList.toggle('dark', isDark)
   }, [])
 
   const toggleTheme = useCallback(() => {
@@ -20,7 +21,7 @@ export function ThemeToggle() {
   }, [theme])
 
   return (
-    <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Changer le thème">
+    <Button variant="ghost" size="icon-sm" onClick={toggleTheme} aria-label="Changer le thème">
       {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </Button>
   )

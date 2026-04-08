@@ -2,7 +2,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+@theme {
   --radius: 0.5rem;
 
   --font-sans:
@@ -29,7 +29,7 @@
   --color-accent-foreground: oklch(0.216 0.006 56.043);
   --color-destructive: oklch(0.577 0.245 27.325);
   --color-destructive-foreground: oklch(0.577 0.245 27.325);
-  --color-border: oklch(0.869 0.005 56.366); /* stone-300 */
+  --color-border: oklch(0.895 0.004 56.366); /* between stone-200 and stone-300 */
   --color-input: oklch(0.869 0.005 56.366);
   --color-ring: oklch(0.523 0.105 184.704); /* teal-700 */
 
@@ -67,7 +67,7 @@
   --color-accent-foreground: oklch(0.985 0.001 106.423);
   --color-destructive: oklch(0.577 0.245 27.325);
   --color-destructive-foreground: oklch(0.577 0.245 27.325);
-  --color-border: oklch(0.374 0.01 67.558); /* stone-700 */
+  --color-border: oklch(0.35 0.009 64); /* between stone-700 and stone-800 */
   --color-input: oklch(0.374 0.01 67.558);
   --color-ring: oklch(0.648 0.116 184.117);
 
