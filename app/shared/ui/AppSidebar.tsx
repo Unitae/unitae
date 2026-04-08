@@ -1,5 +1,4 @@
 import {
-  BarChart3,
   Building2,
   CalendarCheck,
   CalendarOff,
@@ -10,7 +9,6 @@ import {
   LogOut,
   Map,
   PieChart,
-  Scissors,
   User,
   UserRoundCog,
   Users,
@@ -53,10 +51,11 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
-  const showPrincipal = permissions.canViewBoard || permissions.canViewPublishers || permissions.canViewPrograms
+  const showDocuments = permissions.canManageBoard
+  const showAssemblee = permissions.canViewPublishers || permissions.canViewPrograms
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
-  const showGestion = permissions.canManageSettings || permissions.canManageUsers
+  const showReglages = permissions.canManageSettings || permissions.canManageUsers
 
   return (
     <Sidebar>
@@ -69,20 +68,33 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        {showPrincipal && (
+        {permissions.canViewBoard && (
           <SidebarGroup>
-            <SidebarGroupLabel>Principal</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {permissions.canViewBoard && (
-                  <SidebarNavItem to="/board" icon={LayoutGrid} label="Tableau d'affichage" />
-                )}
-                {permissions.canManageBoard && (
-                  <>
-                    <SidebarNavItem to="/board/sections" icon={FolderOpen} label="Sections" />
-                    <SidebarNavItem to="/board/documents" icon={FileText} label="Documents" />
-                  </>
-                )}
+                <SidebarNavItem to="/board" icon={LayoutGrid} label="Tableau d'affichage" />
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {showDocuments && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Documents</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarNavItem to="/board/sections" icon={FolderOpen} label="Sections" />
+                <SidebarNavItem to="/board/documents" icon={FileText} label="Documents" />
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {showAssemblee && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Assemblée</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
                 {permissions.canViewPublishers && (
                   <SidebarNavItem to="/congregation/publishers" icon={Users} label="Proclamateurs" />
                 )}
@@ -92,9 +104,6 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                     icon={UsersRound}
                     label="Groupes de prédication"
                   />
-                )}
-                {permissions.canViewActivity && (
-                  <SidebarNavItem to="/congregation/publishers/activity" icon={BarChart3} label="Activité" />
                 )}
                 {permissions.canViewPrograms && (
                   <SidebarNavItem to="/congregation/programs/days-off" icon={CalendarOff} label="Absences" />
@@ -118,13 +127,6 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                 {permissions.canViewProspection && (
                   <SidebarNavItem to="/territories/buildings" icon={Building2} label="Prospection" />
                 )}
-                {permissions.canViewProspection && (
-                  <SidebarNavItem
-                    to="/territories/buildings/split-territories"
-                    icon={Scissors}
-                    label="Découpage"
-                  />
-                )}
                 {permissions.canManageTerritories && (
                   <SidebarNavItem to="/territories/stats" icon={PieChart} label="Statistiques" />
                 )}
@@ -133,9 +135,9 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
           </SidebarGroup>
         )}
 
-        {showGestion && (
+        {showReglages && (
           <SidebarGroup>
-            <SidebarGroupLabel>Gestion</SidebarGroupLabel>
+            <SidebarGroupLabel>Réglages</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {permissions.canManageUsers && (
