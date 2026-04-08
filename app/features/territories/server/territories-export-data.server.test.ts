@@ -1,0 +1,46 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('~/shared/libs/db.server', () => ({
+  db: {
+    territory: { findMany: vi.fn() },
+  },
+}))
+
+vi.mock('./theocratic-year.server', () => ({
+  getBeginingDateOfTheocraticYear: vi.fn(),
+  getEndDateOfTheocraticYear: vi.fn(),
+}))
+
+const { getTerritoriesExportData } = await import('./territories-export-data.server')
+const { db } = await import('~/shared/libs/db.server')
+const { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } = await import('./theocratic-year.server')
+
+beforeEach(() => {
+  vi.resetAllMocks()
+  vi.mocked(getBeginingDateOfTheocraticYear).mockReturnValue(new Date(2025, 8, 1))
+  vi.mocked(getEndDateOfTheocraticYear).mockReturnValue(new Date(2026, 7, 31))
+  vi.mocked(db.territory.findMany).mockResolvedValue([])
+})
+
+describe('getTerritoriesExportData', () => {
+  it('retourne les territoires avec leurs attributions', async () => {
+    const fakeTerritories = [{ id: 1, attributions: [] }]
+    vi.mocked(db.territory.findMany).mockResolvedValue(fakeTerritories)
+
+    const result = await getTerritoriesExportData(2025)
+    expect(result).toEqual(fakeTerritories)
+  })
+
+  it('retourne un tableau vide quand il n\'y a pas de territoires', async () => {
+    const result = await getTerritoriesExportData(2025)
+    expect(result).toEqual([])
+  })
+
+  it('passe l\'année théocratique aux fonctions de date', async () => {
+    await getTerritoriesExportData(2024)
+
+    // Vérifier que les fonctions de date ont été utilisées (via le résultat)
+    expect(vi.mocked(getBeginingDateOfTheocraticYear).mock.calls[0][0]).toBe(2024)
+    expect(vi.mocked(getEndDateOfTheocraticYear).mock.calls[0][0]).toBe(2024)
+  })
+})

@@ -18,6 +18,13 @@ pnpm test:lint              # Check linting only
 pnpm test:typecheck         # Generate types and run TypeScript compiler
 ```
 
+### Testing
+```bash
+pnpm test:unit              # Run unit tests once
+pnpm test:unit:watch        # Run tests in watch mode
+pnpm test:unit:coverage     # Run tests with coverage report
+```
+
 ### Database & Infrastructure
 ```bash
 pnpm prisma migrate deploy  # Apply database migrations
@@ -223,12 +230,15 @@ Uses Biome for formatting with these key rules:
 
 ### Testing & Quality
 
+- **Unit tests**: Vitest with co-located test files (`*.server.test.ts` next to source)
+- **Test style**: Black-box testing — assert on observable outcomes, no spy assertions
+- **Config**: `vitest.config.ts` at project root (separate from `vite.config.ts` to avoid reactRouter plugin issues)
+- **Mocking**: `vi.mock()` for `db.server`, `redis.server`, `crypto.server` — mock return values, assert on results
 - TypeScript strict mode enabled
 - Biome linting with custom rules (no console.log in production)
 - Prisma generates types from schema
 - Startup env validation for `DATABASE_URL` and `SESSION_SECRET`
 - `requireParamId()` utility for safe route param parsing
-- Manual testing via development server
 
 ### Gotchas & Patterns
 
