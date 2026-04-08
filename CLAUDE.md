@@ -131,10 +131,10 @@ Each feature owns all its code through consistent segments:
 - Config at `prisma.config.ts` (project root)
 - Migrations run separately (not on app startup)
 
-**File Storage**:
-- S3-compatible object storage via `@aws-sdk/client-s3`
+**File Storage** (dual driver):
+- **S3**: used when `S3_ENDPOINT` is set. Configured via `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
+- **Local filesystem**: used when `S3_ENDPOINT` is not set. Files stored in `content/uploads/` (configurable via `LOCAL_STORAGE_PATH`)
 - Key pattern: `{congregationId}/{feature}/{uuid}.pdf`
-- Configured via `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
 
 **Background Jobs** (BullMQ):
 - `syncQueue` in `app/features/territories/server/sync-queue.server.ts`
