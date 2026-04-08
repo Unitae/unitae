@@ -66,7 +66,16 @@ export async function verifySession(request: Request) {
   const congregation = await resolveCongregation(user.congregationId)
 
   if (congregation.suspendedAt) {
-    throw redirect('/suspended')
+    const params = new URLSearchParams()
+    if (congregation.suspendedReason) {
+      params.set('reason', congregation.suspendedReason)
+    }
+    const query = params.toString()
+    throw redirect(`/suspended${query ? `?${query}` : ''}`)
+  }
+
+  if (congregation.trialEndsAt && congregation.trialEndsAt < new Date()) {
+    throw redirect('/trial-expired')
   }
 
   congregationContext.enterWith({ congregationId: user.congregationId, congregation })

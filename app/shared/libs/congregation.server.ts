@@ -18,6 +18,7 @@ export type CongregationInfo = {
   maxBoardDocuments: number | null
   suspendedAt: Date | null
   suspendedReason: string | null
+  trialEndsAt: Date | null
 }
 
 export function getCongregationFromContext(): CongregationInfo | null {
@@ -61,6 +62,7 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     maxBoardDocuments: congregation.maxBoardDocuments,
     suspendedAt: congregation.suspendedAt,
     suspendedReason: congregation.suspendedReason,
+    trialEndsAt: congregation.trialEndsAt,
   }
 }
 
