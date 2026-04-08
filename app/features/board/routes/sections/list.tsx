@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, FolderOpen, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -6,6 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -57,12 +58,11 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
       />
 
       {sections.length === 0 ? (
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p className="text-muted-foreground">Il n'y a aucune section pour le moment !</p>
-          <p className="text-muted-foreground">
-            Lorsque des sections seront crées, elles apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus.
-          </p>
-        </div>
+        <EmptyState
+          icon={FolderOpen}
+          title="Il n'y a aucune section pour le moment !"
+          description="Lorsque des sections seront crées, elles apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus."
+        />
       ) : (
         <Table>
           <TableHeader>

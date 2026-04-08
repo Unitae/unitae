@@ -3,7 +3,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --radius: 0.625rem;
+  --radius: 0.5rem;
 
   --font-sans:
     "DM Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
@@ -22,7 +22,9 @@
   --color-secondary: oklch(0.97 0.001 106.424); /* stone-100 */
   --color-secondary-foreground: oklch(0.216 0.006 56.043);
   --color-muted: oklch(0.97 0.001 106.424);
-  --color-muted-foreground: oklch(0.553 0.013 58.071); /* stone-500 */
+  --color-muted-foreground: oklch(
+    0.444 0.011 73.639
+  ); /* stone-600 — improved contrast */
   --color-accent: oklch(0.97 0.001 106.424);
   --color-accent-foreground: oklch(0.216 0.006 56.043);
   --color-destructive: oklch(0.577 0.245 27.325);

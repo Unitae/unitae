@@ -1,10 +1,11 @@
-import { X } from 'lucide-react'
+import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/list'
@@ -59,7 +60,11 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
           ))}
         </div>
       ) : (
-        <p className="text-muted-foreground">Aucune absence prévue.</p>
+        <EmptyState
+          icon={CalendarOff}
+          title="Aucune absence prévue."
+          description="Dès que vous aurez ajouté une absence, elle apparaîtra ici."
+        />
       )}
     </div>
   )

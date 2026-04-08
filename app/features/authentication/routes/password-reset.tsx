@@ -38,9 +38,10 @@ export default function PasswordResetPage({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md overflow-hidden shadow-md">
+        <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-3xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
           <p className="text-muted-foreground text-sm">Réinitialiser votre mot de passe</p>
         </CardHeader>
         <CardContent>

@@ -46,9 +46,10 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md overflow-hidden shadow-md">
+        <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-3xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
         </CardHeader>
         <CardContent>
           {error && (
@@ -59,14 +60,7 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                autoFocus={true}
-                autoComplete="username"
-                required
-              />
+              <Input id="email" name="email" type="email" autoFocus={true} autoComplete="username" required />
             </div>
 
             <div className="flex flex-col gap-2">

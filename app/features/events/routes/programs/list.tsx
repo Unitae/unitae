@@ -1,3 +1,4 @@
+import { CalendarOff } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -8,6 +9,7 @@ import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 
@@ -87,12 +89,11 @@ function ProgramEventList({
 }) {
   if (events.length < 1) {
     return (
-      <div className="my-12 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-        <p>Il n'y a aucun évènement de planifié pour le moment !</p>
-        <p className="text-sm">
-          Pour planifier un évènement, utilise le bouton "Nouvel évènement" en haut à droite de cette page.
-        </p>
-      </div>
+      <EmptyState
+        icon={CalendarOff}
+        title="Il n'y a aucun évènement de planifié pour le moment !"
+        description="Pour planifier un évènement, utilise le bouton &laquo; Nouvel évènement &raquo; en haut à droite de cette page."
+      />
     )
   }
 

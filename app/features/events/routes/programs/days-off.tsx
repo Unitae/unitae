@@ -1,3 +1,4 @@
+import { CalendarOff } from 'lucide-react'
 import { redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -9,6 +10,7 @@ import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 import { Card, CardContent } from '~/shared/ui/card'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 
@@ -66,12 +68,11 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
       <EventFilters />
 
       {events.length < 1 ? (
-        <div className="my-12 flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
-          <p>Il n'y a aucune absence planifiée pour cette date !</p>
-          <p className="text-sm">
-            Les absences s'afficheront une fois que les proclamateurs les auront indiquées dans leur profil.
-          </p>
-        </div>
+        <EmptyState
+          icon={CalendarOff}
+          title="Il n'y a aucune absence planifiée pour cette date !"
+          description="Les absences s'afficheront une fois que les proclamateurs les auront indiquées dans leur profil."
+        />
       ) : (
         <div className="flex flex-col gap-3">
           {events.map(event => (

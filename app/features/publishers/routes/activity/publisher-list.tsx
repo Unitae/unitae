@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Download, Pencil, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide-react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { verifySession } from '~/features/authentication/server/session.server'
@@ -11,6 +11,7 @@ import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/publisher-list'
@@ -99,13 +100,11 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
           subtitle="Visualisation des fiches de proclamateurs et de l'activité associée"
         />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-          <p>Il n'y a aucun proclamateur pour le moment !</p>
-          <p>
-            Il est donc possible d'afficher l'activité des proclamateurs. Pour ajouter des proclamateurs créez des
-            fiches de proclamateur à partir des utilisateurs.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="Il n'y a aucun proclamateur pour le moment !"
+          description="Il est donc possible d'afficher l'activité des proclamateurs. Pour ajouter des proclamateurs créez des fiches de proclamateur à partir des utilisateurs."
+        />
       </div>
     )
   }

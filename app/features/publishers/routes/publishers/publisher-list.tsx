@@ -1,4 +1,4 @@
-import { BarChart3, Eye, Mail, Pencil } from 'lucide-react'
+import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -6,6 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -68,13 +69,11 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
           }
         />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-          <p>Il n'y a aucun proclamateur pour le moment !</p>
-          <p>
-            Pour ajouter des proclamateurs utilisez le bouton "Créer proclamateur" en haut à droite de cette page ou
-            créez des fiches de proclamateur à partir des utilisateurs.
-          </p>
-        </div>
+        <EmptyState
+          icon={Users}
+          title="Il n'y a aucun proclamateur pour le moment !"
+          description="Pour ajouter des proclamateurs utilisez le bouton &laquo; Créer proclamateur &raquo; en haut à droite de cette page ou créez des fiches de proclamateur à partir des utilisateurs."
+        />
       </div>
     )
   }

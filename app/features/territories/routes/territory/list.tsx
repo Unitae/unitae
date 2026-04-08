@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react'
+import { Map, Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -14,6 +14,7 @@ import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -99,13 +100,11 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-          <p>Il n'y a aucun territoire pour le moment !</p>
-          <p>
-            Pour ajouter des territoires, utilisez le bouton "Nouveau territoire" ou visitez le module de découpage des
-            territoires sur la page de prospection.
-          </p>
-        </div>
+        <EmptyState
+          icon={Map}
+          title="Il n'y a aucun territoire pour le moment !"
+          description="Pour ajouter des territoires, utilisez le bouton &laquo; Nouveau territoire &raquo; ou visitez le module de découpage des territoires sur la page de prospection."
+        />
       </div>
     )
   }

@@ -14,11 +14,11 @@ export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
     <SidebarProvider>
       <AppSidebar permissions={permissions} congregationName={congregationName} />
       <SidebarInset>
-        <header className="flex h-12 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-6 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6">
+        <main className="flex-1 overflow-auto p-6">
           <Outlet />
         </main>
       </SidebarInset>

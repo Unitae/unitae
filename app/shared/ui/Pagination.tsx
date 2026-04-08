@@ -25,12 +25,12 @@ export default function Pagination({
   }
 
   return (
-    <div className="my-3 flex items-center justify-between gap-6 max-sm:flex-col-reverse">
+    <div className="flex items-center justify-between gap-4 border-t pt-4 max-sm:flex-col-reverse">
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         {total > 25 && (
           <>
             <Select defaultValue={String(size)} onValueChange={handlePageSizeChange}>
-              <SelectTrigger className="w-[80px]">
+              <SelectTrigger className="h-8 w-[70px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -47,19 +47,18 @@ export default function Pagination({
           </>
         )}
       </div>
-      <div className="flex items-center gap-1">
-        {page > 1 && (
-          <Button variant="ghost" size="sm" onClick={() => handlePageChange(page - 1)}>
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground text-sm">
+          Page {page} sur {pages}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button variant="outline" size="icon-sm" onClick={() => handlePageChange(page - 1)} disabled={page <= 1}>
             <ChevronLeft className="size-4" />
-            Précédent
           </Button>
-        )}
-        {page < pages && (
-          <Button variant="ghost" size="sm" onClick={() => handlePageChange(page + 1)}>
-            Suivant
+          <Button variant="outline" size="icon-sm" onClick={() => handlePageChange(page + 1)} disabled={page >= pages}>
             <ChevronRight className="size-4" />
           </Button>
-        )}
+        </div>
       </div>
     </div>
   )

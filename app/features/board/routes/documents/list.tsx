@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, Eye, Pencil, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronUp, Eye, FileText, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -7,6 +7,7 @@ import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -66,13 +67,11 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
       />
 
       {documents.length === 0 ? (
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center">
-          <p className="text-muted-foreground">Il n'y a aucun document pour le moment !</p>
-          <p className="text-muted-foreground">
-            Lorsque des documents seront ajoutés, ils apparaîtront ici. Pour en ajouter, cliquez sur le bouton
-            ci-dessus.
-          </p>
-        </div>
+        <EmptyState
+          icon={FileText}
+          title="Il n'y a aucun document pour le moment !"
+          description="Lorsque des documents seront ajoutés, ils apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus."
+        />
       ) : (
         <Table>
           <TableHeader>

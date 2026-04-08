@@ -1,4 +1,4 @@
-import { Pencil, X } from 'lucide-react'
+import { CalendarCheck, Pencil, X } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -15,6 +15,7 @@ import logger from '~/shared/libs/logger.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
@@ -117,13 +118,11 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
 
         <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-          <p>Il n'y a aucune attribution pour le moment !</p>
-          <p>
-            Pour attribuer un territoire à un proclamateur, utilisez le bouton "Attribuer un territoire" en haut à
-            droite de l'écran.
-          </p>
-        </div>
+        <EmptyState
+          icon={CalendarCheck}
+          title="Il n'y a aucune attribution pour le moment !"
+          description="Pour attribuer un territoire à un proclamateur, utilisez le bouton &laquo; Attribuer un territoire &raquo; en haut à droite de l'écran."
+        />
       </div>
     )
   }

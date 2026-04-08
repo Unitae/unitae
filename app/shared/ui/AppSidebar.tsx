@@ -27,7 +27,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
 } from '~/shared/ui/sidebar'
 import { ThemeToggle } from '~/shared/ui/ThemeToggle'
 
@@ -60,10 +59,14 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-3">
-          <span className="font-bold font-display text-primary text-xl">Unitae</span>
+        <div className="flex items-center gap-2 border-sidebar-border border-b px-3 py-4">
+          <span className="font-bold font-display text-lg text-primary">Unitae</span>
+          {congregationName && (
+            <span className="truncate rounded-md bg-sidebar-accent px-2 py-0.5 text-[0.65rem] text-muted-foreground">
+              {congregationName}
+            </span>
+          )}
         </div>
-        {congregationName && <p className="truncate px-2 pb-2 text-muted-foreground text-xs">{congregationName}</p>}
       </SidebarHeader>
 
       <SidebarContent>
@@ -144,20 +147,20 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
         )}
       </SidebarContent>
 
-      <SidebarSeparator />
-
-      <SidebarFooter>
+      <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
           <SidebarNavItem to="/me/profile" icon={User} label="Mon profil" />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label="Mes absences" />
           <SidebarMenuItem>
-            <div className="flex items-center justify-between px-2">
-              <Form action="/logout" method="post">
-                <SidebarMenuButton type="submit" className="text-destructive hover:text-destructive">
-                  <LogOut className="size-4" />
-                  <span>Déconnexion</span>
-                </SidebarMenuButton>
-              </Form>
+            <Form action="/logout" method="post">
+              <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
+                <LogOut className="size-4" />
+                <span>Déconnexion</span>
+              </SidebarMenuButton>
+            </Form>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <div className="px-2 py-1">
               <ThemeToggle />
             </div>
           </SidebarMenuItem>
@@ -182,12 +185,8 @@ function SidebarNavItem({
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
         <NavLink to={to} end={end}>
-          {({ isActive }) => (
-            <>
-              <Icon className="size-4" />
-              <span className={isActive ? 'font-medium' : ''}>{label}</span>
-            </>
-          )}
+          <Icon className="size-4" />
+          <span>{label}</span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>

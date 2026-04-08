@@ -1,4 +1,4 @@
-import { Eye, Pencil } from 'lucide-react'
+import { Eye, Pencil, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -6,6 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -63,12 +64,11 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
             )
           }
         />
-        <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-          <p>Il n'y a aucun groupe de prédication pour le moment !</p>
-          <p>
-            Pour ajouter des groupes de prédication utilisez le bouton "Nouveau groupe" en haut à droite de cette page.
-          </p>
-        </div>
+        <EmptyState
+          icon={UsersRound}
+          title="Il n'y a aucun groupe de prédication pour le moment !"
+          description="Pour ajouter des groupes de prédication utilisez le bouton &laquo; Nouveau groupe &raquo; en haut à droite de cette page."
+        />
       </div>
     )
   }
