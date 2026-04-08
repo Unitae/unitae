@@ -4,7 +4,6 @@ import { sendResetUserPasswordEmail } from '~/features/authentication/server/sen
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
@@ -62,6 +61,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const { congregation } = await verifySession(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -81,7 +81,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/settings/users/new')
   }
 
-  const congregation = requireCongregation()
   const limits = new LimitService(congregation)
   await limits.errorIfWouldGoOverLimit('users')
 
@@ -92,7 +91,7 @@ export async function action({ request }: Route.ActionArgs) {
       email: String(email).toLocaleLowerCase(),
       active: true,
       password: 'password',
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

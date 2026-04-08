@@ -49,7 +49,7 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
             <TableRow>
               <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Congregation</TableHead>
+              <TableHead>Assemblée locale</TableHead>
               <TableHead className="text-center">Statut</TableHead>
               <TableHead className="text-center">Admin plateforme</TableHead>
             </TableRow>

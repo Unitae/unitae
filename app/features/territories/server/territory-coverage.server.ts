@@ -9,12 +9,20 @@ export async function computeTerritoryCoverage(
   startDate?: Date,
   endDate?: Date,
 ) {
+  // Filtre les attributions qui chevauchent la période [startDate, endDate]
+  // Une attribution chevauche si : elle commence avant la fin ET (elle est en cours OU se termine après le début)
   let whereDate: Prisma.AttributionWhereInput = {}
-  if (startDate != null) {
-    whereDate = { ...whereDate, startDate: { gte: startDate }, endDate: null }
-  }
-  if (endDate != null) {
-    whereDate = { ...whereDate, endDate: { lte: endDate } }
+  if (startDate != null && endDate != null) {
+    whereDate = {
+      startDate: { lte: endDate },
+      // biome-ignore lint/style/useNamingConvention: Prisma OR operator
+      OR: [{ endDate: null }, { endDate: { gte: startDate } }],
+    }
+  } else if (startDate != null) {
+    // biome-ignore lint/style/useNamingConvention: Prisma OR operator
+    whereDate = { OR: [{ endDate: null }, { endDate: { gte: startDate } }] }
+  } else if (endDate != null) {
+    whereDate = { startDate: { lte: endDate } }
   }
 
   // Count total territories of the specified kind

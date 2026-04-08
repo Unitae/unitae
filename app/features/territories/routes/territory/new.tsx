@@ -9,7 +9,6 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -156,7 +155,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await verifySession(request)
+  const { congregation } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -172,7 +171,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/territory/new')
   }
 
-  const congregation = requireCongregation()
   const limits = new LimitService(congregation)
   await limits.errorIfWouldGoOverLimit('territories')
 
@@ -183,7 +181,7 @@ export async function action({ request }: Route.ActionArgs) {
       entrances: {
         connect: entrances.map(el => ({ id: Number(el) })),
       },
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

@@ -1,0 +1,36 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('~/shared/libs/db.server', () => ({
+  db: {
+    territory: { count: vi.fn() },
+  },
+}))
+
+const { countDelayedWorkingTerritories } = await import('./delayed-working-territories.server')
+const { db } = await import('~/shared/libs/db.server')
+
+beforeEach(() => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date(2025, 3, 8))
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.resetAllMocks()
+})
+
+describe('countDelayedWorkingTerritories', () => {
+  it('retourne le nombre de territoires en retard', async () => {
+    vi.mocked(db.territory.count).mockResolvedValue(3)
+
+    const result = await countDelayedWorkingTerritories()
+    expect(result).toBe(3)
+  })
+
+  it('retourne 0 quand aucun territoire n\'est en retard', async () => {
+    vi.mocked(db.territory.count).mockResolvedValue(0)
+
+    const result = await countDelayedWorkingTerritories()
+    expect(result).toBe(0)
+  })
+})

@@ -16,7 +16,7 @@ export async function getBoolSetting(key: SettingKey): Promise<boolean | undefin
   return settingValue === 'true'
 }
 
-export async function setSetting(key: SettingKey, value: string) {
+export async function setSetting(key: SettingKey, value: string, congregationId: number) {
   if (key == null || value.length < 1) {
     return
   }
@@ -33,7 +33,7 @@ export async function setSetting(key: SettingKey, value: string) {
       data: {
         key,
         value,
-        congregationId: 0 as number,
+        congregationId,
       },
     })
   }

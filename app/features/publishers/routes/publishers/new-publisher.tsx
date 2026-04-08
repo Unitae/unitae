@@ -5,7 +5,6 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
-import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
@@ -51,6 +50,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
+  const { congregation } = await verifySession(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -68,7 +68,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/congregation/publishers/new')
   }
 
-  const congregation = requireCongregation()
   const limits = new LimitService(congregation)
   await limits.errorIfWouldGoOverLimit('publishers')
 
@@ -89,7 +88,7 @@ export async function action({ request }: Route.ActionArgs) {
       isAnointed: Boolean(isAnointed),
       publisherGroupId: Number.isNaN(groupId) ? null : groupId,
       type: String(type),
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

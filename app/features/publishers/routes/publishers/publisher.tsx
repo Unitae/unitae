@@ -85,7 +85,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       canManageActivity:
         canManageActivity ||
         publisher.publisherGroup?.responsible.id === currentUser.id ||
-        publisher.publisherGroup?.deputy.id === currentUser.id,
+        publisher.publisherGroup?.deputy?.id === currentUser.id,
     },
   }
 }

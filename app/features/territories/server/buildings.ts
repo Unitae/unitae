@@ -79,9 +79,12 @@ export async function findEntrancesPaginated(selectors: Prisma.BuildingWhereInpu
 }
 
 export async function getProspectionStaleDate(): Promise<Date> {
-  const prospectionValidity = await db.setting.findFirst({ where: { key: 'prospection-validity' } })
+  const prospectionValidity = Number(
+    (await db.setting.findFirst({ where: { key: 'prospection-validity' } }))?.value ?? '0',
+  )
+  if (prospectionValidity <= 0) return new Date(0)
   const staleDate = new Date()
-  staleDate.setMonth(staleDate.getMonth() - Number(prospectionValidity?.value ?? '0'))
+  staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
   return staleDate
 }
 

@@ -49,7 +49,7 @@ export default function NewSectionPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, congregation } = await verifySession(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 
@@ -61,7 +61,7 @@ export async function action({ request }: Route.ActionArgs) {
   const section = await db.boardSection.create({
     data: {
       name: String(name),
-      congregationId: 0 as number,
+      congregationId: congregation.id,
     },
   })
 

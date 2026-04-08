@@ -1,5 +1,6 @@
 import { data, Form, Link, redirect } from 'react-router'
 
+import { getBrandingName } from '~/shared/libs/congregation.server'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
   checkLoginRateLimit,
@@ -31,8 +32,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  const brandingName = await getBrandingName(request)
+
   return data(
-    { error: session.get('error') },
+    { error: session.get('error'), brandingName },
     {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -42,14 +45,14 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function LoginPage({ loaderData }: Route.ComponentProps) {
-  const { error } = loaderData
+  const { error, brandingName } = loaderData
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md overflow-hidden shadow-md">
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
-          <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
+          <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
         </CardHeader>
         <CardContent>
           {error && (

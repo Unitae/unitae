@@ -10,7 +10,7 @@ import { Label } from '~/shared/ui/label'
 import type { Route } from './+types/register'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Créer une congrégation - Unitae' }]
+  return [{ title: 'Créer une assemblée locale - Unitae' }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -44,7 +44,7 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
           <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-          <p className="text-muted-foreground text-sm">Créer un espace pour votre congrégation</p>
+          <p className="text-muted-foreground text-sm">Créer un espace pour votre assemblée locale</p>
         </CardHeader>
         <CardContent>
           {error && (
@@ -59,7 +59,7 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="congregation-name">Nom de la congrégation</Label>
+              <Label htmlFor="congregation-name">Nom de l'assemblée locale</Label>
               <Input
                 id="congregation-name"
                 name="congregation-name"
@@ -85,7 +85,7 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
             </div>
 
             <Button type="submit" className="mt-4 w-full">
-              Créer la congrégation
+              Créer l'assemblée locale
             </Button>
           </Form>
         </CardContent>
@@ -112,7 +112,7 @@ export async function action({ request }: Route.ActionArgs) {
   const repeatPassword = String(form.get('repeat-password'))
 
   if (congregationName.length < 2) {
-    session.flash('error', 'Le nom de la congrégation doit faire au moins 2 caractères.')
+    session.flash('error', 'Le nom de l\'assemblée locale doit faire au moins 2 caractères.')
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
@@ -133,7 +133,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const slug = slugify(congregationName)
   if (slug.length < 2) {
-    session.flash('error', 'Le nom de la congrégation génère un identifiant invalide.')
+    session.flash('error', 'Le nom de l\'assemblée locale génère un identifiant invalide.')
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 

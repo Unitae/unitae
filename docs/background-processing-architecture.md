@@ -69,11 +69,13 @@ export async function handleSyncWork(job: Job<SyncJobData>) {
   const congregation = await resolveCongregation(congregationId)
   congregationContext.enterWith({ congregationId, congregation })
 
-  // All db.* queries are now scoped to this congregation
-  await importOpenData(...)
+  // Pass congregationId explicitly to avoid AsyncLocalStorage context loss
+  await importOpenData(congregationId, progressCallback)
   await sendMailAfterDataSync(email, name, congregation)
 }
 ```
+
+> **Note**: Service functions that create records should accept `congregationId` as an explicit parameter rather than relying on AsyncLocalStorage context, which can be lost across async boundaries with the Prisma 7 pg adapter.
 
 ## Development
 
@@ -101,6 +103,7 @@ pnpm start:dev
 1. **Queue**: `app/features/{feature}/server/{name}-queue.server.ts`
 2. **Handler**: `app/features/{feature}/server/handle-{name}-work.server.ts`
    - Set `congregationContext.enterWith()` from job data
+   - Pass `congregationId` explicitly to service functions that create records
 3. **Worker**: `workers/{name}-worker.server.ts`
    - Include HTTP health server
    - Handle SIGTERM gracefully

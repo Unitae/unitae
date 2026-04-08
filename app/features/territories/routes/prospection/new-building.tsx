@@ -67,7 +67,7 @@ export default function CreateBuildingPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, congregation } = await verifySession(request)
 
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
@@ -95,6 +95,7 @@ export async function action({ request }: Route.ActionArgs) {
       latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
       longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,
     },
+    congregationId: congregation.id,
   })
 
   if (building == null) {

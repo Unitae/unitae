@@ -24,8 +24,8 @@ export default function SuspendedPage({ loaderData }: Route.ComponentProps) {
       <div className="mx-auto max-w-md text-center">
         <h1 className="mb-4 font-bold text-2xl text-gray-900">Compte suspendu</h1>
         <p className="mb-6 text-gray-600">
-          L'accès à votre congrégation a été temporairement suspendu. Si vous pensez qu'il s'agit d'une erreur, veuillez
-          contacter l'administrateur.
+          L'accès à votre assemblée locale a été temporairement suspendu. Si vous pensez qu'il s'agit d'une erreur,
+          veuillez contacter l'administrateur.
         </p>
         <div className="flex flex-col gap-3">
           {billingUrl && (

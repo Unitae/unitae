@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/congregations'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Congregations - Unitae Admin' }]
+  return [{ title: 'Assemblées locales - Unitae Admin' }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -46,7 +46,7 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Congregations" subtitle={`${congregations.length} congregation(s)`} />
+      <PageHeader title="Assemblées locales" subtitle={`${congregations.length} assemblée(s) locale(s)`} />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>

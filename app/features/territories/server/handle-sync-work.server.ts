@@ -19,7 +19,7 @@ export async function handleSyncWork(job: Job<SyncJobData>): Promise<void> {
     await job.updateProgress(0)
     logger.info(`Starting sync job ${job.id}`, { userEmail, congregationId })
 
-    await importOpenData((percent: number) => {
+    await importOpenData(congregationId, (percent: number) => {
       logger.info(`Sync job ${job.id} progress: ${percent}%`, { userEmail })
       if (percent < 99) {
         job.updateProgress(percent)

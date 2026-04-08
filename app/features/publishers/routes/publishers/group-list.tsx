@@ -116,9 +116,13 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  <Link to={`/congregation/publishers/${group.deputyId}/view`} className="hover:text-primary">
-                    {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
-                  </Link>
+                  {group.deputy ? (
+                    <Link to={`/congregation/publishers/${group.deputyId}/view`} className="hover:text-primary">
+                      {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
+                    </Link>
+                  ) : (
+                    '—'
+                  )}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">{group.adress}</TableCell>
                 <TableCell className="text-center">{group._count.members}</TableCell>

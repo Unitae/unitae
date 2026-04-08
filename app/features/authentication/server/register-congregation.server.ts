@@ -10,7 +10,7 @@ export async function registerCongregation(
 ) {
   const existingCongregation = await db.congregation.findUnique({ where: { slug: congregationSlug } })
   if (existingCongregation) {
-    return { error: 'Ce nom de congrégation est déjà pris.' }
+    return { error: 'Ce nom d\'assemblée locale est déjà pris.' }
   }
 
   const existingUser = await db.user.findUnique({ where: { email: adminEmail.toLowerCase() } })

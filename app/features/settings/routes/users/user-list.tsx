@@ -74,7 +74,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Utilisateurs"
-        subtitle="Liste de tous les utilisateurs de Unitae"
+        subtitle="Liste de tous les utilisateurs"
         actions={
           <Button asChild>
             <Link to="./new">Nouvel utilisateur</Link>

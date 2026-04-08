@@ -169,7 +169,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  await verifySession(request)
+  const { congregation } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -185,13 +185,13 @@ export async function action({ request }: Route.ActionArgs) {
   const apiKey = String(form.get('api-google-map'))
   const phoneTypeActivated = String(Boolean(form.get('phone-territory-active')))
 
-  await setSetting(TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory))
-  await setSetting(TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips))
-  await setSetting(TerritorySettingKey.BanoUrl, banoUrl)
-  await setSetting(TerritorySettingKey.ProspectionValidity, prospectionValidity)
-  await setSetting(TerritorySettingKey.GoogleMapsApiKey, apiKey)
-  await setSetting(TerritorySettingKey.GoogleMapsMapId, mapId)
-  await setSetting(TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated)
+  await setSetting(TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), congregation.id)
+  await setSetting(TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), congregation.id)
+  await setSetting(TerritorySettingKey.BanoUrl, banoUrl, congregation.id)
+  await setSetting(TerritorySettingKey.ProspectionValidity, prospectionValidity, congregation.id)
+  await setSetting(TerritorySettingKey.GoogleMapsApiKey, apiKey, congregation.id)
+  await setSetting(TerritorySettingKey.GoogleMapsMapId, mapId, congregation.id)
+  await setSetting(TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, congregation.id)
 
   return redirect('/settings')
 }
