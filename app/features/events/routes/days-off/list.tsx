@@ -1,9 +1,9 @@
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Link } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import logger from '~/shared/libs/logger.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/list'
 

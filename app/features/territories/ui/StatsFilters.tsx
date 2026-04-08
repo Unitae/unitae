@@ -1,7 +1,7 @@
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
-import type { PublisherGroup } from '~/database/generated/client'
 import { useState } from 'react'
 import { Form, useSearchParams } from 'react-router'
+import type { PublisherGroup } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 

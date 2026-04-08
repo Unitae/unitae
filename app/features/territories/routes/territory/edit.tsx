@@ -1,27 +1,26 @@
 import { ArrowDownTrayIcon, ArrowUpRightIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
-
+import { verifySession } from '~/features/authentication/server/session.server'
+import { Role } from '~/features/authorization/model/roles.type'
+import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBoolSetting, getSetting } from '~/features/settings/server/settings'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
   aggregateEntrance,
   getAvailableEntrances,
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
-import { verifySession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { DeleteLink } from '~/shared/ui/DeleteLink'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/edit'
 

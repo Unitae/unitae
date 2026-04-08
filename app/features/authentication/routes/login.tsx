@@ -1,9 +1,18 @@
 import { data, Form, Link, redirect } from 'react-router'
 
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
-import { checkLoginRateLimit, clearLoginAttempts, recordLoginAttempt } from '~/features/authentication/server/rate-limit.server'
+import {
+  checkLoginRateLimit,
+  clearLoginAttempts,
+  recordLoginAttempt,
+} from '~/features/authentication/server/rate-limit.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 import type { Route } from './+types/login'
 
@@ -36,61 +45,48 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
   const { error } = loaderData
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-16">
-        <header className="flex flex-col items-center gap-9">
-          <h1 className="leading font-semibold text-5xl text-gray-900 tracking-tight sm:text-7xl dark:text-gray-100">
-            Unitae
-          </h1>
-        </header>
-        {error ? <div className="error">{error}</div> : null}
-        <Form method="post" className="w-full">
-          <label htmlFor="email" className="block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100">
-            Email
-          </label>
-          <div className="mt-2.5">
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 focus:ring-inset dark:text-gray-100"
-              // biome-ignore lint/a11y/noAutofocus: Here it is a bette UX to focus on the field
-              autoFocus={true}
-              autoComplete="username"
-              required
-            />
-          </div>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="items-center space-y-2 text-center">
+          <h1 className="font-display font-bold text-3xl tracking-tight">Unitae</h1>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                // biome-ignore lint/a11y/noAutofocus: Here it is a better UX to focus on the field
+                autoFocus={true}
+                autoComplete="username"
+                required
+              />
+            </div>
 
-          <label
-            htmlFor="password"
-            className="mt-3.5 block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100"
-          >
-            Mot de passe
-          </label>
-          <div className="mt-2.5">
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              className="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 focus:ring-inset dark:text-gray-100"
-            />
-          </div>
-          <p className="my-1 text-right text-xs">
-            <Link to="/password/forgot" className="text-teal-600 underline">
-              Mot de passe oublié
-            </Link>
-          </p>
-          <div className="mt-12">
-            <button
-              type="submit"
-              className="w-full rounded-sm bg-teal-700 px-4 py-2 text-white hover:bg-teal-900 focus:bg-blue-400"
-            >
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Mot de passe</Label>
+                <Link to="/password/forgot" className="text-primary text-xs hover:underline">
+                  Mot de passe oublié
+                </Link>
+              </div>
+              <Input id="password" name="password" type="password" autoComplete="current-password" />
+            </div>
+
+            <Button type="submit" className="mt-4 w-full">
               Connexion
-            </button>
-          </div>
-        </Form>
-      </div>
+            </Button>
+          </Form>
+        </CardContent>
+        <CardFooter />
+      </Card>
     </div>
   )
 }

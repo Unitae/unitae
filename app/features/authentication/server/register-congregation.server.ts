@@ -1,6 +1,6 @@
+import { EventKind } from '~/features/events/model/event-kind.type'
 import { hash } from '~/shared/libs/crypto.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
-import { EventKind } from '~/features/events/model/event-kind.type'
 
 export async function registerCongregation(
   congregationName: string,

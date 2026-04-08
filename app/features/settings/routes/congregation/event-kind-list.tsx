@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getAllEventType } from '~/features/events/server/event-kind.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 import type { Route } from './+types/event-kind-list'
 
 export const meta: Route.MetaFunction = () => {

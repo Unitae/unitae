@@ -20,7 +20,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const building = await db.building.update({ where: { id: requireParamId(params.buildingId, '/territories/buildings') }, data: { active: true } })
+  const building = await db.building.update({
+    where: { id: requireParamId(params.buildingId, '/territories/buildings') },
+    data: { active: true },
+  })
   if (building.active === true) {
     session.flash(
       'success',

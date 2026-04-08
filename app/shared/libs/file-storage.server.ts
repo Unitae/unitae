@@ -1,10 +1,5 @@
 // biome-ignore-all lint/style/useNamingConvention: AWS SDK uses PascalCase properties
-import {
-  DeleteObjectCommand,
-  GetObjectCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import logger from './logger.server'
 
 const s3 = new S3Client({
@@ -22,7 +17,11 @@ const s3 = new S3Client({
 
 const BUCKET = process.env.S3_BUCKET ?? 'unitae'
 
-export async function uploadFile(key: string, body: ArrayBuffer | Buffer | Uint8Array, contentType: string): Promise<void> {
+export async function uploadFile(
+  key: string,
+  body: ArrayBuffer | Buffer | Uint8Array,
+  contentType: string,
+): Promise<void> {
   await s3.send(
     new PutObjectCommand({
       Bucket: BUCKET,

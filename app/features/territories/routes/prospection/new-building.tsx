@@ -1,11 +1,9 @@
 import { Form, redirect } from 'react-router'
-
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { createBuilding } from '~/features/territories/server/create-building.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/new-building'
 

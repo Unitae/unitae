@@ -1,5 +1,5 @@
-import type { PublisherGroup } from '~/database/generated/client'
 import { useState } from 'react'
+import type { PublisherGroup } from '~/database/generated/client'
 
 import { PublisherType } from '~/shared/types/publisher-type'
 import type { UserInput } from '~/shared/types/user-input'

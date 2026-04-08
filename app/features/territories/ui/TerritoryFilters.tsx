@@ -1,9 +1,9 @@
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
-import type { Prisma } from '~/database/generated/client'
 import { Form, useSearchParams } from 'react-router'
+import type { Prisma } from '~/database/generated/client'
+import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { ShopKind } from '~/features/territories/model/shop-kind.type'
 
 interface TerritoryFiltersProps {
   action?: string

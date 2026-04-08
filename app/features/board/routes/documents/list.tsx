@@ -1,9 +1,9 @@
 import { ChevronDownIcon, ChevronUpIcon, EyeIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { Form, Link, redirect } from 'react-router'
-import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 

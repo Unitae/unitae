@@ -1,17 +1,16 @@
 import { EyeIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import type { Prisma } from '~/database/generated/client'
 import { Link, redirect } from 'react-router'
-
-import { getSetting } from '~/features/settings/server/settings'
-import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
-import Pagination from '~/shared/ui/Pagination'
-import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
-import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import type { Prisma } from '~/database/generated/client'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
+import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
+import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import Pagination from '~/shared/ui/Pagination'
 import type { Route } from './+types/need-check-building-list'
 
 export const meta: Route.MetaFunction = () => {

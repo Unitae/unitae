@@ -1,12 +1,11 @@
 import { EyeIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import { Link, redirect } from 'react-router'
-
-import Pagination from '~/shared/ui/Pagination'
-import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
-import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
+import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import Pagination from '~/shared/ui/Pagination'
 
 import type { Route } from './+types/new-building-list'
 

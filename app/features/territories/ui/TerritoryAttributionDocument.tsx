@@ -1,5 +1,5 @@
-import type { Attribution, Territory, User } from '~/database/generated/client'
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import type { Attribution, Territory, User } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 type TerritoryRepport = Territory & { attributions: (Attribution & { publisher: User })[] }

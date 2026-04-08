@@ -2,6 +2,13 @@ import { Form, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import logger from '~/shared/libs/logger.server'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { PageHeader } from '~/shared/ui/PageHeader'
+
 import type { Route } from './+types/profile'
 
 export const meta: Route.MetaFunction = () => {
@@ -29,66 +36,62 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
   const { user, error } = loaderData
 
   return (
-    <div className="m-3 flex grow flex-col gap-6 pb-3">
-      <h1 className="font-bold text-4xl">Mon profil</h1>
-      <p>
-        Tu trouveras sur cette page ton profile. C'est-à-dire tout ce que tu dois savoir en rapport avec ton usage de
-        l'outil Unitae.
-      </p>
-      <section className="flex flex-col gap-3 rounded-md bg-gray-900 p-5 text-white">
-        <h2 className="mb-4 text-xl">Mon compte</h2>
-        <p>
-          Nom : <span className="text-teal-600">{user.lastname?.toLocaleUpperCase()}</span>
-        </p>
-        <p>
-          Prénom : <span className="text-teal-600">{user.firstname}</span>
-        </p>
-        <p>
-          Adresse email : <span className="text-teal-600">{user.email.toLocaleLowerCase()}</span>
-        </p>
-        <p>
-          Proclamateur à Unitae : <span className="text-teal-600">{user.isPublisher ? 'Oui' : 'Non'}</span>
-        </p>
-        <p className="pt-5 text-sm italic">
-          Si certaines de ces informations ne sont pas bonnes, merci de contacter ton responsable de groupe de
-          prédication.
-        </p>
-      </section>
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Mon profil" subtitle="Informations de ton compte et paramètres de sécurité." />
 
-      <section className="rounded-md bg-gray-900 p-5 text-white">
-        <h2 className="mb-4 text-xl">Mon mots de passe</h2>
-        {error && <p className="text-red-600">{error}</p>}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mon compte</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-3">
+          <div className="flex justify-between border-b pb-2">
+            <span className="text-muted-foreground text-sm">Nom</span>
+            <span className="text-sm font-medium">{user.lastname?.toLocaleUpperCase() ?? '—'}</span>
+          </div>
+          <div className="flex justify-between border-b pb-2">
+            <span className="text-muted-foreground text-sm">Prénom</span>
+            <span className="text-sm font-medium">{user.firstname ?? '—'}</span>
+          </div>
+          <div className="flex justify-between border-b pb-2">
+            <span className="text-muted-foreground text-sm">Adresse email</span>
+            <span className="text-sm font-medium">{user.email.toLocaleLowerCase()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground text-sm">Proclamateur à Unitae</span>
+            <span className="text-sm font-medium">{user.isPublisher ? 'Oui' : 'Non'}</span>
+          </div>
+          <p className="mt-2 text-muted-foreground text-xs italic">
+            Si certaines de ces informations ne sont pas bonnes, merci de contacter ton responsable de groupe de
+            prédication.
+          </p>
+        </CardContent>
+      </Card>
 
-        <p>Veuillez saisir votre nouveau mot de passe.</p>
-        <Form method="post" className="flex grow flex-col gap-3">
-          <label>
-            Mot de passe actuel
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Mot de passe actuel"
-            />
-          </label>
-          <label>
-            Nouveau mot de passe
-            <input
-              className="w-full rounded-md border p-1 dark:border-gray-300"
-              name="new_password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Nouveau mot de passe"
-            />
-          </label>
-          <button
-            type="submit"
-            className="max-w-fit rounded-lg bg-teal-600 px-3 py-1 font-semibold text-white hover:bg-teal-900"
-          >
-            Changer mon mot de passe
-          </button>
-        </Form>
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Changer le mot de passe</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">Mot de passe actuel</Label>
+              <Input id="password" name="password" type="password" autoComplete="current-password" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="new_password">Nouveau mot de passe</Label>
+              <Input id="new_password" name="new_password" type="password" autoComplete="new-password" />
+            </div>
+            <Button type="submit" className="w-fit">
+              Changer mon mot de passe
+            </Button>
+          </Form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

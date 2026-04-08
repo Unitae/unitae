@@ -1,6 +1,6 @@
+import { db } from '~/shared/libs/db.server'
 import type { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import type { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { db } from '~/shared/libs/db.server'
 
 type SettingKey = TerritorySettingKey | CongregationSettingKey
 

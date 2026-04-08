@@ -16,7 +16,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const building = await db.building.findUnique({ where: { id: requireParamId(params.buildingId, '/territories/buildings') } })
+  const building = await db.building.findUnique({
+    where: { id: requireParamId(params.buildingId, '/territories/buildings') },
+  })
 
   if (building == null) {
     throw redirect('/territories/attributions')
@@ -55,7 +57,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const building = await db.building.delete({ where: { id: requireParamId(params.buildingId, '/territories/buildings') } })
+  const building = await db.building.delete({
+    where: { id: requireParamId(params.buildingId, '/territories/buildings') },
+  })
 
   session.flash(
     'success',

@@ -1,11 +1,10 @@
 import { CalendarDateRangeIcon, IdentificationIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { data, Link, Outlet, redirect } from 'react-router'
-
-import { MainNavigation } from '~/shared/ui/MainNavigation'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { MainNavigation } from '~/shared/ui/MainNavigation'
 
 import type { Route } from './+types/_layout'
 

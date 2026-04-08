@@ -1,12 +1,9 @@
 import { redirect } from 'react-router'
 import { Cell, Pie, PieChart } from 'recharts'
-import { getGroups } from '~/features/publishers/server/groups'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import S13ExportButton from '~/shared/ui/S13ExportButton'
-import StatsFilters from '~/features/territories/ui/StatsFilters'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getGroups } from '~/features/publishers/server/groups'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
@@ -16,6 +13,9 @@ import { countRestingTerritories } from '~/features/territories/server/resting-t
 import { computeTerritoryCoverage } from '~/features/territories/server/territory-coverage.server'
 import { computeTerritoryCoverageTotal } from '~/features/territories/server/territory-coverage-total.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
+import StatsFilters from '~/features/territories/ui/StatsFilters'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
+import S13ExportButton from '~/shared/ui/S13ExportButton'
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {

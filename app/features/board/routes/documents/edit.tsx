@@ -1,10 +1,10 @@
 import { Form, redirect } from 'react-router'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { DeleteLink } from '~/shared/ui/DeleteLink'
 
 import type { Route } from './+types/edit'
 

@@ -1,34 +1,94 @@
 @import "tailwindcss";
 
-@theme {
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius: 0.625rem;
+
   --font-sans:
-    Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
+    "DM Sans", ui-sans-serif, system-ui, sans-serif, Apple Color Emoji,
     Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+  --font-display: "Fraunces", Georgia, serif;
+
+  /* Light mode — teal primary, stone neutrals */
+  --color-background: oklch(0.985 0.001 106.423); /* stone-50 */
+  --color-foreground: oklch(0.216 0.006 56.043); /* stone-900 */
+  --color-card: oklch(1 0 0); /* white */
+  --color-card-foreground: oklch(0.216 0.006 56.043);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.216 0.006 56.043);
+  --color-primary: oklch(0.523 0.105 184.704); /* ~teal-700 */
+  --color-primary-foreground: oklch(0.985 0.001 106.423);
+  --color-secondary: oklch(0.97 0.001 106.424); /* stone-100 */
+  --color-secondary-foreground: oklch(0.216 0.006 56.043);
+  --color-muted: oklch(0.97 0.001 106.424);
+  --color-muted-foreground: oklch(0.553 0.013 58.071); /* stone-500 */
+  --color-accent: oklch(0.97 0.001 106.424);
+  --color-accent-foreground: oklch(0.216 0.006 56.043);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(0.577 0.245 27.325);
+  --color-border: oklch(0.869 0.005 56.366); /* stone-300 */
+  --color-input: oklch(0.869 0.005 56.366);
+  --color-ring: oklch(0.523 0.105 184.704); /* teal-700 */
+
+  --color-chart-1: oklch(0.6 0.118 184.704);
+  --color-chart-2: oklch(0.646 0.222 41.116);
+  --color-chart-3: oklch(0.398 0.07 227.392);
+  --color-chart-4: oklch(0.828 0.189 84.429);
+  --color-chart-5: oklch(0.769 0.188 70.08);
+
+  /* Sidebar */
+  --color-sidebar: oklch(0.985 0.001 106.423);
+  --color-sidebar-foreground: oklch(0.216 0.006 56.043);
+  --color-sidebar-primary: oklch(0.523 0.105 184.704);
+  --color-sidebar-primary-foreground: oklch(0.985 0.001 106.423);
+  --color-sidebar-accent: oklch(0.97 0.001 106.424);
+  --color-sidebar-accent-foreground: oklch(0.216 0.006 56.043);
+  --color-sidebar-border: oklch(0.923 0.003 48.717); /* stone-200 */
+  --color-sidebar-ring: oklch(0.523 0.105 184.704);
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+.dark {
+  --color-background: oklch(0.216 0.006 56.043);
+  --color-foreground: oklch(0.985 0.001 106.423);
+  --color-card: oklch(0.268 0.007 34.298); /* stone-800 */
+  --color-card-foreground: oklch(0.985 0.001 106.423);
+  --color-popover: oklch(0.268 0.007 34.298);
+  --color-popover-foreground: oklch(0.985 0.001 106.423);
+  --color-primary: oklch(0.648 0.116 184.117); /* ~teal-500 */
+  --color-primary-foreground: oklch(0.216 0.006 56.043);
+  --color-secondary: oklch(0.268 0.007 34.298);
+  --color-secondary-foreground: oklch(0.985 0.001 106.423);
+  --color-muted: oklch(0.268 0.007 34.298);
+  --color-muted-foreground: oklch(0.709 0.01 56.259); /* stone-400 */
+  --color-accent: oklch(0.268 0.007 34.298);
+  --color-accent-foreground: oklch(0.985 0.001 106.423);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(0.577 0.245 27.325);
+  --color-border: oklch(0.374 0.01 67.558); /* stone-700 */
+  --color-input: oklch(0.374 0.01 67.558);
+  --color-ring: oklch(0.648 0.116 184.117);
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+  --color-sidebar: oklch(0.216 0.006 56.043);
+  --color-sidebar-foreground: oklch(0.985 0.001 106.423);
+  --color-sidebar-primary: oklch(0.648 0.116 184.117);
+  --color-sidebar-primary-foreground: oklch(0.216 0.006 56.043);
+  --color-sidebar-accent: oklch(0.268 0.007 34.298);
+  --color-sidebar-accent-foreground: oklch(0.985 0.001 106.423);
+  --color-sidebar-border: oklch(0.374 0.01 67.558);
+  --color-sidebar-ring: oklch(0.648 0.116 184.117);
+}
+
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-border);
   }
-}
 
-html,
-body {
-  @apply bg-white dark:bg-gray-950;
-
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+  body {
+    @apply bg-background text-foreground antialiased;
   }
 }

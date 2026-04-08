@@ -55,32 +55,66 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
 
       <Form method="post" className="flex flex-col gap-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium">Nom</label>
-          <input id="name" name="name" type="text" defaultValue={congregation.name} required
-            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600" />
+          <label htmlFor="name" className="block text-sm font-medium">
+            Nom
+          </label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            defaultValue={congregation.name}
+            required
+            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600"
+          />
         </div>
         <div>
-          <label htmlFor="slug" className="block text-sm font-medium">Slug</label>
-          <input id="slug" name="slug" type="text" defaultValue={congregation.slug} required
-            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600" />
+          <label htmlFor="slug" className="block text-sm font-medium">
+            Slug
+          </label>
+          <input
+            id="slug"
+            name="slug"
+            type="text"
+            defaultValue={congregation.slug}
+            required
+            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600"
+          />
         </div>
         <div>
-          <label htmlFor="domain" className="block text-sm font-medium">Domaine personnalisé</label>
-          <input id="domain" name="domain" type="text" defaultValue={congregation.domain ?? ''}
-            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600" />
+          <label htmlFor="domain" className="block text-sm font-medium">
+            Domaine personnalisé
+          </label>
+          <input
+            id="domain"
+            name="domain"
+            type="text"
+            defaultValue={congregation.domain ?? ''}
+            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600"
+          />
         </div>
         <div>
-          <label htmlFor="displayName" className="block text-sm font-medium">Nom d'affichage</label>
-          <input id="displayName" name="displayName" type="text" defaultValue={congregation.displayName ?? ''}
-            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600" />
+          <label htmlFor="displayName" className="block text-sm font-medium">
+            Nom d'affichage
+          </label>
+          <input
+            id="displayName"
+            name="displayName"
+            type="text"
+            defaultValue={congregation.displayName ?? ''}
+            className="mt-1 block w-full rounded-md border-0 px-3 py-2 ring-1 ring-gray-300 ring-inset focus:ring-2 focus:ring-teal-600"
+          />
         </div>
         <div className="flex items-center gap-2">
           <input id="active" name="active" type="checkbox" defaultChecked={congregation.active} />
-          <label htmlFor="active" className="text-sm font-medium">Active</label>
+          <label htmlFor="active" className="text-sm font-medium">
+            Active
+          </label>
         </div>
 
-        <button type="submit"
-          className="mt-4 rounded-md bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-900">
+        <button
+          type="submit"
+          className="mt-4 rounded-md bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-900"
+        >
           Enregistrer
         </button>
       </Form>

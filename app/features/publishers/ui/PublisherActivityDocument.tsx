@@ -1,5 +1,5 @@
-import type { PublisherActivity, User } from '~/database/generated/client'
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
+import type { PublisherActivity, User } from '~/database/generated/client'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {

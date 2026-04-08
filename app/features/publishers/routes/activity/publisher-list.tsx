@@ -7,16 +7,16 @@ import {
 } from '@heroicons/react/24/outline'
 import { useState } from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
+import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {

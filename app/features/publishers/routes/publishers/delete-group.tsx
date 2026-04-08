@@ -57,7 +57,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   if (!canManagePublisher) {
     throw redirect('/')
   }
-  const group = await db.publisherGroup.delete({ where: { id: requireParamId(params.groupId, '/congregation/publisher-groups') } })
+  const group = await db.publisherGroup.delete({
+    where: { id: requireParamId(params.groupId, '/congregation/publisher-groups') },
+  })
 
   session.flash('success', `Le groupe ${group.name} a été correctement supprimé`)
 

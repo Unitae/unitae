@@ -1,6 +1,6 @@
 import type { Prisma } from '~/database/generated/client'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { ShopKind } from '~/features/territories/model/shop-kind.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 const addressRegex = /^(\d+\s*(bis|ter|quarter)?)\s+(.+)$/
 

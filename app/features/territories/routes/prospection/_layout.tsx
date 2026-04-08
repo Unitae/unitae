@@ -1,17 +1,16 @@
 import { ArrowPathIcon, MapIcon } from '@heroicons/react/24/outline'
 import { data, Form, Link, NavLink, Outlet, redirect } from 'react-router'
-
-import { getSetting } from '~/features/settings/server/settings'
-import { getZips } from '~/features/territories/server/buildings'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import { getZips } from '~/features/territories/server/buildings'
+import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { db } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/_layout'
 

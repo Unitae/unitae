@@ -1,8 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
-
-import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
+import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import { db } from '~/shared/libs/db.server'
 
 export async function renderActivityPdfZip(year: number) {

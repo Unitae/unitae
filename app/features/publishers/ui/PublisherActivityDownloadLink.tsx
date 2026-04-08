@@ -1,7 +1,7 @@
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import type { PublisherActivity, User } from '~/database/generated/client'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { useEffect, useState } from 'react'
+import type { PublisherActivity, User } from '~/database/generated/client'
 import { PublisherActivityDocument } from './PublisherActivityDocument'
 
 export function PublisherActivityDownloadLink({

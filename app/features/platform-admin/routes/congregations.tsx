@@ -74,10 +74,7 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
               </td>
               <td className="py-3 text-center text-gray-500">{new Date(c.createdAt).toLocaleDateString('fr')}</td>
               <td className="py-3 text-center">
-                <Link
-                  to={`/platform-admin/congregations/${c.id}/edit`}
-                  className="text-teal-600 hover:text-teal-800"
-                >
+                <Link to={`/platform-admin/congregations/${c.id}/edit`} className="text-teal-600 hover:text-teal-800">
                   <PencilIcon className="inline size-4" />
                 </Link>
               </td>

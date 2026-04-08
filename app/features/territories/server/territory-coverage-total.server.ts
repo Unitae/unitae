@@ -1,7 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
-import { db } from '~/shared/libs/db.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { db } from '~/shared/libs/db.server'
 
 export async function computeTerritoryCoverageTotal(
   territoryKind: TerritoryKind[] = [TerritoryKind.Classical],

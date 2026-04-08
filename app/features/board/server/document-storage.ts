@@ -1,5 +1,11 @@
 import { congregationContext } from '~/shared/libs/db.server'
-import { buildStorageKey, deleteFileFromStorage, getFile, getFileBuffer, uploadFile } from '~/shared/libs/file-storage.server'
+import {
+  buildStorageKey,
+  deleteFileFromStorage,
+  getFile,
+  getFileBuffer,
+  uploadFile,
+} from '~/shared/libs/file-storage.server'
 
 function getCongregationId(): number {
   const ctx = congregationContext.getStore()

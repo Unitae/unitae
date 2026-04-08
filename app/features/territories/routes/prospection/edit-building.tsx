@@ -1,17 +1,14 @@
 import { data, Form, redirect } from 'react-router'
-
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
-import { DeleteLink } from '~/shared/ui/DeleteLink'
-
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
-
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { DeleteLink } from '~/shared/ui/DeleteLink'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/edit-building'
 

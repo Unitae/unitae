@@ -1,7 +1,7 @@
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import type { Territory } from '~/database/generated/client'
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { useEffect, useState } from 'react'
+import type { Territory } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { Entrance } from '~/shared/types/entrance'

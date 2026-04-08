@@ -1,6 +1,6 @@
 import { DocumentIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline'
-import type { BoardDocument } from '~/database/generated/client'
 import { Link } from 'react-router'
+import type { BoardDocument } from '~/database/generated/client'
 
 export function DocumentCard({ file, alreadyViewed = false }: { file: BoardDocument; alreadyViewed?: boolean }) {
   return (

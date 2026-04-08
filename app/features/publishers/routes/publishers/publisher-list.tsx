@@ -1,11 +1,11 @@
 import { ChartBarIcon, EnvelopeIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { Link, redirect } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
 import logger from '~/shared/libs/logger.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/publisher-list'
 

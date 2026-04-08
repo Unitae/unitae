@@ -1,17 +1,14 @@
 import { Link, redirect } from 'react-router'
-
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import Pagination from '~/shared/ui/Pagination'
-import EventFilters from '~/features/events/ui/EventFilters'
-
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { computeFilters } from '~/features/events/server/event-filters.server'
-
+import EventFilters from '~/features/events/ui/EventFilters'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
+import Pagination from '~/shared/ui/Pagination'
 
 import type { Route } from './+types/list'
 

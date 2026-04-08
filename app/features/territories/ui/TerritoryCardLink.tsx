@@ -1,6 +1,6 @@
 import { ArrowUpRightIcon } from '@heroicons/react/24/outline'
-import type { Territory } from '~/database/generated/client'
 import { Link } from 'react-router'
+import type { Territory } from '~/database/generated/client'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 

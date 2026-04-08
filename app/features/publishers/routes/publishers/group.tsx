@@ -1,10 +1,9 @@
 import { ChartBarIcon, EnvelopeIcon, EyeIcon, PencilIcon, PlusIcon } from '@heroicons/react/24/outline'
 import { Link, redirect } from 'react-router'
-
-import { getGroup } from '~/features/publishers/server/groups'
 import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getGroup } from '~/features/publishers/server/groups'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 

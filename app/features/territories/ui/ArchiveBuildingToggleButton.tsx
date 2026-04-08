@@ -1,6 +1,6 @@
 import { ArchiveBoxIcon, ArchiveBoxXMarkIcon } from '@heroicons/react/24/outline'
-import type { Building } from '~/database/generated/client'
 import { Form } from 'react-router'
+import type { Building } from '~/database/generated/client'
 
 export default function ArchiveBuildingToggleButton({ building }: { building: Building }) {
   if (building.active === true) {

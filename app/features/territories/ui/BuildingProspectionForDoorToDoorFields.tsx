@@ -1,7 +1,6 @@
 import { useState } from 'react'
-
-import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 
 export default function BuildingProspectionForDoorToDoorFields({
   isDisabled = false,

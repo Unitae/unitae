@@ -1,6 +1,9 @@
 import { Form, redirect } from 'react-router'
-
+import { verifySession } from '~/features/authentication/server/session.server'
+import { Role } from '~/features/authorization/model/roles.type'
+import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings'
+import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,
   parseTerritoryPolygon,
@@ -8,10 +11,6 @@ import {
   serializeTerritoryPolygon,
   serializeZips,
 } from '~/features/territories/server/settings'
-import { verifySession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 
 import type { Route } from './+types/settings'

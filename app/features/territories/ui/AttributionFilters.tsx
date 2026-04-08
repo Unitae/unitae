@@ -1,6 +1,6 @@
 import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline'
-import type { PublisherGroup } from '~/database/generated/client'
 import { Form, useSearchParams } from 'react-router'
+import type { PublisherGroup } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 interface AttributionFiltersProps {

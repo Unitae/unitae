@@ -1,12 +1,11 @@
 import { IdentificationIcon, UserPlusIcon } from '@heroicons/react/24/outline'
 import { data, Form, Link, redirect } from 'react-router'
-
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { congregationContext, db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
+import { AlertMessages } from '~/shared/ui/AlertMessages'
 
 import type { Route } from './+types/edit-user'
 
@@ -156,8 +155,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
         <div className="flex flex-wrap gap-3 max-sm:flex-col">
           {publisherNotUser ? (
             <p className="text-center text-sm">
-              Cette personne n'est pas utilisatrice de Unitae. Vous ne pouvez donner des droits qu'à des
-              utilisateurs.
+              Cette personne n'est pas utilisatrice de Unitae. Vous ne pouvez donner des droits qu'à des utilisateurs.
               <br />
               Pour transformer ce proclamateur en utilisateur, ajoutez lui une adresse email et réinitialisez son mot de
               passe.

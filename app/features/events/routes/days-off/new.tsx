@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import logger from '~/shared/libs/logger.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {

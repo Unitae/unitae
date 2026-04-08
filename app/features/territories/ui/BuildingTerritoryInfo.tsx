@@ -1,5 +1,5 @@
-import type { Building } from '~/database/generated/client'
 import { Form } from 'react-router'
+import type { Building } from '~/database/generated/client'
 
 export default function BuildingTerritoryInfo({ building }: { building: Building }) {
   return (

@@ -1,15 +1,14 @@
 import { Form, redirect } from 'react-router'
-
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
-import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
-import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
+import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
+import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
+import { requireCongregation } from '~/shared/libs/congregation.server'
 import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
-import { requireCongregation } from '~/shared/libs/congregation.server'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/new-publisher'
 

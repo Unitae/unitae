@@ -1,10 +1,9 @@
 import { BuildingOffice2Icon, CalendarDateRangeIcon, ChartPieIcon, MapIcon } from '@heroicons/react/24/outline'
 import { Link, Outlet, redirect } from 'react-router'
-import { MainNavigation } from '~/shared/ui/MainNavigation'
-
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { MainNavigation } from '~/shared/ui/MainNavigation'
 
 import type { Route } from './+types/_layout'
 

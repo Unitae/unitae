@@ -1,14 +1,14 @@
 import { Form, redirect } from 'react-router'
-import { getBoolSetting } from '~/features/settings/server/settings'
-import { aggregateEntrance } from '~/features/territories/server/buildings'
-import { HeroHeader } from '~/shared/ui/HeroHeader'
-import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { aggregateEntrance } from '~/features/territories/server/buildings'
+import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { db } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { HeroHeader } from '~/shared/ui/HeroHeader'
 
 import type { Route } from './+types/new'
 

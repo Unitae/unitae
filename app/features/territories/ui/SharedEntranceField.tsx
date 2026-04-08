@@ -1,6 +1,6 @@
 import { XMarkIcon } from '@heroicons/react/24/outline'
-import type { Building } from '~/database/generated/client'
 import { useEffect, useState } from 'react'
+import type { Building } from '~/database/generated/client'
 
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
 

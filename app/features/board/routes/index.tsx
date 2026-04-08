@@ -1,7 +1,7 @@
-import { DocumentCard } from '~/features/board/ui/DocumentCard'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { DocumentCard } from '~/features/board/ui/DocumentCard'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 

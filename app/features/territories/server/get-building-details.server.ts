@@ -1,5 +1,5 @@
-import { db } from '~/shared/libs/db.server'
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { db } from '~/shared/libs/db.server'
 
 export async function getBuildingDetails(buildingId: number): Promise<DetailedBuilding | null> {
   return await db.building.findUnique({

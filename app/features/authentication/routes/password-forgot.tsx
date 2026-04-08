@@ -1,12 +1,15 @@
 import ResetPassword from 'emails/reset-password'
-import { data, Form, redirect } from 'react-router'
-
-import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { data, Form, Link, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 
 import type { Route } from './+types/password-forgot'
 
@@ -28,45 +31,51 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
-  const messages = loaderData
+  const { error, success } = loaderData
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="flex max-w-[550px] flex-col items-center gap-16 p-5">
-        <header className="flex flex-col items-center gap-9">
-          <h1 className="leading font-semibold text-5xl text-gray-900 tracking-tight sm:text-7xl dark:text-gray-100">
-            Unitae
-          </h1>
-          <p>Indiquez votre adresse email pour retrouver votre compte</p>
-        </header>
-        <AlertMessages messages={messages} />
-        <Form method="post" className="w-full">
-          <label htmlFor="email" className="block font-semibold text-gray-900 text-sm leading-6 dark:text-gray-100">
-            Email
-          </label>
-          <div className="mt-2.5">
-            <input
-              id="email"
-              name="email"
-              type="email"
-              className="block w-full rounded-md border-0 px-3.5 py-2 text-gray-900 shadow-xs ring-1 ring-gray-300 ring-inset placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-600 focus:ring-inset dark:text-gray-100"
-              autoComplete="username"
-              // biome-ignore lint/a11y/noAutofocus: Here it is a bette UX to focus on the field
-              autoFocus={true}
-              required
-            />
-          </div>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="items-center space-y-2 text-center">
+          <h1 className="font-display font-bold text-3xl tracking-tight">Unitae</h1>
+          <p className="text-muted-foreground text-sm">Indiquez votre adresse email pour retrouver votre compte</p>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert className="mb-4">
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
+          <Form method="post" className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="username"
+                // biome-ignore lint/a11y/noAutofocus: Here it is a better UX to focus on the field
+                autoFocus={true}
+                required
+              />
+            </div>
 
-          <div className="mt-12">
-            <button
-              type="submit"
-              className="w-full rounded-sm bg-teal-700 px-4 py-2 text-white hover:bg-teal-900 focus:bg-blue-400"
-            >
+            <Button type="submit" className="mt-4 w-full">
               Envoyer
-            </button>
-          </div>
-        </Form>
-      </div>
+            </Button>
+          </Form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <Link to="/login" className="text-primary text-sm hover:underline">
+            Retour à la connexion
+          </Link>
+        </CardFooter>
+      </Card>
     </div>
   )
 }

@@ -1,8 +1,8 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
 import type { Entrance } from '~/shared/types/entrance'
 
 Font.register({
