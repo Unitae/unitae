@@ -27,6 +27,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '~/shared/ui/sidebar'
 import { ThemeToggle } from '~/shared/ui/ThemeToggle'
 
@@ -198,10 +199,18 @@ function SidebarNavItem({
   label: string
   end?: boolean
 }) {
+  const { isMobile, setOpenMobile } = useSidebar()
+
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild>
-        <NavLink to={to} end={end}>
+      <SidebarMenuButton asChild className="min-h-[44px] md:min-h-0">
+        <NavLink
+          to={to}
+          end={end}
+          onClick={() => {
+            if (isMobile) setOpenMobile(false)
+          }}
+        >
           <Icon className="size-4" />
           <span>{label}</span>
         </NavLink>

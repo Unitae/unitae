@@ -143,7 +143,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
               <Button variant="ghost" size="icon" onClick={handleMonthDecrease}>
                 <ChevronLeft className="size-4" />
               </Button>
-              <span className="min-w-[140px] text-center font-medium text-sm">
+              <span className="min-w-[120px] text-center font-medium text-sm sm:min-w-[140px]">
                 {selectedDate.toLocaleDateString('fr', {
                   month: 'long',
                   year: 'numeric',

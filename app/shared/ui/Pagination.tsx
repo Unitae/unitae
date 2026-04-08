@@ -25,7 +25,7 @@ export default function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-between gap-4 border-t pt-4 max-sm:flex-col-reverse">
+    <div className="flex items-center justify-between gap-2 border-t pt-4 sm:gap-4 max-sm:flex-col-reverse">
       <div className="flex items-center gap-2 text-muted-foreground text-sm">
         {total > 25 && (
           <>
