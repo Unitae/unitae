@@ -25,13 +25,17 @@ beforeEach(() => {
 })
 
 describe('createBuilding', () => {
-  it('crée un bâtiment sans coordonnées (inTerritory = false)', async () => {
+  it('crée un bâtiment sans coordonnées (inTerritory = true par défaut)', async () => {
+    vi.mocked(db.building.create).mockResolvedValue({ id: 1, inTerritory: true })
+
     const result = await createBuilding({
       address: { number: '12', street: 'Rue Test', zip: '75001' },
       congregationId: 1,
     })
 
-    expect(result).toEqual({ id: 1, inTerritory: false })
+    expect(result.inTerritory).toBe(true)
+    const callArgs = vi.mocked(db.building.create).mock.calls[0][0]
+    expect(callArgs.data.inTerritory).toBe(true)
   })
 
   it('vérifie les coordonnées contre le polygone du territoire', async () => {
@@ -68,6 +72,20 @@ describe('createBuilding', () => {
     })
 
     expect(vi.mocked(db.building.create)).toBeDefined()
+  })
+
+  it('considère le bâtiment dans le territoire quand le polygone est vide (non configuré)', async () => {
+    vi.mocked(getTerritoryPolygon).mockResolvedValue([])
+    vi.mocked(db.building.create).mockResolvedValue({ id: 4, inTerritory: true })
+
+    await createBuilding({
+      address: { number: '5', street: 'Rue Test', zip: '75001' },
+      coordinates: { latitude: 5, longitude: 5 },
+      congregationId: 1,
+    })
+
+    const callArgs = vi.mocked(db.building.create).mock.calls[0][0]
+    expect(callArgs.data.inTerritory).toBe(true)
   })
 
   it('marque inTerritory false quand le point est hors du polygone', async () => {

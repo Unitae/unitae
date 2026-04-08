@@ -12,10 +12,12 @@ export async function createBuilding({
   coordinates?: { latitude?: number; longitude?: number }
   congregationId: number
 }): Promise<DetailedBuilding> {
-  let isInTerritory = false
+  let isInTerritory = true
   if (coordinates.latitude != null && coordinates.longitude != null) {
     const polygon = await getTerritoryPolygon()
-    isInTerritory = pointInPolygon([coordinates.latitude, coordinates.longitude], polygon)
+    if (polygon.length > 0) {
+      isInTerritory = pointInPolygon([coordinates.latitude, coordinates.longitude], polygon)
+    }
   }
 
   return db.building.create({

@@ -41,7 +41,7 @@ export async function importOpenData(congregationId: number, progressCallback: (
           return
         }
 
-        const isActive = pointInPolygon([Number(lat), Number(long)], territory)
+        const isActive = territory.length > 0 ? pointInPolygon([Number(lat), Number(long)], territory) : true
         await db.building.upsert({
           where: {
             address: {
