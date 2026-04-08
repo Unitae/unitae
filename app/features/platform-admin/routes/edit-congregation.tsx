@@ -14,7 +14,7 @@ import { Separator } from '~/shared/ui/separator'
 import type { Route } from './+types/edit-congregation'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Modifier une congregation - Unitae Admin' }]
+  return [{ title: 'Modifier une assemblée locale - Unitae Admin' }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {

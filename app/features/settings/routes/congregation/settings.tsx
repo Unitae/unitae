@@ -45,7 +45,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
       <Form method="post" className="flex flex-col gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Congrégation</CardTitle>
+            <CardTitle>Assemblée locale</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
@@ -54,7 +54,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
                 id="displayName"
                 name="displayName"
                 type="text"
-                placeholder="Nom affiché de la congrégation"
+                placeholder="Nom affiché de l'assemblée locale"
                 defaultValue={congregationDisplayName}
               />
               <p className="text-muted-foreground text-xs">
