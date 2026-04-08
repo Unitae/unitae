@@ -171,15 +171,13 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
           <SidebarNavItem to="/me/profile" icon={User} label="Mon profil" />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label="Mes absences" />
           <SidebarMenuItem>
-            <Form action="/logout" method="post">
-              <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
-                <LogOut className="size-4" />
-                <span>Déconnexion</span>
-              </SidebarMenuButton>
-            </Form>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <div className="px-2 py-1">
+            <div className="flex items-center justify-between">
+              <Form action="/logout" method="post">
+                <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
+                  <LogOut className="size-4" />
+                  <span>Déconnexion</span>
+                </SidebarMenuButton>
+              </Form>
               <ThemeToggle />
             </div>
           </SidebarMenuItem>
