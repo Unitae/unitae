@@ -82,7 +82,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   logger.info(`Creating new days off. User ID: ${currentUser.id}.`)
 
-  const event = createDayOff(currentUser.id, startDate, endDate, congregation.id)
+  const event = await createDayOff(currentUser.id, startDate, endDate, congregation.id)
   if (event == null) {
     session.flash('error', `Impossible d'ajouter cette absence. Les dates sont invalides.`)
     logger.info(`Failed to creating new days off. User ID: ${currentUser.id}.`)
