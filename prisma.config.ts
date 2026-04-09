@@ -4,6 +4,7 @@ import { defineConfig } from 'prisma/config'
 
 export default defineConfig({
   datasource: {
+    // biome-ignore lint/style/noNonNullAssertion: required by Prisma config, validated at app startup
     url: process.env.DATABASE_URL!,
   },
   migrations: {

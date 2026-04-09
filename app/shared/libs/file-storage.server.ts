@@ -29,8 +29,18 @@ const BUCKET = process.env.S3_BUCKET ?? 'unitae'
 async function s3Upload(key: string, body: ArrayBuffer | Buffer | Uint8Array, contentType: string): Promise<void> {
   const { PutObjectCommand } = await import('@aws-sdk/client-s3')
   const s3 = await getS3Client()
-  // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
-  await s3.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body instanceof ArrayBuffer ? new Uint8Array(body) : body, ContentType: contentType }))
+  await s3.send(
+    new PutObjectCommand({
+      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
+      Bucket: BUCKET,
+      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
+      Key: key,
+      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
+      Body: body instanceof ArrayBuffer ? new Uint8Array(body) : body,
+      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
+      ContentType: contentType,
+    }),
+  )
 }
 
 async function s3GetFile(key: string): Promise<{ body: ReadableStream; contentType: string } | null> {
@@ -138,11 +148,7 @@ async function localDelete(key: string): Promise<void> {
 
 // --- Public API (delegates to active driver) ---
 
-export function uploadFile(
-  key: string,
-  body: ArrayBuffer | Buffer | Uint8Array,
-  contentType: string,
-): Promise<void> {
+export function uploadFile(key: string, body: ArrayBuffer | Buffer | Uint8Array, contentType: string): Promise<void> {
   return useS3 ? s3Upload(key, body, contentType) : localUpload(key, body, contentType)
 }
 
