@@ -31,12 +31,12 @@ describe('getTerritoriesExportData', () => {
     expect(result).toEqual(fakeTerritories)
   })
 
-  it('retourne un tableau vide quand il n\'y a pas de territoires', async () => {
+  it("retourne un tableau vide quand il n'y a pas de territoires", async () => {
     const result = await getTerritoriesExportData(2025)
     expect(result).toEqual([])
   })
 
-  it('passe l\'année théocratique aux fonctions de date', async () => {
+  it("passe l'année théocratique aux fonctions de date", async () => {
     await getTerritoriesExportData(2024)
 
     // Vérifier que les fonctions de date ont été utilisées (via le résultat)
@@ -47,10 +47,9 @@ describe('getTerritoriesExportData', () => {
   it('inclut les attributions anciennes encore actives (sans date de fin)', async () => {
     await getTerritoriesExportData(2025)
 
-    const call = vi.mocked(db.territory.findMany).mock.calls[0][0] as {
-      include: { attributions: { where: { OR: Array<Record<string, unknown>> } } }
-    }
-    const orConditions = call.include.attributions.where.OR
+    const call = vi.mocked(db.territory.findMany).mock.calls[0][0] as Record<string, unknown>
+    const attrWhere = (call.include as { attributions: { where: Record<string, unknown> } }).attributions.where
+    const orConditions = attrWhere.OR as Record<string, unknown>[]
 
     // La 4e condition attrape les attributions démarrées avant l'année précédente et toujours ouvertes
     expect(orConditions).toHaveLength(4)

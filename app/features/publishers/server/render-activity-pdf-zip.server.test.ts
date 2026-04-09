@@ -45,18 +45,17 @@ describe('renderActivityPdfZip', () => {
 
     await renderActivityPdfZip(2025)
 
-    const call = vi.mocked(db.user.findMany).mock.calls[0][0] as {
-      where: { activities: { some: { OR: Array<{ year: number; month: { gte?: number; lte?: number } }> } } }
-      include: { activities: { where: { OR: Array<{ year: number; month: { gte?: number; lte?: number } }> } } }
-    }
+    const call = vi.mocked(db.user.findMany).mock.calls[0][0] as Record<string, unknown>
+    const where = (call.where as { activities: { some: Record<string, unknown> } }).activities.some
+    const include = (call.include as { activities: { where: Record<string, unknown> } }).activities.where
 
     // Vérifier le filtre WHERE (sélection des users)
-    const whereOr = call.where.activities.some.OR
+    const whereOr = where.OR as { year: number; month: { gte?: number; lte?: number } }[]
     expect(whereOr[0]).toEqual({ year: 2025, month: { gte: 8 } })
     expect(whereOr[1]).toEqual({ year: 2026, month: { lte: 7 } })
 
     // Vérifier le filtre INCLUDE (sélection des activités)
-    const includeOr = call.include.activities.where.OR
+    const includeOr = include.OR as { year: number; month: { gte?: number; lte?: number } }[]
     expect(includeOr[0]).toEqual({ year: 2025, month: { gte: 8 } })
     expect(includeOr[1]).toEqual({ year: 2026, month: { lte: 7 } })
   })
