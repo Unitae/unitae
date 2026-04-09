@@ -5,3 +5,7 @@ export enum PublisherType {
   PionnierSpecial = 'pionnier-special',
   Missionnaire = 'missionnaire',
 }
+
+export function publisherTypeReportsHours(type: string): boolean {
+  return type !== PublisherType.Normal
+}

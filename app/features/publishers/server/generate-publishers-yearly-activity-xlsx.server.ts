@@ -1,7 +1,7 @@
 import excelJs from 'exceljs'
 
 import { db } from '~/shared/libs/db.server'
-import { PublisherType } from '~/shared/types/publisher-type'
+import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic
 export async function generatePublishersYearlyActivityXlsx(year: number) {
@@ -76,7 +76,7 @@ export async function generatePublishersYearlyActivityXlsx(year: number) {
 
       let hours = ''
       if (activity.isPublisher) hours = 'A préché'
-      if (activity.type === PublisherType.PionnierPermanant) hours = String(activity.hours)
+      if (publisherTypeReportsHours(activity.type)) hours = String(activity.hours)
 
       worksheet.addRow([
         `${activity.publisher.firstname} ${activity.publisher.lastname}`,
