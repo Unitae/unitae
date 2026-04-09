@@ -48,6 +48,8 @@ RESEND_API_KEY="re_123"
 SESSION_SECRET="your-secret-key"
 REDIS_HOST="localhost"
 REDIS_PORT="6379"
+GOOGLE_MAPS_API_KEY=""              # Optional — enables maps on territory pages and PDF exports
+GOOGLE_MAPS_MAP_ID=""               # Optional — enables custom styled maps
 ```
 
 ## Architecture Overview
