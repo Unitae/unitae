@@ -7,7 +7,8 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
 }))
 
-const { fetchTerritoryCounts, getTotalTerritoryCount } = await import('./fetch-territory-counts.server')
+const { fetchTerritoryCounts } = await import('./fetch-territory-counts.server')
+const { getTotalTerritoryCount } = await import('./territory-count-by-type.type')
 const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
@@ -27,6 +28,16 @@ describe('fetchTerritoryCounts', () => {
       { type: TerritoryKind.Classical, count: 30 },
       { type: TerritoryKind.Commerces, count: 5 },
     ])
+  })
+
+  it('fonctionne sans filtre de types', async () => {
+    vi.mocked(db.territory.groupBy).mockResolvedValue([
+      { type: 'doors-to-doors', _count: { id: 20 } },
+    ] as never)
+
+    const result = await fetchTerritoryCounts()
+
+    expect(result).toEqual([{ type: TerritoryKind.Classical, count: 20 }])
   })
 })
 

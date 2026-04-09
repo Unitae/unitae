@@ -47,7 +47,7 @@ describe('computeRestPeriodUtilization', () => {
     expect(computeRestPeriodUtilization(attributions)).toBe(0)
   })
 
-  it('calcule les jours d\'inactivité après la fin du repos', () => {
+  it('calcule les jours d\'inactivité après la fin du repos (campagne, 15j)', () => {
     // Le repos pour campagne est de 15 jours
     // Attribution se termine le 1er jan, repos finit le 16 jan
     // Prochaine attribution commence le 26 jan = 10 jours d'inactivité post-repos
@@ -56,5 +56,24 @@ describe('computeRestPeriodUtilization', () => {
       makeAttribution(1, TerritoryAttributionKind.Campaign, new Date(2025, 0, 26), new Date(2025, 1, 26), 2),
     ]
     expect(computeRestPeriodUtilization(attributions)).toBe(10)
+  })
+
+  it('utilise la période de repos téléphone (15 jours)', () => {
+    // Attribution téléphone se termine le 1er jan, repos finit le 16 jan
+    // Prochaine attribution commence le 26 jan = 10 jours d'inactivité post-repos
+    const attributions = [
+      makeAttribution(1, TerritoryAttributionKind.Phone, new Date(2024, 11, 1), new Date(2025, 0, 1), 1),
+      makeAttribution(1, TerritoryAttributionKind.Phone, new Date(2025, 0, 26), new Date(2025, 1, 26), 2),
+    ]
+    expect(computeRestPeriodUtilization(attributions)).toBe(10)
+  })
+
+  it('ignore les attributions en cours (endDate null)', () => {
+    const attributions = [
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 0, 1), null, 1),
+      makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 6, 1), new Date(2025, 7, 1), 2),
+    ]
+    // Première attribution sans endDate → impossible de calculer la fin de repos
+    expect(computeRestPeriodUtilization(attributions)).toBe(0)
   })
 })

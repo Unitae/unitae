@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { TerritoryCountByType } from './fetch-territory-counts.server'
+import type { TerritoryCountByType } from './territory-count-by-type.type'
 import type { StatsAttribution } from './stats-attribution.type'
 import { computeCoverageByTerritoryType } from './compute-coverage-by-territory-type.server'
 
@@ -61,5 +61,30 @@ describe('computeCoverageByTerritoryType', () => {
 
     expect(result[0].coverage).toBe(0)
     expect(result[0].totalCoverage).toBe(0)
+  })
+
+  it('utilise le type brut comme label pour un type inconnu avec 0 territoires', () => {
+    const counts: TerritoryCountByType[] = [{ type: 'special' as TerritoryKind, count: 0 }]
+    const result = computeCoverageByTerritoryType([], counts)
+
+    expect(result[0].label).toBe('special')
+  })
+
+  it('utilise le type brut comme label quand le type est inconnu', () => {
+    const counts: TerritoryCountByType[] = [{ type: 'unknown-type' as TerritoryKind, count: 5 }]
+    const result = computeCoverageByTerritoryType([], counts)
+
+    expect(result[0].label).toBe('unknown-type')
+    expect(result[0].kind).toBe('unknown-type')
+  })
+
+  it('utilise le type brut comme label pour un type inconnu avec des attributions', () => {
+    const counts: TerritoryCountByType[] = [{ type: 'custom' as TerritoryKind, count: 2 }]
+    const attributions = [makeAttribution(1, 'custom' as TerritoryKind)]
+
+    const result = computeCoverageByTerritoryType(attributions, counts)
+
+    expect(result[0].label).toBe('custom')
+    expect(result[0].coverage).toBe(50)
   })
 })

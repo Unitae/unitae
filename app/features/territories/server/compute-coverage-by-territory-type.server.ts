@@ -1,5 +1,5 @@
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { TerritoryCountByType } from './fetch-territory-counts.server'
+import type { TerritoryCountByType } from './territory-count-by-type.type'
 import type { StatsAttribution } from './stats-attribution.type'
 
 export interface CoverageByType {

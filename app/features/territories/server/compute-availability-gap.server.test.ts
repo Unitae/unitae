@@ -56,4 +56,16 @@ describe('computeAvailabilityGap', () => {
     // On ne peut pas calculer de gap car la première attribution n'a pas de date de fin
     expect(computeAvailabilityGap(attributions)).toBe(0)
   })
+
+  it('ignore les gaps négatifs (attributions qui se chevauchent)', () => {
+    const attributions = [
+      // Territoire 1 : chevauchement (la suivante commence avant que la première finisse)
+      makeAttribution(1, new Date(2025, 0, 1), new Date(2025, 1, 15), 1),
+      makeAttribution(1, new Date(2025, 1, 1), new Date(2025, 2, 15), 2), // commence 14 jours avant la fin de la précédente
+      // Territoire 1 : gap positif de 15 jours
+      makeAttribution(1, new Date(2025, 3, 1), new Date(2025, 4, 1), 3),
+    ]
+    // Seul le gap entre la 2e et la 3e est positif (17 jours)
+    expect(computeAvailabilityGap(attributions)).toBe(17)
+  })
 })

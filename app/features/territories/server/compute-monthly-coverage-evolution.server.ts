@@ -1,5 +1,5 @@
-import type { TerritoryCountByType } from './fetch-territory-counts.server'
-import { getTotalTerritoryCount } from './fetch-territory-counts.server'
+import type { TerritoryCountByType } from './territory-count-by-type.type'
+import { getTotalTerritoryCount } from './territory-count-by-type.type'
 import type { StatsAttribution } from './stats-attribution.type'
 
 export interface MonthlyCoverage {

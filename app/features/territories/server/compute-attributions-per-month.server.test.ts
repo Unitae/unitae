@@ -51,4 +51,17 @@ describe('computeAttributionsPerMonth', () => {
     expect(result[0].month).toBe('2025-09')
     expect(result[11].month).toBe('2026-08')
   })
+
+  it('ignore les attributions dont le mois de début est hors période', () => {
+    const attributions = [
+      makeAttribution(new Date(2025, 7, 15), 1), // août, hors période sept-nov
+      makeAttribution(new Date(2025, 8, 10), 2), // septembre, dans la période
+    ]
+
+    const result = computeAttributionsPerMonth(attributions, new Date(2025, 8, 1), new Date(2025, 10, 30))
+
+    expect(result[0].count).toBe(1) // Seule l'attribution de septembre compte
+    expect(result[1].count).toBe(0)
+    expect(result[2].count).toBe(0)
+  })
 })
