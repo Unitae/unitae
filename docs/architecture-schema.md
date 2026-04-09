@@ -112,6 +112,21 @@ Key structure (same for both drivers):
 
 Self-hosted users need no S3 setup — document uploads work out of the box with local storage.
 
+## Google Maps Integration
+
+Territory features use Google Maps for interactive maps (building entrance locations) and static map images in territory PDF cards.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `GOOGLE_MAPS_API_KEY` | No | Google Maps API key — enables map rendering on territory pages and static maps in PDF exports |
+| `GOOGLE_MAPS_MAP_ID` | No | Google Maps Map ID — enables custom styled maps (requires `GOOGLE_MAPS_API_KEY`) |
+
+When `GOOGLE_MAPS_API_KEY` is not set, map features are silently disabled: interactive maps are hidden and PDF territory cards skip the map page. Self-hosted users who don't need maps can leave these unset.
+
+The API key must have the following Google APIs enabled:
+- **Maps JavaScript API** — for interactive maps on territory and split-tool pages
+- **Maps Static API** — for map images in territory PDF cards
+
 ## Background Job Flow
 
 ```

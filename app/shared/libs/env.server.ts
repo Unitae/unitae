@@ -6,6 +6,10 @@ function requireEnv(name: string): string {
   return value
 }
 
+export function getOptionalEnv(name: string): string | undefined {
+  return process.env[name] || undefined
+}
+
 export function validateEnv() {
   requireEnv('DATABASE_URL')
   requireEnv('SESSION_SECRET')

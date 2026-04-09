@@ -4,7 +4,8 @@ import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { getBoolSetting, getSetting } from '~/features/settings/server/settings'
+import { getBoolSetting } from '~/features/settings/server/settings'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
@@ -32,7 +33,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const apiKey = await getSetting(TerritorySettingKey.GoogleMapsApiKey)
+  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
   const url = new URL(request.url)
   const zips = await db.building.groupBy({
