@@ -4,7 +4,8 @@ import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { getBoolSetting, getSetting } from '~/features/settings/server/settings'
+import { getBoolSetting } from '~/features/settings/server/settings'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
@@ -53,8 +54,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       status: 404,
     })
   }
-  const apiKey = await getSetting(TerritorySettingKey.GoogleMapsApiKey)
-  const mapId = await getSetting(TerritorySettingKey.GoogleMapsMapId)
+  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
+  const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
   const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
 
   const zips = await getAvailableZips(territory.type as TerritoryKind)

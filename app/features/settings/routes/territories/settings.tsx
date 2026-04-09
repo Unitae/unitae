@@ -38,8 +38,6 @@ export async function loader({ request }: Route.LoaderArgs) {
   const zips = await getAllowedZips()
   const banoUrl = await getSetting(TerritorySettingKey.BanoUrl)
   const prospectionValidity = await getSetting(TerritorySettingKey.ProspectionValidity)
-  const mapId = await getSetting(TerritorySettingKey.GoogleMapsMapId)
-  const apiKey = await getSetting(TerritorySettingKey.GoogleMapsApiKey)
   const phoneTypeActivated = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
 
   return {
@@ -47,14 +45,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     zips: serializeZips(zips),
     banoUrl: banoUrl ?? '',
     prospectionValidity: Number(prospectionValidity ?? '24'),
-    apiKey: apiKey ?? '',
-    mapId: mapId ?? '',
     phoneTypeActivated: phoneTypeActivated ?? false,
   }
 }
 
 export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
-  const { territory, zips, banoUrl, prospectionValidity, mapId, apiKey, phoneTypeActivated } = loaderData
+  const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -132,36 +128,6 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>APIs externes</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="flex gap-4 max-sm:flex-col">
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="api-google-map">Clé d'API Google Map</Label>
-                <Input
-                  id="api-google-map"
-                  name="api-google-map"
-                  type="text"
-                  placeholder="Entrez la clé d'API du compte Google Maps de l'assemblée"
-                  defaultValue={apiKey}
-                />
-              </div>
-              <div className="flex-1 space-y-2">
-                <Label htmlFor="mapid-google-map">Identifiant de carte Google Map</Label>
-                <Input
-                  id="mapid-google-map"
-                  name="mapid-google-map"
-                  type="text"
-                  placeholder="Entrez un identifiant de carte"
-                  defaultValue={mapId}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         <Button type="submit">Enregistrer</Button>
       </Form>
     </div>
@@ -181,16 +147,12 @@ export async function action({ request }: Route.ActionArgs) {
   const territory = parseTerritoryPolygon(String(form.get('territory')))
   const banoUrl = String(form.get('bano-url'))
   const prospectionValidity = String(form.get('prospection-validity'))
-  const mapId = String(form.get('mapid-google-map'))
-  const apiKey = String(form.get('api-google-map'))
   const phoneTypeActivated = String(Boolean(form.get('phone-territory-active')))
 
   await setSetting(TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), congregation.id)
   await setSetting(TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), congregation.id)
   await setSetting(TerritorySettingKey.BanoUrl, banoUrl, congregation.id)
   await setSetting(TerritorySettingKey.ProspectionValidity, prospectionValidity, congregation.id)
-  await setSetting(TerritorySettingKey.GoogleMapsApiKey, apiKey, congregation.id)
-  await setSetting(TerritorySettingKey.GoogleMapsMapId, mapId, congregation.id)
   await setSetting(TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, congregation.id)
 
   return redirect('/settings')

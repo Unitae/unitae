@@ -4,13 +4,12 @@ import type { Prisma } from '~/database/generated/client'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { getSetting } from '~/features/settings/server/settings'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings'
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
-import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
 
@@ -28,7 +27,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const apiKey = await getSetting(TerritorySettingKey.GoogleMapsApiKey)
+  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const url = new URL(request.url)
   const filters = computeFilters(url.searchParams)
   const selectors: Prisma.BuildingWhereInput = {
