@@ -21,7 +21,7 @@ export async function renderActivityPdfZip(year: number) {
             {
               year: yearBegining.getFullYear() + 1,
               month: {
-                lte: 11,
+                lte: 7,
               },
             },
           ],
@@ -48,7 +48,7 @@ export async function renderActivityPdfZip(year: number) {
             {
               year: yearBegining.getFullYear() + 1,
               month: {
-                lte: 11,
+                lte: 7,
               },
             },
           ],
