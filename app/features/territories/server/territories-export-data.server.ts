@@ -41,6 +41,12 @@ export async function getTerritoriesExportData(theocraticYear?: number) {
               },
               endDate: null,
             },
+            {
+              startDate: {
+                lt: startDatePreviousYear,
+              },
+              endDate: null,
+            },
           ],
         },
         include: {

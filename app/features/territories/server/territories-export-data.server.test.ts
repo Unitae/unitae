@@ -43,4 +43,20 @@ describe('getTerritoriesExportData', () => {
     expect(vi.mocked(getBeginingDateOfTheocraticYear).mock.calls[0][0]).toBe(2024)
     expect(vi.mocked(getEndDateOfTheocraticYear).mock.calls[0][0]).toBe(2024)
   })
+
+  it('inclut les attributions anciennes encore actives (sans date de fin)', async () => {
+    await getTerritoriesExportData(2025)
+
+    const call = vi.mocked(db.territory.findMany).mock.calls[0][0] as {
+      include: { attributions: { where: { OR: Array<Record<string, unknown>> } } }
+    }
+    const orConditions = call.include.attributions.where.OR
+
+    // La 4e condition attrape les attributions démarrées avant l'année précédente et toujours ouvertes
+    expect(orConditions).toHaveLength(4)
+    expect(orConditions[3]).toEqual({
+      startDate: { lt: new Date(2024, 8, 1) },
+      endDate: null,
+    })
+  })
 })
