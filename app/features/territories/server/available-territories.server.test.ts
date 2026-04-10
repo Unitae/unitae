@@ -23,14 +23,14 @@ describe('countAvailableTerritories', () => {
   it('retourne le nombre de territoires disponibles', async () => {
     vi.mocked(db.territory.count).mockResolvedValue(12)
 
-    const result = await countAvailableTerritories()
+    const result = await countAvailableTerritories(db)
     expect(result).toBe(12)
   })
 
-  it('retourne 0 quand aucun territoire n\'est disponible', async () => {
+  it("retourne 0 quand aucun territoire n'est disponible", async () => {
     vi.mocked(db.territory.count).mockResolvedValue(0)
 
-    const result = await countAvailableTerritories()
+    const result = await countAvailableTerritories(db)
     expect(result).toBe(0)
   })
 })

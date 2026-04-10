@@ -4,23 +4,23 @@
 
 ```
                          ┌──────────────────┐
-                         │     Traefik       │
-                         │   your.domain     │
+                         │  Reverse Proxy   │
+                         │   your.domain    │
                          └────────┬─────────┘
                                   │
                     ┌─────────────┼─────────────┐
-                    │             │              │
-              ┌─────▼─────┐ ┌────▼─────┐ ┌─────▼─────┐
+                    │             │             │
+              ┌─────▼──────┐ ┌────▼─────┐ ┌─────▼─────┐
               │  Web Pod   │ │ Web Pod  │ │ Web Pod   │
               │ (port 8080)│ │(port 8080│ │(port 8080)│
               └─────┬──────┘ └────┬─────┘ └─────┬─────┘
-                    │             │              │
-         ┌─────────┴─────────────┴──────────────┘
+                    │             │             │
+         ┌──────────┴─────────────┴─────────────┘
          │
-    ┌────▼────┐    ┌───────┐    ┌──────────┐    ┌──────────────┐
-    │PostgreSQL│    │ Redis │    │  Worker   │    │ File Storage │
-    │  (PVC)  │    │ (PVC) │    │ (BullMQ) │    │ (S3 or local)│
-    └─────────┘    └───────┘    └──────────┘    └──────────────┘
+    ┌────▼─────┐    ┌───────┐    ┌──────────┐    ┌──────────────┐
+    │PostgreSQL│    │ Redis │    │  Worker  │    │ File Storage │
+    │   (PVC)  │    │ (PVC) │    │ (BullMQ) │    │ (S3 or local)│
+    └──────────┘    └───────┘    └──────────┘    └──────────────┘
 ```
 
 ## Multi-Tenancy Model
@@ -29,67 +29,70 @@
 ┌─────────────────────────────────────────────────────────┐
 │                      Platform                           │
 │                                                         │
-│  ┌─────────────────┐  ┌─────────────────┐              │
-│  │  Congregation A  │  │  Congregation B  │  ...        │
-│  │  (slug: lyon)    │  │  (slug: paris)   │              │
-│  │                  │  │                  │              │
-│  │  Users           │  │  Users           │              │
-│  │  Territories     │  │  Territories     │              │
-│  │  Buildings       │  │  Buildings       │              │
-│  │  Attributions    │  │  Attributions    │              │
-│  │  Activities      │  │  Activities      │              │
-│  │  Events          │  │  Events          │              │
-│  │  Settings        │  │  Settings        │              │
-│  │  Board Docs      │  │  Board Docs      │              │
-│  └─────────────────┘  └─────────────────┘              │
+│  ┌─────────────────┐  ┌──────────────────┐              │
+│  │ Congregation A  │  │  Congregation B  │   ...        │
+│  │ (slug: lyon)    │  │  (slug: paris)   │              │
+│  │                 │  │                  │              │
+│  │  Users          │  │  Users           │              │
+│  │  Territories    │  │  Territories     │              │
+│  │  Buildings      │  │  Buildings       │              │
+│  │  Attributions   │  │  Attributions    │              │
+│  │  Activities     │  │  Activities      │              │
+│  │  Events         │  │  Events          │              │
+│  │  Settings       │  │  Settings        │              │
+│  │  Board Docs     │  │  Board Docs      │              │
+│  └─────────────────┘  └──────────────────┘              │
 │                                                         │
-│  Global: UserRole (14 role definitions)                  │
+│  Global: UserRole (14 role definitions)                 │
 │  Global: PasswordResetToken                             │
-│  Platform: User.platformAdmin for /platform-admin/      │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## Request Flow
 
-1. **Traefik** routes incoming requests to web pods
+1. **Reverse Proxy** (Traefik/Nginx) routes incoming requests to web pods
 2. **React Router** matches route, runs loader/action
-3. **`verifySession()`** authenticates user, resolves congregation, sets `AsyncLocalStorage` context
-4. **Prisma extension** auto-injects `congregationId` into all scoped queries
-5. **Service layer** (`features/*/server/`) handles business logic
+3. **`authenticateAndAuthorize(request, roles)`** authenticates user, checks roles, and returns a **scoped `db` client**
+4. **Scoped `db`** auto-injects `congregationId` into all queries (via closure, not AsyncLocalStorage)
+5. **Service layer** (`features/*/server/`) receives `db` as first parameter and handles business logic
 6. **Route component** renders with loader data
 
-> **Important**: Route actions must call `verifySession(request)` and use the returned `congregation` object directly (e.g., `congregation.id`) instead of reading from `congregationContext.getStore()`. The Prisma 7 pg adapter breaks AsyncLocalStorage propagation across async boundaries — context set by `enterWith()` can be lost after awaited Prisma queries.
+```
+Request → authenticateAndAuthorize(request, [Role.X, Role.Y])
+        → verifySession(request)     // authenticates user
+        → verifyRole(request, role)  // checks permissions (via Promise.all)
+        → createScopedDb(congregationId)  // scoped db from closure
+        → return { currentUser, congregation, session, can, db }
+```
+
+> **Why not AsyncLocalStorage?** The Prisma 7 pg adapter breaks ALS propagation after async queries. Using a closure-based scoped `db` client eliminates this issue entirely.
 
 ## Authentication & Role Flow
 
 ```
-Login → validateCredentials (unscopedDb)
-     → set session cookie (userId)
-     → redirect to /
+Login → validateCredentials(email, password)
+      → set session cookie (userId)
+      → redirect to /
 
-Protected Route → verifySession(request)
-              → fetch user (unscopedDb)
-              → resolveCongregation(user.congregationId)
-              → congregationContext.enterWith({ congregationId, congregation })
-              → return { currentUser, congregation, session }
+Protected Route → authenticateAndAuthorize(request, [roles])
+                → verifySession: fetch user (unscopedDb)
+                → verifyRole: check CongregationUserRole (unscopedDb, via Promise.all)
+                → createScopedDb(congregationId)  // closure-based, no ALS
+                → return { currentUser, congregation, session, can, db }
 
-Role Check → verifyRole(request, roleKey)
-          → query CongregationUserRole (unscopedDb)
-          → check: admin for this congregation? OR has specific role?
-
-Registration → /register (open, no auth)
-            → create Congregation + User + CongregationUserRole(admin) + default EventKind
-            → set session, redirect to /
+Role Check → can(Role.TerritoriesViewer) → boolean
+           (resolved during authenticateAndAuthorize, no extra DB query)
 ```
 
 ## Data Isolation
 
-- **`db`** (scoped): Auto-injects `congregationId` — use for all authenticated routes
-- **`unscopedDb`** (global): No injection — use for login, setup, health, password reset, platform admin
+- **`db` from `authenticateAndAuthorize`** (scoped): Injects `congregationId` via closure — use in all authenticated routes and pass to service functions
+- **`unscopedDb`** (global): No injection — use for login, setup, health, password reset
+- **`createScopedDb(congregationId)`**: Creates a scoped client for non-route contexts (e.g., background workers)
 - **Scoped models** (12): User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
 - **Global models**: UserRole, Congregation, CongregationUserRole, PasswordResetToken
 
-> **Important**: Never use `congregationId: 0 as number` as a placeholder. Always pass the real `congregation.id` from `verifySession()`. The `0` placeholder relied on the Prisma extension to replace it at runtime, but context loss causes FK violations.
+> **Important**: Service functions must receive `db: ScopedDb` as their first parameter. Never import the global `db` in service functions — it relies on AsyncLocalStorage which is unreliable with the Prisma 7 pg adapter.
 
 ## File Storage
 
@@ -110,7 +113,7 @@ Key structure (same for both drivers):
 │       └── {uuid}.pdf.meta    ← content-type sidecar (local driver only)
 ```
 
-Self-hosted users need no S3 setup — document uploads work out of the box with local storage.
+No S3 setup needed — document uploads work out of the box with local storage.
 
 ## Google Maps Integration
 
@@ -121,7 +124,7 @@ Territory features use Google Maps for interactive maps (building entrance locat
 | `GOOGLE_MAPS_API_KEY` | No | Google Maps API key — enables map rendering on territory pages and static maps in PDF exports |
 | `GOOGLE_MAPS_MAP_ID` | No | Google Maps Map ID — enables custom styled maps (requires `GOOGLE_MAPS_API_KEY`) |
 
-When `GOOGLE_MAPS_API_KEY` is not set, map features are silently disabled: interactive maps are hidden and PDF territory cards skip the map page. Self-hosted users who don't need maps can leave these unset.
+When `GOOGLE_MAPS_API_KEY` is not set, map features are silently disabled: interactive maps are hidden and PDF territory cards skip the map page.
 
 The API key must have the following Google APIs enabled:
 - **Maps JavaScript API** — for interactive maps on territory and split-tool pages
@@ -133,11 +136,11 @@ The API key must have the following Google APIs enabled:
 User triggers sync → syncQueue.add({ userEmail, userName, congregationId })
                    → Redis queue
 
-Worker picks up job → resolveCongregation(congregationId)
-                   → congregationContext.enterWith({ congregationId, congregation })
-                   → importOpenData(congregationId, progressCallback)
-                   → sendMailAfterDataSync(email, name, congregation)
-                   → job complete
+Worker picks up job → createScopedDb(congregationId)
+                    → resolveCongregation(congregationId)
+                    → importOpenData(db, congregationId, progressCallback)
+                    → sendMailAfterDataSync(email, name, congregation)
+                    → job complete
 ```
 
 ## Testing
@@ -159,7 +162,5 @@ Testing conventions:
 
 - **Session**: Cookie-based, `SESSION_SECRET` required, rate-limited login (5/15min)
 - **Passwords**: scrypt hashed, reset via time-limited tokens (24h)
-- **Roles**: Congregation-scoped via CongregationUserRole — admin in A ≠ admin in B
-- **Platform admin**: Separate `platformAdmin` boolean on User
-- **K8s**: PSS restricted, seccomp, NetworkPolicies, non-root pods
+- **Roles**: Congregation-scoped via CongregationUserRole
 - **Files**: Congregation-scoped storage keys, UUID filenames

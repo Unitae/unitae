@@ -19,7 +19,7 @@ beforeEach(() => {
 })
 
 describe('resetUserPassword', () => {
-  it('ne lance pas d\'erreur en fonctionnement normal', async () => {
+  it("ne lance pas d'erreur en fonctionnement normal", async () => {
     await expect(resetUserPassword(1, 'nouveau-mdp')).resolves.toBeUndefined()
   })
 })

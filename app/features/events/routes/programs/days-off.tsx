@@ -1,11 +1,10 @@
 import { CalendarOff } from 'lucide-react'
 import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -20,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
   const canViewPrograms = can(Role.ProgramViewer)
   const canManagePrograms = can(Role.ProgramManager)
 

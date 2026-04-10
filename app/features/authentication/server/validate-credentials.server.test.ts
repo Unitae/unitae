@@ -21,7 +21,7 @@ beforeEach(() => {
 describe('validateCredentials', () => {
   const fakeUser = { id: 42, email: 'test@example.com', password: 'hashed.password', active: true }
 
-  it('retourne l\'id de l\'utilisateur pour des identifiants valides', async () => {
+  it("retourne l'id de l'utilisateur pour des identifiants valides", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
@@ -29,7 +29,7 @@ describe('validateCredentials', () => {
     expect(result).toBe(42)
   })
 
-  it('normalise l\'email en minuscules', async () => {
+  it("normalise l'email en minuscules", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
@@ -89,7 +89,7 @@ describe('validateCredentials', () => {
     })
   })
 
-  it('ne filtre pas par congregationId quand il n\'est pas fourni', async () => {
+  it("ne filtre pas par congregationId quand il n'est pas fourni", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 

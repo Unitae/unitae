@@ -4,7 +4,6 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -20,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =
@@ -170,7 +169,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
-  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =

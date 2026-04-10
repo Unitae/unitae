@@ -3,7 +3,6 @@ import { createPasswordResetToken } from '~/features/authentication/server/inval
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -60,7 +59,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation } = await authenticateAndAuthorize(request)
+  const { congregation, db } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -80,7 +79,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/settings/users/new')
   }
 
-  const limits = new LimitService(congregation)
+  const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('users')
 
   const user = await db.user.create({

@@ -2,9 +2,8 @@ import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getGroup } from '~/features/publishers/server/groups'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -15,7 +14,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherViewer, Role.PublisherManager, Role.ActivityManager])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [
+    Role.PublisherViewer,
+    Role.PublisherManager,
+    Role.ActivityManager,
+  ])
   const canViewPublishers = can(Role.PublisherViewer)
   const canManagePublisher = can(Role.PublisherManager)
   const canManageActivity = can(Role.ActivityManager)
@@ -24,7 +27,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const group = await getGroup(requireParamId(params.groupId, '/congregation/publisher-groups'))
+  const group = await getGroup(db, requireParamId(params.groupId, '/congregation/publisher-groups'))
   if (group == null) {
     throw redirect('/congregation/publisher-groups/')
   }
@@ -229,7 +232,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
   const canManagePublisher = can(Role.PublisherManager)
 

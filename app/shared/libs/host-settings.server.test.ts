@@ -16,7 +16,7 @@ describe('getHostSettings', () => {
     }
   })
 
-  it('retourne un objet vide quand HOST_SETTINGS n\'est pas défini', async () => {
+  it("retourne un objet vide quand HOST_SETTINGS n'est pas défini", async () => {
     delete process.env.HOST_SETTINGS
     const { getHostSettings } = await import('./host-settings.server')
 

@@ -29,12 +29,7 @@ function formatDelta(delta: number, unit: string): string {
   return `${sign}${delta.toFixed(1)}${unit}`
 }
 
-export default function YearOverYearTable({
-  current,
-  previous,
-  currentLabel,
-  previousLabel,
-}: YearOverYearTableProps) {
+export default function YearOverYearTable({ current, previous, currentLabel, previousLabel }: YearOverYearTableProps) {
   const rows: MetricRow[] = [
     {
       label: 'Couverture du territoire',
@@ -66,7 +61,7 @@ export default function YearOverYearTable({
       invertedBetter: true,
     },
     {
-      label: 'Nombre d\'attributions',
+      label: "Nombre d'attributions",
       currentValue: String(current.attributionCount),
       previousValue: String(previous.attributionCount),
       delta: current.attributionCount - previous.attributionCount,

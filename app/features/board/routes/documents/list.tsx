@@ -1,9 +1,8 @@
 import { ChevronDown, ChevronUp, Eye, FileText, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -18,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.BoardUploader])
   const canUploadDocument = can(Role.BoardUploader)
 
   if (!canUploadDocument) {

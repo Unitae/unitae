@@ -2,10 +2,9 @@ import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { saveFile } from '~/features/board/server/document'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
@@ -21,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
   const canUploadDocument = can(Role.BoardUploader)
   const canManageBoard = can(Role.BoardValidator)
 
@@ -132,7 +131,10 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const { currentUser, session, congregation, can, db } = await authenticateAndAuthorize(request, [
+    Role.BoardUploader,
+    Role.BoardValidator,
+  ])
   const canUploadDocument = can(Role.BoardUploader)
   const canManageBoard = can(Role.BoardValidator)
 
@@ -188,7 +190,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/board/documents/new')
   }
 
-  const limits = new LimitService(congregation)
+  const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('boardDocuments')
 
   const storageKey = await saveFile(file)
@@ -240,7 +242,7 @@ export async function action({ request }: Route.ActionArgs) {
   })
 
   if (!canManageBoard) {
-    sendNewDocumentNotificationEmail({ document })
+    sendNewDocumentNotificationEmail(db, { document })
   }
 
   return redirect(`/board/documents/${document.id}/edit`, {

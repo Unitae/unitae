@@ -2,9 +2,9 @@ import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -25,14 +25,14 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
+  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
   if (building == null) {
     throw redirect('/territories/buildings', { status: 404 })
   }
@@ -121,7 +121,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -140,7 +140,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   try {
-    await editBuilding(requireParamId(params.buildingId, '/territories/buildings'), {
+    await editBuilding(db, requireParamId(params.buildingId, '/territories/buildings'), {
       coordinates: {
         latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
         longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,

@@ -1,7 +1,7 @@
 import type { Building, Prisma } from '~/database/generated/client'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 
-export function setBuildingProspectionData(buildingId: number, formData: FormData): Promise<Building> {
+export function setBuildingProspectionData(db: ScopedDb, buildingId: number, formData: FormData): Promise<Building> {
   const data: Prisma.BuildingUpdateInput = {}
 
   data.homes = formData.get('homes') ? Number(formData.get('homes')) : null

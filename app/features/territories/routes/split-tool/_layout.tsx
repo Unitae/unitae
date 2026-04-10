@@ -1,12 +1,11 @@
 import { data, NavLink, Outlet, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -18,14 +17,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
   const totalBuildingsForDoors = await db.building.count({
     where: {
       active: true,
@@ -124,7 +123,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 
   const messages = { success: session.get('success'), error: session.get('error') }
-  const zips = await getZips()
+  const zips = await getZips(db)
 
   return data(
     {

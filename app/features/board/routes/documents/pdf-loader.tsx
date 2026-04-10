@@ -1,18 +1,16 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/board/server/document'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
-
 import type { Route } from './+types/pdf-loader'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `Tableau d'affichage - Unitae` }]
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser } = await authenticateAndAuthorize(request)
+  const { currentUser, db } = await authenticateAndAuthorize(request)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 
   const document = await db.boardDocument.update({

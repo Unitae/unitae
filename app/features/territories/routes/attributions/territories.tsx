@@ -2,13 +2,13 @@ import { ExternalLink, Send } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
 import { computeFilters } from '~/features/territories/server/territory-filters'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -39,10 +39,10 @@ export async function loader({ request }: Route.LoaderArgs) {
   const selectors = await computeFilters(url.searchParams)
   selectors.attributions = { none: { endDate: null } }
 
-  const { territories, pagination } = await findAvailableTerritoriesPaginated(selectors, url)
+  const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url)
 
   const messages = { success: session.get('success'), error: session.get('error') }
-  const zips = await getZips()
+  const zips = await getZips(db)
 
   return data(
     {

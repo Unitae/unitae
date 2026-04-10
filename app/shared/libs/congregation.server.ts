@@ -78,9 +78,7 @@ export function getPlatformName(): string {
  * - Returns `null` in single-tenant mode or if no slug is extracted from the URL (root domain).
  * - Redirects to `/congregation-not-found` if a slug is present but doesn't match any congregation.
  */
-export async function resolveCongregationFromRequest(
-  request: Request,
-): Promise<{ id: number; slug: string } | null> {
+export async function resolveCongregationFromRequest(request: Request): Promise<{ id: number; slug: string } | null> {
   if (process.env.MULTI_TENANT !== 'true') return null
 
   const hostname = new URL(request.url).hostname

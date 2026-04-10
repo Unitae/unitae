@@ -2,9 +2,8 @@ import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +18,11 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.PublisherViewer, Role.PublisherManager, Role.ActivityManager])
+  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [
+    Role.PublisherViewer,
+    Role.PublisherManager,
+    Role.ActivityManager,
+  ])
   const canViewPublisher = can(Role.PublisherViewer)
   const canManagePublisher = can(Role.PublisherManager)
   const canManageActivity = can(Role.ActivityManager)

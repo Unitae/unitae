@@ -2,9 +2,8 @@ import { redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 import type { Route } from './+types/sync-buildings'
 
@@ -17,7 +16,7 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, currentUser, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {

@@ -1,4 +1,4 @@
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 
 const LIMIT_COLUMN_MAP = {
   publishers: 'maxPublishers',
@@ -27,7 +27,10 @@ export class LimitError extends Error {
 }
 
 export class LimitService {
-  constructor(private limits: CongregationLimits) {}
+  constructor(
+    private db: ScopedDb,
+    private limits: CongregationLimits,
+  ) {}
 
   isLimited(name: LimitName): boolean {
     const column = LIMIT_COLUMN_MAP[name]
@@ -69,13 +72,13 @@ export class LimitService {
   private countCurrent(name: LimitName): Promise<number> {
     switch (name) {
       case 'publishers':
-        return db.user.count({ where: { isPublisher: true } })
+        return this.db.user.count({ where: { isPublisher: true } })
       case 'territories':
-        return db.territory.count()
+        return this.db.territory.count()
       case 'users':
-        return db.user.count()
+        return this.db.user.count()
       case 'boardDocuments':
-        return db.boardDocument.count()
+        return this.db.boardDocument.count()
     }
   }
 }

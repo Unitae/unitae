@@ -10,14 +10,14 @@ export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: 
   return {
     territoryKind: kinds.length > 0 ? kinds : [TerritoryKind.Classical],
     attributionKind: attributionKinds.length > 0 ? attributionKinds : [TerritoryAttributionKind.Default],
-    startDate: params.get('startDate') != null
-      ? new Date(String(params.get('startDate')))
-      : getBeginingDateOfTheocraticYear(theocraticYear),
-    endDate: params.get('endDate') != null
-      ? new Date(String(params.get('endDate')))
-      : getEndDateOfTheocraticYear(theocraticYear),
-    groupId: params.get('group') != null && params.get('group') !== 'none'
-      ? Number(params.get('group'))
-      : undefined,
+    startDate:
+      params.get('startDate') != null
+        ? new Date(String(params.get('startDate')))
+        : getBeginingDateOfTheocraticYear(theocraticYear),
+    endDate:
+      params.get('endDate') != null
+        ? new Date(String(params.get('endDate')))
+        : getEndDateOfTheocraticYear(theocraticYear),
+    groupId: params.get('group') != null && params.get('group') !== 'none' ? Number(params.get('group')) : undefined,
   }
 }

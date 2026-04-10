@@ -1,9 +1,9 @@
 import { ArrowRight } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
-import { db, unscopedDb } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { unscopedDb } from '~/shared/libs/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -19,14 +19,17 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { congregation, can } = await authenticateAndAuthorize(request, [Role.Admin])
+  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.Admin])
   const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  const auxiliaryPioneerProfileActivated = await getBoolSetting(CongregationSettingKey.AuxiliaryPioneerProfileActivated)
+  const auxiliaryPioneerProfileActivated = await getBoolSetting(
+    db,
+    CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+  )
 
   return {
     auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
@@ -106,7 +109,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can } = await authenticateAndAuthorize(request, [Role.Admin])
+  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.Admin])
   const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
@@ -124,7 +127,12 @@ export async function action({ request }: Route.ActionArgs) {
     data: { displayName: displayName ? String(displayName) : null },
   })
 
-  await setSetting(CongregationSettingKey.AuxiliaryPioneerProfileActivated, auxiliaryPioneerProfileActivated, congregation.id)
+  await setSetting(
+    db,
+    CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+    auxiliaryPioneerProfileActivated,
+    congregation.id,
+  )
   if (auxiliaryPioneerProfileActivated === 'false') {
     await db.user.updateMany({
       where: {

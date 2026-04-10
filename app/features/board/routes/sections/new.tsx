@@ -2,7 +2,6 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -49,7 +48,7 @@ export default function NewSectionPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation } = await authenticateAndAuthorize(request)
+  const { session, congregation, db } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 

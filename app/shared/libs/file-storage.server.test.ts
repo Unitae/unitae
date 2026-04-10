@@ -89,7 +89,7 @@ describe('local filesystem driver', () => {
       expect(result).toBeNull()
     })
 
-    it('ne lance pas d\'erreur pour un fichier inexistant', async () => {
+    it("ne lance pas d'erreur pour un fichier inexistant", async () => {
       const { deleteFileFromStorage } = await getModule()
 
       await expect(deleteFileFromStorage('inexistant/fichier.pdf')).resolves.toBeUndefined()

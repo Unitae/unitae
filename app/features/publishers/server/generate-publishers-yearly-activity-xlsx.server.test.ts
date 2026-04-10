@@ -16,10 +16,7 @@ beforeEach(() => {
   vi.mocked(db.publisherActivity.findMany).mockResolvedValue([] as never)
 })
 
-function makeActivity(
-  type: PublisherType,
-  { hours = 0, studies = 0, isPublisher = true, notes = '' } = {},
-) {
+function makeActivity(type: PublisherType, { hours = 0, studies = 0, isPublisher = true, notes = '' } = {}) {
   return {
     type,
     hours,
@@ -43,7 +40,7 @@ async function readWorkbook(buffer: excelJs.Buffer) {
 
 describe('generatePublishersYearlyActivityXlsx', () => {
   it('génère 12 feuilles pour une année théocratique', async () => {
-    const buffer = await generatePublishersYearlyActivityXlsx(2025)
+    const buffer = await generatePublishersYearlyActivityXlsx(db, 2025)
     const workbook = await readWorkbook(buffer)
 
     expect(workbook.worksheets).toHaveLength(12)
@@ -54,7 +51,7 @@ describe('generatePublishersYearlyActivityXlsx', () => {
       makeActivity(PublisherType.Normal, { isPublisher: true, hours: 0, studies: 1 }),
     ] as never)
 
-    const buffer = await generatePublishersYearlyActivityXlsx(2025)
+    const buffer = await generatePublishersYearlyActivityXlsx(db, 2025)
     const workbook = await readWorkbook(buffer)
     const firstSheet = workbook.worksheets[0]
     const dataRow = firstSheet.getRow(2)
@@ -67,7 +64,7 @@ describe('generatePublishersYearlyActivityXlsx', () => {
       makeActivity(PublisherType.PionnierPermanant, { hours: 50 }),
     ] as never)
 
-    const buffer = await generatePublishersYearlyActivityXlsx(2025)
+    const buffer = await generatePublishersYearlyActivityXlsx(db, 2025)
     const workbook = await readWorkbook(buffer)
     const dataRow = workbook.worksheets[0].getRow(2)
 
@@ -79,7 +76,7 @@ describe('generatePublishersYearlyActivityXlsx', () => {
       makeActivity(PublisherType.PionnierAuxiliaires, { hours: 30 }),
     ] as never)
 
-    const buffer = await generatePublishersYearlyActivityXlsx(2025)
+    const buffer = await generatePublishersYearlyActivityXlsx(db, 2025)
     const workbook = await readWorkbook(buffer)
     const dataRow = workbook.worksheets[0].getRow(2)
 
@@ -91,7 +88,7 @@ describe('generatePublishersYearlyActivityXlsx', () => {
       makeActivity(PublisherType.PionnierSpecial, { hours: 130 }),
     ] as never)
 
-    const buffer = await generatePublishersYearlyActivityXlsx(2025)
+    const buffer = await generatePublishersYearlyActivityXlsx(db, 2025)
     const workbook = await readWorkbook(buffer)
     const dataRow = workbook.worksheets[0].getRow(2)
 
@@ -103,7 +100,7 @@ describe('generatePublishersYearlyActivityXlsx', () => {
       makeActivity(PublisherType.Missionnaire, { hours: 120 }),
     ] as never)
 
-    const buffer = await generatePublishersYearlyActivityXlsx(2025)
+    const buffer = await generatePublishersYearlyActivityXlsx(db, 2025)
     const workbook = await readWorkbook(buffer)
     const dataRow = workbook.worksheets[0].getRow(2)
 

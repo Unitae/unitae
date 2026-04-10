@@ -1,8 +1,7 @@
 import { FileText } from 'lucide-react'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { DocumentCard } from '~/features/board/ui/DocumentCard'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
@@ -13,7 +12,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
   const canUploadDocument = can(Role.BoardUploader)
   const canManageBoard = can(Role.BoardValidator)
 

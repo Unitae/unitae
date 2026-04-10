@@ -1,8 +1,8 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { createBuilding } from '~/features/territories/server/create-building.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -67,7 +67,7 @@ export default function CreateBuildingPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, congregation, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -85,7 +85,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/buildings/new')
   }
 
-  const building = await createBuilding({
+  const building = await createBuilding(db, {
     address: {
       number: String(number),
       street: String(street),
