@@ -7,21 +7,21 @@ Unitae uses a Redis-based background job processing system built on **BullMQ** f
 ## Architecture
 
 ```
-Web Pod                          Worker Pod
-┌────────────────┐               ┌─────────────────────┐
-│  Route Action   │               │  sync-worker.server  │
-│                 │               │                     │
-│  syncQueue.add({│──── Redis ───▶│  handleSyncWork()   │
-│    userEmail,   │               │    ↓                │
-│    userName,    │               │  congregationContext │
-│    congregationId│              │    .enterWith()     │
-│  })            │               │    ↓                │
-└────────────────┘               │  importOpenData()    │
-                                 │    ↓                │
-                                 │  sendMailAfterSync() │
-                                 │                     │
-                                 │  Health: :9090/health│
-                                 └─────────────────────┘
+Web Pod                             Worker Pod
+┌───────────────────┐               ┌───────────────────────┐
+│  Route Action     │               │  sync-worker.server   │
+│                   │               │                       │
+│  syncQueue.add({  │──── Redis ───▶│  handleSyncWork()     │
+│    userEmail,     │               │    ↓                  │
+│    userName,      │               │  congregationContext  │
+│    congregationId │               │    .enterWith()       │
+│  })               │               │    ↓                  │
+└───────────────────┘               │  importOpenData()     │
+                                    │    ↓                  │
+                                    │  sendMailAfterSync()  │
+                                    │                       │
+                                    │  Health: :9090/health │
+                                    └───────────────────────┘
 ```
 
 ## Components
@@ -49,33 +49,32 @@ interface SyncJobData {
 ### Worker
 - **Location**: `workers/sync-worker.server.ts`
 - Concurrency: 1 (sync operations)
-- HTTP health server on port 9090 (for K8s probes)
+- HTTP health server on port 9090 (for container probes)
 - Graceful SIGTERM/SIGINT shutdown (closes health server + worker)
 - Tracks `isReady` and `closing` state for health checks
 
 ### Job Handler
 - **Location**: `app/features/territories/server/handle-sync-work.server.ts`
-- Sets `congregationContext.enterWith()` before processing — all scoped DB queries are tenant-isolated
+- Creates a scoped `db` client via `createScopedDb(congregationId)` — tenant-isolated queries via closure
 - Resolves congregation info for branded email notifications
 - Progress tracking (0-100%)
 
 ## Tenant Isolation in Workers
 
-Workers don't have HTTP request context, so they set congregation context manually from job data:
+Workers don't have HTTP request context, so they create a scoped `db` client from job data:
 
 ```typescript
 export async function handleSyncWork(job: Job<SyncJobData>) {
   const { congregationId } = job.data
+  const db = createScopedDb(congregationId)
   const congregation = await resolveCongregation(congregationId)
-  congregationContext.enterWith({ congregationId, congregation })
 
-  // Pass congregationId explicitly to avoid AsyncLocalStorage context loss
-  await importOpenData(congregationId, progressCallback)
+  await importOpenData(db, congregationId, progressCallback)
   await sendMailAfterDataSync(email, name, congregation)
 }
 ```
 
-> **Note**: Service functions that create records should accept `congregationId` as an explicit parameter rather than relying on AsyncLocalStorage context, which can be lost across async boundaries with the Prisma 7 pg adapter.
+> **Note**: Workers use `createScopedDb(congregationId)` directly (same factory used by `authenticateAndAuthorize` in routes). The scoped client reads `congregationId` from a closure, not AsyncLocalStorage, so it's immune to the Prisma 7 pg adapter issue.
 
 ## Development
 
@@ -90,22 +89,20 @@ pnpm start:worker
 pnpm start:dev
 ```
 
-## K8s Deployment
+## Deployment
 
-- Worker runs as separate Deployment (`k8s/base/worker.yaml`)
-- Same Docker image, different command: `pnpm start:worker`
-- Health probes on port 9090
-- 60s termination grace period for in-progress jobs
-- Scales independently from web pods
+- Worker runs as a separate process from the web server
+- Same codebase, different command: `pnpm start:worker`
+- Health endpoint on port 9090
+- Scales independently from web processes
 
 ## Adding New Job Types
 
 1. **Queue**: `app/features/{feature}/server/{name}-queue.server.ts`
 2. **Handler**: `app/features/{feature}/server/handle-{name}-work.server.ts`
-   - Set `congregationContext.enterWith()` from job data
-   - Pass `congregationId` explicitly to service functions that create records
+   - Create scoped client: `const db = createScopedDb(congregationId)`
+   - Pass `db` as first argument to all service functions
 3. **Worker**: `workers/{name}-worker.server.ts`
    - Include HTTP health server
    - Handle SIGTERM gracefully
 4. **Package script**: `"start:{name}-worker": "pnpm tsx ./workers/{name}-worker.server.ts"`
-5. **K8s**: Add Deployment to `k8s/base/`

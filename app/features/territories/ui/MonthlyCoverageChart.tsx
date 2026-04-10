@@ -39,7 +39,7 @@ export default function MonthlyCoverageChart({ data }: { data: MonthlyCoverage[]
             borderRadius: '0.5rem',
           }}
           labelStyle={{ color: 'var(--color-card-foreground)' }}
-          formatter={(value) => [`${Number(value).toFixed(1)} %`, 'Couverture']}
+          formatter={value => [`${Number(value).toFixed(1)} %`, 'Couverture']}
         />
         <Line
           type="monotone"

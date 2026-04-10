@@ -9,11 +9,11 @@ describe('pointInPolygon', () => {
     [10, 0],
   ]
 
-  it('retourne true pour un point à l\'intérieur d\'un carré', () => {
+  it("retourne true pour un point à l'intérieur d'un carré", () => {
     expect(pointInPolygon([5, 5], square)).toBe(true)
   })
 
-  it('retourne false pour un point à l\'extérieur d\'un carré', () => {
+  it("retourne false pour un point à l'extérieur d'un carré", () => {
     expect(pointInPolygon([15, 5], square)).toBe(false)
   })
 

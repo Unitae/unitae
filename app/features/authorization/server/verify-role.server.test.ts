@@ -37,21 +37,21 @@ beforeEach(() => {
 })
 
 describe('verifyRole', () => {
-  it('retourne false quand userId n\'est pas dans la session', async () => {
+  it("retourne false quand userId n'est pas dans la session", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession(undefined) as never)
 
     const result = await verifyRole(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(false)
   })
 
-  it('retourne false quand userId n\'est pas un nombre', async () => {
+  it("retourne false quand userId n'est pas un nombre", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('abc') as never)
 
     const result = await verifyRole(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(false)
   })
 
-  it('retourne true quand l\'utilisateur a le rôle admin', async () => {
+  it("retourne true quand l'utilisateur a le rôle admin", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(congregationContext.getStore).mockReturnValue({ congregationId: 1 } as never)
     // Premier findFirst: admin role → trouvé
@@ -61,7 +61,7 @@ describe('verifyRole', () => {
     expect(result).toBe(true)
   })
 
-  it('retourne true quand l\'utilisateur a le rôle demandé (pas admin)', async () => {
+  it("retourne true quand l'utilisateur a le rôle demandé (pas admin)", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(congregationContext.getStore).mockReturnValue({ congregationId: 1 } as never)
     // Premier findFirst: admin role → pas trouvé
@@ -73,7 +73,7 @@ describe('verifyRole', () => {
     expect(result).toBe(true)
   })
 
-  it('retourne false quand l\'utilisateur n\'a ni admin ni le rôle demandé', async () => {
+  it("retourne false quand l'utilisateur n'a ni admin ni le rôle demandé", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(congregationContext.getStore).mockReturnValue({ congregationId: 1 } as never)
     vi.mocked(unscopedDb.congregationUserRole.findFirst).mockResolvedValue(null as never)
@@ -87,13 +87,15 @@ describe('verifyRole', () => {
     vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 5 } as never)
     // admin check → non, role check → oui
-    vi.mocked(unscopedDb.congregationUserRole.findFirst).mockResolvedValueOnce(null as never).mockResolvedValueOnce({ id: 3 } as never)
+    vi.mocked(unscopedDb.congregationUserRole.findFirst)
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({ id: 3 } as never)
 
     const result = await verifyRole(makeRequest(), 'territories-manager' as never)
     expect(result).toBe(true)
   })
 
-  it('retourne false quand le fallback ne trouve pas l\'utilisateur', async () => {
+  it("retourne false quand le fallback ne trouve pas l'utilisateur", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null as never)

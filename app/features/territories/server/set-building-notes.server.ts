@@ -1,8 +1,9 @@
 import type { Building } from '~/database/generated/client'
 
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 
 export function setBuildingNotes(
+  db: ScopedDb,
   buildingId: number,
   { notes, importantNotes }: { notes: string; importantNotes: string },
 ): Promise<Building> {

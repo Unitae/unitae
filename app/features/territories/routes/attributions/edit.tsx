@@ -3,13 +3,12 @@ import { useState } from 'react'
 import { Form, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublishers } from '~/features/publishers/server/publishers'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -25,14 +24,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
   const attribution = await db.attribution.findUnique({
     where: { id: requireParamId(params.attributionId, '/territories/attributions') },
@@ -43,7 +42,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/territories/attributions')
   }
 
-  const users = await getPublishers()
+  const users = await getPublishers(db)
 
   return { users, phoneTypeActive, attribution, entrances: attribution.territory.entrances.map(aggregateEntrance) }
 }
@@ -186,7 +185,7 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {

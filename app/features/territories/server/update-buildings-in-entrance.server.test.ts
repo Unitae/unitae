@@ -28,12 +28,12 @@ beforeEach(() => {
 })
 
 describe('updateBuildingsInEntrance', () => {
-  it('ne fait rien si l\'entrée n\'existe pas', async () => {
+  it("ne fait rien si l'entrée n'existe pas", async () => {
     vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue(null as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
-    result = await updateBuildingsInEntrance(999, [1, 2], 1)
+    result = await updateBuildingsInEntrance(db, 999, [1, 2], 1)
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
   })
@@ -61,7 +61,7 @@ describe('updateBuildingsInEntrance', () => {
     }) as never)
 
     // buildingIds [1, 4] → ajouter 4, déconnecter 2 et 3
-    await updateBuildingsInEntrance(10, [1, 4], 1)
+    await updateBuildingsInEntrance(db, 10, [1, 4], 1)
 
     // La transaction a été exécutée
     expect(vi.mocked(db.$transaction).mock.calls).toHaveLength(1)
@@ -88,7 +88,7 @@ describe('updateBuildingsInEntrance', () => {
       await fn(tx)
     }) as never)
 
-    await updateBuildingsInEntrance(10, [1], 1)
+    await updateBuildingsInEntrance(db, 10, [1], 1)
 
     // deleteMany est toujours appelé pour nettoyer les entrées vides
     expect(vi.mocked(db.buildingEntrance.deleteMany).mock.calls).toHaveLength(1)
@@ -108,6 +108,6 @@ describe('updateBuildingsInEntrance', () => {
     vi.mocked(db.$transaction).mockRejectedValue(new Error('Transaction failed'))
 
     // Ne doit pas lancer d'erreur
-    await expect(updateBuildingsInEntrance(10, [1, 2], 1)).resolves.toBeUndefined()
+    await expect(updateBuildingsInEntrance(db, 10, [1, 2], 1)).resolves.toBeUndefined()
   })
 })

@@ -14,7 +14,7 @@ beforeEach(() => {
 })
 
 describe('needSetupProcess', () => {
-  it('retourne true quand il n\'y a aucun utilisateur', async () => {
+  it("retourne true quand il n'y a aucun utilisateur", async () => {
     vi.mocked(db.user.count).mockResolvedValue(0)
 
     expect(await needSetupProcess()).toBe(true)

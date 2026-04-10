@@ -1,8 +1,12 @@
 import type { Prisma } from '~/database/generated/client'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 
-export async function findTerritoriesWithDetailsPaginated(selectors: Prisma.TerritoryWhereInput, url: URL) {
+export async function findTerritoriesWithDetailsPaginated(
+  db: ScopedDb,
+  selectors: Prisma.TerritoryWhereInput,
+  url: URL,
+) {
   const total = await db.territory.count({ where: selectors })
   const pagination = paginationFromUrl(url, total)
 
@@ -19,7 +23,7 @@ export async function findTerritoriesWithDetailsPaginated(selectors: Prisma.Terr
   return { territories, pagination }
 }
 
-export async function findAvailableTerritoriesPaginated(selectors: Prisma.TerritoryWhereInput, url: URL) {
+export async function findAvailableTerritoriesPaginated(db: ScopedDb, selectors: Prisma.TerritoryWhereInput, url: URL) {
   const total = await db.territory.count({ where: selectors })
   const pagination = paginationFromUrl(url, total)
 

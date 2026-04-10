@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeDurationStats } from './compute-duration-stats.server'
+import type { StatsAttribution } from './stats-attribution.type'
 
 function makeAttribution(startDate: Date, endDate: Date | null): StatsAttribution {
   return {
@@ -18,7 +18,7 @@ function makeAttribution(startDate: Date, endDate: Date | null): StatsAttributio
 }
 
 describe('computeDurationStats', () => {
-  it('retourne des zéros quand il n\'y a aucune attribution', () => {
+  it("retourne des zéros quand il n'y a aucune attribution", () => {
     expect(computeDurationStats([])).toEqual({ averageDays: 0, longestDays: 0, shortestDays: 0 })
   })
 

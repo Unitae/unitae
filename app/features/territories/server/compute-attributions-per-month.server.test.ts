@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeAttributionsPerMonth } from './compute-attributions-per-month.server'
+import type { StatsAttribution } from './stats-attribution.type'
 
 function makeAttribution(startDate: Date, id = 1): StatsAttribution {
   return {
@@ -45,7 +45,7 @@ describe('computeAttributionsPerMonth', () => {
     ])
   })
 
-  it('génère les 12 mois d\'une année théocratique complète', () => {
+  it("génère les 12 mois d'une année théocratique complète", () => {
     const result = computeAttributionsPerMonth([], new Date(2025, 8, 1), new Date(2026, 7, 31))
     expect(result).toHaveLength(12)
     expect(result[0].month).toBe('2025-09')

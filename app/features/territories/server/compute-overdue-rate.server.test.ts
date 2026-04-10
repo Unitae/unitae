@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeOverdueRate } from './compute-overdue-rate.server'
+import type { StatsAttribution } from './stats-attribution.type'
 
 function makeAttribution(endDate: Date | null, lateDate: Date): StatsAttribution {
   return {
@@ -18,7 +18,7 @@ function makeAttribution(endDate: Date | null, lateDate: Date): StatsAttribution
 }
 
 describe('computeOverdueRate', () => {
-  it('retourne 0 quand il n\'y a aucune attribution', () => {
+  it("retourne 0 quand il n'y a aucune attribution", () => {
     expect(computeOverdueRate([])).toBe(0)
   })
 
@@ -27,7 +27,7 @@ describe('computeOverdueRate', () => {
     expect(computeOverdueRate(attributions)).toBe(0)
   })
 
-  it('retourne 0 quand aucune attribution n\'est en retard', () => {
+  it("retourne 0 quand aucune attribution n'est en retard", () => {
     const attributions = [
       makeAttribution(new Date(2025, 4, 1), new Date(2025, 5, 1)), // rendue avant la date limite
     ]

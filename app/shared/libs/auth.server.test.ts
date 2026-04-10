@@ -12,12 +12,13 @@ vi.mock('~/features/authorization/server/verify-role.server', () => ({
 
 vi.mock('~/shared/libs/db.server', () => ({
   restoreCongregationContext: vi.fn(),
+  createScopedDb: vi.fn(() => 'mocked-scoped-db'),
 }))
 
 const { authenticateAndAuthorize } = await import('./auth.server')
 const { verifySession } = await import('~/features/authentication/server/session.server')
 const { verifyRole } = await import('~/features/authorization/server/verify-role.server')
-const { restoreCongregationContext } = await import('~/shared/libs/db.server')
+const { restoreCongregationContext, createScopedDb } = await import('~/shared/libs/db.server')
 
 function makeRequest() {
   return new Request('http://localhost/')
@@ -41,6 +42,13 @@ describe('authenticateAndAuthorize', () => {
     expect(result.currentUser).toBe(fakeSessionResult.currentUser)
     expect(result.congregation).toBe(fakeSessionResult.congregation)
     expect(result.session).toBe(fakeSessionResult.session)
+  })
+
+  it('retourne un db scopé via createScopedDb', async () => {
+    const result = await authenticateAndAuthorize(makeRequest())
+
+    expect(createScopedDb).toHaveBeenCalledWith(5)
+    expect(result.db).toBe('mocked-scoped-db')
   })
 
   it('résout les permissions via verifyRole', async () => {

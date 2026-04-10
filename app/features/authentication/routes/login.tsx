@@ -1,6 +1,4 @@
 import { data, Form, Link, redirect } from 'react-router'
-
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
   checkLoginRateLimit,
@@ -9,6 +7,7 @@ import {
 } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
+import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'

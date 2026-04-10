@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -14,6 +13,7 @@ import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildi
 import BuildingProspectionForDoorToDoorFields from '~/features/territories/ui/BuildingProspectionForDoorToDoorFields'
 import OtherBuildingProspectionFields from '~/features/territories/ui/OtherBuildingProspectionFields'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -29,7 +29,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.ProspectionManager, Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [
+    Role.ProspectionManager,
+    Role.TerritoriesManager,
+  ])
   const canManageProspection = can(Role.ProspectionManager)
   const canManageTerritories = can(Role.TerritoriesManager)
 
@@ -37,12 +40,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
+  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
   if (building == null) {
     throw redirect('/territories/buildings', { status: 404 })
   }
 
-  const buildings = await getBuildings(building.zip, building.street)
+  const buildings = await getBuildings(db, building.zip, building.street)
   const messages = {
     success: session.get('success'),
     error: session.get('error'),
@@ -124,7 +127,10 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregation, can } = await authenticateAndAuthorize(request, [Role.ProspectionManager, Role.TerritoriesManager])
+  const { session, congregation, can, db } = await authenticateAndAuthorize(request, [
+    Role.ProspectionManager,
+    Role.TerritoriesManager,
+  ])
   const canManageProspection = can(Role.ProspectionManager)
   const canManageTerritories = can(Role.TerritoriesManager)
 
@@ -133,7 +139,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
-  const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
+  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
   if (building == null) {
     throw redirect('/territories/buildings', { status: 404 })
   }
@@ -148,7 +154,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
       try {
-        await updateBuildingsInEntrance(Number(building.entrance?.id), entranceIds, congregation.id)
+        await updateBuildingsInEntrance(db, Number(building.entrance?.id), entranceIds, congregation.id)
         session.flash('success', 'Le batiment a été correctement modifié')
       } catch (e) {
         logger.error('Error updating building', { error: e, buildingId: params.buildingId })
@@ -165,7 +171,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   // manage changes in classic data
   try {
-    await setBuildingProspectionData(building.id, form)
+    await setBuildingProspectionData(db, building.id, form)
 
     session.flash('success', 'Les données de prospection ont été correctement mise à jour')
   } catch (e) {

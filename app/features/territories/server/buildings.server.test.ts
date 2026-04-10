@@ -20,24 +20,24 @@ afterEach(() => {
 })
 
 describe('getProspectionStaleDate', () => {
-  it('retourne epoch (1970) quand le setting n\'est pas configuré', async () => {
+  it("retourne epoch (1970) quand le setting n'est pas configuré", async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue(null as never)
 
-    const result = await getProspectionStaleDate()
+    const result = await getProspectionStaleDate(db)
     expect(result.getTime()).toBe(0)
   })
 
   it('retourne epoch quand la valeur est "0"', async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue({ id: 1, key: 'prospection-validity', value: '0' } as never)
 
-    const result = await getProspectionStaleDate()
+    const result = await getProspectionStaleDate(db)
     expect(result.getTime()).toBe(0)
   })
 
   it('retourne une date dans le passé quand la valeur est positive', async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue({ id: 1, key: 'prospection-validity', value: '6' } as never)
 
-    const result = await getProspectionStaleDate()
+    const result = await getProspectionStaleDate(db)
     // 8 avril 2026 - 6 mois = 8 octobre 2025
     expect(result.getFullYear()).toBe(2025)
     expect(result.getMonth()).toBe(9) // octobre
@@ -46,7 +46,7 @@ describe('getProspectionStaleDate', () => {
   it('ne considère jamais une date du jour comme périmée quand non configuré', async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue(null as never)
 
-    const staleDate = await getProspectionStaleDate()
+    const staleDate = await getProspectionStaleDate(db)
     const today = new Date(2026, 3, 8)
 
     // Une date d'aujourd'hui ne doit PAS être < staleDate
@@ -56,7 +56,7 @@ describe('getProspectionStaleDate', () => {
   it('considère une date ancienne comme périmée quand configuré à 6 mois', async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue({ id: 1, key: 'prospection-validity', value: '6' } as never)
 
-    const staleDate = await getProspectionStaleDate()
+    const staleDate = await getProspectionStaleDate(db)
     const sevenMonthsAgo = new Date(2025, 8, 1) // 1er septembre 2025
 
     expect(sevenMonthsAgo < staleDate).toBe(true)
@@ -65,7 +65,7 @@ describe('getProspectionStaleDate', () => {
   it('ne considère pas une date récente comme périmée quand configuré à 6 mois', async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue({ id: 1, key: 'prospection-validity', value: '6' } as never)
 
-    const staleDate = await getProspectionStaleDate()
+    const staleDate = await getProspectionStaleDate(db)
     const twoMonthsAgo = new Date(2026, 1, 8) // 8 février 2026
 
     expect(twoMonthsAgo < staleDate).toBe(false)

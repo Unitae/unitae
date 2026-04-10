@@ -2,17 +2,15 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
-
 import type { Route } from './+types/delete'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await authenticateAndAuthorize(request)
+  const { currentUser, db } = await authenticateAndAuthorize(request)
   logger.info(`Trying to remove days off. User ID: ${currentUser.id}. Event: ${params.eventId}`)
 
   const event = await db.event.findUnique({
@@ -55,7 +53,7 @@ export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser } = await authenticateAndAuthorize(request)
+  const { session, currentUser, db } = await authenticateAndAuthorize(request)
   const event = await db.event.findUnique({
     where: { id: requireParamId(params.eventId, '/me/days-off') },
     include: { createdBy: true },

@@ -1,22 +1,21 @@
 import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
 import type { Route } from './+types/list'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Mes absences - Unitae' }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session } = await authenticateAndAuthorize(request)
-  const events = await getNextDaysOffs(currentUser.id)
+  const { currentUser, session, db } = await authenticateAndAuthorize(request)
+  const events = await getNextDaysOffs(db, currentUser.id)
 
   logger.info(`Loading personal Days Off list. User ID: ${currentUser.id}`)
 

@@ -3,7 +3,6 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -11,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import type { Route } from './+types/delete-building'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.ProspectionManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.ProspectionManager])
   const canManageProspection = can(Role.ProspectionManager)
 
   if (!canManageProspection) {
@@ -57,7 +56,7 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {

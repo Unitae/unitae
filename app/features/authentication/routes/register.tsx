@@ -112,7 +112,7 @@ export async function action({ request }: Route.ActionArgs) {
   const repeatPassword = String(form.get('repeat-password'))
 
   if (congregationName.length < 2) {
-    session.flash('error', 'Le nom de l\'assemblée locale doit faire au moins 2 caractères.')
+    session.flash('error', "Le nom de l'assemblée locale doit faire au moins 2 caractères.")
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
@@ -133,7 +133,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const slug = slugify(congregationName)
   if (slug.length < 2) {
-    session.flash('error', 'Le nom de l\'assemblée locale génère un identifiant invalide.')
+    session.flash('error', "Le nom de l'assemblée locale génère un identifiant invalide.")
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 

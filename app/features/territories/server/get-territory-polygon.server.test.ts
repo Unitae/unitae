@@ -14,21 +14,25 @@ beforeEach(() => {
 })
 
 describe('getTerritoryPolygon', () => {
-  it('retourne un tableau vide quand le setting n\'existe pas', async () => {
+  it("retourne un tableau vide quand le setting n'existe pas", async () => {
     vi.mocked(db.setting.findFirst).mockResolvedValue(null as never)
 
-    const result = await getTerritoryPolygon()
+    const result = await getTerritoryPolygon(db)
     expect(result).toEqual([])
   })
 
   it('parse le JSON du setting en polygone', async () => {
-    const polygon = [[48.8566, 2.3522], [48.8567, 2.3523], [48.8568, 2.3524]]
+    const polygon = [
+      [48.8566, 2.3522],
+      [48.8567, 2.3523],
+      [48.8568, 2.3524],
+    ]
     vi.mocked(db.setting.findFirst).mockResolvedValue({
       key: 'territory',
       value: JSON.stringify(polygon),
     } as never)
 
-    const result = await getTerritoryPolygon()
+    const result = await getTerritoryPolygon(db)
     expect(result).toEqual(polygon)
   })
 })

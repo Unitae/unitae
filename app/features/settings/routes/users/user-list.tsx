@@ -3,7 +3,6 @@ import { Form, Link, redirect } from 'react-router'
 
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -18,7 +17,11 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager, Role.PublisherViewer, Role.PublisherManager])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [
+    Role.SettingsUserManager,
+    Role.PublisherViewer,
+    Role.PublisherManager,
+  ])
   const canManageUser = can(Role.SettingsUserManager)
   const canViewPublishers = can(Role.PublisherViewer)
   const canManagePublishers = can(Role.PublisherManager)

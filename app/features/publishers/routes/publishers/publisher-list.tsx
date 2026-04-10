@@ -1,8 +1,8 @@
 import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -17,7 +17,11 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherViewer, Role.PublisherManager, Role.ActivityViewer])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [
+    Role.PublisherViewer,
+    Role.PublisherManager,
+    Role.ActivityViewer,
+  ])
   const canViewPublishers = can(Role.PublisherViewer)
   const canManagePublisher = can(Role.PublisherManager)
   const canViewActivities = can(Role.ActivityViewer)
@@ -34,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publishers. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
-  const users = await getPublishersWithGroup()
+  const users = await getPublishersWithGroup(db)
 
   return {
     users: users.map(user => ({

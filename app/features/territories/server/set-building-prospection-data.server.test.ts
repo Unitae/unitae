@@ -30,7 +30,7 @@ describe('setBuildingProspectionData', () => {
       liberals: '2',
     })
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.homes).toBe(15)
@@ -41,7 +41,7 @@ describe('setBuildingProspectionData', () => {
   it('retourne null pour les champs numériques vides', async () => {
     const formData = makeFormData({})
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.homes).toBeNull()
@@ -57,7 +57,7 @@ describe('setBuildingProspectionData', () => {
       landromat: 'on',
     })
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.hasShops).toBe(true)
@@ -69,7 +69,7 @@ describe('setBuildingProspectionData', () => {
   it('les champs booléens sont false par défaut', async () => {
     const formData = makeFormData({})
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.hasShops).toBe(false)
@@ -83,7 +83,7 @@ describe('setBuildingProspectionData', () => {
       shopkinds: 'boulangerie',
     })
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.shopKind).toBe('boulangerie')
@@ -92,7 +92,7 @@ describe('setBuildingProspectionData', () => {
   it('shopKind est une chaîne vide par défaut', async () => {
     const formData = makeFormData({})
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.shopKind).toBe('')
@@ -103,7 +103,7 @@ describe('setBuildingProspectionData', () => {
       'prospection-date': '2025-04-08',
     })
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeInstanceOf(Date)
@@ -112,13 +112,13 @@ describe('setBuildingProspectionData', () => {
   it('la date de prospection est null par défaut', async () => {
     const formData = makeFormData({})
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeNull()
   })
 
-  it('parse les données d\'entrée (access, PMR, portes, boîtes aux lettres)', async () => {
+  it("parse les données d'entrée (access, PMR, portes, boîtes aux lettres)", async () => {
     const formData = makeFormData({
       access: '3',
       pmr: 'on',
@@ -126,7 +126,7 @@ describe('setBuildingProspectionData', () => {
       mailboxes: 'on',
     })
 
-    await setBuildingProspectionData(1, formData)
+    await setBuildingProspectionData(db, 1, formData)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     const entrance = callArgs.data.entrance as { update: Record<string, unknown> }

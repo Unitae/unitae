@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router'
-
-import type { Route } from './+types/_layout'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Mon compte - Unitae' }]

@@ -2,9 +2,7 @@ import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { getOptionalEnv } from '~/shared/libs/env.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
@@ -16,7 +14,8 @@ import {
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -31,7 +30,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -55,11 +54,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
-  const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const zips = await getAvailableZips(territory.type as TerritoryKind)
+  const zips = await getAvailableZips(db, territory.type as TerritoryKind)
   const url = new URL(request.url)
   const entrances = await getAvailableEntrances(
+    db,
     String(url.searchParams.get('zip')),
     String(url.searchParams.get('street')),
     territory.type as TerritoryKind,
@@ -77,7 +77,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     }
   }
 
-  const streets = await getAvailableStreets(String(url.searchParams.get('zip')), territory.type as TerritoryKind)
+  const streets = await getAvailableStreets(db, String(url.searchParams.get('zip')), territory.type as TerritoryKind)
   if (!url.searchParams.has('street')) {
     return {
       territory,
@@ -313,7 +313,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {

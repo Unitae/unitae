@@ -3,7 +3,6 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
@@ -11,7 +10,7 @@ import { Card, CardContent, CardFooter } from '~/shared/ui/card'
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.ActivityManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.ActivityManager])
   const canManageActivity = can(Role.ActivityManager)
 
   if (!canManageActivity) {
@@ -64,7 +63,7 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.ActivityManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.ActivityManager])
   const canManageActivity = can(Role.ActivityManager)
 
   if (!canManageActivity) {

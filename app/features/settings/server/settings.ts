@@ -1,22 +1,22 @@
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import type { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import type { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 
 type SettingKey = TerritorySettingKey | CongregationSettingKey
 
-export async function getSetting(key: SettingKey): Promise<string | undefined> {
+export async function getSetting(db: ScopedDb, key: SettingKey): Promise<string | undefined> {
   const setting = await db.setting.findFirst({ where: { key } })
 
   return setting?.value
 }
 
-export async function getBoolSetting(key: SettingKey): Promise<boolean | undefined> {
-  const settingValue = await getSetting(key)
+export async function getBoolSetting(db: ScopedDb, key: SettingKey): Promise<boolean | undefined> {
+  const settingValue = await getSetting(db, key)
 
   return settingValue === 'true'
 }
 
-export async function setSetting(key: SettingKey, value: string, congregationId: number) {
+export async function setSetting(db: ScopedDb, key: SettingKey, value: string, congregationId: number) {
   if (key == null || value.length < 1) {
     return
   }

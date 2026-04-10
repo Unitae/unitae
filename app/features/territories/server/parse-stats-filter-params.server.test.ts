@@ -4,7 +4,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { parseStatsFilterParams } from './parse-stats-filter-params.server'
 
 describe('parseStatsFilterParams', () => {
-  it('retourne les valeurs par défaut quand aucun paramètre n\'est fourni', () => {
+  it("retourne les valeurs par défaut quand aucun paramètre n'est fourni", () => {
     const params = new URLSearchParams()
     const result = parseStatsFilterParams(params, 2025)
 

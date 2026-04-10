@@ -2,12 +2,12 @@ import { Pencil, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -22,7 +22,12 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.ProspectionManager, Role.TerritoriesViewer, Role.TerritoriesManager])
+  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [
+    Role.ProspectionViewer,
+    Role.ProspectionManager,
+    Role.TerritoriesViewer,
+    Role.TerritoriesManager,
+  ])
   const canViewProspection = can(Role.ProspectionViewer)
   const canManageProspection = can(Role.ProspectionManager)
   const canViewTerritories = can(Role.TerritoriesViewer)
@@ -39,7 +44,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     `Loading building data for building nº${params.buildingId}. User ID: ${currentUser.id}. ${canManageProspection ? 'Has' : 'Does NOT have'} rights to modify prospection data.`,
   )
 
-  const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
+  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
   if (!building) {
     throw redirect('../', { status: 404 })
   }
@@ -123,7 +128,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -135,7 +140,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const importantNotes = form.get('important-notes')
 
   try {
-    await setBuildingNotes(requireParamId(params.buildingId, '/territories/buildings'), {
+    await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
       notes: String(notes),
       importantNotes: String(importantNotes),
     })

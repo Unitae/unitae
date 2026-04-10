@@ -29,7 +29,12 @@ afterEach(() => {
 describe('createPasswordResetToken', () => {
   it('retourne un token non vide', async () => {
     vi.mocked(db.passwordResetToken.deleteMany).mockResolvedValue({ count: 0 } as never)
-    vi.mocked(db.passwordResetToken.create).mockResolvedValue({ id: 1, token: 'abc', userId: 42, expiresAt: new Date() } as never)
+    vi.mocked(db.passwordResetToken.create).mockResolvedValue({
+      id: 1,
+      token: 'abc',
+      userId: 42,
+      expiresAt: new Date(),
+    } as never)
 
     const token = await createPasswordResetToken(42)
     expect(token).toBeTruthy()
@@ -39,7 +44,7 @@ describe('createPasswordResetToken', () => {
 })
 
 describe('verifyPasswordResetToken', () => {
-  it('retourne l\'utilisateur pour un token valide non expiré', async () => {
+  it("retourne l'utilisateur pour un token valide non expiré", async () => {
     const futureDate = new Date()
     futureDate.setHours(futureDate.getHours() + 12) // expire dans 12h
 
@@ -82,7 +87,7 @@ describe('verifyPasswordResetToken', () => {
 })
 
 describe('consumePasswordResetToken', () => {
-  it('ne lance pas d\'erreur pour un token existant', async () => {
+  it("ne lance pas d'erreur pour un token existant", async () => {
     vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue({
       id: 1,
       token: 'to-consume',
@@ -94,7 +99,7 @@ describe('consumePasswordResetToken', () => {
     await expect(consumePasswordResetToken('to-consume')).resolves.toBeUndefined()
   })
 
-  it('ne lance pas d\'erreur pour un token inexistant', async () => {
+  it("ne lance pas d'erreur pour un token inexistant", async () => {
     vi.mocked(db.passwordResetToken.findUnique).mockResolvedValue(null as never)
 
     await expect(consumePasswordResetToken('inexistant')).resolves.toBeUndefined()

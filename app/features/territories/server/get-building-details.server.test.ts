@@ -18,14 +18,14 @@ describe('getBuildingDetails', () => {
     const fakeBuilding = { id: 1, number: '12', entrance: { buildings: [], territories: [] } }
     vi.mocked(db.building.findUnique).mockResolvedValue(fakeBuilding as never)
 
-    const result = await getBuildingDetails(1)
+    const result = await getBuildingDetails(db, 1)
     expect(result).toEqual(fakeBuilding)
   })
 
-  it('retourne null quand le bâtiment n\'existe pas', async () => {
+  it("retourne null quand le bâtiment n'existe pas", async () => {
     vi.mocked(db.building.findUnique).mockResolvedValue(null as never)
 
-    const result = await getBuildingDetails(999)
+    const result = await getBuildingDetails(db, 999)
     expect(result).toBeNull()
   })
 })

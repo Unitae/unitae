@@ -1,20 +1,23 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
-export async function createBuilding({
-  address,
-  coordinates = {},
-  congregationId,
-}: {
-  address: { number: string; street: string; zip: string }
-  coordinates?: { latitude?: number; longitude?: number }
-  congregationId: number
-}): Promise<DetailedBuilding> {
+export async function createBuilding(
+  db: ScopedDb,
+  {
+    address,
+    coordinates = {},
+    congregationId,
+  }: {
+    address: { number: string; street: string; zip: string }
+    coordinates?: { latitude?: number; longitude?: number }
+    congregationId: number
+  },
+): Promise<DetailedBuilding> {
   let isInTerritory = true
   if (coordinates.latitude != null && coordinates.longitude != null) {
-    const polygon = await getTerritoryPolygon()
+    const polygon = await getTerritoryPolygon(db)
     if (polygon.length > 0) {
       isInTerritory = pointInPolygon([coordinates.latitude, coordinates.longitude], polygon)
     }

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeRankedTerritories } from './compute-ranked-territories.server'
+import type { StatsAttribution } from './stats-attribution.type'
 
 function makeAttribution(overrides: Partial<StatsAttribution> = {}): StatsAttribution {
   return {
@@ -19,7 +19,7 @@ function makeAttribution(overrides: Partial<StatsAttribution> = {}): StatsAttrib
 }
 
 describe('computeRankedTerritories', () => {
-  it('retourne null quand il n\'y a aucune attribution', () => {
+  it("retourne null quand il n'y a aucune attribution", () => {
     const result = computeRankedTerritories([])
     expect(result).toEqual({ most: null, least: null })
   })

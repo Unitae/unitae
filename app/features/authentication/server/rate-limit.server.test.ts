@@ -23,7 +23,7 @@ beforeEach(() => {
 })
 
 describe('checkLoginRateLimit', () => {
-  it('retourne true quand aucune tentative n\'a été enregistrée', async () => {
+  it("retourne true quand aucune tentative n'a été enregistrée", async () => {
     vi.mocked(redis.get).mockResolvedValue(null)
 
     const result = await checkLoginRateLimit('test@example.com')
@@ -51,14 +51,14 @@ describe('checkLoginRateLimit', () => {
     expect(result).toBe(false)
   })
 
-  it('retourne true en cas d\'erreur Redis (dégradation gracieuse)', async () => {
+  it("retourne true en cas d'erreur Redis (dégradation gracieuse)", async () => {
     vi.mocked(redis.get).mockRejectedValue(new Error('Redis down'))
 
     const result = await checkLoginRateLimit('test@example.com')
     expect(result).toBe(true)
   })
 
-  it('normalise l\'email en minuscules', async () => {
+  it("normalise l'email en minuscules", async () => {
     vi.mocked(redis.get).mockResolvedValue('4')
 
     // Les deux doivent retourner le même résultat car la clé est normalisée
@@ -69,14 +69,14 @@ describe('checkLoginRateLimit', () => {
 })
 
 describe('recordLoginAttempt', () => {
-  it('ne lance pas d\'erreur en fonctionnement normal', async () => {
+  it("ne lance pas d'erreur en fonctionnement normal", async () => {
     vi.mocked(redis.incr).mockResolvedValue(1)
     vi.mocked(redis.expire).mockResolvedValue(1)
 
     await expect(recordLoginAttempt('test@example.com')).resolves.toBeUndefined()
   })
 
-  it('ne lance pas d\'erreur en cas d\'erreur Redis', async () => {
+  it("ne lance pas d'erreur en cas d'erreur Redis", async () => {
     vi.mocked(redis.incr).mockRejectedValue(new Error('Redis down'))
 
     await expect(recordLoginAttempt('test@example.com')).resolves.toBeUndefined()
@@ -84,13 +84,13 @@ describe('recordLoginAttempt', () => {
 })
 
 describe('clearLoginAttempts', () => {
-  it('ne lance pas d\'erreur en fonctionnement normal', async () => {
+  it("ne lance pas d'erreur en fonctionnement normal", async () => {
     vi.mocked(redis.del).mockResolvedValue(1)
 
     await expect(clearLoginAttempts('test@example.com')).resolves.toBeUndefined()
   })
 
-  it('ne lance pas d\'erreur en cas d\'erreur Redis', async () => {
+  it("ne lance pas d'erreur en cas d'erreur Redis", async () => {
     vi.mocked(redis.del).mockRejectedValue(new Error('Redis down'))
 
     await expect(clearLoginAttempts('test@example.com')).resolves.toBeUndefined()

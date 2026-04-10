@@ -1,9 +1,9 @@
 import { pdf } from '@react-pdf/renderer'
 import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 
 import type { Route } from './+types/pdf-export'
@@ -13,7 +13,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
   const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
@@ -27,7 +27,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     currentUser,
   })
 
-  const territories = await getTerritoriesExportData(Number(params.year))
+  const territories = await getTerritoriesExportData(db, Number(params.year))
   const file = await pdf(<TerritoryAttributionDocument year={Number(params.year)} territories={territories} />).toBlob()
 
   return new Response(file, {

@@ -2,10 +2,10 @@ import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide
 import { Link, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -21,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.ActivityViewer, Role.ActivityManager])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.ActivityViewer, Role.ActivityManager])
   const canViewActivities = can(Role.ActivityViewer)
   const canManageActivities = can(Role.ActivityManager)
 
@@ -39,7 +39,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const month = Number(searchParams.get('month') ?? timeRange.getMonth())
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
-  const users = await getPublisherWithActivities(month, year)
+  const users = await getPublisherWithActivities(db, month, year)
 
   return {
     firstMonth: {
@@ -50,7 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       month,
       year,
     },
-    stats: await getPublisherStats(month, year),
+    stats: await getPublisherStats(db, month, year),
     publishers: users
       .map(sanitizeUser)
       .map(({ activities, ...member }) => ({

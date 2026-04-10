@@ -1,8 +1,8 @@
 import type { Prisma } from '~/database/generated/client'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 
-export async function findActiveAttributionsPaginated(selectors: Prisma.AttributionWhereInput, url: URL) {
+export async function findActiveAttributionsPaginated(db: ScopedDb, selectors: Prisma.AttributionWhereInput, url: URL) {
   const total = await db.attribution.count({ where: selectors })
   const pagination = paginationFromUrl(url, total)
 

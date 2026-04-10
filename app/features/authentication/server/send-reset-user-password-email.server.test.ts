@@ -32,14 +32,14 @@ beforeEach(() => {
 })
 
 describe('sendResetUserPasswordEmail', () => {
-  it('retourne false quand l\'utilisateur n\'existe pas', async () => {
+  it("retourne false quand l'utilisateur n'existe pas", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(null as never)
 
     const result = await sendResetUserPasswordEmail(999, 'email-template' as never)
     expect(result).toBe(false)
   })
 
-  it('envoie l\'email quand l\'utilisateur existe', async () => {
+  it("envoie l'email quand l'utilisateur existe", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue({ id: 1, email: 'test@example.com', congregationId: 5 } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ emailFrom: 'Congré <noreply@test.org>' } as never)
     vi.mocked(mailer.emails.send).mockResolvedValue({} as never)
@@ -52,7 +52,7 @@ describe('sendResetUserPasswordEmail', () => {
     expect(result).not.toBe(false)
   })
 
-  it('ne lance pas d\'erreur quand l\'envoi d\'email échoue', async () => {
+  it("ne lance pas d'erreur quand l'envoi d'email échoue", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue({ id: 1, email: 'test@example.com', congregationId: 5 } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ emailFrom: 'Congré <noreply@test.org>' } as never)
     vi.mocked(mailer.emails.send).mockRejectedValue(new Error('SMTP error'))

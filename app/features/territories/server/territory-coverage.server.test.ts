@@ -22,15 +22,15 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.territory.count).mockResolvedValue(10)
     vi.mocked(db.attribution.count).mockResolvedValue(3)
 
-    const result = await computeTerritoryCoverage()
+    const result = await computeTerritoryCoverage(db)
     expect(result).toBe(30)
   })
 
-  it('retourne 0 quand il n\'y a aucun territoire', async () => {
+  it("retourne 0 quand il n'y a aucun territoire", async () => {
     vi.mocked(db.territory.count).mockResolvedValue(0)
     vi.mocked(db.attribution.count).mockResolvedValue(0)
 
-    const result = await computeTerritoryCoverage()
+    const result = await computeTerritoryCoverage(db)
     expect(result).toBe(0)
   })
 
@@ -38,7 +38,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.territory.count).mockResolvedValue(5)
     vi.mocked(db.attribution.count).mockResolvedValue(5)
 
-    const result = await computeTerritoryCoverage()
+    const result = await computeTerritoryCoverage(db)
     expect(result).toBe(100)
   })
 
@@ -46,7 +46,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.territory.count).mockResolvedValue(5)
     vi.mocked(db.attribution.count).mockResolvedValue(10)
 
-    const result = await computeTerritoryCoverage()
+    const result = await computeTerritoryCoverage(db)
     expect(result).toBe(200)
   })
 
@@ -55,6 +55,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.attribution.count).mockResolvedValue(5)
 
     const result = await computeTerritoryCoverage(
+      db as any,
       [TerritoryKind.Phone, TerritoryKind.Classical],
       [TerritoryAttributionKind.Phone],
     )
@@ -65,11 +66,11 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.territory.count).mockResolvedValue(10)
     vi.mocked(db.attribution.count).mockResolvedValue(2)
 
-    await computeTerritoryCoverage()
+    await computeTerritoryCoverage(db)
 
     // On vérifie le résultat, pas l'appel au mock
     // Les valeurs par défaut sont testées implicitement via le résultat correct
-    expect(await computeTerritoryCoverage()).toBe(20)
+    expect(await computeTerritoryCoverage(db)).toBe(20)
   })
 
   it('accepte un filtre startDate', async () => {
@@ -77,7 +78,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.attribution.count).mockResolvedValue(4)
 
     const startDate = new Date(2025, 0, 1)
-    const result = await computeTerritoryCoverage(undefined, undefined, startDate)
+    const result = await computeTerritoryCoverage(db as any, undefined, undefined, startDate)
     expect(result).toBe(40)
   })
 
@@ -86,7 +87,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.attribution.count).mockResolvedValue(6)
 
     const endDate = new Date(2025, 11, 31)
-    const result = await computeTerritoryCoverage(undefined, undefined, undefined, endDate)
+    const result = await computeTerritoryCoverage(db as any, undefined, undefined, undefined, endDate)
     expect(result).toBe(60)
   })
 
@@ -96,7 +97,7 @@ describe('computeTerritoryCoverage', () => {
 
     const startDate = new Date(2025, 0, 1)
     const endDate = new Date(2025, 11, 31)
-    const result = await computeTerritoryCoverage(undefined, undefined, startDate, endDate)
+    const result = await computeTerritoryCoverage(db as any, undefined, undefined, startDate, endDate)
     expect(result).toBe(80)
   })
 })

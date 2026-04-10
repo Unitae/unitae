@@ -1,6 +1,5 @@
 import { Form, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
@@ -10,6 +9,7 @@ import {
   serializeTerritoryPolygon,
   serializeZips,
 } from '~/features/territories/server/settings'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -26,18 +26,18 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const territory = await getTerritoryPolygon()
-  const zips = await getAllowedZips()
-  const banoUrl = await getSetting(TerritorySettingKey.BanoUrl)
-  const prospectionValidity = await getSetting(TerritorySettingKey.ProspectionValidity)
-  const phoneTypeActivated = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const territory = await getTerritoryPolygon(db)
+  const zips = await getAllowedZips(db)
+  const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl)
+  const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity)
+  const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
   return {
     territory: serializeTerritoryPolygon(territory),
@@ -134,7 +134,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -148,11 +148,11 @@ export async function action({ request }: Route.ActionArgs) {
   const prospectionValidity = String(form.get('prospection-validity'))
   const phoneTypeActivated = String(Boolean(form.get('phone-territory-active')))
 
-  await setSetting(TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), congregation.id)
-  await setSetting(TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), congregation.id)
-  await setSetting(TerritorySettingKey.BanoUrl, banoUrl, congregation.id)
-  await setSetting(TerritorySettingKey.ProspectionValidity, prospectionValidity, congregation.id)
-  await setSetting(TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, congregation.id)
+  await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), congregation.id)
+  await setSetting(db, TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), congregation.id)
+  await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, congregation.id)
+  await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, congregation.id)
+  await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, congregation.id)
 
   return redirect('/settings')
 }
