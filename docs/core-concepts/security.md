@@ -64,7 +64,7 @@ If you discover a security vulnerability in Unitae, please report it responsibly
 
 - **Do not** create a public GitHub issue for security problems
 - Use [GitHub Security Advisories](https://github.com/Unitae/unitae/security/advisories) to report vulnerabilities privately
-- See [SECURITY.md](../../SECURITY.md) for the full disclosure policy
+- See [SECURITY.md](../../SECURITY.md) for the full disclosure policy and reporting details
 
 ### In Scope
 
