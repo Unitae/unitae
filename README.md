@@ -214,4 +214,4 @@ pnpm test:unit       # Run unit tests
 
 ## License
 
-[MIT](LICENSE)
+[AGPL-3.0](LICENSE)
