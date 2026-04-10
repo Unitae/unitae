@@ -1,14 +1,15 @@
 import { data, Form, Link, redirect } from 'react-router'
 
-import { getBrandingName } from '~/shared/libs/congregation.server'
+import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
   checkLoginRateLimit,
   clearLoginAttempts,
   recordLoginAttempt,
 } from '~/features/authentication/server/rate-limit.server'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
+import { unscopedDb } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
@@ -29,6 +30,21 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const session = await getSession(request.headers.get('Cookie'))
   if (session.has('userId') === true) {
+    // En mode multi-tenant, vérifier que la session correspond à l'assemblée du sous-domaine
+    const urlCongregation = await resolveCongregationFromRequest(request)
+    if (urlCongregation) {
+      const uid = Number(session.get('userId'))
+      const user = await unscopedDb.user.findUnique({
+        where: { id: uid },
+        select: { congregationId: true },
+      })
+      if (!user || user.congregationId !== urlCongregation.id) {
+        return data(
+          { error: undefined, brandingName: await getBrandingName(request) },
+          { headers: { 'Set-Cookie': await destroySession(session) } },
+        )
+      }
+    }
     throw redirect('/')
   }
 
@@ -102,7 +118,8 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const userId = await validateCredentials(username, String(password))
+  const urlCongregation = await resolveCongregationFromRequest(request)
+  const userId = await validateCredentials(username, String(password), urlCongregation?.id)
 
   if (userId == null) {
     await recordLoginAttempt(username)
