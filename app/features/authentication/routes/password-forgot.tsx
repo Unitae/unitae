@@ -3,7 +3,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { getBrandingName, resolveCongregation } from '~/shared/libs/congregation.server'
+import { getBrandingName, resolveCongregation, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -18,6 +18,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  await resolveCongregationFromRequest(request)
+
   const session = await getSession(request.headers.get('Cookie'))
   const brandingName = await getBrandingName(request)
 
