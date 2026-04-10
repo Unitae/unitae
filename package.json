@@ -1,5 +1,6 @@
 {
   "name": "unitae",
+  "license": "AGPL-3.0-only",
   "private": true,
   "sideEffects": false,
   "type": "module",
