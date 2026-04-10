@@ -44,7 +44,7 @@ Manager roles implicitly include viewer access — you don't need to assign both
 
 ## Managing Roles
 
-Roles are assigned through **Settings > Users**. To manage user roles, you need either the `SettingsUserManager` or `Admin` role.
+Roles are assigned through **Réglages > Utilisateurs**. To manage user roles, you need either the `SettingsUserManager` or `Admin` role.
 
 From the user management page, you can:
 

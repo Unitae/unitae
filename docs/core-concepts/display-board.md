@@ -18,9 +18,9 @@ Documents are organized into **sections** — named folders that group related d
 
 Upload PDF documents to any section on the board. Each document has:
 
-- **Title** — A display name for the document
+- **Nom** — A display name for the document
 - **Section** — Which section the document belongs to
-- **PDF file** — The actual document file
+- **Fichier à uploader** — The PDF file to upload
 
 Documents are stored in the configured file storage backend (local filesystem or S3-compatible storage).
 
@@ -30,8 +30,8 @@ Documents are stored in the configured file storage backend (local filesystem or
 
 Control when a document appears on the board:
 
-- **visibleFrom** — The date from which the document is visible
-- **visibleUntil** — The date after which the document is hidden
+- **Visible à partir du** — The date from which the document is visible
+- **Visible jusqu'au** — The date after which the document is hidden
 
 Documents outside their visibility window are not shown on the board. This lets you prepare documents in advance and schedule them to appear at the right time.
 
@@ -39,7 +39,7 @@ Documents outside their visibility window are not shown on the board. This lets 
 
 ### Highlighting
 
-Important documents can be **highlighted** to pin them to the top of the board, making them immediately visible to all members.
+Important documents can be featured on the board using the *Mettre en avant le document sur le tableau d'affichage* option. Featured documents are pinned to the top, making them immediately visible to all members.
 
 **Required role**: `BoardValidator` or `Admin`
 

@@ -6,11 +6,11 @@ The territory module manages the congregation's geographic areas, assigns them t
 
 Unitae supports several territory types to match different kinds of field ministry:
 
-- **Doors-to-doors** — Standard residential territories
-- **Campus** — University or educational institution territories
+- **Porte à Porte** — Standard residential territories
+- **Université** — University or educational institution territories
 - **Commerces** — Commercial area territories
-- **Phones** — Phone witnessing territories (can be toggled on/off in settings)
-- **Hotel** — Hotel territories
+- **Téléphone** — Phone witnessing territories (can be toggled on/off in settings)
+- **Hôtels** — Hotel territories
 
 Each territory has a number, a type, and optional notes.
 
@@ -20,23 +20,25 @@ An **attribution** is when a territory is assigned to a publisher for a period o
 
 ### Attribution Data
 
-- **Publisher** — The person assigned to work the territory
-- **Territory** — The territory being assigned
-- **Start date** — When the attribution begins
-- **End date** — When the territory was returned (blank while active)
-- **Late date** — The date after which the attribution is considered overdue
-- **Type** — Default, phones, or campaign
+- **Proclamateur** — The person assigned to work the territory
+- **Territoire** — The territory being assigned
+- **Date de sortie** — When the attribution begins
+- **Date de rentrée** — When the territory was returned (blank while active)
+- **À rentrer le** — The expected return date, after which the attribution is considered overdue
+- **Type de sortie** — The kind of outreach (see below)
 - **Notes** — Optional notes about the attribution
 
 ### Attribution Types
 
-- **Default** — Standard territory assignment
-- **Phones** — Phone witnessing assignment
-- **Campaign** — Special campaign assignment (e.g., memorial invitations)
+The *Type de sortie* field offers:
+
+- **Porte à Porte** (or **Classique**) — Standard territory assignment
+- **Téléphone** — Phone witnessing assignment
+- **Campagne de distribution** — Special campaign assignment (e.g., memorial invitations)
 
 ### Overdue Tracking
 
-When an attribution passes its late date without being returned, it is marked as overdue. The territories list highlights overdue attributions so managers can follow up.
+When an attribution passes its *À rentrer le* date without being returned, it is marked as overdue. The territories list highlights overdue attributions so managers can follow up.
 
 ### S-13 Export
 
@@ -52,10 +54,10 @@ Each building record includes:
 
 - **Address** — Number, street, and postal code
 - **Coordinates** — Latitude and longitude (for map display)
-- **Entrance type** — Whether the building has a shared entrance with other buildings
-- **Prospection data** — Number of homes, phones, liberal professions, shops, campus units, hotel rooms, laundromats
-- **Status** — Active, inactive, or needs review
-- **Prospection date** — When the building was last surveyed
+- **Type d'accès** — Access type (interphone, digicode, sonnette extérieur)
+- **Porte à Porte** section — Nombre de logements (homes), nombre de téléphones, nombre de libéraux (self-employed professionals)
+- **Autres informations** section — Whether the address has commerces, résidences universitaires, hôtels, laveries automatiques, or is accessible for persons with reduced mobility
+- **Date de prospection** — When the building was last surveyed
 - **Notes** — Additional information about the building
 
 ### Open Data Sync

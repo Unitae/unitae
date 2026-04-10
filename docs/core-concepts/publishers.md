@@ -10,27 +10,33 @@ A **publisher** is a congregation member who participates in field ministry. Use
 
 Each publisher profile includes:
 
-- **Personal details** — Name, email, phone, address, birth date
-- **Baptism date** — Date of baptism
-- **Publisher type** — Regular publisher, pioneer, or auxiliary pioneer
-- **Spiritual status** — Elder, ministerial servant, or anointed
-- **Gender** — Used for gender-specific assignments
-- **Active status** — Whether the publisher is currently active
+- **Prénom / Nom** — First and last name
+- **Email / Téléphone / Adresse** — Contact details
+- **Date de naissance** — Birth date
+- **Date de baptême** — Baptism date
+- **Genre** — Homme or Femme, used for gender-specific assignments
+- **Profil du proclamateur** — Publisher type (see below)
+- **Nomination** — Whether the publisher is an ancien (elder) or assistant (ministerial servant) in the congregation
+- **Le proclamateur est oint** — Anointed status
 
 ### Publisher Types
 
-- **Publisher** — Regular publisher
-- **Pioneer** — Full-time minister
-- **Auxiliary Pioneer** — Temporary full-time minister (can be toggled on/off in congregation settings)
+The *Profil du proclamateur* field offers:
+
+- **Proclamateur** — Regular publisher (default)
+- **Pionnier auxiliaire** — Temporary full-time minister (can be toggled on/off in congregation settings)
+- **Pionnier permanent** — Full-time minister
+- **Pionnier spécial** — Special pioneer
+- **Missionnaire** — Missionary
 
 ## Publisher Groups
 
 Publishers are organized into **groups** (field service groups). Each group has:
 
-- **Name** — The group's display name
-- **Address** — Meeting location for the group
-- **Responsible** — The group leader (typically an elder)
-- **Deputy** — The assistant group leader
+- **Nom** — The group's display name
+- **Adresse** — Meeting location for the group
+- **Responsable** — The group leader (typically an elder)
+- **Adjoint** — The assistant group leader
 - **Members** — Publishers assigned to the group
 
 Groups help organize field service and track activity at the group level.
@@ -43,12 +49,12 @@ Monthly field service reports are recorded for each publisher.
 
 Each monthly record includes:
 
-- **Month and year** — The reporting period
-- **Hours** — Hours spent in field ministry
-- **Bible studies** — Number of Bible studies conducted
-- **Activity type** — Type of ministry performed
-- **Publisher status** — Whether the person was an active publisher that month
-- **Notes** — Optional notes
+- **Mois concerné / Année** — The reporting period
+- **Heures** — Hours spent in field ministry
+- **Études** — Number of Bible studies conducted
+- **Service de pionnier** — Type of pioneer service performed that month
+- **Le proclamateur a préché ce mois** — Whether the person was active that month
+- **Observations** — Optional notes
 
 ### Theocratic Year
 
