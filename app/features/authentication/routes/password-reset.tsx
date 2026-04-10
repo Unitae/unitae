@@ -1,6 +1,6 @@
 import { Form, redirect } from 'react-router'
 
-import { getBrandingName } from '~/shared/libs/congregation.server'
+import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import {
   consumePasswordResetToken,
   verifyPasswordResetToken,
@@ -19,6 +19,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
+  await resolveCongregationFromRequest(request)
+
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
   if (user == null) {

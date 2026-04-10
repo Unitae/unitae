@@ -23,6 +23,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  // Vérifier que le sous-domaine correspond à une assemblée existante
+  await resolveCongregationFromRequest(request)
+
   const shouldStartSetup = await needSetupProcess()
   if (shouldStartSetup) {
     return redirect(process.env.MULTI_TENANT === 'true' ? '/register' : '/setup')
