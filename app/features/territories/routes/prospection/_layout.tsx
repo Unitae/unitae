@@ -2,12 +2,11 @@ import { Map as MapIcon, RefreshCw } from 'lucide-react'
 import { data, Form, Link, NavLink, Outlet, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -20,7 +19,11 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.ProspectionManager, Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [
+    Role.ProspectionViewer,
+    Role.ProspectionManager,
+    Role.TerritoriesManager,
+  ])
   const canViewProspection = can(Role.ProspectionViewer)
   const canManageProspection = can(Role.ProspectionManager)
   const canManageTerritories = can(Role.TerritoriesManager)
@@ -29,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const prospectionValidity = Number(await getSetting(TerritorySettingKey.ProspectionValidity) ?? '0')
+  const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
   const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
   if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
   const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
@@ -102,7 +105,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
   const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })
   const messages = { success: session.get('success'), error: session.get('error') }
-  const zips = await getZips()
+  const zips = await getZips(db)
 
   return data(
     {

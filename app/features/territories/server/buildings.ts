@@ -1,6 +1,6 @@
 import type { Building, Prisma } from '~/database/generated/client'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 
@@ -27,7 +27,7 @@ function sortEntrancesByAddress(entrances: Entrance[]) {
   return entrances
 }
 
-export async function findBuildingsPaginated(selectors: Prisma.BuildingWhereInput, url: URL) {
+export async function findBuildingsPaginated(db: ScopedDb, selectors: Prisma.BuildingWhereInput, url: URL) {
   const totalBuildings = await db.building.count({ where: selectors })
   const pagination = paginationFromUrl(url, totalBuildings)
 
@@ -43,7 +43,7 @@ export async function findBuildingsPaginated(selectors: Prisma.BuildingWhereInpu
   return { buildings, pagination }
 }
 
-export async function findBuildingsWithEntrancePaginated(selectors: Prisma.BuildingWhereInput, url: URL) {
+export async function findBuildingsWithEntrancePaginated(db: ScopedDb, selectors: Prisma.BuildingWhereInput, url: URL) {
   const totalBuildings = await db.building.count({ where: selectors })
   const pagination = paginationFromUrl(url, totalBuildings)
 
@@ -60,7 +60,7 @@ export async function findBuildingsWithEntrancePaginated(selectors: Prisma.Build
   return { buildings, pagination }
 }
 
-export async function findEntrancesPaginated(selectors: Prisma.BuildingWhereInput, url: URL) {
+export async function findEntrancesPaginated(db: ScopedDb, selectors: Prisma.BuildingWhereInput, url: URL) {
   const totalBuildings = await db.building.count({ where: selectors })
   const pagination = paginationFromUrl(url, totalBuildings)
 
@@ -78,7 +78,7 @@ export async function findEntrancesPaginated(selectors: Prisma.BuildingWhereInpu
   return { entrances: sortEntrancesByAddress(entrances), pagination }
 }
 
-export async function getProspectionStaleDate(): Promise<Date> {
+export async function getProspectionStaleDate(db: ScopedDb): Promise<Date> {
   const prospectionValidity = Number(
     (await db.setting.findFirst({ where: { key: 'prospection-validity' } }))?.value ?? '0',
   )
@@ -112,7 +112,7 @@ export function aggregateEntrance(entrance: Entrance): AggregatedEntrance {
   }
 }
 
-export async function getZips(territoryType?: TerritoryKind) {
+export async function getZips(db: ScopedDb, territoryType?: TerritoryKind) {
   const selectors: Prisma.BuildingWhereInput = { active: true }
 
   if (territoryType != null) {
@@ -128,7 +128,7 @@ export async function getZips(territoryType?: TerritoryKind) {
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getAvailableZips(territoryType?: TerritoryKind) {
+export async function getAvailableZips(db: ScopedDb, territoryType?: TerritoryKind) {
   const selectors: Prisma.BuildingWhereInput = { active: true }
 
   if (territoryType != null) {
@@ -144,7 +144,7 @@ export async function getAvailableZips(territoryType?: TerritoryKind) {
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getStreets(zip?: string, territoryType?: TerritoryKind) {
+export async function getStreets(db: ScopedDb, zip?: string, territoryType?: TerritoryKind) {
   const selectors: Prisma.BuildingWhereInput = { active: true }
 
   if (zip != null) {
@@ -164,7 +164,7 @@ export async function getStreets(zip?: string, territoryType?: TerritoryKind) {
   return await db.building.groupBy({ by: 'street', where: selectors })
 }
 
-export async function getAvailableStreets(zip?: string, territoryType?: TerritoryKind) {
+export async function getAvailableStreets(db: ScopedDb, zip?: string, territoryType?: TerritoryKind) {
   const selectors: Prisma.BuildingWhereInput = { active: true }
 
   if (zip != null) {
@@ -183,7 +183,12 @@ export async function getAvailableStreets(zip?: string, territoryType?: Territor
   return await db.building.groupBy({ by: 'street', where: selectors })
 }
 
-export async function getEntrances(zip?: string, street?: string, territoryType?: TerritoryKind): Promise<Entrance[]> {
+export async function getEntrances(
+  db: ScopedDb,
+  zip?: string,
+  street?: string,
+  territoryType?: TerritoryKind,
+): Promise<Entrance[]> {
   const selectors: Prisma.BuildingWhereInput = { active: true }
 
   if (zip != null) {
@@ -214,6 +219,7 @@ export async function getEntrances(zip?: string, street?: string, territoryType?
 }
 
 export async function getAvailableEntrances(
+  db: ScopedDb,
   zip?: string,
   street?: string,
   territoryType?: TerritoryKind,
@@ -247,14 +253,14 @@ export async function getAvailableEntrances(
   return buildings.map(building => building.entrance).filter(entrance => entrance != null)
 }
 
-export async function getEntrance(entranceId: number): Promise<Entrance | null> {
+export async function getEntrance(db: ScopedDb, entranceId: number): Promise<Entrance | null> {
   return await db.buildingEntrance.findUnique({
     where: { id: entranceId },
     include: { buildings: true },
   })
 }
 
-export async function getBuilding(buildingId: number): Promise<Building | null> {
+export async function getBuilding(db: ScopedDb, buildingId: number): Promise<Building | null> {
   return await db.building.findUnique({
     where: { id: buildingId },
     include: { entrance: { include: { buildings: true } } },

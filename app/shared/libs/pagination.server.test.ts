@@ -15,7 +15,7 @@ describe('paginationFromUrl', () => {
     expect(result.next).toBe(2)
   })
 
-  it('utilise les paramètres page et pageSize de l\'URL', () => {
+  it("utilise les paramètres page et pageSize de l'URL", () => {
     const url = new URL('http://localhost/?page=3&pageSize=10')
     const result = paginationFromUrl(url, 50)
 
@@ -78,7 +78,7 @@ describe('paginationFromUrl', () => {
     expect(result.pages).toBe(4)
   })
 
-  it('calcule l\'offset correctement', () => {
+  it("calcule l'offset correctement", () => {
     const url = new URL('http://localhost/?page=5&pageSize=20')
     const result = paginationFromUrl(url, 200)
 

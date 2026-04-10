@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { TerritoryCountByType } from './territory-count-by-type.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeMonthlyCoverageEvolution } from './compute-monthly-coverage-evolution.server'
+import type { StatsAttribution } from './stats-attribution.type'
+import type { TerritoryCountByType } from './territory-count-by-type.type'
 
-function makeAttribution(
-  territoryId: number,
-  startDate: Date,
-  endDate: Date | null,
-): StatsAttribution {
+function makeAttribution(territoryId: number, startDate: Date, endDate: Date | null): StatsAttribution {
   return {
     id: territoryId,
     territoryId,
@@ -25,18 +21,13 @@ function makeAttribution(
 describe('computeMonthlyCoverageEvolution', () => {
   const counts: TerritoryCountByType[] = [{ type: TerritoryKind.Classical, count: 10 }]
 
-  it('retourne un tableau vide quand il n\'y a aucun territoire', () => {
+  it("retourne un tableau vide quand il n'y a aucun territoire", () => {
     const result = computeMonthlyCoverageEvolution([], [], new Date(2025, 8, 1), new Date(2025, 10, 30))
     expect(result).toEqual([])
   })
 
   it('retourne 0% pour chaque mois sans attributions', () => {
-    const result = computeMonthlyCoverageEvolution(
-      [],
-      counts,
-      new Date(2025, 8, 1),
-      new Date(2025, 10, 30),
-    )
+    const result = computeMonthlyCoverageEvolution([], counts, new Date(2025, 8, 1), new Date(2025, 10, 30))
 
     expect(result).toHaveLength(3)
     expect(result.every(m => m.coverage === 0)).toBe(true)
@@ -48,12 +39,7 @@ describe('computeMonthlyCoverageEvolution', () => {
       makeAttribution(2, new Date(2025, 9, 10), new Date(2025, 9, 25)),
     ]
 
-    const result = computeMonthlyCoverageEvolution(
-      attributions,
-      counts,
-      new Date(2025, 8, 1),
-      new Date(2025, 10, 30),
-    )
+    const result = computeMonthlyCoverageEvolution(attributions, counts, new Date(2025, 8, 1), new Date(2025, 10, 30))
 
     // Sept : territoire 1 touché = 10%
     expect(result[0].coverage).toBe(10)

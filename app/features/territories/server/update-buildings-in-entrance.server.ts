@@ -1,7 +1,12 @@
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
-export async function updateBuildingsInEntrance(entranceId: number, buildingIds: number[], congregationId: number) {
+export async function updateBuildingsInEntrance(
+  db: ScopedDb,
+  entranceId: number,
+  buildingIds: number[],
+  congregationId: number,
+) {
   const entrance = await db.buildingEntrance.findUnique({
     where: { id: entranceId },
     include: { buildings: true },

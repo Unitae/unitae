@@ -48,7 +48,7 @@ const baseCongregation = {
 }
 
 describe('resolveCongregation', () => {
-  it('lance une erreur si la congrégation n\'existe pas', async () => {
+  it("lance une erreur si la congrégation n'existe pas", async () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
 
     await expect(resolveCongregation(999)).rejects.toThrow('Congregation 999 not found')
@@ -71,14 +71,14 @@ describe('resolveCongregation', () => {
     expect(result.displayName).toBe('Nom affiché')
   })
 
-  it('utilise l\'email par défaut quand emailFromAddress est null', async () => {
+  it("utilise l'email par défaut quand emailFromAddress est null", async () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
     expect(result.emailFrom).toBe('Unitae <noreply@unitae.app>')
   })
 
-  it('construit l\'emailFrom à partir de emailFromAddress et emailFromName', async () => {
+  it("construit l'emailFrom à partir de emailFromAddress et emailFromName", async () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue({
       ...baseCongregation,
       emailFromName: 'Ma Congré',
@@ -151,7 +151,7 @@ describe('resolveCongregation', () => {
 })
 
 describe('getCongregationFromContext', () => {
-  it('retourne null quand le contexte n\'est pas défini', () => {
+  it("retourne null quand le contexte n'est pas défini", () => {
     vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
 
     expect(getCongregationFromContext()).toBeNull()
@@ -177,7 +177,7 @@ describe('getCongregationFromContext', () => {
 })
 
 describe('requireCongregation', () => {
-  it('lance une erreur quand le contexte n\'est pas défini', () => {
+  it("lance une erreur quand le contexte n'est pas défini", () => {
     vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
 
     expect(() => requireCongregation()).toThrow('Congregation context is required but not set')
@@ -235,7 +235,7 @@ describe('resolveCongregationFromRequest', () => {
     )
   })
 
-  it('résout par domaine personnalisé quand il n\'y a pas de slug', async () => {
+  it("résout par domaine personnalisé quand il n'y a pas de slug", async () => {
     process.env.MULTI_TENANT = 'true'
     process.env.APP_BASE_URL = 'unitae.app'
     vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 2, slug: 'paris' } as never)

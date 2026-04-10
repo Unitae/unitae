@@ -34,7 +34,7 @@ describe('changeUserPassword', () => {
     expect(result).toBe(true)
   })
 
-  it('retourne false quand l\'utilisateur n\'existe pas', async () => {
+  it("retourne false quand l'utilisateur n'existe pas", async () => {
     vi.mocked(db.user.findFirst).mockResolvedValue(null as never)
 
     const result = await changeUserPassword(999, 'ancien', 'nouveau')

@@ -2,7 +2,6 @@ import { CalendarCheck, Pencil, X } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getGroups } from '~/features/publishers/server/groups'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -11,6 +10,7 @@ import { findActiveAttributionsPaginated } from '~/features/territories/server/a
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -28,7 +28,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.PublisherManager, Role.PublisherViewer, Role.TerritoriesManager, Role.ProspectionViewer])
+  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [
+    Role.TerritoriesViewer,
+    Role.PublisherManager,
+    Role.PublisherViewer,
+    Role.TerritoriesManager,
+    Role.ProspectionViewer,
+  ])
   const canViewTerritories = can(Role.TerritoriesViewer)
   const canManagePublisher = can(Role.PublisherManager)
   const canViewPublisher = can(Role.PublisherViewer)
@@ -51,16 +57,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading territory attributions. User ID: ${currentUser.id}. ${canManageTerritories ? 'Has' : 'Does NOT have'} rights to manage territories.`,
   )
 
-  const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
   selectors.endDate = null
 
-  const { attributions, pagination } = await findActiveAttributionsPaginated(selectors, url)
+  const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url)
 
   const messages = { success: session.get('success'), error: session.get('error') }
-  const groups = await getGroups()
+  const groups = await getGroups(db)
   const theocraticYear = getCurrentTheocraticYear()
 
   return data(

@@ -1,13 +1,17 @@
 import { getAllowedZips } from '~/features/territories/server/settings'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 
 import { fetchOpenData } from './fetch-open-data.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
-export async function importOpenData(congregationId: number, progressCallback: (percent: number) => void = () => {}) {
-  const wantedZips = await getAllowedZips()
-  const territory = await getTerritoryPolygon()
+export async function importOpenData(
+  db: ScopedDb,
+  congregationId: number,
+  progressCallback: (percent: number) => void = () => {},
+) {
+  const wantedZips = await getAllowedZips(db)
+  const territory = await getTerritoryPolygon(db)
   await db.building.updateMany({
     where: {
       inOpenData: true,
@@ -17,7 +21,7 @@ export async function importOpenData(congregationId: number, progressCallback: (
     },
   })
 
-  const parser = await fetchOpenData()
+  const parser = await fetchOpenData(db)
 
   return new Promise<void>((resolve, reject) => {
     let totalItems = 0

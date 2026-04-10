@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { sanitizeUser } from './sanitize-user.server'
 
 describe('sanitizeUser', () => {
-  it('supprime le mot de passe de l\'objet utilisateur', () => {
+  it("supprime le mot de passe de l'objet utilisateur", () => {
     const user = {
       id: 1,
       email: 'test@example.com',

@@ -2,10 +2,11 @@ import type { Building } from '~/database/generated/client'
 
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 
 export async function editBuilding(
+  db: ScopedDb,
   buildingId: number,
   {
     address,
@@ -17,7 +18,7 @@ export async function editBuilding(
 ): Promise<Building> {
   let isInTerritory = true
   if (coordinates.latitude != null && coordinates.longitude != null) {
-    const polygon = await getTerritoryPolygon()
+    const polygon = await getTerritoryPolygon(db)
     if (polygon.length > 0) {
       isInTerritory = pointInPolygon([coordinates.latitude, coordinates.longitude], polygon)
     }

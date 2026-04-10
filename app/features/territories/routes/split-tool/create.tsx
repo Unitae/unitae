@@ -2,9 +2,8 @@ import { redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { LimitService } from '~/shared/libs/limits.server'
 
 import type { Route } from './+types/create'
@@ -14,7 +13,7 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, congregation, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -47,7 +46,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const number = `${prefix}${String(count + 1).padStart(3, '0')}`
 
-  const limits = new LimitService(congregation)
+  const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('territories')
 
   await db.territory.create({

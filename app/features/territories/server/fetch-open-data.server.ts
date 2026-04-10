@@ -1,9 +1,9 @@
 import { Readable } from 'node:stream'
 import type { ReadableStream } from 'node:stream/web'
 import { parse } from 'csv'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 
-export async function fetchOpenData() {
+export async function fetchOpenData(db: ScopedDb) {
   const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })
   if (!banoUrl?.value || banoUrl.value === '') {
     return new Readable().pipe(parse({ delimiter: ',' }))

@@ -2,14 +2,13 @@ import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -25,7 +24,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -33,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
   const url = new URL(request.url)
   const zips = await db.building.groupBy({
     by: ['zip'],
@@ -155,7 +154,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -171,7 +170,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/territory/new')
   }
 
-  const limits = new LimitService(congregation)
+  const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('territories')
 
   await db.territory.create({

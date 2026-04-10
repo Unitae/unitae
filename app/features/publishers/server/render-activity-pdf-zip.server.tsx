@@ -2,9 +2,9 @@ import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 
-export async function renderActivityPdfZip(year: number) {
+export async function renderActivityPdfZip(db: ScopedDb, year: number) {
   const yearBegining = new Date(year, 0, 1)
   const users = await db.user.findMany({
     where: {

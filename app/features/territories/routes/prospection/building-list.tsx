@@ -1,10 +1,10 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { computeFilters } from '~/features/territories/server/building-filters'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { Button } from '~/shared/ui/button'
 
 import Pagination from '~/shared/ui/Pagination'
@@ -16,7 +16,11 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.TerritoriesManager, Role.ProspectionManager])
+  const { can, db } = await authenticateAndAuthorize(request, [
+    Role.ProspectionViewer,
+    Role.TerritoriesManager,
+    Role.ProspectionManager,
+  ])
   const canViewProspection = can(Role.ProspectionViewer)
   const canManageTerritories = can(Role.TerritoriesManager)
   const canManageProspection = can(Role.ProspectionManager)
@@ -27,8 +31,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
-  const staleDate = await getProspectionStaleDate()
-  const { buildings, pagination } = await findBuildingsPaginated(selectors, url)
+  const staleDate = await getProspectionStaleDate(db)
+  const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url)
 
   return {
     buildings,

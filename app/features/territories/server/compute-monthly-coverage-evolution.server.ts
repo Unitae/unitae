@@ -1,6 +1,6 @@
+import type { StatsAttribution } from './stats-attribution.type'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
 import { getTotalTerritoryCount } from './territory-count-by-type.type'
-import type { StatsAttribution } from './stats-attribution.type'
 
 export interface MonthlyCoverage {
   month: string

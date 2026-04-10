@@ -57,7 +57,7 @@ describe('verifyPlatformAdmin', () => {
     }
   })
 
-  it('lance une redirection vers / quand l\'utilisateur n\'est pas admin plateforme', async () => {
+  it("lance une redirection vers / quand l'utilisateur n'est pas admin plateforme", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({
       id: 42,
@@ -75,7 +75,7 @@ describe('verifyPlatformAdmin', () => {
     }
   })
 
-  it('lance une redirection vers / quand l\'utilisateur n\'existe pas', async () => {
+  it("lance une redirection vers / quand l'utilisateur n'existe pas", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null as never)
 

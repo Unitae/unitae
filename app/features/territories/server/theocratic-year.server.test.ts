@@ -8,7 +8,7 @@ import {
 } from './theocratic-year.server'
 
 describe('getBeginingDateOfTheocraticYear', () => {
-  it('retourne le 1er septembre de l\'année donnée', () => {
+  it("retourne le 1er septembre de l'année donnée", () => {
     const result = getBeginingDateOfTheocraticYear(2025)
     // theocraticYear=2025 → new Date(2025, 10, 1) → novembre 2025 → month > 7 → new Date(2025, 8, 1)
     expect(result.getFullYear()).toBe(2025)
@@ -32,7 +32,7 @@ describe('getBeginingDateOfTheocraticYear', () => {
       vi.useRealTimers()
     })
 
-    it('retourne septembre de l\'année courante si on est après août', () => {
+    it("retourne septembre de l'année courante si on est après août", () => {
       // Octobre 2025
       vi.setSystemTime(new Date(2025, 9, 15))
       const result = getBeginingDateOfTheocraticYear()
@@ -41,7 +41,7 @@ describe('getBeginingDateOfTheocraticYear', () => {
       expect(result.getMonth()).toBe(8)
     })
 
-    it('retourne septembre de l\'année précédente si on est avant septembre', () => {
+    it("retourne septembre de l'année précédente si on est avant septembre", () => {
       // Mars 2025
       vi.setSystemTime(new Date(2025, 2, 15))
       const result = getBeginingDateOfTheocraticYear()
@@ -50,7 +50,7 @@ describe('getBeginingDateOfTheocraticYear', () => {
       expect(result.getMonth()).toBe(8)
     })
 
-    it('retourne septembre de l\'année précédente en août (month 7, pas > 7)', () => {
+    it("retourne septembre de l'année précédente en août (month 7, pas > 7)", () => {
       // Août 2025 → month=7, pas > 7 → année précédente
       vi.setSystemTime(new Date(2025, 7, 15))
       const result = getBeginingDateOfTheocraticYear()
@@ -59,7 +59,7 @@ describe('getBeginingDateOfTheocraticYear', () => {
       expect(result.getMonth()).toBe(8)
     })
 
-    it('retourne septembre de l\'année courante en septembre (month 8, > 7)', () => {
+    it("retourne septembre de l'année courante en septembre (month 8, > 7)", () => {
       // Septembre 2025 → month=8, > 7 → année courante
       vi.setSystemTime(new Date(2025, 8, 15))
       const result = getBeginingDateOfTheocraticYear()
@@ -71,7 +71,7 @@ describe('getBeginingDateOfTheocraticYear', () => {
 })
 
 describe('getEndDateOfTheocraticYear', () => {
-  it('retourne le 31 août de l\'année suivante pour l\'année donnée', () => {
+  it("retourne le 31 août de l'année suivante pour l'année donnée", () => {
     const result = getEndDateOfTheocraticYear(2025)
     // theocraticYear=2025 → new Date(2025, 10, 1) → novembre → month > 7 → new Date(2026, 7, 31)
     expect(result.getFullYear()).toBe(2026)
@@ -88,7 +88,7 @@ describe('getEndDateOfTheocraticYear', () => {
       vi.useRealTimers()
     })
 
-    it('retourne août de l\'année suivante si on est après août', () => {
+    it("retourne août de l'année suivante si on est après août", () => {
       // Octobre 2025
       vi.setSystemTime(new Date(2025, 9, 15))
       const result = getEndDateOfTheocraticYear()
@@ -98,7 +98,7 @@ describe('getEndDateOfTheocraticYear', () => {
       expect(result.getDate()).toBe(31)
     })
 
-    it('retourne août de l\'année courante si on est avant septembre', () => {
+    it("retourne août de l'année courante si on est avant septembre", () => {
       // Mars 2025
       vi.setSystemTime(new Date(2025, 2, 15))
       const result = getEndDateOfTheocraticYear()
@@ -119,12 +119,12 @@ describe('getCurrentTheocraticYear', () => {
     vi.useRealTimers()
   })
 
-  it('retourne l\'année courante après septembre', () => {
+  it("retourne l'année courante après septembre", () => {
     vi.setSystemTime(new Date(2025, 9, 15)) // octobre 2025
     expect(getCurrentTheocraticYear()).toBe(2025)
   })
 
-  it('retourne l\'année précédente avant septembre', () => {
+  it("retourne l'année précédente avant septembre", () => {
     vi.setSystemTime(new Date(2025, 2, 15)) // mars 2025
     expect(getCurrentTheocraticYear()).toBe(2024)
   })
@@ -139,7 +139,7 @@ describe('getNextTheocraticYear', () => {
     vi.useRealTimers()
   })
 
-  it('retourne l\'année théocratique suivante', () => {
+  it("retourne l'année théocratique suivante", () => {
     vi.setSystemTime(new Date(2025, 9, 15)) // octobre 2025
     expect(getNextTheocraticYear()).toBe(2026)
   })
@@ -154,7 +154,7 @@ describe('getPreviousTheocraticYear', () => {
     vi.useRealTimers()
   })
 
-  it('retourne l\'année théocratique précédente', () => {
+  it("retourne l'année théocratique précédente", () => {
     vi.setSystemTime(new Date(2025, 9, 15)) // octobre 2025
     expect(getPreviousTheocraticYear()).toBe(2024)
   })

@@ -2,9 +2,7 @@ import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { getOptionalEnv } from '~/shared/libs/env.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
@@ -12,6 +10,8 @@ import { findTerritoriesWithDetailsPaginated } from '~/features/territories/serv
 import { computeFilters } from '~/features/territories/server/territory-filters'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -28,7 +28,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.TerritoriesManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [
+    Role.TerritoriesViewer,
+    Role.TerritoriesManager,
+  ])
   const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
@@ -37,19 +40,19 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const canManageTerritories = can(Role.TerritoriesManager)
 
-  const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
+  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 
   const url = new URL(request.url)
   const selectors = await computeFilters(url.searchParams)
-  const { territories, pagination } = await findTerritoriesWithDetailsPaginated(selectors, url)
+  const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url)
 
   const messages = {
     success: session.get('success'),
     error: session.get('error'),
   }
-  const zips = await getZips()
+  const zips = await getZips(db)
 
   return data(
     {

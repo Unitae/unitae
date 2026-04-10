@@ -2,15 +2,14 @@ import { useState } from 'react'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
 import type { Route } from './+types/new'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Ajouter une absence - Unitae' }]
@@ -75,14 +74,14 @@ export default function DaysOffPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation } = await authenticateAndAuthorize(request)
+  const { currentUser, session, congregation, db } = await authenticateAndAuthorize(request)
   const formData = await request.formData()
   const startDate = new Date(String(formData.get('start_date')))
   const endDate = new Date(String(formData.get('end_date')))
 
   logger.info(`Creating new days off. User ID: ${currentUser.id}.`)
 
-  const event = await createDayOff(currentUser.id, startDate, endDate, congregation.id)
+  const event = await createDayOff(db, currentUser.id, startDate, endDate, congregation.id)
   if (event == null) {
     session.flash('error', `Impossible d'ajouter cette absence. Les dates sont invalides.`)
     logger.info(`Failed to creating new days off. User ID: ${currentUser.id}.`)

@@ -3,7 +3,6 @@ import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -21,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager, Role.Admin])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.SettingsUserManager, Role.Admin])
   const canManageUser = can(Role.SettingsUserManager)
   const isAdmin = can(Role.Admin)
 
@@ -210,7 +209,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { congregation, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
+  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
   const canManageUser = can(Role.SettingsUserManager)
 
   if (!canManageUser) {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeRestPeriodUtilization } from './compute-rest-period-utilization.server'
+import type { StatsAttribution } from './stats-attribution.type'
 
 function makeAttribution(
   territoryId: number,
@@ -24,11 +24,11 @@ function makeAttribution(
 }
 
 describe('computeRestPeriodUtilization', () => {
-  it('retourne 0 quand il n\'y a aucune attribution', () => {
+  it("retourne 0 quand il n'y a aucune attribution", () => {
     expect(computeRestPeriodUtilization([])).toBe(0)
   })
 
-  it('retourne 0 quand il n\'y a qu\'une seule attribution par territoire', () => {
+  it("retourne 0 quand il n'y a qu'une seule attribution par territoire", () => {
     const attributions = [
       makeAttribution(1, TerritoryAttributionKind.Default, new Date(2025, 0, 1), new Date(2025, 1, 1)),
     ]
@@ -47,7 +47,7 @@ describe('computeRestPeriodUtilization', () => {
     expect(computeRestPeriodUtilization(attributions)).toBe(0)
   })
 
-  it('calcule les jours d\'inactivité après la fin du repos (campagne, 15j)', () => {
+  it("calcule les jours d'inactivité après la fin du repos (campagne, 15j)", () => {
     // Le repos pour campagne est de 15 jours
     // Attribution se termine le 1er jan, repos finit le 16 jan
     // Prochaine attribution commence le 26 jan = 10 jours d'inactivité post-repos

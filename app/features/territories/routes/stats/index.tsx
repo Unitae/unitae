@@ -2,7 +2,6 @@ import { Info } from 'lucide-react'
 import { redirect } from 'react-router'
 import { Cell, Pie, PieChart } from 'recharts'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getGroups } from '~/features/publishers/server/groups'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
@@ -18,12 +17,15 @@ import { computeRestPeriodUtilization } from '~/features/territories/server/comp
 import { countDelayedWorkingTerritories } from '~/features/territories/server/delayed-working-territories.server'
 import { fetchActiveAttributionsByGroup } from '~/features/territories/server/fetch-attributions-by-group.server'
 import { fetchAttributionsForStats } from '~/features/territories/server/fetch-attributions-for-stats.server'
-import { fetchTerritoryCounts, getTotalTerritoryCount } from '~/features/territories/server/fetch-territory-counts.server'
+import {
+  fetchTerritoryCounts,
+  getTotalTerritoryCount,
+} from '~/features/territories/server/fetch-territory-counts.server'
 import { parseStatsFilterParams } from '~/features/territories/server/parse-stats-filter-params.server'
 import { countRestingTerritories } from '~/features/territories/server/resting-territories.server'
+import { getTerritoriesNeverWorked } from '~/features/territories/server/territories-never-worked.server'
 import { computeTerritoryCoverage } from '~/features/territories/server/territory-coverage.server'
 import { computeTerritoryCoverageTotal } from '~/features/territories/server/territory-coverage-total.server'
-import { getTerritoriesNeverWorked } from '~/features/territories/server/territories-never-worked.server'
 import {
   getBeginingDateOfTheocraticYear,
   getCurrentTheocraticYear,
@@ -32,13 +34,14 @@ import {
 } from '~/features/territories/server/theocratic-year.server'
 import AttributionsPerMonthChart from '~/features/territories/ui/AttributionsPerMonthChart'
 import MonthlyCoverageChart from '~/features/territories/ui/MonthlyCoverageChart'
+import StatsFilters from '~/features/territories/ui/StatsFilters'
 import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
-import StatsFilters from '~/features/territories/ui/StatsFilters'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {
@@ -46,7 +49,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -83,17 +86,19 @@ export async function loader({ request }: Route.LoaderArgs) {
     attributionsByGroup,
     groups,
   ] = await Promise.all([
-    countActiveWorkingTerritories(),
-    countDelayedWorkingTerritories(),
-    countRestingTerritories(),
-    countAvailableTerritories(),
+    countActiveWorkingTerritories(db),
+    countDelayedWorkingTerritories(db),
+    countRestingTerritories(db),
+    countAvailableTerritories(db),
     computeTerritoryCoverage(
+      db,
       filterParams.territoryKind,
       filterParams.attributionKind,
       filterParams.startDate,
       filterParams.endDate,
     ),
     computeTerritoryCoverageTotal(
+      db,
       filterParams.territoryKind,
       filterParams.attributionKind.length > 0
         ? filterParams.attributionKind
@@ -101,13 +106,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       filterParams.startDate,
       filterParams.endDate,
     ),
-    fetchAttributionsForStats(filterParams),
-    fetchAttributionsForStats(prevParams),
-    fetchTerritoryCounts(filterParams.territoryKind),
-    fetchTerritoryCounts(),
-    getTerritoriesNeverWorked(filterParams),
-    fetchActiveAttributionsByGroup(),
-    getGroups(),
+    fetchAttributionsForStats(db, filterParams),
+    fetchAttributionsForStats(db, prevParams),
+    fetchTerritoryCounts(db, filterParams.territoryKind),
+    fetchTerritoryCounts(db),
+    getTerritoriesNeverWorked(db, filterParams),
+    fetchActiveAttributionsByGroup(db),
+    getGroups(db),
   ])
 
   const workingTerritoriesCount = activeWorkingTerritoriesCount + delayedWorkingTerritoriesCount
@@ -184,12 +189,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 }
 
-const PIE_COLORS = [
-  'var(--color-chart-1)',
-  'var(--color-chart-2)',
-  'var(--color-chart-4)',
-  'var(--color-chart-3)',
-]
+const PIE_COLORS = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-4)', 'var(--color-chart-3)']
 
 const GROUP_COLORS = [
   'var(--color-chart-1)',
@@ -377,9 +377,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.ranked.most != null
-                  ? `${progression.ranked.most.number}`
-                  : '-'}
+                {progression.ranked.most != null ? `${progression.ranked.most.number}` : '-'}
               </span>
               {progression.ranked.most != null && (
                 <span className="font-display text-lg text-muted-foreground">
@@ -395,9 +393,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.ranked.least != null
-                  ? `${progression.ranked.least.number}`
-                  : '-'}
+                {progression.ranked.least != null ? `${progression.ranked.least.number}` : '-'}
               </span>
               {progression.ranked.least != null && (
                 <span className="font-display text-lg text-muted-foreground">
@@ -456,9 +452,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
         <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.availabilityGap} j
-              </span>
+              <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.availabilityGap} j</span>
               <StatLabel
                 label="Délai moyen de disponibilité"
                 help="Nombre moyen de jours entre le retour d'un territoire et sa prochaine attribution."
@@ -467,9 +461,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.restUtilization} j
-              </span>
+              <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.restUtilization} j</span>
               <StatLabel
                 label="Inactivité moy. après repos"
                 help="Nombre moyen de jours d'attente entre la fin de la période de repos et la prochaine attribution."
@@ -501,7 +493,9 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
         {coverageOverTime.coverageByType.length > 0 && (
           <div
             className={`grid gap-3 max-sm:grid-cols-1 ${
-              coverageOverTime.coverageByType.length <= 3 ? `grid-cols-${coverageOverTime.coverageByType.length}` : 'grid-cols-3 max-md:grid-cols-2'
+              coverageOverTime.coverageByType.length <= 3
+                ? `grid-cols-${coverageOverTime.coverageByType.length}`
+                : 'grid-cols-3 max-md:grid-cols-2'
             }`}
           >
             {coverageOverTime.coverageByType.map(ct => (
@@ -510,9 +504,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   <span className="font-black font-display text-4xl max-sm:text-2xl">
                     {ct.totalCoverage.toFixed(1)} %
                   </span>
-                  <span className="text-muted-foreground text-xs">
-                    ({ct.coverage.toFixed(1)} % d'attributions)
-                  </span>
+                  <span className="text-muted-foreground text-xs">({ct.coverage.toFixed(1)} % d'attributions)</span>
                   <StatLabel
                     label={ct.label}
                     help={`Couverture complète pour les territoires "${ct.label}" : pourcentage de territoires ayant eu au moins une attribution.`}

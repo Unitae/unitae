@@ -5,9 +5,7 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 
 const MAX_DISPLAY = 20
 
-export default function TerritoriesNeverWorkedList({
-  territories,
-}: { territories: NeverWorkedTerritory[] }) {
+export default function TerritoriesNeverWorkedList({ territories }: { territories: NeverWorkedTerritory[] }) {
   if (territories.length === 0) {
     return (
       <EmptyState
@@ -32,11 +30,7 @@ export default function TerritoriesNeverWorkedList({
             {t.number}
           </Badge>
         ))}
-        {remaining > 0 && (
-          <Badge variant="secondary">
-            +{remaining} autres
-          </Badge>
-        )}
+        {remaining > 0 && <Badge variant="secondary">+{remaining} autres</Badge>}
       </div>
     </div>
   )

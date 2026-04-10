@@ -9,7 +9,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.TerritoriesViewer, Role.SettingsUserManager, Role.PublisherViewer, Role.BoardValidator, Role.ProspectionViewer])
+  const { session, can } = await authenticateAndAuthorize(request, [
+    Role.BoardUploader,
+    Role.TerritoriesViewer,
+    Role.SettingsUserManager,
+    Role.PublisherViewer,
+    Role.BoardValidator,
+    Role.ProspectionViewer,
+  ])
   const canUploadDocument = can(Role.BoardUploader)
   const canViewTerritories = can(Role.TerritoriesViewer)
   const canManageSettings = can(Role.SettingsUserManager)

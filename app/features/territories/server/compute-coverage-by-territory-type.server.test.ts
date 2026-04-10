@@ -1,14 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { TerritoryCountByType } from './territory-count-by-type.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeCoverageByTerritoryType } from './compute-coverage-by-territory-type.server'
+import type { StatsAttribution } from './stats-attribution.type'
+import type { TerritoryCountByType } from './territory-count-by-type.type'
 
-function makeAttribution(
-  territoryId: number,
-  territoryType: TerritoryKind,
-): StatsAttribution {
+function makeAttribution(territoryId: number, territoryType: TerritoryKind): StatsAttribution {
   return {
     id: territoryId,
     territoryId,
@@ -22,7 +19,7 @@ function makeAttribution(
 }
 
 describe('computeCoverageByTerritoryType', () => {
-  it('retourne des couvertures à 0 quand il n\'y a aucune attribution', () => {
+  it("retourne des couvertures à 0 quand il n'y a aucune attribution", () => {
     const counts: TerritoryCountByType[] = [{ type: TerritoryKind.Classical, count: 10 }]
     const result = computeCoverageByTerritoryType([], counts)
 

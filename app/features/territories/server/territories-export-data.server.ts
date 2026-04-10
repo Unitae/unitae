@@ -1,7 +1,7 @@
-import { db } from '~/shared/libs/db.server'
+import type { ScopedDb } from '~/shared/libs/db.server'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
 
-export async function getTerritoriesExportData(theocraticYear?: number) {
+export async function getTerritoriesExportData(db: ScopedDb, theocraticYear?: number) {
   const startDate = getBeginingDateOfTheocraticYear(theocraticYear)
   const endDate = getEndDateOfTheocraticYear(theocraticYear)
 

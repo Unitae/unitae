@@ -2,12 +2,11 @@ import { Archive, IdCard } from 'lucide-react'
 import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
@@ -34,7 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (result == null) throw redirect('/congregation/publishers')
 
-  const showAuxiliaryPioneer = await getBoolSetting(CongregationSettingKey.AuxiliaryPioneerProfileActivated)
+  const showAuxiliaryPioneer = await getBoolSetting(db, CongregationSettingKey.AuxiliaryPioneerProfileActivated)
   const groups = await db.publisherGroup.findMany()
   const { email, password, ...user } = result
   return {
@@ -91,7 +90,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await authenticateAndAuthorize(request)
+  const { db } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = form.get('firstname')
   const lastname = form.get('lastname')

@@ -29,7 +29,7 @@ describe('fetchAttributionsForStats', () => {
       },
     ] as never)
 
-    const result = await fetchAttributionsForStats({
+    const result = await fetchAttributionsForStats(db, {
       territoryKind: [TerritoryKind.Classical],
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),
@@ -50,10 +50,10 @@ describe('fetchAttributionsForStats', () => {
     ])
   })
 
-  it('retourne un tableau vide quand il n\'y a aucune attribution', async () => {
+  it("retourne un tableau vide quand il n'y a aucune attribution", async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 
-    const result = await fetchAttributionsForStats({
+    const result = await fetchAttributionsForStats(db, {
       territoryKind: [TerritoryKind.Classical],
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),
@@ -66,7 +66,7 @@ describe('fetchAttributionsForStats', () => {
   it('fonctionne avec un filtre de groupe', async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 
-    const result = await fetchAttributionsForStats({
+    const result = await fetchAttributionsForStats(db, {
       territoryKind: [TerritoryKind.Classical],
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),

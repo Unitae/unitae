@@ -2,13 +2,13 @@ import { useEffect, useState } from 'react'
 import { Form, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings'
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { getOptionalEnv } from '~/shared/libs/env.server'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
 
@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
   const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
@@ -39,7 +39,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     hasCampus: true,
     entrance: { territories: { none: { type: TerritoryKind.Univ } } },
   }
-  const { entrances, pagination } = await findEntrancesPaginated(selectors, url)
+  const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url)
 
   return {
     entrances,

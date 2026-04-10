@@ -2,12 +2,12 @@ import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 
@@ -20,7 +20,11 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.ProspectionManager, Role.TerritoriesManager])
+  const { can, db } = await authenticateAndAuthorize(request, [
+    Role.ProspectionViewer,
+    Role.ProspectionManager,
+    Role.TerritoriesManager,
+  ])
   const canViewProspection = can(Role.ProspectionViewer)
   const canManageProspection = can(Role.ProspectionManager)
   const canManageTerritories = can(Role.TerritoriesManager)
@@ -29,7 +33,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const prospectionValidity = Number(await getSetting(TerritorySettingKey.ProspectionValidity) ?? '0')
+  const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
   const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
   if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
   const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
@@ -93,7 +97,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const url = new URL(request.url)
-  const { buildings, pagination } = await findBuildingsWithEntrancePaginated(selector, url)
+  const { buildings, pagination } = await findBuildingsWithEntrancePaginated(db, selector, url)
 
   return {
     buildings,

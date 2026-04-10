@@ -9,7 +9,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.TerritoriesManager, Role.SettingsUserManager, Role.PublisherViewer, Role.ProspectionViewer])
+  const { can } = await authenticateAndAuthorize(request, [
+    Role.TerritoriesViewer,
+    Role.TerritoriesManager,
+    Role.SettingsUserManager,
+    Role.PublisherViewer,
+    Role.ProspectionViewer,
+  ])
   const canViewTerritories = can(Role.TerritoriesViewer)
   const canManageTerritories = can(Role.TerritoriesManager)
   const canManageSettings = can(Role.SettingsUserManager)

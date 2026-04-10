@@ -1,9 +1,8 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { deleteFile } from '~/features/board/server/document'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
@@ -12,7 +11,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.BoardUploader])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.BoardUploader])
   const canUploadDocument = can(Role.BoardUploader)
 
   if (!canUploadDocument) {
@@ -48,7 +47,7 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader])
+  const { session, currentUser, can, db } = await authenticateAndAuthorize(request, [Role.BoardUploader])
   const canUploadDocument = can(Role.BoardUploader)
 
   if (!canUploadDocument) {

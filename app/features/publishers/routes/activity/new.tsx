@@ -3,9 +3,8 @@ import { Form, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublishers } from '~/features/publishers/server/publishers'
-import { db } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -19,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =
@@ -31,7 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const groupFilter = canManageMyGroupActivity && !canManagePublisher ? currentUser.publisherGroupId : undefined
-  const publishers = await getPublishers({ groupId: groupFilter })
+  const publishers = await getPublishers(db, { groupId: groupFilter })
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams
@@ -274,7 +273,9 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, session, congregation, can, db } = await authenticateAndAuthorize(request, [
+    Role.PublisherManager,
+  ])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =

@@ -25,12 +25,12 @@ beforeEach(() => {
 })
 
 describe('setupFirstUser', () => {
-  it('retourne l\'id de l\'utilisateur créé', async () => {
+  it("retourne l'id de l'utilisateur créé", async () => {
     const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre')
     expect(result).toBe(42)
   })
 
-  it('fonctionne même si le rôle admin n\'existe pas', async () => {
+  it("fonctionne même si le rôle admin n'existe pas", async () => {
     vi.mocked(db.userRole.findUnique).mockResolvedValue(null as never)
 
     const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre')

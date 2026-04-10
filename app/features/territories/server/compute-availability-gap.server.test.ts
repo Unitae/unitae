@@ -1,15 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { StatsAttribution } from './stats-attribution.type'
 import { computeAvailabilityGap } from './compute-availability-gap.server'
+import type { StatsAttribution } from './stats-attribution.type'
 
-function makeAttribution(
-  territoryId: number,
-  startDate: Date,
-  endDate: Date | null,
-  id = 1,
-): StatsAttribution {
+function makeAttribution(territoryId: number, startDate: Date, endDate: Date | null, id = 1): StatsAttribution {
   return {
     id,
     territoryId,
@@ -23,11 +18,11 @@ function makeAttribution(
 }
 
 describe('computeAvailabilityGap', () => {
-  it('retourne 0 quand il n\'y a aucune attribution', () => {
+  it("retourne 0 quand il n'y a aucune attribution", () => {
     expect(computeAvailabilityGap([])).toBe(0)
   })
 
-  it('retourne 0 quand il n\'y a qu\'une seule attribution par territoire', () => {
+  it("retourne 0 quand il n'y a qu'une seule attribution par territoire", () => {
     const attributions = [
       makeAttribution(1, new Date(2025, 0, 1), new Date(2025, 1, 1)),
       makeAttribution(2, new Date(2025, 0, 1), new Date(2025, 1, 1)),

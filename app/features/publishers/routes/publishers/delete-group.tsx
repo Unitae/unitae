@@ -3,7 +3,6 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
@@ -11,7 +10,7 @@ import { Card, CardContent, CardFooter } from '~/shared/ui/card'
 import type { Route } from './+types/delete-group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
@@ -55,7 +54,7 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { session, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
