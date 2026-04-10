@@ -31,6 +31,8 @@ export async function verifyRole(request: Request, roleKey: Role) {
   })
 
   if (adminRole != null) {
+    // Restaurer le contexte ALS — les requêtes unscopedDb via l'adaptateur pg le cassent
+    congregationContext.enterWith({ congregationId })
     return true
   }
 
@@ -42,5 +44,7 @@ export async function verifyRole(request: Request, roleKey: Role) {
     },
   })
 
+  // Restaurer le contexte ALS — les requêtes unscopedDb via l'adaptateur pg le cassent
+  congregationContext.enterWith({ congregationId })
   return role != null
 }

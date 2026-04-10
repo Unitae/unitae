@@ -46,12 +46,15 @@ const UPDATE_OPERATIONS = new Set(['update', 'updateMany', 'upsert', 'delete', '
 // Tenant-scoped client — auto-injects congregationId on all scoped models
 const db = unscopedDb.$extends({
   query: {
-    $allOperations({ model, operation, args, query }) {
+    async $allOperations({ model, operation, args, query }) {
       if (!model || !SCOPED_MODELS.has(model)) return query(args)
 
       const ctx = congregationContext.getStore()
       if (!ctx) {
-        return query(args)
+        throw new Error(
+          `Congregation context is required for ${model}.${operation} but was not set. ` +
+            'Use unscopedDb for global operations or ensure verifySession() was called.',
+        )
       }
 
       const { congregationId } = ctx
@@ -75,7 +78,13 @@ const db = unscopedDb.$extends({
         }
       }
 
-      return query(args)
+      const result = await query(args)
+
+      // Restaurer le contexte ALS après la requête — l'adaptateur pg de Prisma 7
+      // peut casser la propagation d'AsyncLocalStorage lors des opérations async.
+      congregationContext.enterWith(ctx)
+
+      return result
     },
   },
 })

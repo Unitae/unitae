@@ -11,6 +11,7 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
   congregationContext: {
     getStore: vi.fn(),
+    enterWith: vi.fn(),
   },
 }))
 
