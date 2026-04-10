@@ -6,7 +6,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -35,6 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading program list. User ID: ${currentUser.id}. ${canManagePrograms ? 'Has' : 'Does NOT have'} rights to manage programs.`,
   )
 
+  restoreCongregationContext(currentUser.congregationId)
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
   selectors.kind = { key: EventKind.Off } // Filter only for days off events

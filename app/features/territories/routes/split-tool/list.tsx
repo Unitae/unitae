@@ -5,6 +5,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters'
@@ -22,13 +23,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
 

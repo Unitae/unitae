@@ -4,7 +4,7 @@ import { commitSession, getSession, verifySession } from '~/features/authenticat
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getGroup } from '~/features/publishers/server/groups'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -24,6 +24,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const group = await getGroup(requireParamId(params.groupId, '/congregation/publisher-groups'))
   if (group == null) {
     throw redirect('/congregation/publisher-groups/')
@@ -229,7 +230,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const previousPage = request.headers.get('referer')
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
 
@@ -237,6 +238,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect(previousPage ?? '/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const name = form.get('name')
   const address = form.get('address')

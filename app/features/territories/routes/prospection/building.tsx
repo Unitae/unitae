@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
@@ -35,6 +36,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   logger.info(
     `Loading building data for building nº${params.buildingId}. User ID: ${currentUser.id}. ${canManageProspection ? 'Has' : 'Does NOT have'} rights to modify prospection data.`,
   )
@@ -123,13 +125,14 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
 
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const notes = form.get('notes')
   const importantNotes = form.get('important-notes')

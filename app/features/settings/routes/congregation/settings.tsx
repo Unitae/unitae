@@ -4,7 +4,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
-import { db, unscopedDb } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext, unscopedDb } from '~/shared/libs/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -107,13 +107,14 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation } = await verifySession(request)
+  const { congregation, currentUser } = await verifySession(request)
   const canManageSettings = await verifyRole(request, Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const displayName = form.get('displayName')
   const auxiliaryPioneerProfileActivated = String(

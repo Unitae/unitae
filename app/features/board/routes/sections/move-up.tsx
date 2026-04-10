@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 
 import type { Route } from './+types/move-up'
@@ -12,13 +12,14 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canManageBoard = await verifyRole(request, Role.BoardValidator)
 
   if (!canManageBoard) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const sections = await db.boardSection.findMany({ orderBy: { order: 'asc' } })
   const currentSection = sections.find(section => section.id === requireParamId(params.sectionId, '/board'))
   if (currentSection == null) {

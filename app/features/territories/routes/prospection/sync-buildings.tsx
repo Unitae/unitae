@@ -4,7 +4,7 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
-import { congregationContext, db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 
 import type { Route } from './+types/sync-buildings'
 
@@ -17,13 +17,14 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const user = await db.user.findUnique({
     where: {
       id: Number(session.get('userId')) ?? 0,
@@ -34,12 +35,10 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const ctx = congregationContext.getStore()
-
   await syncQueue.add('sync', {
     userName: user.firstname ?? undefined,
     userEmail: user.email,
-    congregationId: ctx?.congregationId ?? user.congregationId,
+    congregationId: currentUser.congregationId,
   })
 
   session.flash(

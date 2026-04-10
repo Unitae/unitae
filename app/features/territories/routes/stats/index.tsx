@@ -5,6 +5,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getGroups } from '~/features/publishers/server/groups'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { countAvailableTerritories } from '~/features/territories/server/available-territories.server'
@@ -47,13 +48,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const url = new URL(request.url)
   const params = url.searchParams
 

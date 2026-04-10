@@ -4,6 +4,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -31,6 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   logger.info(
     `Loading publishers. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )

@@ -4,7 +4,7 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 
 import type { Route } from './+types/create'
@@ -14,13 +14,14 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation } = await verifySession(request)
+  const { session, congregation, currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const type = form.get('type')
   const entrances = form.get('entranceIds')

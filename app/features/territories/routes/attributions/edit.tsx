@@ -10,7 +10,7 @@ import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -26,13 +26,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
 
   const attribution = await db.attribution.findUnique({
@@ -187,13 +188,14 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const publisherId = Number(form.get('publisher'))
   const startDateText = String(form.get('start-date'))

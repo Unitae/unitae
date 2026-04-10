@@ -5,7 +5,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
@@ -34,6 +34,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
+  restoreCongregationContext(currentUser.congregationId)
   const today = new Date()
   const yearBegining = new Date(today.getFullYear(), 8, 1)
   if (today < yearBegining) {

@@ -14,6 +14,17 @@ type CongregationContext = {
 }
 export const congregationContext = new AsyncLocalStorage<CongregationContext>()
 
+/**
+ * Restaure le contexte de congrégation dans l'AsyncLocalStorage.
+ *
+ * L'adaptateur pg de Prisma 7 casse la propagation d'AsyncLocalStorage après
+ * les requêtes async. Appeler cette fonction dans les loaders après verifySession()
+ * et verifyRole() pour garantir que les requêtes `db` suivantes soient bien scopées.
+ */
+export function restoreCongregationContext(congregationId: number) {
+  congregationContext.enterWith({ congregationId })
+}
+
 const SCOPED_MODELS = new Set([
   'User',
   'Territory',

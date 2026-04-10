@@ -5,7 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { saveFile } from '~/features/board/server/document'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
@@ -36,6 +36,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading creation form for document. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to upload new document to the board.`,
   )
 
+  restoreCongregationContext(currentUser.congregationId)
   const sections = await db.boardSection.findMany()
 
   return { sections, rights: { canUploadDocument, canManageBoard } }
@@ -144,6 +145,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   let uploadedFile: File | null = null
   const uploadHandler = async (fileUpload: FileUpload) => {
     if (fileUpload.fieldName === 'document') {

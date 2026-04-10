@@ -3,7 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
@@ -11,13 +11,14 @@ import { Card, CardContent, CardFooter } from '~/shared/ui/card'
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageActivity = await verifyRole(request, Role.ActivityManager)
 
   if (!canManageActivity) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const activity = await db.publisherActivity.findUnique({
     where: {
       id: requireParamId(params.activityId, '/congregation/publishers/activity'),
@@ -64,13 +65,14 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canManageActivity = await verifyRole(request, Role.ActivityManager)
 
   if (!canManageActivity) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const activity = await db.publisherActivity.delete({
     where: { id: requireParamId(params.activityId, '/congregation/publishers/activity') },
     include: { publisher: true },

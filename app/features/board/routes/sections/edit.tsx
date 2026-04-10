@@ -3,7 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -18,13 +18,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageBoard = await verifyRole(request, Role.BoardValidator)
 
   if (!canManageBoard) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const section = await db.boardSection.findUnique({
     where: {
       id: requireParamId(params.sectionId, '/board'),
@@ -77,7 +78,7 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 
@@ -86,6 +87,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/board/sections/new')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const section = await db.boardSection.update({
     where: {
       id: requireParamId(params.sectionId, '/board'),

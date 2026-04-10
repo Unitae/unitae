@@ -4,7 +4,7 @@ import { sendResetUserPasswordEmail } from '~/features/authentication/server/sen
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -61,7 +61,9 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation } = await verifySession(request)
+  const { congregation, currentUser } = await verifySession(request)
+
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))

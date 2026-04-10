@@ -3,7 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -11,13 +11,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import type { Route } from './+types/delete-building'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageProspection = await verifyRole(request, Role.ProspectionManager)
 
   if (!canManageProspection) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const building = await db.building.findUnique({
     where: { id: requireParamId(params.buildingId, '/territories/buildings') },
   })
@@ -57,13 +58,14 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const building = await db.building.delete({
     where: { id: requireParamId(params.buildingId, '/territories/buildings') },
   })

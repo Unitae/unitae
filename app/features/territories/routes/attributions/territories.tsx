@@ -3,6 +3,7 @@ import { data, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
@@ -33,6 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   logger.info(`Loading territories available for attribution. User ID: ${currentUser.id}.`)
 
   const url = new URL(request.url)

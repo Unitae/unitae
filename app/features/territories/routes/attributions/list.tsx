@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getGroups } from '~/features/publishers/server/groups'
 import { getBoolSetting } from '~/features/settings/server/settings'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions'
@@ -47,6 +48,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   logger.info(
     `Loading territory attributions. User ID: ${currentUser.id}. ${canManageTerritories ? 'Has' : 'Does NOT have'} rights to manage territories.`,
   )

@@ -4,7 +4,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -30,6 +30,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const activity = await db.publisherActivity.findFirst({
     where: {
       id: requireParamId(params.activityId, '/congregation/publishers/activity'),
@@ -179,6 +180,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const activity = await db.publisherActivity.findUnique({
     where: {

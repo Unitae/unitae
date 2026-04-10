@@ -3,7 +3,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -21,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canManageUser = await verifyRole(request, Role.SettingsUserManager)
   const isAdmin = await verifyRole(request, Role.Admin)
 
@@ -29,6 +29,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const user = await db.user.findUnique({
     where: {
       id: requireParamId(params.userId, '/settings/users'),
@@ -210,13 +211,14 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { congregation } = await verifySession(request)
+  const { congregation, currentUser } = await verifySession(request)
   const canManageUser = await verifyRole(request, Role.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const firstname = form.get('firstname')
   const lastname = form.get('lastname')

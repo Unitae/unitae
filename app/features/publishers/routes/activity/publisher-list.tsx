@@ -6,6 +6,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -33,6 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   logger.info(`Loading publishers' activities. User ID: ${currentUser.id}.`)
 
   const timeRange = new Date()

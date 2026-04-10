@@ -4,7 +4,7 @@ import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -34,6 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading users. User ID: ${currentUser.id}. ${canManageUser ? 'Has' : 'Does NOT have'} rights to manage users.`,
   )
 
+  restoreCongregationContext(currentUser.congregationId)
   const users = await db.user.findMany({
     include: {
       congregationRoles: { include: { role: true } },

@@ -3,7 +3,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { DocumentCard } from '~/features/board/ui/DocumentCard'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
@@ -18,6 +18,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const canUploadDocument = await verifyRole(request, Role.BoardUploader)
   const canManageBoard = await verifyRole(request, Role.BoardValidator)
 
+  restoreCongregationContext(currentUser.congregationId)
   const folders = await db.boardSection.findMany({
     where: {},
     include: {

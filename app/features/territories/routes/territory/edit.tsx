@@ -17,7 +17,7 @@ import {
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -32,13 +32,14 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const territory = await db.territory.findUnique({
     where: {
       id: requireParamId(params.territoryId, '/territories'),
@@ -314,13 +315,14 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const entrances = form.getAll('entrances')
   const notes = form.get('notes')

@@ -3,7 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
@@ -11,13 +11,14 @@ import { Card, CardContent, CardFooter } from '~/shared/ui/card'
 import type { Route } from './+types/delete-group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const group = await db.publisherGroup.findUnique({
     where: {
       id: requireParamId(params.groupId, '/congregation/publisher-groups'),
@@ -55,12 +56,14 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
+
+  restoreCongregationContext(currentUser.congregationId)
   const group = await db.publisherGroup.delete({
     where: { id: requireParamId(params.groupId, '/congregation/publisher-groups') },
   })

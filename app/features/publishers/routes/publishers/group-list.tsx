@@ -3,7 +3,7 @@ import { Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -34,6 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publisher groups. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
+  restoreCongregationContext(currentUser.congregationId)
   const groups = await db.publisherGroup.findMany({
     include: {
       responsible: true,

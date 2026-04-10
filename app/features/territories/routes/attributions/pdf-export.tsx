@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
 import type { Route } from './+types/pdf-export'
@@ -24,6 +25,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   logger.info(`Generating S-13 PDF report Year: ${params.year}. User ID: ${currentUser.id}.`, {
     currentUser,
   })

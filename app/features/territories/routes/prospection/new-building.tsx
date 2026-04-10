@@ -3,6 +3,7 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { createBuilding } from '~/features/territories/server/create-building.server'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -67,13 +68,14 @@ export default function CreateBuildingPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation } = await verifySession(request)
+  const { session, congregation, currentUser } = await verifySession(request)
 
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const number = form.get('number')
   const street = form.get('street')

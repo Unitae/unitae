@@ -5,7 +5,7 @@ import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -17,13 +17,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManagePublisher = await verifyRole(request, Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const groups = await db.publisherGroup.findMany()
 
   return { groups, hideAuxiliaryPioneer: false }
@@ -50,7 +51,9 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation } = await verifySession(request)
+  const { congregation, currentUser } = await verifySession(request)
+
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))

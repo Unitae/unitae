@@ -5,7 +5,7 @@ import { commitSession, verifySession } from '~/features/authentication/server/s
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getPublishers } from '~/features/publishers/server/publishers'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -29,6 +29,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const groupFilter = canManageMyGroupActivity && !canManagePublisher ? currentUser.publisherGroupId : undefined
   const publishers = await getPublishers({ groupId: groupFilter })
 
@@ -283,6 +284,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const previousPage = String(form.get('previousPage'))
   const publisherId = Number(form.get('publisher'))

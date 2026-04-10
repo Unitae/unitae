@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Form, redirect } from 'react-router'
 import { commitSession, verifySession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -76,6 +77,8 @@ export default function DaysOffPage() {
 
 export async function action({ request }: Route.ActionArgs) {
   const { currentUser, session, congregation } = await verifySession(request)
+
+  restoreCongregationContext(currentUser.congregationId)
   const formData = await request.formData()
   const startDate = new Date(String(formData.get('start_date')))
   const endDate = new Date(String(formData.get('end_date')))

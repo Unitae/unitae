@@ -3,6 +3,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getAllEventType } from '~/features/events/server/event-kind.server'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
 
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -14,13 +15,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canManageSettings = await verifyRole(request, Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const kinds = await getAllEventType()
 
   return {

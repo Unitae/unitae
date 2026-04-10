@@ -5,6 +5,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { getSetting } from '~/features/settings/server/settings'
+import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
@@ -21,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  const { currentUser } = await verifySession(request)
   const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
   const canManageProspection = await verifyRole(request, Role.ProspectionManager)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
@@ -30,6 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const prospectionValidity = Number(await getSetting(TerritorySettingKey.ProspectionValidity) ?? '0')
   const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
   if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)

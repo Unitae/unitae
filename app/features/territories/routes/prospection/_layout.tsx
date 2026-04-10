@@ -7,7 +7,7 @@ import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -20,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session } = await verifySession(request)
+  const { session, currentUser } = await verifySession(request)
   const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
   const canManageProspection = await verifyRole(request, Role.ProspectionManager)
   const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
@@ -29,6 +29,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  restoreCongregationContext(currentUser.congregationId)
   const prospectionValidity = Number(await getSetting(TerritorySettingKey.ProspectionValidity) ?? '0')
   const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
   if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)

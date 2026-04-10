@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { getFileStream } from '~/features/board/server/document'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 
@@ -15,6 +15,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const { currentUser } = await verifySession(request)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 
+  restoreCongregationContext(currentUser.congregationId)
   const document = await db.boardDocument.update({
     where: {
       id: requireParamId(params.documentId, '/board'),

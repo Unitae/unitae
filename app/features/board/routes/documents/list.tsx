@@ -4,7 +4,7 @@ import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
-import { db } from '~/shared/libs/db.server'
+import { db, restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -32,6 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading board documents. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to upload document.`,
   )
 
+  restoreCongregationContext(currentUser.congregationId)
   const documents = await db.boardDocument.findMany({
     include: {
       section: true,
