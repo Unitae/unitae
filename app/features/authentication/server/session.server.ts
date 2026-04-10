@@ -1,6 +1,6 @@
 import { createCookieSessionStorage, redirect } from 'react-router'
 
-import { resolveCongregation } from '~/shared/libs/congregation.server'
+import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { congregationContext, unscopedDb } from '~/shared/libs/db.server'
 
 import { sanitizeUser } from './sanitize-user.server'
@@ -55,6 +55,16 @@ export async function verifySession(request: Request) {
   })
 
   if (user == null) {
+    throw redirect('/login', {
+      headers: {
+        'Set-Cookie': await destroySession(session),
+      },
+    })
+  }
+
+  // En mode multi-tenant, vérifier que le sous-domaine correspond à l'assemblée de l'utilisateur
+  const urlCongregation = await resolveCongregationFromRequest(request)
+  if (urlCongregation && urlCongregation.id !== user.congregationId) {
     throw redirect('/login', {
       headers: {
         'Set-Cookie': await destroySession(session),

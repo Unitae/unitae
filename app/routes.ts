@@ -10,6 +10,7 @@ export default [
   route('health', 'routes/health.tsx'),
   route('suspended', 'routes/suspended.tsx'),
   route('trial-expired', 'routes/trial-expired.tsx'),
+  route('congregation-not-found', 'routes/congregation-not-found.tsx'),
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     route('me', 'features/authentication/routes/user/_layout.tsx', [

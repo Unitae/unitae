@@ -1,10 +1,11 @@
 import { compare } from '~/shared/libs/crypto.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 
-export async function validateCredentials(email: string, password: string) {
+export async function validateCredentials(email: string, password: string, congregationId?: number) {
   const user = await db.user.findFirst({
     where: {
       email: email.toLowerCase(),
+      ...(congregationId != null ? { congregationId } : {}),
     },
   })
 

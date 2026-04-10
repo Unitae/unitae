@@ -78,4 +78,24 @@ describe('validateCredentials', () => {
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
   })
+
+  it('filtre par congregationId quand il est fourni', async () => {
+    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(compare).mockResolvedValue(true as never)
+
+    await validateCredentials('test@example.com', 'motdepasse', 5)
+    expect(db.user.findFirst).toHaveBeenCalledWith({
+      where: { email: 'test@example.com', congregationId: 5 },
+    })
+  })
+
+  it('ne filtre pas par congregationId quand il n\'est pas fourni', async () => {
+    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(compare).mockResolvedValue(true as never)
+
+    await validateCredentials('test@example.com', 'motdepasse')
+    expect(db.user.findFirst).toHaveBeenCalledWith({
+      where: { email: 'test@example.com' },
+    })
+  })
 })

@@ -1,3 +1,5 @@
+import { redirect } from 'react-router'
+
 import { congregationContext, unscopedDb } from '~/shared/libs/db.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
@@ -68,6 +70,43 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
 
 export function getPlatformName(): string {
   return DEFAULT_PLATFORM_NAME
+}
+
+/**
+ * Résout l'assemblée locale correspondant au sous-domaine ou domaine personnalisé de la requête.
+ *
+ * - Retourne `null` en mode mono-tenant ou si aucun slug n'est extrait de l'URL (domaine racine).
+ * - Redirige vers `/congregation-not-found` si un slug est présent mais ne correspond à aucune assemblée.
+ */
+export async function resolveCongregationFromRequest(
+  request: Request,
+): Promise<{ id: number; slug: string } | null> {
+  if (process.env.MULTI_TENANT !== 'true') return null
+
+  const hostname = new URL(request.url).hostname
+  const appBaseUrl = (process.env.APP_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
+  const slug = hostname.endsWith(appBaseUrl) ? hostname.replace(`.${appBaseUrl}`, '') : null
+
+  if (slug) {
+    const congregation = await unscopedDb.congregation.findUnique({
+      where: { slug },
+      select: { id: true, slug: true },
+    })
+    if (congregation) return congregation
+
+    // Le slug est présent dans l'URL mais ne correspond à aucune assemblée
+    throw redirect('/congregation-not-found')
+  }
+
+  // Pas de slug — tenter la résolution par domaine personnalisé
+  const congregation = await unscopedDb.congregation.findFirst({
+    where: { domain: hostname },
+    select: { id: true, slug: true },
+  })
+  if (congregation) return congregation
+
+  // Domaine racine ou domaine inconnu sans slug — pas d'assemblée à résoudre
+  return null
 }
 
 const DEFAULT_CONGREGATION_NAME = 'Ma Congrégation'

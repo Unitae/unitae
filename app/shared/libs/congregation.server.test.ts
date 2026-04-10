@@ -2,16 +2,27 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/libs/db.server', () => ({
   unscopedDb: {
-    congregation: { findUnique: vi.fn() },
+    congregation: { findUnique: vi.fn(), findFirst: vi.fn() },
   },
   congregationContext: {
     getStore: vi.fn(),
   },
 }))
 
-const { resolveCongregation, getCongregationFromContext, requireCongregation, getPlatformName } = await import(
-  './congregation.server'
-)
+vi.mock('react-router', () => ({
+  redirect: vi.fn((url: string) => {
+    // biome-ignore lint/style/useNamingConvention: en-tête HTTP standard
+    throw new Response(null, { status: 302, headers: { Location: url } })
+  }),
+}))
+
+const {
+  resolveCongregation,
+  resolveCongregationFromRequest,
+  getCongregationFromContext,
+  requireCongregation,
+  getPlatformName,
+} = await import('./congregation.server')
 const { unscopedDb: db, congregationContext } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
@@ -186,5 +197,63 @@ describe('requireCongregation', () => {
 describe('getPlatformName', () => {
   it('retourne "Unitae"', () => {
     expect(getPlatformName()).toBe('Unitae')
+  })
+})
+
+describe('resolveCongregationFromRequest', () => {
+  function makeRequest(url: string) {
+    return new Request(url)
+  }
+
+  it('retourne null en mode mono-tenant', async () => {
+    delete process.env.MULTI_TENANT
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://lyon-jean-mace.unitae.app/'))
+    expect(result).toBeNull()
+  })
+
+  it('retourne la congrégation correspondant au slug du sous-domaine', async () => {
+    process.env.MULTI_TENANT = 'true'
+    process.env.APP_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 1, slug: 'lyon-jean-mace' } as never)
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://lyon-jean-mace.unitae.app/'))
+    expect(result).toEqual({ id: 1, slug: 'lyon-jean-mace' })
+    expect(db.congregation.findUnique).toHaveBeenCalledWith({
+      where: { slug: 'lyon-jean-mace' },
+      select: { id: true, slug: true },
+    })
+  })
+
+  it('redirige vers /congregation-not-found si le slug ne correspond à aucune assemblée', async () => {
+    process.env.MULTI_TENANT = 'true'
+    process.env.APP_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
+
+    await expect(resolveCongregationFromRequest(makeRequest('https://inconnu.unitae.app/'))).rejects.toSatisfy(
+      (error: Response) => error instanceof Response && error.headers.get('Location') === '/congregation-not-found',
+    )
+  })
+
+  it('résout par domaine personnalisé quand il n\'y a pas de slug', async () => {
+    process.env.MULTI_TENANT = 'true'
+    process.env.APP_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 2, slug: 'paris' } as never)
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://custom.example.com/'))
+    expect(result).toEqual({ id: 2, slug: 'paris' })
+    expect(db.congregation.findFirst).toHaveBeenCalledWith({
+      where: { domain: 'custom.example.com' },
+      select: { id: true, slug: true },
+    })
+  })
+
+  it('retourne null pour le domaine racine sans slug ni domaine personnalisé', async () => {
+    process.env.MULTI_TENANT = 'true'
+    process.env.APP_BASE_URL = 'unitae.app'
+    vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
+
+    const result = await resolveCongregationFromRequest(makeRequest('https://custom-unknown.example.com/'))
+    expect(result).toBeNull()
   })
 })
