@@ -44,6 +44,8 @@ Manage congregation events and personal availability.
 - **Programs** — Create events with name, description, kind, and date range
 - **Days off** — Members can record their upcoming absences so program organizers can plan accordingly
 
+See [Events](../core-concepts/events.md) for details.
+
 ## Settings
 
 Configure the congregation and manage users.

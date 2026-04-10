@@ -29,3 +29,9 @@ Visit [unitae.app](https://unitae.app) for current pricing and plan details.
 ## Already Self-Hosting?
 
 If you are currently self-hosting and want to migrate to unitae.app, contact the MindserIT team through the website for assistance.
+
+## Next Steps
+
+- [Feature Overview](../introduction/feature-overview.md) — Discover what Unitae can do
+- [Core Concepts](../core-concepts/display-board.md) — Learn about each feature in detail
+- [Self-Hosting vs unitae.app](../hosting/self-hosting-vs-managed.md) — Compare your hosting options

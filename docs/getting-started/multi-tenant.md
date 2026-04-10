@@ -31,8 +31,8 @@ MULTI_TENANT=true
 # Your root domain (subdomains will be resolved from this)
 APP_BASE_URL=https://unitae.example.com
 
-# Cookie domain (must match the root domain for cross-subdomain sessions)
-COOKIE_DOMAIN=.unitae.example.com
+# Cookie domain (for cross-subdomain sessions)
+COOKIE_DOMAIN=unitae.example.com
 ```
 
 ## Docker Compose Setup

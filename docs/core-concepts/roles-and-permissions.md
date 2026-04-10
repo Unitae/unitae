@@ -6,20 +6,20 @@ Unitae uses a fine-grained role system to control who can access and manage each
 
 | Role | Access granted |
 |------|---------------|
-| **Admin** | Full access to all features within the congregation |
-| **BoardUploader** | Upload documents to the display board |
-| **BoardValidator** | Manage board documents: edit, delete, set visibility, highlight. Manage sections |
-| **TerritoriesViewer** | View territory list, attributions, and statistics |
-| **TerritoriesManager** | Create, edit, and delete territories. Manage attributions. Trigger open data sync |
-| **ProspectionViewer** | View building prospection data |
-| **ProspectionManager** | Edit buildings, update prospection data, manage building status |
-| **SettingsUserManager** | Create, edit, and deactivate users. Assign roles |
-| **PublisherViewer** | View publisher profiles and group information |
-| **PublisherManager** | Create, edit, and deactivate publishers. Manage groups |
-| **ActivityViewer** | View activity reports and statistics |
-| **ActivityManager** | Record, edit, and export publisher activity |
-| **ProgramViewer** | View events and programs |
-| **ProgramManager** | Create, edit, and delete events. Manage event kinds |
+| `Admin` | Full access to all features within the congregation |
+| `BoardUploader` | Upload documents to the display board |
+| `BoardValidator` | Manage board documents: edit, delete, set visibility, highlight. Manage sections |
+| `TerritoriesViewer` | View territory list, attributions, and statistics |
+| `TerritoriesManager` | Create, edit, and delete territories. Manage attributions. Trigger open data sync |
+| `ProspectionViewer` | View building prospection data |
+| `ProspectionManager` | Edit buildings, update prospection data, manage building status |
+| `SettingsUserManager` | Create, edit, and deactivate users. Assign roles |
+| `PublisherViewer` | View publisher profiles and group information |
+| `PublisherManager` | Create, edit, and deactivate publishers. Manage groups |
+| `ActivityViewer` | View activity reports and statistics |
+| `ActivityManager` | Record, edit, and export publisher activity |
+| `ProgramViewer` | View events and programs |
+| `ProgramManager` | Create, edit, and delete events. Manage event kinds |
 
 ## How Roles Work
 

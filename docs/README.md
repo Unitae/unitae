@@ -28,6 +28,7 @@ You can self-host Unitae for your congregation or use the managed hosting servic
 - [Virtual Display Board](core-concepts/display-board.md) — Share documents with your congregation
 - [Territories](core-concepts/territories.md) — Manage territories, attributions, and building prospection
 - [Publishers](core-concepts/publishers.md) — Publisher profiles, groups, and activity tracking
+- [Events](core-concepts/events.md) — Programs, event kinds, and days off
 - [Roles and Permissions](core-concepts/roles-and-permissions.md) — The 14 roles and how access control works
 - [Security](core-concepts/security.md) — Authentication, data isolation, and vulnerability reporting
 
