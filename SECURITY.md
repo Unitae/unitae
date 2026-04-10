@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in Unitae, **please do not open a public issue**.
 
-Send a report to **security@unitae.app** with:
+Send a report to our team using the "Security and quality" feature in GitHub with:
 
 - A description of the vulnerability
 - Steps to reproduce it
