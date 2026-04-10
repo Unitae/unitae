@@ -64,7 +64,7 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
                 id="congregation-name"
                 name="congregation-name"
                 type="text"
-                placeholder="Lyon Confluence"
+                placeholder="Ma Congrégation"
                 required
               />
             </div>

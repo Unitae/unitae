@@ -150,12 +150,12 @@ async function main() {
 
   // Create or get default congregation
   const defaultCongregation = await prisma.congregation.upsert({
-    where: { slug: 'lyon-confluence' },
+    where: { slug: 'ma-congregation' },
     update: {},
     create: {
-      name: 'Lyon Confluence',
-      slug: 'lyon-confluence',
-      domain: 'lyonconfluence.org',
+      name: 'Ma Congrégation',
+      slug: 'ma-congregation',
+      domain: 'ma-congregation.example.com',
     },
   })
 
