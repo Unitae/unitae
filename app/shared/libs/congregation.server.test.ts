@@ -208,19 +208,19 @@ describe('resolveCongregationFromRequest', () => {
   it('retourne null en mode mono-tenant', async () => {
     delete process.env.MULTI_TENANT
 
-    const result = await resolveCongregationFromRequest(makeRequest('https://lyon-jean-mace.unitae.app/'))
+    const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
     expect(result).toBeNull()
   })
 
   it('retourne la congrégation correspondant au slug du sous-domaine', async () => {
     process.env.MULTI_TENANT = 'true'
     process.env.APP_BASE_URL = 'unitae.app'
-    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 1, slug: 'lyon-jean-mace' } as never)
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 1, slug: 'tenant-alpha' } as never)
 
-    const result = await resolveCongregationFromRequest(makeRequest('https://lyon-jean-mace.unitae.app/'))
-    expect(result).toEqual({ id: 1, slug: 'lyon-jean-mace' })
+    const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
+    expect(result).toEqual({ id: 1, slug: 'tenant-alpha' })
     expect(db.congregation.findUnique).toHaveBeenCalledWith({
-      where: { slug: 'lyon-jean-mace' },
+      where: { slug: 'tenant-alpha' },
       select: { id: true, slug: true },
     })
   })
