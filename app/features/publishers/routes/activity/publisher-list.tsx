@@ -1,12 +1,10 @@
 import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide-react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -23,9 +21,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewActivities = await verifyRole(request, Role.ActivityViewer)
-  const canManageActivities = await verifyRole(request, Role.ActivityManager)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.ActivityViewer, Role.ActivityManager])
+  const canViewActivities = can(Role.ActivityViewer)
+  const canManageActivities = can(Role.ActivityManager)
 
   if (!canViewActivities) {
     logger.warn(
@@ -34,7 +32,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   logger.info(`Loading publishers' activities. User ID: ${currentUser.id}.`)
 
   const timeRange = new Date()

@@ -1,11 +1,9 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getSetting } from '~/features/settings/server/settings'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
@@ -22,16 +20,15 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.ProspectionManager, Role.TerritoriesManager])
+  const canViewProspection = can(Role.ProspectionViewer)
+  const canManageProspection = can(Role.ProspectionManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canViewProspection) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const prospectionValidity = Number(await getSetting(TerritorySettingKey.ProspectionValidity) ?? '0')
   const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
   if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)

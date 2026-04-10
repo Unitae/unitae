@@ -1,9 +1,7 @@
 import { Form, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,
@@ -28,14 +26,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const territory = await getTerritoryPolygon()
   const zips = await getAllowedZips()
   const banoUrl = await getSetting(TerritorySettingKey.BanoUrl)
@@ -137,14 +134,13 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, congregation } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { congregation, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const zips = parseZips(String(form.get('zips')))
   const territory = parseTerritoryPolygon(String(form.get('territory')))

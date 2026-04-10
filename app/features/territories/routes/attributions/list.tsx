@@ -1,11 +1,10 @@
 import { CalendarCheck, Pencil, X } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getGroups } from '~/features/publishers/server/groups'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions'
@@ -29,12 +28,12 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session } = await verifySession(request)
-  const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
-  const canViewPublisher = await verifyRole(request, Role.PublisherViewer)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
+  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.PublisherManager, Role.PublisherViewer, Role.TerritoriesManager, Role.ProspectionViewer])
+  const canViewTerritories = can(Role.TerritoriesViewer)
+  const canManagePublisher = can(Role.PublisherManager)
+  const canViewPublisher = can(Role.PublisherViewer)
+  const canManageTerritories = can(Role.TerritoriesManager)
+  const canViewProspection = can(Role.ProspectionViewer)
 
   if (!canViewTerritories) {
     if (canViewProspection) {
@@ -48,7 +47,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   logger.info(
     `Loading territory attributions. User ID: ${currentUser.id}. ${canManageTerritories ? 'Has' : 'Does NOT have'} rights to manage territories.`,
   )

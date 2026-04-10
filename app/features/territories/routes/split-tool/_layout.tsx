@@ -1,12 +1,12 @@
 import { data, NavLink, Outlet, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -18,14 +18,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, currentUser } = await verifySession(request)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
   const totalBuildingsForDoors = await db.building.count({
     where: {

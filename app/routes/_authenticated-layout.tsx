@@ -1,38 +1,25 @@
 import { useEffect } from 'react'
 import { data } from 'react-router'
 import { toast } from 'sonner'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { AppLayout } from '~/shared/ui/AppLayout'
 
 import type { Route } from './+types/_authenticated-layout'
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, congregation, currentUser } = await verifySession(request)
-
-  const [
-    canUploadDocument,
-    canManageBoard,
-    canViewPublishers,
-    canViewTerritories,
-    canViewProspection,
-    canManageTerritories,
-    canManageSettings,
-    canManageUsers,
-    canViewPrograms,
-    canViewActivity,
-  ] = await Promise.all([
-    verifyRole(request, Role.BoardUploader),
-    verifyRole(request, Role.BoardValidator),
-    verifyRole(request, Role.PublisherViewer),
-    verifyRole(request, Role.TerritoriesViewer),
-    verifyRole(request, Role.ProspectionViewer),
-    verifyRole(request, Role.TerritoriesManager),
-    verifyRole(request, Role.Admin),
-    verifyRole(request, Role.SettingsUserManager),
-    verifyRole(request, Role.ProgramViewer),
-    verifyRole(request, Role.ActivityViewer),
+  const { session, congregation, currentUser, can } = await authenticateAndAuthorize(request, [
+    Role.BoardUploader,
+    Role.BoardValidator,
+    Role.PublisherViewer,
+    Role.TerritoriesViewer,
+    Role.ProspectionViewer,
+    Role.TerritoriesManager,
+    Role.Admin,
+    Role.SettingsUserManager,
+    Role.ProgramViewer,
+    Role.ActivityViewer,
   ])
 
   const messages = { success: session.get('success'), error: session.get('error') }
@@ -41,16 +28,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     {
       permissions: {
         canViewBoard: true,
-        canUploadDocument,
-        canManageBoard,
-        canViewPublishers,
-        canViewTerritories,
-        canViewProspection,
-        canManageTerritories,
-        canManageSettings,
-        canManageUsers,
-        canViewPrograms,
-        canViewActivity,
+        canUploadDocument: can(Role.BoardUploader),
+        canManageBoard: can(Role.BoardValidator),
+        canViewPublishers: can(Role.PublisherViewer),
+        canViewTerritories: can(Role.TerritoriesViewer),
+        canViewProspection: can(Role.ProspectionViewer),
+        canManageTerritories: can(Role.TerritoriesManager),
+        canManageSettings: can(Role.Admin),
+        canManageUsers: can(Role.SettingsUserManager),
+        canViewPrograms: can(Role.ProgramViewer),
+        canViewActivity: can(Role.ActivityViewer),
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,

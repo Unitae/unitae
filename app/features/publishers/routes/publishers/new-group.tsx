@@ -1,9 +1,9 @@
 import { Form, redirect } from 'react-router'
 
-import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { db } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -13,14 +13,13 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/new-group'
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const brothers = await db.user.findMany({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma OR operator
@@ -109,15 +108,14 @@ export default function NewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, currentUser } = await verifySession(request)
+  const { congregation, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const name = form.get('name')
   const address = form.get('address')

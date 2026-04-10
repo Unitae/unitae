@@ -1,8 +1,8 @@
 import { Form, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { db } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -16,8 +16,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { can } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canManageBoard) {
     throw redirect('/')
@@ -49,7 +49,7 @@ export default function NewSectionPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, currentUser } = await verifySession(request)
+  const { session, congregation } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 
@@ -58,7 +58,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/board/sections/new')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const section = await db.boardSection.create({
     data: {
       name: String(name),

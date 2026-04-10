@@ -1,13 +1,13 @@
 import { Archive, IdCard } from 'lucide-react'
 import { Form, redirect } from 'react-router'
-import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -19,14 +19,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const result = await db.user.findUnique({
     where: {
       id: requireParamId(params.publisherId, '/congregation/publishers'),
@@ -92,9 +91,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser } = await verifySession(request)
-
-  restoreCongregationContext(currentUser.congregationId)
+  await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = form.get('firstname')
   const lastname = form.get('lastname')

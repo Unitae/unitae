@@ -1,11 +1,10 @@
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -26,14 +25,13 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, currentUser } = await verifySession(request)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
   if (building == null) {
     throw redirect('/territories/buildings', { status: 404 })
@@ -123,14 +121,13 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser } = await verifySession(request)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const number = form.get('number')
   const street = form.get('street')

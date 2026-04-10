@@ -1,10 +1,10 @@
 import { redirect } from 'react-router'
 
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 
 import type { Route } from './+types/sync-buildings'
 
@@ -17,14 +17,13 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const user = await db.user.findUnique({
     where: {
       id: Number(session.get('userId')) ?? 0,

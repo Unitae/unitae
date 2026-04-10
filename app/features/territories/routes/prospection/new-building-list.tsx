@@ -1,10 +1,8 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import { Button } from '~/shared/ui/button'
 
@@ -18,16 +16,15 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.TerritoriesManager, Role.ProspectionManager])
+  const canViewProspection = can(Role.ProspectionViewer)
+  const canManageTerritories = can(Role.TerritoriesManager)
+  const canManageProspection = can(Role.ProspectionManager)
 
   if (!canViewProspection) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const staleDate = await getProspectionStaleDate()
 
   const selectors = { inOpenData: true, active: true, prospectionDate: null }

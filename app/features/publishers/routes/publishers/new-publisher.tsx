@@ -1,11 +1,11 @@
 import { Form, redirect } from 'react-router'
-import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -17,14 +17,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const groups = await db.publisherGroup.findMany()
 
   return { groups, hideAuxiliaryPioneer: false }
@@ -51,9 +50,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, currentUser } = await verifySession(request)
-
-  restoreCongregationContext(currentUser.congregationId)
+  const { congregation } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))

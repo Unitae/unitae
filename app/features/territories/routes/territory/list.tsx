@@ -1,10 +1,9 @@
 import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -29,16 +28,15 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, currentUser } = await verifySession(request)
-  const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.TerritoriesManager])
+  const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
     throw redirect('/')
   }
 
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
-  restoreCongregationContext(currentUser.congregationId)
   const phoneTypeActive = await getBoolSetting(TerritorySettingKey.TerritoryTypePhoneActive)
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')

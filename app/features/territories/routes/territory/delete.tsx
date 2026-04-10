@@ -1,8 +1,8 @@
 import { Form, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -10,14 +10,13 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const territory = await db.territory.findUnique({ where: { id: requireParamId(params.territoryId, '/territories') } })
 
   if (territory == null) {
@@ -54,14 +53,13 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const territory = await db.territory.delete({ where: { id: requireParamId(params.territoryId, '/territories') } })
 
   session.flash('success', `Le territoire nº${territory.number} a été correctement supprimé`)

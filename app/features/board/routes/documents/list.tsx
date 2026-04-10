@@ -1,10 +1,9 @@
 import { ChevronDown, ChevronUp, Eye, FileText, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -19,8 +18,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader])
+  const canUploadDocument = can(Role.BoardUploader)
 
   if (!canUploadDocument) {
     logger.warn(`Tried to load board documents. User ID: ${currentUser.id}. Does NOT have rights to upload document.`)
@@ -32,7 +31,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading board documents. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to upload document.`,
   )
 
-  restoreCongregationContext(currentUser.congregationId)
   const documents = await db.boardDocument.findMany({
     include: {
       section: true,

@@ -1,10 +1,10 @@
 import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getGroup } from '~/features/publishers/server/groups'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -15,16 +15,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewPublishers = await verifyRole(request, Role.PublisherViewer)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
-  const canManageActivity = await verifyRole(request, Role.ActivityManager)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherViewer, Role.PublisherManager, Role.ActivityManager])
+  const canViewPublishers = can(Role.PublisherViewer)
+  const canManagePublisher = can(Role.PublisherManager)
+  const canManageActivity = can(Role.ActivityManager)
 
   if (!canViewPublishers) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const group = await getGroup(requireParamId(params.groupId, '/congregation/publisher-groups'))
   if (group == null) {
     throw redirect('/congregation/publisher-groups/')
@@ -230,15 +229,14 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser } = await verifySession(request)
+  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const name = form.get('name')
   const address = form.get('address')

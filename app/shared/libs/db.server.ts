@@ -14,14 +14,20 @@ type CongregationContext = {
 }
 export const congregationContext = new AsyncLocalStorage<CongregationContext>()
 
+// Fallback congregation ID when ALS context is lost. Used by the db extension
+// as a safety net when concurrent loaders (run in parallel by React Router)
+// break each other's ALS context via the Prisma 7 pg adapter.
+let fallbackCongregationId: number | null = null
+
 /**
- * Restaure le contexte de congrégation dans l'AsyncLocalStorage.
+ * Restores the congregation context in AsyncLocalStorage.
  *
- * L'adaptateur pg de Prisma 7 casse la propagation d'AsyncLocalStorage après
- * les requêtes async. Appeler cette fonction dans les loaders après verifySession()
- * et verifyRole() pour garantir que les requêtes `db` suivantes soient bien scopées.
+ * The Prisma 7 pg adapter breaks AsyncLocalStorage propagation after async queries.
+ * Also stores the congregation ID in a module-level fallback for cases where
+ * concurrent loaders break each other's ALS context.
  */
 export function restoreCongregationContext(congregationId: number) {
+  fallbackCongregationId = congregationId
   congregationContext.enterWith({ congregationId })
 }
 
@@ -60,7 +66,16 @@ const db = unscopedDb.$extends({
     async $allOperations({ model, operation, args, query }) {
       if (!model || !SCOPED_MODELS.has(model)) return query(args)
 
-      const ctx = congregationContext.getStore()
+      let ctx = congregationContext.getStore()
+
+      // If ALS context is lost (Prisma 7 pg adapter issue), recover from the fallback.
+      // This handles concurrent loaders run in parallel by React Router where one loader's
+      // Prisma queries break another loader's ALS context.
+      if (!ctx && fallbackCongregationId) {
+        ctx = { congregationId: fallbackCongregationId }
+        congregationContext.enterWith(ctx)
+      }
+
       if (!ctx) {
         throw new Error(
           `Congregation context is required for ${model}.${operation} but was not set. ` +
@@ -91,8 +106,8 @@ const db = unscopedDb.$extends({
 
       const result = await query(args)
 
-      // Restaurer le contexte ALS après la requête — l'adaptateur pg de Prisma 7
-      // peut casser la propagation d'AsyncLocalStorage lors des opérations async.
+      // Restore ALS context after query — the Prisma 7 pg adapter can break
+      // AsyncLocalStorage propagation during async operations.
       congregationContext.enterWith(ctx)
 
       return result

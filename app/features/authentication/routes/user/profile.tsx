@@ -1,7 +1,6 @@
 import { Form, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import logger from '~/shared/libs/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -11,14 +10,14 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/profile'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Mon profil - Unitae' }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, congregation } = await verifySession(request)
-
+  const { currentUser, session, congregation } = await authenticateAndAuthorize(request)
   logger.info(`Loading profile data. User ID: ${currentUser.id}.`)
 
   return {
@@ -99,9 +98,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser } = await verifySession(request)
-
-  restoreCongregationContext(currentUser.congregationId)
+  const { session, currentUser } = await authenticateAndAuthorize(request)
   const formData = await request.formData()
   const password = formData.get('password')
   const newPassword = formData.get('new_password')

@@ -73,10 +73,10 @@ export function getPlatformName(): string {
 }
 
 /**
- * Résout l'assemblée locale correspondant au sous-domaine ou domaine personnalisé de la requête.
+ * Resolves the congregation matching the subdomain or custom domain from the request.
  *
- * - Retourne `null` en mode mono-tenant ou si aucun slug n'est extrait de l'URL (domaine racine).
- * - Redirige vers `/congregation-not-found` si un slug est présent mais ne correspond à aucune assemblée.
+ * - Returns `null` in single-tenant mode or if no slug is extracted from the URL (root domain).
+ * - Redirects to `/congregation-not-found` if a slug is present but doesn't match any congregation.
  */
 export async function resolveCongregationFromRequest(
   request: Request,
@@ -94,18 +94,18 @@ export async function resolveCongregationFromRequest(
     })
     if (congregation) return congregation
 
-    // Le slug est présent dans l'URL mais ne correspond à aucune assemblée
+    // Slug is present in the URL but doesn't match any congregation
     throw redirect('/congregation-not-found')
   }
 
-  // Pas de slug — tenter la résolution par domaine personnalisé
+  // No slug — try resolving by custom domain
   const congregation = await unscopedDb.congregation.findFirst({
     where: { domain: hostname },
     select: { id: true, slug: true },
   })
   if (congregation) return congregation
 
-  // Domaine racine ou domaine inconnu sans slug — pas d'assemblée à résoudre
+  // Root domain or unknown domain without slug — no congregation to resolve
   return null
 }
 

@@ -1,11 +1,11 @@
 import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { saveFile } from '~/features/board/server/document'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
@@ -21,9 +21,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const canUploadDocument = can(Role.BoardUploader)
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -36,7 +36,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading creation form for document. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to upload new document to the board.`,
   )
 
-  restoreCongregationContext(currentUser.congregationId)
   const sections = await db.boardSection.findMany()
 
   return { sections, rights: { canUploadDocument, canManageBoard } }
@@ -133,10 +132,9 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation } = await verifySession(request)
-
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { currentUser, session, congregation, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const canUploadDocument = can(Role.BoardUploader)
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -145,7 +143,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   let uploadedFile: File | null = null
   const uploadHandler = async (fileUpload: FileUpload) => {
     if (fileUpload.fieldName === 'document') {

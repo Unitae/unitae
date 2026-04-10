@@ -1,10 +1,9 @@
 import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { restoreCongregationContext } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -30,15 +29,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, currentUser } = await verifySession(request)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.ProspectionManager, Role.TerritoriesManager])
+  const canManageProspection = can(Role.ProspectionManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageProspection) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
   if (building == null) {
     throw redirect('/territories/buildings', { status: 404 })
@@ -126,15 +124,14 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregation, currentUser } = await verifySession(request)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, congregation, can } = await authenticateAndAuthorize(request, [Role.ProspectionManager, Role.TerritoriesManager])
+  const canManageProspection = can(Role.ProspectionManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageProspection) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
   const building = await getBuildingDetails(requireParamId(params.buildingId, '/territories/buildings'))
   if (building == null) {

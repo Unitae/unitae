@@ -1,9 +1,9 @@
 import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession, getSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -14,14 +14,13 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit-group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const brothers = await db.user.findMany({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma OR operator
@@ -134,15 +133,14 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser } = await verifySession(request)
+  const { can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const name = form.get('name')
   const address = form.get('address')

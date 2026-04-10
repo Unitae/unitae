@@ -1,9 +1,8 @@
 import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -17,7 +16,7 @@ import {
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -32,14 +31,13 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const territory = await db.territory.findUnique({
     where: {
       id: requireParamId(params.territoryId, '/territories'),
@@ -315,14 +313,13 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const entrances = form.getAll('entrances')
   const notes = form.get('notes')

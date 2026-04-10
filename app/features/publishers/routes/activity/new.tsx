@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Form, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublishers } from '~/features/publishers/server/publishers'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -19,8 +19,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
+
   const canManageMyGroupActivity =
     currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
     currentUser.deputyFor?.id === currentUser.publisherGroupId
@@ -29,7 +30,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const groupFilter = canManageMyGroupActivity && !canManagePublisher ? currentUser.publisherGroupId : undefined
   const publishers = await getPublishers({ groupId: groupFilter })
 
@@ -274,8 +274,9 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { currentUser, session, congregation, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
+
   const canManageMyGroupActivity =
     currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
     currentUser.deputyFor?.id === currentUser.publisherGroupId
@@ -284,7 +285,6 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const form = await request.formData()
   const previousPage = String(form.get('previousPage'))
   const publisherId = Number(form.get('publisher'))

@@ -1,10 +1,9 @@
 import { BadgeCheck, BadgeMinus, IdCard, Pencil, UserPlus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -19,10 +18,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManageUser = await verifyRole(request, Role.SettingsUserManager)
-  const canViewPublishers = await verifyRole(request, Role.PublisherViewer)
-  const canManagePublishers = await verifyRole(request, Role.PublisherManager)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager, Role.PublisherViewer, Role.PublisherManager])
+  const canManageUser = can(Role.SettingsUserManager)
+  const canViewPublishers = can(Role.PublisherViewer)
+  const canManagePublishers = can(Role.PublisherManager)
 
   if (!canManageUser) {
     logger.warn(`Tried to load users. User ID: ${currentUser.id}. Does NOT have rights to manage users.`)
@@ -34,7 +33,6 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading users. User ID: ${currentUser.id}. ${canManageUser ? 'Has' : 'Does NOT have'} rights to manage users.`,
   )
 
-  restoreCongregationContext(currentUser.congregationId)
   const users = await db.user.findMany({
     include: {
       congregationRoles: { include: { role: true } },

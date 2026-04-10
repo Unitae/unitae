@@ -1,9 +1,9 @@
 import { Form, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { deleteFile } from '~/features/board/server/document'
-import { db, restoreCongregationContext } from '~/shared/libs/db.server'
+import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
@@ -12,14 +12,13 @@ import { Card, CardContent } from '~/shared/ui/card'
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
+  const { can } = await authenticateAndAuthorize(request, [Role.BoardUploader])
+  const canUploadDocument = can(Role.BoardUploader)
 
   if (!canUploadDocument) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const document = await db.boardDocument.findUnique({ where: { id: requireParamId(params.documentId, '/board') } })
 
   if (document == null) {
@@ -49,14 +48,13 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser } = await verifySession(request)
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
+  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader])
+  const canUploadDocument = can(Role.BoardUploader)
 
   if (!canUploadDocument) {
     throw redirect('/')
   }
 
-  restoreCongregationContext(currentUser.congregationId)
   const document = await db.boardDocument.delete({ where: { id: requireParamId(params.documentId, '/board') } })
 
   try {
