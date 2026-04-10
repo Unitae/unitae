@@ -1,7 +1,6 @@
 import { Outlet, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 import type { Route } from './+types/_layout'
 
@@ -10,13 +9,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session } = await verifySession(request)
-  const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
-  const canManageUsers = await verifyRole(request, Role.SettingsUserManager)
-  const canViewPublishers = await verifyRole(request, Role.PublisherViewer)
-  const canManageSettings = await verifyRole(request, Role.Admin)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.TerritoriesManager, Role.SettingsUserManager, Role.PublisherViewer, Role.Admin, Role.ProspectionViewer])
+  const canViewTerritories = can(Role.TerritoriesViewer)
+  const canManageTerritories = can(Role.TerritoriesManager)
+  const canManageUsers = can(Role.SettingsUserManager)
+  const canViewPublishers = can(Role.PublisherViewer)
+  const canManageSettings = can(Role.Admin)
+  const canViewProspection = can(Role.ProspectionViewer)
 
   if (!canManageUsers && !canManageSettings) {
     throw redirect('/')

@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Form, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getPublishers } from '~/features/publishers/server/publishers'
 import { db } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -19,8 +19,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
+
   const canManageMyGroupActivity =
     currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
     currentUser.deputyFor?.id === currentUser.publisherGroupId
@@ -273,8 +274,9 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { currentUser, session, congregation, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
+
   const canManageMyGroupActivity =
     currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
     currentUser.deputyFor?.id === currentUser.publisherGroupId

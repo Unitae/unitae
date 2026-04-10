@@ -1,7 +1,6 @@
 import { Outlet, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 import type { Route } from './+types/_layout'
 
@@ -10,12 +9,12 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
-  const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
-  const canManageSettings = await verifyRole(request, Role.SettingsUserManager)
-  const canViewPublishers = await verifyRole(request, Role.PublisherViewer)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
+  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer, Role.TerritoriesManager, Role.SettingsUserManager, Role.PublisherViewer, Role.ProspectionViewer])
+  const canViewTerritories = can(Role.TerritoriesViewer)
+  const canManageTerritories = can(Role.TerritoriesManager)
+  const canManageSettings = can(Role.SettingsUserManager)
+  const canViewPublishers = can(Role.PublisherViewer)
+  const canViewProspection = can(Role.ProspectionViewer)
 
   if (!canViewTerritories && !canViewProspection) {
     throw redirect('/')

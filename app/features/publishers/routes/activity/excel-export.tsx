@@ -1,8 +1,7 @@
 import { redirect } from 'react-router'
 
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { generatePublishersYearlyActivityXlsx } from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
 import logger from '~/shared/libs/logger.server'
 
@@ -13,8 +12,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewActivities = await verifyRole(request, Role.ActivityViewer)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.ActivityViewer])
+  const canViewActivities = can(Role.ActivityViewer)
 
   if (!canViewActivities) {
     logger.warn(

@@ -1,8 +1,8 @@
 import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { saveFile } from '~/features/board/server/document'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
 import { db } from '~/shared/libs/db.server'
@@ -21,9 +21,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const canUploadDocument = can(Role.BoardUploader)
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -132,10 +132,9 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation } = await verifySession(request)
-
-  const canUploadDocument = await verifyRole(request, Role.BoardUploader)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { currentUser, session, congregation, can } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const canUploadDocument = can(Role.BoardUploader)
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(

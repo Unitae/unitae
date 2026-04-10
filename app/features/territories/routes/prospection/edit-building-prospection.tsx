@@ -1,9 +1,9 @@
 import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -29,9 +29,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session } = await verifySession(request)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.ProspectionManager, Role.TerritoriesManager])
+  const canManageProspection = can(Role.ProspectionManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageProspection) {
     throw redirect('/')
@@ -124,9 +124,9 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregation } = await verifySession(request)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, congregation, can } = await authenticateAndAuthorize(request, [Role.ProspectionManager, Role.TerritoriesManager])
+  const canManageProspection = can(Role.ProspectionManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageProspection) {
     throw redirect('/')

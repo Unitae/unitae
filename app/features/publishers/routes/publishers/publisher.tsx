@@ -1,9 +1,8 @@
 import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -20,10 +19,10 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session } = await verifySession(request)
-  const canViewPublisher = await verifyRole(request, Role.PublisherViewer)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
-  const canManageActivity = await verifyRole(request, Role.ActivityManager)
+  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.PublisherViewer, Role.PublisherManager, Role.ActivityManager])
+  const canViewPublisher = can(Role.PublisherViewer)
+  const canManagePublisher = can(Role.PublisherManager)
+  const canManageActivity = can(Role.ActivityManager)
 
   if (!canViewPublisher) {
     logger.warn(`Tried to load publisher file. User ID: ${currentUser.id}. Does NOT have rights to view publishers.`)

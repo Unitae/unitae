@@ -31,7 +31,7 @@ export async function verifyRole(request: Request, roleKey: Role) {
   })
 
   if (adminRole != null) {
-    // Restaurer le contexte ALS — les requêtes unscopedDb via l'adaptateur pg le cassent
+    // Restore ALS context — unscopedDb queries via the pg adapter break it
     congregationContext.enterWith({ congregationId })
     return true
   }

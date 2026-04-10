@@ -2,9 +2,9 @@ import ResetPasswordRequired from 'emails/reset-password-required'
 import { redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -19,8 +19,8 @@ export function loader() {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
-  const canManageUser = await verifyRole(request, Role.SettingsUserManager)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
+  const canManageUser = can(Role.SettingsUserManager)
 
   if (!canManageUser) throw redirect('/')
 

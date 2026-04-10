@@ -1,8 +1,7 @@
 import { ChevronDown, ChevronUp, FolderOpen, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
@@ -18,8 +17,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canManageBoard) {
     logger.warn(`Tried to load board sections. User ID: ${currentUser.id}. Does NOT have rights to manage board.`)

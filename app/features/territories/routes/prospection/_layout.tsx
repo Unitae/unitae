@@ -1,8 +1,8 @@
 import { Map as MapIcon, RefreshCw } from 'lucide-react'
 import { data, Form, Link, NavLink, Outlet, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings'
@@ -20,10 +20,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session } = await verifySession(request)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.ProspectionManager, Role.TerritoriesManager])
+  const canViewProspection = can(Role.ProspectionViewer)
+  const canManageProspection = can(Role.ProspectionManager)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canViewProspection) {
     throw redirect('/')

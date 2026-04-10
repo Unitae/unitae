@@ -1,8 +1,7 @@
 import { CalendarOff } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
 import { db } from '~/shared/libs/db.server'
@@ -20,9 +19,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewPrograms = await verifyRole(request, Role.ProgramViewer)
-  const canManagePrograms = await verifyRole(request, Role.ProgramManager)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
+  const canViewPrograms = can(Role.ProgramViewer)
+  const canManagePrograms = can(Role.ProgramManager)
 
   if (!canViewPrograms) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)

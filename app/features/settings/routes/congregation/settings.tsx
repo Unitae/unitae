@@ -1,8 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
 import { db, unscopedDb } from '~/shared/libs/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
@@ -20,8 +19,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { congregation } = await verifySession(request)
-  const canManageSettings = await verifyRole(request, Role.Admin)
+  const { congregation, can } = await authenticateAndAuthorize(request, [Role.Admin])
+  const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
@@ -107,8 +106,8 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation } = await verifySession(request)
-  const canManageSettings = await verifyRole(request, Role.Admin)
+  const { congregation, can } = await authenticateAndAuthorize(request, [Role.Admin])
+  const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')

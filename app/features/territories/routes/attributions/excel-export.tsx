@@ -1,7 +1,6 @@
 import { redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { generateS13ExportExcel } from '~/features/territories/server/s13-export.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import logger from '~/shared/libs/logger.server'
@@ -13,8 +12,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser } = await verifySession(request)
-  const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
+  const { currentUser, can } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
+  const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
     logger.warn(

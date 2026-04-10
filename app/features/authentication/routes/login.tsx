@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  // Vérifier que le sous-domaine correspond à une assemblée existante
+  // Verify that the subdomain matches an existing congregation
   await resolveCongregationFromRequest(request)
 
   const shouldStartSetup = await needSetupProcess()
@@ -33,7 +33,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const session = await getSession(request.headers.get('Cookie'))
   if (session.has('userId') === true) {
-    // En mode multi-tenant, vérifier que la session correspond à l'assemblée du sous-domaine
+    // In multi-tenant mode, verify the session matches the subdomain's congregation
     const urlCongregation = await resolveCongregationFromRequest(request)
     if (urlCongregation) {
       const uid = Number(session.get('userId'))

@@ -1,16 +1,15 @@
 import { redirect } from 'react-router'
 
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 
 import type { Route } from './+types/make-publisher'
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
-  const canManagePublisher = await verifyRole(request, Role.PublisherManager)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')

@@ -62,7 +62,7 @@ export async function verifySession(request: Request) {
     })
   }
 
-  // En mode multi-tenant, vérifier que le sous-domaine correspond à l'assemblée de l'utilisateur
+  // In multi-tenant mode, verify that the subdomain matches the user's congregation
   const urlCongregation = await resolveCongregationFromRequest(request)
   if (urlCongregation && urlCongregation.id !== user.congregationId) {
     throw redirect('/login', {

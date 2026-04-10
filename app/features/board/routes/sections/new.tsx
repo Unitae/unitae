@@ -1,7 +1,7 @@
 import { Form, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { db } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -16,8 +16,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { can } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canManageBoard) {
     throw redirect('/')
@@ -49,7 +49,7 @@ export default function NewSectionPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation } = await verifySession(request)
+  const { session, congregation } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 

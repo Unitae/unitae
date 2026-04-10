@@ -1,8 +1,8 @@
 import { IdCard, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -21,9 +21,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session } = await verifySession(request)
-  const canManageUser = await verifyRole(request, Role.SettingsUserManager)
-  const isAdmin = await verifyRole(request, Role.Admin)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager, Role.Admin])
+  const canManageUser = can(Role.SettingsUserManager)
+  const isAdmin = can(Role.Admin)
 
   if (!canManageUser) {
     throw redirect('/')
@@ -210,8 +210,8 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { congregation } = await verifySession(request)
-  const canManageUser = await verifyRole(request, Role.SettingsUserManager)
+  const { congregation, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
+  const canManageUser = can(Role.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')

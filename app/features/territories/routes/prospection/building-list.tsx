@@ -1,8 +1,7 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { computeFilters } from '~/features/territories/server/building-filters'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
@@ -17,10 +16,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
+  const { can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.TerritoriesManager, Role.ProspectionManager])
+  const canViewProspection = can(Role.ProspectionViewer)
+  const canManageTerritories = can(Role.TerritoriesManager)
+  const canManageProspection = can(Role.ProspectionManager)
 
   if (!canViewProspection) {
     throw redirect('/')

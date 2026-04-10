@@ -1,8 +1,8 @@
 import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { db } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
@@ -18,8 +18,8 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await verifySession(request)
-  const canManageBoard = await verifyRole(request, Role.BoardValidator)
+  const { can } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const canManageBoard = can(Role.BoardValidator)
 
   if (!canManageBoard) {
     throw redirect('/')
@@ -77,7 +77,7 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 

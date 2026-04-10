@@ -1,14 +1,14 @@
 import { Outlet } from 'react-router'
-import { verifySession } from '~/features/authentication/server/session.server'
 
 import type { Route } from './+types/_layout'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Mon compte - Unitae' }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifySession(request)
+  await authenticateAndAuthorize(request)
   return {}
 }
 

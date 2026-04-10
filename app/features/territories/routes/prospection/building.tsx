@@ -1,8 +1,8 @@
 import { Pencil, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { commitSession, verifySession } from '~/features/authentication/server/session.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { verifyRole } from '~/features/authorization/server/verify-role.server'
+import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
@@ -22,11 +22,11 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session } = await verifySession(request)
-  const canViewProspection = await verifyRole(request, Role.ProspectionViewer)
-  const canManageProspection = await verifyRole(request, Role.ProspectionManager)
-  const canViewTerritories = await verifyRole(request, Role.TerritoriesViewer)
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
+  const { currentUser, session, can } = await authenticateAndAuthorize(request, [Role.ProspectionViewer, Role.ProspectionManager, Role.TerritoriesViewer, Role.TerritoriesManager])
+  const canViewProspection = can(Role.ProspectionViewer)
+  const canManageProspection = can(Role.ProspectionManager)
+  const canViewTerritories = can(Role.TerritoriesViewer)
+  const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canViewProspection) {
     logger.warn(
@@ -123,9 +123,9 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session } = await verifySession(request)
+  const { session, can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const canManageTerritories = can(Role.TerritoriesManager)
 
-  const canManageTerritories = await verifyRole(request, Role.TerritoriesManager)
   if (!canManageTerritories) {
     throw redirect('/')
   }
