@@ -10,8 +10,9 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 | **Updates** | Automatic | Pull new images and restart |
 | **Backups** | Included | Your responsibility |
 | **TLS (HTTPS)** | Included | Reverse proxy setup required |
-| **Data location** | MindsersIT infrastructure | Your infrastructure |
+| **Data location** | MindsersIT infrastructure (EU) | Your infrastructure |
 | **Features** | All features | All features (same code) |
+| **GDPR compliance** | DPA provided by MindsersIT | Your responsibility (built-in tools included) |
 | **Resource limits** | Per plan | Unlimited by default |
 | **Multi-congregation** | Built-in | Enable with `MULTI_TENANT=true` |
 | **Support** | Included | Community / self |
@@ -23,6 +24,7 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 - You prefer automatic updates and managed backups
 - You don't have the technical resources to maintain a server
 - You want direct support from the team that builds Unitae
+- You want GDPR compliance handled for you (DPA, sub-processor management, breach procedures, data hosted in the EU)
 
 ## When to Self-Host
 
@@ -31,6 +33,7 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 - You want unlimited resources without any plan-based limits
 - You are comfortable managing a server, database, and reverse proxy
 - You want to customize or extend Unitae for your specific needs
+- You are prepared to handle your own GDPR compliance (the built-in tools are available but you are the data controller)
 
 ## Switching
 

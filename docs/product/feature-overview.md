@@ -56,6 +56,20 @@ Configure the congregation and manage users.
 
 See [Roles and Permissions](roles-and-permissions.md) for how access control works.
 
+## Privacy & GDPR
+
+Unitae manages religious affiliation data, which is special category data under GDPR Article 9. Built-in tools help congregations comply with European data protection regulations.
+
+- **Data export** — Users can download all their personal data as JSON from their profile. Admins can export any user's data from the user management page (Articles 15 & 20)
+- **Right to erasure** — Admins can anonymize user records, replacing all personal data with non-identifiable values while preserving historical reports for statistical integrity (Article 17)
+- **Consent gate** — Users must explicitly consent to data processing on their first login before accessing the application
+- **Consent management** — Users can view and withdraw their consents at any time from their profile
+- **Privacy policy** — Built-in `/privacy` page explaining data collection, purposes, legal basis, retention periods, sub-processors, and data subject rights
+- **Cookie consent** — Google Maps integration only loads after explicit user consent (ePrivacy Directive)
+- **Deletion ledger** — All anonymization operations are recorded for backup reconciliation
+
+See [GDPR Checklist](../gdpr-checklist.md) for the full compliance status and roadmap.
+
 ## Coming Soon
 
 Unitae is under active development. Planned features and improvements are tracked in the [GitHub issues](https://github.com/Unitae/unitae/issues).
@@ -63,4 +77,5 @@ Unitae is under active development. Planned features and improvements are tracke
 ## Related
 
 - [Security](security.md) — How data isolation and authentication protect your congregation
+- [GDPR Checklist](../gdpr-checklist.md) — Data protection compliance status
 - [Self-host Unitae](../self-hosting/getting-started.md) or [use managed hosting](../managed-hosting/getting-started.md) — Ready to get started?
