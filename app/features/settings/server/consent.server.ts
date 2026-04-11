@@ -80,3 +80,14 @@ export function getActiveConsents(db: TransactionClient, userId: number) {
     orderBy: { consentedAt: 'desc' },
   })
 }
+
+/**
+ * Verifie si un utilisateur a donne son consentement au traitement des donnees.
+ * Utilise unscopedDb car appele avant l'etablissement du contexte congregation.
+ */
+export async function hasDataProcessingConsent(userId: number): Promise<boolean> {
+  const record = await unscopedDb.consentRecord.findFirst({
+    where: { userId, purpose: ConsentPurpose.DataProcessing, withdrawnAt: null },
+  })
+  return record != null
+}

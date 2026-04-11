@@ -12,6 +12,7 @@ export default [
   route('trial-expired', 'routes/trial-expired.tsx'),
   route('congregation-not-found', 'routes/congregation-not-found.tsx'),
   route('privacy', 'routes/privacy.tsx'),
+  route('consent', 'routes/consent.tsx'),
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     route('me', 'features/authentication/routes/user/_layout.tsx', [

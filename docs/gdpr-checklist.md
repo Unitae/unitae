@@ -91,6 +91,8 @@ This document tracks all technical and legal items required for GDPR compliance.
   - Covers: user profile, roles, activities, attributions, groups, events, board docs, consents
   - Accessible to: the user themselves + Admin/SettingsUserManager role
   - Instant JSON download, machine-readable format
+  - Self-service export button on user profile page (`/me/profile`)
+  - Admin export button on user edit page (`/settings/users/:userId/edit`)
 
 ### Right to Erasure (Article 17)
 

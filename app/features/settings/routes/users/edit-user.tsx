@@ -1,4 +1,4 @@
-import { IdCard, ShieldAlert, UserPlus } from 'lucide-react'
+import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -124,6 +124,11 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                 </Button>
               </Form>
             )}
+            <Button asChild variant="outline" size="icon" title="Exporter les données de cet utilisateur (RGPD)">
+              <a href={`/settings/users/${user.id}/export-data`} download>
+                <Download className="size-4" />
+              </a>
+            </Button>
             <Form method="post" action={`/password/${user.id}/invalidate`}>
               <Button
                 type="submit"
