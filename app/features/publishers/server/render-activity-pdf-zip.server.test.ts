@@ -43,7 +43,7 @@ describe('renderActivityPdfZip', () => {
   it('filtre les activités de septembre à août (mois 8-11 puis 0-7)', async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([] as never)
 
-    await renderActivityPdfZip(db, 2025)
+    await renderActivityPdfZip(db, 1, 2025)
 
     const call = vi.mocked(db.user.findMany).mock.calls[0][0] as Record<string, unknown>
     const where = (call.where as { activities: { some: Record<string, unknown> } }).activities.some

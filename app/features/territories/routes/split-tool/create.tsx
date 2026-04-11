@@ -33,7 +33,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   return withScope(congregationId, async db => {
     const count = await db.territory.count({
-      where: { type: String(type) },
+      where: { type: String(type), congregationId },
     })
 
     let prefix = 'D'

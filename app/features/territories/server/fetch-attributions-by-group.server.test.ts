@@ -21,7 +21,7 @@ describe('fetchActiveAttributionsByGroup', () => {
       { publisher: { publisherGroup: { name: 'Groupe B' } } },
     ] as never)
 
-    const result = await fetchActiveAttributionsByGroup(db)
+    const result = await fetchActiveAttributionsByGroup(db, 1)
 
     expect(result).toEqual([
       { groupName: 'Groupe A', count: 2 },
@@ -35,7 +35,7 @@ describe('fetchActiveAttributionsByGroup', () => {
       { publisher: { publisherGroup: { name: 'Groupe A' } } },
     ] as never)
 
-    const result = await fetchActiveAttributionsByGroup(db)
+    const result = await fetchActiveAttributionsByGroup(db, 1)
 
     expect(result).toEqual([
       { groupName: 'Sans groupe', count: 1 },
@@ -46,7 +46,7 @@ describe('fetchActiveAttributionsByGroup', () => {
   it("retourne un tableau vide quand il n'y a aucune attribution active", async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 
-    const result = await fetchActiveAttributionsByGroup(db)
+    const result = await fetchActiveAttributionsByGroup(db, 1)
     expect(result).toEqual([])
   })
 })

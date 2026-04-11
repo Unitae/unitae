@@ -38,7 +38,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
   return withScope(congregationId, async db => {
-    const publishers = await getPublishers(db, { groupId: groupFilter })
+    const publishers = await getPublishers(db, congregationId, { groupId: groupFilter })
 
     const activity = await db.publisherActivity.findFirst({
       where: {

@@ -15,9 +15,11 @@ function buildDateOverlapWhere(startDate: Date, endDate: Date): Prisma.Attributi
 export async function fetchAttributionsForStats(
   db: TransactionClient,
   params: StatsFilterParams,
+  congregationId: number,
 ): Promise<StatsAttribution[]> {
   const attributions = await db.attribution.findMany({
     where: {
+      congregationId,
       territory: {
         type: { in: params.territoryKind },
       },

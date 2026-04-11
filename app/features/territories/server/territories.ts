@@ -6,14 +6,15 @@ export async function findTerritoriesWithDetailsPaginated(
   db: TransactionClient,
   selectors: Prisma.TerritoryWhereInput,
   url: URL,
+  congregationId: number,
 ) {
-  const total = await db.territory.count({ where: selectors })
+  const total = await db.territory.count({ where: { ...selectors, congregationId } })
   const pagination = paginationFromUrl(url, total)
 
   const territories = await db.territory.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: selectors,
+    where: { ...selectors, congregationId },
     include: {
       entrances: { include: { buildings: { where: { active: true } } } },
       attributions: { where: { endDate: null }, include: { publisher: true } },
@@ -27,14 +28,15 @@ export async function findAvailableTerritoriesPaginated(
   db: TransactionClient,
   selectors: Prisma.TerritoryWhereInput,
   url: URL,
+  congregationId: number,
 ) {
-  const total = await db.territory.count({ where: selectors })
+  const total = await db.territory.count({ where: { ...selectors, congregationId } })
   const pagination = paginationFromUrl(url, total)
 
   const territories = await db.territory.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: selectors,
+    where: { ...selectors, congregationId },
     include: {
       entrances: { include: { buildings: true } },
       attributions: { orderBy: { endDate: 'desc' }, take: 1 },

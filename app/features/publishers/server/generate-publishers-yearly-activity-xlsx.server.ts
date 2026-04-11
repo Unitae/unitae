@@ -4,7 +4,7 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic
-export async function generatePublishersYearlyActivityXlsx(db: TransactionClient, year: number) {
+export async function generatePublishersYearlyActivityXlsx(db: TransactionClient, congregationId: number, year: number) {
   const months = Array.from({ length: 12 }, (_, i) => (i + 8 > 11 ? i - 4 : i + 8))
   const workbook = new excelJs.Workbook()
 
@@ -13,7 +13,7 @@ export async function generatePublishersYearlyActivityXlsx(db: TransactionClient
     const date = new Date(yearMonth, month, 1)
     const monthName = date.toLocaleString('fr', { month: 'long' })
     const sheetName = `${monthName} ${yearMonth}`.toUpperCase()
-    const activities = await getPublishersMonthlyActivity(db, month, yearMonth)
+    const activities = await getPublishersMonthlyActivity(db, congregationId, month, yearMonth)
 
     const worksheet = workbook.addWorksheet(sheetName)
     worksheet.columns = [
@@ -92,11 +92,12 @@ export async function generatePublishersYearlyActivityXlsx(db: TransactionClient
   return await workbook.xlsx.writeBuffer()
 }
 
-function getPublishersMonthlyActivity(db: TransactionClient, month: number, year: number) {
+function getPublishersMonthlyActivity(db: TransactionClient, congregationId: number, month: number, year: number) {
   return db.publisherActivity.findMany({
     where: {
       month,
       year,
+      congregationId,
     },
     include: {
       publisher: {

@@ -15,6 +15,7 @@ export async function importOpenData(
   await db.building.updateMany({
     where: {
       inOpenData: true,
+      congregationId,
     },
     data: {
       inOpenData: false,

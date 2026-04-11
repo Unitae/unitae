@@ -88,12 +88,13 @@ export async function loader({ request }: Route.LoaderArgs) {
       attributionsByGroup,
       groups,
     ] = await Promise.all([
-      countActiveWorkingTerritories(db),
-      countDelayedWorkingTerritories(db),
-      countRestingTerritories(db),
-      countAvailableTerritories(db),
+      countActiveWorkingTerritories(db, congregationId),
+      countDelayedWorkingTerritories(db, congregationId),
+      countRestingTerritories(db, congregationId),
+      countAvailableTerritories(db, congregationId),
       computeTerritoryCoverage(
         db,
+        congregationId,
         filterParams.territoryKind,
         filterParams.attributionKind,
         filterParams.startDate,
@@ -101,6 +102,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       ),
       computeTerritoryCoverageTotal(
         db,
+        congregationId,
         filterParams.territoryKind,
         filterParams.attributionKind.length > 0
           ? filterParams.attributionKind
@@ -108,13 +110,13 @@ export async function loader({ request }: Route.LoaderArgs) {
         filterParams.startDate,
         filterParams.endDate,
       ),
-      fetchAttributionsForStats(db, filterParams),
-      fetchAttributionsForStats(db, prevParams),
-      fetchTerritoryCounts(db, filterParams.territoryKind),
-      fetchTerritoryCounts(db),
-      getTerritoriesNeverWorked(db, filterParams),
-      fetchActiveAttributionsByGroup(db),
-      getGroups(db),
+      fetchAttributionsForStats(db, filterParams, congregationId),
+      fetchAttributionsForStats(db, prevParams, congregationId),
+      fetchTerritoryCounts(db, congregationId, filterParams.territoryKind),
+      fetchTerritoryCounts(db, congregationId),
+      getTerritoriesNeverWorked(db, filterParams, congregationId),
+      fetchActiveAttributionsByGroup(db, congregationId),
+      getGroups(db, congregationId),
     ])
 
     const workingTerritoriesCount = activeWorkingTerritoriesCount + delayedWorkingTerritoriesCount

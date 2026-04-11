@@ -1,9 +1,10 @@
 import type { TransactionClient } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-export async function getPublisherStats(db: TransactionClient, month: number, year: number) {
+export async function getPublisherStats(db: TransactionClient, congregationId: number, month: number, year: number) {
   const publishers = await db.user.count({
     where: {
+      congregationId,
       activities: {
         some: {
           year,
@@ -12,7 +13,7 @@ export async function getPublisherStats(db: TransactionClient, month: number, ye
       },
     },
   })
-  const figureMap = await getFiguresMap(db, month, year)
+  const figureMap = await getFiguresMap(db, congregationId, month, year)
 
   return {
     all: getAllStats(publishers, figureMap),
@@ -22,7 +23,7 @@ export async function getPublisherStats(db: TransactionClient, month: number, ye
   }
 }
 
-async function getFiguresMap(db: TransactionClient, month: number, year: number) {
+async function getFiguresMap(db: TransactionClient, congregationId: number, month: number, year: number) {
   const figures = await db.publisherActivity.groupBy({
     _count: {
       _all: true,
@@ -35,6 +36,7 @@ async function getFiguresMap(db: TransactionClient, month: number, year: number)
       year,
       month,
       isPublisher: true,
+      congregationId,
     },
     by: 'type',
   })

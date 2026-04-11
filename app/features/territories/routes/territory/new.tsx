@@ -35,16 +35,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
     const url = new URL(request.url)
     const zips = await db.building.groupBy({
       by: ['zip'],
-      where: { active: true },
+      where: { active: true, congregationId },
     })
 
     const buildings = await db.building.findMany({
       where: {
         active: true,
+        congregationId,
         street: String(url.searchParams.get('street')),
         zip: String(url.searchParams.get('zip')),
       },
@@ -60,7 +61,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const streets = await db.building.groupBy({
       by: ['street'],
-      where: { active: true, zip: String(url.searchParams.get('zip')) },
+      where: { active: true, congregationId, zip: String(url.searchParams.get('zip')) },
     })
 
     if (!url.searchParams.has('street')) {

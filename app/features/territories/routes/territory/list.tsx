@@ -45,17 +45,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)
     const selectors = await computeFilters(url.searchParams)
-    const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url)
+    const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId)
 
     const messages = {
       success: session.get('success'),
       error: session.get('error'),
     }
-    const zips = await getZips(db)
+    const zips = await getZips(db, congregationId)
 
     return data(
       {

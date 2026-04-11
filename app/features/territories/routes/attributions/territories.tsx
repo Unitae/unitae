@@ -43,10 +43,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     const selectors = await computeFilters(url.searchParams)
     selectors.attributions = { none: { endDate: null } }
 
-    const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url)
+    const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url, congregationId)
 
     const messages = { success: session.get('success'), error: session.get('error') }
-    const zips = await getZips(db)
+    const zips = await getZips(db, congregationId)
 
     return data(
       {

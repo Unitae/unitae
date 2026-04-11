@@ -21,21 +21,21 @@ describe('getPublishers', () => {
     ]
     vi.mocked(db.user.findMany).mockResolvedValue(fakePublishers as never)
 
-    const result = await getPublishers(db)
+    const result = await getPublishers(db, 1)
     expect(result).toEqual(fakePublishers)
   })
 
   it("retourne un tableau vide quand il n'y a pas de proclamateurs", async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([] as never)
 
-    const result = await getPublishers(db)
+    const result = await getPublishers(db, 1)
     expect(result).toEqual([])
   })
 
   it('accepte un filtre par groupId', async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([{ id: 1 }] as never)
 
-    const result = await getPublishers(db, { groupId: 3 })
+    const result = await getPublishers(db, 1, { groupId: 3 })
     expect(result).toHaveLength(1)
   })
 })
@@ -45,7 +45,7 @@ describe('getPublishersWithGroup', () => {
     const fakePublishers = [{ id: 1, publisherGroup: { name: 'Groupe 1' } }]
     vi.mocked(db.user.findMany).mockResolvedValue(fakePublishers as never)
 
-    const result = await getPublishersWithGroup(db)
+    const result = await getPublishersWithGroup(db, 1)
     expect(result).toEqual(fakePublishers)
   })
 })

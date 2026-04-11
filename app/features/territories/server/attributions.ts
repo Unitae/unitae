@@ -6,14 +6,15 @@ export async function findActiveAttributionsPaginated(
   db: TransactionClient,
   selectors: Prisma.AttributionWhereInput,
   url: URL,
+  congregationId: number,
 ) {
-  const total = await db.attribution.count({ where: selectors })
+  const total = await db.attribution.count({ where: { ...selectors, congregationId } })
   const pagination = paginationFromUrl(url, total)
 
   const attributions = await db.attribution.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: selectors,
+    where: { ...selectors, congregationId },
     include: { territory: true, publisher: true },
     orderBy: [{ startDate: 'asc' }],
   })

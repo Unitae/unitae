@@ -13,6 +13,7 @@ export async function sendNewDocumentNotificationEmail(
 ) {
   const users = await db.user.findMany({
     where: {
+      congregationId: congregation.id,
       congregationRoles: {
         some: {
           role: { key: Role.BoardValidator },

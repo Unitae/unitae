@@ -37,9 +37,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   return withScope(congregationId, async db => {
     const territory = await getTerritoryPolygon(db)
     const zips = await getAllowedZips(db)
-    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl)
-    const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity)
-    const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, congregationId)
+    const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)
+    const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     return {
       territory: serializeTerritoryPolygon(territory),

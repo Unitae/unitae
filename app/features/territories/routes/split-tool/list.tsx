@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
@@ -57,7 +57,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       },
     }
 
-    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url)
+    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 
     return {
       entrances,

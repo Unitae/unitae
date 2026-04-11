@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
     if (!phoneTypeActive) {
       throw redirect('/territories/buildings/split-territories')
     }
@@ -57,7 +57,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       ],
       entrance: { territories: { none: { type: TerritoryKind.Phone } } },
     }
-    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url)
+    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 
     return {
       entrances,

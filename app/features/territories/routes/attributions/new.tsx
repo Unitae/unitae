@@ -33,7 +33,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const territory = await db.territory.findUnique({
       where: {
@@ -50,6 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const users = await db.user.findMany({
       where: {
         isPublisher: true,
+        congregationId,
       },
       orderBy: [
         {

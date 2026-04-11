@@ -27,17 +27,17 @@ describe('getTerritoriesExportData', () => {
     const fakeTerritories = [{ id: 1, attributions: [] }]
     vi.mocked(db.territory.findMany).mockResolvedValue(fakeTerritories as never)
 
-    const result = await getTerritoriesExportData(db as never, 2025)
+    const result = await getTerritoriesExportData(db as never, 1, 2025)
     expect(result).toEqual(fakeTerritories)
   })
 
   it("retourne un tableau vide quand il n'y a pas de territoires", async () => {
-    const result = await getTerritoriesExportData(db as never, 2025)
+    const result = await getTerritoriesExportData(db as never, 1, 2025)
     expect(result).toEqual([])
   })
 
   it("passe l'année théocratique aux fonctions de date", async () => {
-    await getTerritoriesExportData(db as never, 2024)
+    await getTerritoriesExportData(db as never, 1, 2024)
 
     // Vérifier que les fonctions de date ont été utilisées (via le résultat)
     expect(vi.mocked(getBeginingDateOfTheocraticYear).mock.calls[0][0]).toBe(2024)
@@ -45,7 +45,7 @@ describe('getTerritoriesExportData', () => {
   })
 
   it('inclut les attributions anciennes encore actives (sans date de fin)', async () => {
-    await getTerritoriesExportData(db as never, 2025)
+    await getTerritoriesExportData(db as never, 1, 2025)
 
     const call = vi.mocked(db.territory.findMany).mock.calls[0][0] as Record<string, unknown>
     const attrWhere = (call.include as { attributions: { where: Record<string, unknown> } }).attributions.where

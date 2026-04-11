@@ -28,7 +28,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   })
 
   return withScope(congregationId, async db => {
-    const exportData = await getTerritoriesExportData(db, Number(params.year))
+    const exportData = await getTerritoriesExportData(db, congregationId, Number(params.year))
     const file = await generateS13ExportExcel(exportData, params.year)
 
     return new Response(await file.xlsx.writeBuffer(), {

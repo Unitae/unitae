@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
+    const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)) ?? '0')
     const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
     if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
     const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
@@ -42,14 +42,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     const warningDate = new Date()
     warningDate.setMonth(warningDate.getMonth() - 3)
 
-    const totalBuildings = await db.building.count()
-    const totalActiveBuildings = await db.building.count({ where: { active: true } })
-    const totalRemovedBuildings = await db.building.count({ where: { inOpenData: false, active: true } })
+    const totalBuildings = await db.building.count({ where: { congregationId } })
+    const totalActiveBuildings = await db.building.count({ where: { active: true, congregationId } })
+    const totalRemovedBuildings = await db.building.count({ where: { inOpenData: false, active: true, congregationId } })
     const totalCreatedBuildings = await db.building.count({
-      where: { inOpenData: true, active: true, prospectionDate: null },
+      where: { inOpenData: true, active: true, prospectionDate: null, congregationId },
     })
     const totalStaleBuildings = await db.building.count({
       where: {
+        congregationId,
         // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
         OR: [
           {
@@ -107,7 +108,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     })
     const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })
     const messages = { success: session.get('success'), error: session.get('error') }
-    const zips = await getZips(db)
+    const zips = await getZips(db, congregationId)
 
     return data(
       {

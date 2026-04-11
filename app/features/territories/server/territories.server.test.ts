@@ -18,7 +18,7 @@ describe('findTerritoriesWithDetailsPaginated', () => {
     vi.mocked(db.territory.count).mockResolvedValue(50 as never)
     vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 1 }, { id: 2 }] as never)
 
-    const result = await findTerritoriesWithDetailsPaginated(db, {}, new URL('http://localhost/?page=1&pageSize=25'))
+    const result = await findTerritoriesWithDetailsPaginated(db, {}, new URL('http://localhost/?page=1&pageSize=25'), 1)
 
     expect(result.territories).toHaveLength(2)
     expect(result.pagination.total).toBe(50)
@@ -29,7 +29,7 @@ describe('findTerritoriesWithDetailsPaginated', () => {
     vi.mocked(db.territory.count).mockResolvedValue(0 as never)
     vi.mocked(db.territory.findMany).mockResolvedValue([] as never)
 
-    const result = await findTerritoriesWithDetailsPaginated(db, {}, new URL('http://localhost/'))
+    const result = await findTerritoriesWithDetailsPaginated(db, {}, new URL('http://localhost/'), 1)
 
     expect(result.territories).toEqual([])
     expect(result.pagination.total).toBe(0)
@@ -41,7 +41,7 @@ describe('findAvailableTerritoriesPaginated', () => {
     vi.mocked(db.territory.count).mockResolvedValue(10 as never)
     vi.mocked(db.territory.findMany).mockResolvedValue([{ id: 3 }] as never)
 
-    const result = await findAvailableTerritoriesPaginated(db, {}, new URL('http://localhost/'))
+    const result = await findAvailableTerritoriesPaginated(db, {}, new URL('http://localhost/'), 1)
 
     expect(result.territories).toHaveLength(1)
     expect(result.pagination.total).toBe(10)

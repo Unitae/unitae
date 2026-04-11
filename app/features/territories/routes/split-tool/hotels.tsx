@@ -42,7 +42,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       hasHotel: true,
       entrance: { territories: { none: { type: TerritoryKind.Hotel } } },
     }
-    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url)
+    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 
     return {
       entrances,

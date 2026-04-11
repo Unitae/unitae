@@ -22,7 +22,7 @@ describe('fetchTerritoryCounts', () => {
       { type: 'commerces', _count: { id: 5 } },
     ] as never)
 
-    const result = await fetchTerritoryCounts(db, [TerritoryKind.Classical, TerritoryKind.Commerces])
+    const result = await fetchTerritoryCounts(db, 1, [TerritoryKind.Classical, TerritoryKind.Commerces])
 
     expect(result).toEqual([
       { type: TerritoryKind.Classical, count: 30 },
@@ -33,7 +33,7 @@ describe('fetchTerritoryCounts', () => {
   it('fonctionne sans filtre de types', async () => {
     vi.mocked(db.territory.groupBy).mockResolvedValue([{ type: 'doors-to-doors', _count: { id: 20 } }] as never)
 
-    const result = await fetchTerritoryCounts(db)
+    const result = await fetchTerritoryCounts(db, 1)
 
     expect(result).toEqual([{ type: TerritoryKind.Classical, count: 20 }])
   })
