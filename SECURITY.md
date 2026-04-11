@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in Unitae, **please do not open a public issue**.
 
-Send a report to our team using the "Security and quality" feature in GitHub with:
+Report it privately using [GitHub Security Advisories](https://github.com/Unitae/unitae/security/advisories) with:
 
 - A description of the vulnerability
 - Steps to reproduce it
@@ -24,13 +24,13 @@ The following vulnerabilities are in scope:
 - Authentication or authorization bypass
 - Data leaks between congregations (data isolation)
 - SQL injection, XSS, CSRF
-- Unauthorized access to S3 storage
-- Privilege escalation (admin access)
+- Unauthorized access to file storage
+- Privilege escalation
 
 ## Out of Scope
 
 - Issues in third-party dependencies already publicly reported (open a regular issue instead)
-- Denial of service via request volume (rate limiting)
+- Denial of service via request volume
 - Vulnerabilities requiring physical access to the server
 
 ## Security Measures in Place
@@ -39,9 +39,8 @@ The following vulnerabilities are in scope:
 - HTTP-only session cookies with limited lifetime (1h in production)
 - Login rate limiting: 5 attempts per 15 minutes per email (via Redis)
 - Data isolation per congregation via Prisma extension (automatic `congregationId` injection)
-- Non-root Kubernetes pods with seccomp RuntimeDefault
-- Default-deny NetworkPolicies
-- TLS via cert-manager
+
+See [Security](docs/product/security.md) for a detailed overview of the security model.
 
 ## Responsible Disclosure
 

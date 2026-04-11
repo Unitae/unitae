@@ -2,102 +2,15 @@
 
 Thank you for your interest in Unitae! This guide explains how to contribute to the project.
 
-## Prerequisites
+## Getting Started
 
-- Node.js >= 22
-- pnpm
-- Docker (for PostgreSQL and Redis in development)
-
-## Setup
-
-```bash
-git clone https://github.com/Unitae/unitae.git
-cd unitae
-
-# Start infrastructure
-docker compose -f docker-compose.dev.yml up -d
-
-# Install dependencies
-pnpm install
-
-# Configure environment
-cp .env.example .env
-
-# Initialize the database
-pnpm prisma generate
-pnpm prisma migrate deploy
-pnpm prisma db seed
-
-# Start the development server
-pnpm start:dev
-```
-
-## Language
-
-The user interface and code comments are written in **French**. Please follow this convention in your contributions.
-
-Commit messages, issue titles, and pull request descriptions can be written in **French or English**, whichever you prefer.
-
-## Code Conventions
-
-### Style
-
-The project uses [Biome](https://biomejs.dev/) for formatting and linting:
-
-- Single quotes in JS, double quotes in JSX
-- Line width: 120 characters
-- Trailing commas everywhere
-- Semicolons as needed (ASI)
-- Space indentation
-
-```bash
-pnpm build:format    # Auto-format and fix
-pnpm test:lint       # Check linting
-pnpm test:typecheck  # Check TypeScript types
-pnpm test:unit       # Run unit tests
-```
-
-### Architecture
-
-Each feature is organized under `app/features/` with its own segments:
-
-- `server/` — Server-side business logic
-- `routes/` — Route components (referenced in `app/routes.ts`)
-- `ui/` — Feature-specific UI components
-- `model/` — TypeScript type definitions
-
-Business logic belongs in service functions (`features/*/server/`), not in route loaders/actions.
-
-### Testing
-
-Unit tests use [Vitest](https://vitest.dev/) with co-located test files (`*.server.test.ts` next to source).
-
-- **Black-box testing**: assert on return values and thrown errors, not mock call counts
-- **Mocking**: use `vi.mock()` for external dependencies (`db.server`, `redis.server`, `crypto.server`)
-- Run `pnpm test:unit` before submitting a PR
-
-### Key Patterns
-
-- **Route actions must call `verifySession(request)`** and use the returned `congregation` object for `congregationId`. Do not use `congregationContext.getStore()` in actions — AsyncLocalStorage context can be lost after Prisma queries.
-- **Service functions that create records** should accept `congregationId` as an explicit parameter. Do not use `congregationId: 0 as number`.
-- **File storage** works with both S3 and local filesystem — the driver is selected automatically based on `S3_ENDPOINT`.
-
-### Commits
-
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) convention:
-
-```
-feat: ajouter l'export PDF des attributions
-fix: corriger le calcul de pagination des territoires
-refactor: simplifier le service d'authentification
-docs: update deployment guide
-```
+Set up your development environment by following the [Development Setup](docs/development/getting-started.md) guide.
 
 ## Contribution Process
 
 1. **Open an issue** to discuss your idea before starting any significant work
 2. **Fork** the repository and create a branch from `main`
-3. **Implement** your changes following the conventions above
+3. **Implement** your changes following the [coding conventions](docs/development/coding-conventions.md)
 4. **Verify** everything passes:
    ```bash
    pnpm build:format
@@ -108,7 +21,23 @@ docs: update deployment guide
    ```
 5. **Open a pull request** with a clear description of your changes
 
-## Database
+## Language
+
+- **UI text and code comments**: French
+- **Commits, PRs, and documentation**: English
+- **Commit format**: [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `refactor:`, etc.)
+
+## Code Conventions
+
+See [Coding Conventions](docs/development/coding-conventions.md) for the full guide, including:
+
+- Development philosophy and architecture patterns
+- Code style (Biome configuration)
+- Service layer pattern
+- Database patterns (scoped vs unscoped queries)
+- Testing philosophy (black-box testing)
+
+## Database Migrations
 
 - The Prisma schema is in `app/database/schema.prisma`
 - After modifying the schema, generate a migration:
