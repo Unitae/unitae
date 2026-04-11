@@ -16,6 +16,7 @@ export default [
   route('', 'routes/_authenticated-layout.tsx', [
     route('me', 'features/authentication/routes/user/_layout.tsx', [
       route('profile', 'features/authentication/routes/user/profile.tsx'),
+      route('consents', 'features/authentication/routes/user/consents.tsx'),
       ...daysOffRoutes,
     ]),
     route('board', 'features/board/routes/_layout.tsx', [

@@ -1,4 +1,4 @@
-import { IdCard, UserPlus } from 'lucide-react'
+import { IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -6,6 +6,17 @@ import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -21,7 +32,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.SettingsUserManager,
     Role.Admin,
   ])
@@ -60,6 +71,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         roleList,
         isPublisher: user.isPublisher,
         isAdmin,
+        anonymizedAt: user.anonymizedAt,
+        canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
       },
       {
         headers: {
@@ -71,7 +84,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
-  const { messages, roleList, isAdmin, ...user } = loaderData
+  const { messages, roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
 
   const publisherNotUser = user.email == null
 
@@ -211,6 +224,56 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
           </Form>
         </CardContent>
       </Card>
+
+      {canAnonymize && (
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive text-lg">
+              <ShieldAlert className="size-5" />
+              Zone dangereuse
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-4">
+            <p className="text-muted-foreground text-sm">
+              Anonymiser cet utilisateur supprimera toutes ses données personnelles de manière irréversible. Les
+              rapports d'activité et attributions seront conservés mais ne seront plus identifiables.
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="shrink-0">
+                  Anonymiser l'utilisateur
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Anonymiser cet utilisateur ?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Cette action est irréversible. Toutes les données personnelles (nom, email, téléphone, adresse,
+                    dates) seront supprimées. L'utilisateur ne pourra plus se connecter. Les rapports d'activité et
+                    attributions de territoires seront conservés de manière anonyme.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
+                    <AlertDialogAction type="submit" className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Confirmer l'anonymisation
+                    </AlertDialogAction>
+                  </Form>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      )}
+
+      {anonymizedAt && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            Cet utilisateur a été anonymisé le {new Date(anonymizedAt).toLocaleDateString('fr-FR')}.
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { Form, redirect } from 'react-router'
+import { Form, Link, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -64,6 +64,17 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
             Si certaines de ces informations ne sont pas bonnes, merci de contacter ton responsable de groupe de
             prédication.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Confidentialité</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Link to="/me/consents" className="text-blue-600 text-sm hover:underline">
+            Gérer mes consentements RGPD
+          </Link>
         </CardContent>
       </Card>
 
