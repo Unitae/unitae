@@ -175,9 +175,7 @@ function AttributionHistoryTable({
         <TableBody>
           {attributions.map(attribution => {
             const durationDays = attribution.endDate
-              ? Math.round(
-                  (attribution.endDate.getTime() - attribution.startDate.getTime()) / (1000 * 60 * 60 * 24),
-                )
+              ? Math.round((attribution.endDate.getTime() - attribution.startDate.getTime()) / (1000 * 60 * 60 * 24))
               : null
 
             return (
@@ -307,9 +305,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
                         <span className="font-medium">
                           {entrance.number} {entrance.street}, {entrance.zip}
                         </span>
-                        <span className="text-muted-foreground text-sm">
-                          {entrance.buildings[0]?.shopKind || '-'}
-                        </span>
+                        <span className="text-muted-foreground text-sm">{entrance.buildings[0]?.shopKind || '-'}</span>
                       </div>
                     </div>
                   ))}

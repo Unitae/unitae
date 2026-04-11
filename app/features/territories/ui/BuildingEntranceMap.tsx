@@ -5,9 +5,22 @@ import {
 } from '@vis.gl/react-google-maps'
 import type { Entrance } from '~/shared/types/entrance'
 import { Card, CardContent } from '~/shared/ui/card'
+import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
 
 export default function BuildingEntranceMap({ entrances, apiKey }: { apiKey?: string; entrances: Entrance[] }) {
+  const { consented, grantConsent } = useMapConsent()
+
   if (apiKey == null) return null
+
+  if (!consented) {
+    return (
+      <Card className="sticky top-0 max-h-screen w-2xl max-sm:hidden">
+        <CardContent className="h-full p-0">
+          <MapConsentBanner onAccept={grantConsent} />
+        </CardContent>
+      </Card>
+    )
+  }
 
   const mapCenter = {
     lat: entrances[0]?.buildings[0]?.latitude ?? 45.737623,

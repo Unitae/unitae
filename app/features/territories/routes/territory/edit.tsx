@@ -5,13 +5,13 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import {
   aggregateEntrance,
   getAvailableEntrances,
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings'
+import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'

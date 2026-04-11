@@ -11,6 +11,7 @@ export default [
   route('suspended', 'routes/suspended.tsx'),
   route('trial-expired', 'routes/trial-expired.tsx'),
   route('congregation-not-found', 'routes/congregation-not-found.tsx'),
+  route('privacy', 'routes/privacy.tsx'),
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     route('me', 'features/authentication/routes/user/_layout.tsx', [
@@ -44,6 +45,8 @@ export default [
         route('new', 'features/settings/routes/users/new-user.tsx'),
         ...prefix(':userId', [
           route('edit', 'features/settings/routes/users/edit-user.tsx'),
+          route('export-data', 'features/settings/routes/users/export-data.tsx'),
+          route('anonymize', 'features/settings/routes/users/anonymize.tsx'),
           route('make-publisher', 'features/settings/routes/users/make-publisher.tsx'),
           route('unmake-publisher', 'features/settings/routes/users/unmake-publisher.tsx'),
         ]),
