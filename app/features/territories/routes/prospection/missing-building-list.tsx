@@ -35,7 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const selectors = { inOpenData: false, active: true }
     const url = new URL(request.url)
-    const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url)
+    const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url, congregationId)
 
     return {
       buildings,

@@ -25,7 +25,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const groups = await db.publisherGroup.findMany()
+    const groups = await db.publisherGroup.findMany({ where: { congregationId } })
 
     return { groups, hideAuxiliaryPioneer: false }
   })

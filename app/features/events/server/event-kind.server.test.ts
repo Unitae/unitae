@@ -21,14 +21,14 @@ describe('getAllEventType', () => {
     ]
     vi.mocked(db.eventKind.findMany).mockResolvedValue(fakeEventKinds as never)
 
-    const result = await getAllEventType(db)
+    const result = await getAllEventType(db, 1)
     expect(result).toEqual(fakeEventKinds)
   })
 
   it("retourne un tableau vide quand il n'y a pas de types", async () => {
     vi.mocked(db.eventKind.findMany).mockResolvedValue([] as never)
 
-    const result = await getAllEventType(db)
+    const result = await getAllEventType(db, 1)
     expect(result).toEqual([])
   })
 })

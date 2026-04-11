@@ -32,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return withScope(congregationId, async db => {
     const url = new URL(request.url)
     const staleDate = await getProspectionStaleDate(db)
-    const { buildings, pagination } = await findBuildingsPaginated(db, { active: true }, url)
+    const { buildings, pagination } = await findBuildingsPaginated(db, { active: true }, url, congregationId)
 
     return {
       buildings,

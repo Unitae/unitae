@@ -27,7 +27,7 @@ describe('getTerritoriesNeverWorked', () => {
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),
       endDate: new Date(2026, 7, 31),
-    })
+    }, 1)
 
     expect(result).toEqual([
       { id: 5, number: 'T-5' },
@@ -43,7 +43,7 @@ describe('getTerritoriesNeverWorked', () => {
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),
       endDate: new Date(2026, 7, 31),
-    })
+    }, 1)
 
     expect(result).toEqual([])
   })
@@ -57,7 +57,7 @@ describe('getTerritoriesNeverWorked', () => {
       startDate: new Date(2025, 8, 1),
       endDate: new Date(2026, 7, 31),
       groupId: 7,
-    })
+    }, 1)
 
     expect(result).toEqual([{ id: 3, number: 'T-3' }])
   })

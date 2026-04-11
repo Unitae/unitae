@@ -36,8 +36,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     if (result == null) throw redirect('/congregation/publishers')
 
-    const showAuxiliaryPioneer = await getBoolSetting(db, CongregationSettingKey.AuxiliaryPioneerProfileActivated)
-    const groups = await db.publisherGroup.findMany()
+    const showAuxiliaryPioneer = await getBoolSetting(db, CongregationSettingKey.AuxiliaryPioneerProfileActivated, congregationId)
+    const groups = await db.publisherGroup.findMany({ where: { congregationId } })
     const { email, password, ...user } = result
     return {
       user: {

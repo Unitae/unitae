@@ -22,7 +22,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const kinds = await getAllEventType(db)
+    const kinds = await getAllEventType(db, congregationId)
 
     return {
       kinds,

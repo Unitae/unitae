@@ -7,12 +7,16 @@ export { getTotalTerritoryCount } from './territory-count-by-type.type'
 
 export async function fetchTerritoryCounts(
   db: TransactionClient,
+  congregationId: number,
   territoryKinds?: TerritoryKind[],
 ): Promise<TerritoryCountByType[]> {
   const groups = await db.territory.groupBy({
     by: ['type'],
     _count: { id: true },
-    ...(territoryKinds != null && territoryKinds.length > 0 ? { where: { type: { in: territoryKinds } } } : {}),
+    where: {
+      congregationId,
+      ...(territoryKinds != null && territoryKinds.length > 0 ? { type: { in: territoryKinds } } : {}),
+    },
   })
 
   return groups.map(g => ({

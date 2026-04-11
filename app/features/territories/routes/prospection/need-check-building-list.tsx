@@ -35,7 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
+    const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)) ?? '0')
     const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
     if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
     const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
@@ -99,7 +99,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     }
 
     const url = new URL(request.url)
-    const { buildings, pagination } = await findBuildingsWithEntrancePaginated(db, selector, url)
+    const { buildings, pagination } = await findBuildingsWithEntrancePaginated(db, selector, url, congregationId)
 
     return {
       buildings,

@@ -24,6 +24,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   return withScope(congregationId, async db => {
     const brothers = await db.user.findMany({
       where: {
+        congregationId,
         // biome-ignore lint/style/useNamingConvention: Prisma OR operator
         OR: [{ isHelder: true }, { isServant: true }],
       },

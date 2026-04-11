@@ -47,7 +47,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
-    const buildings = await getBuildings(db, building.zip, building.street)
+    const buildings = await getBuildings(db, congregationId, building.zip, building.street)
     const messages = {
       success: session.get('success'),
       error: session.get('error'),

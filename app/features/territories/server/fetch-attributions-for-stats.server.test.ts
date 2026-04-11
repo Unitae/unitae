@@ -34,7 +34,7 @@ describe('fetchAttributionsForStats', () => {
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),
       endDate: new Date(2026, 7, 31),
-    })
+    }, 1)
 
     expect(result).toEqual([
       {
@@ -58,7 +58,7 @@ describe('fetchAttributionsForStats', () => {
       attributionKind: [TerritoryAttributionKind.Default],
       startDate: new Date(2025, 8, 1),
       endDate: new Date(2026, 7, 31),
-    })
+    }, 1)
 
     expect(result).toEqual([])
   })
@@ -72,7 +72,7 @@ describe('fetchAttributionsForStats', () => {
       startDate: new Date(2025, 8, 1),
       endDate: new Date(2026, 7, 31),
       groupId: 42,
-    })
+    }, 1)
 
     expect(result).toEqual([])
   })

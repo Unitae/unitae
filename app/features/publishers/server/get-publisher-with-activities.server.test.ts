@@ -18,14 +18,14 @@ describe('getPublisherWithActivities', () => {
     const fakeResult = [{ id: 1, isPublisher: true, activities: [{ month: 3, year: 2025 }] }]
     vi.mocked(db.user.findMany).mockResolvedValue(fakeResult as never)
 
-    const result = await getPublisherWithActivities(db, 3, 2025)
+    const result = await getPublisherWithActivities(db, 1, 3, 2025)
     expect(result).toEqual(fakeResult)
   })
 
   it("retourne un tableau vide quand il n'y a pas de résultats", async () => {
     vi.mocked(db.user.findMany).mockResolvedValue([] as never)
 
-    const result = await getPublisherWithActivities(db, 1, 2025)
+    const result = await getPublisherWithActivities(db, 1, 1, 2025)
     expect(result).toEqual([])
   })
 })

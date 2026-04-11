@@ -18,14 +18,14 @@ describe('getBuildings', () => {
     const fakeBuildings = [{ id: 1, zip: '75001', street: 'Rue Test' }]
     vi.mocked(db.building.findMany).mockResolvedValue(fakeBuildings as never)
 
-    const result = await getBuildings(db, '75001', 'Rue Test')
+    const result = await getBuildings(db, 1, '75001', 'Rue Test')
     expect(result).toEqual(fakeBuildings)
   })
 
   it('retourne un tableau vide quand aucun bâtiment ne correspond', async () => {
     vi.mocked(db.building.findMany).mockResolvedValue([] as never)
 
-    const result = await getBuildings(db, '00000', 'Rue Inexistante')
+    const result = await getBuildings(db, 1, '00000', 'Rue Inexistante')
     expect(result).toEqual([])
   })
 })

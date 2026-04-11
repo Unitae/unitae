@@ -10,6 +10,7 @@ export interface NeverWorkedTerritory {
 export async function getTerritoriesNeverWorked(
   db: TransactionClient,
   params: StatsFilterParams,
+  congregationId: number,
 ): Promise<NeverWorkedTerritory[]> {
   const dateOverlap: Prisma.AttributionWhereInput = {
     startDate: { lte: params.endDate },
@@ -19,6 +20,7 @@ export async function getTerritoriesNeverWorked(
 
   const territories = await db.territory.findMany({
     where: {
+      congregationId,
       type: { in: params.territoryKind },
       attributions: {
         none: {

@@ -59,12 +59,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         status: 404,
       })
     }
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
-    const zips = await getAvailableZips(db, territory.type as TerritoryKind)
+    const zips = await getAvailableZips(db, congregationId, territory.type as TerritoryKind)
     const url = new URL(request.url)
     const entrances = await getAvailableEntrances(
       db,
+      congregationId,
       String(url.searchParams.get('zip')),
       String(url.searchParams.get('street')),
       territory.type as TerritoryKind,
@@ -82,7 +83,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
     }
 
-    const streets = await getAvailableStreets(db, String(url.searchParams.get('zip')), territory.type as TerritoryKind)
+    const streets = await getAvailableStreets(db, congregationId, String(url.searchParams.get('zip')), territory.type as TerritoryKind)
     if (!url.searchParams.has('street')) {
       return {
         territory,

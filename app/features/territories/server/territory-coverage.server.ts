@@ -5,6 +5,7 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 
 export async function computeTerritoryCoverage(
   db: TransactionClient,
+  congregationId: number,
   territoryKind: TerritoryKind[] = [TerritoryKind.Classical],
   attributionKind: TerritoryAttributionKind[] = [TerritoryAttributionKind.Default],
   startDate?: Date,
@@ -29,12 +30,14 @@ export async function computeTerritoryCoverage(
   // Count total territories of the specified kind
   const total = await db.territory.count({
     where: {
+      congregationId,
       type: { in: territoryKind },
     },
   })
 
   const count = await db.attribution.count({
     where: {
+      congregationId,
       territory: {
         type: { in: territoryKind },
       },

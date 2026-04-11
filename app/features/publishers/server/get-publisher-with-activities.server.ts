@@ -1,8 +1,14 @@
 import type { TransactionClient } from '~/shared/libs/db.server'
 
-export function getPublisherWithActivities(db: TransactionClient, selectedMonth: number, selectedYear: number) {
+export function getPublisherWithActivities(
+  db: TransactionClient,
+  congregationId: number,
+  selectedMonth: number,
+  selectedYear: number,
+) {
   return db.user.findMany({
     where: {
+      congregationId,
       // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
         {

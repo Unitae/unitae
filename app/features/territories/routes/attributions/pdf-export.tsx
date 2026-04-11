@@ -29,7 +29,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   })
 
   return withScope(congregationId, async db => {
-    const territories = await getTerritoriesExportData(db, Number(params.year))
+    const territories = await getTerritoriesExportData(db, congregationId, Number(params.year))
     const file = await pdf(
       <TerritoryAttributionDocument year={Number(params.year)} territories={territories} />,
     ).toBlob()

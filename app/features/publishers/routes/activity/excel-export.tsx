@@ -28,7 +28,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   })
 
   return withScope(congregationId, async db => {
-    const file = await generatePublishersYearlyActivityXlsx(db, Number(params.year))
+    const file = await generatePublishersYearlyActivityXlsx(db, congregationId, Number(params.year))
 
     return new Response(file, {
       status: 200,

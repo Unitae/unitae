@@ -32,7 +32,7 @@ describe('getPublisherStats', () => {
       makeFigure(PublisherType.PionnierAuxiliaires, 7, 350, 3),
     ])
 
-    const result = await getPublisherStats(db, 3, 2025)
+    const result = await getPublisherStats(db, 1, 3, 2025)
 
     // all: total
     expect(result.all.count).toBe(25)
@@ -58,7 +58,7 @@ describe('getPublisherStats', () => {
     vi.mocked(db.user.count).mockResolvedValue(0)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
 
-    const result = await getPublisherStats(db, 1, 2025)
+    const result = await getPublisherStats(db, 1, 1, 2025)
 
     expect(result.all.count).toBe(0)
     expect(result.all.active).toBe(0)
@@ -74,7 +74,7 @@ describe('getPublisherStats', () => {
     vi.mocked(db.user.count).mockResolvedValue(10)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([makeFigure(PublisherType.Normal, 10, 0, 2)])
 
-    const result = await getPublisherStats(db, 6, 2025)
+    const result = await getPublisherStats(db, 1, 6, 2025)
 
     expect(result.all.active).toBe(10)
     expect(result.all.hours).toBe(0) // pas de pionniers
@@ -89,7 +89,7 @@ describe('getPublisherStats', () => {
       makeFigure(PublisherType.PionnierPermanant, 2, 50, 0),
     ])
 
-    const result = await getPublisherStats(db, 1, 2025)
+    const result = await getPublisherStats(db, 1, 1, 2025)
 
     // all.hours n'inclut que les pionniers permanents et auxiliaires
     expect(result.all.hours).toBe(50)

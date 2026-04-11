@@ -6,9 +6,12 @@ export interface AttributionsByGroup {
 }
 
 // Compte les attributions actives (en cours) regroupées par groupe de prédication
-export async function fetchActiveAttributionsByGroup(db: TransactionClient): Promise<AttributionsByGroup[]> {
+export async function fetchActiveAttributionsByGroup(
+  db: TransactionClient,
+  congregationId: number,
+): Promise<AttributionsByGroup[]> {
   const attributions = await db.attribution.findMany({
-    where: { endDate: null },
+    where: { endDate: null, congregationId },
     select: {
       publisher: {
         select: {

@@ -26,10 +26,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
     const totalBuildingsForDoors = await db.building.count({
       where: {
         active: true,
+        congregationId,
         entrance: {
           territories: {
             none: { type: TerritoryKind.Classical },
@@ -58,6 +59,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const totalBuildingsForPhone = await db.building.count({
       where: {
         active: true,
+        congregationId,
         entrance: {
           territories: {
             none: { type: TerritoryKind.Classical },
@@ -81,6 +83,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const totalBuildingsForCommerce = await db.building.count({
       where: {
         active: true,
+        congregationId,
         entrance: {
           territories: {
             none: { type: TerritoryKind.Commerces },
@@ -96,6 +99,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const totalBuildingsForCampus = await db.building.count({
       where: {
         active: true,
+        congregationId,
         entrance: {
           territories: {
             none: { type: TerritoryKind.Univ },
@@ -111,6 +115,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const totalBuildingsForHotel = await db.building.count({
       where: {
         active: true,
+        congregationId,
         entrance: {
           territories: {
             none: { type: TerritoryKind.Hotel },
@@ -125,7 +130,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     })
 
     const messages = { success: session.get('success'), error: session.get('error') }
-    const zips = await getZips(db)
+    const zips = await getZips(db, congregationId)
 
     return data(
       {

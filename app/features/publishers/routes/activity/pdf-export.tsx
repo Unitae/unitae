@@ -29,7 +29,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
 
   return withScope(congregationId, async db => {
     const today = new Date()
-    const file = await renderActivityPdfZip(db, Number(params.year))
+    const file = await renderActivityPdfZip(db, congregationId, Number(params.year))
 
     return new Response(file, {
       status: 200,

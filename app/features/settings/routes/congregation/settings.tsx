@@ -30,6 +30,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const auxiliaryPioneerProfileActivated = await getBoolSetting(
       db,
       CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+      congregationId,
     )
 
     return {

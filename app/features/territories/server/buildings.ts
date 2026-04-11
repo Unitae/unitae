@@ -27,14 +27,19 @@ function sortEntrancesByAddress(entrances: Entrance[]) {
   return entrances
 }
 
-export async function findBuildingsPaginated(db: TransactionClient, selectors: Prisma.BuildingWhereInput, url: URL) {
-  const totalBuildings = await db.building.count({ where: selectors })
+export async function findBuildingsPaginated(
+  db: TransactionClient,
+  selectors: Prisma.BuildingWhereInput,
+  url: URL,
+  congregationId: number,
+) {
+  const totalBuildings = await db.building.count({ where: { ...selectors, congregationId } })
   const pagination = paginationFromUrl(url, totalBuildings)
 
   const buildings = await db.building.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: selectors,
+    where: { ...selectors, congregationId },
     orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
   })
 
@@ -47,14 +52,15 @@ export async function findBuildingsWithEntrancePaginated(
   db: TransactionClient,
   selectors: Prisma.BuildingWhereInput,
   url: URL,
+  congregationId: number,
 ) {
-  const totalBuildings = await db.building.count({ where: selectors })
+  const totalBuildings = await db.building.count({ where: { ...selectors, congregationId } })
   const pagination = paginationFromUrl(url, totalBuildings)
 
   const buildings = await db.building.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: selectors,
+    where: { ...selectors, congregationId },
     include: { entrance: true },
     orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
   })
@@ -64,14 +70,19 @@ export async function findBuildingsWithEntrancePaginated(
   return { buildings, pagination }
 }
 
-export async function findEntrancesPaginated(db: TransactionClient, selectors: Prisma.BuildingWhereInput, url: URL) {
-  const totalBuildings = await db.building.count({ where: selectors })
+export async function findEntrancesPaginated(
+  db: TransactionClient,
+  selectors: Prisma.BuildingWhereInput,
+  url: URL,
+  congregationId: number,
+) {
+  const totalBuildings = await db.building.count({ where: { ...selectors, congregationId } })
   const pagination = paginationFromUrl(url, totalBuildings)
 
   const buildings = await db.building.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: selectors,
+    where: { ...selectors, congregationId },
     select: { entrance: { include: { buildings: true } } },
     distinct: ['entranceId'],
     orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
@@ -116,8 +127,8 @@ export function aggregateEntrance(entrance: Entrance): AggregatedEntrance {
   }
 }
 
-export async function getZips(db: TransactionClient, territoryType?: TerritoryKind) {
-  const selectors: Prisma.BuildingWhereInput = { active: true }
+export async function getZips(db: TransactionClient, congregationId: number, territoryType?: TerritoryKind) {
+  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (territoryType != null) {
     selectors.entrance = {
@@ -132,8 +143,8 @@ export async function getZips(db: TransactionClient, territoryType?: TerritoryKi
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getAvailableZips(db: TransactionClient, territoryType?: TerritoryKind) {
-  const selectors: Prisma.BuildingWhereInput = { active: true }
+export async function getAvailableZips(db: TransactionClient, congregationId: number, territoryType?: TerritoryKind) {
+  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (territoryType != null) {
     selectors.entrance = {
@@ -148,8 +159,8 @@ export async function getAvailableZips(db: TransactionClient, territoryType?: Te
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getStreets(db: TransactionClient, zip?: string, territoryType?: TerritoryKind) {
-  const selectors: Prisma.BuildingWhereInput = { active: true }
+export async function getStreets(db: TransactionClient, congregationId: number, zip?: string, territoryType?: TerritoryKind) {
+  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (zip != null) {
     selectors.zip = zip
@@ -168,8 +179,8 @@ export async function getStreets(db: TransactionClient, zip?: string, territoryT
   return await db.building.groupBy({ by: 'street', where: selectors })
 }
 
-export async function getAvailableStreets(db: TransactionClient, zip?: string, territoryType?: TerritoryKind) {
-  const selectors: Prisma.BuildingWhereInput = { active: true }
+export async function getAvailableStreets(db: TransactionClient, congregationId: number, zip?: string, territoryType?: TerritoryKind) {
+  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (zip != null) {
     selectors.zip = zip
@@ -189,11 +200,12 @@ export async function getAvailableStreets(db: TransactionClient, zip?: string, t
 
 export async function getEntrances(
   db: TransactionClient,
+  congregationId: number,
   zip?: string,
   street?: string,
   territoryType?: TerritoryKind,
 ): Promise<Entrance[]> {
-  const selectors: Prisma.BuildingWhereInput = { active: true }
+  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (zip != null) {
     selectors.zip = zip
@@ -224,11 +236,12 @@ export async function getEntrances(
 
 export async function getAvailableEntrances(
   db: TransactionClient,
+  congregationId: number,
   zip?: string,
   street?: string,
   territoryType?: TerritoryKind,
 ): Promise<Entrance[]> {
-  const selectors: Prisma.BuildingWhereInput = { active: true }
+  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (zip != null) {
     selectors.zip = zip

@@ -18,7 +18,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { currentUser, session, congregationId } = await authenticateAndAuthorize(request)
 
   return withScope(congregationId, async db => {
-    const events = await getNextDaysOffs(db, currentUser.id)
+    const events = await getNextDaysOffs(db, currentUser.id, congregationId)
 
     logger.info(`Loading personal Days Off list. User ID: ${currentUser.id}`)
 

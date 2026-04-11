@@ -4,10 +4,11 @@ import { sanitizeUser } from '~/features/authentication/server/sanitize-user.ser
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import type { TransactionClient } from '~/shared/libs/db.server'
 
-export async function renderActivityPdfZip(db: TransactionClient, year: number) {
+export async function renderActivityPdfZip(db: TransactionClient, congregationId: number, year: number) {
   const yearBegining = new Date(year, 0, 1)
   const users = await db.user.findMany({
     where: {
+      congregationId,
       activities: {
         some: {
           // biome-ignore lint/style/useNamingConvention: Prisma syntax

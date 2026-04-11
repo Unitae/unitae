@@ -59,16 +59,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   )
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)
     const selectors = computeFilters(url.searchParams)
     selectors.endDate = null
 
-    const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url)
+    const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url, congregationId)
 
     const messages = { success: session.get('success'), error: session.get('error') }
-    const groups = await getGroups(db)
+    const groups = await getGroups(db, congregationId)
     const theocraticYear = getCurrentTheocraticYear()
 
     return data(

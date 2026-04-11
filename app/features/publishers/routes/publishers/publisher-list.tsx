@@ -40,7 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   )
 
   return withScope(congregationId, async db => {
-    const users = await getPublishersWithGroup(db)
+    const users = await getPublishersWithGroup(db, congregationId)
 
     return {
       users: users.map(user => ({

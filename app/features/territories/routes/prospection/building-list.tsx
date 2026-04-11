@@ -34,7 +34,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const url = new URL(request.url)
     const selectors = computeFilters(url.searchParams)
     const staleDate = await getProspectionStaleDate(db)
-    const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url)
+    const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url, congregationId)
 
     return {
       buildings,

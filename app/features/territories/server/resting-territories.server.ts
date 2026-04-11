@@ -6,7 +6,7 @@ import {
   RESTING_PERIOD_FOR_PHONE,
 } from './resting-periods.server'
 
-export async function countRestingTerritories(db: TransactionClient) {
+export async function countRestingTerritories(db: TransactionClient, congregationId: number) {
   const endRestPeriodForDoorsToDoors = new Date()
   const endRestPeriodForCampaign = new Date()
   const endRestPeriodForPhone = new Date()
@@ -17,6 +17,7 @@ export async function countRestingTerritories(db: TransactionClient) {
 
   return await db.territory.count({
     where: {
+      congregationId,
       attributions: {
         some: {
           // biome-ignore lint/style/useNamingConvention: Prisma does not support snake_case

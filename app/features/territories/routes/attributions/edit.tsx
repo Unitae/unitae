@@ -33,7 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const attribution = await db.attribution.findUnique({
       where: {
@@ -47,7 +47,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       throw redirect('/territories/attributions')
     }
 
-    const users = await getPublishers(db)
+    const users = await getPublishers(db, congregationId)
 
     return { users, phoneTypeActive, attribution, entrances: attribution.territory.entrances.map(aggregateEntrance) }
   })

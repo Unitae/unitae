@@ -44,7 +44,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
   return withScope(congregationId, async db => {
-    const users = await getPublisherWithActivities(db, month, year)
+    const users = await getPublisherWithActivities(db, congregationId, month, year)
 
     return {
       firstMonth: {
@@ -55,7 +55,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         month,
         year,
       },
-      stats: await getPublisherStats(db, month, year),
+      stats: await getPublisherStats(db, congregationId, month, year),
       publishers: users
         .map(sanitizeUser)
         .map(({ activities, ...member }) => ({
