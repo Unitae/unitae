@@ -1,4 +1,4 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
 export function parseTerritoryPolygon(text: string): [number, number][] {
   return text.split(',').map(coord =>
@@ -22,7 +22,7 @@ export function serializeZips(zips: string[]) {
   return zips.join(', ')
 }
 
-export async function getAllowedZips(db: ScopedDb): Promise<string[]> {
+export async function getAllowedZips(db: TransactionClient): Promise<string[]> {
   const zips = await db.setting.findFirst({
     where: { key: 'zips' },
   })

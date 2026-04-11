@@ -11,6 +11,7 @@ import { computeFilters } from '~/features/territories/server/territory-filters'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -28,7 +29,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.TerritoriesViewer,
     Role.TerritoriesManager,
   ])
@@ -40,39 +41,42 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const canManageTerritories = can(Role.TerritoriesManager)
 
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 
-  const url = new URL(request.url)
-  const selectors = await computeFilters(url.searchParams)
-  const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url)
+  return withScope(congregationId, async db => {
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const messages = {
-    success: session.get('success'),
-    error: session.get('error'),
-  }
-  const zips = await getZips(db)
+    const url = new URL(request.url)
+    const selectors = await computeFilters(url.searchParams)
+    const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url)
 
-  return data(
-    {
-      messages,
-      zips,
-      stats: {
-        total: pagination.total,
+    const messages = {
+      success: session.get('success'),
+      error: session.get('error'),
+    }
+    const zips = await getZips(db)
+
+    return data(
+      {
+        messages,
+        zips,
+        stats: {
+          total: pagination.total,
+        },
+        territories,
+        pagination,
+        googleMaps: { mapId, apiKey },
+        canManageTerritories,
+        phoneTypeActive,
       },
-      territories,
-      pagination,
-      googleMaps: { mapId, apiKey },
-      canManageTerritories,
-      phoneTypeActive,
-    },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
+      {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
       },
-    },
-  )
+    )
+  })
 }
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {

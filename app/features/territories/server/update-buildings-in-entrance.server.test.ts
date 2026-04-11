@@ -8,7 +8,6 @@ vi.mock('~/shared/libs/db.server', () => ({
       createMany: vi.fn(),
       deleteMany: vi.fn(),
     },
-    $transaction: vi.fn(),
   },
 }))
 
@@ -24,6 +23,8 @@ const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.buildingEntrance.update).mockResolvedValue({} as never)
+  vi.mocked(db.buildingEntrance.createMany).mockResolvedValue({} as never)
   vi.mocked(db.buildingEntrance.deleteMany).mockResolvedValue({ count: 0 } as never)
 })
 
@@ -33,12 +34,12 @@ describe('updateBuildingsInEntrance', () => {
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
-    result = await updateBuildingsInEntrance(db, 999, [1, 2], 1)
+    result = await updateBuildingsInEntrance(db as never, 999, [1, 2], 1)
     expect(result).toBeUndefined()
     expect(result).not.toBe(sentinel)
   })
 
-  it('exécute la transaction pour connecter/déconnecter les bâtiments', async () => {
+  it('connecte et déconnecte les bâtiments directement', async () => {
     vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue({
       id: 10,
       access: 1,
@@ -49,22 +50,11 @@ describe('updateBuildingsInEntrance', () => {
       buildings: [{ id: 1 }, { id: 2 }, { id: 3 }],
     } as never)
 
-    // $transaction exécute le callback
-    vi.mocked(db.$transaction).mockImplementation((async (fn: (tx: unknown) => Promise<void>) => {
-      const tx = {
-        buildingEntrance: {
-          update: vi.fn().mockResolvedValue({} as never),
-          createMany: vi.fn().mockResolvedValue({} as never),
-        },
-      }
-      await fn(tx)
-    }) as never)
-
     // buildingIds [1, 4] → ajouter 4, déconnecter 2 et 3
-    await updateBuildingsInEntrance(db, 10, [1, 4], 1)
+    await updateBuildingsInEntrance(db as never, 10, [1, 4], 1)
 
-    // La transaction a été exécutée
-    expect(vi.mocked(db.$transaction).mock.calls).toHaveLength(1)
+    // update a été appelé pour connecter/déconnecter
+    expect(vi.mocked(db.buildingEntrance.update).mock.calls).toHaveLength(1)
   })
 
   it('nettoie les entrées vides après la mise à jour', async () => {
@@ -78,23 +68,13 @@ describe('updateBuildingsInEntrance', () => {
       buildings: [{ id: 1 }],
     } as never)
 
-    vi.mocked(db.$transaction).mockImplementation((async (fn: (tx: unknown) => Promise<void>) => {
-      const tx = {
-        buildingEntrance: {
-          update: vi.fn().mockResolvedValue({} as never),
-          createMany: vi.fn().mockResolvedValue({} as never),
-        },
-      }
-      await fn(tx)
-    }) as never)
-
-    await updateBuildingsInEntrance(db, 10, [1], 1)
+    await updateBuildingsInEntrance(db as never, 10, [1], 1)
 
     // deleteMany est toujours appelé pour nettoyer les entrées vides
     expect(vi.mocked(db.buildingEntrance.deleteMany).mock.calls).toHaveLength(1)
   })
 
-  it('gère les erreurs de transaction sans planter', async () => {
+  it('gère les erreurs sans planter', async () => {
     vi.mocked(db.buildingEntrance.findUnique).mockResolvedValue({
       id: 10,
       access: 1,
@@ -105,9 +85,9 @@ describe('updateBuildingsInEntrance', () => {
       buildings: [{ id: 1 }],
     } as never)
 
-    vi.mocked(db.$transaction).mockRejectedValue(new Error('Transaction failed'))
+    vi.mocked(db.buildingEntrance.update).mockRejectedValue(new Error('Update failed'))
 
     // Ne doit pas lancer d'erreur
-    await expect(updateBuildingsInEntrance(db, 10, [1, 2], 1)).resolves.toBeUndefined()
+    await expect(updateBuildingsInEntrance(db as never, 10, [1, 2], 1)).resolves.toBeUndefined()
   })
 })

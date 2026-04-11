@@ -5,6 +5,7 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -19,42 +20,47 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
-
   const url = new URL(request.url)
   if (!url.searchParams.has('territory')) {
     throw redirect('/territories/attributions/new/available-territories')
   }
 
-  const territory = await db.territory.findUnique({
-    where: { id: Number(url.searchParams.get('territory')) },
-    include: { entrances: { include: { buildings: true } } },
-  })
+  return withScope(congregationId, async db => {
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  if (territory === null) {
-    throw redirect('/territories/attributions/new/available-territories')
-  }
-
-  const users = await db.user.findMany({
-    where: {
-      isPublisher: true,
-    },
-    orderBy: [
-      {
-        lastname: 'asc',
+    const territory = await db.territory.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: Number(url.searchParams.get('territory')), congregationId },
       },
-      { firstname: 'asc' },
-    ],
-  })
+      include: { entrances: { include: { buildings: true } } },
+    })
 
-  return { users, phoneTypeActive, territory, territoryEntrances: territory.entrances.map(aggregateEntrance) }
+    if (territory === null) {
+      throw redirect('/territories/attributions/new/available-territories')
+    }
+
+    const users = await db.user.findMany({
+      where: {
+        isPublisher: true,
+      },
+      orderBy: [
+        {
+          lastname: 'asc',
+        },
+        { firstname: 'asc' },
+      ],
+    })
+
+    return { users, phoneTypeActive, territory, territoryEntrances: territory.entrances.map(aggregateEntrance) }
+  })
 }
 
 export default function CreateAttributionPage({ loaderData }: Route.ComponentProps) {
@@ -122,7 +128,7 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -143,17 +149,19 @@ export async function action({ request }: Route.ActionArgs) {
   const lateDate = new Date(startDateText)
   lateDate.setMonth(lateDate.getMonth() + 4)
 
-  const attribution = await db.attribution.create({
-    data: {
-      publisherId: publisherId,
-      territoryId: territoryId,
-      notes,
-      type,
-      startDate: new Date(startDateText),
-      lateDate: lateDate,
-      congregationId: congregation.id,
-    },
-  })
+  return withScope(congregationId, async db => {
+    const attribution = await db.attribution.create({
+      data: {
+        publisherId: publisherId,
+        territoryId: territoryId,
+        notes,
+        type,
+        startDate: new Date(startDateText),
+        lateDate: lateDate,
+        congregationId: congregation.id,
+      },
+    })
 
-  return redirect(`/territories/attributions/${attribution.id}/edit`)
+    return redirect(`/territories/attributions/${attribution.id}/edit`)
+  })
 }

@@ -11,6 +11,7 @@ import { getCurrentTheocraticYear } from '~/features/territories/server/theocrat
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -28,7 +29,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.TerritoriesViewer,
     Role.PublisherManager,
     Role.PublisherViewer,
@@ -57,39 +58,41 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading territory attributions. User ID: ${currentUser.id}. ${canManageTerritories ? 'Has' : 'Does NOT have'} rights to manage territories.`,
   )
 
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+  return withScope(congregationId, async db => {
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const url = new URL(request.url)
-  const selectors = computeFilters(url.searchParams)
-  selectors.endDate = null
+    const url = new URL(request.url)
+    const selectors = computeFilters(url.searchParams)
+    selectors.endDate = null
 
-  const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url)
+    const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url)
 
-  const messages = { success: session.get('success'), error: session.get('error') }
-  const groups = await getGroups(db)
-  const theocraticYear = getCurrentTheocraticYear()
+    const messages = { success: session.get('success'), error: session.get('error') }
+    const groups = await getGroups(db)
+    const theocraticYear = getCurrentTheocraticYear()
 
-  return data(
-    {
-      messages,
-      stats: {
-        total: pagination.total,
+    return data(
+      {
+        messages,
+        stats: {
+          total: pagination.total,
+        },
+        attributions,
+        pagination,
+        canManageTerritories,
+        canManagePublisher,
+        canViewPublisher,
+        groups,
+        phoneTypeActive,
+        theocraticYear,
       },
-      attributions,
-      pagination,
-      canManageTerritories,
-      canManagePublisher,
-      canViewPublisher,
-      groups,
-      phoneTypeActive,
-      theocraticYear,
-    },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
+      {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
       },
-    },
-  )
+    )
+  })
 }
 
 export default function AttributionListPage({ loaderData }: Route.ComponentProps) {

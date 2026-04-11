@@ -1,6 +1,6 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
-export function getPublisherWithActivities(db: ScopedDb, selectedMonth: number, selectedYear: number) {
+export function getPublisherWithActivities(db: TransactionClient, selectedMonth: number, selectedYear: number) {
   return db.user.findMany({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma keywords

@@ -6,6 +6,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -17,133 +18,135 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
-  const totalBuildingsForDoors = await db.building.count({
-    where: {
-      active: true,
-      entrance: {
-        territories: {
-          none: { type: TerritoryKind.Classical },
-        },
-      },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
-      },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      OR: [
-        {
-          entrance: {
-            access: 1, // interphone
+  return withScope(congregationId, async db => {
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const totalBuildingsForDoors = await db.building.count({
+      where: {
+        active: true,
+        entrance: {
+          territories: {
+            none: { type: TerritoryKind.Classical },
           },
         },
-        {
-          entrance: {
-            access: 2, // sonnette
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        NOT: {
+          prospectionDate: null,
+        },
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        OR: [
+          {
+            entrance: {
+              access: 1, // interphone
+            },
+          },
+          {
+            entrance: {
+              access: 2, // sonnette
+            },
+          },
+          phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin
+        ],
+      },
+    })
+    const totalBuildingsForPhone = await db.building.count({
+      where: {
+        active: true,
+        entrance: {
+          territories: {
+            none: { type: TerritoryKind.Classical },
           },
         },
-        phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin
-      ],
-    },
-  })
-  const totalBuildingsForPhone = await db.building.count({
-    where: {
-      active: true,
-      entrance: {
-        territories: {
-          none: { type: TerritoryKind.Classical },
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        NOT: {
+          prospectionDate: null,
         },
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        OR: [
+          {
+            phones: {
+              gt: 0,
+            },
+          },
+          { entrance: { access: 4, isOpenEarly: false } }, // code ouvert le matin
+        ],
       },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
-      },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      OR: [
-        {
-          phones: {
-            gt: 0,
+    })
+    const totalBuildingsForCommerce = await db.building.count({
+      where: {
+        active: true,
+        entrance: {
+          territories: {
+            none: { type: TerritoryKind.Commerces },
           },
         },
-        { entrance: { access: 4, isOpenEarly: false } }, // code ouvert le matin
-      ],
-    },
-  })
-  const totalBuildingsForCommerce = await db.building.count({
-    where: {
-      active: true,
-      entrance: {
-        territories: {
-          none: { type: TerritoryKind.Commerces },
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        NOT: {
+          prospectionDate: null,
         },
+        hasShops: true,
       },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
-      },
-      hasShops: true,
-    },
-  })
-  const totalBuildingsForCampus = await db.building.count({
-    where: {
-      active: true,
-      entrance: {
-        territories: {
-          none: { type: TerritoryKind.Univ },
+    })
+    const totalBuildingsForCampus = await db.building.count({
+      where: {
+        active: true,
+        entrance: {
+          territories: {
+            none: { type: TerritoryKind.Univ },
+          },
         },
-      },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
-      },
-      hasCampus: true,
-    },
-  })
-  const totalBuildingsForHotel = await db.building.count({
-    where: {
-      active: true,
-      entrance: {
-        territories: {
-          none: { type: TerritoryKind.Hotel },
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        NOT: {
+          prospectionDate: null,
         },
+        hasCampus: true,
       },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    })
+    const totalBuildingsForHotel = await db.building.count({
+      where: {
+        active: true,
+        entrance: {
+          territories: {
+            none: { type: TerritoryKind.Hotel },
+          },
+        },
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        NOT: {
+          prospectionDate: null,
+        },
+        hasHotel: true,
       },
-      hasHotel: true,
-    },
-  })
+    })
 
-  const messages = { success: session.get('success'), error: session.get('error') }
-  const zips = await getZips(db)
+    const messages = { success: session.get('success'), error: session.get('error') }
+    const zips = await getZips(db)
 
-  return data(
-    {
-      messages,
-      zips,
-      stats: {
-        classical: totalBuildingsForDoors,
-        hotel: totalBuildingsForHotel,
-        campus: totalBuildingsForCampus,
-        phones: totalBuildingsForPhone,
-        commerce: totalBuildingsForCommerce,
+    return data(
+      {
+        messages,
+        zips,
+        stats: {
+          classical: totalBuildingsForDoors,
+          hotel: totalBuildingsForHotel,
+          campus: totalBuildingsForCampus,
+          phones: totalBuildingsForPhone,
+          commerce: totalBuildingsForCommerce,
+        },
+        phoneTypeActive,
       },
-      phoneTypeActive,
-    },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
+      {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
       },
-    },
-  )
+    )
+  })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {

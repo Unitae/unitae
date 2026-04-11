@@ -1,6 +1,6 @@
 import type { Prisma } from '~/database/generated/client'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
@@ -12,7 +12,10 @@ function buildDateOverlapWhere(startDate: Date, endDate: Date): Prisma.Attributi
   }
 }
 
-export async function fetchAttributionsForStats(db: ScopedDb, params: StatsFilterParams): Promise<StatsAttribution[]> {
+export async function fetchAttributionsForStats(
+  db: TransactionClient,
+  params: StatsFilterParams,
+): Promise<StatsAttribution[]> {
   const attributions = await db.attribution.findMany({
     where: {
       territory: {

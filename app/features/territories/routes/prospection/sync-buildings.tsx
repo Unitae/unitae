@@ -4,6 +4,7 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 
 import type { Route } from './+types/sync-buildings'
 
@@ -16,37 +17,42 @@ export function loader(_args: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
+    Role.TerritoriesManager,
+  ])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const user = await db.user.findUnique({
-    where: {
-      id: Number(session.get('userId')) ?? 0,
-    },
-  })
+  return withScope(congregationId, async db => {
+    const user = await db.user.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: Number(session.get('userId')) ?? 0, congregationId },
+      },
+    })
 
-  if (user == null) {
-    throw redirect('/')
-  }
+    if (user == null) {
+      throw redirect('/')
+    }
 
-  await syncQueue.add('sync', {
-    userName: user.firstname ?? undefined,
-    userEmail: user.email,
-    congregationId: currentUser.congregationId,
-  })
+    await syncQueue.add('sync', {
+      userName: user.firstname ?? undefined,
+      userEmail: user.email,
+      congregationId: currentUser.congregationId,
+    })
 
-  session.flash(
-    'success',
-    `Les données sont en cours d'importation. Nous vous enverrons un email une fois l'opération terminée.`,
-  )
+    session.flash(
+      'success',
+      `Les données sont en cours d'importation. Nous vous enverrons un email une fois l'opération terminée.`,
+    )
 
-  return redirect('/territories/buildings', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    return redirect('/territories/buildings', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

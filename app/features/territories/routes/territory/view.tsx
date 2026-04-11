@@ -12,6 +12,7 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -28,7 +29,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [
+  const { can, congregationId } = await authenticateAndAuthorize(request, [
     Role.TerritoriesViewer,
     Role.TerritoriesManager,
     Role.PublisherViewer,
@@ -41,24 +42,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const territory = await findTerritoryWithHistory(db, requireParamId(params.territoryId, '/territories'))
+  return withScope(congregationId, async db => {
+    const territory = await findTerritoryWithHistory(
+      db,
+      requireParamId(params.territoryId, '/territories'),
+      congregationId,
+    )
 
-  if (territory == null) {
-    throw redirect('/territories', { status: 404 })
-  }
+    if (territory == null) {
+      throw redirect('/territories', { status: 404 })
+    }
 
-  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+    const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
+    const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  return {
-    territory,
-    territoryEntrances: territory.entrances.map(aggregateEntrance),
-    googleMaps: { mapId, apiKey },
-    phoneTypeActive,
-    canManageTerritories,
-    canViewPublisher,
-  }
+    return {
+      territory,
+      territoryEntrances: territory.entrances.map(aggregateEntrance),
+      googleMaps: { mapId, apiKey },
+      phoneTypeActive,
+      canManageTerritories,
+      canViewPublisher,
+    }
+  })
 }
 
 const territoryTypeLabels: Record<string, string> = {

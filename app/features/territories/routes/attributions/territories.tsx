@@ -9,6 +9,7 @@ import { computeFilters } from '~/features/territories/server/territory-filters'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -23,7 +24,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
+    Role.TerritoriesManager,
+  ])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -35,32 +38,34 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   logger.info(`Loading territories available for attribution. User ID: ${currentUser.id}.`)
 
-  const url = new URL(request.url)
-  const selectors = await computeFilters(url.searchParams)
-  selectors.attributions = { none: { endDate: null } }
+  return withScope(congregationId, async db => {
+    const url = new URL(request.url)
+    const selectors = await computeFilters(url.searchParams)
+    selectors.attributions = { none: { endDate: null } }
 
-  const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url)
+    const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url)
 
-  const messages = { success: session.get('success'), error: session.get('error') }
-  const zips = await getZips(db)
+    const messages = { success: session.get('success'), error: session.get('error') }
+    const zips = await getZips(db)
 
-  return data(
-    {
-      messages,
-      zips,
-      stats: {
-        total: pagination.total,
+    return data(
+      {
+        messages,
+        zips,
+        stats: {
+          total: pagination.total,
+        },
+        territories,
+        pagination,
+        canManageTerritories,
       },
-      territories,
-      pagination,
-      canManageTerritories,
-    },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
+      {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
       },
-    },
-  )
+    )
+  })
 }
 
 export default function TerritorySelectorPage({ loaderData }: Route.ComponentProps) {

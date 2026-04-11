@@ -1,7 +1,7 @@
 import { getSession } from '~/features/authentication/server/session.server'
 import type { Role } from '~/features/authorization/model/roles.type'
 
-import { congregationContext, unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/libs/db.server'
 
 export async function verifyRole(request: Request, roleKey: Role) {
   const session = await getSession(request.headers.get('Cookie'))
@@ -10,17 +10,12 @@ export async function verifyRole(request: Request, roleKey: Role) {
     return false
   }
 
-  // Prefer AsyncLocalStorage context, but fall back to looking up the user's congregationId
-  // directly. The pg adapter in Prisma 7 can break AsyncLocalStorage context propagation
-  // after awaited queries, causing enterWith() in verifySession to not be visible here.
-  let congregationId = congregationContext.getStore()?.congregationId
-  if (!congregationId) {
-    const user = await unscopedDb.user.findUnique({ where: { id: userId }, select: { congregationId: true } })
-    if (!user) {
-      return false
-    }
-    congregationId = user.congregationId
+  const user = await unscopedDb.user.findUnique({ where: { id: userId }, select: { congregationId: true } })
+  if (!user) {
+    return false
   }
+
+  const { congregationId } = user
 
   const adminRole = await unscopedDb.congregationUserRole.findFirst({
     where: {
@@ -31,8 +26,6 @@ export async function verifyRole(request: Request, roleKey: Role) {
   })
 
   if (adminRole != null) {
-    // Restore ALS context — unscopedDb queries via the pg adapter break it
-    congregationContext.enterWith({ congregationId })
     return true
   }
 
@@ -44,7 +37,5 @@ export async function verifyRole(request: Request, roleKey: Role) {
     },
   })
 
-  // Restaurer le contexte ALS — les requêtes unscopedDb via l'adaptateur pg le cassent
-  congregationContext.enterWith({ congregationId })
   return role != null
 }

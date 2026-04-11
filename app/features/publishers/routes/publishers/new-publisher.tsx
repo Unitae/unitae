@@ -5,6 +5,7 @@ import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldSe
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -16,16 +17,18 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  const groups = await db.publisherGroup.findMany()
+  return withScope(congregationId, async db => {
+    const groups = await db.publisherGroup.findMany()
 
-  return { groups, hideAuxiliaryPioneer: false }
+    return { groups, hideAuxiliaryPioneer: false }
+  })
 }
 
 export default function NewPublisher({ loaderData }: Route.ComponentProps) {
@@ -49,7 +52,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, db } = await authenticateAndAuthorize(request)
+  const { congregation, congregationId } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -67,35 +70,39 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/congregation/publishers/new')
   }
 
-  const limits = new LimitService(db, congregation)
-  await limits.errorIfWouldGoOverLimit('publishers')
+  return withScope(congregationId, async db => {
+    const limits = new LimitService(db, congregation)
+    await limits.errorIfWouldGoOverLimit('publishers')
 
-  const user = await db.user.create({
-    data: {
-      firstname: firstname,
-      lastname: lastname,
-      email:
-        form.has('email') && email.length > 0 ? email : `${firstname}.${lastname}@placeholder.unitae.app`.toLowerCase(),
-      active: true,
-      password: 'password',
-      isPublisher: true,
-      isMale: String(gender) === 'male',
-      baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
-      birthDate: birthDate ? new Date(birthDate.toString()) : null,
-      isHelder: Boolean(isHelder),
-      isServant: Boolean(isServant),
-      isAnointed: Boolean(isAnointed),
-      publisherGroupId: Number.isNaN(groupId) ? null : groupId,
-      type: String(type),
-      congregationId: congregation.id,
-    },
-  })
+    const user = await db.user.create({
+      data: {
+        firstname: firstname,
+        lastname: lastname,
+        email:
+          form.has('email') && email.length > 0
+            ? email
+            : `${firstname}.${lastname}@placeholder.unitae.app`.toLowerCase(),
+        active: true,
+        password: 'password',
+        isPublisher: true,
+        isMale: String(gender) === 'male',
+        baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
+        birthDate: birthDate ? new Date(birthDate.toString()) : null,
+        isHelder: Boolean(isHelder),
+        isServant: Boolean(isServant),
+        isAnointed: Boolean(isAnointed),
+        publisherGroupId: Number.isNaN(groupId) ? null : groupId,
+        type: String(type),
+        congregationId,
+      },
+    })
 
-  const session = await getSession(request.headers.get('Cookie'))
-  session.flash('success', `La fiche de proclammateur pour ${user.firstname} à été créé avec succès`)
-  return redirect(`/congregation/publishers/${user.id}/edit`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    const session = await getSession(request.headers.get('Cookie'))
+    session.flash('success', `La fiche de proclammateur pour ${user.firstname} à été créé avec succès`)
+    return redirect(`/congregation/publishers/${user.id}/edit`, {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

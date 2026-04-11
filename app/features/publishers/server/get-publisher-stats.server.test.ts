@@ -20,7 +20,7 @@ function makeFigure(type: PublisherType, count: number, hours: number, studies: 
     type,
     _count: { _all: count },
     _sum: { hours, studies },
-  }
+  } as never
 }
 
 describe('getPublisherStats', () => {

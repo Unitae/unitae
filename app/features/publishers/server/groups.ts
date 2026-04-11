@@ -1,11 +1,11 @@
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
-export async function getGroups(db: ScopedDb) {
+export async function getGroups(db: TransactionClient) {
   return await db.publisherGroup.findMany()
 }
 
-export async function getGroup(db: ScopedDb, groupId: number) {
+export async function getGroup(db: TransactionClient, groupId: number) {
   const today = new Date()
   const lastMonth = new Date()
   lastMonth.setMonth(today.getMonth() - 1)

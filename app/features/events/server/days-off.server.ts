@@ -1,7 +1,7 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
-export function getNextDaysOffs(db: ScopedDb, userId: number) {
+export function getNextDaysOffs(db: TransactionClient, userId: number) {
   return db.event.findMany({
     where: {
       createdBy: { id: userId },
@@ -18,7 +18,7 @@ export function getNextDaysOffs(db: ScopedDb, userId: number) {
 }
 
 export async function createDayOff(
-  db: ScopedDb,
+  db: TransactionClient,
   userId: number,
   startDate: Date | null | undefined,
   endDate: Date | null | undefined,

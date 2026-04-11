@@ -4,6 +4,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 
 import Pagination from '~/shared/ui/Pagination'
@@ -16,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [
+  const { can, congregationId } = await authenticateAndAuthorize(request, [
     Role.ProspectionViewer,
     Role.ProspectionManager,
     Role.TerritoriesManager,
@@ -29,20 +30,22 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const staleDate = await getProspectionStaleDate(db)
+  return withScope(congregationId, async db => {
+    const staleDate = await getProspectionStaleDate(db)
 
-  const selectors = { inOpenData: false, active: true }
-  const url = new URL(request.url)
-  const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url)
+    const selectors = { inOpenData: false, active: true }
+    const url = new URL(request.url)
+    const { buildings, pagination } = await findBuildingsPaginated(db, selectors, url)
 
-  return {
-    buildings,
-    pagination,
-    staleDate,
-    canManageTerritories,
-    canManageProspection,
-    canViewProspection,
-  }
+    return {
+      buildings,
+      pagination,
+      staleDate,
+      canManageTerritories,
+      canManageProspection,
+      canViewProspection,
+    }
+  })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {

@@ -1,6 +1,6 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
-export async function getPublishers(db: ScopedDb, options?: { groupId?: number | null }) {
+export async function getPublishers(db: TransactionClient, options?: { groupId?: number | null }) {
   return await db.user.findMany({
     where: {
       isPublisher: true,
@@ -10,7 +10,7 @@ export async function getPublishers(db: ScopedDb, options?: { groupId?: number |
   })
 }
 
-export async function getPublishersWithGroup(db: ScopedDb) {
+export async function getPublishersWithGroup(db: TransactionClient) {
   return await db.user.findMany({
     where: { isPublisher: true },
     include: { publisherGroup: true },

@@ -4,6 +4,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =
@@ -30,28 +31,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const activity = await db.publisherActivity.findFirst({
-    where: {
-      id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-    },
-    include: {
-      publisher: {
-        include: {
-          publisherGroup: true,
-          activities: true,
+  return withScope(congregationId, async db => {
+    const activity = await db.publisherActivity.findFirst({
+      where: {
+        id: requireParamId(params.activityId, '/congregation/publishers/activity'),
+      },
+      include: {
+        publisher: {
+          include: {
+            publisherGroup: true,
+            activities: true,
+          },
         },
       },
-    },
+    })
+
+    if (activity == null) {
+      // If the activity already exists, redirect to the edit page
+      throw redirect('/congregation/publishers/activity')
+    }
+
+    return {
+      activity,
+    }
   })
-
-  if (activity == null) {
-    // If the activity already exists, redirect to the edit page
-    throw redirect('/congregation/publishers/activity')
-  }
-
-  return {
-    activity,
-  }
 }
 
 export default function EditActivity({ loaderData }: Route.ComponentProps) {
@@ -169,7 +172,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, params }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
-  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =
@@ -181,50 +184,61 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const form = await request.formData()
-  const activity = await db.publisherActivity.findUnique({
-    where: {
-      id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-    },
-    include: {
-      publisher: true,
-    },
-  })
 
-  const preached = form.get('preached') === 'on'
-  const hours = Number(form.get('hours'))
-  const studies = Number(form.get('studies'))
-  const observations = String(form.get('observations'))
+  return withScope(congregationId, async db => {
+    const activity = await db.publisherActivity.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: {
+          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
+          congregationId,
+        },
+      },
+      include: {
+        publisher: true,
+      },
+    })
 
-  if (activity?.publisher == null) {
-    session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
-    throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+    const preached = form.get('preached') === 'on'
+    const hours = Number(form.get('hours'))
+    const studies = Number(form.get('studies'))
+    const observations = String(form.get('observations'))
+
+    if (activity?.publisher == null) {
+      session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
+      throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    }
+
+    const type = form.get('type') as PublisherType
+    await db.publisherActivity.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: {
+          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
+          congregationId,
+        },
+      },
+      data: {
+        type,
+        isPublisher: hours > 0 ? true : preached,
+        hours,
+        studies,
+        notes: observations,
+      },
+    })
+
+    session.flash(
+      'success',
+      `Le rapport d'activité de ${activity.publisher.firstname} ${activity.publisher.lastname} à été enregistré avec succès`,
+    )
+    return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
     })
-  }
-
-  const type = form.get('type') as PublisherType
-  await db.publisherActivity.update({
-    where: {
-      id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-    },
-    data: {
-      type,
-      isPublisher: hours > 0 ? true : preached,
-      hours,
-      studies,
-      notes: observations,
-    },
-  })
-
-  session.flash(
-    'success',
-    `Le rapport d'activité de ${activity.publisher.firstname} ${activity.publisher.lastname} à été enregistré avec succès`,
-  )
-  return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
   })
 }

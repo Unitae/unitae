@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
-import { congregationContext, createScopedDb } from '~/shared/libs/db.server'
+import { withScope } from '~/shared/libs/db.server'
 import { createLogger } from '~/shared/libs/logger.server'
 import { importOpenData } from './import-open-data.server'
 import { sendMailAfterDataSync } from './send-mail-after-data-sync.server'
@@ -11,21 +11,19 @@ const logger = createLogger('sync-worker')
 export async function handleSyncWork(job: Job<SyncJobData>): Promise<void> {
   const { userEmail, userName, congregationId } = job.data
 
-  // Set congregation context for tenant-scoped queries during the job
   const congregation = await resolveCongregation(congregationId)
-  congregationContext.enterWith({ congregationId, congregation })
-
-  const db = createScopedDb(congregationId)
 
   try {
     await job.updateProgress(0)
     logger.info(`Starting sync job ${job.id}`, { userEmail, congregationId })
 
-    await importOpenData(db, congregationId, (percent: number) => {
-      logger.info(`Sync job ${job.id} progress: ${percent}%`, { userEmail })
-      if (percent < 99) {
-        job.updateProgress(percent)
-      }
+    await withScope(congregationId, async db => {
+      await importOpenData(db, congregationId, (percent: number) => {
+        logger.info(`Sync job ${job.id} progress: ${percent}%`, { userEmail })
+        if (percent < 99) {
+          job.updateProgress(percent)
+        }
+      })
     })
 
     await sendMailAfterDataSync(userEmail, userName, congregation)

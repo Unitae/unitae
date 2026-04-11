@@ -1,10 +1,10 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
 export async function createBuilding(
-  db: ScopedDb,
+  db: TransactionClient,
   {
     address,
     coordinates = {},

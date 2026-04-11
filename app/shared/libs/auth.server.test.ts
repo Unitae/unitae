@@ -10,15 +10,9 @@ vi.mock('~/features/authorization/server/verify-role.server', () => ({
   verifyRole: vi.fn(),
 }))
 
-vi.mock('~/shared/libs/db.server', () => ({
-  restoreCongregationContext: vi.fn(),
-  createScopedDb: vi.fn(() => 'mocked-scoped-db'),
-}))
-
 const { authenticateAndAuthorize } = await import('./auth.server')
 const { verifySession } = await import('~/features/authentication/server/session.server')
 const { verifyRole } = await import('~/features/authorization/server/verify-role.server')
-const { restoreCongregationContext, createScopedDb } = await import('~/shared/libs/db.server')
 
 function makeRequest() {
   return new Request('http://localhost/')
@@ -44,11 +38,10 @@ describe('authenticateAndAuthorize', () => {
     expect(result.session).toBe(fakeSessionResult.session)
   })
 
-  it('retourne un db scopé via createScopedDb', async () => {
+  it('retourne congregationId from currentUser', async () => {
     const result = await authenticateAndAuthorize(makeRequest())
 
-    expect(createScopedDb).toHaveBeenCalledWith(5)
-    expect(result.db).toBe('mocked-scoped-db')
+    expect(result.congregationId).toBe(5)
   })
 
   it('résout les permissions via verifyRole', async () => {
@@ -75,13 +68,5 @@ describe('authenticateAndAuthorize', () => {
 
     expect(verifyRole).not.toHaveBeenCalled()
     expect(result.can(Role.Admin)).toBe(false)
-  })
-
-  it('appelle restoreCongregationContext après la résolution des rôles', async () => {
-    vi.mocked(verifyRole).mockResolvedValue(true as never)
-
-    await authenticateAndAuthorize(makeRequest(), [Role.Admin])
-
-    expect(restoreCongregationContext).toHaveBeenCalledWith(5)
   })
 })

@@ -1,8 +1,8 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
 export async function updateBuildingsInEntrance(
-  db: ScopedDb,
+  db: TransactionClient,
   entranceId: number,
   buildingIds: number[],
   congregationId: number,
@@ -33,36 +33,34 @@ export async function updateBuildingsInEntrance(
   }
 
   try {
-    await db.$transaction(async tx => {
-      // Update current entrance.
-      await tx.buildingEntrance.update({
-        where: { id: entrance.id },
-        data: {
-          buildings: {
-            connect: newBuildingIds.map(buildingId => ({ id: buildingId })),
-            disconnect: disconnectBuildingIds.map(buildingId => ({ id: buildingId })),
-          },
+    // Update current entrance.
+    await db.buildingEntrance.update({
+      where: { id: entrance.id },
+      data: {
+        buildings: {
+          connect: newBuildingIds.map(buildingId => ({ id: buildingId })),
+          disconnect: disconnectBuildingIds.map(buildingId => ({ id: buildingId })),
         },
-      })
-
-      // Create new entrance if needed.
-      if (disconnectBuildingIds.length > 0) {
-        await tx.buildingEntrance.createMany({
-          data: disconnectBuildingIds.map(disconnectBuildingId => ({
-            buildingId: disconnectBuildingId,
-            access: entrance.access,
-            isMailboxOpen: entrance.isMailboxOpen,
-            // biome-ignore lint/style/useNamingConvention: prisma model
-            isPMR: entrance.isPMR,
-            isOpenEarly: entrance.isOpenEarly,
-            buildings: {
-              connect: { id: disconnectBuildingId },
-            },
-            congregationId,
-          })),
-        })
-      }
+      },
     })
+
+    // Create new entrance if needed.
+    if (disconnectBuildingIds.length > 0) {
+      await db.buildingEntrance.createMany({
+        data: disconnectBuildingIds.map(disconnectBuildingId => ({
+          buildingId: disconnectBuildingId,
+          access: entrance.access,
+          isMailboxOpen: entrance.isMailboxOpen,
+          // biome-ignore lint/style/useNamingConvention: prisma model
+          isPMR: entrance.isPMR,
+          isOpenEarly: entrance.isOpenEarly,
+          buildings: {
+            connect: { id: disconnectBuildingId },
+          },
+          congregationId,
+        })),
+      })
+    }
 
     logger.info(`Update of entrance ${entranceId} with buildings ${buildingIds.join(', ')} succeed.`)
   } catch (error) {

@@ -3,6 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -13,31 +14,34 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit-group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  const brothers = await db.user.findMany({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma OR operator
-      OR: [{ isHelder: true }, { isServant: true }],
-    },
+  return withScope(congregationId, async db => {
+    const brothers = await db.user.findMany({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma OR operator
+        OR: [{ isHelder: true }, { isServant: true }],
+      },
+    })
+
+    const group = await db.publisherGroup.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: requireParamId(params.groupId, '/congregation/publisher-groups'), congregationId },
+      },
+    })
+
+    if (group == null) {
+      throw redirect('/congregation/publisher-groups/')
+    }
+
+    return { brothers, group }
   })
-
-  const group = await db.publisherGroup.findUnique({
-    where: {
-      id: requireParamId(params.groupId, '/congregation/publisher-groups'),
-    },
-  })
-
-  if (group == null) {
-    throw redirect('/congregation/publisher-groups/')
-  }
-
-  return { brothers, group }
 }
 
 export default function EditGroup({ loaderData }: Route.ComponentProps) {
@@ -132,7 +136,7 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
   const canManagePublisher = can(Role.PublisherManager)
 
@@ -166,26 +170,29 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  const membersToConnect = [{ id: responsibleId }]
-  if (deputyId != null) membersToConnect.push({ id: deputyId })
+  return withScope(congregationId, async db => {
+    const membersToConnect = [{ id: responsibleId }]
+    if (deputyId != null) membersToConnect.push({ id: deputyId })
 
-  const group = await db.publisherGroup.update({
-    where: {
-      id: requireParamId(params.groupId, '/congregation/publisher-groups'),
-    },
-    data: {
-      name: String(name),
-      adress: String(address),
-      deputyId,
-      responsibleId,
-      members: { connect: membersToConnect },
-    },
-  })
+    const group = await db.publisherGroup.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: requireParamId(params.groupId, '/congregation/publisher-groups'), congregationId },
+      },
+      data: {
+        name: String(name),
+        adress: String(address),
+        deputyId,
+        responsibleId,
+        members: { connect: membersToConnect },
+      },
+    })
 
-  session.flash('success', `Le groupe de prédication ${group.name} à été modifié avec succès`)
-  return redirect('/congregation/publisher-groups', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    session.flash('success', `Le groupe de prédication ${group.name} à été modifié avec succès`)
+    return redirect('/congregation/publisher-groups', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

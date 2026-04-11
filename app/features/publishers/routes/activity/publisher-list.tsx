@@ -6,6 +6,7 @@ import { getPublisherStats } from '~/features/publishers/server/get-publisher-st
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -21,7 +22,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.ActivityViewer, Role.ActivityManager])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
+    Role.ActivityViewer,
+    Role.ActivityManager,
+  ])
   const canViewActivities = can(Role.ActivityViewer)
   const canManageActivities = can(Role.ActivityManager)
 
@@ -39,35 +43,37 @@ export async function loader({ request }: Route.LoaderArgs) {
   const month = Number(searchParams.get('month') ?? timeRange.getMonth())
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
-  const users = await getPublisherWithActivities(db, month, year)
+  return withScope(congregationId, async db => {
+    const users = await getPublisherWithActivities(db, month, year)
 
-  return {
-    firstMonth: {
-      month: 8,
-      year: month < 8 ? year - 1 : year,
-    },
-    selectedMonth: {
-      month,
-      year,
-    },
-    stats: await getPublisherStats(db, month, year),
-    publishers: users
-      .map(sanitizeUser)
-      .map(({ activities, ...member }) => ({
-        ...member,
-        lastActivity: activities.length < 1 ? null : activities[0],
-        notRegular:
-          activities[0] != null &&
-          activities[0].isPublisher === false &&
-          (activities[0].hours == null || activities[0].hours === 0),
-      }))
-      .map(publisher => ({
-        ...publisher,
-        newActivityUrl: `./new?publisherId=${publisher.id}&month=${month}&year=${year}`,
-        editActivityUrl: `./${publisher.lastActivity?.id}/edit`,
-      })),
-    canManageActivities,
-  }
+    return {
+      firstMonth: {
+        month: 8,
+        year: month < 8 ? year - 1 : year,
+      },
+      selectedMonth: {
+        month,
+        year,
+      },
+      stats: await getPublisherStats(db, month, year),
+      publishers: users
+        .map(sanitizeUser)
+        .map(({ activities, ...member }) => ({
+          ...member,
+          lastActivity: activities.length < 1 ? null : activities[0],
+          notRegular:
+            activities[0] != null &&
+            activities[0].isPublisher === false &&
+            (activities[0].hours == null || activities[0].hours === 0),
+        }))
+        .map(publisher => ({
+          ...publisher,
+          newActivityUrl: `./new?publisherId=${publisher.id}&month=${month}&year=${year}`,
+          editActivityUrl: `./${publisher.lastActivity?.id}/edit`,
+        })),
+      canManageActivities,
+    }
+  })
 }
 
 type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType extends readonly (infer ElementType)[]

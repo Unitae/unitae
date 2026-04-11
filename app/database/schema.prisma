@@ -88,6 +88,8 @@ model User {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model UserRole {
@@ -107,6 +109,7 @@ model CongregationUserRole {
   congregationId Int
 
   @@unique([userId, roleId, congregationId])
+  @@unique([id, congregationId])
 }
 
 model BoardSection {
@@ -117,6 +120,8 @@ model BoardSection {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model BoardDocument {
@@ -135,6 +140,8 @@ model BoardDocument {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model Territory {
@@ -149,6 +156,8 @@ model Territory {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model Attribution {
@@ -168,6 +177,8 @@ model Attribution {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model BuildingEntrance {
@@ -185,6 +196,8 @@ model BuildingEntrance {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model Building {
@@ -219,6 +232,7 @@ model Building {
   congregationId Int
 
   @@unique([number, street, zip, congregationId], name: "address")
+  @@unique([id, congregationId])
 }
 
 model Setting {
@@ -230,6 +244,7 @@ model Setting {
   congregationId Int
 
   @@unique([key, congregationId])
+  @@unique([id, congregationId])
 }
 
 model PublisherGroup {
@@ -244,6 +259,8 @@ model PublisherGroup {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model PublisherActivity {
@@ -263,6 +280,7 @@ model PublisherActivity {
   congregationId Int
 
   @@index([publisherId, month, year], name: "activityId")
+  @@unique([id, congregationId])
 }
 
 model Event {
@@ -281,6 +299,8 @@ model Event {
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  @@unique([id, congregationId])
 }
 
 model EventKind {
@@ -299,6 +319,7 @@ model EventKind {
   congregationId Int
 
   @@unique([key, congregationId])
+  @@unique([id, congregationId])
 }
 
 model PasswordResetToken {

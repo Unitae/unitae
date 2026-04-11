@@ -7,6 +7,7 @@ import { findActiveAttributionsForPublisher } from '~/features/territories/serve
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
@@ -22,7 +23,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.PublisherViewer,
     Role.PublisherManager,
     Role.ActivityManager,
@@ -42,64 +43,69 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
-  const today = new Date()
-  const yearBegining = new Date(today.getFullYear(), 8, 1)
-  if (today < yearBegining) {
-    yearBegining.setFullYear(today.getFullYear() - 1)
-  }
-  const publisher = await db.user.findUnique({
-    where: { id: requireParamId(params.publisherId, '/congregation/publishers') },
-    include: {
-      publisherGroup: {
-        include: {
-          responsible: true,
-          deputy: true,
+  return withScope(congregationId, async db => {
+    const today = new Date()
+    const yearBegining = new Date(today.getFullYear(), 8, 1)
+    if (today < yearBegining) {
+      yearBegining.setFullYear(today.getFullYear() - 1)
+    }
+    const publisher = await db.user.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId },
+      },
+      include: {
+        publisherGroup: {
+          include: {
+            responsible: true,
+            deputy: true,
+          },
+        },
+        activities: {
+          where: {
+            // biome-ignore lint/style/useNamingConvention: prisma syntax
+            OR: [
+              {
+                year: yearBegining.getFullYear(),
+                month: {
+                  gte: 8,
+                },
+              },
+              {
+                year: yearBegining.getFullYear() + 1,
+                month: {
+                  lte: 11,
+                },
+              },
+            ],
+          },
         },
       },
-      activities: {
-        where: {
-          // biome-ignore lint/style/useNamingConvention: prisma syntax
-          OR: [
-            {
-              year: yearBegining.getFullYear(),
-              month: {
-                gte: 8,
-              },
-            },
-            {
-              year: yearBegining.getFullYear() + 1,
-              month: {
-                lte: 11,
-              },
-            },
-          ],
-        },
+    })
+
+    if (!publisher) {
+      throw redirect('/congregation/publishers')
+    }
+
+    const messages = { success: session.get('success'), error: session.get('error') }
+
+    const attributions = await findActiveAttributionsForPublisher(db, publisher.id, congregationId)
+
+    return {
+      publisher: sanitizeUser(publisher),
+      attributions,
+      messages,
+      roles: {
+        canViewPublisher,
+        canManagePublisher,
+        canViewTerritories,
+        canManageActivity:
+          canManageActivity ||
+          publisher.publisherGroup?.responsible.id === currentUser.id ||
+          publisher.publisherGroup?.deputy?.id === currentUser.id,
       },
-    },
+    }
   })
-
-  if (!publisher) {
-    throw redirect('/congregation/publishers')
-  }
-
-  const attributions = await findActiveAttributionsForPublisher(db, publisher.id)
-
-  const messages = { success: session.get('success'), error: session.get('error') }
-
-  return {
-    publisher: sanitizeUser(publisher),
-    attributions,
-    messages,
-    roles: {
-      canViewPublisher,
-      canManagePublisher,
-      canViewTerritories,
-      canManageActivity:
-        canManageActivity ||
-        publisher.publisherGroup?.responsible.id === currentUser.id ||
-        publisher.publisherGroup?.deputy?.id === currentUser.id,
-    },
-  }
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {

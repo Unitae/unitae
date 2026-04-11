@@ -4,6 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { Role } from '~/features/authorization/model/roles.type'
 import { getGroup } from '~/features/publishers/server/groups'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -14,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/group'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.PublisherViewer,
     Role.PublisherManager,
     Role.ActivityManager,
@@ -27,20 +28,22 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const group = await getGroup(db, requireParamId(params.groupId, '/congregation/publisher-groups'))
-  if (group == null) {
-    throw redirect('/congregation/publisher-groups/')
-  }
+  return withScope(congregationId, async db => {
+    const group = await getGroup(db, requireParamId(params.groupId, '/congregation/publisher-groups'))
+    if (group == null) {
+      throw redirect('/congregation/publisher-groups/')
+    }
 
-  return {
-    group,
-    roles: {
-      canManagePublisher,
-      canViewPublishers,
-      canManageActivity:
-        canManageActivity || group.responsible.id === currentUser.id || group.deputy?.id === currentUser.id,
-    },
-  }
+    return {
+      group,
+      roles: {
+        canManagePublisher,
+        canViewPublishers,
+        canManageActivity:
+          canManageActivity || group.responsible.id === currentUser.id || group.deputy?.id === currentUser.id,
+      },
+    }
+  })
 }
 
 export default function ViewGroup({ loaderData }: Route.ComponentProps) {
@@ -232,7 +235,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
   const canManagePublisher = can(Role.PublisherManager)
 
@@ -266,26 +269,29 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  const membersToConnect = [{ id: responsibleId }]
-  if (deputyId != null) membersToConnect.push({ id: deputyId })
+  return withScope(congregationId, async db => {
+    const membersToConnect = [{ id: responsibleId }]
+    if (deputyId != null) membersToConnect.push({ id: deputyId })
 
-  const group = await db.publisherGroup.update({
-    where: {
-      id: requireParamId(params.groupId, '/congregation/publisher-groups'),
-    },
-    data: {
-      name: String(name),
-      adress: String(address),
-      deputyId,
-      responsibleId,
-      members: { connect: membersToConnect },
-    },
-  })
+    const group = await db.publisherGroup.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: requireParamId(params.groupId, '/congregation/publisher-groups'), congregationId },
+      },
+      data: {
+        name: String(name),
+        adress: String(address),
+        deputyId,
+        responsibleId,
+        members: { connect: membersToConnect },
+      },
+    })
 
-  session.flash('success', `Le groupe de prédication ${group.name} à été modifié avec succès`)
-  return redirect('/congregation/publisher-groups', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    session.flash('success', `Le groupe de prédication ${group.name} à été modifié avec succès`)
+    return redirect('/congregation/publisher-groups', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

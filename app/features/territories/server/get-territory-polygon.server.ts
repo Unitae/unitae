@@ -1,6 +1,6 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
-export async function getTerritoryPolygon(db: ScopedDb): Promise<[number, number][]> {
+export async function getTerritoryPolygon(db: TransactionClient): Promise<[number, number][]> {
   const territory = await db.setting.findFirst({
     where: { key: 'territory' },
   })

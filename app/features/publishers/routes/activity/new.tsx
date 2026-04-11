@@ -5,6 +5,7 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getPublishers } from '~/features/publishers/server/publishers'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -18,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =
@@ -30,44 +31,48 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const groupFilter = canManageMyGroupActivity && !canManagePublisher ? currentUser.publisherGroupId : undefined
-  const publishers = await getPublishers(db, { groupId: groupFilter })
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams
   const month = Number(searchParams.get('month') ?? timeRange.getMonth())
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
-  const activity = await db.publisherActivity.findFirst({
-    where: {
-      year,
-      month,
-      publisherId: Number(searchParams.get('publisherId')),
-    },
-  })
+  return withScope(congregationId, async db => {
+    const publishers = await getPublishers(db, { groupId: groupFilter })
 
-  if (activity != null) {
-    // If the activity already exists, redirect to the edit page
-    throw redirect(`/congregation/publishers/activity/${activity.id}/edit`)
-  }
-
-  let publisher = null
-  if (searchParams.has('publisherId')) {
-    publisher = await db.user.findUnique({
+    const activity = await db.publisherActivity.findFirst({
       where: {
-        id: Number(searchParams.get('publisherId')),
-      },
-      include: {
-        activities: true,
+        year,
+        month,
+        publisherId: Number(searchParams.get('publisherId')),
       },
     })
-  }
 
-  return {
-    publishers: publishers.map(sanitizeUser),
-    publisher: publisher != null ? sanitizeUser(publisher) : null,
-    selectedMonth: { month, year },
-    previousPage: request.headers.get('referer'),
-  }
+    if (activity != null) {
+      // If the activity already exists, redirect to the edit page
+      throw redirect(`/congregation/publishers/activity/${activity.id}/edit`)
+    }
+
+    let publisher = null
+    if (searchParams.has('publisherId')) {
+      publisher = await db.user.findUnique({
+        where: {
+          // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+          id_congregationId: { id: Number(searchParams.get('publisherId')), congregationId },
+        },
+        include: {
+          activities: true,
+        },
+      })
+    }
+
+    return {
+      publishers: publishers.map(sanitizeUser),
+      publisher: publisher != null ? sanitizeUser(publisher) : null,
+      selectedMonth: { month, year },
+      previousPage: request.headers.get('referer'),
+    }
+  })
 }
 
 export default function NewActivity({ loaderData }: Route.ComponentProps) {
@@ -273,9 +278,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation, can, db } = await authenticateAndAuthorize(request, [
-    Role.PublisherManager,
-  ])
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   const canManageMyGroupActivity =
@@ -292,51 +295,54 @@ export async function action({ request }: Route.ActionArgs) {
   const month = Number(form.get('month'))
   const year = Number(form.get('year'))
 
-  const publisher = await db.user.findUnique({
-    where: {
-      id: publisherId,
-    },
-  })
+  return withScope(congregationId, async db => {
+    const publisher = await db.user.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: publisherId, congregationId },
+      },
+    })
 
-  const preached = form.get('preached') === 'on'
-  const hours = Number(form.get('hours'))
-  const studies = Number(form.get('studies'))
-  const observations = String(form.get('observations'))
+    const preached = form.get('preached') === 'on'
+    const hours = Number(form.get('hours'))
+    const studies = Number(form.get('studies'))
+    const observations = String(form.get('observations'))
 
-  if (publisher == null) {
-    session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
-    throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+    if (publisher == null) {
+      session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
+      throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    }
+
+    const type =
+      publisher.type === PublisherType.Normal
+        ? (form.get('type') as PublisherType)
+        : (publisher.type ?? PublisherType.Normal)
+    const activity = await db.publisherActivity.create({
+      data: {
+        publisherId: publisher.id,
+        month,
+        year,
+        type,
+        isPublisher: hours > 0 ? true : preached,
+        hours,
+        studies,
+        notes: observations,
+        congregationId,
+      },
+    })
+
+    session.flash(
+      'success',
+      `Le rapport d'activité de ${publisher.firstname} ${publisher.lastname} à été enregistré avec succès`,
+    )
+    return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
     })
-  }
-
-  const type =
-    publisher.type === PublisherType.Normal
-      ? (form.get('type') as PublisherType)
-      : (publisher.type ?? PublisherType.Normal)
-  const activity = await db.publisherActivity.create({
-    data: {
-      publisherId: publisher.id,
-      month,
-      year,
-      type,
-      isPublisher: hours > 0 ? true : preached,
-      hours,
-      studies,
-      notes: observations,
-      congregationId: congregation.id,
-    },
-  })
-
-  session.flash(
-    'success',
-    `Le rapport d'activité de ${publisher.firstname} ${publisher.lastname} à été enregistré avec succès`,
-  )
-  return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
   })
 }

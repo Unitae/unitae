@@ -25,22 +25,22 @@ function makeLimits(overrides: Partial<ConstructorParameters<typeof LimitService
 describe('LimitService', () => {
   describe('isLimited', () => {
     it('retourne false quand la limite est null (illimité)', () => {
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: null }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: null }))
       expect(service.isLimited('publishers')).toBe(false)
     })
 
     it('retourne true quand la limite est définie', () => {
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10 }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       expect(service.isLimited('publishers')).toBe(true)
     })
 
     it('retourne true même quand la limite est 0', () => {
-      const service = new LimitService(db as any, makeLimits({ maxTerritories: 0 }))
+      const service = new LimitService(db as never, makeLimits({ maxTerritories: 0 }))
       expect(service.isLimited('territories')).toBe(true)
     })
 
     it('vérifie chaque type de limite indépendamment', () => {
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10, maxTerritories: null }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10, maxTerritories: null }))
       expect(service.isLimited('publishers')).toBe(true)
       expect(service.isLimited('territories')).toBe(false)
     })
@@ -48,46 +48,46 @@ describe('LimitService', () => {
 
   describe('isStorageLimited', () => {
     it('retourne false quand maxStorageBytes est null', () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: null }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: null }))
       expect(service.isStorageLimited()).toBe(false)
     })
 
     it('retourne true quand maxStorageBytes est défini', () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: 1000n }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: 1000n }))
       expect(service.isStorageLimited()).toBe(true)
     })
   })
 
   describe('checkStorageLimit', () => {
     it("retourne false quand le stockage n'est pas limité", () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: null }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: null }))
       expect(service.checkStorageLimit(500n, 100n)).toBe(false)
     })
 
     it('retourne false quand le total est sous la limite', () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: 1000n }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: 1000n }))
       expect(service.checkStorageLimit(500n, 100n)).toBe(false)
     })
 
     it('retourne false quand le total est exactement à la limite', () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: 1000n }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: 1000n }))
       expect(service.checkStorageLimit(500n, 500n)).toBe(false)
     })
 
     it('retourne true quand le total dépasse la limite', () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: 1000n }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: 1000n }))
       expect(service.checkStorageLimit(500n, 501n)).toBe(true)
     })
   })
 
   describe('errorIfStorageOverLimit', () => {
     it("ne lance pas d'erreur quand sous la limite", () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: 1000n }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: 1000n }))
       expect(() => service.errorIfStorageOverLimit(100n, 100n)).not.toThrow()
     })
 
     it('lance LimitError quand la limite est dépassée', () => {
-      const service = new LimitService(db as any, makeLimits({ maxStorageBytes: 1000n }))
+      const service = new LimitService(db as never, makeLimits({ maxStorageBytes: 1000n }))
       try {
         service.errorIfStorageOverLimit(900n, 200n)
         expect.unreachable('devrait lancer une erreur')
@@ -104,7 +104,7 @@ describe('LimitService', () => {
     })
 
     it("retourne false quand la ressource n'est pas limitée", async () => {
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: null }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: null }))
       const result = await service.checkWouldGoOverLimit('publishers')
       expect(result).toBe(false)
     })
@@ -112,7 +112,7 @@ describe('LimitService', () => {
     it('retourne false quand le count est sous la limite', async () => {
       vi.mocked(db.user.count).mockResolvedValue(5)
 
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10 }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       const result = await service.checkWouldGoOverLimit('publishers')
       expect(result).toBe(false)
     })
@@ -120,7 +120,7 @@ describe('LimitService', () => {
     it('retourne true quand le count atteint la limite', async () => {
       vi.mocked(db.user.count).mockResolvedValue(10)
 
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10 }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       const result = await service.checkWouldGoOverLimit('publishers')
       expect(result).toBe(true)
     })
@@ -128,7 +128,7 @@ describe('LimitService', () => {
     it('retourne true quand le count dépasse la limite', async () => {
       vi.mocked(db.user.count).mockResolvedValue(15)
 
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10 }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       const result = await service.checkWouldGoOverLimit('publishers')
       expect(result).toBe(true)
     })
@@ -136,7 +136,7 @@ describe('LimitService', () => {
     it('vérifie les territoires via db.territory.count', async () => {
       vi.mocked(db.territory.count).mockResolvedValue(3)
 
-      const service = new LimitService(db as any, makeLimits({ maxTerritories: 5 }))
+      const service = new LimitService(db as never, makeLimits({ maxTerritories: 5 }))
       const result = await service.checkWouldGoOverLimit('territories')
       expect(result).toBe(false)
     })
@@ -144,7 +144,7 @@ describe('LimitService', () => {
     it('vérifie les documents via db.boardDocument.count', async () => {
       vi.mocked(db.boardDocument.count).mockResolvedValue(20)
 
-      const service = new LimitService(db as any, makeLimits({ maxBoardDocuments: 20 }))
+      const service = new LimitService(db as never, makeLimits({ maxBoardDocuments: 20 }))
       const result = await service.checkWouldGoOverLimit('boardDocuments')
       expect(result).toBe(true)
     })
@@ -158,14 +158,14 @@ describe('LimitService', () => {
     it("ne lance pas d'erreur quand sous la limite", async () => {
       vi.mocked(db.user.count).mockResolvedValue(5)
 
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10 }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       await expect(service.errorIfWouldGoOverLimit('publishers')).resolves.toBeUndefined()
     })
 
     it('lance LimitError quand la limite est atteinte', async () => {
       vi.mocked(db.user.count).mockResolvedValue(10)
 
-      const service = new LimitService(db as any, makeLimits({ maxPublishers: 10 }))
+      const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       try {
         await service.errorIfWouldGoOverLimit('publishers')
         expect.unreachable('devrait lancer une erreur')

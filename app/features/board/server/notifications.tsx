@@ -1,12 +1,16 @@
 import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
 import type { BoardDocument } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
-import { requireCongregation } from '~/shared/libs/congregation.server'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { CongregationInfo } from '~/shared/libs/congregation.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { mailer } from '~/shared/libs/mailer.server'
 
-export async function sendNewDocumentNotificationEmail(db: ScopedDb, { document }: { document: BoardDocument }) {
+export async function sendNewDocumentNotificationEmail(
+  db: TransactionClient,
+  congregation: CongregationInfo,
+  { document }: { document: BoardDocument },
+) {
   const users = await db.user.findMany({
     where: {
       congregationRoles: {
@@ -16,8 +20,6 @@ export async function sendNewDocumentNotificationEmail(db: ScopedDb, { document 
       },
     },
   })
-
-  const congregation = requireCongregation()
 
   for (const user of users) {
     try {

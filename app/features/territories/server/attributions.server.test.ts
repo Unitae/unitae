@@ -26,11 +26,11 @@ describe('findActiveAttributionsForPublisher', () => {
     ]
     vi.mocked(db.attribution.findMany).mockResolvedValue(fakeAttributions as never)
 
-    const result = await findActiveAttributionsForPublisher(db, 42)
+    const result = await findActiveAttributionsForPublisher(db as never, 42, 1)
 
     expect(result).toEqual(fakeAttributions)
     expect(db.attribution.findMany).toHaveBeenCalledWith({
-      where: { publisherId: 42, endDate: null },
+      where: { publisherId: 42, endDate: null, congregationId: 1 },
       include: { territory: true },
       orderBy: [{ startDate: 'asc' }],
     })
@@ -39,7 +39,7 @@ describe('findActiveAttributionsForPublisher', () => {
   it("retourne un tableau vide quand le proclamateur n'a pas d'attribution", async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 
-    const result = await findActiveAttributionsForPublisher(db, 99)
+    const result = await findActiveAttributionsForPublisher(db as never, 99, 1)
 
     expect(result).toEqual([])
   })
@@ -58,11 +58,14 @@ describe('findTerritoryWithHistory', () => {
     }
     vi.mocked(db.territory.findUnique).mockResolvedValue(fakeTerritory as never)
 
-    const result = await findTerritoryWithHistory(db, 10)
+    const result = await findTerritoryWithHistory(db as never, 10, 1)
 
     expect(result).toEqual(fakeTerritory)
     expect(db.territory.findUnique).toHaveBeenCalledWith({
-      where: { id: 10 },
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: 10, congregationId: 1 },
+      },
       include: {
         entrances: { include: { buildings: { where: { active: true } } } },
         attributions: {
@@ -76,7 +79,7 @@ describe('findTerritoryWithHistory', () => {
   it("retourne null quand le territoire n'existe pas", async () => {
     vi.mocked(db.territory.findUnique).mockResolvedValue(null)
 
-    const result = await findTerritoryWithHistory(db, 999)
+    const result = await findTerritoryWithHistory(db as never, 999, 1)
 
     expect(result).toBeNull()
   })

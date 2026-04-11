@@ -2,11 +2,11 @@ import type { Building } from '~/database/generated/client'
 
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 
 export async function editBuilding(
-  db: ScopedDb,
+  db: TransactionClient,
   buildingId: number,
   {
     address,

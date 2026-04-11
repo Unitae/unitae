@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -9,20 +10,27 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const territory = await db.territory.findUnique({ where: { id: requireParamId(params.territoryId, '/territories') } })
+  return withScope(congregationId, async db => {
+    const territory = await db.territory.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
+      },
+    })
 
-  if (territory == null) {
-    throw redirect('/territories')
-  }
+    if (territory == null) {
+      throw redirect('/territories')
+    }
 
-  return { territory }
+    return { territory }
+  })
 }
 
 export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
@@ -52,20 +60,27 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const territory = await db.territory.delete({ where: { id: requireParamId(params.territoryId, '/territories') } })
+  return withScope(congregationId, async db => {
+    const territory = await db.territory.delete({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
+      },
+    })
 
-  session.flash('success', `Le territoire nº${territory.number} a été correctement supprimé`)
+    session.flash('success', `Le territoire nº${territory.number} a été correctement supprimé`)
 
-  return redirect('/territories', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    return redirect('/territories', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

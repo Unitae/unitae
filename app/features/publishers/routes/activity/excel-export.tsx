@@ -3,6 +3,7 @@ import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { generatePublishersYearlyActivityXlsx } from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
 import type { Route } from './+types/excel-export'
@@ -12,7 +13,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.ActivityViewer])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityViewer])
   const canViewActivities = can(Role.ActivityViewer)
 
   if (!canViewActivities) {
@@ -25,13 +26,16 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   logger.info(`Generating publishers' activities XLSX report Year: ${params.year}. User ID: ${currentUser.id}.`, {
     currentUser,
   })
-  const file = await generatePublishersYearlyActivityXlsx(db, Number(params.year))
 
-  return new Response(file, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/vnd.ms-excel',
-      'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${params.year}.xlsx"`,
-    },
+  return withScope(congregationId, async db => {
+    const file = await generatePublishersYearlyActivityXlsx(db, Number(params.year))
+
+    return new Response(file, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/vnd.ms-excel',
+        'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${params.year}.xlsx"`,
+      },
+    })
   })
 }

@@ -7,6 +7,7 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.ProspectionViewer,
     Role.ProspectionManager,
     Role.TerritoriesManager,
@@ -32,103 +33,105 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
-  const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
-  if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
-  const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
-  if (prospectionValidity > 0) inactiveStaleDate.setMonth(inactiveStaleDate.getMonth() - prospectionValidity * 2)
-  const warningDate = new Date()
-  warningDate.setMonth(warningDate.getMonth() - 3)
+  return withScope(congregationId, async db => {
+    const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
+    const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
+    if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
+    const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
+    if (prospectionValidity > 0) inactiveStaleDate.setMonth(inactiveStaleDate.getMonth() - prospectionValidity * 2)
+    const warningDate = new Date()
+    warningDate.setMonth(warningDate.getMonth() - 3)
 
-  const totalBuildings = await db.building.count()
-  const totalActiveBuildings = await db.building.count({ where: { active: true } })
-  const totalRemovedBuildings = await db.building.count({ where: { inOpenData: false, active: true } })
-  const totalCreatedBuildings = await db.building.count({
-    where: { inOpenData: true, active: true, prospectionDate: null },
-  })
-  const totalStaleBuildings = await db.building.count({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
-      OR: [
-        {
-          prospectionDate: {
-            lt: staleDate,
+    const totalBuildings = await db.building.count()
+    const totalActiveBuildings = await db.building.count({ where: { active: true } })
+    const totalRemovedBuildings = await db.building.count({ where: { inOpenData: false, active: true } })
+    const totalCreatedBuildings = await db.building.count({
+      where: { inOpenData: true, active: true, prospectionDate: null },
+    })
+    const totalStaleBuildings = await db.building.count({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
+        OR: [
+          {
+            prospectionDate: {
+              lt: staleDate,
+            },
+            active: true,
           },
-          active: true,
-        },
-        {
-          prospectionDate: {
-            lt: inactiveStaleDate,
+          {
+            prospectionDate: {
+              lt: inactiveStaleDate,
+            },
+            active: false,
+            inTerritory: true,
           },
-          active: false,
-          inTerritory: true,
-        },
-        {
-          entrance: { access: TerritoryAccess.Intercom },
-          homes: { equals: null },
-          inTerritory: true,
-        },
-        {
-          entrance: { access: TerritoryAccess.Doorbell },
-          homes: { equals: null },
-          inTerritory: true,
-        },
-        {
-          entrance: { access: TerritoryAccess.Code, isOpenEarly: true },
+          {
+            entrance: { access: TerritoryAccess.Intercom },
+            homes: { equals: null },
+            inTerritory: true,
+          },
+          {
+            entrance: { access: TerritoryAccess.Doorbell },
+            homes: { equals: null },
+            inTerritory: true,
+          },
+          {
+            entrance: { access: TerritoryAccess.Code, isOpenEarly: true },
 
-          homes: { equals: null },
-          inTerritory: true,
-        },
-        {
-          entrance: { access: TerritoryAccess.Code, isOpenEarly: false },
-          phones: { equals: null },
-          inTerritory: true,
-        },
-        {
-          inTerritory: false,
-          active: true,
-          createdAt: {
-            lt: warningDate,
+            homes: { equals: null },
+            inTerritory: true,
           },
-        },
-        {
-          inTerritory: true,
-          homes: { gt: 0 },
-          entrance: {
-            access: {
-              equals: null,
+          {
+            entrance: { access: TerritoryAccess.Code, isOpenEarly: false },
+            phones: { equals: null },
+            inTerritory: true,
+          },
+          {
+            inTerritory: false,
+            active: true,
+            createdAt: {
+              lt: warningDate,
             },
           },
-        },
-      ],
-    },
-  })
-  const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })
-  const messages = { success: session.get('success'), error: session.get('error') }
-  const zips = await getZips(db)
+          {
+            inTerritory: true,
+            homes: { gt: 0 },
+            entrance: {
+              access: {
+                equals: null,
+              },
+            },
+          },
+        ],
+      },
+    })
+    const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })
+    const messages = { success: session.get('success'), error: session.get('error') }
+    const zips = await getZips(db)
 
-  return data(
-    {
-      zips,
-      messages,
-      openDataAvailable: banoUrl?.value != null && banoUrl.value !== '',
-      staleDate,
-      canManageTerritories,
-      canManageProspection,
-      stats: {
-        total: totalBuildings,
-        active: totalActiveBuildings,
-        removed: totalRemovedBuildings,
-        stale: totalStaleBuildings,
-        created: totalCreatedBuildings,
+    return data(
+      {
+        zips,
+        messages,
+        openDataAvailable: banoUrl?.value != null && banoUrl.value !== '',
+        staleDate,
+        canManageTerritories,
+        canManageProspection,
+        stats: {
+          total: totalBuildings,
+          active: totalActiveBuildings,
+          removed: totalRemovedBuildings,
+          stale: totalStaleBuildings,
+          created: totalCreatedBuildings,
+        },
       },
-    },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
+      {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
       },
-    },
-  )
+    )
+  })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {

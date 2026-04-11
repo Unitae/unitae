@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -48,7 +49,7 @@ export default function NewSectionPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, db } = await authenticateAndAuthorize(request)
+  const { session, congregationId } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 
@@ -57,28 +58,30 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/board/sections/new')
   }
 
-  const section = await db.boardSection.create({
-    data: {
-      name: String(name),
-      congregationId: congregation.id,
-    },
-  })
+  return withScope(congregationId, async db => {
+    const section = await db.boardSection.create({
+      data: {
+        name: String(name),
+        congregationId,
+      },
+    })
 
-  if (section == null) {
-    session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+    if (section == null) {
+      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
 
-    return redirect('/board', {
+      return redirect('/board', {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    }
+
+    session.flash('success', `Section "${section.name}" créée avec succès.`)
+
+    return redirect(`/board/sections/${section.id}/edit`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
     })
-  }
-
-  session.flash('success', `Section "${section.name}" créée avec succès.`)
-
-  return redirect(`/board/sections/${section.id}/edit`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
   })
 }

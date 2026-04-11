@@ -3,6 +3,7 @@ import { createPasswordResetToken } from '~/features/authentication/server/inval
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -59,7 +60,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, db } = await authenticateAndAuthorize(request)
+  const { congregation, congregationId } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -69,43 +70,45 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/settings/users/new')
   }
 
-  const existingUser = await db.user.findUnique({
-    where: {
-      email: String(email),
-    },
+  return withScope(congregationId, async db => {
+    const existingUser = await db.user.findUnique({
+      where: {
+        email: String(email),
+      },
+    })
+
+    if (existingUser != null) {
+      throw redirect('/settings/users/new')
+    }
+
+    const limits = new LimitService(db, congregation)
+    await limits.errorIfWouldGoOverLimit('users')
+
+    const user = await db.user.create({
+      data: {
+        firstname: String(firstname),
+        lastname: String(lastname),
+        email: String(email).toLocaleLowerCase(),
+        active: true,
+        password: 'password',
+        congregationId,
+      },
+    })
+
+    const token = await createPasswordResetToken(user.id)
+
+    const ResetPasswordRequired = (await import('emails/reset-password-required')).default
+    await sendResetUserPasswordEmail(
+      user.id,
+      <ResetPasswordRequired
+        email={user.email}
+        firstname={user.firstname || undefined}
+        token={token}
+        baseUrl={congregation.baseUrl}
+        platformName={congregation.displayName}
+      />,
+    )
+
+    return redirect('/settings/users')
   })
-
-  if (existingUser != null) {
-    throw redirect('/settings/users/new')
-  }
-
-  const limits = new LimitService(db, congregation)
-  await limits.errorIfWouldGoOverLimit('users')
-
-  const user = await db.user.create({
-    data: {
-      firstname: String(firstname),
-      lastname: String(lastname),
-      email: String(email).toLocaleLowerCase(),
-      active: true,
-      password: 'password',
-      congregationId: congregation.id,
-    },
-  })
-
-  const token = await createPasswordResetToken(user.id)
-
-  const ResetPasswordRequired = (await import('emails/reset-password-required')).default
-  await sendResetUserPasswordEmail(
-    user.id,
-    <ResetPasswordRequired
-      email={user.email}
-      firstname={user.firstname || undefined}
-      token={token}
-      baseUrl={congregation.baseUrl}
-      platformName={congregation.displayName}
-    />,
-  )
-
-  return redirect('/settings/users')
 }

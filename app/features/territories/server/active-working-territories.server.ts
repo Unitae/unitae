@@ -1,6 +1,6 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
-export async function countActiveWorkingTerritories(db: ScopedDb) {
+export async function countActiveWorkingTerritories(db: TransactionClient) {
   return await db.territory.count({
     where: {
       attributions: {

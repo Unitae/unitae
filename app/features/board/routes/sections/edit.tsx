@@ -3,6 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -17,22 +18,25 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
   const canManageBoard = can(Role.BoardValidator)
 
   if (!canManageBoard) {
     throw redirect('/')
   }
 
-  const section = await db.boardSection.findUnique({
-    where: {
-      id: requireParamId(params.sectionId, '/board'),
-    },
+  return withScope(congregationId, async db => {
+    const section = await db.boardSection.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: requireParamId(params.sectionId, '/board'), congregationId },
+      },
+    })
+
+    if (section == null) throw redirect('/board/sections')
+
+    return { section }
   })
-
-  if (section == null) throw redirect('/board/sections')
-
-  return { section }
 }
 
 export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
@@ -76,7 +80,7 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, db } = await authenticateAndAuthorize(request)
+  const { session, congregationId } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const name = String(form.get('name'))
 
@@ -85,30 +89,33 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/board/sections/new')
   }
 
-  const section = await db.boardSection.update({
-    where: {
-      id: requireParamId(params.sectionId, '/board'),
-    },
-    data: {
-      name: String(name),
-    },
-  })
+  return withScope(congregationId, async db => {
+    const section = await db.boardSection.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: requireParamId(params.sectionId, '/board'), congregationId },
+      },
+      data: {
+        name: String(name),
+      },
+    })
 
-  if (section == null) {
-    session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+    if (section == null) {
+      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
 
-    return redirect('/board', {
+      return redirect('/board', {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    }
+
+    session.flash('success', `Section "${section.name}" modifiée avec succès.`)
+
+    return redirect(`/board/sections/${section.id}/edit`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
     })
-  }
-
-  session.flash('success', `Section "${section.name}" modifiée avec succès.`)
-
-  return redirect(`/board/sections/${section.id}/edit`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
   })
 }
