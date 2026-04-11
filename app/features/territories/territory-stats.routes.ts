@@ -5,6 +5,7 @@ export const territoryStatsRoutes = [
   ...prefix('territory', [
     route('new', 'features/territories/routes/territory/new.tsx'),
     ...prefix(':territoryId', [
+      route('view', 'features/territories/routes/territory/view.tsx'),
       route('edit', 'features/territories/routes/territory/edit.tsx'),
       route('delete', 'features/territories/routes/territory/delete.tsx'),
     ]),

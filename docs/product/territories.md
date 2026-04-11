@@ -14,6 +14,18 @@ Unitae supports several territory types to match different kinds of field minist
 
 Each territory has a number, a type, and optional notes.
 
+## Territory View
+
+Each territory has a read-only detail page showing:
+
+- **Territory info** — Number, type, household/phone count, and notes
+- **Type-specific details** — Commerce territories list each entrance with its shop type; other types show entrances with household counts
+- **Current attribution** — The publisher currently working the territory, with start date, expected return date, and status
+- **Attribution history** — A table of all past attributions with publisher name, start/end dates, duration, and type
+- **Map** — Building locations displayed on a map (when Google Maps is configured)
+
+The territory view is accessible to users with the `TerritoriesViewer` role. Editing and attribution management actions are only shown to `TerritoriesManager` users.
+
 ## Attributions
 
 An **attribution** is when a territory is assigned to a publisher for a period of time.

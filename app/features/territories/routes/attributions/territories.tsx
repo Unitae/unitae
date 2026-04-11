@@ -130,7 +130,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                 <TableCell>
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/territories/territory/${territory.id}/edit`} title="Voir le détail du territoire">
+                      <Link to={`/territories/territory/${territory.id}/view`} title="Voir le détail du territoire">
                         <ExternalLink className="size-4" />
                       </Link>
                     </Button>
