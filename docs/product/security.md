@@ -79,3 +79,9 @@ If you discover a security vulnerability in Unitae, please report it responsibly
 - 48-hour acknowledgment
 - 7-day initial assessment
 - Credit in release notes (if desired)
+
+## Related
+
+- [Roles and Permissions](roles-and-permissions.md) — The 14 roles that control access to features
+- [FAQ](../resources/faq.md) — "Is my data safe?" and other common questions
+- [Architecture](../development/architecture.md) — Technical details of the data isolation model

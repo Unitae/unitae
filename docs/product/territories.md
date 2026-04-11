@@ -62,7 +62,7 @@ Each building record includes:
 
 ### Open Data Sync
 
-For congregations in France, building addresses can be automatically imported from the national address database (BANO). See [Open Data Sync](../advanced/open-data-sync.md) for details.
+For congregations in France, building addresses can be automatically imported from the national address database (BANO). See [Open Data Sync](../self-hosting/open-data-sync.md) for details.
 
 ## Maps
 
@@ -71,7 +71,7 @@ When a Google Maps API key is configured, Unitae displays:
 - **Interactive maps** on territory pages showing building entrance locations
 - **Map images** in PDF territory card exports
 
-Maps are optional — all territory features work without them. See [Environment Variables](../technical-reference/environment-variables.md) for configuration.
+Maps are optional — all territory features work without them. See [Environment Variables](../self-hosting/environment-variables.md) for configuration.
 
 ## Statistics
 
@@ -101,3 +101,11 @@ Statistics follow the **theocratic year** (September to August).
 | `ProspectionViewer` | View building prospection data |
 | `ProspectionManager` | Edit buildings, update prospection data, manage building status |
 | `Admin` | Everything |
+
+See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+
+## Related
+
+- [Open Data Sync](../self-hosting/open-data-sync.md) — How to import building addresses from the French national database
+- [Publishers](publishers.md) — The people who work the territories
+- [Feature Overview](feature-overview.md) — See all features at a glance

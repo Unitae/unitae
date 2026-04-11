@@ -75,3 +75,12 @@ Back up PostgreSQL regularly. Options:
 ### Redis
 
 Redis stores the job queue and rate limiting counters. It is not critical to back up — if lost, pending sync jobs need to be re-triggered manually and rate limiting counters reset.
+
+## Don't Want to Manage Infrastructure?
+
+If these requirements feel like too much for your congregation, consider [managed hosting](../managed-hosting/getting-started.md) — backups, updates, TLS, and monitoring are all handled for you. See [Self-Hosting vs Managed Hosting](../managed-hosting/self-hosting-vs-managed.md) to compare.
+
+## Related
+
+- [Getting Started](getting-started.md) — Deploy with Docker Compose or PM2
+- [Environment Variables](environment-variables.md) — Full configuration reference

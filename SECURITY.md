@@ -40,7 +40,7 @@ The following vulnerabilities are in scope:
 - Login rate limiting: 5 attempts per 15 minutes per email (via Redis)
 - Data isolation per congregation via Prisma extension (automatic `congregationId` injection)
 
-See [Security](docs/core-concepts/security.md) for a detailed overview of the security model.
+See [Security](docs/product/security.md) for a detailed overview of the security model.
 
 ## Responsible Disclosure
 

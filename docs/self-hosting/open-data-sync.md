@@ -67,10 +67,16 @@ If you define a geographic polygon for your congregation's territory boundaries,
 - Address uniqueness is determined by the combination of `(number, street, zip, congregationId)`
 - Point-in-polygon calculations determine territory membership
 
-See [Background Processing](../technical-reference/background-processing.md) for the worker architecture.
+See [Background Processing](../development/background-processing.md) for the worker architecture.
 
 ## Limitations
 
 - **France only** — The BANO data source covers French addresses. Congregations in other countries need to enter building data manually.
 - **CSV format dependency** — The sync expects the BANO CSV format. Changes to the data source format may require code updates.
 - **Large datasets** — Departments with many addresses may take several minutes to process. The progress indicator tracks completion.
+
+## Related
+
+- [Territories](../product/territories.md) — The feature that uses imported building data
+- [Getting Started](getting-started.md) — How to deploy Unitae and start the background worker
+- [Environment Variables](environment-variables.md) — Redis and worker configuration

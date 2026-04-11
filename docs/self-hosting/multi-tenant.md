@@ -16,7 +16,7 @@ When multi-tenant mode is enabled:
 
 ## Prerequisites
 
-- Everything from the [self-hosted deployment](self-hosted.md)
+- Everything from the [self-hosted deployment](getting-started.md)
 - A domain name with wildcard DNS (e.g., `*.unitae.example.com` pointing to your server)
 - A reverse proxy capable of handling wildcard TLS certificates (Caddy, Traefik, or Nginx with Let's Encrypt)
 
@@ -37,7 +37,7 @@ COOKIE_DOMAIN=unitae.example.com
 
 ## Docker Compose Setup
 
-Use the same `docker-compose.yml` as the [self-hosted deployment](self-hosted.md). The only difference is the extra environment variables above.
+Use the same `docker-compose.yml` as the [self-hosted deployment](getting-started.md). The only difference is the extra environment variables above.
 
 ```bash
 docker compose up -d
@@ -101,10 +101,12 @@ server {
 
 Each congregation's data is completely isolated at the database level. All queries are automatically scoped to the current congregation — there is no way for one congregation to access another's data through the application.
 
-See [Security](../core-concepts/security.md) for more details on the isolation model.
+See [Security](../product/security.md) for more details on the isolation model.
 
 ## Next Steps
 
-- [Self-Hosting vs unitae.app](../hosting/self-hosting-vs-managed.md) — Compare self-hosting with the managed service
-- [Requirements](../hosting/requirements.md) — Resource recommendations for multi-congregation deployments
-- [Environment Variables](../technical-reference/environment-variables.md) — Full configuration reference
+- [Requirements](requirements.md) — Resource recommendations for multi-congregation deployments
+- [Environment Variables](environment-variables.md) — Full configuration reference
+- [Open Data Sync](open-data-sync.md) — Import building addresses for each congregation
+
+Don't want to manage multi-tenant infrastructure? [Managed hosting](../managed-hosting/getting-started.md) handles multi-congregation out of the box.

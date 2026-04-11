@@ -7,7 +7,7 @@ Deploy Unitae for your congregation on your own infrastructure. This guide cover
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- A server or VPS (see [Requirements](../hosting/requirements.md))
+- A server or VPS (see [Requirements](requirements.md))
 
 ### 1. Get the Docker Compose File
 
@@ -120,6 +120,10 @@ Set `GOOGLE_MAPS_API_KEY` to enable interactive maps on territory pages and map 
 
 ## Next Steps
 
-- [Core Concepts](../core-concepts/display-board.md) — Learn about Unitae's features
-- [Requirements](../hosting/requirements.md) — Minimum resources for production
-- [Environment Variables](../technical-reference/environment-variables.md) — Full configuration reference
+- [Requirements](requirements.md) — Minimum resources for production
+- [Environment Variables](environment-variables.md) — Full configuration reference
+- [Multi-Congregation Setup](multi-tenant.md) — Host several congregations on one instance
+- [Open Data Sync](open-data-sync.md) — Import French national addresses for building prospection
+- [Feature Overview](../product/feature-overview.md) — Learn what Unitae can do
+
+Not sure about self-hosting? Compare with [managed hosting](../managed-hosting/self-hosting-vs-managed.md) — zero maintenance, automatic updates.

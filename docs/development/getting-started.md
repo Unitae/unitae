@@ -96,6 +96,8 @@ pnpm test:unit        # Run unit tests
 
 ## Next Steps
 
-- [Coding Conventions](../technical-reference/coding-conventions.md) — Patterns, philosophy, and rules
-- [Architecture](../technical-reference/architecture.md) — System architecture and data flow
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — Full contribution guidelines
+- [Coding Conventions](coding-conventions.md) — Patterns, philosophy, and rules
+- [Architecture](architecture.md) — System design, request flow, and data isolation
+- [Background Processing](background-processing.md) — BullMQ worker architecture
+- [CONTRIBUTING.md](../../CONTRIBUTING.md) — How to submit a pull request
+- [Feature Overview](../product/feature-overview.md) — Understand what you're building on

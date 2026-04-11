@@ -46,3 +46,10 @@ Days off are personal — each user manages their own.
 | `Admin` | Everything |
 
 Any authenticated user can view and manage their own days off, regardless of role.
+
+See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+
+## Related
+
+- [Publishers](publishers.md) — Days off help program organizers avoid scheduling absent publishers
+- [Feature Overview](feature-overview.md) — See all features at a glance

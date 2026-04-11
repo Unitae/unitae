@@ -18,20 +18,19 @@ There are three ways to use Unitae:
 
 | | Best for |
 |---|---|
-| [**unitae.app**](docs/getting-started/unitae-app.md) | Sign up and start using immediately — zero setup |
-| [**Self-hosted**](docs/getting-started/self-hosted.md) | Run Unitae on your own server with Docker Compose or PM2 |
-| [**Development**](docs/getting-started/development.md) | Set up a local environment to contribute |
+| [**Managed hosting**](docs/managed-hosting/getting-started.md) | Sign up and start using immediately — zero setup |
+| [**Self-hosted**](docs/self-hosting/getting-started.md) | Run Unitae on your own server with Docker Compose or PM2 |
+| [**Development**](docs/development/getting-started.md) | Set up a local environment to contribute |
 
 ## Documentation
 
 Full documentation is available in the [`docs/`](docs/README.md) folder:
 
-- [What is Unitae?](docs/introduction/what-is-unitae.md) — Product overview and background
-- [Feature Overview](docs/introduction/feature-overview.md) — What you can do with Unitae
-- [Self-Hosting vs unitae.app](docs/hosting/self-hosting-vs-managed.md) — Compare your options
-- [Core Concepts](docs/core-concepts/territories.md) — Deep dive into each feature
-- [Environment Variables](docs/technical-reference/environment-variables.md) — Full configuration reference
-- [FAQ](docs/guides/faq.md) — Common questions answered
+- [What is Unitae?](docs/product/what-is-unitae.md) — Product overview and background
+- [Feature Overview](docs/product/feature-overview.md) — What you can do with Unitae
+- [Self-Hosting vs Managed Hosting](docs/managed-hosting/self-hosting-vs-managed.md) — Compare your options
+- [Environment Variables](docs/self-hosting/environment-variables.md) — Full configuration reference
+- [FAQ](docs/resources/faq.md) — Common questions answered
 
 ## Contributing
 
@@ -39,4 +38,4 @@ Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get
 
 ## License
 
-[AGPL-3.0](LICENSE) — All application code is open source. See [Licensing](docs/guides/licensing.md) for what this means for you.
+[AGPL-3.0](LICENSE) — All application code is open source. See [Licensing](docs/resources/licensing.md) for what this means for you.

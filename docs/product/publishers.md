@@ -75,3 +75,10 @@ Activity statistics follow the **theocratic year**, which runs from September to
 | `ActivityViewer` | View activity reports and statistics |
 | `ActivityManager` | Record, edit, and export publisher activity |
 | `Admin` | Everything |
+
+See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+
+## Related
+
+- [Territories](territories.md) — Territory attributions are linked to publishers
+- [Feature Overview](feature-overview.md) — See all features at a glance

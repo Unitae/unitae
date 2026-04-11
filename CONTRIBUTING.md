@@ -4,13 +4,13 @@ Thank you for your interest in Unitae! This guide explains how to contribute to 
 
 ## Getting Started
 
-Set up your development environment by following the [Development Setup](docs/getting-started/development.md) guide.
+Set up your development environment by following the [Development Setup](docs/development/getting-started.md) guide.
 
 ## Contribution Process
 
 1. **Open an issue** to discuss your idea before starting any significant work
 2. **Fork** the repository and create a branch from `main`
-3. **Implement** your changes following the [coding conventions](docs/technical-reference/coding-conventions.md)
+3. **Implement** your changes following the [coding conventions](docs/development/coding-conventions.md)
 4. **Verify** everything passes:
    ```bash
    pnpm build:format
@@ -29,7 +29,7 @@ Set up your development environment by following the [Development Setup](docs/ge
 
 ## Code Conventions
 
-See [Coding Conventions](docs/technical-reference/coding-conventions.md) for the full guide, including:
+See [Coding Conventions](docs/development/coding-conventions.md) for the full guide, including:
 
 - Development philosophy and architecture patterns
 - Code style (Biome configuration)

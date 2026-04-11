@@ -56,3 +56,10 @@ The system tracks which members have viewed each document. This gives administra
 | `Admin` | Everything |
 
 Any authenticated user can view the board and its visible documents.
+
+See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+
+## Related
+
+- [Feature Overview](feature-overview.md) — See all features at a glance
+- [Security](security.md) — How data isolation protects your documents

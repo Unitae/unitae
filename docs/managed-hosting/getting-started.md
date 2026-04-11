@@ -32,6 +32,8 @@ If you are currently self-hosting and want to migrate to unitae.app, contact the
 
 ## Next Steps
 
-- [Feature Overview](../introduction/feature-overview.md) — Discover what Unitae can do
-- [Core Concepts](../core-concepts/display-board.md) — Learn about each feature in detail
-- [Self-Hosting vs unitae.app](../hosting/self-hosting-vs-managed.md) — Compare your hosting options
+- [Feature Overview](../product/feature-overview.md) — Discover what Unitae can do
+- [Display Board](../product/display-board.md), [Territories](../product/territories.md), [Publishers](../product/publishers.md) — Learn about each feature in detail
+- [Self-Hosting vs Managed Hosting](self-hosting-vs-managed.md) — Compare your hosting options
+
+Prefer to run Unitae yourself? See the [self-hosting guide](../self-hosting/getting-started.md).

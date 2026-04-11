@@ -21,7 +21,7 @@ Unitae is a web application designed specifically for Jehovah's Witnesses congre
 
 ### Fully Open Source
 
-Unitae is licensed under [AGPL-3.0](../guides/licensing.md). All application code is open source — there are no proprietary plugins, no locked features, and no code hidden behind a paid tier. Self-hosted users get the exact same features as users on the managed platform.
+Unitae is licensed under [AGPL-3.0](../resources/licensing.md). All application code is open source — there are no proprietary plugins, no locked features, and no code hidden behind a paid tier. Self-hosted users get the exact same features as users on the managed platform.
 
 #### Ghost-Inspired Open-Core Model
 
@@ -42,3 +42,10 @@ The project is open to community contributions — see [CONTRIBUTING.md](../../C
 The user interface and code comments are written in **French**, reflecting the primary user base. Documentation, commit messages, and pull request descriptions are written in **English**.
 
 Internationalization (i18n) support is on the roadmap but not yet available.
+
+## Next Steps
+
+- [Feature Overview](feature-overview.md) — See what Unitae can do in detail
+- [Get started with managed hosting](../managed-hosting/getting-started.md) — Use unitae.app, no setup needed
+- [Self-host Unitae](../self-hosting/getting-started.md) — Deploy on your own infrastructure
+- [FAQ](../resources/faq.md) — Common questions about pricing, licensing, and features

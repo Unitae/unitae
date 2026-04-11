@@ -1,50 +1,48 @@
 # Unitae Documentation
 
-Unitae is an open-source web application for managing Jehovah's Witnesses congregations. It handles territories, publisher activity, document sharing, and event organization.
+Unitae is an open-source web application for managing Jehovah's Witnesses congregations — territories, publisher activity, document sharing, and event organization.
 
-You can self-host Unitae for your congregation or use the managed hosting service at [unitae.app](https://unitae.app).
+## I want to...
 
-## Contents
+### Discover what Unitae can do
 
-### Introduction
+Start here to understand the product, its features, and how it works.
 
-- [What is Unitae?](introduction/what-is-unitae.md) — Product overview, background, and how it differs from alternatives
-- [Feature Overview](introduction/feature-overview.md) — A glance at available features
+1. [What is Unitae?](product/what-is-unitae.md) — The problem it solves, how it differs, who builds it
+2. [Feature Overview](product/feature-overview.md) — A glance at all features
+3. Deep dives: [Display Board](product/display-board.md) · [Territories](product/territories.md) · [Publishers](product/publishers.md) · [Events](product/events.md)
+4. [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
+5. [Security](product/security.md) — How your data is protected
 
-### Getting Started
+### Use the managed hosting service
 
-- [Self-Hosted Deployment](getting-started/self-hosted.md) — Deploy Unitae for a single congregation with Docker Compose or PM2
-- [Multi-Congregation Deployment](getting-started/multi-tenant.md) — Run one Unitae instance for several congregations
-- [Using unitae.app](getting-started/unitae-app.md) — Sign up for the managed hosting service
-- [Development Setup](getting-started/development.md) — Set up a development environment to contribute
+The fastest way to get started — no server to manage.
 
-### Hosting
+1. [Get started with managed hosting](managed-hosting/getting-started.md) — Sign up at unitae.app
+2. [Self-Hosting vs Managed Hosting](managed-hosting/self-hosting-vs-managed.md) — Compare your options
 
-- [Self-Hosting vs unitae.app](hosting/self-hosting-vs-managed.md) — Compare your hosting options
-- [Requirements](hosting/requirements.md) — Minimum resources for a production deployment
+### Self-host Unitae
 
-### Core Concepts
+Run Unitae on your own infrastructure with full control over your data.
 
-- [Virtual Display Board](core-concepts/display-board.md) — Share documents with your congregation
-- [Territories](core-concepts/territories.md) — Manage territories, attributions, and building prospection
-- [Publishers](core-concepts/publishers.md) — Publisher profiles, groups, and activity tracking
-- [Events](core-concepts/events.md) — Programs, event kinds, and days off
-- [Roles and Permissions](core-concepts/roles-and-permissions.md) — The 14 roles and how access control works
-- [Security](core-concepts/security.md) — Authentication, data isolation, and vulnerability reporting
+1. [Getting Started](self-hosting/getting-started.md) — Deploy with Docker Compose or PM2
+2. [Multi-Congregation Setup](self-hosting/multi-tenant.md) — Host several congregations on one instance
+3. [Requirements](self-hosting/requirements.md) — Minimum resources for production
+4. [Environment Variables](self-hosting/environment-variables.md) — Full configuration reference
+5. [Open Data Sync](self-hosting/open-data-sync.md) — Import French national addresses for building prospection
 
-### Technical Reference
+### Contribute to Unitae
 
-- [Architecture](technical-reference/architecture.md) — System architecture, request flow, and data isolation model
-- [Background Processing](technical-reference/background-processing.md) — BullMQ worker architecture for async jobs
-- [Coding Conventions](technical-reference/coding-conventions.md) — Patterns, philosophy, and rules for contributors
-- [Environment Variables](technical-reference/environment-variables.md) — Complete reference of all configuration variables
+Set up a development environment and understand the codebase.
 
-### Advanced
+1. [Development Setup](development/getting-started.md) — Clone, install, and run locally
+2. [Coding Conventions](development/coding-conventions.md) — Patterns, philosophy, and rules
+3. [Architecture](development/architecture.md) — System design, request flow, and data isolation
+4. [Background Processing](development/background-processing.md) — BullMQ worker architecture
+5. [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
 
-- [Open Data Sync](advanced/open-data-sync.md) — Sync building addresses from the French national address database
+### Reference
 
-### Guides
-
-- [Licensing](guides/licensing.md) — AGPL-3.0 license explained
-- [Trademark](guides/trademark.md) — Usage guidelines for the Unitae name and logo
-- [FAQ](guides/faq.md) — Frequently asked questions
+- [FAQ](resources/faq.md) — Common questions answered
+- [Licensing](resources/licensing.md) — AGPL-3.0 explained
+- [Trademark](resources/trademark.md) — Usage guidelines for the Unitae name
