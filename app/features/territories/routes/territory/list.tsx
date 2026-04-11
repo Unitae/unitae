@@ -150,7 +150,11 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
                 return (
                   <TableRow key={territory.id}>
-                    <TableCell>{territory.number}</TableCell>
+                    <TableCell>
+                      <Link to={`./territory/${territory.id}/view`} className="hover:text-primary">
+                        {territory.number}
+                      </Link>
+                    </TableCell>
                     <TableCell className="text-center">
                       {territory.type === TerritoryKind.Classical && 'Porte à porte'}
                       {territory.type === TerritoryKind.Commerces && 'Commerces'}

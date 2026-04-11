@@ -16,3 +16,24 @@ export async function findActiveAttributionsPaginated(db: ScopedDb, selectors: P
 
   return { attributions, pagination }
 }
+
+export function findActiveAttributionsForPublisher(db: ScopedDb, publisherId: number) {
+  return db.attribution.findMany({
+    where: { publisherId, endDate: null },
+    include: { territory: true },
+    orderBy: [{ startDate: 'asc' }],
+  })
+}
+
+export function findTerritoryWithHistory(db: ScopedDb, territoryId: number) {
+  return db.territory.findUnique({
+    where: { id: territoryId },
+    include: {
+      entrances: { include: { buildings: { where: { active: true } } } },
+      attributions: {
+        include: { publisher: true },
+        orderBy: [{ startDate: 'desc' }],
+      },
+    },
+  })
+}

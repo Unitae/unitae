@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import {
   aggregateEntrance,
   getAvailableEntrances,
@@ -113,28 +114,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
   const [territoryEntrances, setTerritoryEntrances] = useState(savedTerritoryEntrances)
 
   const attribution = [...territory.attributions].shift()
-
-  let quantity = territoryEntrances.length
-  if (territory.type === TerritoryKind.Phone) {
-    quantity = territoryEntrances.reduce((acc, entrance) => {
-      return (
-        acc +
-        entrance.buildings.reduce((acc, building) => {
-          return acc + (building.phones ?? 0)
-        }, 0)
-      )
-    }, 0)
-  }
-  if (territory.type === TerritoryKind.Classical || territory.type === TerritoryKind.Univ) {
-    quantity = territoryEntrances.reduce((acc, entrance) => {
-      return (
-        acc +
-        entrance.buildings.reduce((acc, building) => {
-          return acc + (building.homes ?? building.phones ?? 0)
-        }, 0)
-      )
-    }, 0)
-  }
+  const quantity = computeTerritoryQuantity(territory.type, territoryEntrances)
 
   return (
     <div className="flex flex-col gap-6">

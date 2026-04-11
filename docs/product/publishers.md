@@ -29,6 +29,15 @@ The *Profil du proclamateur* field offers:
 - **Pionnier spécial** — Special pioneer
 - **Missionnaire** — Missionary
 
+### Territory Attributions
+
+The publisher profile displays the list of territories currently attributed to the publisher. For each active attribution, the view shows:
+
+- **Nº** — The territory number (links to the territory view if the user has the `TerritoriesViewer` role)
+- **Type** — The territory type (Porte à Porte, Commerces, etc.)
+- **Date de sortie** — When the attribution started
+- **Statut** — Whether the attribution is on time or overdue
+
 ## Publisher Groups
 
 Publishers are organized into **groups** (field service groups). Each group has:

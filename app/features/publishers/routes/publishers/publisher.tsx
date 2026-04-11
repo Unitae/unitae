@@ -2,6 +2,9 @@ import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions'
+import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
@@ -10,6 +13,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/publisher'
 
@@ -22,10 +26,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     Role.PublisherViewer,
     Role.PublisherManager,
     Role.ActivityManager,
+    Role.TerritoriesViewer,
   ])
   const canViewPublisher = can(Role.PublisherViewer)
   const canManagePublisher = can(Role.PublisherManager)
   const canManageActivity = can(Role.ActivityManager)
+  const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewPublisher) {
     logger.warn(`Tried to load publisher file. User ID: ${currentUser.id}. Does NOT have rights to view publishers.`)
@@ -76,14 +82,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/congregation/publishers')
   }
 
+  const attributions = await findActiveAttributionsForPublisher(db, publisher.id)
+
   const messages = { success: session.get('success'), error: session.get('error') }
 
   return {
     publisher: sanitizeUser(publisher),
+    attributions,
     messages,
     roles: {
       canViewPublisher,
       canManagePublisher,
+      canViewTerritories,
       canManageActivity:
         canManageActivity ||
         publisher.publisherGroup?.responsible.id === currentUser.id ||
@@ -93,7 +103,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
-  const { publisher, roles } = loaderData
+  const { publisher, attributions, roles } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -221,6 +231,61 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           <p className="text-muted-foreground text-xs italic">
             Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Attributions en cours</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {attributions.length > 0 ? (
+            <div className="overflow-hidden rounded-xl border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nº</TableHead>
+                    <TableHead className="max-sm:hidden">Type</TableHead>
+                    <TableHead className="text-center">Sortie le</TableHead>
+                    <TableHead className="text-center">Statut</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attributions.map(attribution => (
+                    <TableRow key={attribution.id}>
+                      <TableCell>
+                        {roles.canViewTerritories ? (
+                          <Link
+                            to={`/territories/territory/${attribution.territoryId}/view`}
+                            className="hover:text-primary"
+                          >
+                            {attribution.territory.number}
+                          </Link>
+                        ) : (
+                          attribution.territory.number
+                        )}
+                      </TableCell>
+                      <TableCell className="max-sm:hidden">
+                        {attribution.territory.type === TerritoryKind.Classical && 'Porte à porte'}
+                        {attribution.territory.type === TerritoryKind.Commerces && 'Commerces'}
+                        {attribution.territory.type === TerritoryKind.Phone && 'Téléphones'}
+                        {attribution.territory.type === TerritoryKind.Hotel && 'Hôtels'}
+                        {attribution.territory.type === TerritoryKind.Univ && 'Universités'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attribution.startDate.toLocaleDateString('fr-FR')}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <AttributionStatus attribution={attribution} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-sm italic">Aucune attribution en cours</p>
+          )}
         </CardContent>
       </Card>
     </div>

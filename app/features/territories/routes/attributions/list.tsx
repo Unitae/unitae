@@ -195,7 +195,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     </TableCell>
                     <TableCell className="text-center">
                       <Link
-                        to={`/territories/territory/${attribution.territoryId}/edit`}
+                        to={`/territories/territory/${attribution.territoryId}/view`}
                         className="hover:text-primary"
                       >
                         {attribution.territory.number}

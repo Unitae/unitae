@@ -20,7 +20,7 @@ export function TerritoryCardLink({ territory, entrances }: { territory: Territo
             {entrances.reduce((aggr, curr) => aggr + (curr.homes ?? curr.phones ?? 0), 0)} portes
           </span>
         </div>
-        <Link to={`/territories/territory/${territory.id}/edit`} className="text-primary hover:text-primary/80">
+        <Link to={`/territories/territory/${territory.id}/view`} className="text-primary hover:text-primary/80">
           <ExternalLink className="size-5" />
         </Link>
       </CardContent>
