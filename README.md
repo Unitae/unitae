@@ -2,7 +2,7 @@
 
 Open-source web application for managing Jehovah's Witnesses congregations. Manage territories, track publisher activity, share documents, and organize congregation life.
 
-Built by [MindserIT](https://mindsers.it/) and available as a managed service at [unitae.app](https://unitae.app).
+Built by [MindsersIT](https://mindsers.it/) and available as a managed service at [unitae.app](https://unitae.app).
 
 ## Features
 

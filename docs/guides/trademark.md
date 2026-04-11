@@ -2,7 +2,7 @@
 
 ## Unitae Name and Logo
 
-"Unitae" and the Unitae logo are trademarks of **MindserIT**. The open-source license (AGPL-3.0) covers the source code, not the brand.
+"Unitae" and the Unitae logo are trademarks of **MindsersIT**. The open-source license (AGPL-3.0) covers the source code, not the brand.
 
 ## Usage Guidelines
 
@@ -15,7 +15,7 @@
 ### Not Allowed
 
 - Using "Unitae" as the name of a fork or derivative product
-- Using the Unitae logo in a way that suggests endorsement or affiliation with MindserIT
+- Using the Unitae logo in a way that suggests endorsement or affiliation with MindsersIT
 - Registering domain names that include "Unitae" for competing services
 
 ### Forks and Derivatives
@@ -28,4 +28,4 @@ Community contributions to the Unitae project are welcome and encouraged. Contri
 
 ---
 
-*This trademark policy may be updated. For questions about trademark usage, contact MindserIT.*
+*This trademark policy may be updated. For questions about trademark usage, contact MindsersIT.*

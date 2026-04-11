@@ -1,6 +1,6 @@
 # Using unitae.app
 
-The quickest way to get started with Unitae is the managed hosting service at [unitae.app](https://unitae.app), operated by MindserIT.
+The quickest way to get started with Unitae is the managed hosting service at [unitae.app](https://unitae.app), operated by MindsersIT.
 
 ## What You Get
 
@@ -20,7 +20,7 @@ Your congregation gets a dedicated subdomain (e.g., `your-congregation.unitae.ap
 
 ## Same Features, No Maintenance
 
-unitae.app runs the exact same open-source code as the self-hosted version. There are no exclusive features — the difference is that MindserIT handles the infrastructure, updates, and support for you.
+unitae.app runs the exact same open-source code as the self-hosted version. There are no exclusive features — the difference is that MindsersIT handles the infrastructure, updates, and support for you.
 
 ## Pricing
 
@@ -28,7 +28,7 @@ Visit [unitae.app](https://unitae.app) for current pricing and plan details.
 
 ## Already Self-Hosting?
 
-If you are currently self-hosting and want to migrate to unitae.app, contact the MindserIT team through the website for assistance.
+If you are currently self-hosting and want to migrate to unitae.app, contact the MindsersIT team through the website for assistance.
 
 ## Next Steps
 

@@ -8,7 +8,7 @@ Yes. Unitae is open source under AGPL-3.0. You can self-host it for free with no
 
 ### Who builds Unitae?
 
-Unitae is developed by MindserIT. The project is open to community contributions — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
+Unitae is developed by MindsersIT. The project is open to community contributions — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ### Is my data safe?
 
@@ -75,7 +75,7 @@ Use [GitHub Security Advisories](https://github.com/Unitae/unitae/security/advis
 
 ### Can I fork Unitae?
 
-Yes, under AGPL-3.0 terms. Your fork must also be AGPL-3.0 and you must provide source code to your users. Use a different name for your fork — "Unitae" is a trademark of MindserIT. See [Licensing](licensing.md) and [Trademark](trademark.md).
+Yes, under AGPL-3.0 terms. Your fork must also be AGPL-3.0 and you must provide source code to your users. Use a different name for your fork — "Unitae" is a trademark of MindsersIT. See [Licensing](licensing.md) and [Trademark](trademark.md).
 
 ### Do I need to share my data if I self-host?
 

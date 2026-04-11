@@ -25,7 +25,7 @@ Unitae follows a **Ghost-inspired open-core model**:
 - **100% of the application code is open source** under AGPL-3.0
 - There are no proprietary features, paid plugins, or locked tiers
 - Self-hosted users get the exact same features as users on the managed platform
-- Development is funded through **managed hosting at [unitae.app](https://unitae.app)**, operated by MindserIT
+- Development is funded through **managed hosting at [unitae.app](https://unitae.app)**, operated by MindsersIT
 
 This model ensures:
 - Full transparency — anyone can audit the code

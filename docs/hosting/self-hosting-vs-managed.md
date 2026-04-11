@@ -10,7 +10,7 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 | **Updates** | Automatic | Pull new images and restart |
 | **Backups** | Included | Your responsibility |
 | **TLS (HTTPS)** | Included | Reverse proxy setup required |
-| **Data location** | MindserIT infrastructure | Your infrastructure |
+| **Data location** | MindsersIT infrastructure | Your infrastructure |
 | **Features** | All features | All features (same code) |
 | **Resource limits** | Per plan | Unlimited by default |
 | **Multi-congregation** | Built-in | Enable with `MULTI_TENANT=true` |
@@ -36,7 +36,7 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 
 ### From Self-Hosted to unitae.app
 
-Contact the MindserIT team through [unitae.app](https://unitae.app) for migration assistance.
+Contact the MindsersIT team through [unitae.app](https://unitae.app) for migration assistance.
 
 ### From unitae.app to Self-Hosted
 
