@@ -103,7 +103,9 @@ This document tracks all technical and legal items required for GDPR compliance.
   - Deletes roles and password reset tokens
   - Preserve PublisherActivity and Attribution records (now reference anonymous user)
   - Creates DataDeletionRecord for backup reconciliation
-  - **Not yet done**: revoke active sessions, delete S3/local files, confirmation dialog UI
+  - Session revocation via `!user.active` check in `verifySession()`
+  - Confirmation dialog on user edit page (Admin only, AlertDialog)
+  - **Not yet done**: delete S3/local files uploaded by user (no user-owned files in current schema)
 
 - [x] **Deletion ledger** — `DataDeletionRecord` model
   - Track all anonymization/deletion operations
@@ -140,7 +142,7 @@ This document tracks all technical and legal items required for GDPR compliance.
   - Retain records minimum 2 years after withdrawal
 
 - [x] **Consent at registration** — record consent during congregation registration and user setup
-- [ ] **Consent management UI** — user settings page to view and withdraw consent
+- [x] **Consent management UI** — user settings page at `/me/consents` to view and withdraw consent
 - [ ] **Consent version tracking** — link consent records to specific policy versions
 
 ### Cookie Consent
@@ -394,9 +396,9 @@ All sub-processors must be documented and congregations notified before adding n
 ### Priority 1 — Must have before SaaS launch
 1. ~~Privacy Policy page (`/privacy`)~~ — done
 2. ~~User data export (JSON)~~ — done
-3. ~~User anonymization (admin-only)~~ — done (session revocation + file cleanup + UI confirmation still needed)
+3. ~~User anonymization (admin-only)~~ — done (session revocation, confirmation dialog, deletion ledger)
 4. ~~Deletion ledger~~ — done
-5. ~~Consent tracking (DB model + registration integration)~~ — done (consent management UI still needed)
+5. ~~Consent tracking (DB model + registration + management UI)~~ — done
 6. ~~Cookie consent for Google Maps~~ — done
 7. DPA template
 8. DPIA
