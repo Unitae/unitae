@@ -24,7 +24,7 @@ This document tracks all technical and legal items required for GDPR compliance.
 
 ### Required before launch (SaaS)
 
-- [ ] **Privacy Policy** (French) — public page at `/privacy`
+- [x] **Privacy Policy** (French) — public page at `/privacy`
   - Identity and contact details of the controller (each congregation) and processor (MindsersIT)
   - Privacy contact email
   - Purposes and legal basis for each processing activity
@@ -86,30 +86,30 @@ This document tracks all technical and legal items required for GDPR compliance.
 
 ### Right of Access / Data Portability (Articles 15 + 20)
 
-- [ ] **User data export service** — `exportUserData(userId, congregationId)`
-  - Export all personal data as JSON in a ZIP archive
-  - Covers all 12 scoped models (see Data Mapping below)
-  - Accessible to: the user themselves + Admin role
-  - Must respond within 1 month, free of charge
-  - Machine-readable format (JSON)
+- [x] **User data export service** — `exportUserData(userId, congregationId)`
+  - Export all personal data as JSON (route: `/settings/users/:userId/export-data`)
+  - Covers: user profile, roles, activities, attributions, groups, events, board docs, consents
+  - Accessible to: the user themselves + Admin/SettingsUserManager role
+  - Instant JSON download, machine-readable format
 
 ### Right to Erasure (Article 17)
 
-- [ ] **User anonymization service** — `anonymizeUser(userId)`
+- [x] **User anonymization service** — `anonymizeUser(userId)`
   - Anonymize (not hard delete) to preserve FK integrity
-  - Admin-only trigger with confirmation dialog
+  - Admin-only trigger (route: `/settings/users/:userId/anonymize`)
   - Replace: firstname, lastname, email, phone, address, birthDate, baptismDate, password
   - Reset: isMale, isHelder, isServant, isAnointed to false
   - Set `anonymizedAt` timestamp
-  - Revoke all active sessions
-  - Delete uploaded files (S3/local) associated with user
+  - Deletes roles and password reset tokens
   - Preserve PublisherActivity and Attribution records (now reference anonymous user)
-  - Create DataDeletionRecord for backup reconciliation
+  - Creates DataDeletionRecord for backup reconciliation
+  - **Not yet done**: revoke active sessions, delete S3/local files, confirmation dialog UI
 
-- [ ] **Deletion ledger** — `DataDeletionRecord` model
+- [x] **Deletion ledger** — `DataDeletionRecord` model
   - Track all anonymization/deletion operations
   - Fields: entityType, entityId, congregationId, requestedAt, completedAt, requestedBy
   - Used to re-apply anonymization if a backup is restored
+  - RLS policy enabled
 
 ### Right to Rectification (Article 16)
 
@@ -133,22 +133,23 @@ This document tracks all technical and legal items required for GDPR compliance.
 
 ### Consent Tracking
 
-- [ ] **ConsentRecord database model**
-  - Fields: userId, purpose (enum), consentedAt, withdrawnAt, consentVersion, ipAddress, congregationId
-  - Purposes: DATA_PROCESSING, COOKIE_ANALYTICS, EMAIL_NOTIFICATIONS
+- [x] **ConsentRecord database model**
+  - Fields: userId, purpose, consentedAt, withdrawnAt, consentVersion, ipAddress, congregationId
+  - Purposes: DATA_PROCESSING, EMAIL_NOTIFICATIONS
+  - RLS policy enabled
   - Retain records minimum 2 years after withdrawal
 
-- [ ] **Consent at registration** — record consent during congregation registration and user setup
+- [x] **Consent at registration** — record consent during congregation registration and user setup
 - [ ] **Consent management UI** — user settings page to view and withdraw consent
 - [ ] **Consent version tracking** — link consent records to specific policy versions
 
 ### Cookie Consent
 
 - [x] **Session cookies** — strictly necessary, no consent needed (already httpOnly/secure)
-- [ ] **Google Maps cookie consent** — load maps only after explicit user consent
-  - Consent prompt on map pages when `GOOGLE_MAPS_API_KEY` is set
-  - No map scripts loaded before consent
-  - Store preference per user
+- [x] **Google Maps cookie consent** — load maps only after explicit user consent
+  - Consent banner on BuildingEntranceMap component
+  - No Google Maps scripts loaded before consent
+  - Preference stored in localStorage per browser
 - [ ] **Future analytics** — if analytics are added, require consent first
 
 ---
@@ -157,7 +158,7 @@ This document tracks all technical and legal items required for GDPR compliance.
 
 ### Already implemented
 
-- [x] **Tenant isolation** — `congregationId` Prisma extension on 12 models
+- [x] **Tenant isolation** — PostgreSQL Row-Level Security on all scoped models
 - [x] **Role-based access control** — 14 congregation-scoped roles via CongregationUserRole
 - [x] **Password hashing** — bcrypt
 - [x] **Session security** — httpOnly, secure, sameSite=lax, 1h expiry in production
@@ -391,12 +392,12 @@ All sub-processors must be documented and congregations notified before adding n
 ## Implementation Priority
 
 ### Priority 1 — Must have before SaaS launch
-1. Privacy Policy page (`/privacy`)
-2. User data export (JSON/ZIP)
-3. User anonymization (admin-only)
-4. Deletion ledger
-5. Consent tracking (DB model + registration integration)
-6. Cookie consent for Google Maps
+1. ~~Privacy Policy page (`/privacy`)~~ — done
+2. ~~User data export (JSON)~~ — done
+3. ~~User anonymization (admin-only)~~ — done (session revocation + file cleanup + UI confirmation still needed)
+4. ~~Deletion ledger~~ — done
+5. ~~Consent tracking (DB model + registration integration)~~ — done (consent management UI still needed)
+6. ~~Cookie consent for Google Maps~~ — done
 7. DPA template
 8. DPIA
 9. RoPA
