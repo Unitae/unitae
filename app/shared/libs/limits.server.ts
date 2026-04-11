@@ -1,4 +1,4 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
 const LIMIT_COLUMN_MAP = {
   publishers: 'maxPublishers',
@@ -28,7 +28,7 @@ export class LimitError extends Error {
 
 export class LimitService {
   constructor(
-    private db: ScopedDb,
+    private db: TransactionClient,
     private limits: CongregationLimits,
   ) {}
 

@@ -9,6 +9,7 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -24,27 +25,32 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
+  return withScope(congregationId, async db => {
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const attribution = await db.attribution.findUnique({
-    where: { id: requireParamId(params.attributionId, '/territories/attributions') },
-    include: { territory: { include: { entrances: { include: { buildings: true } } } }, publisher: true },
+    const attribution = await db.attribution.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
+      },
+      include: { territory: { include: { entrances: { include: { buildings: true } } } }, publisher: true },
+    })
+
+    if (attribution == null) {
+      throw redirect('/territories/attributions')
+    }
+
+    const users = await getPublishers(db)
+
+    return { users, phoneTypeActive, attribution, entrances: attribution.territory.entrances.map(aggregateEntrance) }
   })
-
-  if (attribution == null) {
-    throw redirect('/territories/attributions')
-  }
-
-  const users = await getPublishers(db)
-
-  return { users, phoneTypeActive, attribution, entrances: attribution.territory.entrances.map(aggregateEntrance) }
 }
 
 export default function EditAttributionPage({ loaderData }: Route.ComponentProps) {
@@ -185,7 +191,7 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -200,7 +206,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const notes = String(form.get('notes'))
   const type = String(form.get('type'))
 
-  const data: Prisma.XOR<Prisma.AttributionUpdateInput, Prisma.AttributionUncheckedUpdateInput> = {
+  const updateData: Prisma.XOR<Prisma.AttributionUpdateInput, Prisma.AttributionUncheckedUpdateInput> = {
     publisherId: publisherId,
     notes,
     type,
@@ -209,18 +215,23 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
   if (hasLateDate) {
-    data.lateDate = new Date(lateDateText)
+    updateData.lateDate = new Date(lateDateText)
   }
 
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'
   if (hasEndDate) {
-    data.endDate = new Date(endDateText)
+    updateData.endDate = new Date(endDateText)
   }
 
-  const attribution = await db.attribution.update({
-    where: { id: requireParamId(params.attributionId, '/territories/attributions') },
-    data,
-  })
+  return withScope(congregationId, async db => {
+    const attribution = await db.attribution.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
+      },
+      data: updateData,
+    })
 
-  return redirect(hasEndDate ? '/territories/attributions' : `/territories/attributions/${attribution.id}/edit`)
+    return redirect(hasEndDate ? '/territories/attributions' : `/territories/attributions/${attribution.id}/edit`)
+  })
 }

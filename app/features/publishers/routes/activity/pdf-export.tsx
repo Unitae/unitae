@@ -3,6 +3,7 @@ import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { renderActivityPdfZip } from '~/features/publishers/server/render-activity-pdf-zip.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
 import type { Route } from './+types/pdf-export'
@@ -12,7 +13,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.ActivityViewer])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityViewer])
   const canViewActivities = can(Role.ActivityViewer)
 
   if (!canViewActivities) {
@@ -26,14 +27,16 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     currentUser,
   })
 
-  const today = new Date()
-  const file = await renderActivityPdfZip(db, Number(params.year))
+  return withScope(congregationId, async db => {
+    const today = new Date()
+    const file = await renderActivityPdfZip(db, Number(params.year))
 
-  return new Response(file, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="Activité-${params.year}_${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}.zip"`,
-    },
+    return new Response(file, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/zip',
+        'Content-Disposition': `attachment; filename="Activité-${params.year}_${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}.zip"`,
+      },
+    })
   })
 }

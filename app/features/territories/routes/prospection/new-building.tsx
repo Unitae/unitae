@@ -3,6 +3,7 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -67,7 +68,9 @@ export default function CreateBuildingPage() {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
+    Role.TerritoriesManager,
+  ])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -85,28 +88,30 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/buildings/new')
   }
 
-  const building = await createBuilding(db, {
-    address: {
-      number: String(number),
-      street: String(street),
-      zip: String(zip),
-    },
-    coordinates: {
-      latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
-      longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,
-    },
-    congregationId: congregation.id,
-  })
+  return withScope(congregationId, async db => {
+    const building = await createBuilding(db, {
+      address: {
+        number: String(number),
+        street: String(street),
+        zip: String(zip),
+      },
+      coordinates: {
+        latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
+        longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,
+      },
+      congregationId: congregation.id,
+    })
 
-  if (building == null) {
-    session.flash('error', `Erreur lors de l'enregistrement du batiment`)
-  } else {
-    session.flash('success', 'Le batiment a été correctement modifié')
-  }
+    if (building == null) {
+      session.flash('error', `Erreur lors de l'enregistrement du batiment`)
+    } else {
+      session.flash('success', 'Le batiment a été correctement modifié')
+    }
 
-  return redirect(`/territories/building/${building.id}/view`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    return redirect(`/territories/building/${building.id}/view`, {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

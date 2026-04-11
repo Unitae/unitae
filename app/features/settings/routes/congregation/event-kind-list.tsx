@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getAllEventType } from '~/features/events/server/event-kind.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
 
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -13,18 +14,20 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.Admin])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
   const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  const kinds = await getAllEventType(db)
+  return withScope(congregationId, async db => {
+    const kinds = await getAllEventType(db)
 
-  return {
-    kinds,
-  }
+    return {
+      kinds,
+    }
+  })
 }
 
 export default function EventKindSettingsPage({ loaderData }: Route.ComponentProps) {

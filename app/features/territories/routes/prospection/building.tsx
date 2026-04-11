@@ -8,6 +8,7 @@ import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildi
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -22,7 +23,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can, db } = await authenticateAndAuthorize(request, [
+  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.ProspectionViewer,
     Role.ProspectionManager,
     Role.TerritoriesViewer,
@@ -44,23 +45,25 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     `Loading building data for building nº${params.buildingId}. User ID: ${currentUser.id}. ${canManageProspection ? 'Has' : 'Does NOT have'} rights to modify prospection data.`,
   )
 
-  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
-  if (!building) {
-    throw redirect('../', { status: 404 })
-  }
+  return withScope(congregationId, async db => {
+    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+    if (!building) {
+      throw redirect('../', { status: 404 })
+    }
 
-  const messages = { success: session.get('success'), error: session.get('error') }
+    const messages = { success: session.get('success'), error: session.get('error') }
 
-  return {
-    building,
-    messages,
-    roles: {
-      canViewProspection,
-      canManageProspection,
-      canViewTerritories,
-      canManageTerritories,
-    },
-  }
+    return {
+      building,
+      messages,
+      roles: {
+        canViewProspection,
+        canManageProspection,
+        canViewTerritories,
+        canManageTerritories,
+      },
+    }
+  })
 }
 
 export default function BuildingPage({ loaderData }: Route.ComponentProps) {
@@ -128,7 +131,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -139,22 +142,24 @@ export async function action({ request, params }: Route.ActionArgs) {
   const notes = form.get('notes')
   const importantNotes = form.get('important-notes')
 
-  try {
-    await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
-      notes: String(notes),
-      importantNotes: String(importantNotes),
+  return withScope(congregationId, async db => {
+    try {
+      await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
+        notes: String(notes),
+        importantNotes: String(importantNotes),
+      })
+
+      session.flash('success', 'Les notes ont été correctement modifiées pour ce batiment.')
+    } catch (e) {
+      logger.error('Error updating building', { error: e, buildingId: params.buildingId })
+      session.flash('error', 'Erreur lors de la modification des notes')
+    }
+
+    const previousPage = request.headers.get('referer')
+    return redirect(previousPage ?? `/territories/building/${params.buildingId}/`, {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
     })
-
-    session.flash('success', 'Les notes ont été correctement modifiées pour ce batiment.')
-  } catch (e) {
-    logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-    session.flash('error', 'Erreur lors de la modification des notes')
-  }
-
-  const previousPage = request.headers.get('referer')
-  return redirect(previousPage ?? `/territories/building/${params.buildingId}/`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
   })
 }

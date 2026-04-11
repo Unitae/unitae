@@ -16,6 +16,7 @@ import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -31,75 +32,79 @@ export const meta: Route.MetaFunction = ({ data }) => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const territory = await db.territory.findUnique({
-    where: {
-      id: requireParamId(params.territoryId, '/territories'),
-    },
-    include: {
-      entrances: { include: { buildings: { where: { active: true } } } },
-      attributions: { where: { endDate: null }, include: { publisher: true } },
-    },
-  })
-
-  if (territory == null) {
-    throw redirect('/territories', {
-      status: 404,
-    })
-  }
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const zips = await getAvailableZips(db, territory.type as TerritoryKind)
-  const url = new URL(request.url)
-  const entrances = await getAvailableEntrances(
-    db,
-    String(url.searchParams.get('zip')),
-    String(url.searchParams.get('street')),
-    territory.type as TerritoryKind,
-  )
+  return withScope(congregationId, async db => {
+    const territory = await db.territory.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
+      },
+      include: {
+        entrances: { include: { buildings: { where: { active: true } } } },
+        attributions: { where: { endDate: null }, include: { publisher: true } },
+      },
+    })
 
-  if (!url.searchParams.has('zip')) {
-    return {
-      zips,
-      territoryEntrances: territory.entrances.map(aggregateEntrance),
-      entrances: entrances.map(aggregateEntrance),
-      streets: [],
-      territory,
-      googleMaps: { mapId, apiKey },
-      phoneTypeActive,
+    if (territory == null) {
+      throw redirect('/territories', {
+        status: 404,
+      })
     }
-  }
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const streets = await getAvailableStreets(db, String(url.searchParams.get('zip')), territory.type as TerritoryKind)
-  if (!url.searchParams.has('street')) {
+    const zips = await getAvailableZips(db, territory.type as TerritoryKind)
+    const url = new URL(request.url)
+    const entrances = await getAvailableEntrances(
+      db,
+      String(url.searchParams.get('zip')),
+      String(url.searchParams.get('street')),
+      territory.type as TerritoryKind,
+    )
+
+    if (!url.searchParams.has('zip')) {
+      return {
+        zips,
+        territoryEntrances: territory.entrances.map(aggregateEntrance),
+        entrances: entrances.map(aggregateEntrance),
+        streets: [],
+        territory,
+        googleMaps: { mapId, apiKey },
+        phoneTypeActive,
+      }
+    }
+
+    const streets = await getAvailableStreets(db, String(url.searchParams.get('zip')), territory.type as TerritoryKind)
+    if (!url.searchParams.has('street')) {
+      return {
+        territory,
+        zips,
+        territoryEntrances: territory.entrances.map(aggregateEntrance),
+        entrances: entrances.map(aggregateEntrance),
+        streets,
+        googleMaps: { mapId, apiKey },
+        phoneTypeActive,
+      }
+    }
+
     return {
       territory,
-      zips,
       territoryEntrances: territory.entrances.map(aggregateEntrance),
       entrances: entrances.map(aggregateEntrance),
+      zips,
       streets,
       googleMaps: { mapId, apiKey },
       phoneTypeActive,
     }
-  }
-
-  return {
-    territory,
-    territoryEntrances: territory.entrances.map(aggregateEntrance),
-    entrances: entrances.map(aggregateEntrance),
-    zips,
-    streets,
-    googleMaps: { mapId, apiKey },
-    phoneTypeActive,
-  }
+  })
 }
 export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) {
   const {
@@ -293,7 +298,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
@@ -304,17 +309,20 @@ export async function action({ request, params }: Route.ActionArgs) {
   const entrances = form.getAll('entrances')
   const notes = form.get('notes')
 
-  await db.territory.update({
-    where: {
-      id: requireParamId(params.territoryId, '/territories'),
-    },
-    data: {
-      entrances: {
-        set: entrances.map(el => ({ id: Number(el) })),
+  return withScope(congregationId, async db => {
+    await db.territory.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
       },
-      notes: String(notes),
-    },
-  })
+      data: {
+        entrances: {
+          set: entrances.map(el => ({ id: Number(el) })),
+        },
+        notes: String(notes),
+      },
+    })
 
-  return redirect('/territories')
+    return redirect('/territories')
+  })
 }

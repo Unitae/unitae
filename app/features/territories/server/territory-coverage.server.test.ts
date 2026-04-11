@@ -55,7 +55,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.attribution.count).mockResolvedValue(5)
 
     const result = await computeTerritoryCoverage(
-      db as any,
+      db as never,
       [TerritoryKind.Phone, TerritoryKind.Classical],
       [TerritoryAttributionKind.Phone],
     )
@@ -78,7 +78,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.attribution.count).mockResolvedValue(4)
 
     const startDate = new Date(2025, 0, 1)
-    const result = await computeTerritoryCoverage(db as any, undefined, undefined, startDate)
+    const result = await computeTerritoryCoverage(db as never, undefined, undefined, startDate)
     expect(result).toBe(40)
   })
 
@@ -87,7 +87,7 @@ describe('computeTerritoryCoverage', () => {
     vi.mocked(db.attribution.count).mockResolvedValue(6)
 
     const endDate = new Date(2025, 11, 31)
-    const result = await computeTerritoryCoverage(db as any, undefined, undefined, undefined, endDate)
+    const result = await computeTerritoryCoverage(db as never, undefined, undefined, undefined, endDate)
     expect(result).toBe(60)
   })
 
@@ -97,7 +97,7 @@ describe('computeTerritoryCoverage', () => {
 
     const startDate = new Date(2025, 0, 1)
     const endDate = new Date(2025, 11, 31)
-    const result = await computeTerritoryCoverage(db as any, undefined, undefined, startDate, endDate)
+    const result = await computeTerritoryCoverage(db as never, undefined, undefined, startDate, endDate)
     expect(result).toBe(80)
   })
 })

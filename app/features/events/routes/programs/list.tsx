@@ -4,6 +4,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 import { Button } from '~/shared/ui/button'
@@ -18,7 +19,10 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
+    Role.ProgramViewer,
+    Role.ProgramManager,
+  ])
   const canViewPrograms = can(Role.ProgramViewer)
   const canManagePrograms = can(Role.ProgramManager)
 
@@ -35,23 +39,25 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
 
-  const totalAttributions = await db.event.count({ where: selectors })
-  const pagination = paginationFromUrl(url, totalAttributions)
-  const events = await db.event.findMany({
-    skip: pagination.offset,
-    take: pagination.size,
-    where: selectors,
-    include: { createdBy: true },
-    orderBy: [{ startDate: 'asc' }],
-  })
+  return withScope(congregationId, async db => {
+    const totalAttributions = await db.event.count({ where: { ...selectors, congregationId } })
+    const pagination = paginationFromUrl(url, totalAttributions)
+    const events = await db.event.findMany({
+      skip: pagination.offset,
+      take: pagination.size,
+      where: { ...selectors, congregationId },
+      include: { createdBy: true },
+      orderBy: [{ startDate: 'asc' }],
+    })
 
-  return {
-    events,
-    pagination,
-    roles: {
-      canManagePrograms,
-    },
-  }
+    return {
+      events,
+      pagination,
+      roles: {
+        canManagePrograms,
+      },
+    }
+  })
 }
 
 export default function ProgramListPage({ loaderData }: Route.ComponentProps) {

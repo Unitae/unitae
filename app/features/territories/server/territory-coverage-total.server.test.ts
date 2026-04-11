@@ -48,7 +48,7 @@ describe('computeTerritoryCoverageTotal', () => {
     vi.mocked(db.territory.count).mockResolvedValueOnce(10).mockResolvedValueOnce(3)
 
     const startDate = new Date(2025, 0, 1)
-    const result = await computeTerritoryCoverageTotal(db as any, undefined, undefined, startDate)
+    const result = await computeTerritoryCoverageTotal(db as never, undefined, undefined, startDate)
     expect(result).toBe(30)
   })
 
@@ -57,7 +57,7 @@ describe('computeTerritoryCoverageTotal', () => {
 
     const startDate = new Date(2025, 0, 1)
     const endDate = new Date(2025, 11, 31)
-    const result = await computeTerritoryCoverageTotal(db as any, undefined, undefined, startDate, endDate)
+    const result = await computeTerritoryCoverageTotal(db as never, undefined, undefined, startDate, endDate)
     expect(result).toBe(70)
   })
 })

@@ -1,4 +1,3 @@
-import { congregationContext } from '~/shared/libs/db.server'
 import {
   buildStorageKey,
   deleteFileFromStorage,
@@ -7,18 +6,13 @@ import {
   uploadFile,
 } from '~/shared/libs/file-storage.server'
 
-function getCongregationId(): number {
-  const ctx = congregationContext.getStore()
-  return ctx?.congregationId ?? 0
-}
-
-export function getStorageKey(_filename?: string): string {
+export function getStorageKey(congregationId: number): string {
   const uuid = crypto.randomUUID()
-  return buildStorageKey(getCongregationId(), 'board', `${uuid}.pdf`)
+  return buildStorageKey(congregationId, 'board', `${uuid}.pdf`)
 }
 
-export async function saveBoardFile(file: File): Promise<string> {
-  const key = getStorageKey()
+export async function saveBoardFile(congregationId: number, file: File): Promise<string> {
+  const key = getStorageKey(congregationId)
   const buffer = await file.arrayBuffer()
   await uploadFile(key, buffer, file.type || 'application/pdf')
   return key

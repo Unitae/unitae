@@ -3,6 +3,7 @@ import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -17,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.PublisherViewer,
     Role.PublisherManager,
     Role.ActivityViewer,
@@ -38,21 +39,23 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publishers. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
-  const users = await getPublishersWithGroup(db)
+  return withScope(congregationId, async db => {
+    const users = await getPublishersWithGroup(db)
 
-  return {
-    users: users.map(user => ({
-      email: user.email,
-      id: user.id,
-      active: user.active,
-      firstname: user.firstname,
-      lastname: user.lastname,
-      isPublisher: user.isPublisher,
-      publisherGroup: user.publisherGroup,
-    })),
-    canManagePublisher,
-    canViewActivities,
-  }
+    return {
+      users: users.map(user => ({
+        email: user.email,
+        id: user.id,
+        active: user.active,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        isPublisher: user.isPublisher,
+        publisherGroup: user.publisherGroup,
+      })),
+      canManagePublisher,
+      canViewActivities,
+    }
+  })
 }
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {

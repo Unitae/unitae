@@ -1,10 +1,10 @@
 import excelJs from 'exceljs'
 
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic
-export async function generatePublishersYearlyActivityXlsx(db: ScopedDb, year: number) {
+export async function generatePublishersYearlyActivityXlsx(db: TransactionClient, year: number) {
   const months = Array.from({ length: 12 }, (_, i) => (i + 8 > 11 ? i - 4 : i + 8))
   const workbook = new excelJs.Workbook()
 
@@ -92,7 +92,7 @@ export async function generatePublishersYearlyActivityXlsx(db: ScopedDb, year: n
   return await workbook.xlsx.writeBuffer()
 }
 
-function getPublishersMonthlyActivity(db: ScopedDb, month: number, year: number) {
+function getPublishersMonthlyActivity(db: TransactionClient, month: number, year: number) {
   return db.publisherActivity.findMany({
     where: {
       month,

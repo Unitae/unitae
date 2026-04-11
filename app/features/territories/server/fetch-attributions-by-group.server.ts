@@ -1,4 +1,4 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
 export interface AttributionsByGroup {
   groupName: string
@@ -6,7 +6,7 @@ export interface AttributionsByGroup {
 }
 
 // Compte les attributions actives (en cours) regroupées par groupe de prédication
-export async function fetchActiveAttributionsByGroup(db: ScopedDb): Promise<AttributionsByGroup[]> {
+export async function fetchActiveAttributionsByGroup(db: TransactionClient): Promise<AttributionsByGroup[]> {
   const attributions = await db.attribution.findMany({
     where: { endDate: null },
     select: {

@@ -1,9 +1,9 @@
 import type { Building } from '~/database/generated/client'
 
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 
 export function setBuildingNotes(
-  db: ScopedDb,
+  db: TransactionClient,
   buildingId: number,
   { notes, importantNotes }: { notes: string; importantNotes: string },
 ): Promise<Building> {

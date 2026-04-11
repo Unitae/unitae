@@ -3,6 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -12,27 +13,29 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/new-group'
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  const brothers = await db.user.findMany({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma OR operator
-      OR: [{ isHelder: true }, { isServant: true }],
-      responsibleFor: {
-        is: null,
+  return withScope(congregationId, async db => {
+    const brothers = await db.user.findMany({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma OR operator
+        OR: [{ isHelder: true }, { isServant: true }],
+        responsibleFor: {
+          is: null,
+        },
+        deputyFor: {
+          is: null,
+        },
       },
-      deputyFor: {
-        is: null,
-      },
-    },
-  })
+    })
 
-  return { brothers }
+    return { brothers }
+  })
 }
 
 export default function NewGroup({ loaderData }: Route.ComponentProps) {
@@ -107,7 +110,7 @@ export default function NewGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const previousPage = request.headers.get('referer')
   const canManagePublisher = can(Role.PublisherManager)
 
@@ -141,24 +144,26 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const membersToConnect = [{ id: responsibleId }]
-  if (deputyId != null) membersToConnect.push({ id: deputyId })
+  return withScope(congregationId, async db => {
+    const membersToConnect = [{ id: responsibleId }]
+    if (deputyId != null) membersToConnect.push({ id: deputyId })
 
-  const group = await db.publisherGroup.create({
-    data: {
-      name: String(name),
-      adress: String(address),
-      deputyId,
-      responsibleId,
-      members: { connect: membersToConnect },
-      congregationId: congregation.id,
-    },
-  })
+    const group = await db.publisherGroup.create({
+      data: {
+        name: String(name),
+        adress: String(address),
+        deputyId,
+        responsibleId,
+        members: { connect: membersToConnect },
+        congregationId,
+      },
+    })
 
-  session.flash('success', `Le groupe de prédication ${group.name} à été créé avec succès`)
-  return redirect('/congregation/publisher-groups', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    session.flash('success', `Le groupe de prédication ${group.name} à été créé avec succès`)
+    return redirect('/congregation/publisher-groups', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

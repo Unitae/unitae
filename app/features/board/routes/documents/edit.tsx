@@ -3,6 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -17,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
   const canUploadDocument = can(Role.BoardUploader)
   const canManageBoard = can(Role.BoardValidator)
 
@@ -25,17 +26,20 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const document = await db.boardDocument.findUnique({
-    where: {
-      id: requireParamId(params.documentId, '/board'),
-    },
+  return withScope(congregationId, async db => {
+    const document = await db.boardDocument.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
+      },
+    })
+
+    const sections = await db.boardSection.findMany({ where: { congregationId } })
+
+    if (document == null) throw redirect('/board/documents')
+
+    return { document, sections, rights: { canManageBoard, canUploadDocument } }
   })
-
-  const sections = await db.boardSection.findMany()
-
-  if (document == null) throw redirect('/board/documents')
-
-  return { document, sections, rights: { canManageBoard, canUploadDocument } }
 }
 
 export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
@@ -155,7 +159,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
   const canManageBoard = can(Role.BoardValidator)
 
   const form = await request.formData()
@@ -174,38 +178,41 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  const document = await db.boardDocument.update({
-    where: {
-      id: requireParamId(params.documentId, '/board'),
-    },
-    data: {
-      title: String(title),
-      section: {
-        connect: {
-          id: sectionId,
-        },
+  return withScope(congregationId, async db => {
+    const document = await db.boardDocument.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
       },
-      visibleFrom: visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined,
-      visibleUntil: visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined,
-      isHighlighted,
-    },
-  })
+      data: {
+        title: String(title),
+        section: {
+          connect: {
+            id: sectionId,
+          },
+        },
+        visibleFrom: visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined,
+        visibleUntil: visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined,
+        isHighlighted,
+      },
+    })
 
-  if (document == null) {
-    session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+    if (document == null) {
+      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
 
-    return redirect(`/board/document/${params.documentId}/edit`, {
+      return redirect(`/board/document/${params.documentId}/edit`, {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    }
+
+    session.flash('success', `Section "${document.title}" modifiée avec succès.`)
+
+    return redirect(`/board/documents/${document.id}/edit`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
     })
-  }
-
-  session.flash('success', `Section "${document.title}" modifiée avec succès.`)
-
-  return redirect(`/board/documents/${document.id}/edit`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
   })
 }

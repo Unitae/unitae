@@ -2,6 +2,7 @@ import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -14,16 +15,19 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, db } = await authenticateAndAuthorize(request)
-  const events = await getNextDaysOffs(db, currentUser.id)
+  const { currentUser, session, congregationId } = await authenticateAndAuthorize(request)
 
-  logger.info(`Loading personal Days Off list. User ID: ${currentUser.id}`)
+  return withScope(congregationId, async db => {
+    const events = await getNextDaysOffs(db, currentUser.id)
 
-  return {
-    user: currentUser,
-    events,
-    error: session.get('error'),
-  }
+    logger.info(`Loading personal Days Off list. User ID: ${currentUser.id}`)
+
+    return {
+      user: currentUser,
+      events,
+      error: session.get('error'),
+    }
+  })
 }
 
 export default function DaysOffPage({ loaderData }: Route.ComponentProps) {

@@ -14,6 +14,7 @@ import BuildingProspectionForDoorToDoorFields from '~/features/territories/ui/Bu
 import OtherBuildingProspectionFields from '~/features/territories/ui/OtherBuildingProspectionFields'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -29,7 +30,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.ProspectionManager,
     Role.TerritoriesManager,
   ])
@@ -40,25 +41,27 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
-  if (building == null) {
-    throw redirect('/territories/buildings', { status: 404 })
-  }
+  return withScope(congregationId, async db => {
+    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+    if (building == null) {
+      throw redirect('/territories/buildings', { status: 404 })
+    }
 
-  const buildings = await getBuildings(db, building.zip, building.street)
-  const messages = {
-    success: session.get('success'),
-    error: session.get('error'),
-  }
+    const buildings = await getBuildings(db, building.zip, building.street)
+    const messages = {
+      success: session.get('success'),
+      error: session.get('error'),
+    }
 
-  return data(
-    { building, buildings, messages, roles: { canManageTerritories } },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
+    return data(
+      { building, buildings, messages, roles: { canManageTerritories } },
+      {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
       },
-    },
-  )
+    )
+  })
 }
 
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
@@ -127,7 +130,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregation, can, db } = await authenticateAndAuthorize(request, [
+  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
     Role.ProspectionManager,
     Role.TerritoriesManager,
   ])
@@ -139,49 +142,52 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
-  const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
-  if (building == null) {
-    throw redirect('/territories/buildings', { status: 404 })
-  }
 
-  const form = await request.formData()
-
-  // manage modification shared entrance
-  if (canManageTerritories) {
-    const currentEntranceIdsSerialized = serializeSharedEntranceFromBuilding(building)
-    const entranceIds = unserializeSharedEntranceFormValue(form.get('shared-entrance-buildings'), building.id)
-    const entranceIdsSerialized = entranceIds.join(',')
-
-    if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
-      try {
-        await updateBuildingsInEntrance(db, Number(building.entrance?.id), entranceIds, congregation.id)
-        session.flash('success', 'Le batiment a été correctement modifié')
-      } catch (e) {
-        logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-        session.flash('error', `Erreur lors de l'enregistrement du batiment`)
-      }
-
-      return redirect(previousPage, {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      })
+  return withScope(congregationId, async db => {
+    const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
+    if (building == null) {
+      throw redirect('/territories/buildings', { status: 404 })
     }
-  }
 
-  // manage changes in classic data
-  try {
-    await setBuildingProspectionData(db, building.id, form)
+    const form = await request.formData()
 
-    session.flash('success', 'Les données de prospection ont été correctement mise à jour')
-  } catch (e) {
-    logger.error(e)
-    session.flash('error', 'Erreur lors de la mise à jour des données de prospection du batiment')
-  }
+    // manage modification shared entrance
+    if (canManageTerritories) {
+      const currentEntranceIdsSerialized = serializeSharedEntranceFromBuilding(building)
+      const entranceIds = unserializeSharedEntranceFormValue(form.get('shared-entrance-buildings'), building.id)
+      const entranceIdsSerialized = entranceIds.join(',')
 
-  return redirect(previousPage, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+      if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
+        try {
+          await updateBuildingsInEntrance(db, Number(building.entrance?.id), entranceIds, congregation.id)
+          session.flash('success', 'Le batiment a été correctement modifié')
+        } catch (e) {
+          logger.error('Error updating building', { error: e, buildingId: params.buildingId })
+          session.flash('error', `Erreur lors de l'enregistrement du batiment`)
+        }
+
+        return redirect(previousPage, {
+          headers: {
+            'Set-Cookie': await commitSession(session),
+          },
+        })
+      }
+    }
+
+    // manage changes in classic data
+    try {
+      await setBuildingProspectionData(db, building.id, form)
+
+      session.flash('success', 'Les données de prospection ont été correctement mise à jour')
+    } catch (e) {
+      logger.error(e)
+      session.flash('error', 'Erreur lors de la mise à jour des données de prospection du batiment')
+    }
+
+    return redirect(previousPage, {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

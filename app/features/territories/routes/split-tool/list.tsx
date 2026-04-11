@@ -9,6 +9,7 @@ import { findEntrancesPaginated } from '~/features/territories/server/buildings'
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -21,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
   const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
@@ -29,38 +30,41 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const url = new URL(request.url)
-  const filters = computeFilters(url.searchParams)
-  const selectors: Prisma.BuildingWhereInput = {
-    ...filters,
-    active: true,
-    hasCampus: false,
-    hasHotel: false,
-    // biome-ignore lint/style/useNamingConvention: prisma keywords
-    NOT: {
-      prospectionDate: null,
-    },
-    // biome-ignore lint/style/useNamingConvention: prisma keywords
-    OR: [
-      { entrance: { access: 1 } }, // interphone
-      { entrance: { access: 2 } }, // sonnette
-      { hasShops: true, homes: { gt: 0 } }, // commerces si foyers dans le batiment
-      phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin ou tous les codes si territoires téléphone désactivé
-    ],
-    entrance: {
-      territories: { none: { type: TerritoryKind.Classical } },
-    },
-  }
+  return withScope(congregationId, async db => {
+    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive)
 
-  const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url)
+    const url = new URL(request.url)
+    const filters = computeFilters(url.searchParams)
+    const selectors: Prisma.BuildingWhereInput = {
+      ...filters,
+      active: true,
+      hasCampus: false,
+      hasHotel: false,
+      // biome-ignore lint/style/useNamingConvention: prisma keywords
+      NOT: {
+        prospectionDate: null,
+      },
+      // biome-ignore lint/style/useNamingConvention: prisma keywords
+      OR: [
+        { entrance: { access: 1 } }, // interphone
+        { entrance: { access: 2 } }, // sonnette
+        { hasShops: true, homes: { gt: 0 } }, // commerces si foyers dans le batiment
+        phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin ou tous les codes si territoires téléphone désactivé
+      ],
+      entrance: {
+        territories: { none: { type: TerritoryKind.Classical } },
+      },
+    }
 
-  return {
-    entrances,
-    pagination,
-    apiKey,
-  }
+    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url)
+
+    return {
+      entrances,
+      pagination,
+      apiKey,
+    }
+  })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {

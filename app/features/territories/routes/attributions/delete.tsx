@@ -3,6 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -10,23 +11,28 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const attribution = await db.attribution.findUnique({
-    where: { id: requireParamId(params.attributionId, '/territories/attributions') },
-    include: { publisher: true, territory: true },
+  return withScope(congregationId, async db => {
+    const attribution = await db.attribution.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
+      },
+      include: { publisher: true, territory: true },
+    })
+
+    if (attribution == null) {
+      throw redirect('/territories/attributions')
+    }
+
+    return { attribution }
   })
-
-  if (attribution == null) {
-    throw redirect('/territories/attributions')
-  }
-
-  return { attribution }
 }
 
 export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
@@ -57,27 +63,32 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const attribution = await db.attribution.delete({
-    where: { id: requireParamId(params.attributionId, '/territories/attributions') },
-    include: { publisher: true },
-  })
+  return withScope(congregationId, async db => {
+    const attribution = await db.attribution.delete({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
+      },
+      include: { publisher: true },
+    })
 
-  session.flash(
-    'success',
-    `L'attribution de ${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname} a été annulée`,
-  )
+    session.flash(
+      'success',
+      `L'attribution de ${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname} a été annulée`,
+    )
 
-  const previousPage = request.headers.get('referer')
-  return redirect(previousPage ?? '/territories/attributions', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    const previousPage = request.headers.get('referer')
+    return redirect(previousPage ?? '/territories/attributions', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

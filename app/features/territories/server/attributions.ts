@@ -1,8 +1,12 @@
 import type { Prisma } from '~/database/generated/client'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import { paginationFromUrl } from '~/shared/libs/pagination.server'
 
-export async function findActiveAttributionsPaginated(db: ScopedDb, selectors: Prisma.AttributionWhereInput, url: URL) {
+export async function findActiveAttributionsPaginated(
+  db: TransactionClient,
+  selectors: Prisma.AttributionWhereInput,
+  url: URL,
+) {
   const total = await db.attribution.count({ where: selectors })
   const pagination = paginationFromUrl(url, total)
 
@@ -17,17 +21,20 @@ export async function findActiveAttributionsPaginated(db: ScopedDb, selectors: P
   return { attributions, pagination }
 }
 
-export function findActiveAttributionsForPublisher(db: ScopedDb, publisherId: number) {
+export function findActiveAttributionsForPublisher(db: TransactionClient, publisherId: number, congregationId: number) {
   return db.attribution.findMany({
-    where: { publisherId, endDate: null },
+    where: { publisherId, endDate: null, congregationId },
     include: { territory: true },
     orderBy: [{ startDate: 'asc' }],
   })
 }
 
-export function findTerritoryWithHistory(db: ScopedDb, territoryId: number) {
+export function findTerritoryWithHistory(db: TransactionClient, territoryId: number, congregationId: number) {
   return db.territory.findUnique({
-    where: { id: territoryId },
+    where: {
+      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+      id_congregationId: { id: territoryId, congregationId },
+    },
     include: {
       entrances: { include: { buildings: { where: { active: true } } } },
       attributions: {

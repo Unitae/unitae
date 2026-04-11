@@ -1,5 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
 export interface NeverWorkedTerritory {
@@ -8,7 +8,7 @@ export interface NeverWorkedTerritory {
 }
 
 export async function getTerritoriesNeverWorked(
-  db: ScopedDb,
+  db: TransactionClient,
   params: StatsFilterParams,
 ): Promise<NeverWorkedTerritory[]> {
   const dateOverlap: Prisma.AttributionWhereInput = {

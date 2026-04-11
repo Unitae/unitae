@@ -3,6 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -10,22 +11,27 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import type { Route } from './+types/delete-building'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.ProspectionManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProspectionManager])
   const canManageProspection = can(Role.ProspectionManager)
 
   if (!canManageProspection) {
     throw redirect('/')
   }
 
-  const building = await db.building.findUnique({
-    where: { id: requireParamId(params.buildingId, '/territories/buildings') },
+  return withScope(congregationId, async db => {
+    const building = await db.building.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.buildingId, '/territories/buildings'), congregationId },
+      },
+    })
+
+    if (building == null) {
+      throw redirect('/territories/attributions')
+    }
+
+    return { building }
   })
-
-  if (building == null) {
-    throw redirect('/territories/attributions')
-  }
-
-  return { building }
 }
 
 export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
@@ -56,26 +62,31 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
+  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
   const canManageTerritories = can(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  const building = await db.building.delete({
-    where: { id: requireParamId(params.buildingId, '/territories/buildings') },
-  })
+  return withScope(congregationId, async db => {
+    const building = await db.building.delete({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound key
+        id_congregationId: { id: requireParamId(params.buildingId, '/territories/buildings'), congregationId },
+      },
+    })
 
-  session.flash(
-    'success',
-    `Le batiment au ${building.number} ${building.street}, ${building.zip} a été correctement supprimé`,
-  )
+    session.flash(
+      'success',
+      `Le batiment au ${building.number} ${building.street}, ${building.zip} a été correctement supprimé`,
+    )
 
-  const previousPage = request.headers.get('referer')
-  return redirect(previousPage ?? '/territories/buildings', {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+    const previousPage = request.headers.get('referer')
+    return redirect(previousPage ?? '/territories/buildings', {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

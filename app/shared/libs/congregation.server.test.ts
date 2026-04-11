@@ -4,9 +4,6 @@ vi.mock('~/shared/libs/db.server', () => ({
   unscopedDb: {
     congregation: { findUnique: vi.fn(), findFirst: vi.fn() },
   },
-  congregationContext: {
-    getStore: vi.fn(),
-  },
 }))
 
 vi.mock('react-router', () => ({
@@ -16,14 +13,8 @@ vi.mock('react-router', () => ({
   }),
 }))
 
-const {
-  resolveCongregation,
-  resolveCongregationFromRequest,
-  getCongregationFromContext,
-  requireCongregation,
-  getPlatformName,
-} = await import('./congregation.server')
-const { unscopedDb: db, congregationContext } = await import('~/shared/libs/db.server')
+const { resolveCongregation, resolveCongregationFromRequest, getPlatformName } = await import('./congregation.server')
+const { unscopedDb: db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -147,50 +138,6 @@ describe('resolveCongregation', () => {
     const result = await resolveCongregation(1)
     expect(result.suspendedAt).toBe(suspendedDate)
     expect(result.suspendedReason).toBe('Impayé')
-  })
-})
-
-describe('getCongregationFromContext', () => {
-  it("retourne null quand le contexte n'est pas défini", () => {
-    vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
-
-    expect(getCongregationFromContext()).toBeNull()
-  })
-
-  it('retourne la congrégation du contexte', () => {
-    const fakeCongregation = { id: 1, name: 'Test' }
-    vi.mocked(congregationContext.getStore).mockReturnValue({
-      congregationId: 1,
-      congregation: fakeCongregation,
-    } as never)
-
-    expect(getCongregationFromContext()).toBe(fakeCongregation)
-  })
-
-  it('retourne null quand le contexte existe mais sans congrégation', () => {
-    vi.mocked(congregationContext.getStore).mockReturnValue({
-      congregationId: 1,
-    })
-
-    expect(getCongregationFromContext()).toBeNull()
-  })
-})
-
-describe('requireCongregation', () => {
-  it("lance une erreur quand le contexte n'est pas défini", () => {
-    vi.mocked(congregationContext.getStore).mockReturnValue(undefined as never)
-
-    expect(() => requireCongregation()).toThrow('Congregation context is required but not set')
-  })
-
-  it('retourne la congrégation quand le contexte est défini', () => {
-    const fakeCongregation = { id: 1, name: 'Test' }
-    vi.mocked(congregationContext.getStore).mockReturnValue({
-      congregationId: 1,
-      congregation: fakeCongregation,
-    } as never)
-
-    expect(requireCongregation()).toBe(fakeCongregation)
   })
 })
 

@@ -7,6 +7,7 @@ import PublisherNominationForm from '~/features/publishers/ui/PublisherNominatio
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -18,32 +19,35 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
   const canManagePublisher = can(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  const result = await db.user.findUnique({
-    where: {
-      id: requireParamId(params.publisherId, '/congregation/publishers'),
-    },
+  return withScope(congregationId, async db => {
+    const result = await db.user.findUnique({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId },
+      },
+    })
+
+    if (result == null) throw redirect('/congregation/publishers')
+
+    const showAuxiliaryPioneer = await getBoolSetting(db, CongregationSettingKey.AuxiliaryPioneerProfileActivated)
+    const groups = await db.publisherGroup.findMany()
+    const { email, password, ...user } = result
+    return {
+      user: {
+        ...user,
+        email: email.includes('@placeholder.unitae.app') ? undefined : email,
+      },
+      groups,
+      hideAuxiliaryPioneer: !showAuxiliaryPioneer,
+    }
   })
-
-  if (result == null) throw redirect('/congregation/publishers')
-
-  const showAuxiliaryPioneer = await getBoolSetting(db, CongregationSettingKey.AuxiliaryPioneerProfileActivated)
-  const groups = await db.publisherGroup.findMany()
-  const { email, password, ...user } = result
-  return {
-    user: {
-      ...user,
-      email: email.includes('@placeholder.unitae.app') ? undefined : email,
-    },
-    groups,
-    hideAuxiliaryPioneer: !showAuxiliaryPioneer,
-  }
 }
 
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
@@ -90,7 +94,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { db } = await authenticateAndAuthorize(request)
+  const { congregationId } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = form.get('firstname')
   const lastname = form.get('lastname')
@@ -111,31 +115,34 @@ export async function action({ request, params }: Route.ActionArgs) {
     return redirect(previousPage ?? `/congregation/publishers/${params.publisherId}/view`)
   }
 
-  const user = await db.user.update({
-    where: {
-      id: requireParamId(params.publisherId, '/congregation/publishers'),
-    },
-    data: {
-      firstname: String(firstname),
-      lastname: String(lastname),
-      isMale: String(gender) === 'male',
-      baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
-      birthDate: birthDate ? new Date(birthDate.toString()) : null,
-      isHelder: Boolean(isHelder),
-      isServant: Boolean(isServant),
-      isAnointed: Boolean(isAnointed),
-      publisherGroupId: Number.isNaN(groupId) ? null : groupId,
-      ...(!email ? {} : { email: String(email) }),
-      type: String(type),
-      address: String(address),
-      phone: String(phone),
-    },
-  })
-  const session = await getSession(request.headers.get('Cookie'))
-  session.flash('success', `La fiche de proclammateur pour ${user.firstname} à été modifiée avec succès`)
-  return redirect(previousPage ?? `/congregation/publishers/${user.id}/view`, {
-    headers: {
-      'Set-Cookie': await commitSession(session),
-    },
+  return withScope(congregationId, async db => {
+    const user = await db.user.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId },
+      },
+      data: {
+        firstname: String(firstname),
+        lastname: String(lastname),
+        isMale: String(gender) === 'male',
+        baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
+        birthDate: birthDate ? new Date(birthDate.toString()) : null,
+        isHelder: Boolean(isHelder),
+        isServant: Boolean(isServant),
+        isAnointed: Boolean(isAnointed),
+        publisherGroupId: Number.isNaN(groupId) ? null : groupId,
+        ...(!email ? {} : { email: String(email) }),
+        type: String(type),
+        address: String(address),
+        phone: String(phone),
+      },
+    })
+    const session = await getSession(request.headers.get('Cookie'))
+    session.flash('success', `La fiche de proclammateur pour ${user.firstname} à été modifiée avec succès`)
+    return redirect(previousPage ?? `/congregation/publishers/${user.id}/view`, {
+      headers: {
+        'Set-Cookie': await commitSession(session),
+      },
+    })
   })
 }

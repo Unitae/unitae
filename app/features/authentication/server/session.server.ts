@@ -1,7 +1,7 @@
 import { createCookieSessionStorage, redirect } from 'react-router'
 
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
-import { congregationContext, unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/libs/db.server'
 
 import { sanitizeUser } from './sanitize-user.server'
 
@@ -72,7 +72,6 @@ export async function verifySession(request: Request) {
     })
   }
 
-  // Set congregation context for all subsequent tenant-scoped queries in this request
   const congregation = await resolveCongregation(user.congregationId)
 
   if (congregation.suspendedAt) {
@@ -87,8 +86,6 @@ export async function verifySession(request: Request) {
   if (congregation.trialEndsAt && congregation.trialEndsAt < new Date()) {
     throw redirect('/trial-expired')
   }
-
-  congregationContext.enterWith({ congregationId: user.congregationId, congregation })
 
   return {
     currentUser: sanitizeUser(user),

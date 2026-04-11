@@ -3,7 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb, withScope } from '~/shared/libs/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -19,22 +19,24 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.Admin])
+  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
   const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  const auxiliaryPioneerProfileActivated = await getBoolSetting(
-    db,
-    CongregationSettingKey.AuxiliaryPioneerProfileActivated,
-  )
+  return withScope(congregationId, async db => {
+    const auxiliaryPioneerProfileActivated = await getBoolSetting(
+      db,
+      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+    )
 
-  return {
-    auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
-    congregationDisplayName: congregation.displayName,
-  }
+    return {
+      auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
+      congregationDisplayName: congregation.displayName,
+    }
+  })
 }
 
 export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
@@ -109,7 +111,7 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, db } = await authenticateAndAuthorize(request, [Role.Admin])
+  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
   const canManageSettings = can(Role.Admin)
 
   if (!canManageSettings) {
@@ -127,22 +129,25 @@ export async function action({ request }: Route.ActionArgs) {
     data: { displayName: displayName ? String(displayName) : null },
   })
 
-  await setSetting(
-    db,
-    CongregationSettingKey.AuxiliaryPioneerProfileActivated,
-    auxiliaryPioneerProfileActivated,
-    congregation.id,
-  )
-  if (auxiliaryPioneerProfileActivated === 'false') {
-    await db.user.updateMany({
-      where: {
-        type: PublisherType.PionnierAuxiliaires,
-      },
-      data: {
-        type: PublisherType.Normal,
-      },
-    })
-  }
+  return withScope(congregationId, async db => {
+    await setSetting(
+      db,
+      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+      auxiliaryPioneerProfileActivated,
+      congregationId,
+    )
+    if (auxiliaryPioneerProfileActivated === 'false') {
+      await db.user.updateMany({
+        where: {
+          congregationId,
+          type: PublisherType.PionnierAuxiliaires,
+        },
+        data: {
+          type: PublisherType.Normal,
+        },
+      })
+    }
 
-  return redirect('/settings')
+    return redirect('/settings')
+  })
 }

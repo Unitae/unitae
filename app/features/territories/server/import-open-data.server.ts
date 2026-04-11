@@ -1,12 +1,12 @@
 import { getAllowedZips } from '~/features/territories/server/settings'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 
 import { fetchOpenData } from './fetch-open-data.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
 export async function importOpenData(
-  db: ScopedDb,
+  db: TransactionClient,
   congregationId: number,
   progressCallback: (percent: number) => void = () => {},
 ) {

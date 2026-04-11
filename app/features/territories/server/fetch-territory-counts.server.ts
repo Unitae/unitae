@@ -1,12 +1,12 @@
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
 
 export type { TerritoryCountByType } from './territory-count-by-type.type'
 export { getTotalTerritoryCount } from './territory-count-by-type.type'
 
 export async function fetchTerritoryCounts(
-  db: ScopedDb,
+  db: TransactionClient,
   territoryKinds?: TerritoryKind[],
 ): Promise<TerritoryCountByType[]> {
   const groups = await db.territory.groupBy({

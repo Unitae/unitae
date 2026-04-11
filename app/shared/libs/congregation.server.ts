@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { congregationContext, unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/libs/db.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
 const DEFAULT_EMAIL_FROM = 'Unitae <noreply@unitae.app>'
@@ -21,19 +21,6 @@ export type CongregationInfo = {
   suspendedAt: Date | null
   suspendedReason: string | null
   trialEndsAt: Date | null
-}
-
-export function getCongregationFromContext(): CongregationInfo | null {
-  const ctx = congregationContext.getStore()
-  return ctx?.congregation ?? null
-}
-
-export function requireCongregation(): CongregationInfo {
-  const congregation = getCongregationFromContext()
-  if (!congregation) {
-    throw new Error('Congregation context is required but not set')
-  }
-  return congregation
 }
 
 export async function resolveCongregation(congregationId: number): Promise<CongregationInfo> {

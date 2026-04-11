@@ -1,7 +1,7 @@
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-export async function getPublisherStats(db: ScopedDb, month: number, year: number) {
+export async function getPublisherStats(db: TransactionClient, month: number, year: number) {
   const publishers = await db.user.count({
     where: {
       activities: {
@@ -22,7 +22,7 @@ export async function getPublisherStats(db: ScopedDb, month: number, year: numbe
   }
 }
 
-async function getFiguresMap(db: ScopedDb, month: number, year: number) {
+async function getFiguresMap(db: TransactionClient, month: number, year: number) {
   const figures = await db.publisherActivity.groupBy({
     _count: {
       _all: true,

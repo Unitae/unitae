@@ -2,8 +2,8 @@ import type { BoardDocument } from '~/database/generated/client'
 import logger from '~/shared/libs/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage'
 
-export function saveFile(file: File): Promise<string> {
-  return saveBoardFile(file)
+export function saveFile(congregationId: number, file: File): Promise<string> {
+  return saveBoardFile(congregationId, file)
 }
 
 export async function getFileStream(document: BoardDocument): Promise<Response | null> {

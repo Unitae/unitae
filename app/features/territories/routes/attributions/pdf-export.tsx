@@ -4,6 +4,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
 import type { Route } from './+types/pdf-export'
@@ -13,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, can, db } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
+  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
   const canViewTerritories = can(Role.TerritoriesViewer)
 
   if (!canViewTerritories) {
@@ -27,14 +28,18 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     currentUser,
   })
 
-  const territories = await getTerritoriesExportData(db, Number(params.year))
-  const file = await pdf(<TerritoryAttributionDocument year={Number(params.year)} territories={territories} />).toBlob()
+  return withScope(congregationId, async db => {
+    const territories = await getTerritoriesExportData(db, Number(params.year))
+    const file = await pdf(
+      <TerritoryAttributionDocument year={Number(params.year)} territories={territories} />,
+    ).toBlob()
 
-  return new Response(file, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="S-13_F-${params.year}.zip"`,
-    },
+    return new Response(file, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="S-13_F-${params.year}.zip"`,
+      },
+    })
   })
 }

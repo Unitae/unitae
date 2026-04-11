@@ -8,6 +8,7 @@ import { findBuildingsWithEntrancePaginated } from '~/features/territories/serve
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 
@@ -20,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, db } = await authenticateAndAuthorize(request, [
+  const { can, congregationId } = await authenticateAndAuthorize(request, [
     Role.ProspectionViewer,
     Role.ProspectionManager,
     Role.TerritoriesManager,
@@ -33,80 +34,82 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
-  const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
-  if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
-  const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
-  if (prospectionValidity > 0) inactiveStaleDate.setMonth(inactiveStaleDate.getMonth() - prospectionValidity * 2)
-  const warningDate = new Date()
-  warningDate.setMonth(warningDate.getMonth() - 3)
+  return withScope(congregationId, async db => {
+    const prospectionValidity = Number((await getSetting(db, TerritorySettingKey.ProspectionValidity)) ?? '0')
+    const staleDate = prospectionValidity > 0 ? new Date() : new Date(0)
+    if (prospectionValidity > 0) staleDate.setMonth(staleDate.getMonth() - prospectionValidity)
+    const inactiveStaleDate = prospectionValidity > 0 ? new Date() : new Date(0)
+    if (prospectionValidity > 0) inactiveStaleDate.setMonth(inactiveStaleDate.getMonth() - prospectionValidity * 2)
+    const warningDate = new Date()
+    warningDate.setMonth(warningDate.getMonth() - 3)
 
-  const selector: Prisma.BuildingWhereInput = {
-    // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
-    OR: [
-      {
-        prospectionDate: {
-          lt: staleDate,
+    const selector: Prisma.BuildingWhereInput = {
+      // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
+      OR: [
+        {
+          prospectionDate: {
+            lt: staleDate,
+          },
+          active: true,
         },
-        active: true,
-      },
-      {
-        prospectionDate: {
-          lt: inactiveStaleDate,
+        {
+          prospectionDate: {
+            lt: inactiveStaleDate,
+          },
+          active: false,
+          inTerritory: true,
         },
-        active: false,
-        inTerritory: true,
-      },
-      {
-        entrance: { access: TerritoryAccess.Intercom },
-        homes: { equals: null },
-        inTerritory: true,
-      },
-      {
-        entrance: { access: TerritoryAccess.Doorbell },
-        homes: { equals: null },
-        inTerritory: true,
-      },
-      {
-        entrance: { access: TerritoryAccess.Code, isOpenEarly: true },
-        homes: { equals: null },
-        inTerritory: true,
-      },
-      {
-        entrance: { access: TerritoryAccess.Code, isOpenEarly: false },
-        phones: { equals: null },
-        inTerritory: true,
-      },
-      {
-        inTerritory: false,
-        active: true,
-        createdAt: {
-          lt: warningDate,
+        {
+          entrance: { access: TerritoryAccess.Intercom },
+          homes: { equals: null },
+          inTerritory: true,
         },
-      },
-      {
-        inTerritory: true,
-        homes: { gt: 0 },
-        entrance: {
-          access: {
-            equals: null,
+        {
+          entrance: { access: TerritoryAccess.Doorbell },
+          homes: { equals: null },
+          inTerritory: true,
+        },
+        {
+          entrance: { access: TerritoryAccess.Code, isOpenEarly: true },
+          homes: { equals: null },
+          inTerritory: true,
+        },
+        {
+          entrance: { access: TerritoryAccess.Code, isOpenEarly: false },
+          phones: { equals: null },
+          inTerritory: true,
+        },
+        {
+          inTerritory: false,
+          active: true,
+          createdAt: {
+            lt: warningDate,
           },
         },
-      },
-    ],
-  }
+        {
+          inTerritory: true,
+          homes: { gt: 0 },
+          entrance: {
+            access: {
+              equals: null,
+            },
+          },
+        },
+      ],
+    }
 
-  const url = new URL(request.url)
-  const { buildings, pagination } = await findBuildingsWithEntrancePaginated(db, selector, url)
+    const url = new URL(request.url)
+    const { buildings, pagination } = await findBuildingsWithEntrancePaginated(db, selector, url)
 
-  return {
-    buildings,
-    pagination,
-    staleDate,
-    canManageTerritories,
-    canManageProspection,
-    canViewProspection,
-  }
+    return {
+      buildings,
+      pagination,
+      staleDate,
+      canManageTerritories,
+      canManageProspection,
+      canViewProspection,
+    }
+  })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {

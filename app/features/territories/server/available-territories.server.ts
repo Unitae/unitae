@@ -1,12 +1,12 @@
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import type { ScopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/libs/db.server'
 import {
   RESTING_PERIOD_FOR_CAMPAIGN,
   RESTING_PERIOD_FOR_DOORS_TO_DOORS,
   RESTING_PERIOD_FOR_PHONE,
 } from './resting-periods.server'
 
-export async function countAvailableTerritories(db: ScopedDb) {
+export async function countAvailableTerritories(db: TransactionClient) {
   const endRestPeriodForDoorsToDoors = new Date()
   const endRestPeriodForCampaign = new Date()
   const endRestPeriodForPhone = new Date()
