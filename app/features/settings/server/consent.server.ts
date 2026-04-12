@@ -81,6 +81,7 @@ export function getActiveConsents(db: TransactionClient, userId: number) {
   })
 }
 
+
 /**
  * Verifie si un utilisateur a donne son consentement au traitement des donnees.
  * Utilise unscopedDb car appele avant l'etablissement du contexte congregation.
