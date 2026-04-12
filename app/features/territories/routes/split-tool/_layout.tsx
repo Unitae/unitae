@@ -46,12 +46,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     const totalBuildingsForPhone = await db.building.count({
       where: {
         ...prospectedBuilding,
-        entrances: { some: { territories: { none: { type: TerritoryKind.Classical } } } },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
-        OR: [
-          { phones: { gt: 0 } },
-          { entrances: { some: { access: 4, isOpenEarly: false } } },
-        ],
+        entrances: {
+          some: {
+            territories: { none: { type: TerritoryKind.Classical } },
+            // biome-ignore lint/style/useNamingConvention: prisma keywords
+            OR: [
+              { phones: { gt: 0 } },
+              { access: 4, isOpenEarly: false },
+            ],
+          },
+        },
       },
     })
     const totalBuildingsForCommerce = await db.buildingEntrance.count({
