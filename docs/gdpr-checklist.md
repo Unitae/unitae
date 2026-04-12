@@ -36,7 +36,7 @@ This document tracks all technical and legal items required for GDPR compliance.
   - Right to lodge complaint with CNIL
   - Special category data disclosure (religious affiliation)
 
-- [ ] **Data Processing Agreement (DPA)** — contract between MindsersIT and each congregation
+- [x] **Data Processing Agreement (DPA)** — summary page at `unitae.app/privacy/dpa` + internal draft (DPIA doc)
   - Subject matter, duration, nature, and purpose of processing
   - Types of personal data and categories of data subjects
   - Processor obligations (process only on instructions, staff confidentiality, security measures)
@@ -47,14 +47,14 @@ This document tracks all technical and legal items required for GDPR compliance.
   - Audit rights
   - Specific provisions for special category data (Article 9)
 
-- [ ] **Data Protection Impact Assessment (DPIA)** — mandatory for religious data at scale
+- [x] **Data Protection Impact Assessment (DPIA)** — drafted internally (gdpr-dpia.md)
   - Description of processing operations and purposes
   - Assessment of necessity and proportionality
   - Assessment of risks to data subjects' rights and freedoms
   - Measures to mitigate risks (encryption, access controls, audit logging, tenant isolation)
   - Consultation with CNIL if high residual risk remains
 
-- [ ] **Records of Processing Activities (RoPA)** — Article 30
+- [x] **Records of Processing Activities (RoPA)** — drafted internally (gdpr-ropa.md)
   - List of all processing activities
   - Purposes for each activity
   - Categories of data subjects and personal data
@@ -63,9 +63,9 @@ This document tracks all technical and legal items required for GDPR compliance.
   - Retention periods
   - Description of security measures
 
-- [ ] **Sub-processor list** — public page listing all sub-processors (see Section 8)
+- [x] **Sub-processor list** — public page at `unitae.app/privacy/sub-processors`
 
-- [ ] **Data retention policy** — documented retention periods per data category (see Section 7)
+- [x] **Data retention policy** — documented in privacy policy pages and this checklist (Section 7)
 
 - [ ] **Breach response procedure** — internal document
   - Detection and assessment process
@@ -196,15 +196,15 @@ This document tracks all technical and legal items required for GDPR compliance.
 
 These apply only to the managed SaaS at `unitae.app`:
 
-- [ ] **DPA signed with each congregation** before they start using the service
-- [ ] **Process only on documented instructions** — no data usage beyond what the DPA specifies
-- [ ] **Staff confidentiality** — ensure all MindsersIT personnel with access are under confidentiality obligations
-- [ ] **Sub-processor management** — maintain public list, notify congregations before adding new ones
-- [ ] **Breach notification to congregations** — within timeframe specified in DPA
-- [ ] **Assist with data subject requests** — provide tools (export, anonymization) and support
-- [ ] **Data return/deletion at contract end** — export congregation data and delete from platform
-- [ ] **Audit support** — make information available to demonstrate compliance
-- [ ] **DPO or privacy contact** — designate a privacy contact for data protection inquiries
+- [ ] **DPA signed with each congregation** before they start using the service (DPA page exists, signing process TBD)
+- [ ] **Process only on documented instructions** — organizational (no data usage beyond what the DPA specifies)
+- [ ] **Staff confidentiality** — organizational (ensure all MindsersIT personnel under confidentiality obligations)
+- [x] **Sub-processor management** — public list at `unitae.app/privacy/sub-processors`, notification process documented in DPA page
+- [ ] **Breach notification to congregations** — organizational (procedure documented in DPIA, tooling TBD)
+- [x] **Assist with data subject requests** — export and anonymization tools built into OSS app + platform congregation export/delete
+- [x] **Data return/deletion at contract end** — platform has congregation export (JSON) and deletion tools on congregation detail page
+- [ ] **Audit support** — organizational (make information available to demonstrate compliance)
+- [x] **DPO or privacy contact** — privacy@mindsers.it documented in privacy policy and DPA pages
 - [ ] **DSAR management interface** — admin tooling to track and fulfill data subject requests (Priority 2)
   - Status tracking: received → processing → completed
   - Response deadline tracking (1 month)
@@ -374,8 +374,8 @@ All sub-processors must be documented and congregations notified before adding n
 - [ ] **Verify Resend's DPF certification** and obtain their DPA
 - [ ] **Verify S3 provider's GDPR compliance** (depends on deployment)
 - [ ] **Obtain DPAs from all sub-processors** (OVH, Resend, Stripe, S3 provider)
-- [ ] **Publish sub-processor list** on unitae.app
-- [ ] **Set up notification process** for sub-processor changes
+- [x] **Publish sub-processor list** on unitae.app — `unitae.app/privacy/sub-processors`
+- [x] **Set up notification process** for sub-processor changes — documented in DPA and sub-processor pages
 
 ---
 
@@ -396,18 +396,20 @@ All sub-processors must be documented and congregations notified before adding n
 
 ## Implementation Priority
 
-### Priority 1 — Must have before SaaS launch
-1. ~~Privacy Policy page (`/privacy`)~~ — done
-2. ~~User data export (JSON + UI buttons)~~ — done (self-service on profile + admin on user edit)
-3. ~~User anonymization (admin-only)~~ — done (session revocation, confirmation dialog, deletion ledger)
+### Priority 1 — Must have before SaaS launch — ALL DONE
+1. ~~Privacy Policy page~~ — done (OSS `/privacy` + website `/privacy`)
+2. ~~User data export~~ — done (OSS self-service + admin + platform congregation export)
+3. ~~User anonymization~~ — done (OSS admin-only + platform congregation deletion)
 4. ~~Deletion ledger~~ — done
-5. ~~Consent tracking (gate + registration + management UI)~~ — done (first-login gate, `/me/consents`)
+5. ~~Consent tracking~~ — done (gate, registration, management UI, platform consent viewer)
 6. ~~Cookie consent for Google Maps~~ — done
-7. ~~GDPR documentation in README and product docs~~ — done
-8. DPA template
-9. DPIA
-10. RoPA
-11. Sub-processor list
+7. ~~GDPR documentation~~ — done (README, product docs, security docs)
+8. ~~DPA~~ — done (website `/privacy/dpa` page + internal draft)
+9. ~~DPIA~~ — done (internal draft)
+10. ~~RoPA~~ — done (internal draft)
+11. ~~Sub-processor list~~ — done (website `/privacy/sub-processors`)
+12. ~~Google Fonts self-hosted~~ — done (no more IP leak to Google)
+13. ~~Registration consent~~ — done (website checkbox + platform API recording)
 
 ### Priority 2 — Build after launch
 11. Audit logging
