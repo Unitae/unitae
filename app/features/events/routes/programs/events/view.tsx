@@ -2,7 +2,7 @@ import { AlertTriangle, Clock, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { isTemplateResponsible } from '~/features/events/server/programme-templates.server'
+import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -33,10 +33,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/congregation/programs')
 
-    const responsible = event.templateId
-      ? await isTemplateResponsible(db, event.templateId, currentUser.id, congregationId)
-      : null
-    const canEdit = can(Role.ProgramManager) || responsible != null
+    const canEdit = await canEditEvent(db, can, currentUser.id, event.templateId, congregationId)
 
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 

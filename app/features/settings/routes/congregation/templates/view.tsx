@@ -1,7 +1,13 @@
-import { Calendar, Clock, Pencil, UserCog } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Calendar, Clock, Copy, Pencil, UserCog } from 'lucide-react'
+import { Form, Link, redirect } from 'react-router'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { getTemplateById, isTemplateResponsible } from '~/features/events/server/programme-templates.server'
+import { dayLabel } from '~/features/events/model/day-label'
+import {
+  duplicateTemplate,
+  getTemplateById,
+  isTemplateResponsible,
+} from '~/features/events/server/programme-templates.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -41,6 +47,31 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
+export async function action({ request, params }: Route.ActionArgs) {
+  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+
+  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
+
+  return withScope(congregationId, async db => {
+    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
+    if (!can(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+
+    const copy = await duplicateTemplate(db, templateId, congregationId)
+    if (copy) {
+      session.flash('success', `Modèle dupliqué : « ${copy.name} ».`)
+      logger.info(`Duplicated template ${templateId} → ${copy.id}. User ID: ${currentUser.id}.`)
+      return redirect(`/settings/congregation/templates/${copy.id}`, {
+        headers: { 'Set-Cookie': await commitSession(session) },
+      })
+    }
+
+    session.flash('error', 'Impossible de dupliquer ce modèle.')
+    return redirect(`/settings/congregation/templates/${templateId}`, {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
+  })
+}
+
 export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
   const { template, canEdit } = loaderData
 
@@ -64,19 +95,25 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
                   Modifier
                 </Link>
               </Button>
+              <Form method="post">
+                <Button variant="outline" size="sm" type="submit">
+                  <Copy className="size-4" />
+                  Dupliquer
+                </Button>
+              </Form>
             </div>
           )
         }
       />
 
       <div className="flex items-center gap-3">
-        {template.isRecurring && template.weekDay != null && (
+        {template.weekDay != null && (
           <Badge variant="outline">
             <Calendar className="mr-1 size-3" />
             {dayLabel(template.weekDay)}
           </Badge>
         )}
-        {!template.isRecurring && <Badge variant="secondary">Évènement ponctuel</Badge>}
+        {template.weekDay == null && <Badge variant="secondary">Évènement ponctuel</Badge>}
         {template.responsibles[0] && (
           <Badge variant="outline">
             <UserCog className="mr-1 size-3" />
@@ -145,9 +182,4 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
       </Card>
     </div>
   )
-}
-
-function dayLabel(weekDay: number): string {
-  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  return days[weekDay] ?? ''
 }

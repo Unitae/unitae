@@ -162,3 +162,39 @@ export function isTemplateResponsible(
     where: { templateId, userId, congregationId },
   })
 }
+
+export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number) {
+  const source = await db.programmeTemplate.findFirst({
+    where: { id: templateId, congregationId },
+    include: { parts: { orderBy: { order: 'asc' } }, serviceRoles: true },
+  })
+  if (!source) return null
+
+  return db.programmeTemplate.create({
+    data: {
+      name: `${source.name} (copie)`,
+      key: `${source.key}-copy-${Date.now()}`,
+      description: source.description,
+      weekDay: source.weekDay,
+      isRecurring: source.isRecurring,
+      congregationId,
+      parts: {
+        create: source.parts.map(part => ({
+          name: part.name,
+          section: part.section,
+          order: part.order,
+          durationMin: part.durationMin,
+          isVariable: part.isVariable,
+          congregationId,
+        })),
+      },
+      serviceRoles: {
+        create: source.serviceRoles.map(role => ({
+          name: role.name,
+          key: `${role.key}-copy-${Date.now()}`,
+          congregationId,
+        })),
+      },
+    },
+  })
+}

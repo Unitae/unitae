@@ -2,7 +2,8 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { getTemplates, isTemplateResponsible } from '~/features/events/server/programme-templates.server'
+import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import { getTemplates } from '~/features/events/server/programme-templates.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { type TransactionClient, withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -29,10 +30,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/congregation/programs')
 
-    const responsible = event.templateId
-      ? await isTemplateResponsible(db, event.templateId, currentUser.id, congregationId)
-      : null
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
+    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+      throw redirect('/congregation/programs')
+    }
 
     const templates = await getTemplates(db, congregationId)
     return { event, templates }
@@ -49,10 +49,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/congregation/programs')
 
-    const responsible = event.templateId
-      ? await isTemplateResponsible(db, event.templateId, currentUser.id, congregationId)
-      : null
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
+    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+      throw redirect('/congregation/programs')
+    }
 
     const message = await handleEditIntent(intent, form, db, eventId, congregationId, currentUser.id)
     if (message) session.flash('success', message)
@@ -63,7 +62,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   })
 }
 
-async function handleEditIntent(
+function handleEditIntent(
   intent: FormDataEntryValue | null,
   form: FormData,
   db: TransactionClient,
@@ -71,66 +70,96 @@ async function handleEditIntent(
   congregationId: number,
   userId: number,
 ): Promise<string | null> {
-  if (intent === 'update-event') {
-    const name = String(form.get('name') ?? '').trim()
-    if (name) {
-      await db.event.update({
-        where: {
-          // biome-ignore lint/style/useNamingConvention: prisma compound key
-          id_congregationId: { id: eventId, congregationId },
-        },
-        data: { name },
-      })
-      return 'Évènement mis à jour.'
-    }
+  switch (intent) {
+    case 'update-event':
+      return handleUpdateEvent(form, db, eventId, congregationId)
+    case 'add-part':
+      return handleAddPart(form, db, eventId, congregationId)
+    case 'delete-part':
+      return handleDeletePart(form, db, congregationId)
+    case 'add-service':
+      return handleAddService(form, db, eventId, congregationId)
+    case 'delete-service':
+      return handleDeleteService(form, db, congregationId)
+    case 'apply-template':
+      return handleApplyTemplate(form, db, eventId, congregationId, userId)
+    default:
+      return null
+  }
+}
+
+async function handleUpdateEvent(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
+  const name = String(form.get('name') ?? '').trim()
+  if (!name) return null
+
+  const dateStr = String(form.get('date') ?? '')
+  const startTimeStr = String(form.get('startTime') ?? '')
+  const endTimeStr = String(form.get('endTime') ?? '')
+
+  const data: Record<string, unknown> = { name }
+
+  if (dateStr && startTimeStr) {
+    const startDate = new Date(`${dateStr}T${startTimeStr}`)
+    if (!Number.isNaN(startDate.getTime())) data.startDate = startDate
+  }
+  if (dateStr && endTimeStr) {
+    const endDate = new Date(`${dateStr}T${endTimeStr}`)
+    if (!Number.isNaN(endDate.getTime())) data.endDate = endDate
   }
 
-  if (intent === 'add-part') {
-    await db.programmePartAssignment.create({
-      data: {
-        eventId,
-        name: String(form.get('partName') ?? ''),
-        section: String(form.get('partSection') ?? ''),
-        order: Number(form.get('partOrder') ?? 0),
-        durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
-        congregationId,
-      },
-    })
-    return 'Partie ajoutée.'
-  }
+  await db.event.update({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id: eventId, congregationId },
+    },
+    data,
+  })
+  return 'Évènement mis à jour.'
+}
 
-  if (intent === 'delete-part') {
-    await db.programmePartAssignment.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: Number(form.get('partAssignmentId')), congregationId },
-      },
-    })
-    return 'Partie supprimée.'
-  }
+async function handleAddPart(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
+  const partName = String(form.get('partName') ?? '').trim()
+  if (!partName) return null
+  await db.programmePartAssignment.create({
+    data: {
+      eventId,
+      name: partName,
+      section: String(form.get('partSection') ?? ''),
+      order: Number(form.get('partOrder') ?? 0),
+      durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
+      congregationId,
+    },
+  })
+  return 'Partie ajoutée.'
+}
 
-  if (intent === 'add-service') {
-    await db.programmeServiceRoleAssignment.create({
-      data: { eventId, name: String(form.get('serviceName') ?? ''), congregationId },
-    })
-    return 'Service ajouté.'
-  }
+async function handleDeletePart(form: FormData, db: TransactionClient, congregationId: number) {
+  await db.programmePartAssignment.delete({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id: Number(form.get('partAssignmentId')), congregationId },
+    },
+  })
+  return 'Partie supprimée.'
+}
 
-  if (intent === 'delete-service') {
-    await db.programmeServiceRoleAssignment.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: Number(form.get('serviceAssignmentId')), congregationId },
-      },
-    })
-    return 'Service supprimé.'
-  }
+async function handleAddService(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
+  const serviceName = String(form.get('serviceName') ?? '').trim()
+  if (!serviceName) return null
+  await db.programmeServiceRoleAssignment.create({
+    data: { eventId, name: serviceName, congregationId },
+  })
+  return 'Service ajouté.'
+}
 
-  if (intent === 'apply-template') {
-    return handleApplyTemplate(form, db, eventId, congregationId, userId)
-  }
-
-  return null
+async function handleDeleteService(form: FormData, db: TransactionClient, congregationId: number) {
+  await db.programmeServiceRoleAssignment.delete({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id: Number(form.get('serviceAssignmentId')), congregationId },
+    },
+  })
+  return 'Service supprimé.'
 }
 
 async function handleApplyTemplate(
@@ -197,6 +226,38 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">Nom</Label>
               <Input id="name" name="name" defaultValue={event.name} required />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                name="date"
+                type="date"
+                defaultValue={new Date(event.startDate).toISOString().split('T')[0]}
+                required
+              />
+            </div>
+            <div className="flex gap-4">
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="startTime">Début</Label>
+                <Input
+                  id="startTime"
+                  name="startTime"
+                  type="time"
+                  defaultValue={new Date(event.startDate).toTimeString().slice(0, 5)}
+                  required
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-2">
+                <Label htmlFor="endTime">Fin</Label>
+                <Input
+                  id="endTime"
+                  name="endTime"
+                  type="time"
+                  defaultValue={new Date(event.endDate).toTimeString().slice(0, 5)}
+                  required
+                />
+              </div>
             </div>
             <Button type="submit" className="w-fit">
               Enregistrer

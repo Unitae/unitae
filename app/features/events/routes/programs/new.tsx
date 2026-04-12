@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { dayLabel } from '~/features/events/model/day-label'
 import {
   createSingleEventFromTemplate,
   generateEventsFromTemplate,
@@ -113,7 +114,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   const isNoTemplate = selectedValue === NO_TEMPLATE
   const selectedTemplate = !isNoTemplate ? templates.find(t => t.id === Number(selectedValue)) : null
-  const isRecurring = selectedTemplate?.isRecurring ?? false
+  const isRecurring = selectedTemplate?.weekDay != null
   const showForm = isNoTemplate || selectedTemplate != null
 
   return (
@@ -131,6 +132,12 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="templateId">Modèle de programme (facultatif)</Label>
+              {templates.length === 0 && (
+                <p className="text-muted-foreground text-xs">
+                  Aucun modèle configuré. Vous pouvez créer un évènement libre ou configurer des modèles dans les
+                  réglages.
+                </p>
+              )}
               <Select
                 name={isNoTemplate ? undefined : 'templateId'}
                 value={selectedValue}
@@ -144,7 +151,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
                   {templates.map(template => (
                     <SelectItem key={template.id} value={template.id.toString()}>
                       {template.name}
-                      {template.isRecurring && template.weekDay != null ? ` (${dayLabel(template.weekDay)})` : ''}
+                      {template.weekDay != null ? ` (${dayLabel(template.weekDay)})` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -198,9 +205,4 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
       </Card>
     </div>
   )
-}
-
-function dayLabel(weekDay: number): string {
-  const days = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
-  return days[weekDay] ?? ''
 }

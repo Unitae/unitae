@@ -2,7 +2,7 @@ import { Form, redirect, useSearchParams } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { isTemplateResponsible } from '~/features/events/server/programme-templates.server'
+import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -30,10 +30,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/congregation/programs')
 
-    const responsible = event.templateId
-      ? await isTemplateResponsible(db, event.templateId, currentUser.id, congregationId)
-      : null
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
+    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+      throw redirect('/congregation/programs')
+    }
 
     const assignment = event.serviceRoleAssignments.find(a => a.id === assignmentId)
 
@@ -59,10 +58,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/congregation/programs')
 
-    const responsible = event.templateId
-      ? await isTemplateResponsible(db, event.templateId, currentUser.id, congregationId)
-      : null
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
+    if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
+      throw redirect('/congregation/programs')
+    }
 
     const result = await assignServiceRole(db, assignmentId, assigneeId, congregationId)
 

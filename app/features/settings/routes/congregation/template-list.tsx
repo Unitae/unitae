@@ -1,6 +1,7 @@
 import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
+import { dayLabelShort } from '~/features/events/model/day-label'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -16,9 +17,13 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
+  const { can, congregationId } = await authenticateAndAuthorize(request, [
+    Role.Admin,
+    Role.ProgramViewer,
+    Role.ProgramManager,
+  ])
 
-  if (!can(Role.Admin)) throw redirect('/')
+  if (!can(Role.ProgramViewer) && !can(Role.Admin)) throw redirect('/')
 
   return withScope(congregationId, async db => {
     const templates = await getTemplates(db, congregationId)
@@ -68,7 +73,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
                 <TableCell className="text-center max-sm:hidden">{template._count.serviceRoles}</TableCell>
                 <TableCell className="text-center max-sm:hidden">
                   {template.weekDay != null ? (
-                    <Badge variant="outline">{dayLabel(template.weekDay)}</Badge>
+                    <Badge variant="outline">{dayLabelShort(template.weekDay)}</Badge>
                   ) : (
                     <span className="text-muted-foreground text-sm">Ponctuel</span>
                   )}
@@ -94,9 +99,4 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       </div>
     </div>
   )
-}
-
-function dayLabel(weekDay: number): string {
-  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
-  return days[weekDay] ?? ''
 }

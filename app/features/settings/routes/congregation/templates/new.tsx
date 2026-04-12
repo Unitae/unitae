@@ -86,7 +86,9 @@ export default function NewTemplatePage() {
             <div className="flex flex-col gap-2">
               <Label htmlFor="key">Clé unique</Label>
               <Input id="key" name="key" placeholder="Ex : midweek-meeting" required />
-              <p className="text-muted-foreground text-xs">Identifiant unique pour ce modèle (en minuscules, sans espaces).</p>
+              <p className="text-muted-foreground text-xs">
+                Identifiant unique pour ce modèle (en minuscules, sans espaces).
+              </p>
             </div>
             <div className="flex flex-col gap-2">
               <Label htmlFor="weekDay">Jour de la semaine</Label>
