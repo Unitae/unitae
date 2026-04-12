@@ -58,6 +58,7 @@ export default [
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
       ...prefix('congregation/templates', [
         index('features/settings/routes/congregation/template-list.tsx'),
+        route('new', 'features/settings/routes/congregation/templates/new.tsx'),
         ...prefix(':templateId', [
           index('features/settings/routes/congregation/templates/view.tsx'),
           route('edit', 'features/settings/routes/congregation/templates/edit.tsx'),

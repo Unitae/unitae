@@ -1,10 +1,11 @@
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
+import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -33,6 +34,14 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title="Assemblée / Modèles de programme"
         subtitle="Gérez les modèles de réunions utilisés pour générer les programmes."
+        actions={
+          <Button asChild>
+            <Link to="./new">
+              <Plus className="size-4" />
+              Nouveau modèle
+            </Link>
+          </Button>
+        }
       />
 
       <div className="overflow-hidden rounded-xl border">
