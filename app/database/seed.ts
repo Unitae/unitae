@@ -177,8 +177,11 @@ async function main() {
     },
   })
 
-  // Seed default programme templates
-  await seedDefaultTemplates(prisma, defaultCongregation.id)
+  // Seed default programme templates for all congregations
+  const allCongregations = await prisma.congregation.findMany({ select: { id: true } })
+  for (const congregation of allCongregations) {
+    await seedDefaultTemplates(prisma, congregation.id)
+  }
 }
 
 main()
