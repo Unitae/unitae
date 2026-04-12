@@ -109,12 +109,14 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
             <p>
               Code postal : <span className="font-medium text-primary">{building.zip}</span>
             </p>
-            <p>
-              Coordonnée GPS :{' '}
-              <span className="font-medium text-primary">
-                {building.latitude}, {building.longitude}
-              </span>
-            </p>
+            {(building.latitude != null || building.longitude != null) && (
+              <p>
+                Coordonnée GPS :{' '}
+                <span className="font-medium text-primary">
+                  {building.latitude}, {building.longitude}
+                </span>
+              </p>
+            )}
             <p className="pt-3 text-muted-foreground text-sm italic">
               Si certaines de ces informations ne sont pas bonnes, merci de contacter le préposer au territoire ou le
               responsable pour la prédication.
@@ -140,13 +142,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const form = await request.formData()
   const notes = form.get('notes')
-  const importantNotes = form.get('important-notes')
 
   return withScope(congregationId, async db => {
     try {
       await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
         notes: String(notes),
-        importantNotes: String(importantNotes),
       })
 
       session.flash('success', 'Les notes ont été correctement modifiées pour ce batiment.')
