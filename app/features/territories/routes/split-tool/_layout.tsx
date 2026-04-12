@@ -145,7 +145,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.commerce.toLocaleString()}</span>
           <span className="text-sm">
-            batiments disponibles <br /> avec des commerces
+            commerces <br /> disponibles
           </span>
         </NavLink>
         {phoneTypeActive && (
@@ -177,7 +177,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.campus.toLocaleString()}</span>
           <span className="text-sm">
-            batiments disponibles <br /> avec logements pour étudiants
+            résidences universitaires <br /> disponibles
           </span>
         </NavLink>
         <NavLink
@@ -192,8 +192,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.hotel.toLocaleString()}</span>
           <span className="text-sm">
-            batiments disponibles <br />
-            avec des hotels
+            hôtels <br /> disponibles
           </span>
         </NavLink>
       </div>

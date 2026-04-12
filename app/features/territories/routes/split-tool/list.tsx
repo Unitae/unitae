@@ -118,6 +118,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <BuildingEntranceList
           entrances={entrances}
           selectedIds={selectedEntranceIds}
+          variant="residential"
           setSelectedIds={setSelectedEntranceIds}
         />
 

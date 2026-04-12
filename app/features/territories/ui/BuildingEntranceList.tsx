@@ -1,19 +1,27 @@
 import { Link } from 'react-router'
-import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
+import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
+import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import type { Entrance } from '~/shared/types/entrance'
-import { Badge } from '~/shared/ui/badge'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+
+export type EntranceListVariant = 'residential' | 'commerce' | 'phone' | 'simple'
+
+const accessLabels: Record<number, string> = {
+  [TerritoryAccess.Intercom]: 'Interphone',
+  [TerritoryAccess.Code]: 'Digicode',
+  [TerritoryAccess.Doorbell]: 'Sonnette',
+}
 
 export default function BuildingEntranceList({
   entrances,
   selectedIds,
-  showShops = false,
+  variant = 'simple',
   setSelectedIds,
 }: {
   entrances: Entrance[]
   selectedIds: number[]
-  showShops?: boolean
+  variant?: EntranceListVariant
   setSelectedIds: (ids: number[]) => void
 }) {
   return (
@@ -21,11 +29,15 @@ export default function BuildingEntranceList({
       <TableHeader>
         <TableRow>
           <TableHead className="w-[50px]" />
-          <TableHead className="w-[150px]">Code Postal</TableHead>
-          <TableHead className="w-[150px] text-center">Nº</TableHead>
+          <TableHead className="w-[100px]">Code Postal</TableHead>
+          <TableHead className="w-[80px] text-center">Nº</TableHead>
           <TableHead>Rue</TableHead>
-          <TableHead className="w-[120px]">Type</TableHead>
-          {showShops && <TableHead>Type de commerce</TableHead>}
+          {(variant === 'residential' || variant === 'phone') && <TableHead className="w-[120px]">Accès</TableHead>}
+          {variant === 'residential' && <TableHead className="w-[80px] text-center">Foyers</TableHead>}
+          {(variant === 'residential' || variant === 'phone') && (
+            <TableHead className="w-[80px] text-center">Tél.</TableHead>
+          )}
+          {variant === 'commerce' && <TableHead>Type de commerce</TableHead>}
           <TableHead>Notes</TableHead>
         </TableRow>
       </TableHeader>
@@ -35,7 +47,7 @@ export default function BuildingEntranceList({
             key={entrance.id}
             entrance={entrance}
             checked={selectedIds.includes(entrance.id)}
-            showShops={showShops}
+            variant={variant}
             onChange={checked => {
               if (checked) {
                 setSelectedIds([...selectedIds, entrance.id])
@@ -54,12 +66,12 @@ export default function BuildingEntranceList({
 function BuildingEntranceListItem({
   entrance,
   checked,
-  showShops = false,
+  variant = 'simple',
   onChange = () => {},
 }: {
   entrance: Entrance
   checked: boolean
-  showShops?: boolean
+  variant?: EntranceListVariant
   onChange?: (checked: boolean) => void
 }) {
   const firstBuilding = entrance.buildings[0]
@@ -85,11 +97,17 @@ function BuildingEntranceListItem({
         ))}
       </TableCell>
       <TableCell>{firstBuilding.street}</TableCell>
-      <TableCell>
-        <Badge variant="outline">{entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind}</Badge>
-      </TableCell>
-      {showShops && <TableCell>{entrance.shopKind || '-'}</TableCell>}
-      <TableCell>{entrance.buildings.map(el => el.notes).join(', ')}</TableCell>
+      {(variant === 'residential' || variant === 'phone') && (
+        <TableCell>{entrance.access != null ? accessLabels[entrance.access] ?? '-' : '-'}</TableCell>
+      )}
+      {variant === 'residential' && <TableCell className="text-center">{entrance.homes ?? '-'}</TableCell>}
+      {(variant === 'residential' || variant === 'phone') && (
+        <TableCell className="text-center">{entrance.phones ?? '-'}</TableCell>
+      )}
+      {variant === 'commerce' && (
+        <TableCell>{shopKindLabels[entrance.shopKind as ShopKind] ?? (entrance.shopKind || '-')}</TableCell>
+      )}
+      <TableCell className="max-w-[200px] truncate">{entrance.notes || '-'}</TableCell>
     </TableRow>
   )
 }
