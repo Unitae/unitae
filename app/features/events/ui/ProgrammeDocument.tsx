@@ -1,5 +1,16 @@
-import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 
+Font.register({
+  family: 'Fira Sans',
+  fonts: [
+    { src: '/fonts/FiraSans-Regular.ttf' },
+    { src: '/fonts/FiraSans-Bold.ttf', fontWeight: 'bold' },
+    { src: '/fonts/FiraSans-Italic.ttf', fontStyle: 'italic' },
+    { src: '/fonts/FiraSans-BoldItalic.ttf', fontWeight: 'bold', fontStyle: 'italic' },
+  ],
+})
+
+// JW workbook section colors
 const SECTION_COLOR_RULES: [string, string][] = [
   ['joyaux', '#5B6770'],
   ['minist', '#C18626'],
@@ -44,47 +55,164 @@ interface ProgrammeDocumentProps {
 }
 
 const styles = StyleSheet.create({
-  page: { padding: 25, fontFamily: 'Helvetica', fontSize: 9 },
-  eventBlock: { marginBottom: 15 },
+  page: {
+    padding: '30 35',
+    fontFamily: 'Fira Sans',
+    fontSize: 8.5,
+    color: '#1a1a1a',
+  },
+  // Document title
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2c3e50',
+    textAlign: 'center',
+    marginBottom: 20,
+    letterSpacing: 0.5,
+  },
+  // Event block
+  eventBlock: {
+    marginBottom: 8,
+    borderRadius: 4,
+    border: '0.75 solid #e2e8f0',
+    overflow: 'hidden',
+  },
   eventHeader: {
-    backgroundColor: '#f0f0f0',
-    padding: 8,
-    marginBottom: 1,
+    backgroundColor: '#2c3e50',
+    padding: '8 12',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  eventTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold' },
-  eventDate: { fontSize: 9, color: '#555', marginTop: 2 },
+  eventTitle: {
+    fontSize: 10.5,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
+  eventDate: {
+    fontSize: 8.5,
+    color: '#cbd5e1',
+  },
+  // Section header (colored bar)
   sectionHeader: {
-    padding: '4 8',
-    marginTop: 1,
+    padding: '4 12',
+    borderTop: '0.5 solid rgba(255,255,255,0.15)',
   },
-  sectionHeaderText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
+  sectionHeaderText: {
+    fontSize: 7.5,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  // Part rows
   partRow: {
     flexDirection: 'row',
-    borderBottom: '0.5 solid #e0e0e0',
-    paddingVertical: 3,
-    paddingHorizontal: 8,
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderBottom: '0.5 solid #f1f5f9',
+    minHeight: 18,
   },
-  partName: { width: '30%', fontSize: 8 },
-  partDuration: { width: '10%', fontSize: 8, color: '#888' },
-  partTopic: { width: '25%', fontSize: 8, fontFamily: 'Helvetica-Oblique' },
-  partAssignee: { width: '20%', fontSize: 8, fontFamily: 'Helvetica-Bold' },
-  partAssistant: { width: '15%', fontSize: 8, color: '#555' },
+  partRowAlt: {
+    backgroundColor: '#f8fafc',
+  },
+  partName: {
+    width: '28%',
+    fontSize: 8,
+    color: '#334155',
+  },
+  partDuration: {
+    width: '8%',
+    fontSize: 7,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  partTopic: {
+    width: '29%',
+    fontSize: 7.5,
+    fontStyle: 'italic',
+    color: '#64748b',
+    paddingHorizontal: 4,
+  },
+  partAssignee: {
+    width: '20%',
+    fontSize: 8,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  partAssistant: {
+    width: '15%',
+    fontSize: 7.5,
+    color: '#64748b',
+  },
+  // Services section
   serviceSection: {
-    marginTop: 4,
-    padding: '4 8',
-    backgroundColor: '#fafafa',
+    borderTop: '1 solid #e2e8f0',
+    padding: '6 12',
+    backgroundColor: '#f8fafc',
   },
-  serviceSectionTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', marginBottom: 3, color: '#555' },
-  serviceRow: { flexDirection: 'row', paddingVertical: 1 },
-  serviceRoleName: { width: '40%', fontSize: 8 },
-  serviceAssignee: { width: '60%', fontSize: 8, fontFamily: 'Helvetica-Bold' },
-  title: { fontSize: 14, fontFamily: 'Helvetica-Bold', marginBottom: 15, textAlign: 'center' },
-  separator: { borderBottom: '1 solid #cccccc', marginVertical: 10 },
+  serviceSectionTitle: {
+    fontSize: 7,
+    fontWeight: 'bold',
+    color: '#94a3b8',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  serviceGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  serviceItem: {
+    width: '50%',
+    flexDirection: 'row',
+    paddingVertical: 2,
+  },
+  serviceRoleName: {
+    fontSize: 7.5,
+    color: '#64748b',
+    width: '45%',
+  },
+  serviceAssignee: {
+    fontSize: 7.5,
+    fontWeight: 'bold',
+    color: '#334155',
+    width: '55%',
+  },
+  // Page separator
+  separator: {
+    marginVertical: 10,
+  },
+  // Footer
+  footer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 35,
+    right: 35,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderTop: '0.5 solid #e2e8f0',
+    paddingTop: 6,
+  },
+  footerText: {
+    fontSize: 6.5,
+    color: '#94a3b8',
+  },
+  // Unassigned indicator
+  unassigned: {
+    fontSize: 7.5,
+    color: '#cbd5e1',
+    fontStyle: 'italic',
+  },
 })
 
-function formatName(user: { firstname: string | null; lastname: string | null } | null): string {
-  if (!user) return '—'
-  return `${user.firstname ?? ''} ${user.lastname ?? ''}`.trim() || '—'
+function formatName(user: { firstname: string | null; lastname: string | null } | null): string | null {
+  if (!user) return null
+  const name = `${user.firstname ?? ''} ${user.lastname ?? ''}`.trim()
+  return name || null
 }
 
 function formatDate(date: Date | string): string {
@@ -92,8 +220,8 @@ function formatDate(date: Date | string): string {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
+
 export function ProgrammeDocument({ events, title, showParts, showServices }: ProgrammeDocumentProps) {
-  // Group events into pairs (2 per page)
   const pages: ProgrammeEvent[][] = []
   for (let i = 0; i < events.length; i += 2) {
     pages.push(events.slice(i, i + 2))
@@ -102,6 +230,8 @@ export function ProgrammeDocument({ events, title, showParts, showServices }: Pr
   if (pages.length === 0) {
     pages.push([])
   }
+
+  const totalPages = pages.length
 
   return (
     <Document>
@@ -117,6 +247,13 @@ export function ProgrammeDocument({ events, title, showParts, showServices }: Pr
               <EventBlock event={event} showParts={showParts} showServices={showServices} />
             </View>
           ))}
+
+          <View style={styles.footer} fixed>
+            <Text style={styles.footerText}>Unitae</Text>
+            <Text style={styles.footerText}>
+              Page {pageIndex + 1} / {totalPages}
+            </Text>
+          </View>
         </Page>
       ))}
     </Document>
@@ -146,6 +283,8 @@ function EventBlock({
     groupedParts[groupedParts.length - 1].parts.push(part)
   }
 
+  let rowIndex = 0
+
   return (
     <View style={styles.eventBlock}>
       <View style={styles.eventHeader}>
@@ -161,21 +300,19 @@ function EventBlock({
             <View key={groupIdx}>
               {group.section !== '' && (
                 <View
-                  style={[styles.sectionHeader, color ? { backgroundColor: color } : { backgroundColor: '#888888' }]}
+                  style={[styles.sectionHeader, { backgroundColor: color ?? '#64748b' }]}
                 >
                   <Text style={styles.sectionHeaderText}>{group.section}</Text>
                 </View>
               )}
-              {group.parts.map((part, partIdx) => (
-                // biome-ignore lint/suspicious/noArrayIndexKey: part rows within a group
-                <View key={partIdx} style={styles.partRow}>
-                  <Text style={styles.partName}>{part.name}</Text>
-                  <Text style={styles.partDuration}>{part.durationMin ? `${part.durationMin} min` : ''}</Text>
-                  <Text style={styles.partTopic}>{part.topic || ''}</Text>
-                  <Text style={styles.partAssignee}>{formatName(part.assignee)}</Text>
-                  <Text style={styles.partAssistant}>{part.assistant ? formatName(part.assistant) : ''}</Text>
-                </View>
-              ))}
+              {group.parts.map((part, partIdx) => {
+                const isAlt = rowIndex % 2 === 1
+                rowIndex++
+                return (
+                  // biome-ignore lint/suspicious/noArrayIndexKey: part rows within a group
+                  <PartRow key={partIdx} part={part} isAlt={isAlt} />
+                )
+              })}
             </View>
           )
         })}
@@ -183,14 +320,46 @@ function EventBlock({
       {showServices && event.serviceRoleAssignments.length > 0 && (
         <View style={styles.serviceSection}>
           <Text style={styles.serviceSectionTitle}>Services</Text>
-          {event.serviceRoleAssignments.map((role, roleIdx) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: service role rows
-            <View key={roleIdx} style={styles.serviceRow}>
-              <Text style={styles.serviceRoleName}>{role.name}</Text>
-              <Text style={styles.serviceAssignee}>{formatName(role.assignee)}</Text>
-            </View>
-          ))}
+          <View style={styles.serviceGrid}>
+            {event.serviceRoleAssignments.map((role, roleIdx) => {
+              const name = formatName(role.assignee)
+              return (
+                // biome-ignore lint/suspicious/noArrayIndexKey: service role rows
+                <View key={roleIdx} style={styles.serviceItem}>
+                  <Text style={styles.serviceRoleName}>{role.name}</Text>
+                  {name ? (
+                    <Text style={styles.serviceAssignee}>{name}</Text>
+                  ) : (
+                    <Text style={styles.unassigned}>—</Text>
+                  )}
+                </View>
+              )
+            })}
+          </View>
         </View>
+      )}
+    </View>
+  )
+}
+
+function PartRow({ part, isAlt }: { part: PartAssignment; isAlt: boolean }) {
+  const assigneeName = formatName(part.assignee)
+  const assistantName = part.assistant ? formatName(part.assistant) : null
+
+  return (
+    <View style={[styles.partRow, isAlt ? styles.partRowAlt : {}]}>
+      <Text style={styles.partName}>{part.name}</Text>
+      <Text style={styles.partDuration}>{part.durationMin ? `${part.durationMin}'` : ''}</Text>
+      <Text style={styles.partTopic}>{part.topic || ''}</Text>
+      {assigneeName ? (
+        <Text style={styles.partAssignee}>{assigneeName}</Text>
+      ) : (
+        <Text style={styles.unassigned}>—</Text>
+      )}
+      {assistantName ? (
+        <Text style={styles.partAssistant}>{assistantName}</Text>
+      ) : (
+        <Text style={styles.partAssistant} />
       )}
     </View>
   )
