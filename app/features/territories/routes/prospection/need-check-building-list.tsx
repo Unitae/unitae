@@ -60,22 +60,22 @@ export async function loader({ request }: Route.LoaderArgs) {
           inTerritory: true,
         },
         {
-          entrance: { access: TerritoryAccess.Intercom },
+          entrances: { some: { access: TerritoryAccess.Intercom } },
           homes: { equals: null },
           inTerritory: true,
         },
         {
-          entrance: { access: TerritoryAccess.Doorbell },
+          entrances: { some: { access: TerritoryAccess.Doorbell } },
           homes: { equals: null },
           inTerritory: true,
         },
         {
-          entrance: { access: TerritoryAccess.Code, isOpenEarly: true },
+          entrances: { some: { access: TerritoryAccess.Code, isOpenEarly: true } },
           homes: { equals: null },
           inTerritory: true,
         },
         {
-          entrance: { access: TerritoryAccess.Code, isOpenEarly: false },
+          entrances: { some: { access: TerritoryAccess.Code, isOpenEarly: false } },
           phones: { equals: null },
           inTerritory: true,
         },
@@ -89,9 +89,11 @@ export async function loader({ request }: Route.LoaderArgs) {
         {
           inTerritory: true,
           homes: { gt: 0 },
-          entrance: {
-            access: {
-              equals: null,
+          entrances: {
+            some: {
+              access: {
+                equals: null,
+              },
             },
           },
         },

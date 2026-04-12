@@ -49,11 +49,10 @@ export async function loader({ request }: Route.LoaderArgs) {
         street: String(url.searchParams.get('street')),
         zip: String(url.searchParams.get('zip')),
       },
-      select: { entrance: { include: { buildings: true } } },
+      select: { entrances: { include: { buildings: true } } },
     })
     const entrances = buildings
-      .map(building => building.entrance)
-      .filter(entrance => entrance !== null)
+      .flatMap(building => building.entrances)
       .map(aggregateEntrance)
     if (!url.searchParams.has('zip')) {
       return { zips, buildings: [], streets: [], phoneTypeActive, entrances }

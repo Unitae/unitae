@@ -20,6 +20,6 @@ export async function getBuildings(
 
   return await db.building.findMany({
     where: selectors,
-    include: { entrance: { include: { buildings: true } } },
+    include: { entrances: { include: { buildings: true } } },
   })
 }

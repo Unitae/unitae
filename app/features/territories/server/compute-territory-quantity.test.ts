@@ -8,6 +8,8 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     id: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
+    kind: 'residential',
+    shopKind: '',
     access: null,
     // biome-ignore lint/style/useNamingConvention: Prisma property
     isPMR: null,
@@ -43,7 +45,6 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
         hasHotel: null,
         hasLandromat: null,
         prospectionDate: null,
-        entranceId: 1,
         notes: '',
         importantNotes: '',
         congregationId: 1,

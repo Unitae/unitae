@@ -2,11 +2,17 @@ import type { Building, BuildingEntrance } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { Badge } from '~/shared/ui/badge'
 
+type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
+
+function getResidentialEntrance(building: BuildingWithEntrances): BuildingEntrance | undefined {
+  return building.entrances.find(e => e.kind === 'residential')
+}
+
 export function BuildingCheckReason({
   building,
   options,
 }: {
-  building: Building & { entrance: BuildingEntrance | null }
+  building: BuildingWithEntrances
   options: { staleDate: Date }
 }) {
   if (checkIncoherentAccessWithHomes(building)) {
@@ -64,38 +70,41 @@ export function BuildingCheckReason({
   )
 }
 
-function checkOldData(building: Building & { entrance: BuildingEntrance | null }, options: { staleDate: Date }) {
+function checkOldData(building: BuildingWithEntrances, options: { staleDate: Date }) {
   return building.prospectionDate == null || building.prospectionDate < options.staleDate
 }
 
-function checkNotInTerritory(building: Building & { entrance: BuildingEntrance | null }) {
+function checkNotInTerritory(building: BuildingWithEntrances) {
   return building.inTerritory === false && building.active === true
 }
 
-function checkMissingAccess(building: Building & { entrance: BuildingEntrance | null }) {
-  return building.entrance?.access === null && building.homes != null && building.homes > 0
+function checkMissingAccess(building: BuildingWithEntrances) {
+  const entrance = getResidentialEntrance(building)
+  return entrance?.access === null && building.homes != null && building.homes > 0
 }
 
-function checkIncoherentAccessWithPhones(building: Building & { entrance: BuildingEntrance | null }) {
+function checkIncoherentAccessWithPhones(building: BuildingWithEntrances) {
+  const entrance = getResidentialEntrance(building)
   return (
-    building.entrance?.access === TerritoryAccess.Code &&
-    building.entrance.isOpenEarly === false &&
+    entrance?.access === TerritoryAccess.Code &&
+    entrance.isOpenEarly === false &&
     building.phones == null
   )
 }
 
-function checkIncoherentAccessWithHomes(building: Building & { entrance: BuildingEntrance | null }) {
-  if (building.entrance?.access === TerritoryAccess.Doorbell && building.homes == null) {
+function checkIncoherentAccessWithHomes(building: BuildingWithEntrances) {
+  const entrance = getResidentialEntrance(building)
+  if (entrance?.access === TerritoryAccess.Doorbell && building.homes == null) {
     return true
   }
 
   if (
-    building.entrance?.access === TerritoryAccess.Code &&
-    building.entrance.isOpenEarly === true &&
+    entrance?.access === TerritoryAccess.Code &&
+    entrance.isOpenEarly === true &&
     building.homes == null
   ) {
     return true
   }
 
-  return building.entrance?.access === TerritoryAccess.Intercom && building.homes == null
+  return entrance?.access === TerritoryAccess.Intercom && building.homes == null
 }

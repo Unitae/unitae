@@ -70,10 +70,11 @@ function applyAccessFilter(filters: Prisma.BuildingWhereInput, params: URLSearch
   if (params.has('access') && params.get('access') !== 'none') {
     return {
       ...filters,
-      entrance: {
-        access: {
-          ...(typeof filters.entrance?.access !== 'number' ? filters.entrance?.access : {}),
-          equals: Number(params.get('access')),
+      entrances: {
+        some: {
+          access: {
+            equals: Number(params.get('access')),
+          },
         },
       },
     }

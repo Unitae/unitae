@@ -36,25 +36,25 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingWhereInput = {
-      ...filters,
-      active: true,
-      hasCampus: false,
-      hasHotel: false,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    const selectors: Prisma.BuildingEntranceWhereInput = {
+      buildings: {
+        some: {
+          ...filters,
+          active: true,
+          hasCampus: false,
+          hasHotel: false,
+          // biome-ignore lint/style/useNamingConvention: prisma keywords
+          NOT: { prospectionDate: null },
+        },
       },
       // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
-        { entrance: { access: 1 } }, // interphone
-        { entrance: { access: 2 } }, // sonnette
-        { hasShops: true, homes: { gt: 0 } }, // commerces si foyers dans le batiment
-        phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin ou tous les codes si territoires téléphone désactivé
+        { access: 1 }, // interphone
+        { access: 2 }, // sonnette
+        { buildings: { some: { hasShops: true, homes: { gt: 0 } } } }, // commerces si foyers dans le batiment
+        phoneTypeActive ? { access: 4, isOpenEarly: true } : { access: 4 }, // code ouvert le matin
       ],
-      entrance: {
-        territories: { none: { type: TerritoryKind.Classical } },
-      },
+      territories: { none: { type: TerritoryKind.Classical } },
     }
 
     const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)

@@ -159,7 +159,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
       if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
         try {
-          await updateBuildingsInEntrance(db, Number(building.entrance?.id), entranceIds, congregation.id)
+          const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+          await updateBuildingsInEntrance(db, Number(residentialEntrance?.id), entranceIds, congregation.id)
           session.flash('success', 'Le batiment a été correctement modifié')
         } catch (e) {
           logger.error('Error updating building', { error: e, buildingId: params.buildingId })

@@ -27,6 +27,11 @@ function sortEntrancesByAddress(entrances: Entrance[]) {
   return entrances
 }
 
+const entranceInclude = {
+  buildings: true,
+  accesses: { orderBy: { position: 'asc' as const } },
+}
+
 export async function findBuildingsPaginated(
   db: TransactionClient,
   selectors: Prisma.BuildingWhereInput,
@@ -61,7 +66,7 @@ export async function findBuildingsWithEntrancePaginated(
     skip: pagination.offset,
     take: pagination.size,
     where: { ...selectors, congregationId },
-    include: { entrance: true },
+    include: { entrances: { where: { kind: 'residential' }, take: 1 } },
     orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
   })
 
@@ -72,23 +77,19 @@ export async function findBuildingsWithEntrancePaginated(
 
 export async function findEntrancesPaginated(
   db: TransactionClient,
-  selectors: Prisma.BuildingWhereInput,
+  selectors: Prisma.BuildingEntranceWhereInput,
   url: URL,
   congregationId: number,
 ) {
-  const totalBuildings = await db.building.count({ where: { ...selectors, congregationId } })
-  const pagination = paginationFromUrl(url, totalBuildings)
+  const totalEntrances = await db.buildingEntrance.count({ where: { ...selectors, congregationId } })
+  const pagination = paginationFromUrl(url, totalEntrances)
 
-  const buildings = await db.building.findMany({
+  const entrances = await db.buildingEntrance.findMany({
     skip: pagination.offset,
     take: pagination.size,
     where: { ...selectors, congregationId },
-    select: { entrance: { include: { buildings: true } } },
-    distinct: ['entranceId'],
-    orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
+    include: entranceInclude,
   })
-
-  const entrances = buildings.map(building => building.entrance).filter(entrance => entrance !== null)
 
   return { entrances: sortEntrancesByAddress(entrances), pagination }
 }
@@ -104,25 +105,14 @@ export async function getProspectionStaleDate(db: TransactionClient): Promise<Da
 }
 
 export function aggregateEntrance(entrance: Entrance): AggregatedEntrance {
-  const stats = entrance.buildings.reduce(
-    (acc, building) => {
-      acc.homes += building.homes ?? 0
-      acc.phones += building.phones ?? 0
-      acc.liberals += building.liberals ?? 0
-
-      return acc
-    },
-    { homes: 0, phones: 0, liberals: 0 },
-  )
-
   return {
     ...entrance,
     street: entrance.buildings[0].street,
     zip: entrance.buildings[0].zip,
     number: entrance.buildings.map(building => building.number).join(', '),
-    homes: stats.homes,
-    phones: stats.phones,
-    liberals: stats.liberals,
+    homes: entrance.homes ?? 0,
+    phones: entrance.phones ?? 0,
+    liberals: entrance.liberals ?? 0,
     importantNotes: entrance.buildings.map(building => building.importantNotes),
   }
 }
@@ -131,10 +121,12 @@ export async function getZips(db: TransactionClient, congregationId: number, ter
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (territoryType != null) {
-    selectors.entrance = {
-      territories: {
-        every: {
-          type: territoryType,
+    selectors.entrances = {
+      some: {
+        territories: {
+          every: {
+            type: territoryType,
+          },
         },
       },
     }
@@ -147,10 +139,12 @@ export async function getAvailableZips(db: TransactionClient, congregationId: nu
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (territoryType != null) {
-    selectors.entrance = {
-      territories: {
-        none: {
-          type: territoryType,
+    selectors.entrances = {
+      some: {
+        territories: {
+          none: {
+            type: territoryType,
+          },
         },
       },
     }
@@ -167,10 +161,12 @@ export async function getStreets(db: TransactionClient, congregationId: number, 
   }
 
   if (territoryType != null) {
-    selectors.entrance = {
-      territories: {
-        every: {
-          type: territoryType,
+    selectors.entrances = {
+      some: {
+        territories: {
+          every: {
+            type: territoryType,
+          },
         },
       },
     }
@@ -187,10 +183,12 @@ export async function getAvailableStreets(db: TransactionClient, congregationId:
   }
 
   if (territoryType != null) {
-    selectors.entrance = {
-      territories: {
-        every: {
-          type: territoryType,
+    selectors.entrances = {
+      some: {
+        territories: {
+          every: {
+            type: territoryType,
+          },
         },
       },
     }
@@ -205,33 +203,27 @@ export async function getEntrances(
   street?: string,
   territoryType?: TerritoryKind,
 ): Promise<Entrance[]> {
-  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
+  const selectors: Prisma.BuildingEntranceWhereInput = {
+    congregationId,
+    buildings: { some: { active: true } },
+  }
 
   if (zip != null) {
-    selectors.zip = zip
+    selectors.buildings = { some: { ...(selectors.buildings as Prisma.BuildingListRelationFilter).some, zip } }
   }
 
   if (street != null) {
-    selectors.street = street
+    selectors.buildings = { some: { ...(selectors.buildings as Prisma.BuildingListRelationFilter).some, street } }
   }
 
   if (territoryType != null) {
-    selectors.entrance = {
-      territories: {
-        every: {
-          type: territoryType,
-        },
-      },
-    }
+    selectors.territories = { every: { type: territoryType } }
   }
 
-  const buildings = await db.building.findMany({
+  return await db.buildingEntrance.findMany({
     where: selectors,
-    select: { entrance: { include: { buildings: true } } },
-    distinct: ['entranceId'],
+    include: entranceInclude,
   })
-
-  return buildings.map(building => building.entrance).filter(entrance => entrance != null)
 }
 
 export async function getAvailableEntrances(
@@ -241,45 +233,39 @@ export async function getAvailableEntrances(
   street?: string,
   territoryType?: TerritoryKind,
 ): Promise<Entrance[]> {
-  const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
+  const selectors: Prisma.BuildingEntranceWhereInput = {
+    congregationId,
+    buildings: { some: { active: true } },
+  }
 
   if (zip != null) {
-    selectors.zip = zip
+    selectors.buildings = { some: { ...(selectors.buildings as Prisma.BuildingListRelationFilter).some, zip } }
   }
 
   if (street != null) {
-    selectors.street = street
+    selectors.buildings = { some: { ...(selectors.buildings as Prisma.BuildingListRelationFilter).some, street } }
   }
 
   if (territoryType != null) {
-    selectors.entrance = {
-      territories: {
-        none: {
-          type: territoryType,
-        },
-      },
-    }
+    selectors.territories = { none: { type: territoryType } }
   }
 
-  const buildings = await db.building.findMany({
+  return await db.buildingEntrance.findMany({
     where: selectors,
-    select: { entrance: { include: { buildings: true } } },
-    distinct: ['entranceId'],
+    include: entranceInclude,
   })
-
-  return buildings.map(building => building.entrance).filter(entrance => entrance != null)
 }
 
 export async function getEntrance(db: TransactionClient, entranceId: number): Promise<Entrance | null> {
   return await db.buildingEntrance.findUnique({
     where: { id: entranceId },
-    include: { buildings: true },
+    include: entranceInclude,
   })
 }
 
 export async function getBuilding(db: TransactionClient, buildingId: number): Promise<Building | null> {
   return await db.building.findUnique({
     where: { id: buildingId },
-    include: { entrance: { include: { buildings: true } } },
+    include: { entrances: { include: { buildings: true } } },
   })
 }

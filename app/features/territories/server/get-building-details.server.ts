@@ -5,7 +5,8 @@ export async function getBuildingDetails(db: TransactionClient, buildingId: numb
   return await db.building.findUnique({
     where: { id: buildingId },
     include: {
-      entrance: { include: { buildings: true, territories: true } },
+      entrances: { include: { buildings: true, territories: true, accesses: { orderBy: { position: 'asc' } }, residentialData: true } },
+      residentialData: true,
     },
   })
 }

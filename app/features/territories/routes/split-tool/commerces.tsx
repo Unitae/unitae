@@ -32,15 +32,12 @@ export async function loader({ request }: Route.LoaderArgs) {
   return withScope(congregationId, async db => {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingWhereInput = {
-      ...filters,
-      active: true,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    const selectors: Prisma.BuildingEntranceWhereInput = {
+      buildings: {
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        some: { ...filters, active: true, hasShops: true, NOT: { prospectionDate: null } },
       },
-      hasShops: true,
-      entrance: { territories: { none: { type: TerritoryKind.Commerces } } },
+      territories: { none: { type: TerritoryKind.Commerces } },
     }
     const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 

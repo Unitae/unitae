@@ -11,7 +11,8 @@ export default function BuildingProspectionForDoorToDoorFields({
   building: DetailedBuilding
   isDisabled: boolean
 }) {
-  const [access, setAccess] = useState(building.entrance?.access)
+  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const [access, setAccess] = useState(residentialEntrance?.access)
   const disabledStyled = isDisabled ? 'cursor-not-allowed opacity-50' : ''
 
   return (
@@ -21,7 +22,7 @@ export default function BuildingProspectionForDoorToDoorFields({
           <Label>Type de d'accès</Label>
           <select
             className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyled}`}
-            defaultValue={building.entrance?.access ?? ''}
+            defaultValue={residentialEntrance?.access ?? ''}
             name="access"
             value={access ?? ''}
             onChange={e => setAccess(Number(e.target.value))}
@@ -51,7 +52,7 @@ export default function BuildingProspectionForDoorToDoorFields({
               className={`rounded border border-input ${disabledStyled}`}
               name="doors"
               type="checkbox"
-              defaultChecked={building.entrance?.isOpenEarly ?? false}
+              defaultChecked={residentialEntrance?.isOpenEarly ?? false}
               disabled={isDisabled}
               title={
                 isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''
@@ -64,7 +65,7 @@ export default function BuildingProspectionForDoorToDoorFields({
               className={`rounded border border-input ${disabledStyled}`}
               name="mailboxes"
               type="checkbox"
-              defaultChecked={building.entrance?.isMailboxOpen ?? false}
+              defaultChecked={residentialEntrance?.isMailboxOpen ?? false}
               disabled={isDisabled}
               title={
                 isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''

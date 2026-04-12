@@ -27,105 +27,55 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   return withScope(congregationId, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
+    // biome-ignore lint/style/useNamingConvention: prisma keywords
+    const prospectedBuilding = { active: true, congregationId, NOT: { prospectionDate: null } } as const
     const totalBuildingsForDoors = await db.building.count({
       where: {
-        active: true,
-        congregationId,
-        entrance: {
-          territories: {
-            none: { type: TerritoryKind.Classical },
-          },
-        },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
-        NOT: {
-          prospectionDate: null,
-        },
+        ...prospectedBuilding,
+        entrances: { some: { territories: { none: { type: TerritoryKind.Classical } } } },
         // biome-ignore lint/style/useNamingConvention: prisma keywords
         OR: [
-          {
-            entrance: {
-              access: 1, // interphone
-            },
-          },
-          {
-            entrance: {
-              access: 2, // sonnette
-            },
-          },
-          phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin
+          { entrances: { some: { access: 1 } } }, // interphone
+          { entrances: { some: { access: 2 } } }, // sonnette
+          phoneTypeActive
+            ? { entrances: { some: { access: 4, isOpenEarly: true } } }
+            : { entrances: { some: { access: 4 } } }, // code
         ],
       },
     })
     const totalBuildingsForPhone = await db.building.count({
       where: {
-        active: true,
-        congregationId,
-        entrance: {
-          territories: {
-            none: { type: TerritoryKind.Classical },
-          },
-        },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
-        NOT: {
-          prospectionDate: null,
-        },
+        ...prospectedBuilding,
+        entrances: { some: { territories: { none: { type: TerritoryKind.Classical } } } },
         // biome-ignore lint/style/useNamingConvention: prisma keywords
         OR: [
-          {
-            phones: {
-              gt: 0,
-            },
-          },
-          { entrance: { access: 4, isOpenEarly: false } }, // code ouvert le matin
+          { phones: { gt: 0 } },
+          { entrances: { some: { access: 4, isOpenEarly: false } } },
         ],
       },
     })
-    const totalBuildingsForCommerce = await db.building.count({
+    const totalBuildingsForCommerce = await db.buildingEntrance.count({
       where: {
-        active: true,
+        kind: 'commerce',
         congregationId,
-        entrance: {
-          territories: {
-            none: { type: TerritoryKind.Commerces },
-          },
-        },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
-        NOT: {
-          prospectionDate: null,
-        },
-        hasShops: true,
+        buildings: { some: prospectedBuilding },
+        territories: { none: { type: TerritoryKind.Commerces } },
       },
     })
-    const totalBuildingsForCampus = await db.building.count({
+    const totalBuildingsForCampus = await db.buildingEntrance.count({
       where: {
-        active: true,
+        kind: 'campus',
         congregationId,
-        entrance: {
-          territories: {
-            none: { type: TerritoryKind.Univ },
-          },
-        },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
-        NOT: {
-          prospectionDate: null,
-        },
-        hasCampus: true,
+        buildings: { some: prospectedBuilding },
+        territories: { none: { type: TerritoryKind.Univ } },
       },
     })
-    const totalBuildingsForHotel = await db.building.count({
+    const totalBuildingsForHotel = await db.buildingEntrance.count({
       where: {
-        active: true,
+        kind: 'hotel',
         congregationId,
-        entrance: {
-          territories: {
-            none: { type: TerritoryKind.Hotel },
-          },
-        },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
-        NOT: {
-          prospectionDate: null,
-        },
-        hasHotel: true,
+        buildings: { some: prospectedBuilding },
+        territories: { none: { type: TerritoryKind.Hotel } },
       },
     })
 

@@ -1,5 +1,7 @@
 import { Link } from 'react-router'
+import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
 import type { Entrance } from '~/shared/types/entrance'
+import { Badge } from '~/shared/ui/badge'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -22,6 +24,7 @@ export default function BuildingEntranceList({
           <TableHead className="w-[150px]">Code Postal</TableHead>
           <TableHead className="w-[150px] text-center">Nº</TableHead>
           <TableHead>Rue</TableHead>
+          <TableHead className="w-[120px]">Type</TableHead>
           {showShops && <TableHead>Type de commerce</TableHead>}
           <TableHead>Notes</TableHead>
         </TableRow>
@@ -82,7 +85,10 @@ function BuildingEntranceListItem({
         ))}
       </TableCell>
       <TableCell>{firstBuilding.street}</TableCell>
-      {showShops && <TableCell>{firstBuilding.shopKind ?? '-'}</TableCell>}
+      <TableCell>
+        <Badge variant="outline">{entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind}</Badge>
+      </TableCell>
+      {showShops && <TableCell>{entrance.shopKind || firstBuilding.shopKind || '-'}</TableCell>}
       <TableCell>{entrance.buildings.map(el => el.notes).join(', ')}</TableCell>
     </TableRow>
   )

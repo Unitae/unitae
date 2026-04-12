@@ -108,7 +108,7 @@ export default function OtherBuildingProspectionFields({
           className={`rounded border border-input ${disabledStyle}`}
           name="pmr"
           type="checkbox"
-          defaultChecked={building.entrance?.isPMR ?? false}
+          defaultChecked={building.entrances.find(e => e.kind === 'residential')?.isPMR ?? false}
           disabled={isDisabled}
           title={
             isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''

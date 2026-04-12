@@ -39,23 +39,23 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingWhereInput = {
-      ...filters,
-      active: true,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    const selectors: Prisma.BuildingEntranceWhereInput = {
+      buildings: {
+        some: {
+          ...filters,
+          active: true,
+          // biome-ignore lint/style/useNamingConvention: prisma keywords
+          NOT: { prospectionDate: null },
+          // biome-ignore lint/style/useNamingConvention: prisma keywords
+          OR: [{ phones: { gt: 0 } }],
+        },
       },
       // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
-        {
-          phones: {
-            gt: 0,
-          },
-        },
-        { entrance: { access: 4, isOpenEarly: false } }, // code ouvert le matin
+        { buildings: { some: { phones: { gt: 0 } } } },
+        { access: 4, isOpenEarly: false },
       ],
-      entrance: { territories: { none: { type: TerritoryKind.Phone } } },
+      territories: { none: { type: TerritoryKind.Phone } },
     }
     const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 
