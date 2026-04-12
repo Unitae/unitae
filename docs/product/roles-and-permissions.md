@@ -18,8 +18,8 @@ Unitae uses a fine-grained role system to control who can access and manage each
 | `PublisherManager` | Create, edit, and deactivate publishers. Manage groups |
 | `ActivityViewer` | View activity reports and statistics |
 | `ActivityManager` | Record, edit, and export publisher activity |
-| `ProgramViewer` | View events and programs |
-| `ProgramManager` | Create, edit, and delete events. Manage event kinds |
+| `ProgramViewer` | View events, programmes, and template list |
+| `ProgramManager` | Create, edit, and delete events. Assign publishers. Manage programme templates |
 
 ## How Roles Work
 
@@ -29,7 +29,11 @@ A user can have any combination of roles. For example, an elder might have `Terr
 
 ### Admin Role
 
-The `Admin` role grants access to everything. Users with this role bypass all other role checks. It also grants access to congregation settings (display name, territory configuration, event kinds).
+The `Admin` role grants access to everything. Users with this role bypass all other role checks. It also grants access to congregation settings (display name, territory configuration, programme templates).
+
+### Template Responsible
+
+In addition to roles, a **template responsible** can be assigned per programme template. This grants write access (assign publishers, edit event structure) scoped to that template's events only — without needing the full `ProgramManager` role.
 
 Typically, only a few trusted users should have the Admin role.
 
