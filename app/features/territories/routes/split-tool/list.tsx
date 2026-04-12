@@ -36,25 +36,23 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingWhereInput = {
-      ...filters,
-      active: true,
-      hasCampus: false,
-      hasHotel: false,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    const selectors: Prisma.BuildingEntranceWhereInput = {
+      kind: 'residential',
+      buildings: {
+        some: {
+          ...filters,
+          active: true,
+          // biome-ignore lint/style/useNamingConvention: prisma keywords
+          NOT: { prospectionDate: null },
+        },
       },
       // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
-        { entrance: { access: 1 } }, // interphone
-        { entrance: { access: 2 } }, // sonnette
-        { hasShops: true, homes: { gt: 0 } }, // commerces si foyers dans le batiment
-        phoneTypeActive ? { entrance: { access: 4, isOpenEarly: true } } : { entrance: { access: 4 } }, // code ouvert le matin ou tous les codes si territoires téléphone désactivé
+        { access: 1 }, // interphone
+        { access: 2 }, // sonnette
+        phoneTypeActive ? { access: 4, isOpenEarly: true } : { access: 4 }, // code ouvert le matin
       ],
-      entrance: {
-        territories: { none: { type: TerritoryKind.Classical } },
-      },
+      territories: { none: { type: TerritoryKind.Classical } },
     }
 
     const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
@@ -96,12 +94,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               Création d'un territoire avec{' '}
               {entrances.reduce((countForTerritory, currentEntrance) => {
                 if (selectedEntranceIds.includes(currentEntrance.id)) {
-                  const countForEntrance = currentEntrance.buildings.reduce(
-                    (count, currentBuilding) => count + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                    0,
-                  )
-
-                  return countForTerritory + countForEntrance
+                  return countForTerritory + ((currentEntrance.homes ?? 0) || (currentEntrance.phones ?? 0))
                 }
 
                 return countForTerritory
@@ -125,6 +118,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <BuildingEntranceList
           entrances={entrances}
           selectedIds={selectedEntranceIds}
+          variant="residential"
           setSelectedIds={setSelectedEntranceIds}
         />
 

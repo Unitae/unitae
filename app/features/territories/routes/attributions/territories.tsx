@@ -3,6 +3,33 @@ import { data, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+
+const territoryTypeLabels: Record<string, string> = {
+  [TerritoryKind.Classical]: 'Porte à porte',
+  [TerritoryKind.Commerces]: 'Commerces',
+  [TerritoryKind.Phone]: 'Téléphones',
+  [TerritoryKind.Hotel]: 'Hôtels',
+  [TerritoryKind.Univ]: 'Universités',
+}
+
+function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
+  const count = entrances.length
+  if (type === TerritoryKind.Phone) {
+    const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
+    return `${phones} tél.`
+  }
+  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
+    const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
+    return `${homes} foyer${homes > 1 ? 's' : ''}`
+  }
+  if (type === TerritoryKind.Commerces) {
+    return `${count} commerce${count > 1 ? 's' : ''}`
+  }
+  if (type === TerritoryKind.Hotel) {
+    return `${count} hôtel${count > 1 ? 's' : ''}`
+  }
+  return `${count} entrée${count > 1 ? 's' : ''}`
+}
 import { getZips } from '~/features/territories/server/buildings'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
 import { computeFilters } from '~/features/territories/server/territory-filters'
@@ -101,7 +128,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
             <TableRow>
               <TableHead className="w-[150px]">Nº</TableHead>
               <TableHead className="w-[150px] text-center">Type</TableHead>
-              <TableHead className="w-[150px] text-center">Foyer</TableHead>
+              <TableHead className="w-[150px] text-center">Contenu</TableHead>
               <TableHead className="w-[150px] text-center">Statut</TableHead>
               <TableHead className="w-[150px] text-center" />
             </TableRow>
@@ -110,24 +137,9 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
             {territories.map(territory => (
               <TableRow key={territory.id}>
                 <TableCell>{territory.number}</TableCell>
+                <TableCell className="text-center">{territoryTypeLabels[territory.type] ?? territory.type}</TableCell>
                 <TableCell className="text-center">
-                  {territory.type === TerritoryKind.Classical && 'Porte à porte'}
-                  {territory.type === TerritoryKind.Commerces && 'Commerces'}
-                  {territory.type === TerritoryKind.Phone && 'Téléphones'}
-                  {territory.type === TerritoryKind.Hotel && 'Hôtels'}
-                  {territory.type === TerritoryKind.Univ && 'Universités'}
-                </TableCell>
-                <TableCell className="text-center">
-                  {territory.entrances.reduce(
-                    (countForTerritory, currentEntrance) =>
-                      countForTerritory +
-                      currentEntrance.buildings.reduce(
-                        (countForEntrance, currentBuilding) =>
-                          countForEntrance + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                        0,
-                      ),
-                    0,
-                  )}
+                  {territoryContentLabel(territory.type, territory.entrances)}
                 </TableCell>
                 <TableCell className="text-center">
                   <TerritoryAvaibilityStatus attribution={[...territory.attributions].shift()} />

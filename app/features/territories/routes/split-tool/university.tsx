@@ -32,15 +32,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   return withScope(congregationId, async db => {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingWhereInput = {
-      ...filters,
-      active: true,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    const selectors: Prisma.BuildingEntranceWhereInput = {
+      kind: 'campus',
+      buildings: {
+        // biome-ignore lint/style/useNamingConvention: prisma keywords
+        some: { ...filters, active: true, NOT: { prospectionDate: null } },
       },
-      hasCampus: true,
-      entrance: { territories: { none: { type: TerritoryKind.Univ } } },
+      territories: { none: { type: TerritoryKind.Univ } },
     }
     const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 
@@ -81,12 +79,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               Création d'un territoire avec{' '}
               {entrances.reduce((countForTerritory, currentEntrance) => {
                 if (selectedEntranceIds.includes(currentEntrance.id)) {
-                  const countForEntrance = currentEntrance.buildings.reduce(
-                    (count, currentBuilding) => count + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                    0,
-                  )
-
-                  return countForTerritory + countForEntrance
+                  return countForTerritory + ((currentEntrance.homes ?? 0) || (currentEntrance.phones ?? 0))
                 }
 
                 return countForTerritory
@@ -110,6 +103,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <BuildingEntranceList
           entrances={entrances}
           selectedIds={selectedEntranceIds}
+          variant="simple"
           setSelectedIds={setSelectedEntranceIds}
         />
 

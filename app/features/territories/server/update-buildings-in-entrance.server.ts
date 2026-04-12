@@ -1,6 +1,21 @@
 import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
+async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number) {
+  const aggregates = await db.buildingResidentialData.aggregate({
+    where: { entranceId },
+    _sum: { homes: true, phones: true, liberals: true },
+  })
+  await db.buildingEntrance.update({
+    where: { id: entranceId },
+    data: {
+      homes: aggregates._sum.homes,
+      phones: aggregates._sum.phones,
+      liberals: aggregates._sum.liberals,
+    },
+  })
+}
+
 export async function updateBuildingsInEntrance(
   db: TransactionClient,
   entranceId: number,
@@ -9,7 +24,7 @@ export async function updateBuildingsInEntrance(
 ) {
   const entrance = await db.buildingEntrance.findUnique({
     where: { id: entranceId },
-    include: { buildings: true },
+    include: { buildings: true, accesses: { orderBy: { position: 'asc' } } },
   })
 
   if (entrance == null) {
@@ -44,23 +59,45 @@ export async function updateBuildingsInEntrance(
       },
     })
 
-    // Create new entrance if needed.
-    if (disconnectBuildingIds.length > 0) {
-      await db.buildingEntrance.createMany({
-        data: disconnectBuildingIds.map(disconnectBuildingId => ({
-          buildingId: disconnectBuildingId,
+    // Create new entrance for each disconnected building.
+    for (const disconnectBuildingId of disconnectBuildingIds) {
+      const newEntrance = await db.buildingEntrance.create({
+        data: {
+          kind: entrance.kind,
           access: entrance.access,
           isMailboxOpen: entrance.isMailboxOpen,
           // biome-ignore lint/style/useNamingConvention: prisma model
           isPMR: entrance.isPMR,
           isOpenEarly: entrance.isOpenEarly,
-          buildings: {
-            connect: { id: disconnectBuildingId },
-          },
+          buildings: { connect: { id: disconnectBuildingId } },
           congregationId,
-        })),
+        },
       })
+
+      // Clone BuildingAccess rows for the new entrance
+      for (const access of entrance.accesses) {
+        await db.buildingAccess.create({
+          data: {
+            entrance: { connect: { id: newEntrance.id } },
+            type: access.type,
+            position: access.position,
+            congregation: { connect: { id: congregationId } },
+          },
+        })
+      }
+
+      // Reassign BuildingResidentialData to the new entrance
+      await db.buildingResidentialData.updateMany({
+        where: { buildingId: disconnectBuildingId },
+        data: { entranceId: newEntrance.id },
+      })
+
+      // Recalculate aggregates on the new entrance
+      await recalculateEntranceAggregates(db, newEntrance.id)
     }
+
+    // Recalculate aggregates on the original entrance
+    await recalculateEntranceAggregates(db, entranceId)
 
     logger.info(`Update of entrance ${entranceId} with buildings ${buildingIds.join(', ')} succeed.`)
   } catch (error) {

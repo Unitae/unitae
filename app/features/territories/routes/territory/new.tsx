@@ -49,11 +49,10 @@ export async function loader({ request }: Route.LoaderArgs) {
         street: String(url.searchParams.get('street')),
         zip: String(url.searchParams.get('zip')),
       },
-      select: { entrance: { include: { buildings: true } } },
+      select: { entrances: { include: { buildings: true } } },
     })
     const entrances = buildings
-      .map(building => building.entrance)
-      .filter(entrance => entrance !== null)
+      .flatMap(building => building.entrances)
       .map(aggregateEntrance)
     if (!url.searchParams.has('zip')) {
       return { zips, buildings: [], streets: [], phoneTypeActive, entrances }
@@ -107,10 +106,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                       {entrance.buildings[0].zip}
                     </span>
                     <span className="text-muted-foreground text-sm">
-                      {entrance.buildings.reduce((acc, building) => {
-                        return acc + (building.homes ?? building.phones ?? 0)
-                      }, 0)}{' '}
-                      foyers
+                      {(entrance.homes ?? 0) || (entrance.phones ?? 0)} foyers
                     </span>
                   </div>
                   <div className="flex gap-2">

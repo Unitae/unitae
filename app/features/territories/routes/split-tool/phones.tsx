@@ -39,23 +39,22 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingWhereInput = {
-      ...filters,
-      active: true,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
-      NOT: {
-        prospectionDate: null,
+    const selectors: Prisma.BuildingEntranceWhereInput = {
+      kind: 'residential',
+      buildings: {
+        some: {
+          ...filters,
+          active: true,
+          // biome-ignore lint/style/useNamingConvention: prisma keywords
+          NOT: { prospectionDate: null },
+        },
       },
       // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
-        {
-          phones: {
-            gt: 0,
-          },
-        },
-        { entrance: { access: 4, isOpenEarly: false } }, // code ouvert le matin
+        { phones: { gt: 0 } },
+        { access: 4, isOpenEarly: false },
       ],
-      entrance: { territories: { none: { type: TerritoryKind.Phone } } },
+      territories: { none: { type: TerritoryKind.Phone } },
     }
     const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
 
@@ -96,12 +95,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               Création d'un territoire avec{' '}
               {entrances.reduce((countForTerritory, currentEntrance) => {
                 if (selectedEntranceIds.includes(currentEntrance.id)) {
-                  const countForEntrance = currentEntrance.buildings.reduce(
-                    (count, currentBuilding) => count + (currentBuilding.phones ?? 0),
-                    0,
-                  )
-
-                  return countForTerritory + countForEntrance
+                  return countForTerritory + (currentEntrance.phones ?? 0)
                 }
 
                 return countForTerritory
@@ -125,6 +119,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <BuildingEntranceList
           entrances={entrances}
           selectedIds={selectedEntranceIds}
+          variant="phone"
           setSelectedIds={setSelectedEntranceIds}
         />
 

@@ -1,6 +1,10 @@
-import type { Building, BuildingEntrance } from '~/database/generated/client'
+import type { Building, BuildingAccess, BuildingEntrance, BuildingResidentialData } from '~/database/generated/client'
 
-export type Entrance = BuildingEntrance & { buildings: Building[] }
+export type Entrance = BuildingEntrance & {
+  buildings: Building[]
+  accesses?: BuildingAccess[]
+  residentialData?: BuildingResidentialData[]
+}
 export type AggregatedEntrance = Entrance & {
   street: string
   zip: string
@@ -8,5 +12,5 @@ export type AggregatedEntrance = Entrance & {
   homes: number
   phones: number
   liberals: number
-  importantNotes: string[]
+  entranceNotes: string
 }

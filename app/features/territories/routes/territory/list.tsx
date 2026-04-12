@@ -24,6 +24,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 
 import type { Route } from './+types/list'
 
+const territoryTypeLabels: Record<string, string> = {
+  [TerritoryKind.Classical]: 'Porte à porte',
+  [TerritoryKind.Commerces]: 'Commerces',
+  [TerritoryKind.Phone]: 'Téléphones',
+  [TerritoryKind.Hotel]: 'Hôtels',
+  [TerritoryKind.Univ]: 'Universités',
+}
+
+function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
+  const count = entrances.length
+  if (type === TerritoryKind.Phone) {
+    const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
+    return `${phones} tél.`
+  }
+  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
+    const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
+    return `${homes} foyer${homes > 1 ? 's' : ''}`
+  }
+  if (type === TerritoryKind.Commerces) {
+    return `${count} commerce${count > 1 ? 's' : ''}`
+  }
+  if (type === TerritoryKind.Hotel) {
+    return `${count} hôtel${count > 1 ? 's' : ''}`
+  }
+  return `${count} entrée${count > 1 ? 's' : ''}`
+}
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Tous les territoires - Unitae' }]
 }
@@ -142,7 +169,8 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
               <TableRow>
                 <TableHead>Nº</TableHead>
                 <TableHead className="text-center">Type</TableHead>
-                <TableHead className="text-center">Foyer</TableHead>
+                <TableHead className="text-center">Contenu</TableHead>
+                <TableHead>Attribué à</TableHead>
                 <TableHead className="w-0">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -159,23 +187,20 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         {territory.number}
                       </Link>
                     </TableCell>
+                    <TableCell className="text-center">{territoryTypeLabels[territory.type] ?? territory.type}</TableCell>
                     <TableCell className="text-center">
-                      {territory.type === TerritoryKind.Classical && 'Porte à porte'}
-                      {territory.type === TerritoryKind.Commerces && 'Commerces'}
-                      {territory.type === TerritoryKind.Phone && 'Téléphones'}
-                      {territory.type === TerritoryKind.Hotel && 'Hôtels'}
-                      {territory.type === TerritoryKind.Univ && 'Universités'}
+                      {territoryContentLabel(territory.type, territory.entrances)}
                     </TableCell>
-                    <TableCell className="text-center">
-                      {territory.entrances.reduce(
-                        (countForTerritory, currentEntrance) =>
-                          countForTerritory +
-                          currentEntrance.buildings.reduce(
-                            (countForEntrance, currentBuilding) =>
-                              countForEntrance + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                            0,
-                          ),
-                        0,
+                    <TableCell>
+                      {attribution ? (
+                        <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
+                          {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
+                          {' — '}
+                          jusqu'au{' '}
+                          {attribution.lateDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">Disponible</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

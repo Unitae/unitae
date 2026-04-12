@@ -33,7 +33,7 @@ function applyShopFilter(filters: Prisma.BuildingWhereInput, params: URLSearchPa
   if (params.has('shops') && params.get('shops') !== 'none') {
     const type = params.get('shops') as ShopKind
 
-    return { ...filters, hasShops: true, shopKind: type }
+    return { ...filters, entrances: { some: { kind: 'commerce', shopKind: type } } }
   }
 
   return filters
@@ -44,23 +44,23 @@ function applyTypeFilter(filters: Prisma.BuildingWhereInput, params: URLSearchPa
     const type = params.get('type') as TerritoryKind
 
     if (type === TerritoryKind.Classical) {
-      return { ...filters, homes: { gt: 0 } }
+      return { ...filters, entrances: { some: { kind: 'residential', homes: { gt: 0 } } } }
     }
 
     if (type === TerritoryKind.Phone) {
-      return { ...filters, phones: { gt: 0 } }
+      return { ...filters, entrances: { some: { kind: 'residential', phones: { gt: 0 } } } }
     }
 
     if (type === TerritoryKind.Commerces) {
-      return { ...filters, hasShops: { equals: true } }
+      return { ...filters, entrances: { some: { kind: 'commerce' } } }
     }
 
     if (type === TerritoryKind.Hotel) {
-      return { ...filters, hasHotel: { equals: true } }
+      return { ...filters, entrances: { some: { kind: 'hotel' } } }
     }
 
     if (type === TerritoryKind.Univ) {
-      return { ...filters, hasCampus: { equals: true } }
+      return { ...filters, entrances: { some: { kind: 'campus' } } }
     }
   }
   return filters
@@ -70,10 +70,11 @@ function applyAccessFilter(filters: Prisma.BuildingWhereInput, params: URLSearch
   if (params.has('access') && params.get('access') !== 'none') {
     return {
       ...filters,
-      entrance: {
-        access: {
-          ...(typeof filters.entrance?.access !== 'number' ? filters.entrance?.access : {}),
-          equals: Number(params.get('access')),
+      entrances: {
+        some: {
+          access: {
+            equals: Number(params.get('access')),
+          },
         },
       },
     }

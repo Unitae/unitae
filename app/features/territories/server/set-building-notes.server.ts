@@ -5,13 +5,10 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 export function setBuildingNotes(
   db: TransactionClient,
   buildingId: number,
-  { notes, importantNotes }: { notes: string; importantNotes: string },
+  { notes }: { notes: string },
 ): Promise<Building> {
   return db.building.update({
     where: { id: buildingId },
-    data: {
-      notes,
-      importantNotes,
-    },
+    data: { notes },
   })
 }

@@ -47,9 +47,11 @@ model Congregation {
   events             Event[]
   eventKinds         EventKind[]
   settings           Setting[]
-  userRoles          CongregationUserRole[]
-  dataDeletionRecords DataDeletionRecord[]
-  consentRecords     ConsentRecord[]
+  userRoles               CongregationUserRole[]
+  buildingAccesses        BuildingAccess[]
+  buildingResidentialData BuildingResidentialData[]
+  dataDeletionRecords     DataDeletionRecord[]
+  consentRecords          ConsentRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -191,10 +193,23 @@ model BuildingEntrance {
   territories Territory[]
   buildings   Building[]
 
+  kind     String @default("residential")
+  shopKind String @default("")
+
+  // Materialized aggregates for residential entrances (sum of BuildingResidentialData)
+  homes    Int?
+  phones   Int?
+  liberals Int?
+
   access        Int?
+  accesses      BuildingAccess[]
   isPMR         Boolean?
   isOpenEarly   Boolean?
   isMailboxOpen Boolean?
+
+  residentialData BuildingResidentialData[]
+
+  notes String @default("")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -203,6 +218,32 @@ model BuildingEntrance {
   congregationId Int
 
   @@unique([id, congregationId])
+}
+
+model BuildingAccess {
+  id         Int              @id @default(autoincrement())
+  entrance   BuildingEntrance @relation(fields: [entranceId], references: [id], onDelete: Cascade)
+  entranceId Int
+  type       Int
+  position   Int
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+}
+
+model BuildingResidentialData {
+  id         Int              @id @default(autoincrement())
+  building   Building         @relation(fields: [buildingId], references: [id])
+  buildingId Int              @unique
+  entrance   BuildingEntrance @relation(fields: [entranceId], references: [id], onDelete: Cascade)
+  entranceId Int
+
+  homes    Int?
+  phones   Int?
+  liberals Int?
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
 }
 
 model Building {
@@ -218,17 +259,9 @@ model Building {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  homes           Int?
-  phones          Int?
-  liberals        Int?
-  hasShops        Boolean?
-  shopKind        String            @default("")
-  hasCampus       Boolean?
-  hasHotel        Boolean?
-  hasLandromat    Boolean?
   prospectionDate DateTime?
-  entranceId      Int?
-  entrance        BuildingEntrance? @relation(fields: [entranceId], references: [id])
+  entrances       BuildingEntrance[]
+  residentialData BuildingResidentialData?
 
   notes          String @default("")
   importantNotes String @default("")

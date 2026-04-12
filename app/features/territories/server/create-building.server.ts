@@ -23,7 +23,7 @@ export async function createBuilding(
     }
   }
 
-  return db.building.create({
+  const building = await db.building.create({
     data: {
       number: address.number,
       street: address.street,
@@ -31,11 +31,26 @@ export async function createBuilding(
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
       inTerritory: isInTerritory,
-      entrance: { create: { congregation: { connect: { id: congregationId } } } },
+      entrances: { create: { kind: 'residential', congregation: { connect: { id: congregationId } } } },
       congregation: { connect: { id: congregationId } },
     },
     include: {
-      entrance: { include: { buildings: true, territories: true } },
+      entrances: { include: { buildings: true, territories: true, accesses: { orderBy: { position: 'asc' } }, residentialData: true } },
+      residentialData: true,
     },
   })
+
+  // Create empty BuildingResidentialData linked to the residential entrance
+  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  if (residentialEntrance != null) {
+    await db.buildingResidentialData.create({
+      data: {
+        building: { connect: { id: building.id } },
+        entrance: { connect: { id: residentialEntrance.id } },
+        congregation: { connect: { id: congregationId } },
+      },
+    })
+  }
+
+  return building
 }

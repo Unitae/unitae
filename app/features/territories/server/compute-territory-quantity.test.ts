@@ -8,6 +8,9 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     id: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
+    kind: 'residential',
+    shopKind: '',
+    notes: '',
     access: null,
     // biome-ignore lint/style/useNamingConvention: Prisma property
     isPMR: null,
@@ -20,7 +23,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     homes: overrides.homes ?? 0,
     phones: overrides.phones ?? 0,
     liberals: 0,
-    importantNotes: [],
+    entranceNotes: '',
     buildings: [
       {
         id: 1,
@@ -34,16 +37,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
         inOpenData: false,
         createdAt: new Date(),
         updatedAt: new Date(),
-        homes: overrides.homes ?? null,
-        phones: overrides.phones ?? null,
-        liberals: null,
-        hasShops: null,
-        shopKind: '',
-        hasCampus: null,
-        hasHotel: null,
-        hasLandromat: null,
         prospectionDate: null,
-        entranceId: 1,
         notes: '',
         importantNotes: '',
         congregationId: 1,
@@ -65,7 +59,7 @@ describe('computeTerritoryQuantity', () => {
 
   it('utilise les téléphones en fallback quand les foyers sont absents pour un territoire classique', () => {
     const entrance = makeEntrance({ phones: 8 })
-    entrance.buildings[0].homes = null
+    entrance.homes = 0
     expect(computeTerritoryQuantity(TerritoryKind.Classical, [entrance])).toBe(8)
   })
 

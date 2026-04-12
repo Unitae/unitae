@@ -15,7 +15,8 @@ export default function SharedEntranceField({
   avaibleBuildings: Building[]
   onSharedEntranceBuildingsChange: (state: boolean) => void
 }) {
-  const previousBuildings = building.entrance?.buildings ?? []
+  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const previousBuildings = residentialEntrance?.buildings ?? []
   const [hasSharedEntrance, setHasSharedEntrance] = useState(previousBuildings.length > 1)
   const [sharedEntranceBuildings, setSharedEntranceBuildings] = useState(previousBuildings)
 

@@ -1,8 +1,9 @@
-import { Pencil } from 'lucide-react'
+import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -10,8 +11,7 @@ import { setBuildingProspectionData } from '~/features/territories/server/set-bu
 import { unserializeSharedEntranceFormValue } from '~/features/territories/server/unserialize-shared-entrance-form-value.server'
 import { updateBuildingsInEntrance } from '~/features/territories/server/update-buildings-in-entrance.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
-import BuildingProspectionForDoorToDoorFields from '~/features/territories/ui/BuildingProspectionForDoorToDoorFields'
-import OtherBuildingProspectionFields from '~/features/territories/ui/OtherBuildingProspectionFields'
+import { CommerceEntranceCard, ResidentialEntranceCard, SimpleEntranceCard } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -64,9 +64,53 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
+const entranceKindFormNames: Record<string, string> = {
+  [EntranceKind.Hotel]: 'hotel',
+  [EntranceKind.Campus]: 'campus',
+  [EntranceKind.Laundromat]: 'landromat',
+}
+
+// Commerce can have multiples, others are unique per building
+const uniqueKinds = [EntranceKind.Residential, EntranceKind.Hotel, EntranceKind.Campus, EntranceKind.Laundromat]
+const allAddableKinds = [EntranceKind.Residential, EntranceKind.Commerce, ...uniqueKinds.filter(k => k !== EntranceKind.Residential)]
+
+type EntranceEntry = { uid: string; kind: EntranceKind; entranceId?: number; shopKind?: string }
+
+let nextUid = 0
+function makeUid() {
+  return `entrance-${++nextUid}`
+}
+
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, messages, buildings, roles } = loaderData
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
+
+  const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const [hasResidential, setHasResidential] = useState(existingResidentialEntrance != null)
+  const initialEntries: EntranceEntry[] = building.entrances
+    .filter(e => e.kind !== 'residential')
+    .map(e => ({ uid: makeUid(), kind: e.kind as EntranceKind, entranceId: e.id, shopKind: e.shopKind }))
+  const [entries, setEntries] = useState<EntranceEntry[]>(initialEntries)
+
+  const activeUniqueKinds = [
+    ...(hasResidential ? [EntranceKind.Residential] : []),
+    ...entries.filter(e => uniqueKinds.includes(e.kind)).map(e => e.kind),
+  ]
+  const availableKinds = allAddableKinds.filter(k => k === EntranceKind.Commerce || !activeUniqueKinds.includes(k))
+
+  function addEntrance(kind: EntranceKind) {
+    if (kind === EntranceKind.Residential) {
+      setHasResidential(true)
+    } else {
+      setEntries([...entries, { uid: makeUid(), kind }])
+    }
+  }
+
+  function removeEntrance(uid: string) {
+    setEntries(entries.filter(e => e.uid !== uid))
+  }
+
+  const isDisabled = sharedEntranceBuildingsChanged
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,27 +131,32 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </>
         }
       />
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+      <Form method="post" className="flex flex-col gap-6">
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-1.5">
               <Label>Date de prospection</Label>
               <Input
-                className={sharedEntranceBuildingsChanged ? 'cursor-not-allowed opacity-50' : ''}
+                className={isDisabled ? 'cursor-not-allowed opacity-50' : ''}
                 defaultValue={building.prospectionDate?.toLocaleDateString('en-CA') ?? ''}
                 name="prospection-date"
                 type="date"
-                disabled={sharedEntranceBuildingsChanged}
-                title={
-                  sharedEntranceBuildingsChanged
-                    ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer'
-                    : ''
-                }
+                disabled={isDisabled}
+                title={isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''}
               />
             </div>
+          </CardContent>
+        </Card>
 
-            <h2 className="mt-2 font-semibold text-lg">Porte à porte</h2>
-            <BuildingProspectionForDoorToDoorFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
+        <input type="hidden" name="has-residential" value={hasResidential ? 'on' : ''} />
+
+        {hasResidential && (
+          <ResidentialEntranceCard
+            entrance={existingResidentialEntrance}
+            residentialData={building.residentialData}
+            isDisabled={isDisabled}
+            onDelete={() => setHasResidential(false)}
+          >
             {roles.canManageTerritories && (
               <SharedEntranceField
                 building={building}
@@ -115,16 +164,60 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
                 onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
               />
             )}
+          </ResidentialEntranceCard>
+        )}
 
-            <h2 className="mt-2 font-semibold text-lg">Autres informations</h2>
-            <OtherBuildingProspectionFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
+        {entries.map(entry => {
+          if (entry.kind === EntranceKind.Commerce) {
+            const entrance = entry.entranceId
+              ? building.entrances.find(e => e.id === entry.entranceId)
+              : undefined
+            return (
+              <CommerceEntranceCard
+                key={entry.uid}
+                entrance={entrance}
+                isDisabled={isDisabled}
+                onDelete={() => removeEntrance(entry.uid)}
+              />
+            )
+          }
 
-            <Button type="submit" className="mt-2">
-              Mettre à jour la prospection
-            </Button>
-          </Form>
-        </CardContent>
-      </Card>
+          return (
+            <SimpleEntranceCard
+              key={entry.uid}
+              kind={entry.kind}
+              formName={entranceKindFormNames[entry.kind]}
+              onDelete={() => removeEntrance(entry.uid)}
+            />
+          )
+        })}
+
+        {availableKinds.length > 0 && (
+          <div className="flex items-center gap-2">
+            <select
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+              onChange={e => {
+                if (e.target.value) {
+                  addEntrance(e.target.value as EntranceKind)
+                  e.target.value = ''
+                }
+              }}
+            >
+              <option value="">Ajouter une entrée...</option>
+              {availableKinds.map(kind => (
+                <option key={kind} value={kind}>
+                  {entranceKindLabels[kind]}
+                </option>
+              ))}
+            </select>
+            <Plus className="size-4 text-muted-foreground" />
+          </div>
+        )}
+
+        <Button type="submit" className="mt-2">
+          Mettre à jour la prospection
+        </Button>
+      </Form>
     </div>
   )
 }
@@ -159,7 +252,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
       if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
         try {
-          await updateBuildingsInEntrance(db, Number(building.entrance?.id), entranceIds, congregation.id)
+          const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+          await updateBuildingsInEntrance(db, Number(residentialEntrance?.id), entranceIds, congregation.id)
           session.flash('success', 'Le batiment a été correctement modifié')
         } catch (e) {
           logger.error('Error updating building', { error: e, buildingId: params.buildingId })
@@ -174,7 +268,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       }
     }
 
-    // manage changes in classic data
+    // manage changes in prospection data
     try {
       await setBuildingProspectionData(db, building.id, form)
 

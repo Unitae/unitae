@@ -3,6 +3,7 @@ import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { BuildingAccess } from '~/database/generated/client'
 import type { Entrance } from '~/shared/types/entrance'
 
 Font.register({
@@ -126,24 +127,10 @@ export function TerritoryDocument({
 
   let quantity = entrances.length
   if (type === TerritoryKind.Phone) {
-    quantity = entrances.reduce((acc, entrance) => {
-      return (
-        acc +
-        entrance.buildings.reduce((acc, building) => {
-          return acc + (building.phones ?? 0)
-        }, 0)
-      )
-    }, 0)
+    quantity = entrances.reduce((acc, entrance) => acc + (entrance.phones ?? 0), 0)
   }
   if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
-    quantity = entrances.reduce((acc, entrance) => {
-      return (
-        acc +
-        entrance.buildings.reduce((acc, building) => {
-          return acc + (building.homes ?? building.phones ?? 0)
-        }, 0)
-      )
-    }, 0)
+    quantity = entrances.reduce((acc, entrance) => acc + ((entrance.homes ?? 0) || (entrance.phones ?? 0)), 0)
   }
 
   const size = '300x450'
@@ -220,17 +207,34 @@ function TypeInformations({ type }: { type: TerritoryKind }) {
   )
 }
 
+function formatAccessLabel(accessType: number): string {
+  if (accessType === TerritoryAccess.Intercom) return 'Interphone'
+  if (accessType === TerritoryAccess.Code) return 'Digicode'
+  if (accessType === TerritoryAccess.Doorbell) return 'Sonnette extérieure'
+  return ''
+}
+
+function formatAccessSequence(entrance: Entrance): string {
+  const accesses: BuildingAccess[] = entrance.accesses ?? []
+  if (accesses.length > 0) {
+    return accesses.map(a => formatAccessLabel(a.type)).filter(Boolean).join(' → ')
+  }
+
+  // Fallback to old single access field
+  if (entrance.access != null) {
+    return formatAccessLabel(entrance.access)
+  }
+
+  return ''
+}
+
 function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; canShowPhone: boolean }) {
   const firstBuilding = entrance.buildings[0]
   const numbers = entrance.buildings.map(building => building.number).join(', ')
-  const phones = entrance.buildings.reduce((acc, building) => {
-    return acc + (building.phones ?? 0)
-  }, 0)
-  const notes = entrance.buildings.map(building => (
-    <Text key={building.id} style={styles.alert}>
-      {building.importantNotes}
-    </Text>
-  ))
+  const phones = entrance.phones ?? 0
+
+  const accessText = formatAccessSequence(entrance)
+  const hasCode = (entrance.accesses ?? []).some(a => a.type === TerritoryAccess.Code) || entrance.access === TerritoryAccess.Code
 
   return (
     <View key={entrance.id} style={styles.building}>
@@ -238,16 +242,12 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
         {numbers} {firstBuilding.street}, {firstBuilding.zip}
       </Text>
       <Text style={styles.secondary}>
-        {entrance.access === TerritoryAccess.Intercom && 'Interphone. '}
-        {entrance.access === TerritoryAccess.Code && 'Digicode. '}
-        {entrance.access === TerritoryAccess.Doorbell && 'Sonnette extérieure. '}
-        {entrance.access === TerritoryAccess.Code && entrance.isOpenEarly === true && 'Ouvert le matin. '}
-        {entrance.access === TerritoryAccess.Code &&
-          entrance.isMailboxOpen === true &&
-          'Boite aux lettres accessible. '}
-        {canShowPhone && phones != null && phones > 0 && `${phones} tél.`}
+        {accessText.length > 0 && `${accessText}. `}
+        {hasCode && entrance.isOpenEarly === true && 'Ouvert le matin. '}
+        {hasCode && entrance.isMailboxOpen === true && 'Boite aux lettres accessible. '}
+        {canShowPhone && phones > 0 && `${phones} tél.`}
       </Text>
-      {notes.length > 0 && notes}
+      {entrance.notes.length > 0 && <Text style={styles.alert}>{entrance.notes}</Text>}
     </View>
   )
 }
@@ -255,21 +255,16 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
 function CommerceInformations({ entrance }: { entrance: Entrance }) {
   const firstBuilding = entrance.buildings[0]
   const numbers = entrance.buildings.map(building => building.number).join(', ')
-  const notes = entrance.buildings.map(building => (
-    <Text key={building.id} style={styles.alert}>
-      {building.importantNotes}
-    </Text>
-  ))
+
+  const shopLabel = shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
 
   return (
     <View key={entrance.id} style={styles.building}>
       <Text style={styles.primary}>
         {numbers} {firstBuilding.street}, {firstBuilding.zip}
       </Text>
-      <Text style={styles.secondary}>
-        {entrance.buildings.map(building => shopKindLabels[building.shopKind as ShopKind] ?? 'Autres').join('. ')}.{' '}
-      </Text>
-      {notes.length > 0 && notes}
+      <Text style={styles.secondary}>{shopLabel}. </Text>
+      {entrance.notes.length > 0 && <Text style={styles.alert}>{entrance.notes}</Text>}
     </View>
   )
 }
