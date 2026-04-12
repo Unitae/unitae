@@ -4,8 +4,8 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 interface TemplateWithRelations {
   id: number
   name: string
-  parts: { id: number }[]
-  serviceRoles: { id: number }[]
+  parts: { id: number; name: string; section: string; order: number; durationMin: number | null }[]
+  serviceRoles: { id: number; name: string }[]
 }
 
 function loadTemplate(db: TransactionClient, templateId: number, congregationId: number) {
@@ -45,13 +45,26 @@ async function createEventWithAssignments(
 
   for (const part of template.parts) {
     await db.programmePartAssignment.create({
-      data: { eventId: event.id, partId: part.id, congregationId },
+      data: {
+        eventId: event.id,
+        partId: part.id,
+        name: part.name,
+        section: part.section,
+        order: part.order,
+        durationMin: part.durationMin,
+        congregationId,
+      },
     })
   }
 
   for (const role of template.serviceRoles) {
     await db.programmeServiceRoleAssignment.create({
-      data: { eventId: event.id, serviceRoleId: role.id, congregationId },
+      data: {
+        eventId: event.id,
+        serviceRoleId: role.id,
+        name: role.name,
+        congregationId,
+      },
     })
   }
 

@@ -443,11 +443,17 @@ model ProgrammePartAssignment {
   note        String  @default("")
   hasConflict Boolean @default(false)
 
+  // Inline fields (copied from template part on generation, or set manually for custom parts)
+  name        String  @default("")
+  section     String  @default("")
+  order       Int     @default(0)
+  durationMin Int?
+
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  part   ProgrammeTemplatePart @relation(fields: [partId], references: [id], onDelete: Cascade)
-  partId Int
+  part   ProgrammeTemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
+  partId Int?
 
   assignee   User? @relation("partAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
@@ -458,8 +464,6 @@ model ProgrammePartAssignment {
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
-  // biome-ignore lint/style/useNamingConvention: prisma compound key
-  @@unique([eventId, partId, congregationId])
   @@unique([id, congregationId])
 }
 
@@ -468,11 +472,14 @@ model ProgrammeServiceRoleAssignment {
   note        String  @default("")
   hasConflict Boolean @default(false)
 
+  // Inline field (copied from template service role on generation, or set manually)
+  name String @default("")
+
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  serviceRole   ProgrammeTemplateServiceRole @relation(fields: [serviceRoleId], references: [id], onDelete: Cascade)
-  serviceRoleId Int
+  serviceRole   ProgrammeTemplateServiceRole? @relation(fields: [serviceRoleId], references: [id], onDelete: SetNull)
+  serviceRoleId Int?
 
   assignee   User? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
@@ -480,8 +487,6 @@ model ProgrammeServiceRoleAssignment {
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
-  // biome-ignore lint/style/useNamingConvention: prisma compound key
-  @@unique([eventId, serviceRoleId, congregationId])
   @@unique([id, congregationId])
 }
 

@@ -24,7 +24,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const url = new URL(request.url)
-  const serviceRoleId = Number(url.searchParams.get('serviceRoleId'))
+  const assignmentId = Number(url.searchParams.get('assignmentId'))
 
   return withScope(congregationId, async db => {
     const event = await getEventProgramme(db, eventId, congregationId)
@@ -35,7 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       : null
     if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
 
-    const assignment = event.serviceRoleAssignments.find(a => a.serviceRoleId === serviceRoleId)
+    const assignment = event.serviceRoleAssignments.find(a => a.id === assignmentId)
 
     const users = await db.user.findMany({
       where: { congregationId, active: true },
@@ -51,7 +51,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const form = await request.formData()
-  const serviceRoleId = Number(form.get('serviceRoleId'))
+  const assignmentId = Number(form.get('assignmentId'))
   const assigneeId = form.get('assigneeId') ? Number(form.get('assigneeId')) : null
 
   return withScope(congregationId, async db => {
@@ -63,7 +63,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       : null
     if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
 
-    const result = await assignServiceRole(db, eventId, serviceRoleId, assigneeId, congregationId)
+    const result = await assignServiceRole(db, assignmentId, assigneeId, congregationId)
 
     if ('error' in result && result.error) {
       session.flash('error', result.error)
@@ -92,11 +92,11 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">{assignment?.serviceRole.name ?? 'Service'}</CardTitle>
+          <CardTitle className="text-base">{assignment?.name ?? 'Service'}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
-            <input type="hidden" name="serviceRoleId" value={params.get('serviceRoleId') ?? ''} />
+            <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="assigneeId">Proclamateur</Label>

@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, Trash2, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, Clock, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
@@ -59,12 +59,20 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
         })}
         actions={
           canEdit && (
-            <Button variant="destructive" size="sm" asChild>
-              <Link to="./delete">
-                <Trash2 className="size-4" />
-                Supprimer
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" asChild>
+                <Link to="./edit">
+                  <Pencil className="size-4" />
+                  Modifier
+                </Link>
+              </Button>
+              <Button variant="destructive" size="sm" asChild>
+                <Link to="./delete">
+                  <Trash2 className="size-4" />
+                  Supprimer
+                </Link>
+              </Button>
+            </div>
           )
         }
       />
@@ -90,18 +98,18 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 <TableRow key={assignment.id}>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium text-sm">{assignment.part.name}</span>
-                      {assignment.part.section && (
-                        <span className="text-muted-foreground text-xs">{assignment.part.section}</span>
+                      <span className="font-medium text-sm">{assignment.name}</span>
+                      {assignment.section && (
+                        <span className="text-muted-foreground text-xs">{assignment.section}</span>
                       )}
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{assignment.topic || '—'}</TableCell>
                   <TableCell>
-                    {assignment.part.durationMin ? (
+                    {assignment.durationMin ? (
                       <span className="flex items-center gap-1 text-muted-foreground text-sm">
                         <Clock className="size-3" />
-                        {assignment.part.durationMin} min
+                        {assignment.durationMin} min
                       </span>
                     ) : (
                       <span className="text-muted-foreground text-sm">—</span>
@@ -123,10 +131,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" asChild className="size-7">
-                          <Link
-                            to={`./assign-part?partId=${assignment.partId}&assignmentId=${assignment.id}`}
-                            title="Attribuer"
-                          >
+                          <Link to={`./assign-part?assignmentId=${assignment.id}`} title="Attribuer">
                             <UserPlus className="size-3" />
                           </Link>
                         </Button>
@@ -171,7 +176,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             <TableBody>
               {event.serviceRoleAssignments.map(assignment => (
                 <TableRow key={assignment.id}>
-                  <TableCell className="font-medium text-sm">{assignment.serviceRole.name}</TableCell>
+                  <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
                   <TableCell>
                     <AssigneeCell assignee={assignment.assignee} hasConflict={assignment.hasConflict} />
                   </TableCell>
@@ -179,10 +184,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" asChild className="size-7">
-                          <Link
-                            to={`./assign-service?serviceRoleId=${assignment.serviceRoleId}&assignmentId=${assignment.id}`}
-                            title="Attribuer"
-                          >
+                          <Link to={`./assign-service?assignmentId=${assignment.id}`} title="Attribuer">
                             <UserPlus className="size-3" />
                           </Link>
                         </Button>

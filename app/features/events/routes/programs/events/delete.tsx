@@ -71,8 +71,8 @@ export default function DeleteEventPage({ loaderData }: Route.ComponentProps) {
         <CardContent>
           <p className="text-muted-foreground text-sm">
             Êtes-vous sûr de vouloir supprimer l'évènement « {event.name} » du{' '}
-            {new Date(event.startDate).toLocaleDateString('fr-FR')} ? Toutes les attributions associées seront
-            également supprimées. Cette action est irréversible.
+            {new Date(event.startDate).toLocaleDateString('fr-FR')} ? Toutes les attributions associées seront également
+            supprimées. Cette action est irréversible.
           </p>
         </CardContent>
         <CardFooter>

@@ -7,6 +7,7 @@ export const programsRoutes = [
     route('days-off', 'features/events/routes/programs/days-off.tsx'),
     ...prefix('events/:eventId', [
       index('features/events/routes/programs/events/view.tsx'),
+      route('edit', 'features/events/routes/programs/events/edit.tsx'),
       route('assign-part', 'features/events/routes/programs/events/assign-part.tsx'),
       route('assign-service', 'features/events/routes/programs/events/assign-service.tsx'),
       route('remove-assignment', 'features/events/routes/programs/events/remove-assignment.tsx'),

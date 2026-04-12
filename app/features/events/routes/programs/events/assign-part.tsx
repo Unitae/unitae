@@ -25,7 +25,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const url = new URL(request.url)
-  const partId = Number(url.searchParams.get('partId'))
+  const assignmentId = Number(url.searchParams.get('assignmentId'))
 
   return withScope(congregationId, async db => {
     const event = await getEventProgramme(db, eventId, congregationId)
@@ -36,7 +36,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       : null
     if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
 
-    const assignment = event.partAssignments.find(a => a.partId === partId)
+    const assignment = event.partAssignments.find(a => a.id === assignmentId)
 
     const users = await db.user.findMany({
       where: { congregationId, active: true },
@@ -52,7 +52,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const form = await request.formData()
-  const partId = Number(form.get('partId'))
+  const assignmentId = Number(form.get('assignmentId'))
   const assigneeId = form.get('assigneeId') ? Number(form.get('assigneeId')) : null
   const assistantId = form.get('assistantId') ? Number(form.get('assistantId')) : null
   const topic = String(form.get('topic') ?? '')
@@ -66,14 +66,14 @@ export async function action({ request, params }: Route.ActionArgs) {
       : null
     if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
 
-    const result = await assignPart(db, eventId, partId, assigneeId, assistantId, topic, congregationId)
+    const result = await assignPart(db, assignmentId, assigneeId, assistantId, topic, congregationId)
 
     if ('error' in result && result.error) {
       session.flash('error', result.error)
-      logger.warn(`Assignment conflict. User ID: ${currentUser.id}. Event: ${eventId}. Part: ${partId}.`)
+      logger.warn(`Assignment conflict. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
     } else {
       session.flash('success', 'Attribution enregistrée.')
-      logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Part: ${partId}.`)
+      logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
     }
 
     return redirect(`/congregation/programs/events/${eventId}`, {
@@ -95,11 +95,11 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">{assignment?.part.name ?? 'Partie'}</CardTitle>
+          <CardTitle className="text-base">{assignment?.name ?? 'Partie'}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
-            <input type="hidden" name="partId" value={params.get('partId') ?? ''} />
+            <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="topic">Sujet / Titre</Label>

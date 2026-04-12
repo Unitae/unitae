@@ -9,18 +9,16 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
       kind: true,
       partAssignments: {
         include: {
-          part: true,
           assignee: true,
           assistant: true,
         },
-        orderBy: { part: { order: 'asc' } },
+        orderBy: { order: 'asc' },
       },
       serviceRoleAssignments: {
         include: {
-          serviceRole: true,
           assignee: true,
         },
-        orderBy: { serviceRole: { name: 'asc' } },
+        orderBy: { name: 'asc' },
       },
     },
   })
@@ -28,53 +26,46 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
 
 export async function assignPart(
   db: TransactionClient,
-  eventId: number,
-  partId: number,
+  assignmentId: number,
   assigneeId: number | null,
   assistantId: number | null,
   topic: string,
   congregationId: number,
 ) {
-  // Check for day-off conflict before assigning
+  const existing = await db.programmePartAssignment.findFirst({
+    where: { id: assignmentId, congregationId },
+    include: { event: true },
+  })
+  if (!existing) return { error: "L'attribution n'existe pas." }
+
   if (assigneeId != null) {
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (event) {
-      const conflict = await checkDayOffConflict(db, assigneeId, event.startDate, event.endDate, congregationId)
-      if (conflict) {
-        return { error: 'Ce proclamateur a une absence durant cette date.' }
-      }
-    }
+    const conflict = await checkDayOffConflict(
+      db,
+      assigneeId,
+      existing.event.startDate,
+      existing.event.endDate,
+      congregationId,
+    )
+    if (conflict) return { error: 'Ce proclamateur a une absence durant cette date.' }
   }
 
   if (assistantId != null) {
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (event) {
-      const conflict = await checkDayOffConflict(db, assistantId, event.startDate, event.endDate, congregationId)
-      if (conflict) {
-        return { error: "L'assistant a une absence durant cette date." }
-      }
-    }
+    const conflict = await checkDayOffConflict(
+      db,
+      assistantId,
+      existing.event.startDate,
+      existing.event.endDate,
+      congregationId,
+    )
+    if (conflict) return { error: "L'assistant a une absence durant cette date." }
   }
 
-  const assignment = await db.programmePartAssignment.upsert({
+  const assignment = await db.programmePartAssignment.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
-      eventId_partId_congregationId: { eventId, partId, congregationId },
+      id_congregationId: { id: assignmentId, congregationId },
     },
-    update: {
-      assigneeId,
-      assistantId,
-      topic,
-      hasConflict: false,
-    },
-    create: {
-      eventId,
-      partId,
-      assigneeId,
-      assistantId,
-      topic,
-      congregationId,
-    },
+    data: { assigneeId, assistantId, topic, hasConflict: false },
   })
 
   return { assignment }
@@ -82,36 +73,33 @@ export async function assignPart(
 
 export async function assignServiceRole(
   db: TransactionClient,
-  eventId: number,
-  serviceRoleId: number,
+  assignmentId: number,
   assigneeId: number | null,
   congregationId: number,
 ) {
+  const existing = await db.programmeServiceRoleAssignment.findFirst({
+    where: { id: assignmentId, congregationId },
+    include: { event: true },
+  })
+  if (!existing) return { error: "L'attribution n'existe pas." }
+
   if (assigneeId != null) {
-    const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (event) {
-      const conflict = await checkDayOffConflict(db, assigneeId, event.startDate, event.endDate, congregationId)
-      if (conflict) {
-        return { error: 'Ce proclamateur a une absence durant cette date.' }
-      }
-    }
+    const conflict = await checkDayOffConflict(
+      db,
+      assigneeId,
+      existing.event.startDate,
+      existing.event.endDate,
+      congregationId,
+    )
+    if (conflict) return { error: 'Ce proclamateur a une absence durant cette date.' }
   }
 
-  const assignment = await db.programmeServiceRoleAssignment.upsert({
+  const assignment = await db.programmeServiceRoleAssignment.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
-      eventId_serviceRoleId_congregationId: { eventId, serviceRoleId, congregationId },
+      id_congregationId: { id: assignmentId, congregationId },
     },
-    update: {
-      assigneeId,
-      hasConflict: false,
-    },
-    create: {
-      eventId,
-      serviceRoleId,
-      assigneeId,
-      congregationId,
-    },
+    data: { assigneeId, hasConflict: false },
   })
 
   return { assignment }
