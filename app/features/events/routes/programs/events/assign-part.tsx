@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { Form, redirect, useSearchParams } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -85,6 +87,11 @@ export async function action({ request, params }: Route.ActionArgs) {
 export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const { event, assignment, users } = loaderData
   const [params] = useSearchParams()
+  const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
+  const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? 'none')
+
+  const activeSelection =
+    selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,59 +100,63 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
       />
 
-      <Card className="max-w-lg">
-        <CardHeader>
-          <CardTitle className="text-base">{assignment?.name ?? 'Partie'}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
-            <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{assignment?.name ?? 'Partie'}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form method="post" className="flex flex-col gap-4">
+              <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="topic">Sujet / Titre</Label>
-              <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
-            </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="topic">Sujet / Titre</Label>
+                <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="assigneeId">Intervenant</Label>
-              <Select name="assigneeId" defaultValue={assignment?.assigneeId?.toString() ?? 'none'}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un proclamateur" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun</SelectItem>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstname} {user.lastname}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="assigneeId">Intervenant</Label>
+                <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un proclamateur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.firstname} {user.lastname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="assistantId">Lecteur (facultatif)</Label>
-              <Select name="assistantId" defaultValue={assignment?.assistantId?.toString() ?? 'none'}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Aucun lecteur" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Aucun</SelectItem>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstname} {user.lastname}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="assistantId">Lecteur (facultatif)</Label>
+                <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Aucun lecteur" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Aucun</SelectItem>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.firstname} {user.lastname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <Button type="submit" className="w-fit">
-              Enregistrer
-            </Button>
-          </Form>
-        </CardContent>
-      </Card>
+              <Button type="submit" className="w-fit">
+                Enregistrer
+              </Button>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <PublisherInfoCard eventId={event.id} userId={activeSelection} partName={assignment?.name} />
+      </div>
     </div>
   )
 }

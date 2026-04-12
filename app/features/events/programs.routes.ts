@@ -12,6 +12,7 @@ export const programsRoutes = [
       route('assign-service', 'features/events/routes/programs/events/assign-service.tsx'),
       route('remove-assignment', 'features/events/routes/programs/events/remove-assignment.tsx'),
       route('delete', 'features/events/routes/programs/events/delete.tsx'),
+      route('publisher-info', 'features/events/routes/programs/events/publisher-info.tsx'),
     ]),
   ]),
 ] satisfies RouteConfig

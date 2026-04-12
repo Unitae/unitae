@@ -84,7 +84,7 @@ function handleEditIntent(
     case 'apply-template':
       return handleApplyTemplate(form, db, eventId, congregationId, userId)
     default:
-      return null
+      return Promise.resolve(null)
   }
 }
 
