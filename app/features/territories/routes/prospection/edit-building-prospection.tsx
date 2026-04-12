@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -18,8 +19,9 @@ import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -64,9 +66,19 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
+const addableEntranceKinds: { kind: EntranceKind; label: string }[] = [
+  { kind: 'commerce' as EntranceKind, label: entranceKindLabels['commerce' as EntranceKind] },
+  { kind: 'hotel' as EntranceKind, label: entranceKindLabels['hotel' as EntranceKind] },
+  { kind: 'campus' as EntranceKind, label: entranceKindLabels['campus' as EntranceKind] },
+  { kind: 'laundromat' as EntranceKind, label: entranceKindLabels['laundromat' as EntranceKind] },
+]
+
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, messages, buildings, roles } = loaderData
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
+
+  const otherEntranceKinds = building.entrances.filter(e => e.kind !== 'residential').map(e => e.kind)
+  const availableKinds = addableEntranceKinds.filter(k => !otherEntranceKinds.includes(k.kind))
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,9 +99,9 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </>
         }
       />
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+      <Form method="post" className="flex flex-col gap-6">
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-1.5">
               <Label>Date de prospection</Label>
               <Input
@@ -105,8 +117,17 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
 
-            <h2 className="mt-2 font-semibold text-lg">Porte à porte</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              Entrée résidentielle
+              <Badge variant="outline">Porte à porte</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <BuildingProspectionForDoorToDoorFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
             {roles.canManageTerritories && (
               <SharedEntranceField
@@ -115,16 +136,28 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
                 onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
               />
             )}
+          </CardContent>
+        </Card>
 
-            <h2 className="mt-2 font-semibold text-lg">Autres informations</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Autres entrées</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <OtherBuildingProspectionFields building={building} isDisabled={sharedEntranceBuildingsChanged} />
 
-            <Button type="submit" className="mt-2">
-              Mettre à jour la prospection
-            </Button>
-          </Form>
-        </CardContent>
-      </Card>
+            {availableKinds.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                Cochez les cases ci-dessus pour indiquer d'autres types d'accès disponibles dans ce batiment.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Button type="submit" className="mt-2">
+          Mettre à jour la prospection
+        </Button>
+      </Form>
     </div>
   )
 }
