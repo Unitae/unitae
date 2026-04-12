@@ -52,6 +52,7 @@ model Congregation {
   buildingResidentialData BuildingResidentialData[]
   dataDeletionRecords     DataDeletionRecord[]
   consentRecords          ConsentRecord[]
+  auditLogs               AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -367,6 +368,24 @@ model PasswordResetToken {
   userId    Int
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id             Int      @id @default(autoincrement())
+  action         String
+  entityType     String?
+  entityId       Int?
+  actorId        Int?
+  actorEmail     String?
+  metadata       String?
+  createdAt      DateTime @default(now())
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@index([congregationId, createdAt])
+  @@index([actorId])
+  @@index([action])
 }
 
 model DataDeletionRecord {

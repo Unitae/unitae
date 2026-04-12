@@ -2,6 +2,7 @@ import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -284,7 +285,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { congregationId, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
+  const { currentUser, congregationId, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
   const canManageUser = can(Role.SettingsUserManager)
 
   if (!canManageUser) {
@@ -332,6 +333,15 @@ export async function action({ request, params }: Route.ActionArgs) {
         })),
       })
     }
+
+    audit({
+      action: AuditAction.UserUpdated,
+      congregationId,
+      actorId: currentUser.id,
+      entityType: 'User',
+      entityId: userId,
+      metadata: { roles: roles.map(String) },
+    })
 
     return redirect('/settings/users')
   })

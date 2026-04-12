@@ -7,6 +7,7 @@ import {
 } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -125,6 +126,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   if (userId == null) {
     await recordLoginAttempt(username)
+    if (urlCongregation) {
+      audit({
+        action: AuditAction.UserLoginFailed,
+        congregationId: urlCongregation.id,
+        actorEmail: username,
+      })
+    }
     session.flash('error', 'Email ou mot de passe invalide')
 
     return redirect('/login', {
@@ -134,6 +142,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   await clearLoginAttempts(username)
   session.set('userId', String(userId))
+
+  if (urlCongregation) {
+    audit({
+      action: AuditAction.UserLogin,
+      congregationId: urlCongregation.id,
+      actorId: userId,
+      actorEmail: username,
+    })
+  }
 
   return redirect('/', {
     headers: { 'Set-Cookie': await commitSession(session) },
