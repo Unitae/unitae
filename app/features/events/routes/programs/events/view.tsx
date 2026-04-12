@@ -1,4 +1,4 @@
-import { AlertTriangle, Clock, UserPlus, X } from 'lucide-react'
+import { AlertTriangle, Clock, Trash2, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
@@ -57,6 +57,16 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
           month: 'long',
           year: 'numeric',
         })}
+        actions={
+          canEdit && (
+            <Button variant="destructive" size="sm" asChild>
+              <Link to="./delete">
+                <Trash2 className="size-4" />
+                Supprimer
+              </Link>
+            </Button>
+          )
+        }
       />
 
       <Card>
