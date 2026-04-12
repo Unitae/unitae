@@ -47,7 +47,7 @@ export async function createBuilding(
       data: {
         building: { connect: { id: building.id } },
         entrance: { connect: { id: residentialEntrance.id } },
-        congregation: { connect: { id: 0 as number } },
+        congregation: { connect: { id: congregationId } },
       },
     })
   }

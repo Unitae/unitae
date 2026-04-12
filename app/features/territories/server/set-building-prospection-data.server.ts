@@ -19,6 +19,7 @@ export async function setBuildingProspectionData(
     include: { entrances: { where: { kind: 'residential' }, take: 1 } },
   })
 
+  const { congregationId } = building
   const residentialEntrance = building.entrances[0]
   if (residentialEntrance != null) {
     // Update entrance-level fields
@@ -43,7 +44,7 @@ export async function setBuildingProspectionData(
         homes,
         phones,
         liberals,
-        congregation: { connect: { id: 0 as number } },
+        congregation: { connect: { id: congregationId } },
       },
     })
 
@@ -55,7 +56,7 @@ export async function setBuildingProspectionData(
           entrance: { connect: { id: residentialEntrance.id } },
           type: accessType,
           position: 0,
-          congregation: { connect: { id: 0 as number } },
+          congregation: { connect: { id: congregationId } },
         },
       })
     }
@@ -76,17 +77,17 @@ export async function setBuildingProspectionData(
   }
 
   // Manage commerce entrances (supports multiple)
-  await syncCommerceEntrances(db, buildingId, formData.getAll('shopkinds').map(String).filter(Boolean))
+  await syncCommerceEntrances(db, buildingId, congregationId, formData.getAll('shopkinds').map(String).filter(Boolean))
 
   // Manage unique typed entrances (hotel, campus, laundromat)
-  await syncUniqueEntrance(db, buildingId, 'hotel', Boolean(formData.get('hotel')))
-  await syncUniqueEntrance(db, buildingId, 'campus', Boolean(formData.get('campus')))
-  await syncUniqueEntrance(db, buildingId, 'laundromat', Boolean(formData.get('landromat')))
+  await syncUniqueEntrance(db, buildingId, congregationId, 'hotel', Boolean(formData.get('hotel')))
+  await syncUniqueEntrance(db, buildingId, congregationId, 'campus', Boolean(formData.get('campus')))
+  await syncUniqueEntrance(db, buildingId, congregationId, 'laundromat', Boolean(formData.get('landromat')))
 
   return building
 }
 
-async function syncCommerceEntrances(db: TransactionClient, buildingId: number, shopKinds: string[]) {
+async function syncCommerceEntrances(db: TransactionClient, buildingId: number, congregationId: number, shopKinds: string[]) {
   const existing = await db.buildingEntrance.findMany({
     where: { kind: 'commerce', buildings: { some: { id: buildingId } } },
     orderBy: { id: 'asc' },
@@ -111,13 +112,13 @@ async function syncCommerceEntrances(db: TransactionClient, buildingId: number, 
         kind: 'commerce',
         shopKind: shopKinds[i],
         buildings: { connect: { id: buildingId } },
-        congregation: { connect: { id: 0 as number } },
+        congregation: { connect: { id: congregationId } },
       },
     })
   }
 }
 
-async function syncUniqueEntrance(db: TransactionClient, buildingId: number, kind: string, shouldExist: boolean) {
+async function syncUniqueEntrance(db: TransactionClient, buildingId: number, congregationId: number, kind: string, shouldExist: boolean) {
   const existing = await db.buildingEntrance.findFirst({
     where: { kind, buildings: { some: { id: buildingId } } },
   })
@@ -127,7 +128,7 @@ async function syncUniqueEntrance(db: TransactionClient, buildingId: number, kin
       data: {
         kind,
         buildings: { connect: { id: buildingId } },
-        congregation: { connect: { id: 0 as number } },
+        congregation: { connect: { id: congregationId } },
       },
     })
   } else if (!shouldExist && existing != null) {
