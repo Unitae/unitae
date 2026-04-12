@@ -126,10 +126,10 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="assistantId">Assistant (facultatif)</Label>
+              <Label htmlFor="assistantId">Lecteur (facultatif)</Label>
               <Select name="assistantId" defaultValue={assignment?.assistantId?.toString() ?? 'none'}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Aucun assistant" />
+                  <SelectValue placeholder="Aucun lecteur" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Aucun</SelectItem>

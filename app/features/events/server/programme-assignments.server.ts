@@ -57,7 +57,7 @@ export async function assignPart(
       existing.event.endDate,
       congregationId,
     )
-    if (conflict) return { error: "L'assistant a une absence durant cette date." }
+    if (conflict) return { error: 'Le lecteur a une absence durant cette date.' }
   }
 
   const assignment = await db.programmePartAssignment.update({

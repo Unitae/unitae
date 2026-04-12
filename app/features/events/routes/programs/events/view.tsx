@@ -89,7 +89,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 <TableHead>Sujet</TableHead>
                 <TableHead className="w-24">Durée</TableHead>
                 <TableHead>Intervenant</TableHead>
-                <TableHead>Assistant</TableHead>
+                <TableHead>Lecteur</TableHead>
                 {canEdit && <TableHead className="w-20">Actions</TableHead>}
               </TableRow>
             </TableHeader>
