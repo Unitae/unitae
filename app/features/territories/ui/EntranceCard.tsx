@@ -19,11 +19,13 @@ export function ResidentialEntranceCard({
   entrance,
   residentialData,
   isDisabled = false,
+  onDelete,
   children,
 }: {
   entrance: EntranceWithRelations | undefined
   residentialData: BuildingResidentialData | null
   isDisabled: boolean
+  onDelete?: () => void
   children?: React.ReactNode
 }) {
   const [access, setAccess] = useState(entrance?.access)
@@ -32,10 +34,17 @@ export function ResidentialEntranceCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          Entrée résidentielle
-          <Badge variant="outline">Porte à porte</Badge>
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            Entrée résidentielle
+            <Badge variant="outline">Porte à porte</Badge>
+          </CardTitle>
+          {onDelete && (
+            <Button type="button" variant="ghost" size="icon" onClick={onDelete} title="Supprimer cette entrée">
+              <Trash2 className="size-4 text-destructive" />
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex gap-3">

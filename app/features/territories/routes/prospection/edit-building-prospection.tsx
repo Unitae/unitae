@@ -71,8 +71,8 @@ const entranceKindFormNames: Record<string, string> = {
 }
 
 // Commerce can have multiples, others are unique per building
-const uniqueKinds = [EntranceKind.Hotel, EntranceKind.Campus, EntranceKind.Laundromat]
-const allAddableKinds = [EntranceKind.Commerce, ...uniqueKinds]
+const uniqueKinds = [EntranceKind.Residential, EntranceKind.Hotel, EntranceKind.Campus, EntranceKind.Laundromat]
+const allAddableKinds = [EntranceKind.Residential, EntranceKind.Commerce, ...uniqueKinds.filter(k => k !== EntranceKind.Residential)]
 
 type EntranceEntry = { uid: string; kind: EntranceKind; entranceId?: number; shopKind?: string }
 
@@ -85,17 +85,25 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, messages, buildings, roles } = loaderData
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
-  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const [hasResidential, setHasResidential] = useState(existingResidentialEntrance != null)
   const initialEntries: EntranceEntry[] = building.entrances
     .filter(e => e.kind !== 'residential')
     .map(e => ({ uid: makeUid(), kind: e.kind as EntranceKind, entranceId: e.id, shopKind: e.shopKind }))
   const [entries, setEntries] = useState<EntranceEntry[]>(initialEntries)
 
-  const activeUniqueKinds = entries.filter(e => uniqueKinds.includes(e.kind)).map(e => e.kind)
+  const activeUniqueKinds = [
+    ...(hasResidential ? [EntranceKind.Residential] : []),
+    ...entries.filter(e => uniqueKinds.includes(e.kind)).map(e => e.kind),
+  ]
   const availableKinds = allAddableKinds.filter(k => k === EntranceKind.Commerce || !activeUniqueKinds.includes(k))
 
   function addEntrance(kind: EntranceKind) {
-    setEntries([...entries, { uid: makeUid(), kind }])
+    if (kind === EntranceKind.Residential) {
+      setHasResidential(true)
+    } else {
+      setEntries([...entries, { uid: makeUid(), kind }])
+    }
   }
 
   function removeEntrance(uid: string) {
@@ -140,19 +148,24 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </CardContent>
         </Card>
 
-        <ResidentialEntranceCard
-          entrance={residentialEntrance}
-          residentialData={building.residentialData}
-          isDisabled={isDisabled}
-        >
-          {roles.canManageTerritories && (
-            <SharedEntranceField
-              building={building}
-              avaibleBuildings={buildings}
-              onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
-            />
-          )}
-        </ResidentialEntranceCard>
+        <input type="hidden" name="has-residential" value={hasResidential ? 'on' : ''} />
+
+        {hasResidential && (
+          <ResidentialEntranceCard
+            entrance={existingResidentialEntrance}
+            residentialData={building.residentialData}
+            isDisabled={isDisabled}
+            onDelete={() => setHasResidential(false)}
+          >
+            {roles.canManageTerritories && (
+              <SharedEntranceField
+                building={building}
+                avaibleBuildings={buildings}
+                onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
+              />
+            )}
+          </ResidentialEntranceCard>
+        )}
 
         {entries.map(entry => {
           if (entry.kind === EntranceKind.Commerce) {

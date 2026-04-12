@@ -6,7 +6,7 @@ vi.mock('~/shared/libs/db.server', () => ({
   db: {
     building: { update: vi.fn() },
     buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
-    buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn() },
+    buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn(), deleteMany: vi.fn() },
     buildingAccess: { deleteMany: vi.fn(), create: vi.fn() },
   },
 }))
@@ -32,6 +32,7 @@ function makeFormData(entries: Record<string, string>) {
 describe('setBuildingProspectionData', () => {
   it('parse la date de prospection', async () => {
     const formData = makeFormData({
+      'has-residential': 'on',
       'prospection-date': '2025-04-08',
     })
 
@@ -42,7 +43,7 @@ describe('setBuildingProspectionData', () => {
   })
 
   it('la date de prospection est null par défaut', async () => {
-    const formData = makeFormData({})
+    const formData = makeFormData({ 'has-residential': 'on' })
 
     await setBuildingProspectionData(db, 1, formData)
 
@@ -52,6 +53,7 @@ describe('setBuildingProspectionData', () => {
 
   it("met à jour l'entrée résidentielle avec les données d'accès", async () => {
     const formData = makeFormData({
+      'has-residential': 'on',
       access: '3',
       pmr: 'on',
       doors: 'on',
@@ -69,6 +71,7 @@ describe('setBuildingProspectionData', () => {
 
   it('upsert les données résidentielles (homes, phones, liberals)', async () => {
     const formData = makeFormData({
+      'has-residential': 'on',
       homes: '15',
       phones: '3',
       liberals: '2',
@@ -83,7 +86,7 @@ describe('setBuildingProspectionData', () => {
   })
 
   it('les données résidentielles sont null par défaut', async () => {
-    const formData = makeFormData({})
+    const formData = makeFormData({ 'has-residential': 'on' })
 
     await setBuildingProspectionData(db, 1, formData)
 

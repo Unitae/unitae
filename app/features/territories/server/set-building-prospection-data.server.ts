@@ -20,11 +20,33 @@ export async function setBuildingProspectionData(
   })
 
   const { congregationId } = building
+  const hasResidential = Boolean(formData.get('has-residential'))
   const residentialEntrance = building.entrances[0]
-  if (residentialEntrance != null) {
+
+  // Remove residential entrance if unchecked
+  if (!hasResidential && residentialEntrance != null) {
+    await db.buildingResidentialData.deleteMany({ where: { entranceId: residentialEntrance.id } })
+    await db.buildingAccess.deleteMany({ where: { entranceId: residentialEntrance.id } })
+    await db.buildingEntrance.delete({ where: { id: residentialEntrance.id } })
+  }
+
+  // Create residential entrance if checked but doesn't exist
+  if (hasResidential && residentialEntrance == null) {
+    const newEntrance = await db.buildingEntrance.create({
+      data: {
+        kind: 'residential',
+        buildings: { connect: { id: buildingId } },
+        congregation: { connect: { id: congregationId } },
+      },
+    })
+    building.entrances[0] = newEntrance as typeof residentialEntrance
+  }
+
+  const currentResidentialEntrance = hasResidential ? (building.entrances[0] ?? null) : null
+  if (currentResidentialEntrance != null) {
     // Update entrance-level fields
     await db.buildingEntrance.update({
-      where: { id: residentialEntrance.id },
+      where: { id: currentResidentialEntrance.id },
       data: {
         access: accessType,
         // biome-ignore lint/style/useNamingConvention: Name of the table in database
@@ -41,7 +63,7 @@ export async function setBuildingProspectionData(
       update: { homes, phones, liberals },
       create: {
         building: { connect: { id: buildingId } },
-        entrance: { connect: { id: residentialEntrance.id } },
+        entrance: { connect: { id: currentResidentialEntrance.id } },
         homes,
         phones,
         liberals,
@@ -50,11 +72,11 @@ export async function setBuildingProspectionData(
     })
 
     // BuildingAccess
-    await db.buildingAccess.deleteMany({ where: { entranceId: residentialEntrance.id } })
+    await db.buildingAccess.deleteMany({ where: { entranceId: currentResidentialEntrance.id } })
     if (accessType != null) {
       await db.buildingAccess.create({
         data: {
-          entrance: { connect: { id: residentialEntrance.id } },
+          entrance: { connect: { id: currentResidentialEntrance.id } },
           type: accessType,
           position: 0,
           congregation: { connect: { id: congregationId } },
@@ -64,11 +86,11 @@ export async function setBuildingProspectionData(
 
     // Recalculate materialized aggregates on the residential entrance
     const aggregates = await db.buildingResidentialData.aggregate({
-      where: { entranceId: residentialEntrance.id },
+      where: { entranceId: currentResidentialEntrance.id },
       _sum: { homes: true, phones: true, liberals: true },
     })
     await db.buildingEntrance.update({
-      where: { id: residentialEntrance.id },
+      where: { id: currentResidentialEntrance.id },
       data: {
         homes: aggregates._sum.homes,
         phones: aggregates._sum.phones,
