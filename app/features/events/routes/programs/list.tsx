@@ -1,4 +1,4 @@
-import { Calendar, CalendarOff, ChevronRight } from 'lucide-react'
+import { Calendar, CalendarOff, ChevronRight, FileDown } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -67,6 +67,12 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                 <Link to="./new">Nouvel évènement</Link>
               </Button>
             )}
+            <Button variant="outline" asChild>
+              <Link to="./export-pdf">
+                <FileDown className="size-4" />
+                Exporter en PDF
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="./days-off">Absences</Link>
             </Button>
