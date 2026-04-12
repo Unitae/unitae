@@ -53,8 +53,10 @@ export async function action({ request, params }: Route.ActionArgs) {
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const form = await request.formData()
   const assignmentId = Number(form.get('assignmentId'))
-  const assigneeId = form.get('assigneeId') ? Number(form.get('assigneeId')) : null
-  const assistantId = form.get('assistantId') ? Number(form.get('assistantId')) : null
+  const rawAssigneeId = form.get('assigneeId')
+  const assigneeId = rawAssigneeId && rawAssigneeId !== 'none' ? Number(rawAssigneeId) : null
+  const rawAssistantId = form.get('assistantId')
+  const assistantId = rawAssistantId && rawAssistantId !== 'none' ? Number(rawAssistantId) : null
   const topic = String(form.get('topic') ?? '')
 
   return withScope(congregationId, async db => {
@@ -108,12 +110,12 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="assigneeId">Intervenant</Label>
-              <Select name="assigneeId" defaultValue={assignment?.assigneeId?.toString() ?? ''}>
+              <Select name="assigneeId" defaultValue={assignment?.assigneeId?.toString() ?? 'none'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un proclamateur" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value="none">Aucun</SelectItem>
                   {users.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstname} {user.lastname}
@@ -125,12 +127,12 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="assistantId">Assistant (facultatif)</Label>
-              <Select name="assistantId" defaultValue={assignment?.assistantId?.toString() ?? ''}>
+              <Select name="assistantId" defaultValue={assignment?.assistantId?.toString() ?? 'none'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Aucun assistant" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value="none">Aucun</SelectItem>
                   {users.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstname} {user.lastname}

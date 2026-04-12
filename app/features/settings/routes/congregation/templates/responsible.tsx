@@ -53,7 +53,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
   const form = await request.formData()
-  const userId = form.get('userId') ? Number(form.get('userId')) : null
+  const rawUserId = form.get('userId')
+  const userId = rawUserId && rawUserId !== 'none' ? Number(rawUserId) : null
 
   return withScope(congregationId, async db => {
     if (userId) {
@@ -92,12 +93,12 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="userId">Responsable</Label>
-              <Select name="userId" defaultValue={currentResponsibleId?.toString() ?? ''}>
+              <Select name="userId" defaultValue={currentResponsibleId?.toString() ?? 'none'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Aucun responsable" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun responsable</SelectItem>
+                  <SelectItem value="none">Aucun responsable</SelectItem>
                   {users.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstname} {user.lastname}

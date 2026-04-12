@@ -52,7 +52,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const form = await request.formData()
   const assignmentId = Number(form.get('assignmentId'))
-  const assigneeId = form.get('assigneeId') ? Number(form.get('assigneeId')) : null
+  const rawAssigneeId = form.get('assigneeId')
+  const assigneeId = rawAssigneeId && rawAssigneeId !== 'none' ? Number(rawAssigneeId) : null
 
   return withScope(congregationId, async db => {
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
@@ -100,12 +101,12 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="assigneeId">Proclamateur</Label>
-              <Select name="assigneeId" defaultValue={assignment?.assigneeId?.toString() ?? ''}>
+              <Select name="assigneeId" defaultValue={assignment?.assigneeId?.toString() ?? 'none'}>
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un proclamateur" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Aucun</SelectItem>
+                  <SelectItem value="none">Aucun</SelectItem>
                   {users.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstname} {user.lastname}
