@@ -1,6 +1,7 @@
 import { Form, Link, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession } from '~/features/authentication/server/session.server'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -142,12 +143,22 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser } = await authenticateAndAuthorize(request)
+  const { session, currentUser, congregationId } = await authenticateAndAuthorize(request)
   const formData = await request.formData()
   const password = formData.get('password')
   const newPassword = formData.get('new_password')
 
   const isSuccess = await changeUserPassword(currentUser.id, String(password), String(newPassword))
+
+  if (isSuccess) {
+    audit({
+      action: AuditAction.PasswordChanged,
+      congregationId,
+      actorId: currentUser.id,
+      entityType: 'User',
+      entityId: currentUser.id,
+    })
+  }
 
   if (!isSuccess) {
     session.flash('error', 'Impossible modifier le mot de passe.')
