@@ -1,4 +1,10 @@
-import type { Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, Territory } from '~/database/generated/client'
+import type {
+  Building,
+  BuildingAccess,
+  BuildingEntrance,
+  BuildingResidentialData,
+  Territory,
+} from '~/database/generated/client'
 
 export type DetailedBuildingEntrance = BuildingEntrance & {
   buildings: Building[]

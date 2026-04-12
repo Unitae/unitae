@@ -8,6 +8,7 @@ vi.mock('~/shared/libs/db.server', () => ({
     congregationUserRole: { create: vi.fn() },
     eventKind: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
+    programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
   },
 }))
 

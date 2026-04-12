@@ -30,6 +30,7 @@ function territoryContentLabel(type: string, entrances: { homes: number | null; 
   }
   return `${count} entrée${count > 1 ? 's' : ''}`
 }
+
 import { getZips } from '~/features/territories/server/buildings'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
 import { computeFilters } from '~/features/territories/server/territory-filters'

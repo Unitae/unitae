@@ -85,11 +85,7 @@ function checkMissingAccess(building: BuildingWithEntrances) {
 
 function checkIncoherentAccessWithPhones(building: BuildingWithEntrances) {
   const entrance = getResidentialEntrance(building)
-  return (
-    entrance?.access === TerritoryAccess.Code &&
-    entrance.isOpenEarly === false &&
-    entrance.phones == null
-  )
+  return entrance?.access === TerritoryAccess.Code && entrance.isOpenEarly === false && entrance.phones == null
 }
 
 function checkIncoherentAccessWithHomes(building: BuildingWithEntrances) {
@@ -98,11 +94,7 @@ function checkIncoherentAccessWithHomes(building: BuildingWithEntrances) {
     return true
   }
 
-  if (
-    entrance?.access === TerritoryAccess.Code &&
-    entrance.isOpenEarly === true &&
-    entrance.homes == null
-  ) {
+  if (entrance?.access === TerritoryAccess.Code && entrance.isOpenEarly === true && entrance.homes == null) {
     return true
   }
 

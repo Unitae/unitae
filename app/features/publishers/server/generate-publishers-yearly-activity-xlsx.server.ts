@@ -4,7 +4,11 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic
-export async function generatePublishersYearlyActivityXlsx(db: TransactionClient, congregationId: number, year: number) {
+export async function generatePublishersYearlyActivityXlsx(
+  db: TransactionClient,
+  congregationId: number,
+  year: number,
+) {
   const months = Array.from({ length: 12 }, (_, i) => (i + 8 > 11 ? i - 4 : i + 8))
   const workbook = new excelJs.Workbook()
 

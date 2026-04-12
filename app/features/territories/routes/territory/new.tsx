@@ -51,9 +51,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       },
       select: { entrances: { include: { buildings: true } } },
     })
-    const entrances = buildings
-      .flatMap(building => building.entrances)
-      .map(aggregateEntrance)
+    const entrances = buildings.flatMap(building => building.entrances).map(aggregateEntrance)
     if (!url.searchParams.has('zip')) {
       return { zips, buildings: [], streets: [], phoneTypeActive, entrances }
     }

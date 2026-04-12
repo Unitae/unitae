@@ -4,13 +4,21 @@ import type { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 
 type SettingKey = TerritorySettingKey | CongregationSettingKey
 
-export async function getSetting(db: TransactionClient, key: SettingKey, congregationId: number): Promise<string | undefined> {
+export async function getSetting(
+  db: TransactionClient,
+  key: SettingKey,
+  congregationId: number,
+): Promise<string | undefined> {
   const setting = await db.setting.findFirst({ where: { key, congregationId } })
 
   return setting?.value
 }
 
-export async function getBoolSetting(db: TransactionClient, key: SettingKey, congregationId: number): Promise<boolean | undefined> {
+export async function getBoolSetting(
+  db: TransactionClient,
+  key: SettingKey,
+  congregationId: number,
+): Promise<boolean | undefined> {
   const settingValue = await getSetting(db, key, congregationId)
 
   return settingValue === 'true'

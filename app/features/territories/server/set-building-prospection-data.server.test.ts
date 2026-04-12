@@ -17,7 +17,9 @@ const { db } = await import('~/shared/libs/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.building.update).mockResolvedValue({ id: 1, entrances: [SENTINEL_ENTRANCE] } as never)
-  vi.mocked(db.buildingResidentialData.aggregate).mockResolvedValue({ _sum: { homes: null, phones: null, liberals: null } } as never)
+  vi.mocked(db.buildingResidentialData.aggregate).mockResolvedValue({
+    _sum: { homes: null, phones: null, liberals: null },
+  } as never)
   vi.mocked(db.buildingEntrance.findMany).mockResolvedValue([] as never)
 })
 

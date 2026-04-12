@@ -262,7 +262,10 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Annuler</AlertDialogCancel>
                   <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
-                    <AlertDialogAction type="submit" className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction
+                      type="submit"
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
                       Confirmer l'anonymisation
                     </AlertDialogAction>
                   </Form>

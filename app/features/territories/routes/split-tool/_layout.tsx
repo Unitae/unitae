@@ -50,10 +50,7 @@ export async function loader({ request }: Route.LoaderArgs) {
           some: {
             territories: { none: { type: TerritoryKind.Classical } },
             // biome-ignore lint/style/useNamingConvention: prisma keywords
-            OR: [
-              { phones: { gt: 0 } },
-              { access: 4, isOpenEarly: false },
-            ],
+            OR: [{ phones: { gt: 0 } }, { access: 4, isOpenEarly: false }],
           },
         },
       },

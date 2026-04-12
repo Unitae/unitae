@@ -150,7 +150,13 @@ async function syncCommerceEntrances(
   }
 }
 
-async function syncUniqueEntrance(db: TransactionClient, buildingId: number, congregationId: number, kind: string, shouldExist: boolean) {
+async function syncUniqueEntrance(
+  db: TransactionClient,
+  buildingId: number,
+  congregationId: number,
+  kind: string,
+  shouldExist: boolean,
+) {
   const existing = await db.buildingEntrance.findFirst({
     where: { kind, buildings: { some: { id: buildingId } } },
   })

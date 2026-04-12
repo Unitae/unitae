@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
 
 export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {
@@ -35,7 +36,7 @@ export async function createDayOff(
 
   const eventKind = await db.eventKind.findFirst({ where: { key: EventKind.Off, congregationId } })
 
-  return await db.event.create({
+  const event = await db.event.create({
     data: {
       ...(eventKind ? { kind: { connect: { id: eventKind.id } } } : {}),
       startDate,
@@ -45,4 +46,23 @@ export async function createDayOff(
       congregation: { connect: { id: congregationId } },
     },
   })
+
+  // Update conflict flags on programme assignments overlapping this new day-off
+  await refreshConflictFlags(db, userId, startDate, endDate, congregationId)
+
+  return event
+}
+
+export async function deleteDayOff(db: TransactionClient, eventId: number, userId: number, congregationId: number) {
+  const event = await db.event.delete({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id: eventId, congregationId },
+    },
+  })
+
+  // Refresh conflict flags — the absence is gone, so conflicts may be resolved
+  await refreshConflictFlags(db, userId, event.startDate, event.endDate, congregationId)
+
+  return event
 }

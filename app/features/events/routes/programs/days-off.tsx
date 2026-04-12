@@ -13,7 +13,7 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 
-import type { Route } from './+types/list'
+import type { Route } from './+types/days-off'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Absences - Unitae' }]

@@ -153,7 +153,12 @@ export async function getAvailableZips(db: TransactionClient, congregationId: nu
   return await db.building.groupBy({ by: 'zip', where: selectors })
 }
 
-export async function getStreets(db: TransactionClient, congregationId: number, zip?: string, territoryType?: TerritoryKind) {
+export async function getStreets(
+  db: TransactionClient,
+  congregationId: number,
+  zip?: string,
+  territoryType?: TerritoryKind,
+) {
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (zip != null) {
@@ -175,7 +180,12 @@ export async function getStreets(db: TransactionClient, congregationId: number, 
   return await db.building.groupBy({ by: 'street', where: selectors })
 }
 
-export async function getAvailableStreets(db: TransactionClient, congregationId: number, zip?: string, territoryType?: TerritoryKind) {
+export async function getAvailableStreets(
+  db: TransactionClient,
+  congregationId: number,
+  zip?: string,
+  territoryType?: TerritoryKind,
+) {
   const selectors: Prisma.BuildingWhereInput = { active: true, congregationId }
 
   if (zip != null) {
