@@ -65,7 +65,7 @@ export async function importOpenData(
             inOpenData: true,
             active: isActive,
             inTerritory: isActive,
-            entrance: { create: { congregation: { connect: { id: congregationId } } } },
+            entrances: { create: { kind: 'residential', congregation: { connect: { id: congregationId } } } },
             congregation: { connect: { id: congregationId } },
           },
           update: {

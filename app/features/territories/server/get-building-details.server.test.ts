@@ -15,7 +15,7 @@ beforeEach(() => {
 
 describe('getBuildingDetails', () => {
   it('retourne les détails du bâtiment', async () => {
-    const fakeBuilding = { id: 1, number: '12', entrance: { buildings: [], territories: [] } }
+    const fakeBuilding = { id: 1, number: '12', entrances: [{ kind: 'residential', buildings: [], territories: [], accesses: [], residentialData: [] }], residentialData: null }
     vi.mocked(db.building.findUnique).mockResolvedValue(fakeBuilding as never)
 
     const result = await getBuildingDetails(db, 1)
