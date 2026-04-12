@@ -37,12 +37,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
     const selectors: Prisma.BuildingEntranceWhereInput = {
+      kind: 'residential',
       buildings: {
         some: {
           ...filters,
           active: true,
-          hasCampus: false,
-          hasHotel: false,
           // biome-ignore lint/style/useNamingConvention: prisma keywords
           NOT: { prospectionDate: null },
         },
@@ -51,7 +50,6 @@ export async function loader({ request }: Route.LoaderArgs) {
       OR: [
         { access: 1 }, // interphone
         { access: 2 }, // sonnette
-        { buildings: { some: { hasShops: true, homes: { gt: 0 } } } }, // commerces si foyers dans le batiment
         phoneTypeActive ? { access: 4, isOpenEarly: true } : { access: 4 }, // code ouvert le matin
       ],
       territories: { none: { type: TerritoryKind.Classical } },

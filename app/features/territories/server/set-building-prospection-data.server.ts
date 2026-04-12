@@ -87,5 +87,44 @@ export async function setBuildingProspectionData(
     })
   }
 
+  // Manage typed entrances (commerce, hotel, campus, laundromat)
+  const hasShops = Boolean(formData.get('shops'))
+  const shopKind = formData.get('shopkinds') ? String(formData.get('shopkinds')) : ''
+  await syncTypedEntrance(db, buildingId, 'commerce', hasShops, { shopKind })
+
+  await syncTypedEntrance(db, buildingId, 'hotel', Boolean(formData.get('hotel')))
+  await syncTypedEntrance(db, buildingId, 'campus', Boolean(formData.get('campus')))
+  await syncTypedEntrance(db, buildingId, 'laundromat', Boolean(formData.get('landromat')))
+
   return building
+}
+
+async function syncTypedEntrance(
+  db: TransactionClient,
+  buildingId: number,
+  kind: string,
+  shouldExist: boolean,
+  extraData: { shopKind?: string } = {},
+) {
+  const existing = await db.buildingEntrance.findFirst({
+    where: { kind, buildings: { some: { id: buildingId } } },
+  })
+
+  if (shouldExist && existing == null) {
+    await db.buildingEntrance.create({
+      data: {
+        kind,
+        shopKind: extraData.shopKind ?? '',
+        buildings: { connect: { id: buildingId } },
+        congregation: { connect: { id: 0 as number } },
+      },
+    })
+  } else if (shouldExist && existing != null) {
+    await db.buildingEntrance.update({
+      where: { id: existing.id },
+      data: { shopKind: extraData.shopKind ?? existing.shopKind },
+    })
+  } else if (!shouldExist && existing != null) {
+    await db.buildingEntrance.delete({ where: { id: existing.id } })
+  }
 }

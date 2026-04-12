@@ -5,7 +5,7 @@ const SENTINEL_ENTRANCE = { id: 42, kind: 'residential' }
 vi.mock('~/shared/libs/db.server', () => ({
   db: {
     building: { update: vi.fn() },
-    buildingEntrance: { update: vi.fn() },
+    buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
     buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn() },
     buildingAccess: { deleteMany: vi.fn(), create: vi.fn() },
   },

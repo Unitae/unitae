@@ -33,9 +33,10 @@ export async function loader({ request }: Route.LoaderArgs) {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
     const selectors: Prisma.BuildingEntranceWhereInput = {
+      kind: 'commerce',
       buildings: {
         // biome-ignore lint/style/useNamingConvention: prisma keywords
-        some: { ...filters, active: true, hasShops: true, NOT: { prospectionDate: null } },
+        some: { ...filters, active: true, NOT: { prospectionDate: null } },
       },
       territories: { none: { type: TerritoryKind.Commerces } },
     }

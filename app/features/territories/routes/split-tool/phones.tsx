@@ -40,19 +40,18 @@ export async function loader({ request }: Route.LoaderArgs) {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
     const selectors: Prisma.BuildingEntranceWhereInput = {
+      kind: 'residential',
       buildings: {
         some: {
           ...filters,
           active: true,
           // biome-ignore lint/style/useNamingConvention: prisma keywords
           NOT: { prospectionDate: null },
-          // biome-ignore lint/style/useNamingConvention: prisma keywords
-          OR: [{ phones: { gt: 0 } }],
         },
       },
       // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
-        { buildings: { some: { phones: { gt: 0 } } } },
+        { phones: { gt: 0 } },
         { access: 4, isOpenEarly: false },
       ],
       territories: { none: { type: TerritoryKind.Phone } },
