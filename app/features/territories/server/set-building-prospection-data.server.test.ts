@@ -5,7 +5,7 @@ const SENTINEL_ENTRANCE = { id: 42, kind: 'residential' }
 vi.mock('~/shared/libs/db.server', () => ({
   db: {
     building: { update: vi.fn() },
-    buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
+    buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
     buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn() },
     buildingAccess: { deleteMany: vi.fn(), create: vi.fn() },
   },
@@ -18,6 +18,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.building.update).mockResolvedValue({ id: 1, entrances: [SENTINEL_ENTRANCE] } as never)
   vi.mocked(db.buildingResidentialData.aggregate).mockResolvedValue({ _sum: { homes: null, phones: null, liberals: null } } as never)
+  vi.mocked(db.buildingEntrance.findMany).mockResolvedValue([] as never)
 })
 
 function makeFormData(entries: Record<string, string>) {
@@ -92,16 +93,13 @@ describe('setBuildingProspectionData', () => {
     expect(callArgs.update.liberals).toBeNull()
   })
 
-  it('crée une entrée commerce quand shops est coché', async () => {
-    const formData = makeFormData({
-      shops: 'on',
-      shopkinds: 'alimentaire',
-    })
+  it('crée une entrée commerce pour chaque shopkinds soumis', async () => {
+    const formData = new FormData()
+    formData.append('shopkinds', 'alimentaire')
+    formData.append('shopkinds', 'coiffure-cosmetiques')
 
     await setBuildingProspectionData(db, 1, formData)
 
-    expect(vi.mocked(db.buildingEntrance.findFirst)).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { kind: 'commerce', buildings: { some: { id: 1 } } } }),
-    )
+    expect(vi.mocked(db.buildingEntrance.create)).toHaveBeenCalledTimes(2)
   })
 })

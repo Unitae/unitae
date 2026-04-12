@@ -70,23 +70,36 @@ const entranceKindFormNames: Record<string, string> = {
   [EntranceKind.Laundromat]: 'landromat',
 }
 
-const addableKinds = [EntranceKind.Commerce, EntranceKind.Hotel, EntranceKind.Campus, EntranceKind.Laundromat]
+// Commerce can have multiples, others are unique per building
+const uniqueKinds = [EntranceKind.Hotel, EntranceKind.Campus, EntranceKind.Laundromat]
+const allAddableKinds = [EntranceKind.Commerce, ...uniqueKinds]
+
+type EntranceEntry = { uid: string; kind: EntranceKind; entranceId?: number; shopKind?: string }
+
+let nextUid = 0
+function makeUid() {
+  return `entrance-${++nextUid}`
+}
 
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, messages, buildings, roles } = loaderData
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
   const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
-  const initialOtherKinds = building.entrances.filter(e => e.kind !== 'residential').map(e => e.kind as EntranceKind)
-  const [activeKinds, setActiveKinds] = useState<EntranceKind[]>(initialOtherKinds)
-  const availableKinds = addableKinds.filter(k => !activeKinds.includes(k))
+  const initialEntries: EntranceEntry[] = building.entrances
+    .filter(e => e.kind !== 'residential')
+    .map(e => ({ uid: makeUid(), kind: e.kind as EntranceKind, entranceId: e.id, shopKind: e.shopKind }))
+  const [entries, setEntries] = useState<EntranceEntry[]>(initialEntries)
+
+  const activeUniqueKinds = entries.filter(e => uniqueKinds.includes(e.kind)).map(e => e.kind)
+  const availableKinds = allAddableKinds.filter(k => k === EntranceKind.Commerce || !activeUniqueKinds.includes(k))
 
   function addEntrance(kind: EntranceKind) {
-    setActiveKinds([...activeKinds, kind])
+    setEntries([...entries, { uid: makeUid(), kind }])
   }
 
-  function removeEntrance(kind: EntranceKind) {
-    setActiveKinds(activeKinds.filter(k => k !== kind))
+  function removeEntrance(uid: string) {
+    setEntries(entries.filter(e => e.uid !== uid))
   }
 
   const isDisabled = sharedEntranceBuildingsChanged
@@ -141,26 +154,27 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           )}
         </ResidentialEntranceCard>
 
-        {activeKinds.map(kind => {
-          const entrance = building.entrances.find(e => e.kind === kind)
-
-          if (kind === EntranceKind.Commerce) {
+        {entries.map(entry => {
+          if (entry.kind === EntranceKind.Commerce) {
+            const entrance = entry.entranceId
+              ? building.entrances.find(e => e.id === entry.entranceId)
+              : undefined
             return (
               <CommerceEntranceCard
-                key={kind}
+                key={entry.uid}
                 entrance={entrance}
                 isDisabled={isDisabled}
-                onDelete={() => removeEntrance(kind)}
+                onDelete={() => removeEntrance(entry.uid)}
               />
             )
           }
 
           return (
             <SimpleEntranceCard
-              key={kind}
-              kind={kind}
-              formName={entranceKindFormNames[kind]}
-              onDelete={() => removeEntrance(kind)}
+              key={entry.uid}
+              kind={entry.kind}
+              formName={entranceKindFormNames[entry.kind]}
+              onDelete={() => removeEntrance(entry.uid)}
             />
           )
         })}

@@ -75,25 +75,49 @@ export async function setBuildingProspectionData(
     })
   }
 
-  // Manage typed entrances (commerce, hotel, campus, laundromat)
-  const hasShops = Boolean(formData.get('shops'))
-  const shopKind = formData.get('shopkinds') ? String(formData.get('shopkinds')) : ''
-  await syncTypedEntrance(db, buildingId, 'commerce', hasShops, { shopKind })
+  // Manage commerce entrances (supports multiple)
+  await syncCommerceEntrances(db, buildingId, formData.getAll('shopkinds').map(String).filter(Boolean))
 
-  await syncTypedEntrance(db, buildingId, 'hotel', Boolean(formData.get('hotel')))
-  await syncTypedEntrance(db, buildingId, 'campus', Boolean(formData.get('campus')))
-  await syncTypedEntrance(db, buildingId, 'laundromat', Boolean(formData.get('landromat')))
+  // Manage unique typed entrances (hotel, campus, laundromat)
+  await syncUniqueEntrance(db, buildingId, 'hotel', Boolean(formData.get('hotel')))
+  await syncUniqueEntrance(db, buildingId, 'campus', Boolean(formData.get('campus')))
+  await syncUniqueEntrance(db, buildingId, 'laundromat', Boolean(formData.get('landromat')))
 
   return building
 }
 
-async function syncTypedEntrance(
-  db: TransactionClient,
-  buildingId: number,
-  kind: string,
-  shouldExist: boolean,
-  extraData: { shopKind?: string } = {},
-) {
+async function syncCommerceEntrances(db: TransactionClient, buildingId: number, shopKinds: string[]) {
+  const existing = await db.buildingEntrance.findMany({
+    where: { kind: 'commerce', buildings: { some: { id: buildingId } } },
+    orderBy: { id: 'asc' },
+  })
+
+  // Update existing entrances or delete extras
+  for (let i = 0; i < existing.length; i++) {
+    if (i < shopKinds.length) {
+      await db.buildingEntrance.update({
+        where: { id: existing[i].id },
+        data: { shopKind: shopKinds[i] },
+      })
+    } else {
+      await db.buildingEntrance.delete({ where: { id: existing[i].id } })
+    }
+  }
+
+  // Create new entrances for remaining shopKinds
+  for (let i = existing.length; i < shopKinds.length; i++) {
+    await db.buildingEntrance.create({
+      data: {
+        kind: 'commerce',
+        shopKind: shopKinds[i],
+        buildings: { connect: { id: buildingId } },
+        congregation: { connect: { id: 0 as number } },
+      },
+    })
+  }
+}
+
+async function syncUniqueEntrance(db: TransactionClient, buildingId: number, kind: string, shouldExist: boolean) {
   const existing = await db.buildingEntrance.findFirst({
     where: { kind, buildings: { some: { id: buildingId } } },
   })
@@ -102,15 +126,9 @@ async function syncTypedEntrance(
     await db.buildingEntrance.create({
       data: {
         kind,
-        shopKind: extraData.shopKind ?? '',
         buildings: { connect: { id: buildingId } },
         congregation: { connect: { id: 0 as number } },
       },
-    })
-  } else if (shouldExist && existing != null) {
-    await db.buildingEntrance.update({
-      where: { id: existing.id },
-      data: { shopKind: extraData.shopKind ?? existing.shopKind },
     })
   } else if (!shouldExist && existing != null) {
     await db.buildingEntrance.delete({ where: { id: existing.id } })
