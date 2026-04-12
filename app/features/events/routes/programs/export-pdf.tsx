@@ -1,12 +1,9 @@
-import { pdf } from '@react-pdf/renderer'
 import { useState } from 'react'
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
-import { ProgrammeDocument } from '~/features/events/ui/ProgrammeDocument'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -30,74 +27,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
-  if (!can(Role.ProgramViewer)) throw redirect('/congregation/programs')
-
-  const form = await request.formData()
-  const templateId = form.get('templateId') && form.get('templateId') !== 'all' ? Number(form.get('templateId')) : null
-  const startDate = new Date(String(form.get('startDate')))
-  const endDate = new Date(String(form.get('endDate')))
-  const contentType = String(form.get('contentType') ?? 'both')
-
-  logger.info(`Generating programme PDF. User ID: ${currentUser.id}. Template: ${templateId ?? 'all'}.`)
-
-  return withScope(congregationId, async db => {
-    const events = await db.event.findMany({
-      where: {
-        congregationId,
-        ...(templateId ? { templateId } : { templateId: { not: null } }),
-        startDate: { gte: startDate, lte: endDate },
-      },
-      include: {
-        template: true,
-        partAssignments: {
-          include: { assignee: true, assistant: true },
-          orderBy: { order: 'asc' },
-        },
-        serviceRoleAssignments: {
-          include: { assignee: true },
-          orderBy: { name: 'asc' },
-        },
-      },
-      orderBy: { startDate: 'asc' },
-    })
-
-    const templateName = templateId ? (events[0]?.template?.name ?? 'Programme') : 'Programme'
-
-    const title = `${templateName} — ${startDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
-
-    const file = await pdf(
-      <ProgrammeDocument
-        events={events}
-        title={title}
-        showParts={contentType === 'both' || contentType === 'parts'}
-        showServices={contentType === 'both' || contentType === 'services'}
-      />,
-    ).toBlob()
-
-    const filename = `programme-${templateId ?? 'tous'}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
-
-    return new Response(file, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    })
-  })
-}
-
 export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
   const { templates } = loaderData
+
   const [selectedTemplate, setSelectedTemplate] = useState('all')
+  const [contentType, setContentType] = useState('both')
 
   const today = new Date()
   const twoMonthsLater = new Date()
   twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2)
+
+  const [startDate, setStartDate] = useState(today.toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState(twoMonthsLater.toISOString().split('T')[0])
+
+  const downloadUrl = `/congregation/programs/export-pdf/download?templateId=${selectedTemplate}&startDate=${startDate}&endDate=${endDate}&contentType=${contentType}`
 
   return (
     <div className="flex flex-col gap-6">
@@ -108,10 +51,10 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">Options d'export</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="templateId">Type de réunion</Label>
-              <Select name="templateId" value={selectedTemplate} onValueChange={setSelectedTemplate}>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                 <SelectTrigger>
                   <SelectValue placeholder="Tous les types" />
                 </SelectTrigger>
@@ -131,27 +74,21 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
                 <Label htmlFor="startDate">Du</Label>
                 <Input
                   id="startDate"
-                  name="startDate"
                   type="date"
-                  defaultValue={today.toISOString().split('T')[0]}
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
                   required
                 />
               </div>
               <div className="flex flex-1 flex-col gap-2">
                 <Label htmlFor="endDate">Au</Label>
-                <Input
-                  id="endDate"
-                  name="endDate"
-                  type="date"
-                  defaultValue={twoMonthsLater.toISOString().split('T')[0]}
-                  required
-                />
+                <Input id="endDate" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required />
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="contentType">Contenu</Label>
-              <Select name="contentType" defaultValue="both">
+              <Select value={contentType} onValueChange={setContentType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -163,10 +100,12 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
               </Select>
             </div>
 
-            <Button type="submit" className="w-fit">
-              Télécharger le PDF
+            <Button asChild className="w-fit">
+              <a href={downloadUrl} target="_blank" rel="noreferrer">
+                Télécharger le PDF
+              </a>
             </Button>
-          </Form>
+          </div>
         </CardContent>
       </Card>
     </div>

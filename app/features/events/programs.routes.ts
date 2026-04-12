@@ -6,6 +6,7 @@ export const programsRoutes = [
     route('new', 'features/events/routes/programs/new.tsx'),
     route('days-off', 'features/events/routes/programs/days-off.tsx'),
     route('export-pdf', 'features/events/routes/programs/export-pdf.tsx'),
+    route('export-pdf/download', 'features/events/routes/programs/export-pdf-download.tsx'),
     ...prefix('events/:eventId', [
       index('features/events/routes/programs/events/view.tsx'),
       route('edit', 'features/events/routes/programs/events/edit.tsx'),
