@@ -48,6 +48,8 @@ model Congregation {
   eventKinds         EventKind[]
   settings           Setting[]
   userRoles          CongregationUserRole[]
+  dataDeletionRecords DataDeletionRecord[]
+  consentRecords     ConsentRecord[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -74,6 +76,8 @@ model User {
   isServant   Boolean   @default(false)
   isAnointed  Boolean   @default(false)
 
+  anonymizedAt DateTime?
+
   publisherGroupId Int?
   publisherGroup   PublisherGroup? @relation("group", fields: [publisherGroupId], references: [id])
   responsibleFor   PublisherGroup? @relation("groupResponsible")
@@ -85,6 +89,7 @@ model User {
 
   documentsViewed     BoardDocument[]      @relation("viewedBy")
   passwordResetTokens PasswordResetToken[]
+  consentRecords      ConsentRecord[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -329,4 +334,34 @@ model PasswordResetToken {
   userId    Int
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model DataDeletionRecord {
+  id             Int      @id @default(autoincrement())
+  entityType     String
+  entityId       Int
+  requestedBy    String
+  requestedAt    DateTime @default(now())
+  completedAt    DateTime?
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+}
+
+model ConsentRecord {
+  id             Int       @id @default(autoincrement())
+  purpose        String
+  consentedAt    DateTime  @default(now())
+  withdrawnAt    DateTime?
+  consentVersion String
+  ipAddress      String?
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
 }

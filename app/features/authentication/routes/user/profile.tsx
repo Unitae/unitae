@@ -1,4 +1,4 @@
-import { Form, redirect } from 'react-router'
+import { Form, Link, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -63,6 +63,51 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
           <p className="mt-2 text-muted-foreground text-xs italic">
             Si certaines de ces informations ne sont pas bonnes, merci de contacter ton responsable de groupe de
             prédication.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Confidentialité et données personnelles</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Exporter mes données</p>
+              <p className="text-muted-foreground text-xs">
+                Télécharger l'ensemble de vos données personnelles au format JSON (articles 15 et 20 du RGPD).
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <a href={`/settings/users/${user.id}/export-data`} download>
+                Exporter
+              </a>
+            </Button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">Gérer mes consentements</p>
+              <p className="text-muted-foreground text-xs">Consulter et retirer vos consentements au traitement des données.</p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/me/consents">Gérer</Link>
+            </Button>
+          </div>
+
+          <div className="border-t pt-4">
+            <p className="font-medium text-sm">Droit à l'effacement</p>
+            <p className="mt-1 text-muted-foreground text-xs">
+              Conformément à l'article 17 du RGPD, vous pouvez demander l'effacement de vos données personnelles.
+              Pour exercer ce droit, contactez l'administrateur de votre assemblée locale.
+            </p>
+          </div>
+
+          <p className="text-muted-foreground text-xs">
+            <Link to="/privacy" className="text-primary hover:underline">
+              Politique de confidentialité
+            </Link>
           </p>
         </CardContent>
       </Card>

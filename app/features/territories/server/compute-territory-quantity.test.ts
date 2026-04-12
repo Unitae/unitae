@@ -84,7 +84,7 @@ describe('computeTerritoryQuantity', () => {
     expect(computeTerritoryQuantity(TerritoryKind.Hotel, entrances)).toBe(2)
   })
 
-  it('retourne 0 quand il n\'y a pas d\'allées', () => {
+  it("retourne 0 quand il n'y a pas d'allées", () => {
     expect(computeTerritoryQuantity(TerritoryKind.Classical, [])).toBe(0)
     expect(computeTerritoryQuantity(TerritoryKind.Phone, [])).toBe(0)
     expect(computeTerritoryQuantity(TerritoryKind.Commerces, [])).toBe(0)

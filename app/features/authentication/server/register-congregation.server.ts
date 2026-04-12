@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { ConsentPurpose, recordConsentUnscoped } from '~/features/settings/server/consent.server'
 import { hash } from '~/shared/libs/crypto.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 
@@ -56,6 +57,9 @@ export async function registerCongregation(
       congregationId: congregation.id,
     },
   })
+
+  // Enregistrer le consentement RGPD initial
+  await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)
 
   return { congregationSlug: congregation.slug, userId: user.id }
 }

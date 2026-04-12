@@ -13,10 +13,11 @@ Start here to understand the product, its features, and how it works.
 3. Deep dives: [Display Board](product/display-board.md) · [Territories](product/territories.md) · [Publishers](product/publishers.md) · [Events](product/events.md)
 4. [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
 5. [Security](product/security.md) — How your data is protected
+6. [GDPR Checklist](gdpr-checklist.md) — Data protection compliance status and roadmap
 
 ### Use the managed hosting service
 
-The fastest way to get started — no server to manage.
+The fastest way to get started — no server to manage. GDPR compliance is handled for you with a Data Processing Agreement (DPA), EU-hosted data, and managed sub-processor relationships.
 
 1. [Get started with managed hosting](managed-hosting/getting-started.md) — Sign up at unitae.app
 2. [Self-Hosting vs Managed Hosting](managed-hosting/self-hosting-vs-managed.md) — Compare your options

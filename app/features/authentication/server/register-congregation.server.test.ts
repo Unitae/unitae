@@ -7,6 +7,7 @@ vi.mock('~/shared/libs/db.server', () => ({
     userRole: { findUnique: vi.fn() },
     congregationUserRole: { create: vi.fn() },
     eventKind: { create: vi.fn() },
+    consentRecord: { create: vi.fn() },
   },
 }))
 

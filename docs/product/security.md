@@ -36,7 +36,7 @@ Users can request a password reset link via email:
 
 ### Congregation Scoping
 
-All congregation data is strictly isolated. The application uses a Prisma extension that automatically injects `congregationId` into every database query on scoped models. This means:
+All congregation data is strictly isolated. The application uses PostgreSQL Row-Level Security (RLS) to enforce tenant isolation at the database level. This means:
 
 - A user in Congregation A can never see data from Congregation B
 - This isolation is enforced at the database query level, not just the UI level
@@ -57,6 +57,22 @@ Each congregation's files are stored in a separate path, and filenames use UUIDs
 Access to features is controlled through 14 fine-grained roles. Roles are checked on every request — both in the UI (to show/hide elements) and on the server (to enforce access).
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of roles and what they control.
+
+## GDPR & Data Protection
+
+Unitae processes religious affiliation data, classified as special category data under GDPR Article 9. The application includes built-in tools to help comply with European data protection regulations:
+
+- **User data export** — JSON export of all personal data (Articles 15 & 20)
+- **User anonymization** — Replace personal data with non-identifiable values while preserving referential integrity (Article 17)
+- **Consent tracking** — Consent gate on first login, management page for users to withdraw consent
+- **Cookie consent** — Third-party services (Google Maps) only load after explicit consent
+- **Deletion ledger** — Audit trail of all anonymization operations for backup reconciliation
+- **Privacy policy** — Built-in `/privacy` page covering all RGPD requirements
+- **Session invalidation** — Anonymized users are immediately logged out
+
+For the managed hosting service, MindsersIT acts as data processor under a Data Processing Agreement (DPA) with each congregation. Self-hosted instances are under the sole responsibility of the deploying entity.
+
+See [GDPR Checklist](../gdpr-checklist.md) for the full compliance status.
 
 ## Vulnerability Reporting
 

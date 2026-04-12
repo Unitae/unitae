@@ -1,8 +1,9 @@
 import { useEffect } from 'react'
-import { data } from 'react-router'
+import { data, redirect } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { hasDataProcessingConsent } from '~/features/settings/server/consent.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { AppLayout } from '~/shared/ui/AppLayout'
 
@@ -21,6 +22,12 @@ export async function loader({ request }: Route.LoaderArgs) {
     Role.ProgramViewer,
     Role.ActivityViewer,
   ])
+
+  // Verifier le consentement RGPD avant d'acceder a l'application
+  const hasConsent = await hasDataProcessingConsent(currentUser.id)
+  if (!hasConsent) {
+    throw redirect('/consent')
+  }
 
   const messages = { success: session.get('success'), error: session.get('error') }
 

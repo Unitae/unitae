@@ -54,7 +54,7 @@ export async function verifySession(request: Request) {
     },
   })
 
-  if (user == null) {
+  if (user == null || !user.active) {
     throw redirect('/login', {
       headers: {
         'Set-Cookie': await destroySession(session),

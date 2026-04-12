@@ -2,10 +2,10 @@ import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
-import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -278,9 +278,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                         {attribution.territory.type === TerritoryKind.Hotel && 'Hôtels'}
                         {attribution.territory.type === TerritoryKind.Univ && 'Universités'}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {attribution.startDate.toLocaleDateString('fr-FR')}
-                      </TableCell>
+                      <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
                       <TableCell className="text-center">
                         <AttributionStatus attribution={attribution} />
                       </TableCell>
