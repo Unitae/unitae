@@ -68,7 +68,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       logger.info(`Removed template responsible. User ID: ${currentUser.id}. Template: ${templateId}.`)
     }
 
-    return redirect(`/settings/congregation/templates/templates/${templateId}`, {
+    return redirect(`/settings/congregation/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

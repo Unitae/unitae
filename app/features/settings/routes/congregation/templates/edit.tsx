@@ -70,7 +70,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const serviceMessage = await handleServiceRoleIntent(intent, form, db, templateId, congregationId)
     if (serviceMessage) session.flash('success', serviceMessage)
 
-    return redirect(`/settings/congregation/templates/templates/${templateId}`, {
+    return redirect(`/settings/congregation/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })
