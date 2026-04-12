@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 import type { Route } from './+types/edit'
 
@@ -58,7 +59,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     if (intent === 'update-template') {
       const name = String(form.get('name') ?? '')
-      const weekDay = form.get('weekDay') ? Number(form.get('weekDay')) : null
+      const rawWeekDay = form.get('weekDay')
+      const weekDay = rawWeekDay && rawWeekDay !== 'none' ? Number(rawWeekDay) : null
       await updateTemplate(db, templateId, { name, weekDay }, congregationId)
       session.flash('success', 'Modèle mis à jour.')
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
@@ -150,8 +152,22 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
               <Input id="name" name="name" defaultValue={template.name} required />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="weekDay">Jour de la semaine (0=Dim, 1=Lun, ..., 6=Sam)</Label>
-              <Input id="weekDay" name="weekDay" type="number" min="0" max="6" defaultValue={template.weekDay ?? ''} />
+              <Label htmlFor="weekDay">Jour de la semaine</Label>
+              <Select name="weekDay" defaultValue={template.weekDay?.toString() ?? 'none'}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aucun (évènement ponctuel)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Aucun (évènement ponctuel)</SelectItem>
+                  <SelectItem value="0">Dimanche</SelectItem>
+                  <SelectItem value="1">Lundi</SelectItem>
+                  <SelectItem value="2">Mardi</SelectItem>
+                  <SelectItem value="3">Mercredi</SelectItem>
+                  <SelectItem value="4">Jeudi</SelectItem>
+                  <SelectItem value="5">Vendredi</SelectItem>
+                  <SelectItem value="6">Samedi</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <Button type="submit" className="w-fit">
               Enregistrer
