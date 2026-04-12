@@ -19,6 +19,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 
 import type { Route } from './+types/new'
 
+const NO_TEMPLATE = 'none'
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: 'Nouvel évènement - Unitae' }]
 }
@@ -40,11 +42,11 @@ export async function action({ request }: Route.ActionArgs) {
   if (!can(Role.ProgramManager)) throw redirect('/congregation/programs')
 
   const form = await request.formData()
-  const templateId = Number(form.get('templateId'))
   const mode = String(form.get('mode'))
 
   return withScope(congregationId, async db => {
     if (mode === 'recurring') {
+      const templateId = Number(form.get('templateId'))
       const events = await generateEventsFromTemplate(db, templateId, 2, currentUser.id, congregationId)
       logger.info(`Generated ${events.length} events from template ${templateId}. User ID: ${currentUser.id}.`)
 
@@ -57,6 +59,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     if (mode === 'single') {
+      const templateId = Number(form.get('templateId'))
       const date = new Date(String(form.get('date')))
       const event = await createSingleEventFromTemplate(db, templateId, date, currentUser.id, congregationId)
       logger.info(`Created single event from template ${templateId}. User ID: ${currentUser.id}.`)
@@ -68,6 +71,36 @@ export async function action({ request }: Route.ActionArgs) {
       }
     }
 
+    if (mode === 'freeform') {
+      const name = String(form.get('name') ?? '').trim()
+      const date = new Date(String(form.get('date')))
+
+      if (!name) {
+        session.flash('error', "Le nom de l'évènement est requis.")
+        return redirect('/congregation/programs/new', {
+          headers: { 'Set-Cookie': await commitSession(session) },
+        })
+      }
+
+      const startDate = new Date(date)
+      startDate.setHours(19, 0, 0, 0)
+      const endDate = new Date(date)
+      endDate.setHours(21, 0, 0, 0)
+
+      await db.event.create({
+        data: {
+          name,
+          startDate,
+          endDate,
+          createdById: currentUser.id,
+          congregationId,
+        },
+      })
+
+      logger.info(`Created freeform event "${name}". User ID: ${currentUser.id}.`)
+      session.flash('success', 'Évènement créé avec succès.')
+    }
+
     return redirect('/congregation/programs', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
@@ -76,30 +109,38 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function NewEventPage({ loaderData }: Route.ComponentProps) {
   const { templates } = loaderData
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
-  const selectedTemplate = templates.find(t => t.id === Number(selectedTemplateId))
+  const [selectedValue, setSelectedValue] = useState<string>('')
+
+  const isNoTemplate = selectedValue === NO_TEMPLATE
+  const selectedTemplate = !isNoTemplate ? templates.find(t => t.id === Number(selectedValue)) : null
   const isRecurring = selectedTemplate?.isRecurring ?? false
+  const showForm = isNoTemplate || selectedTemplate != null
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Nouvel évènement"
-        subtitle="Créez un ou plusieurs évènements à partir d'un modèle de programme."
+        subtitle="Créez un évènement libre ou générez-en à partir d'un modèle de programme."
       />
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">Choisir un modèle</CardTitle>
+          <CardTitle className="text-base">Configuration</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="templateId">Modèle de programme</Label>
-              <Select name="templateId" value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <Label htmlFor="templateId">Modèle de programme (facultatif)</Label>
+              <Select
+                name={isNoTemplate ? undefined : 'templateId'}
+                value={selectedValue}
+                onValueChange={setSelectedValue}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Sélectionner un modèle" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={NO_TEMPLATE}>Aucun modèle (évènement libre)</SelectItem>
                   {templates.map(template => (
                     <SelectItem key={template.id} value={template.id.toString()}>
                       {template.name}
@@ -109,6 +150,20 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
                 </SelectContent>
               </Select>
             </div>
+
+            {isNoTemplate && (
+              <>
+                <input type="hidden" name="mode" value="freeform" />
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">Nom de l'évènement</Label>
+                  <Input id="name" name="name" placeholder="Ex : Assemblée spéciale" required />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input id="date" name="date" type="date" min={new Date().toISOString().split('T')[0]} required />
+                </div>
+              </>
+            )}
 
             {selectedTemplate && isRecurring && (
               <>
@@ -131,9 +186,11 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
               </>
             )}
 
-            {selectedTemplate && (
+            {showForm && (
               <Button type="submit" className="w-fit">
-                {isRecurring ? 'Générer les évènements' : "Créer l'évènement"}
+                {isNoTemplate && "Créer l'évènement"}
+                {selectedTemplate && isRecurring && 'Générer les évènements'}
+                {selectedTemplate && !isRecurring && "Créer l'évènement"}
               </Button>
             )}
           </Form>

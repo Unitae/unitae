@@ -36,8 +36,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     const upcomingEvents = await db.event.findMany({
       where: {
         congregationId,
-        templateId: { not: null },
         startDate: { gte: now, lte: fourWeeksLater },
+        // biome-ignore lint/style/useNamingConvention: prisma syntax
+        NOT: { kind: { key: 'off' } },
       },
       include: { template: true },
       orderBy: { startDate: 'asc' },
