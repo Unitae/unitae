@@ -19,10 +19,12 @@ export function ResidentialEntranceCard({
   entrance,
   residentialData,
   isDisabled = false,
+  children,
 }: {
   entrance: EntranceWithRelations | undefined
   residentialData: BuildingResidentialData | null
   isDisabled: boolean
+  children?: React.ReactNode
 }) {
   const [access, setAccess] = useState(entrance?.access)
   const disabledStyle = isDisabled ? 'cursor-not-allowed opacity-50' : ''
@@ -125,6 +127,8 @@ export function ResidentialEntranceCard({
             Accessible pour les <span className="font-semibold text-primary">Personnes à Mobilité Réduite</span>
           </span>
         </label>
+
+        {children}
       </CardContent>
     </Card>
   )

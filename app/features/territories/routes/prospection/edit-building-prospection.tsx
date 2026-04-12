@@ -131,19 +131,15 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           entrance={residentialEntrance}
           residentialData={building.residentialData}
           isDisabled={isDisabled}
-        />
-
-        {roles.canManageTerritories && (
-          <Card>
-            <CardContent className="pt-6">
-              <SharedEntranceField
-                building={building}
-                avaibleBuildings={buildings}
-                onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
-              />
-            </CardContent>
-          </Card>
-        )}
+        >
+          {roles.canManageTerritories && (
+            <SharedEntranceField
+              building={building}
+              avaibleBuildings={buildings}
+              onSharedEntranceBuildingsChange={state => setsharedEntranceBuildingsChanged(state)}
+            />
+          )}
+        </ResidentialEntranceCard>
 
         {activeKinds.map(kind => {
           const entrance = building.entrances.find(e => e.kind === kind)
