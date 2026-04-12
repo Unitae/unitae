@@ -1,6 +1,7 @@
 import {
   Building2,
   CalendarCheck,
+  CalendarDays,
   CalendarOff,
   FileText,
   FolderOpen,
@@ -105,6 +106,9 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                     icon={UsersRound}
                     label="Groupes de prédication"
                   />
+                )}
+                {permissions.canViewPrograms && (
+                  <SidebarNavItem to="/congregation/programs" icon={CalendarDays} label="Programmes" end />
                 )}
                 {permissions.canViewPrograms && (
                   <SidebarNavItem to="/congregation/programs/days-off" icon={CalendarOff} label="Absences" />
