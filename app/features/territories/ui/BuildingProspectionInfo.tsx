@@ -2,27 +2,28 @@ import type { Building, BuildingEntrance } from '~/database/generated/client'
 import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
 import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
 
 const accessLabels: Record<number, string> = {
-  [TerritoryAccess.Intercom]: 'Interphone',
-  [TerritoryAccess.Code]: 'Digicode',
-  [TerritoryAccess.Doorbell]: 'Sonnette',
+  [TerritoryAccess.Intercom]: 'interphone',
+  [TerritoryAccess.Code]: 'digicode',
+  [TerritoryAccess.Doorbell]: 'sonnette extérieure',
 }
 
 export default function BuildingProspectionInfo({ building }: { building: BuildingWithEntrances }) {
   const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
-  const otherEntrances = building.entrances.filter(e => e.kind !== 'residential')
+  const commerceEntrances = building.entrances.filter(e => e.kind === 'commerce')
+  const otherEntrances = building.entrances.filter(e => e.kind !== 'residential' && e.kind !== 'commerce')
+  const allNotes = building.entrances.filter(e => e.notes.length > 0)
   const hasProspectionData = building.prospectionDate != null || building.entrances.length > 0
 
   if (!hasProspectionData) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Données de prospection</CardTitle>
+          <CardTitle>Résumé de prospection</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground italic">
@@ -37,113 +38,152 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Données de prospection</CardTitle>
+        <CardTitle>Résumé de prospection</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {residentialEntrance != null && <ResidentialInfo entrance={residentialEntrance} />}
+      <CardContent className="flex flex-col gap-2">
+        {residentialEntrance != null && <ResidentialSummary entrance={residentialEntrance} />}
 
-        {residentialEntrance == null && otherEntrances.length > 0 && (
-          <p className="text-muted-foreground italic">Pas d'entrée résidentielle pour ce batiment.</p>
+        {residentialEntrance == null && (
+          <p>Ce batiment ne contient pas de logements résidentiels.</p>
         )}
 
+        {commerceEntrances.length > 0 && <CommerceSummary entrances={commerceEntrances} />}
+
         {otherEntrances.map(entrance => (
-          <EntranceInfo key={entrance.id} entrance={entrance} />
+          <OtherEntranceSummary key={entrance.id} entrance={entrance} />
         ))}
 
+        {allNotes.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+            {allNotes.map(entrance => (
+              <p key={entrance.id} className="text-destructive text-sm">
+                <span className="font-medium">
+                  {entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind} :
+                </span>{' '}
+                {entrance.notes}
+              </p>
+            ))}
+          </div>
+        )}
+
         {building.prospectionDate != null && (
-          <p className="pt-3">
-            Donnée à jour du :{' '}
-            <span className="font-medium text-primary">
-              {building.prospectionDate.toLocaleDateString('fr-FR', {
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit',
-              })}
-            </span>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Dernière prospection le{' '}
+            {building.prospectionDate.toLocaleDateString('fr-FR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
           </p>
         )}
 
         <p className="text-muted-foreground text-sm italic">
-          Pour modifier ces données, merci d'utiliser le formulaire de modification de prospection grâce au bouton en
-          forme de loupe en haut à droite.
+          Pour modifier ces données, utilisez le bouton en forme de loupe en haut à droite.
         </p>
       </CardContent>
     </Card>
   )
 }
 
-function ResidentialInfo({ entrance }: { entrance: BuildingEntrance }) {
+function describeResidentialCounts(entrance: BuildingEntrance): string[] {
   const homes = entrance.homes ?? 0
   const phones = entrance.phones ?? 0
+  const liberals = entrance.liberals ?? 0
+  const parts: string[] = []
+
+  if (homes > 0) parts.push(`${homes} foyer${homes > 1 ? 's' : ''}`)
+  if (phones > 0) parts.push(`${phones} numéro${phones > 1 ? 's' : ''} de téléphone`)
+  if (liberals > 0) parts.push(`${liberals} professionnel${liberals > 1 ? 's' : ''} libéra${liberals > 1 ? 'ux' : 'l'}`)
+
+  return parts
+}
+
+function describeAccess(entrance: BuildingEntrance): string[] {
+  const parts: string[] = []
+  const label = entrance.access != null ? accessLabels[entrance.access] : null
+
+  if (label != null) parts.push(`accessible par ${label}`)
+  if (entrance.access === TerritoryAccess.Code && entrance.isOpenEarly) parts.push('portes ouvertes le matin')
+  if (entrance.access === TerritoryAccess.Code && entrance.isMailboxOpen) parts.push('boites aux lettres accessibles')
+  if (entrance.isPMR) parts.push('accessible PMR')
+
+  return parts
+}
+
+function ResidentialSummary({ entrance }: { entrance: BuildingEntrance }) {
+  const counts = describeResidentialCounts(entrance)
+  const accessParts = describeAccess(entrance)
+
+  if (counts.length === 0) {
+    return <p>L'entrée résidentielle est présente mais aucun foyer ni téléphone n'a été recensé.</p>
+  }
 
   return (
-    <>
-      {homes < 1 && phones < 1 ? (
-        <p>
-          Impossible de faire du <span className="font-medium text-primary">Porte à Porte</span> dans ce batiment.
-        </p>
-      ) : (
+    <p>
+      Ce batiment contient <span className="font-medium text-primary">{counts.join(', ')}</span>
+      {accessParts.length > 0 && (
         <>
-          <p>
-            Le batiment peut être fait en <span className="font-medium text-primary">Porte à Porte</span>.
-          </p>
-          {homes > 0 && (
-            <p>
-              Nombre de foyers : <span className="font-medium text-primary">{homes}</span>
-            </p>
-          )}
-          {phones > 0 && (
-            <p>
-              Nombre de numéros de téléphone : <span className="font-medium text-primary">{phones}</span>
-            </p>
-          )}
+          {' '}
+          (<span className="text-muted-foreground">{accessParts.join(', ')}</span>)
         </>
       )}
-      {entrance.access != null && (
-        <p>
-          Accès : <span className="font-medium text-primary">{accessLabels[entrance.access] ?? 'Inconnu'}</span>
-          {entrance.access === TerritoryAccess.Code && entrance.isOpenEarly && ' — Ouvert le matin'}
-          {entrance.access === TerritoryAccess.Code && entrance.isMailboxOpen && ' — Boites aux lettres accessibles'}
-        </p>
-      )}
-      {entrance.isPMR && (
-        <p>
-          <span className="font-medium text-primary">Accessible PMR</span>
-        </p>
-      )}
-      {entrance.notes.length > 0 && (
-        <p className="text-destructive italic">{entrance.notes}</p>
-      )}
-    </>
+      .
+    </p>
   )
 }
 
-function EntranceInfo({ entrance }: { entrance: BuildingEntrance }) {
-  const kindLabel = entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind
-
-  if (entrance.kind === 'commerce') {
-    const shopLabel = shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
+function CommerceSummary({ entrances }: { entrances: BuildingEntrance[] }) {
+  if (entrances.length === 1) {
+    const shopLabel = shopKindLabels[entrances[0].shopKind as ShopKind] ?? 'commerce'
     return (
-      <div className="pt-3">
-        <p>
-          Un <span className="font-medium text-primary">commerce</span> est disponible pour la prédication dans ce
-          batiment. <Badge variant="outline">{shopLabel}</Badge>
-        </p>
-        {entrance.notes.length > 0 && (
-          <p className="text-destructive italic">{entrance.notes}</p>
-        )}
-      </div>
+      <p>
+        Un commerce de type <span className="font-medium text-primary">{shopLabel.toLowerCase()}</span> est disponible
+        pour la prédication.
+      </p>
+    )
+  }
+
+  const labels = entrances
+    .map(e => shopKindLabels[e.shopKind as ShopKind]?.toLowerCase() ?? 'autre')
+
+  return (
+    <p>
+      <span className="font-medium text-primary">{entrances.length} commerces</span> sont disponibles pour la
+      prédication : {labels.join(', ')}.
+    </p>
+  )
+}
+
+function OtherEntranceSummary({ entrance }: { entrance: BuildingEntrance }) {
+  const kindLabel = entranceKindLabels[entrance.kind as EntranceKind]?.toLowerCase() ?? entrance.kind
+
+  if (entrance.kind === 'hotel') {
+    return (
+      <p>
+        Un <span className="font-medium text-primary">hôtel</span> est présent dans ce batiment.
+      </p>
+    )
+  }
+
+  if (entrance.kind === 'campus') {
+    return (
+      <p>
+        Une <span className="font-medium text-primary">résidence universitaire</span> est présente dans ce batiment.
+      </p>
+    )
+  }
+
+  if (entrance.kind === 'laundromat') {
+    return (
+      <p>
+        Une <span className="font-medium text-primary">laverie automatique</span> est présente dans ce batiment.
+      </p>
     )
   }
 
   return (
-    <div className="pt-3">
-      <p>
-        Une <span className="font-medium text-primary">{kindLabel}</span> est disponible dans ce batiment.
-      </p>
-      {entrance.notes.length > 0 && (
-        <p className="text-destructive italic">{entrance.notes}</p>
-      )}
-    </div>
+    <p>
+      Une entrée de type <span className="font-medium text-primary">{kindLabel}</span> est présente dans ce batiment.
+    </p>
   )
 }
