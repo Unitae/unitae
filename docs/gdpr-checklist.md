@@ -77,8 +77,8 @@ This document tracks all technical and legal items required for GDPR compliance.
 
 ### Recommended (self-hosted documentation)
 
-- [ ] **Self-hosting GDPR guide** — documentation explaining that self-hosters are sole controllers and must ensure their own compliance
-- [ ] **Built-in GDPR features guide** — how to use export, anonymization, consent tools
+- [x] **Self-hosting GDPR guide** — documented in README, self-hosting vs managed comparison, and security docs that self-hosters are sole controllers
+- [x] **Built-in GDPR features guide** — documented in README (GDPR Compliance section), feature overview (Privacy & GDPR section), and security docs
 
 ---
 
@@ -143,6 +143,7 @@ This document tracks all technical and legal items required for GDPR compliance.
   - RLS policy enabled
   - Retain records minimum 2 years after withdrawal
 
+- [x] **Consent gate on first login** — users without consent are redirected to `/consent` before accessing the app
 - [x] **Consent at registration** — record consent during congregation registration and user setup
 - [x] **Consent management UI** — user settings page at `/me/consents` to view and withdraw consent
 - [ ] **Consent version tracking** — link consent records to specific policy versions
@@ -397,15 +398,16 @@ All sub-processors must be documented and congregations notified before adding n
 
 ### Priority 1 — Must have before SaaS launch
 1. ~~Privacy Policy page (`/privacy`)~~ — done
-2. ~~User data export (JSON)~~ — done
+2. ~~User data export (JSON + UI buttons)~~ — done (self-service on profile + admin on user edit)
 3. ~~User anonymization (admin-only)~~ — done (session revocation, confirmation dialog, deletion ledger)
 4. ~~Deletion ledger~~ — done
-5. ~~Consent tracking (DB model + registration + management UI)~~ — done
+5. ~~Consent tracking (gate + registration + management UI)~~ — done (first-login gate, `/me/consents`)
 6. ~~Cookie consent for Google Maps~~ — done
-7. DPA template
-8. DPIA
-9. RoPA
-10. Sub-processor list
+7. ~~GDPR documentation in README and product docs~~ — done
+8. DPA template
+9. DPIA
+10. RoPA
+11. Sub-processor list
 
 ### Priority 2 — Build after launch
 11. Audit logging
