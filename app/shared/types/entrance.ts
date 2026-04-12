@@ -12,5 +12,5 @@ export type AggregatedEntrance = Entrance & {
   homes: number
   phones: number
   liberals: number
-  importantNotes: string[]
+  entranceNotes: string
 }

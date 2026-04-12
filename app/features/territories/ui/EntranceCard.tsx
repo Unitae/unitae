@@ -128,6 +128,20 @@ export function ResidentialEntranceCard({
           </span>
         </label>
 
+        <div className="flex flex-col gap-1.5">
+          <Label>
+            Informations pour les proclamateurs{' '}
+            <span className="text-muted-foreground text-sm">(Visible sur le territoire)</span>
+          </Label>
+          <textarea
+            className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
+            rows={2}
+            name="residential-notes"
+            defaultValue={entrance?.notes ?? ''}
+            disabled={isDisabled}
+          />
+        </div>
+
         {children}
       </CardContent>
     </Card>
@@ -182,6 +196,19 @@ export function CommerceEntranceCard({
             <option value={ShopKind.GasStation}>Station Services</option>
             <option value={ShopKind.Other}>Autres</option>
           </select>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label>
+            Informations pour les proclamateurs{' '}
+            <span className="text-muted-foreground text-sm">(Visible sur le territoire)</span>
+          </Label>
+          <textarea
+            className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
+            rows={2}
+            name="commerce-notes"
+            defaultValue={entrance?.notes ?? ''}
+            disabled={isDisabled}
+          />
         </div>
       </CardContent>
     </Card>

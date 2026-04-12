@@ -113,7 +113,7 @@ export function aggregateEntrance(entrance: Entrance): AggregatedEntrance {
     homes: entrance.homes ?? 0,
     phones: entrance.phones ?? 0,
     liberals: entrance.liberals ?? 0,
-    importantNotes: entrance.buildings.map(building => building.importantNotes),
+    entranceNotes: entrance.notes,
   }
 }
 

@@ -10,6 +10,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     updatedAt: new Date(),
     kind: 'residential',
     shopKind: '',
+    notes: '',
     access: null,
     // biome-ignore lint/style/useNamingConvention: Prisma property
     isPMR: null,
@@ -22,7 +23,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     homes: overrides.homes ?? 0,
     phones: overrides.phones ?? 0,
     liberals: 0,
-    importantNotes: [],
+    entranceNotes: '',
     buildings: [
       {
         id: 1,

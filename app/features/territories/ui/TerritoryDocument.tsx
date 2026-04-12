@@ -232,11 +232,6 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
   const firstBuilding = entrance.buildings[0]
   const numbers = entrance.buildings.map(building => building.number).join(', ')
   const phones = entrance.phones ?? 0
-  const notes = entrance.buildings.map(building => (
-    <Text key={building.id} style={styles.alert}>
-      {building.importantNotes}
-    </Text>
-  ))
 
   const accessText = formatAccessSequence(entrance)
   const hasCode = (entrance.accesses ?? []).some(a => a.type === TerritoryAccess.Code) || entrance.access === TerritoryAccess.Code
@@ -252,7 +247,7 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
         {hasCode && entrance.isMailboxOpen === true && 'Boite aux lettres accessible. '}
         {canShowPhone && phones > 0 && `${phones} tél.`}
       </Text>
-      {notes.length > 0 && notes}
+      {entrance.notes.length > 0 && <Text style={styles.alert}>{entrance.notes}</Text>}
     </View>
   )
 }
@@ -260,11 +255,6 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
 function CommerceInformations({ entrance }: { entrance: Entrance }) {
   const firstBuilding = entrance.buildings[0]
   const numbers = entrance.buildings.map(building => building.number).join(', ')
-  const notes = entrance.buildings.map(building => (
-    <Text key={building.id} style={styles.alert}>
-      {building.importantNotes}
-    </Text>
-  ))
 
   const shopLabel = shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
 
@@ -274,7 +264,7 @@ function CommerceInformations({ entrance }: { entrance: Entrance }) {
         {numbers} {firstBuilding.street}, {firstBuilding.zip}
       </Text>
       <Text style={styles.secondary}>{shopLabel}. </Text>
-      {notes.length > 0 && notes}
+      {entrance.notes.length > 0 && <Text style={styles.alert}>{entrance.notes}</Text>}
     </View>
   )
 }

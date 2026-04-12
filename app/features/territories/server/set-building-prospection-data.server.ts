@@ -31,6 +31,7 @@ export async function setBuildingProspectionData(
         isPMR: Boolean(formData.get('pmr')),
         isOpenEarly: Boolean(formData.get('doors')),
         isMailboxOpen: Boolean(formData.get('mailboxes')),
+        notes: formData.get('residential-notes')?.toString() ?? '',
       },
     })
 
@@ -77,7 +78,9 @@ export async function setBuildingProspectionData(
   }
 
   // Manage commerce entrances (supports multiple)
-  await syncCommerceEntrances(db, buildingId, congregationId, formData.getAll('shopkinds').map(String).filter(Boolean))
+  const commerceShopKinds = formData.getAll('shopkinds').map(String).filter(Boolean)
+  const commerceNotes = formData.getAll('commerce-notes').map(String)
+  await syncCommerceEntrances(db, buildingId, congregationId, commerceShopKinds, commerceNotes)
 
   // Manage unique typed entrances (hotel, campus, laundromat)
   await syncUniqueEntrance(db, buildingId, congregationId, 'hotel', Boolean(formData.get('hotel')))
@@ -87,7 +90,13 @@ export async function setBuildingProspectionData(
   return building
 }
 
-async function syncCommerceEntrances(db: TransactionClient, buildingId: number, congregationId: number, shopKinds: string[]) {
+async function syncCommerceEntrances(
+  db: TransactionClient,
+  buildingId: number,
+  congregationId: number,
+  shopKinds: string[],
+  notes: string[],
+) {
   const existing = await db.buildingEntrance.findMany({
     where: { kind: 'commerce', buildings: { some: { id: buildingId } } },
     orderBy: { id: 'asc' },
@@ -98,7 +107,7 @@ async function syncCommerceEntrances(db: TransactionClient, buildingId: number, 
     if (i < shopKinds.length) {
       await db.buildingEntrance.update({
         where: { id: existing[i].id },
-        data: { shopKind: shopKinds[i] },
+        data: { shopKind: shopKinds[i], notes: notes[i] ?? '' },
       })
     } else {
       await db.buildingEntrance.delete({ where: { id: existing[i].id } })
@@ -111,6 +120,7 @@ async function syncCommerceEntrances(db: TransactionClient, buildingId: number, 
       data: {
         kind: 'commerce',
         shopKind: shopKinds[i],
+        notes: notes[i] ?? '',
         buildings: { connect: { id: buildingId } },
         congregation: { connect: { id: congregationId } },
       },

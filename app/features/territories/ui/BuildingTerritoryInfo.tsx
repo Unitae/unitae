@@ -8,7 +8,7 @@ export default function BuildingTerritoryInfo({ building }: { building: Building
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Notes</CardTitle>
+        <CardTitle>Notes internes</CardTitle>
       </CardHeader>
       <CardContent>
         <Form method="post" className="flex flex-col gap-4">
@@ -21,21 +21,10 @@ export default function BuildingTerritoryInfo({ building }: { building: Building
               {building.notes}
             </textarea>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <Label>
-              Informations pour les proclamateurs{' '}
-              <span className="text-muted-foreground text-sm">
-                (Sera visible sur le territoire pour le proclamateur)
-              </span>
-            </Label>
-            <textarea
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-              rows={2}
-              name="important-notes"
-            >
-              {building.importantNotes}
-            </textarea>
-          </div>
+          <p className="text-muted-foreground text-sm italic">
+            Les informations visibles par les proclamateurs sont maintenant saisies par entrée dans le formulaire de
+            prospection.
+          </p>
           <Button type="submit" className="self-start">
             Enregistrer les notes
           </Button>
