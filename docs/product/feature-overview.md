@@ -66,9 +66,10 @@ Unitae manages religious affiliation data, which is special category data under 
 - **Consent management** — Users can view and withdraw their consents at any time from their profile
 - **Privacy policy** — Built-in `/privacy` page explaining data collection, purposes, legal basis, retention periods, sub-processors, and data subject rights
 - **Cookie consent** — Google Maps integration only loads after explicit user consent (ePrivacy Directive)
+- **Audit logging** — Structured audit trail for login, data export, anonymization, consent changes, user creation, and password operations
+- **Log PII redaction** — Email addresses and personal data fields are automatically hashed in application logs (SHA-256)
+- **Data retention** — Automated cleanup of expired password reset tokens and old withdrawn consent records via `/cron/retention` endpoint
 - **Deletion ledger** — All anonymization operations are recorded for backup reconciliation
-
-See [GDPR Checklist](../gdpr-checklist.md) for the full compliance status and roadmap.
 
 ## Coming Soon
 
@@ -77,5 +78,4 @@ Unitae is under active development. Planned features and improvements are tracke
 ## Related
 
 - [Security](security.md) — How data isolation and authentication protect your congregation
-- [GDPR Checklist](../gdpr-checklist.md) — Data protection compliance status
 - [Self-host Unitae](../self-hosting/getting-started.md) or [use managed hosting](../managed-hosting/getting-started.md) — Ready to get started?

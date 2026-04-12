@@ -12,8 +12,7 @@ Start here to understand the product, its features, and how it works.
 2. [Feature Overview](product/feature-overview.md) — A glance at all features
 3. Deep dives: [Display Board](product/display-board.md) · [Territories](product/territories.md) · [Publishers](product/publishers.md) · [Events](product/events.md)
 4. [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
-5. [Security](product/security.md) — How your data is protected
-6. [GDPR Checklist](gdpr-checklist.md) — Data protection compliance status and roadmap
+5. [Security](product/security.md) — How your data is protected (includes GDPR & data protection)
 
 ### Use the managed hosting service
 

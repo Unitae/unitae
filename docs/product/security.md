@@ -66,13 +66,14 @@ Unitae processes religious affiliation data, classified as special category data
 - **User anonymization** — Replace personal data with non-identifiable values while preserving referential integrity (Article 17)
 - **Consent tracking** — Consent gate on first login, management page for users to withdraw consent
 - **Cookie consent** — Third-party services (Google Maps) only load after explicit consent
+- **Audit logging** — Structured audit trail for all GDPR-sensitive operations (login, data export, anonymization, consent changes, user creation, password operations)
+- **Log PII redaction** — Email addresses and personal data fields automatically hashed in application logs
+- **Data retention** — Automated cleanup of expired tokens and old consent records
 - **Deletion ledger** — Audit trail of all anonymization operations for backup reconciliation
 - **Privacy policy** — Built-in `/privacy` page covering all RGPD requirements
 - **Session invalidation** — Anonymized users are immediately logged out
 
 For the managed hosting service, MindsersIT acts as data processor under a Data Processing Agreement (DPA) with each congregation. Self-hosted instances are under the sole responsibility of the deploying entity.
-
-See [GDPR Checklist](../gdpr-checklist.md) for the full compliance status.
 
 ## Vulnerability Reporting
 

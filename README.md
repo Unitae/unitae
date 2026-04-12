@@ -32,10 +32,13 @@ Unitae processes religious affiliation data (special category data under GDPR Ar
 - **Consent management** — Consent gate on first login, user-facing consent management page
 - **Privacy policy** — Built-in `/privacy` page covering all RGPD requirements
 - **Cookie consent** — Third-party services (Google Maps) only load after explicit consent
+- **Audit logging** — Structured audit trail for all GDPR-sensitive operations (login, data export, anonymization, consent, password changes)
+- **Log PII redaction** — Personal data automatically hashed in application logs
+- **Data retention** — Automated cleanup of expired tokens and old consent records via cron endpoint
 - **Deletion ledger** — Tracks anonymization operations for backup reconciliation
 - **Tenant isolation** — PostgreSQL Row-Level Security ensures strict data separation between congregations
 
-For the managed hosting service at [unitae.app](https://unitae.app), MindsersIT acts as data processor and provides a Data Processing Agreement (DPA) to each congregation. See [GDPR Checklist](docs/gdpr-checklist.md) for the full compliance status.
+For the managed hosting service at [unitae.app](https://unitae.app), MindsersIT acts as data processor and provides a Data Processing Agreement (DPA) to each congregation.
 
 Self-hosted instances are under the sole responsibility of the deploying entity — MindsersIT has no processor role since no data transits through its systems.
 
@@ -45,7 +48,6 @@ Full documentation is available in the [`docs/`](docs/README.md) folder:
 
 - [What is Unitae?](docs/product/what-is-unitae.md) — Product overview and background
 - [Feature Overview](docs/product/feature-overview.md) — What you can do with Unitae
-- [GDPR Checklist](docs/gdpr-checklist.md) — Data protection compliance status and roadmap
 - [Self-Hosting vs Managed Hosting](docs/managed-hosting/self-hosting-vs-managed.md) — Compare your options
 - [Environment Variables](docs/self-hosting/environment-variables.md) — Full configuration reference
 - [FAQ](docs/resources/faq.md) — Common questions answered
