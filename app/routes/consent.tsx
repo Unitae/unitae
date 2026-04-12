@@ -5,6 +5,7 @@ import {
   hasDataProcessingConsent,
   recordConsentUnscoped,
 } from '~/features/settings/server/consent.server'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 
@@ -38,6 +39,12 @@ export async function action({ request }: Route.ActionArgs) {
 
   const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? undefined
   await recordConsentUnscoped(currentUser.id, currentUser.congregationId, ConsentPurpose.DataProcessing, ip)
+  audit({
+    action: AuditAction.ConsentGranted,
+    congregationId: currentUser.congregationId,
+    actorId: currentUser.id,
+    metadata: { purpose: ConsentPurpose.DataProcessing },
+  })
 
   return redirect('/')
 }

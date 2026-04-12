@@ -1,7 +1,8 @@
 import { Form, Link, redirect } from 'react-router'
+import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
-import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -35,6 +36,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   await withScope(congregationId, async db => {
     await withdrawConsent(db, currentUser.id, purpose as ConsentPurpose)
+  })
+
+  audit({
+    action: AuditAction.ConsentWithdrawn,
+    congregationId,
+    actorId: currentUser.id,
+    metadata: { purpose },
   })
 
   return redirect('/me/consents')
