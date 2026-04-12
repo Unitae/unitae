@@ -266,10 +266,7 @@ function CommerceInformations({ entrance }: { entrance: Entrance }) {
     </Text>
   ))
 
-  // Use entrance-level shopKind if available, fallback to building-level
-  const shopLabel = entrance.shopKind
-    ? shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
-    : entrance.buildings.map(building => shopKindLabels[building.shopKind as ShopKind] ?? 'Autres').join('. ')
+  const shopLabel = shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
 
   return (
     <View key={entrance.id} style={styles.building}>

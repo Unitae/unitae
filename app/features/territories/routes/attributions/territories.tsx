@@ -119,13 +119,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                 </TableCell>
                 <TableCell className="text-center">
                   {territory.entrances.reduce(
-                    (countForTerritory, currentEntrance) =>
-                      countForTerritory +
-                      currentEntrance.buildings.reduce(
-                        (countForEntrance, currentBuilding) =>
-                          countForEntrance + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                        0,
-                      ),
+                    (count, entrance) => count + ((entrance.homes ?? 0) || (entrance.phones ?? 0)),
                     0,
                   )}
                 </TableCell>

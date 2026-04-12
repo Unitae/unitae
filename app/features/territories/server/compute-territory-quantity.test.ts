@@ -36,14 +36,6 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
         inOpenData: false,
         createdAt: new Date(),
         updatedAt: new Date(),
-        homes: overrides.homes ?? null,
-        phones: overrides.phones ?? null,
-        liberals: null,
-        hasShops: null,
-        shopKind: '',
-        hasCampus: null,
-        hasHotel: null,
-        hasLandromat: null,
         prospectionDate: null,
         notes: '',
         importantNotes: '',
@@ -66,7 +58,7 @@ describe('computeTerritoryQuantity', () => {
 
   it('utilise les téléphones en fallback quand les foyers sont absents pour un territoire classique', () => {
     const entrance = makeEntrance({ phones: 8 })
-    entrance.buildings[0].homes = null
+    entrance.homes = 0
     expect(computeTerritoryQuantity(TerritoryKind.Classical, [entrance])).toBe(8)
   })
 

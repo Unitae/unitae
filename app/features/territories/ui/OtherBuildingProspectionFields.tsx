@@ -11,7 +11,8 @@ export default function OtherBuildingProspectionFields({
   building: DetailedBuilding
   isDisabled: boolean
 }) {
-  const [hasShops, setHasShops] = useState(building.hasShops ?? false)
+  const commerceEntrance = building.entrances.find(e => e.kind === 'commerce')
+  const [hasShops, setHasShops] = useState(commerceEntrance != null)
 
   const disabledStyle = isDisabled ? 'cursor-not-allowed opacity-50' : ''
   return (
@@ -37,7 +38,7 @@ export default function OtherBuildingProspectionFields({
           <Label>Catégorie de commerce principale</Label>
           <select
             className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
-            defaultValue={building.shopKind ?? ''}
+            defaultValue={commerceEntrance?.shopKind ?? ''}
             name="shopkinds"
             disabled={isDisabled}
             required
@@ -62,7 +63,7 @@ export default function OtherBuildingProspectionFields({
           className={`rounded border border-input ${disabledStyle}`}
           name="campus"
           type="checkbox"
-          defaultChecked={building.hasCampus ?? false}
+          defaultChecked={building.entrances.some(e => e.kind === 'campus')}
           disabled={isDisabled}
           title={
             isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''
@@ -78,7 +79,7 @@ export default function OtherBuildingProspectionFields({
           className={`rounded border border-input ${disabledStyle}`}
           name="hotel"
           type="checkbox"
-          defaultChecked={building.hasHotel ?? false}
+          defaultChecked={building.entrances.some(e => e.kind === 'hotel')}
           disabled={isDisabled}
           title={
             isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''
@@ -93,7 +94,7 @@ export default function OtherBuildingProspectionFields({
           className={`rounded border border-input ${disabledStyle}`}
           name="landromat"
           type="checkbox"
-          defaultChecked={building.hasLandromat ?? false}
+          defaultChecked={building.entrances.some(e => e.kind === 'laundromat')}
           disabled={isDisabled}
           title={
             isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''

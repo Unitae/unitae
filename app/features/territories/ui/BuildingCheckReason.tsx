@@ -80,7 +80,7 @@ function checkNotInTerritory(building: BuildingWithEntrances) {
 
 function checkMissingAccess(building: BuildingWithEntrances) {
   const entrance = getResidentialEntrance(building)
-  return entrance?.access === null && building.homes != null && building.homes > 0
+  return entrance?.access === null && entrance?.homes != null && entrance.homes > 0
 }
 
 function checkIncoherentAccessWithPhones(building: BuildingWithEntrances) {
@@ -88,23 +88,23 @@ function checkIncoherentAccessWithPhones(building: BuildingWithEntrances) {
   return (
     entrance?.access === TerritoryAccess.Code &&
     entrance.isOpenEarly === false &&
-    building.phones == null
+    entrance.phones == null
   )
 }
 
 function checkIncoherentAccessWithHomes(building: BuildingWithEntrances) {
   const entrance = getResidentialEntrance(building)
-  if (entrance?.access === TerritoryAccess.Doorbell && building.homes == null) {
+  if (entrance?.access === TerritoryAccess.Doorbell && entrance?.homes == null) {
     return true
   }
 
   if (
     entrance?.access === TerritoryAccess.Code &&
     entrance.isOpenEarly === true &&
-    building.homes == null
+    entrance.homes == null
   ) {
     return true
   }
 
-  return entrance?.access === TerritoryAccess.Intercom && building.homes == null
+  return entrance?.access === TerritoryAccess.Intercom && entrance?.homes == null
 }

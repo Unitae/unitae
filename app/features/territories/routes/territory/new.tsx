@@ -106,10 +106,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                       {entrance.buildings[0].zip}
                     </span>
                     <span className="text-muted-foreground text-sm">
-                      {entrance.buildings.reduce((acc, building) => {
-                        return acc + (building.homes ?? building.phones ?? 0)
-                      }, 0)}{' '}
-                      foyers
+                      {(entrance.homes ?? 0) || (entrance.phones ?? 0)} foyers
                     </span>
                   </div>
                   <div className="flex gap-2">

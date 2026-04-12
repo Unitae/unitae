@@ -1,8 +1,15 @@
-import type { Building } from '~/database/generated/client'
+import type { Building, BuildingEntrance } from '~/database/generated/client'
+import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
 import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
+import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
-export default function BuildingProspectionInfo({ buidling }: { buidling: Building }) {
+type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
+
+export default function BuildingProspectionInfo({ building }: { building: BuildingWithEntrances }) {
+  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const otherEntrances = building.entrances.filter(e => e.kind !== 'residential')
+
   return (
     <Card>
       <CardHeader>
@@ -10,39 +17,19 @@ export default function BuildingProspectionInfo({ buidling }: { buidling: Buildi
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <HomeInfos
-          homes={buidling.homes ?? 0}
-          phones={buidling.phones ?? 0}
-          hasOther={
-            Boolean(buidling.hasCampus) ||
-            Boolean(buidling.hasHotel) ||
-            Boolean(buidling.hasLandromat) ||
-            Boolean(buidling.hasShops)
-          }
+          homes={residentialEntrance?.homes ?? 0}
+          phones={residentialEntrance?.phones ?? 0}
+          hasOther={otherEntrances.length > 0}
         />
 
-        <ShopInfos hasShops={Boolean(buidling.hasShops)} shopKind={buidling.shopKind as ShopKind} />
+        {otherEntrances.map(entrance => (
+          <EntranceInfo key={entrance.id} entrance={entrance} />
+        ))}
 
-        {buidling.hasCampus && (
-          <p>
-            Une <span className="font-medium text-primary">résidence universitaire</span> est disponible pour la
-            prédication dans ce batiment
-          </p>
-        )}
-        {buidling.hasHotel && (
-          <p>
-            Un <span className="font-medium text-primary">hotel</span> est disponible pour la prédication dans ce
-            batiment.
-          </p>
-        )}
-        {buidling.hasLandromat && (
-          <p>
-            Une <span className="font-medium text-primary">laverie automatique</span> est disponible dans ce batiment.
-          </p>
-        )}
         <p className="pt-3">
           Donnée à jour du :{' '}
           <span className="font-medium text-primary">
-            {buidling.prospectionDate?.toLocaleDateString('fr-FR', {
+            {building.prospectionDate?.toLocaleDateString('fr-FR', {
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
@@ -84,18 +71,22 @@ function HomeInfos({ homes, phones, hasOther }: { homes: number; phones: number;
   )
 }
 
-function ShopInfos({ hasShops, shopKind }: { hasShops: boolean; shopKind: ShopKind }) {
-  if (hasShops === false) return
+function EntranceInfo({ entrance }: { entrance: BuildingEntrance }) {
+  const kindLabel = entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind
 
-  return (
-    <>
+  if (entrance.kind === 'commerce') {
+    const shopLabel = shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
+    return (
       <p className="pt-3">
         Un <span className="font-medium text-primary">commerce</span> est disponible pour la prédication dans ce
-        batiment.
+        batiment. <Badge variant="outline">{shopLabel}</Badge>
       </p>
-      <p>
-        Type de commerce : <span className="font-medium text-primary">{shopKindLabels[shopKind]}</span>
-      </p>
-    </>
+    )
+  }
+
+  return (
+    <p className="pt-3">
+      Une <span className="font-medium text-primary">{kindLabel}</span> est disponible dans ce batiment.
+    </p>
   )
 }

@@ -257,14 +257,6 @@ model Building {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  homes           Int?
-  phones          Int?
-  liberals        Int?
-  hasShops        Boolean?
-  shopKind        String            @default("")
-  hasCampus       Boolean?
-  hasHotel        Boolean?
-  hasLandromat    Boolean?
   prospectionDate DateTime?
   entrances       BuildingEntrance[]
   residentialData BuildingResidentialData?

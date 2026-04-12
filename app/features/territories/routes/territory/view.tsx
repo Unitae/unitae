@@ -305,7 +305,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
                         <span className="font-medium">
                           {entrance.number} {entrance.street}, {entrance.zip}
                         </span>
-                        <span className="text-muted-foreground text-sm">{entrance.buildings[0]?.shopKind || '-'}</span>
+                        <span className="text-muted-foreground text-sm">{entrance.shopKind || '-'}</span>
                       </div>
                     </div>
                   ))}

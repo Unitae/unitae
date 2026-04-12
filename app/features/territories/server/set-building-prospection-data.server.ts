@@ -1,4 +1,4 @@
-import type { Building, Prisma } from '~/database/generated/client'
+import type { Building } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/libs/db.server'
 
 export async function setBuildingProspectionData(
@@ -11,23 +11,11 @@ export async function setBuildingProspectionData(
   const liberals = formData.get('liberals') ? Number(formData.get('liberals')) : null
   const accessType = formData.get('access') ? Number(formData.get('access')) : null
 
-  // Old fields (backward compat — removed in Phase 4c)
-  const data: Prisma.BuildingUpdateInput = {}
-  data.homes = homes
-  data.phones = phones
-  data.liberals = liberals
-  data.hasShops = Boolean(formData.get('shops'))
-  data.shopKind = formData.get('shopkinds') ? String(formData.get('shopkinds')) : ''
-  data.hasCampus = Boolean(formData.get('campus'))
-  data.hasHotel = Boolean(formData.get('hotel'))
-  data.hasLandromat = Boolean(formData.get('landromat'))
-
   const prospectionDate = formData.get('prospection-date')
-  data.prospectionDate = prospectionDate ? new Date(prospectionDate.toString()) : null
 
   const building = await db.building.update({
     where: { id: buildingId },
-    data,
+    data: { prospectionDate: prospectionDate ? new Date(prospectionDate.toString()) : null },
     include: { entrances: { where: { kind: 'residential' }, take: 1 } },
   })
 

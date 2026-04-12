@@ -88,7 +88,7 @@ function BuildingEntranceListItem({
       <TableCell>
         <Badge variant="outline">{entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind}</Badge>
       </TableCell>
-      {showShops && <TableCell>{entrance.shopKind || firstBuilding.shopKind || '-'}</TableCell>}
+      {showShops && <TableCell>{entrance.shopKind || '-'}</TableCell>}
       <TableCell>{entrance.buildings.map(el => el.notes).join(', ')}</TableCell>
     </TableRow>
   )

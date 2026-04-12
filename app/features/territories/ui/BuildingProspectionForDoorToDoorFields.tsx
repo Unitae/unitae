@@ -12,6 +12,7 @@ export default function BuildingProspectionForDoorToDoorFields({
   isDisabled: boolean
 }) {
   const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const residentialData = building.residentialData
   const [access, setAccess] = useState(residentialEntrance?.access)
   const disabledStyled = isDisabled ? 'cursor-not-allowed opacity-50' : ''
 
@@ -37,7 +38,7 @@ export default function BuildingProspectionForDoorToDoorFields({
         <div className="flex flex-1 flex-col gap-1.5">
           <Label>Nombre de logements</Label>
           <Input
-            defaultValue={building.homes ?? ''}
+            defaultValue={residentialData?.homes ?? ''}
             name="homes"
             type="number"
             disabled={isDisabled}
@@ -79,7 +80,7 @@ export default function BuildingProspectionForDoorToDoorFields({
         <div className="flex flex-1 flex-col gap-1.5">
           <Label>Nombre de téléphones</Label>
           <Input
-            defaultValue={building.phones ?? ''}
+            defaultValue={residentialData?.phones ?? ''}
             name="phones"
             type="number"
             disabled={isDisabled}
@@ -92,7 +93,7 @@ export default function BuildingProspectionForDoorToDoorFields({
         <div className="flex flex-1 flex-col gap-1.5">
           <Label>Nombre de libéraux</Label>
           <Input
-            defaultValue={building.liberals ?? ''}
+            defaultValue={residentialData?.liberals ?? ''}
             name="liberals"
             type="number"
             disabled={isDisabled}

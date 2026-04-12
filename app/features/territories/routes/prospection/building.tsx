@@ -123,7 +123,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {roles.canViewProspection && <BuildingProspectionInfo buidling={building} />}
+      {roles.canViewProspection && <BuildingProspectionInfo building={building} />}
 
       {roles.canManageTerritories && <BuildingTerritoryInfo building={building} />}
     </div>

@@ -94,12 +94,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               Création d'un territoire avec{' '}
               {entrances.reduce((countForTerritory, currentEntrance) => {
                 if (selectedEntranceIds.includes(currentEntrance.id)) {
-                  const countForEntrance = currentEntrance.buildings.reduce(
-                    (count, currentBuilding) => count + (currentBuilding.homes ?? currentBuilding.phones ?? 0),
-                    0,
-                  )
-
-                  return countForTerritory + countForEntrance
+                  return countForTerritory + ((currentEntrance.homes ?? 0) || (currentEntrance.phones ?? 0))
                 }
 
                 return countForTerritory
