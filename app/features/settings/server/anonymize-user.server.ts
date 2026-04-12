@@ -47,6 +47,14 @@ export async function anonymizeUser(db: TransactionClient, userId: number, reque
     },
   })
 
+  // Dissocier l'utilisateur du role d'adjoint de groupe (deputyId est nullable)
+  // Note: responsibleId est requis (non nullable) — le groupe pointe vers l'utilisateur
+  // anonymise ("Utilisateur supprime") ce qui est acceptable car le record est anonyme.
+  await db.publisherGroup.updateMany({
+    where: { deputyId: userId },
+    data: { deputyId: null },
+  })
+
   // Supprimer les roles de l'utilisateur
   await db.congregationUserRole.deleteMany({
     where: { userId },

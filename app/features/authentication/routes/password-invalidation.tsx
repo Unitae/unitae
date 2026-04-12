@@ -4,6 +4,7 @@ import { createPasswordResetToken } from '~/features/authentication/server/inval
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
@@ -19,7 +20,7 @@ export function loader() {
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
+  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
   const canManageUser = can(Role.SettingsUserManager)
 
   if (!canManageUser) throw redirect('/')
@@ -42,6 +43,14 @@ export async function action({ request, params }: Route.ActionArgs) {
       platformName={congregation.displayName}
     />,
   )
+  audit({
+    action: AuditAction.PasswordResetRequested,
+    congregationId: user.congregationId,
+    actorId: currentUser.id,
+    entityType: 'User',
+    entityId: user.id,
+  })
+
   session.flash('success', `Le mot de passe de ${user.email} a été réinitialisé`)
 
   return redirect(`/settings/users/${user.id}/edit`, {

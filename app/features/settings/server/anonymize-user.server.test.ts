@@ -4,6 +4,7 @@ const ANONYMIZED_EMAIL_PATTERN = /^deleted-.*@anonymized\.local$/
 
 const mockDb = {
   user: { findUnique: vi.fn(), update: vi.fn() },
+  publisherGroup: { updateMany: vi.fn() },
   congregationUserRole: { deleteMany: vi.fn() },
   passwordResetToken: { deleteMany: vi.fn() },
   dataDeletionRecord: { create: vi.fn() },
@@ -23,6 +24,7 @@ describe('anonymizeUser', () => {
       congregationId: 10,
     } as never)
     mockDb.user.update.mockResolvedValue({} as never)
+    mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 2 } as never)
     mockDb.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.dataDeletionRecord.create.mockResolvedValue({} as never)
@@ -42,6 +44,7 @@ describe('anonymizeUser', () => {
     expect(updateCall.data.active).toBe(false)
     expect(updateCall.data.anonymizedAt).toBeInstanceOf(Date)
 
+    expect(mockDb.publisherGroup.updateMany).toHaveBeenCalledWith({ where: { deputyId: 1 }, data: { deputyId: null } })
     expect(mockDb.congregationUserRole.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
     expect(mockDb.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
 

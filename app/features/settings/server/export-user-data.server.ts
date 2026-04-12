@@ -36,6 +36,7 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
       isServant: true,
       isAnointed: true,
       active: true,
+      platformAdmin: true,
       anonymizedAt: true,
       publisherGroupId: true,
     },

@@ -3,6 +3,7 @@ import { data, Form, Link, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { getBrandingName, resolveCongregation, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -106,6 +107,14 @@ export async function action({ request }: Route.ActionArgs) {
       platformName={congregation.displayName}
     />,
   )
+
+  audit({
+    action: AuditAction.PasswordResetRequested,
+    congregationId: user.congregationId,
+    actorId: user.id,
+    entityType: 'User',
+    entityId: user.id,
+  })
 
   return redirect('/password/forgot', {
     headers: { 'Set-Cookie': await commitSession(session) },

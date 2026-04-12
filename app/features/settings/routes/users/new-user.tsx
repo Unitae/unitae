@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { audit, AuditAction } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
@@ -60,7 +61,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { congregation, congregationId } = await authenticateAndAuthorize(request)
+  const { currentUser, congregation, congregationId } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -108,6 +109,14 @@ export async function action({ request }: Route.ActionArgs) {
         platformName={congregation.displayName}
       />,
     )
+
+    audit({
+      action: AuditAction.UserCreated,
+      congregationId,
+      actorId: currentUser.id,
+      entityType: 'User',
+      entityId: user.id,
+    })
 
     return redirect('/settings/users')
   })
