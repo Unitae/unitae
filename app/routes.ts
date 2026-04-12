@@ -13,6 +13,7 @@ export default [
   route('congregation-not-found', 'routes/congregation-not-found.tsx'),
   route('privacy', 'routes/privacy.tsx'),
   route('consent', 'routes/consent.tsx'),
+  route('cron/retention', 'routes/cron.retention.tsx'),
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     route('me', 'features/authentication/routes/user/_layout.tsx', [
