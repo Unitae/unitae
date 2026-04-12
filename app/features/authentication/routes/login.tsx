@@ -7,7 +7,7 @@ import {
 } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'

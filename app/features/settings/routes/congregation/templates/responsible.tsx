@@ -25,13 +25,13 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, params }: Route.LoaderArgs) {
   const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
 
-  if (!can(Role.ProgramManager)) throw redirect('/congregation/programs')
+  if (!can(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
 
-  const templateId = requireParamId(params.templateId, '/congregation/programs')
+  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   return withScope(congregationId, async db => {
     const template = await getTemplateById(db, templateId, congregationId)
-    if (!template) throw redirect('/congregation/programs')
+    if (!template) throw redirect('/settings/congregation/templates')
 
     const users = await db.user.findMany({
       where: { congregationId, active: true },
@@ -49,9 +49,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
 
-  if (!can(Role.ProgramManager)) throw redirect('/congregation/programs')
+  if (!can(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
 
-  const templateId = requireParamId(params.templateId, '/congregation/programs')
+  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
   const form = await request.formData()
   const userId = form.get('userId') ? Number(form.get('userId')) : null
 
@@ -68,7 +68,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       logger.info(`Removed template responsible. User ID: ${currentUser.id}. Template: ${templateId}.`)
     }
 
-    return redirect(`/congregation/programs/templates/${templateId}`, {
+    return redirect(`/settings/congregation/templates/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

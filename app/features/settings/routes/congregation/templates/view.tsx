@@ -1,4 +1,4 @@
-import { Calendar, Clock, Pencil, Play, UserCog } from 'lucide-react'
+import { Calendar, Clock, Pencil, UserCog } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getTemplateById, isTemplateResponsible } from '~/features/events/server/programme-templates.server'
@@ -26,11 +26,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!can(Role.ProgramViewer)) throw redirect('/')
 
-  const templateId = requireParamId(params.templateId, '/congregation/programs')
+  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   return withScope(congregationId, async db => {
     const template = await getTemplateById(db, templateId, congregationId)
-    if (!template) throw redirect('/congregation/programs')
+    if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
     const canEdit = can(Role.ProgramManager) || responsible != null
@@ -64,14 +64,6 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
                   Modifier
                 </Link>
               </Button>
-              {template.isRecurring && (
-                <Button size="sm" asChild>
-                  <Link to="./generate">
-                    <Play className="size-4" />
-                    Générer
-                  </Link>
-                </Button>
-              )}
             </div>
           )
         }

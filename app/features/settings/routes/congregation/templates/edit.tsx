@@ -32,14 +32,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     Role.ProgramManager,
   ])
 
-  const templateId = requireParamId(params.templateId, '/congregation/programs')
+  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   return withScope(congregationId, async db => {
     const template = await getTemplateById(db, templateId, congregationId)
-    if (!template) throw redirect('/congregation/programs')
+    if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
+    if (!can(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     return { template }
   })
@@ -48,13 +48,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 export async function action({ request, params }: Route.ActionArgs) {
   const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
 
-  const templateId = requireParamId(params.templateId, '/congregation/programs')
+  const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
   const form = await request.formData()
   const intent = form.get('intent')
 
   return withScope(congregationId, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/congregation/programs')
+    if (!can(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     if (intent === 'update-template') {
       const name = String(form.get('name') ?? '')
@@ -70,7 +70,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const serviceMessage = await handleServiceRoleIntent(intent, form, db, templateId, congregationId)
     if (serviceMessage) session.flash('success', serviceMessage)
 
-    return redirect(`/congregation/programs/templates/${templateId}`, {
+    return redirect(`/settings/congregation/templates/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

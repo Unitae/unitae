@@ -56,7 +56,14 @@ export default [
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
-      route('congregation/event-kinds', 'features/settings/routes/congregation/event-kind-list.tsx'),
+      ...prefix('congregation/templates', [
+        index('features/settings/routes/congregation/template-list.tsx'),
+        ...prefix(':templateId', [
+          index('features/settings/routes/congregation/templates/view.tsx'),
+          route('edit', 'features/settings/routes/congregation/templates/edit.tsx'),
+          route('responsible', 'features/settings/routes/congregation/templates/responsible.tsx'),
+        ]),
+      ]),
     ]),
     route('congregation', 'features/publishers/routes/_layout.tsx', [
       ...prefix('publishers', [
