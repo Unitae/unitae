@@ -1,12 +1,15 @@
+import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+
+const fontsDir = path.join(process.cwd(), 'public', 'fonts')
 
 Font.register({
   family: 'Fira Sans',
   fonts: [
-    { src: '/fonts/FiraSans-Regular.ttf' },
-    { src: '/fonts/FiraSans-Bold.ttf', fontWeight: 'bold' },
-    { src: '/fonts/FiraSans-Italic.ttf', fontStyle: 'italic' },
-    { src: '/fonts/FiraSans-BoldItalic.ttf', fontWeight: 'bold', fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'FiraSans-Regular.ttf') },
+    { src: path.join(fontsDir, 'FiraSans-Bold.ttf'), fontWeight: 'bold' },
+    { src: path.join(fontsDir, 'FiraSans-Italic.ttf'), fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'FiraSans-BoldItalic.ttf'), fontWeight: 'bold', fontStyle: 'italic' },
   ],
 })
 
