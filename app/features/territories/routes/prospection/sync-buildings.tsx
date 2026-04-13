@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
+import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -9,7 +10,7 @@ import { withScope } from '~/shared/libs/db.server'
 import type { Route } from './+types/sync-buildings'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Batiment - Unitae' }]
+  return [{ title: m.prospection_sync_meta_title() }]
 }
 
 export function loader(_args: Route.LoaderArgs) {
@@ -46,7 +47,7 @@ export async function action({ request }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      `Les données sont en cours d'importation. Nous vous enverrons un email une fois l'opération terminée.`,
+      m.prospection_sync_flash_success(),
     )
 
     return redirect('/territories/buildings', {

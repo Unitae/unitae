@@ -16,6 +16,8 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/building'
 
 export const meta: Route.MetaFunction = ({ data }) => {
@@ -74,19 +76,19 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
       <AlertMessages messages={messages} />
       <PageHeader
         title={`${building.number} ${building.street}, ${building.zip}`}
-        subtitle="Fiche d'un batiment. Elle affiche les informations liées à ce batiment et auxquelles vous avez accès."
+        subtitle={m.prospection_building_subtitle()}
         actions={
           roles.canManageProspection && (
             <>
               {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}
               <Button variant="outline" size="icon" asChild>
-                <Link to="../edit-prospection" relative="path" title="Mettre à jour les données sur ce batiment">
+                <Link to="../edit-prospection" relative="path" title={m.prospection_building_edit_prospection_title()}>
                   <Search className="size-4" />
                 </Link>
               </Button>
               {roles.canManageTerritories && (
                 <Button variant="outline" size="icon" asChild>
-                  <Link to="../edit" relative="path" title="Modifier le batiment">
+                  <Link to="../edit" relative="path" title={m.prospection_building_edit_title()}>
                     <Pencil className="size-4" />
                   </Link>
                 </Button>
@@ -99,27 +101,26 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col gap-3">
-            <h2 className="mb-2 font-display text-xl">Identification</h2>
+            <h2 className="mb-2 font-display text-xl">{m.prospection_building_identification()}</h2>
             <p>
-              Adresse :{' '}
+              {m.prospection_building_address()}{' '}
               <span className="font-medium text-primary">
                 {building.number} {building.street}
               </span>
             </p>
             <p>
-              Code postal : <span className="font-medium text-primary">{building.zip}</span>
+              {m.prospection_building_zip()} <span className="font-medium text-primary">{building.zip}</span>
             </p>
             {(building.latitude != null || building.longitude != null) && (
               <p>
-                Coordonnée GPS :{' '}
+                {m.prospection_building_gps()}{' '}
                 <span className="font-medium text-primary">
                   {building.latitude}, {building.longitude}
                 </span>
               </p>
             )}
             <p className="pt-3 text-muted-foreground text-sm italic">
-              Si certaines de ces informations ne sont pas bonnes, merci de contacter le préposer au territoire ou le
-              responsable pour la prédication.
+              {m.prospection_building_info_notice()}
             </p>
           </div>
         </CardContent>
@@ -149,10 +150,10 @@ export async function action({ request, params }: Route.ActionArgs) {
         notes: String(notes),
       })
 
-      session.flash('success', 'Les notes ont été correctement modifiées pour ce batiment.')
+      session.flash('success', m.prospection_building_notes_updated_success())
     } catch (e) {
       logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-      session.flash('error', 'Erreur lors de la modification des notes')
+      session.flash('error', m.prospection_building_notes_updated_error())
     }
 
     const previousPage = request.headers.get('referer')

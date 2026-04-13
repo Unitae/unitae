@@ -3,6 +3,7 @@ import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { dayLabelShort } from '~/features/events/model/day-label'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
@@ -13,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/template-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Modèles de programme - Unitae' }]
+  return [{ title: m.settings_templates_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -37,13 +38,13 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Assemblée / Modèles de programme"
-        subtitle="Gérez les modèles de réunions utilisés pour générer les programmes."
+        title={m.settings_templates_title()}
+        subtitle={m.settings_templates_subtitle()}
         actions={
           <Button asChild>
             <Link to="./new">
               <Plus className="size-4" />
-              Nouveau modèle
+              {m.settings_templates_new_button()}
             </Link>
           </Button>
         }
@@ -53,11 +54,11 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead className="text-center max-sm:hidden">Parties</TableHead>
-              <TableHead className="text-center max-sm:hidden">Services</TableHead>
-              <TableHead className="text-center max-sm:hidden">Jour</TableHead>
-              <TableHead className="text-center max-sm:hidden">Responsable</TableHead>
+              <TableHead>{m.settings_templates_table_name()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_templates_table_parts()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_templates_table_services()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_templates_table_day()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_templates_table_responsible()}</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -75,7 +76,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
                   {template.weekDay != null ? (
                     <Badge variant="outline">{dayLabelShort(template.weekDay)}</Badge>
                   ) : (
-                    <span className="text-muted-foreground text-sm">Ponctuel</span>
+                    <span className="text-muted-foreground text-sm">{m.settings_templates_one_time()}</span>
                   )}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">

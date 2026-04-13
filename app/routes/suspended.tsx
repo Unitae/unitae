@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import * as m from '~/paraglide/messages'
 
 import { getHostSettings } from '~/shared/libs/host-settings.server'
 
@@ -25,20 +26,16 @@ export default function SuspendedPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-4 font-bold text-2xl text-gray-900">Compte suspendu</h1>
-        <p className="mb-6 text-gray-600">
-          {reason
-            ? reason
-            : "L'accès à votre assemblée locale a été temporairement suspendu. Si vous pensez qu'il s'agit d'une erreur, veuillez contacter l'administrateur."}
-        </p>
+        <h1 className="mb-4 font-bold text-2xl text-gray-900">{m.suspended_title()}</h1>
+        <p className="mb-6 text-gray-600">{reason ? reason : m.suspended_message_default()}</p>
         <div className="flex flex-col gap-3">
           {supportUrl && (
             <a href={supportUrl} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-              Contacter le support
+              {m.suspended_contact_support()}
             </a>
           )}
           <Link to="/logout" className="text-gray-500 text-sm hover:text-gray-700">
-            Se déconnecter
+            {m.suspended_logout()}
           </Link>
         </div>
       </div>

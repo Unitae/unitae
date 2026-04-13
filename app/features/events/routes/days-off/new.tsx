@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -13,7 +14,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Ajouter une absence - Unitae' }]
+  return [{ title: m.days_off_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -35,15 +36,15 @@ export default function DaysOffPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Ajouter une absence"
-        subtitle="Ajoutez une absence pour que les frères en charge des programmes puissent en tenir compte."
+        title={m.days_off_new_page_title()}
+        subtitle={m.days_off_new_page_subtitle()}
       />
 
       <Card>
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="start_date">Date de début</Label>
+              <Label htmlFor="start_date">{m.days_off_new_start_date()}</Label>
               <Input
                 id="start_date"
                 type="date"
@@ -55,7 +56,7 @@ export default function DaysOffPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="end_date">Date de fin</Label>
+              <Label htmlFor="end_date">{m.days_off_new_end_date()}</Label>
               <Input
                 id="end_date"
                 type="date"
@@ -65,7 +66,7 @@ export default function DaysOffPage() {
               />
             </div>
             <Button type="submit" className="w-fit">
-              Enregistrer
+              {m.common_save()}
             </Button>
           </Form>
         </CardContent>
@@ -85,7 +86,7 @@ export async function action({ request }: Route.ActionArgs) {
   return withScope(congregationId, async db => {
     const event = await createDayOff(db, currentUser.id, startDate, endDate, congregationId)
     if (event == null) {
-      session.flash('error', `Impossible d'ajouter cette absence. Les dates sont invalides.`)
+      session.flash('error', m.days_off_new_invalid_dates())
       logger.info(`Failed to creating new days off. User ID: ${currentUser.id}.`)
 
       return redirect('/me/days-off', {
@@ -95,7 +96,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', 'Absence ajoutée avec succès.')
+    session.flash('success', m.days_off_new_success())
     logger.info(`Successfuly created new days off. User ID: ${currentUser.id}.`)
 
     return redirect('/me/days-off', {

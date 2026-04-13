@@ -1,5 +1,6 @@
 import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -11,7 +12,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Mes absences - Unitae' }]
+  return [{ title: m.days_off_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -36,11 +37,11 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Mes absences"
-        subtitle="Gérez vos absences. Dès que vous avez prévu de vous absenter, ajoutez une absence pour que les frères en charge des programmes puissent en tenir compte."
+        title={m.days_off_page_title()}
+        subtitle={m.days_off_page_subtitle()}
         actions={
           <Button asChild>
-            <Link to="./new">Nouvelle absence</Link>
+            <Link to="./new">{m.days_off_new_button()}</Link>
           </Button>
         }
       />
@@ -51,10 +52,10 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
             <Card key={event.id}>
               <CardContent className="flex items-center justify-between py-3">
                 <span className="text-sm">
-                  du {new Date(event.startDate).toLocaleDateString()} au {new Date(event.endDate).toLocaleDateString()}
+                  {m.days_off_date_range({ startDate: new Date(event.startDate).toLocaleDateString(), endDate: new Date(event.endDate).toLocaleDateString() })}
                 </span>
                 <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
-                  <Link to={`/me/days-off/${event.id}/delete`} title="Supprimer l'absence">
+                  <Link to={`/me/days-off/${event.id}/delete`} title={m.days_off_delete_title()}>
                     <X className="size-4" />
                   </Link>
                 </Button>
@@ -65,8 +66,8 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
       ) : (
         <EmptyState
           icon={CalendarOff}
-          title="Aucune absence prévue."
-          description="Dès que vous aurez ajouté une absence, elle apparaîtra ici."
+          title={m.days_off_empty_title()}
+          description={m.days_off_empty_description()}
         />
       )}
     </div>

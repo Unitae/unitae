@@ -6,6 +6,7 @@ import { PublisherActivityDownloadLink } from '~/features/publishers/ui/Publishe
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -115,40 +116,31 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={`${publisher.firstname} ${publisher.lastname}`}
-        subtitle="Fiche du proclamateur. Elle affiche les informations liées à ce proclamateur et auxquelles vous avez accès."
+        subtitle={m.publishers_view_subtitle()}
         actions={
           roles.canManagePublisher && (
             <>
               {roles.canManageActivity && (
                 <PublisherActivityDownloadLink publisher={publisher}>
-                  <Button variant="outline" size="icon" title="Télécharger la fiche d'activité (S-21)" type="button">
+                  <Button variant="outline" size="icon" title={m.publishers_view_download_s21_title()} type="button">
                     <Download className="size-4" />
                   </Button>
                 </PublisherActivityDownloadLink>
               )}
-              <Button asChild variant="outline" size="icon" title="Modifier le proclamateur">
+              <Button asChild variant="outline" size="icon" title={m.publishers_view_edit_title()}>
                 <Link to="../edit" relative="path">
                   <Pencil className="size-4" />
                 </Link>
               </Button>
               {publisher.isPublisher ? (
                 <Form method="post" action={`/settings/users/${publisher.id}/unmake-publisher`}>
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    size="icon"
-                    title="Désactiver la fiche proclamateur. L'utilisateur ne sera plus proclamateur dans cette assemblée."
-                  >
+                  <Button type="submit" variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
                     <Archive className="size-4" />
                   </Button>
                 </Form>
               ) : (
                 <Form method="post" action={`/settings/users/${publisher.id}/make-publisher`}>
-                  <Button
-                    type="submit"
-                    size="icon"
-                    title="Activer la fiche proclamateur. L'utilisateur sera proclamateur dans cette assemblée."
-                  >
+                  <Button type="submit" size="icon" title={m.publishers_view_activate_title()}>
                     <IdCard className="size-4" />
                   </Button>
                 </Form>
@@ -160,16 +152,19 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Informations personnelles</CardTitle>
+          <CardTitle>{m.publishers_view_personal_info()}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex flex-1 flex-col gap-3">
               <p className="text-muted-foreground text-sm">
-                Genre : <span className="font-medium text-foreground">{publisher.isMale ? 'Homme' : 'Femme'}</span>
+                {m.publishers_view_gender_label()} :{' '}
+                <span className="font-medium text-foreground">
+                  {publisher.isMale ? m.publishers_view_gender_male() : m.publishers_view_gender_female()}
+                </span>
               </p>
               <p className="text-muted-foreground text-sm">
-                Date de naissance :{' '}
+                {m.publishers_view_birth_date_label()} :{' '}
                 <span className="font-medium text-foreground">
                   {publisher.birthDate?.toLocaleDateString('fr-FR', {
                     year: 'numeric',
@@ -180,7 +175,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
               </p>
               {publisher.baptismDate != null && (
                 <p className="text-muted-foreground text-sm">
-                  Date de baptême :{' '}
+                  {m.publishers_view_baptism_date_label()} :{' '}
                   <span className="font-medium text-foreground">
                     {publisher.baptismDate?.toLocaleDateString('fr-FR', {
                       year: 'numeric',
@@ -194,16 +189,24 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             {publisher.baptismDate != null && (
               <div className="flex flex-1 flex-col gap-3">
                 <p className="text-muted-foreground text-sm">
-                  Oint : <span className="font-medium text-foreground">{publisher.isAnointed ? 'Oui' : 'Non'}</span>
+                  {m.publishers_view_anointed_label()} :{' '}
+                  <span className="font-medium text-foreground">
+                    {publisher.isAnointed ? m.common_yes() : m.common_no()}
+                  </span>
                 </p>
                 {publisher.isMale && (
                   <>
                     <p className="text-muted-foreground text-sm">
-                      Ancien : <span className="font-medium text-foreground">{publisher.isHelder ? 'Oui' : 'Non'}</span>
+                      {m.publishers_view_elder_label()} :{' '}
+                      <span className="font-medium text-foreground">
+                        {publisher.isHelder ? m.common_yes() : m.common_no()}
+                      </span>
                     </p>
                     <p className="text-muted-foreground text-sm">
-                      Assistant :{' '}
-                      <span className="font-medium text-foreground">{publisher.isServant ? 'Oui' : 'Non'}</span>
+                      {m.publishers_view_servant_label()} :{' '}
+                      <span className="font-medium text-foreground">
+                        {publisher.isServant ? m.common_yes() : m.common_no()}
+                      </span>
                     </p>
                   </>
                 )}
@@ -215,34 +218,33 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Informations de contact</CardTitle>
+          <CardTitle>{m.publishers_view_contact_info()}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
-            Adresse postale :{' '}
+            {m.publishers_view_postal_address()} :{' '}
             <span className="font-medium text-foreground">{publisher.address ? publisher.address : '...'}</span>
           </p>
           <p className="text-muted-foreground text-sm">
-            Téléphone : <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
+            {m.publishers_view_phone()} :{' '}
+            <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
           </p>
           {!publisher.email.includes('@placeholder.unitae.app') && (
             <p className="text-muted-foreground text-sm">
-              Adresse email :{' '}
+              {m.publishers_view_email_address()} :{' '}
               <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
                 {publisher.email}
               </Link>
             </p>
           )}
           <Separator className="my-2" />
-          <p className="text-muted-foreground text-xs italic">
-            Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
-          </p>
+          <p className="text-muted-foreground text-xs italic">{m.publishers_view_contact_secretary_notice()}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Attributions en cours</CardTitle>
+          <CardTitle>{m.publishers_view_active_attributions()}</CardTitle>
         </CardHeader>
         <CardContent>
           {attributions.length > 0 ? (
@@ -250,10 +252,10 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nº</TableHead>
-                    <TableHead className="max-sm:hidden">Type</TableHead>
-                    <TableHead className="text-center">Sortie le</TableHead>
-                    <TableHead className="text-center">Statut</TableHead>
+                    <TableHead>{m.publishers_view_territory_number()}</TableHead>
+                    <TableHead className="max-sm:hidden">{m.publishers_view_territory_type()}</TableHead>
+                    <TableHead className="text-center">{m.publishers_view_territory_start_date()}</TableHead>
+                    <TableHead className="text-center">{m.publishers_view_territory_status()}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -272,11 +274,13 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                         )}
                       </TableCell>
                       <TableCell className="max-sm:hidden">
-                        {attribution.territory.type === TerritoryKind.Classical && 'Porte à porte'}
-                        {attribution.territory.type === TerritoryKind.Commerces && 'Commerces'}
-                        {attribution.territory.type === TerritoryKind.Phone && 'Téléphones'}
-                        {attribution.territory.type === TerritoryKind.Hotel && 'Hôtels'}
-                        {attribution.territory.type === TerritoryKind.Univ && 'Universités'}
+                        {attribution.territory.type === TerritoryKind.Classical &&
+                          m.publishers_view_territory_classical()}
+                        {attribution.territory.type === TerritoryKind.Commerces &&
+                          m.publishers_view_territory_commerces()}
+                        {attribution.territory.type === TerritoryKind.Phone && m.publishers_view_territory_phone()}
+                        {attribution.territory.type === TerritoryKind.Hotel && m.publishers_view_territory_hotel()}
+                        {attribution.territory.type === TerritoryKind.Univ && m.publishers_view_territory_univ()}
                       </TableCell>
                       <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
                       <TableCell className="text-center">
@@ -288,7 +292,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
               </Table>
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm italic">Aucune attribution en cours</p>
+            <p className="text-muted-foreground text-sm italic">{m.publishers_view_no_attributions()}</p>
           )}
         </CardContent>
       </Card>

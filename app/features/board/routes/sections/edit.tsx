@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -45,11 +46,11 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Modification d'une section"
-        subtitle="Modifier une section du tableau d'affichage"
+        title={m.board_sections_edit_title()}
+        subtitle={m.board_sections_edit_subtitle()}
         actions={
           <Button variant="destructive" size="icon" asChild>
-            <Link to={`/board/sections/${section.id}/delete`} title="Supprimer complètement la section">
+            <Link to={`/board/sections/${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
               <Trash2 className="size-4" />
             </Link>
           </Button>
@@ -60,17 +61,17 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom</Label>
+              <Label htmlFor="name">{m.board_sections_edit_name_label()}</Label>
               <Input
                 id="name"
                 name="name"
                 type="text"
-                placeholder="Nom de la section"
+                placeholder={m.board_sections_edit_name_placeholder()}
                 defaultValue={section.name ?? ''}
               />
             </div>
             <Button type="submit" className="w-fit">
-              Modifier la section
+              {m.board_sections_edit_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -85,7 +86,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const name = String(form.get('name'))
 
   if (name.length < 1) {
-    session.flash('error', 'Vous devez remplir tous les champs du formulaire. Réessayez.')
+    session.flash('error', m.common_empty_fields_error())
     throw redirect('/board/sections/new')
   }
 
@@ -101,7 +102,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
 
     if (section == null) {
-      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+      session.flash('error', m.common_generic_error())
 
       return redirect('/board', {
         headers: {
@@ -110,7 +111,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', `Section "${section.name}" modifiée avec succès.`)
+    session.flash('success', m.board_sections_edit_success({ name: section.name }))
 
     return redirect(`/board/sections/${section.id}/edit`, {
       headers: {

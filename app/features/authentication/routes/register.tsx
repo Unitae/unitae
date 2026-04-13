@@ -1,16 +1,16 @@
 import { data, Form, Link, redirect } from 'react-router'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import * as m from '~/paraglide/messages'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-
 import type { Route } from './+types/register'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Créer une assemblée locale - Unitae' }]
+  return [{ title: `${m.auth_register_page_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -44,7 +44,7 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
           <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-          <p className="text-muted-foreground text-sm">Créer un espace pour votre assemblée locale</p>
+          <p className="text-muted-foreground text-sm">{m.auth_register_subtitle()}</p>
         </CardHeader>
         <CardContent>
           {error && (
@@ -59,41 +59,41 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="congregation-name">Nom de l'assemblée locale</Label>
+              <Label htmlFor="congregation-name">{m.auth_register_congregation_name_label()}</Label>
               <Input
                 id="congregation-name"
                 name="congregation-name"
                 type="text"
-                placeholder="Ma Congrégation"
+                placeholder={m.auth_register_congregation_name_placeholder()}
                 required
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email de l'administrateur</Label>
+              <Label htmlFor="email">{m.auth_register_admin_email_label()}</Label>
               <Input id="email" name="email" type="email" autoComplete="email" required />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password">{m.auth_register_password_label()}</Label>
               <Input id="password" name="password" type="password" autoComplete="new-password" required />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="repeat-password">Confirmer le mot de passe</Label>
+              <Label htmlFor="repeat-password">{m.auth_register_confirm_password_label()}</Label>
               <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" required />
             </div>
 
             <Button type="submit" className="mt-4 w-full">
-              Créer l'assemblée locale
+              {m.auth_register_submit()}
             </Button>
           </Form>
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-muted-foreground text-sm">
-            Déjà un compte ?{' '}
+            {m.auth_register_existing_account()}{' '}
             <Link to="/login" className="text-primary hover:underline">
-              Se connecter
+              {m.auth_register_login_link()}
             </Link>
           </p>
         </CardFooter>
@@ -112,35 +112,35 @@ export async function action({ request }: Route.ActionArgs) {
   const repeatPassword = String(form.get('repeat-password'))
 
   if (congregationName.length < 2) {
-    session.flash('error', "Le nom de l'assemblée locale doit faire au moins 2 caractères.")
+    session.flash('error', m.auth_register_congregation_name_min_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
   if (!email.includes('@') || email.length < 5) {
-    session.flash('error', 'Utilisez une adresse email valide.')
+    session.flash('error', m.auth_register_email_invalid_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
   if (password.length < 8) {
-    session.flash('error', 'Le mot de passe doit faire au moins 8 caractères.')
+    session.flash('error', m.auth_register_password_min_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
   if (password !== repeatPassword) {
-    session.flash('error', 'Les mots de passe ne correspondent pas.')
+    session.flash('error', m.auth_register_password_mismatch_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
   const slug = slugify(congregationName)
   if (slug.length < 2) {
-    session.flash('error', "Le nom de l'assemblée locale génère un identifiant invalide.")
+    session.flash('error', m.auth_register_slug_invalid_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
   const result = await registerCongregation(congregationName, slug, email, password)
 
   if ('error' in result) {
-    session.flash('error', result.error ?? 'Une erreur est survenue.')
+    session.flash('error', result.error ?? m.auth_register_generic_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 

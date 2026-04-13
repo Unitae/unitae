@@ -1,4 +1,5 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
+import * as m from '~/paraglide/messages'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { Badge } from '~/shared/ui/badge'
 
@@ -18,7 +19,7 @@ export function BuildingCheckReason({
   if (checkIncoherentAccessWithHomes(building)) {
     return (
       <Badge variant="secondary" className="max-w-fit text-xs">
-        Possible d'entrer mais nombre de logements indisponible
+        {m.prospection_check_reason_access_homes()}
       </Badge>
     )
   }
@@ -26,7 +27,7 @@ export function BuildingCheckReason({
   if (checkIncoherentAccessWithPhones(building)) {
     return (
       <Badge variant="secondary" className="max-w-fit text-xs">
-        Impossible d'entrer mais nombre de téléphones indisponible
+        {m.prospection_check_reason_access_phones()}
       </Badge>
     )
   }
@@ -34,7 +35,7 @@ export function BuildingCheckReason({
   if (checkMissingAccess(building)) {
     return (
       <Badge variant="secondary" className="max-w-fit text-xs">
-        Nombre de logement indiqué mais pas le mode d'accés
+        {m.prospection_check_reason_missing_access()}
       </Badge>
     )
   }
@@ -42,7 +43,7 @@ export function BuildingCheckReason({
   if (checkOldData(building, options)) {
     return (
       <Badge variant="secondary" className="max-w-fit text-xs">
-        Données de prospection trop vielles
+        {m.prospection_check_reason_old_data()}
       </Badge>
     )
   }
@@ -50,7 +51,7 @@ export function BuildingCheckReason({
   if (checkOldData(building, options) && building.active === false) {
     return (
       <Badge variant="secondary" className="max-w-fit text-xs">
-        Le batiment ne devrait peut-être plus être inactif
+        {m.prospection_check_reason_should_reactivate()}
       </Badge>
     )
   }
@@ -58,14 +59,14 @@ export function BuildingCheckReason({
   if (checkNotInTerritory(building)) {
     return (
       <Badge variant="secondary" className="max-w-fit text-xs">
-        Ce batiment n'est pas dans le territoire mais actif
+        {m.prospection_check_reason_not_in_territory()}
       </Badge>
     )
   }
 
   return (
     <Badge variant="outline" className="max-w-fit text-xs">
-      Rien à vérifier
+      {m.prospection_check_reason_nothing()}
     </Badge>
   )
 }

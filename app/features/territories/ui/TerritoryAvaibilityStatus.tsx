@@ -1,4 +1,5 @@
 import type { Attribution } from '~/database/generated/client'
+import * as m from '~/paraglide/messages'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { Badge } from '~/shared/ui/badge'
 
@@ -8,14 +9,14 @@ export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attri
   if (!isAvailable) {
     return (
       <Badge variant="outline" className="border-muted-foreground text-muted-foreground">
-        en repos
+        {m.attributions_availability_resting()}
       </Badge>
     )
   }
 
   return (
     <Badge variant="outline" className="border-blue-500 text-blue-500">
-      disponible
+      {m.attributions_availability_available()}
     </Badge>
   )
 }

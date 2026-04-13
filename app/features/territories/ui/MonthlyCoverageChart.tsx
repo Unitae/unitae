@@ -1,4 +1,5 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import * as m from '~/paraglide/messages'
 import type { MonthlyCoverage } from '~/features/territories/server/compute-monthly-coverage-evolution.server'
 
 const MONTH_LABELS: Record<string, string> = {
@@ -39,12 +40,12 @@ export default function MonthlyCoverageChart({ data }: { data: MonthlyCoverage[]
             borderRadius: '0.5rem',
           }}
           labelStyle={{ color: 'var(--color-card-foreground)' }}
-          formatter={value => [`${Number(value).toFixed(1)} %`, 'Couverture']}
+          formatter={value => [`${Number(value).toFixed(1)} %`, m.chart_coverage_label()]}
         />
         <Line
           type="monotone"
           dataKey="coverage"
-          name="Couverture"
+          name={m.chart_coverage_label()}
           stroke="var(--color-chart-1)"
           strokeWidth={2}
           dot={{ fill: 'var(--color-chart-1)', r: 4 }}

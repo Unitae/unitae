@@ -1,6 +1,7 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Building } from '~/database/generated/client'
+import * as m from '~/paraglide/messages'
 
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
 import { Badge } from '~/shared/ui/badge'
@@ -37,12 +38,12 @@ export default function SharedEntranceField({
             onChange={e => setHasSharedEntrance(e.target.checked)}
             disabled={previousBuildings.length > 1}
           />
-          <span>Ce batiment partage son accès avec d'autres batiments</span>
+          <span>{m.prospection_shared_entrance_checkbox()}</span>
         </label>
       </div>
       {hasSharedEntrance && (
         <div className="flex flex-col gap-2">
-          <Label>Batiments liés au même accès :</Label>
+          <Label>{m.prospection_shared_entrance_label()}</Label>
           <input
             type="hidden"
             name="shared-entrance-buildings"
@@ -61,7 +62,7 @@ export default function SharedEntranceField({
             ))}
             {sharedEntranceBuildings.length === 0 && (
               <span className="rounded-md border border-muted-foreground border-dashed px-3 py-1 text-muted-foreground text-sm italic">
-                Aucun batiment
+                {m.prospection_shared_entrance_empty()}
               </span>
             )}
             <select
@@ -74,7 +75,7 @@ export default function SharedEntranceField({
                 setSharedEntranceBuildings([...sharedEntranceBuildings, selectedBuilding])
               }}
             >
-              <option>Séléctionner un autre batiment</option>
+              <option>{m.prospection_shared_entrance_select()}</option>
               {avaibleBuildings
                 .filter(streetBuilding => !sharedEntranceBuildings.map(el => el.id).includes(streetBuilding.id))
                 .map(building => (

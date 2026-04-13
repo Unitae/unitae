@@ -2,6 +2,7 @@ import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
@@ -17,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/need-check-building-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Batiments à prospecter - Unitae' }]
+  return [{ title: m.prospection_need_check_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -116,10 +117,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   if (buildings.length < 1) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-        <p>Il n'y a aucun batiment à vérifier pour le moment !</p>
+        <p>{m.prospection_empty_need_check()}</p>
         <p>
-          Les batiments sont soit tous à jour, soit certains sont neufs dans notre application. Vous pouvez les
-          retrouver dans la liste des nouveaux batiments.
+          {m.prospection_empty_need_check_hint()}
         </p>
       </div>
     )
@@ -131,13 +131,13 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code Postal</TableHead>
-              <TableHead>Rue</TableHead>
-              <TableHead className="text-center">Nº</TableHead>
-              <TableHead>Raisons</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
+              <TableHead>{m.prospection_table_zip()}</TableHead>
+              <TableHead>{m.prospection_table_street()}</TableHead>
+              <TableHead className="text-center">{m.prospection_table_number()}</TableHead>
+              <TableHead>{m.prospection_table_reasons()}</TableHead>
+              <TableHead className="text-center">{m.prospection_table_status()}</TableHead>
               <TableHead className="w-0">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{m.common_actions()}</span>
               </TableHead>
             </TableRow>
           </TableHeader>

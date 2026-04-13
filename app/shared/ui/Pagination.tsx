@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useSearchParams } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
@@ -43,13 +44,13 @@ export default function Pagination({
                 {total > 1000 && <SelectItem value="2000">2000</SelectItem>}
               </SelectContent>
             </Select>
-            <span>sur {total.toLocaleString()} résultats</span>
+            <span>{m.pagination_results_total({ total: total.toLocaleString() })}</span>
           </>
         )}
       </div>
       <div className="flex items-center gap-2">
         <span className="text-muted-foreground text-sm">
-          Page {page} sur {pages}
+          {m.pagination_page_info({ page: String(page), pages: String(pages) })}
         </span>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon-sm" onClick={() => handlePageChange(page - 1)} disabled={page <= 1}>

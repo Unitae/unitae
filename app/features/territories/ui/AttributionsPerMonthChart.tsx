@@ -1,4 +1,5 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import * as m from '~/paraglide/messages'
 import type { MonthlyCount } from '~/features/territories/server/compute-attributions-per-month.server'
 
 const MONTH_LABELS: Record<string, string> = {
@@ -40,7 +41,7 @@ export default function AttributionsPerMonthChart({ data }: { data: MonthlyCount
           }}
           labelStyle={{ color: 'var(--color-card-foreground)' }}
         />
-        <Bar dataKey="count" name="Attributions" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="count" name={m.chart_attributions_label()} fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

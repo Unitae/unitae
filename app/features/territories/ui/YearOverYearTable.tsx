@@ -1,4 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
+import * as m from '~/paraglide/messages'
 
 interface YearMetrics {
   coverage: number
@@ -32,28 +33,28 @@ function formatDelta(delta: number, unit: string): string {
 export default function YearOverYearTable({ current, previous, currentLabel, previousLabel }: YearOverYearTableProps) {
   const rows: MetricRow[] = [
     {
-      label: 'Couverture du territoire',
+      label: m.stats_yoy_coverage(),
       currentValue: `${current.coverage.toFixed(1)} %`,
       previousValue: `${previous.coverage.toFixed(1)} %`,
       delta: current.coverage - previous.coverage,
       unit: ' %',
     },
     {
-      label: 'Couverture complète',
+      label: m.stats_yoy_total_coverage(),
       currentValue: `${current.totalCoverage.toFixed(1)} %`,
       previousValue: `${previous.totalCoverage.toFixed(1)} %`,
       delta: current.totalCoverage - previous.totalCoverage,
       unit: ' %',
     },
     {
-      label: 'Durée moy. des attributions',
+      label: m.stats_yoy_avg_duration(),
       currentValue: `${current.averageDurationDays} j`,
       previousValue: `${previous.averageDurationDays} j`,
       delta: current.averageDurationDays - previous.averageDurationDays,
       unit: ' j',
     },
     {
-      label: 'Taux de retard',
+      label: m.stats_yoy_overdue_rate(),
       currentValue: `${current.overdueRate.toFixed(1)} %`,
       previousValue: `${previous.overdueRate.toFixed(1)} %`,
       delta: current.overdueRate - previous.overdueRate,
@@ -61,7 +62,7 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
       invertedBetter: true,
     },
     {
-      label: "Nombre d'attributions",
+      label: m.stats_yoy_attribution_count(),
       currentValue: String(current.attributionCount),
       previousValue: String(previous.attributionCount),
       delta: current.attributionCount - previous.attributionCount,
@@ -74,10 +75,10 @@ export default function YearOverYearTable({ current, previous, currentLabel, pre
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b text-left text-muted-foreground">
-            <th className="pb-3 font-medium">Indicateur</th>
+            <th className="pb-3 font-medium">{m.stats_yoy_indicator()}</th>
             <th className="pb-3 text-right font-medium">{currentLabel}</th>
             <th className="pb-3 text-right font-medium">{previousLabel}</th>
-            <th className="pb-3 text-right font-medium">Évolution</th>
+            <th className="pb-3 text-right font-medium">{m.stats_yoy_evolution()}</th>
           </tr>
         </thead>
         <tbody>

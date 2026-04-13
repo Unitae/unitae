@@ -3,7 +3,8 @@ import { data, Form, Link, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import * as m from '~/paraglide/messages'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { getBrandingName, resolveCongregation, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -11,11 +12,10 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-
 import type { Route } from './+types/password-forgot'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Mot de passe oublié - Unitae' }]
+  return [{ title: `${m.auth_password_forgot_page_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -43,7 +43,7 @@ export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
           <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-          <p className="text-muted-foreground text-sm">Indiquez votre adresse email pour retrouver votre compte</p>
+          <p className="text-muted-foreground text-sm">{m.auth_password_forgot_subtitle()}</p>
         </CardHeader>
         <CardContent>
           {error && (
@@ -58,18 +58,18 @@ export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.auth_password_forgot_email_label()}</Label>
               <Input id="email" name="email" type="email" autoComplete="username" autoFocus={true} required />
             </div>
 
             <Button type="submit" className="mt-4 w-full">
-              Envoyer
+              {m.auth_password_forgot_submit()}
             </Button>
           </Form>
         </CardContent>
         <CardFooter className="justify-center">
           <Link to="/login" className="text-primary text-sm hover:underline">
-            Retour à la connexion
+            {m.auth_password_forgot_back_to_login()}
           </Link>
         </CardFooter>
       </Card>
@@ -82,10 +82,7 @@ export async function action({ request }: Route.ActionArgs) {
   const username = form.get('email')
 
   const session = await getSession(request.headers.get('Cookie'))
-  session.flash(
-    'success',
-    'Si votre adresse correspond à un compte utilisateur, vous recevrez un email contenant les instructions pour modifier votre mot de passe.',
-  )
+  session.flash('success', m.auth_password_forgot_success_message())
 
   const user = await db.user.findFirst({ where: { email: String(username) } })
 

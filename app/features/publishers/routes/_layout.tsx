@@ -1,12 +1,13 @@
 import { data, Outlet, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Réglages - Unitae' }]
+  return [{ title: m.publishers_layout_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

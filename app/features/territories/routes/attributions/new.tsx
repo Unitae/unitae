@@ -13,10 +13,12 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Attribution d'un territoire - Unitae` }]
+  return [{ title: m.attributions_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -69,23 +71,23 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Attribuer un territoire" subtitle="Attribuer manuellement un territoire" />
+      <PageHeader title={m.attributions_new_title()} subtitle={m.attributions_new_subtitle()} />
       <Card>
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Territoire</Label>
+              <Label>{m.attributions_new_territory_label()}</Label>
               <input type="hidden" name="territory" value={territory.id} />
               <TerritoryCardLink territory={territory} entrances={territoryEntrances} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Proclamateur</Label>
+              <Label>{m.attributions_new_publisher_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 name="publisher"
                 required
               >
-                <option disabled>Selectionnez un proclamateur</option>
+                <option disabled>{m.attributions_new_publisher_placeholder()}</option>
                 {users.map(user => (
                   <option key={user.id} value={user.id}>
                     {user.lastname?.toLocaleUpperCase()} {user.firstname}
@@ -94,22 +96,23 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Type de sortie</Label>
+              <Label>{m.attributions_new_type_label()}</Label>
               <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" name="type" required>
                 <option value={TerritoryAttributionKind.Default}>
-                  {phoneTypeActive ? 'Classique' : 'Porte à Porte'}
+                  {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                 </option>
-                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>Téléphone</option>}
-                <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
+                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>}
+                <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Date de sortie</Label>
+              <Label>{m.attributions_new_start_date_label()}</Label>
               <Input name="start-date" type="date" defaultValue={new Date().toLocaleDateString('en-CA')} required />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>
-                Notes <span className="text-muted-foreground text-xs">(Ne sera pas visible du proclamateur)</span>
+                {m.attributions_new_notes_label()}{' '}
+                <span className="text-muted-foreground text-xs">{m.attributions_new_notes_visibility()}</span>
               </Label>
               <textarea
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -119,7 +122,7 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
             </div>
 
             <Button type="submit" className="mt-2">
-              Enregistrer l'attribution
+              {m.attributions_new_submit()}
             </Button>
           </Form>
         </CardContent>

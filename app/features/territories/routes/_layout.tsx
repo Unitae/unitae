@@ -1,11 +1,12 @@
 import { Outlet, redirect } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Territoires - Unitae' }]
+  return [{ title: m.territories_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {

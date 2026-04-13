@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { deleteFile } from '~/features/board/server/document'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -42,11 +43,11 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
     <Card className="mx-auto max-w-lg">
       <CardContent className="flex flex-col items-center justify-center gap-6 pt-6">
         <p className="text-center text-muted-foreground">
-          Êtes-vous sûr de vouloir supprimer le document "{document.title}" ? Cette action est irréversible.
+          {m.board_documents_delete_confirmation({ name: document.title })}
         </p>
         <Form method="post">
-          <Button type="submit" variant="destructive" title="Supprimer le document définitivement">
-            Supprimer le document
+          <Button type="submit" variant="destructive" title={m.board_documents_delete_tooltip()}>
+            {m.board_documents_delete_button()}
           </Button>
         </Form>
       </CardContent>
@@ -76,7 +77,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       logger.error('Document removal failed. Unexpected error during deletion of the file on the disk', { error })
     }
 
-    session.flash('success', `Le document "${document.title}" a été correctement supprimé`)
+    session.flash('success', m.board_documents_delete_success({ name: document.title }))
     logger.info(`Document removed. User ID: ${currentUser.id}. Document ID: ${document.id}.`, {
       currentUser,
       document,

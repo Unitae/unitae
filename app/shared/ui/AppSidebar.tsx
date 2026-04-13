@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { Form, NavLink } from 'react-router'
 
+import * as m from '~/paraglide/messages'
 import {
   Sidebar,
   SidebarContent,
@@ -74,7 +75,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarNavItem to="/board" icon={LayoutGrid} label="Tableau d'affichage" />
+                <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -82,11 +83,11 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
 
         {showDocuments && (
           <SidebarGroup>
-            <SidebarGroupLabel>Documents</SidebarGroupLabel>
+            <SidebarGroupLabel>{m.sidebar_documents()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarNavItem to="/board/sections" icon={FolderOpen} label="Sections" />
-                <SidebarNavItem to="/board/documents" icon={FileText} label="Documents" />
+                <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
+                <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -94,24 +95,28 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
 
         {showAssemblee && (
           <SidebarGroup>
-            <SidebarGroupLabel>Assemblée</SidebarGroupLabel>
+            <SidebarGroupLabel>{m.sidebar_assembly()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {permissions.canViewPublishers && (
-                  <SidebarNavItem to="/congregation/publishers" icon={Users} label="Proclamateurs" />
+                  <SidebarNavItem to="/congregation/publishers" icon={Users} label={m.sidebar_publishers()} />
                 )}
                 {permissions.canViewPublishers && (
                   <SidebarNavItem
                     to="/congregation/publisher-groups"
                     icon={UsersRound}
-                    label="Groupes de prédication"
+                    label={m.sidebar_publisher_groups()}
                   />
                 )}
                 {permissions.canViewPrograms && (
-                  <SidebarNavItem to="/congregation/programs" icon={CalendarDays} label="Programmes" end />
+                  <SidebarNavItem to="/congregation/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                 )}
                 {permissions.canViewPrograms && (
-                  <SidebarNavItem to="/congregation/programs/days-off" icon={CalendarOff} label="Absences" />
+                  <SidebarNavItem
+                    to="/congregation/programs/days-off"
+                    icon={CalendarOff}
+                    label={m.sidebar_absences()}
+                  />
                 )}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -120,20 +125,24 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
 
         {showTerritories && (
           <SidebarGroup>
-            <SidebarGroupLabel>Territoires</SidebarGroupLabel>
+            <SidebarGroupLabel>{m.sidebar_territories()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {permissions.canViewTerritories && (
-                  <SidebarNavItem to="/territories/attributions" icon={CalendarCheck} label="Attributions" />
+                  <SidebarNavItem
+                    to="/territories/attributions"
+                    icon={CalendarCheck}
+                    label={m.sidebar_attributions()}
+                  />
                 )}
                 {permissions.canViewTerritories && (
-                  <SidebarNavItem to="/territories" icon={MapIcon} label="Territoires" end />
+                  <SidebarNavItem to="/territories" icon={MapIcon} label={m.sidebar_territories()} end />
                 )}
                 {permissions.canViewProspection && (
-                  <SidebarNavItem to="/territories/buildings" icon={Building2} label="Prospection" />
+                  <SidebarNavItem to="/territories/buildings" icon={Building2} label={m.sidebar_prospection()} />
                 )}
                 {permissions.canManageTerritories && (
-                  <SidebarNavItem to="/territories/stats" icon={PieChart} label="Statistiques" />
+                  <SidebarNavItem to="/territories/stats" icon={PieChart} label={m.sidebar_statistics()} />
                 )}
               </SidebarMenu>
             </SidebarGroupContent>
@@ -142,16 +151,24 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
 
         {showReglages && (
           <SidebarGroup>
-            <SidebarGroupLabel>Réglages</SidebarGroupLabel>
+            <SidebarGroupLabel>{m.sidebar_settings()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {permissions.canManageUsers && (
-                  <SidebarNavItem to="/settings/users" icon={Users} label="Utilisateurs" />
+                  <SidebarNavItem to="/settings/users" icon={Users} label={m.sidebar_users()} />
                 )}
                 {permissions.canManageSettings && (
                   <>
-                    <SidebarNavItem to="/settings/territories" icon={MapIcon} label="Réglages territoires" />
-                    <SidebarNavItem to="/settings/congregation" icon={Building2} label="Réglages assemblée" />
+                    <SidebarNavItem
+                      to="/settings/territories"
+                      icon={MapIcon}
+                      label={m.sidebar_settings_territories()}
+                    />
+                    <SidebarNavItem
+                      to="/settings/congregation"
+                      icon={Building2}
+                      label={m.sidebar_settings_assembly()}
+                    />
                   </>
                 )}
               </SidebarMenu>
@@ -161,10 +178,10 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
 
         {permissions.isPlatformAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Plateforme</SidebarGroupLabel>
+            <SidebarGroupLabel>{m.sidebar_platform()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarNavItem to="/platform-admin" icon={UserRoundCog} label="Administration" />
+                <SidebarNavItem to="/platform-admin" icon={UserRoundCog} label={m.sidebar_administration()} />
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -173,14 +190,14 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
 
       <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
-          <SidebarNavItem to="/me/profile" icon={User} label="Mon profil" />
-          <SidebarNavItem to="/me/days-off" icon={CalendarOff} label="Mes absences" />
+          <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
+          <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
           <SidebarMenuItem>
             <div className="flex items-center justify-between">
               <Form action="/logout" method="post">
                 <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
                   <LogOut className="size-4" />
-                  <span>Déconnexion</span>
+                  <span>{m.sidebar_logout()}</span>
                 </SidebarMenuButton>
               </Form>
               <ThemeToggle />

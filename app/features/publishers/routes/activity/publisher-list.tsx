@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -18,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Activités - Unitae' }]
+  return [{ title: m.activity_list_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -101,16 +102,9 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   if (publishers.length < 1) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader
-          title="Activité des proclamateurs"
-          subtitle="Visualisation des fiches de proclamateurs et de l'activité associée"
-        />
+        <PageHeader title={m.activity_list_title()} subtitle={m.activity_list_subtitle()} />
 
-        <EmptyState
-          icon={Users}
-          title="Il n'y a aucun proclamateur pour le moment !"
-          description="Il est donc possible d'afficher l'activité des proclamateurs. Pour ajouter des proclamateurs créez des fiches de proclamateur à partir des utilisateurs."
-        />
+        <EmptyState icon={Users} title={m.activity_empty_title()} description={m.activity_empty_description()} />
       </div>
     )
   }
@@ -118,13 +112,18 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Activité des proclamateurs"
-        subtitle="Visualisation des fiches de proclamateurs et de l'activité associée"
+        title={m.activity_list_title()}
+        subtitle={m.activity_list_subtitle()}
         actions={
           <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" title="Télécharger les exports" className="max-sm:hidden">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  title={m.activity_export_button_title()}
+                  className="max-sm:hidden"
+                >
                   <Download className="size-4" />
                 </Button>
               </DropdownMenuTrigger>
@@ -132,15 +131,15 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
                 <DropdownMenuItem asChild>
                   <Link
                     to={`./export/${firstMonth.year}/xlsx`}
-                    title={`Télécharger le fichier Excel de toutes les activités des proclamateurs durant l'année ${firstMonth.year}`}
+                    title={m.activity_export_excel_title({ year: String(firstMonth.year) })}
                     reloadDocument
                   >
-                    Exporter un fichier Excel
+                    {m.activity_export_excel()}
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to={`./export/${firstMonth.year}/pdfs`} reloadDocument>
-                    Exporter l'ensemble des S-21
+                    {m.activity_export_s21()}
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -169,13 +168,13 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
-              <TableHead className="text-center">Nom</TableHead>
-              <TableHead className="text-center">Groupe</TableHead>
-              <TableHead className="text-center max-sm:hidden">Heures</TableHead>
-              <TableHead className="text-center max-sm:hidden">Études</TableHead>
-              <TableHead className="text-center max-sm:hidden">Pionnier</TableHead>
-              <TableHead className="text-center max-sm:hidden">Observations</TableHead>
+              <TableHead className="text-center max-sm:text-left">{m.activity_table_firstname()}</TableHead>
+              <TableHead className="text-center">{m.activity_table_lastname()}</TableHead>
+              <TableHead className="text-center">{m.activity_table_group()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.activity_table_hours()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.activity_table_studies()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.activity_table_pioneer()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.activity_table_observations()}</TableHead>
               {canManageActivities && (
                 <TableHead className="w-0">
                   <span className="sr-only">Actions</span>
@@ -257,7 +256,7 @@ function ActivityColumns({ publisher }: { publisher: ArrayElement<Route.Componen
   if (publisher.lastActivity == null) {
     return (
       <TableCell className="text-center text-muted-foreground text-sm italic max-sm:hidden" colSpan={4}>
-        Le proclamateur n'a pas rendu son rapport
+        {m.activity_no_report()}
       </TableCell>
     )
   }
@@ -265,7 +264,9 @@ function ActivityColumns({ publisher }: { publisher: ArrayElement<Route.Componen
   return (
     <>
       <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity.type === PublisherType.Normal && publisher.lastActivity.isPublisher && 'a préché'}
+        {publisher.lastActivity.type === PublisherType.Normal &&
+          publisher.lastActivity.isPublisher &&
+          m.activity_preached()}
         {publisher.lastActivity.type !== PublisherType.Normal && `${publisher.lastActivity?.hours}h`}
       </TableCell>
       <TableCell className="text-center max-sm:hidden">{publisher.lastActivity?.studies}</TableCell>

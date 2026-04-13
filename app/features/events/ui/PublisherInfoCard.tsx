@@ -1,6 +1,7 @@
 import { AlertTriangle, Calendar, Clock, Info, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Skeleton } from '~/shared/ui/skeleton'
@@ -71,8 +72,8 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
           {profile.firstname} {profile.lastname}
         </CardTitle>
         <div className="flex flex-wrap gap-1.5">
-          {profile.isHelder && <Badge variant="secondary">Ancien</Badge>}
-          {profile.isServant && <Badge variant="secondary">Serviteur ministériel</Badge>}
+          {profile.isHelder && <Badge variant="secondary">{m.publisher_info_elder_badge()}</Badge>}
+          {profile.isServant && <Badge variant="secondary">{m.publisher_info_servant_badge()}</Badge>}
           {profile.group && (
             <Badge variant="outline" className="text-xs">
               {profile.group}
@@ -85,7 +86,7 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5 font-medium text-destructive text-sm">
               <AlertTriangle className="size-4" />
-              Absence pendant cet évènement
+              {m.publisher_info_absence_during_event()}
             </div>
             {daysOff.map(d => (
               <p key={d.startDate} className="text-muted-foreground text-xs">
@@ -100,7 +101,7 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5 font-medium text-orange-600 text-sm dark:text-orange-400">
               <Info className="size-4" />
-              Déjà assigné à cet évènement
+              {m.publisher_info_already_assigned()}
             </div>
             {sameEventAssignments.map(a => (
               <p key={`${a.type}-${a.name}`} className="text-muted-foreground text-xs">
@@ -114,7 +115,7 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
         {!hasDaysOff && !hasOtherAssignments && (
           <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
             <Calendar className="size-4" />
-            Disponible pour cet évènement
+            {m.publisher_info_available()}
           </div>
         )}
 
@@ -122,7 +123,7 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm">
               <Clock className="size-4" />
-              Historique récent
+              {m.publisher_info_recent_history()}
             </div>
             {recentHistory.map(h => (
               <p key={h.date} className="text-muted-foreground text-xs">
@@ -135,13 +136,13 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
               </p>
             ))}
             {recentHistory.length === 0 && (
-              <p className="text-muted-foreground text-xs">Première attribution de ce type</p>
+              <p className="text-muted-foreground text-xs">{m.publisher_info_first_assignment()}</p>
             )}
           </div>
         )}
 
         {recentHistory.length === 0 && (
-          <p className="text-muted-foreground text-xs italic">Aucun historique pour ce type de partie</p>
+          <p className="text-muted-foreground text-xs italic">{m.publisher_info_no_history()}</p>
         )}
       </CardContent>
     </Card>

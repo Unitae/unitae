@@ -10,10 +10,12 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/new-building'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Batiment - Unitae' }]
+  return [{ title: m.prospection_new_building_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -30,35 +32,35 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function CreateBuildingPage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Création d'un batiment" subtitle="Créer manuellement un nouveau batiment" />
+      <PageHeader title={m.prospection_new_building_title()} subtitle={m.prospection_new_building_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Numéro</Label>
-              <Input name="number" type="text" placeholder="Numéro du batiment" required />
+              <Label>{m.territories_form_number()}</Label>
+              <Input name="number" type="text" placeholder={m.prospection_new_building_number_placeholder()} required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Voie</Label>
-              <Input name="street" type="text" placeholder="Nom de la voie" required />
+              <Label>{m.prospection_new_building_street_label()}</Label>
+              <Input name="street" type="text" placeholder={m.prospection_new_building_street_placeholder()} required />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Code postal</Label>
-              <Input name="zip" type="text" placeholder="Code postal de la ville" required />
+              <Label>{m.prospection_new_building_zip_label()}</Label>
+              <Input name="zip" type="text" placeholder={m.prospection_new_building_zip_placeholder()} required />
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Latitude</Label>
+                <Label>{m.prospection_table_latitude()}</Label>
                 <Input name="latitude" type="number" step={0.0000001} />
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Longitude</Label>
+                <Label>{m.prospection_table_longitude()}</Label>
                 <Input name="longitude" type="number" step={0.0000001} />
               </div>
             </div>
             <Button type="submit" className="mt-2">
-              Créer le batiment
+              {m.prospection_new_building_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -103,9 +105,9 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     if (building == null) {
-      session.flash('error', `Erreur lors de l'enregistrement du batiment`)
+      session.flash('error', m.prospection_new_building_error())
     } else {
-      session.flash('success', 'Le batiment a été correctement modifié')
+      session.flash('success', m.prospection_new_building_success())
     }
 
     return redirect(`/territories/building/${building.id}/view`, {

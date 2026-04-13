@@ -2,6 +2,7 @@ import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -14,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Proclamateurs - Unitae' }]
+  return [{ title: m.publishers_list_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -65,22 +66,18 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="Proclamateurs"
-          subtitle="Liste de tous les fiches de proclamateurs de l'assemblée"
+          title={m.publishers_list_title()}
+          subtitle={m.publishers_list_subtitle()}
           actions={
             canManagePublisher && (
               <Button asChild>
-                <Link to="./new">Créer proclamateur</Link>
+                <Link to="./new">{m.publishers_create_button()}</Link>
               </Button>
             )
           }
         />
 
-        <EmptyState
-          icon={Users}
-          title="Il n'y a aucun proclamateur pour le moment !"
-          description="Pour ajouter des proclamateurs utilisez le bouton &laquo; Créer proclamateur &raquo; en haut à droite de cette page ou créez des fiches de proclamateur à partir des utilisateurs."
-        />
+        <EmptyState icon={Users} title={m.publishers_empty_title()} description={m.publishers_empty_description()} />
       </div>
     )
   }
@@ -88,12 +85,12 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Proclamateurs"
-        subtitle="Liste de tous les fiches de proclamateurs de l'assemblée"
+        title={m.publishers_list_title()}
+        subtitle={m.publishers_list_subtitle()}
         actions={
           <>
             {canViewActivities && (
-              <Button asChild variant="outline" size="icon" title="Consulter l'activité des proclamateurs">
+              <Button asChild variant="outline" size="icon" title={m.publishers_view_activity_title()}>
                 <Link to="./activity">
                   <BarChart3 className="size-4" />
                 </Link>
@@ -101,7 +98,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
             )}
             {canManagePublisher && (
               <Button asChild>
-                <Link to="./new">Créer proclamateur</Link>
+                <Link to="./new">{m.publishers_create_button()}</Link>
               </Button>
             )}
           </>
@@ -112,10 +109,10 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
-              <TableHead className="text-center">Nom</TableHead>
-              <TableHead className="text-center">Groupe</TableHead>
-              <TableHead className="text-center max-sm:hidden">Contact</TableHead>
+              <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
+              <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
+              <TableHead className="text-center">{m.publishers_table_group()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">Actions</span>
               </TableHead>

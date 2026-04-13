@@ -5,6 +5,7 @@ import {
   hasDataProcessingConsent,
   recordConsentUnscoped,
 } from '~/features/settings/server/consent.server'
+import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
@@ -34,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
   const accepted = form.get('consent') === 'on'
 
   if (!accepted) {
-    return { error: 'Vous devez accepter le traitement des données pour utiliser Unitae.' }
+    return { error: m.consent_must_accept_error() }
   }
 
   const ip = request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? undefined
@@ -56,26 +57,16 @@ export default function ConsentPage({ actionData }: Route.ComponentProps) {
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
           <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-          <p className="text-muted-foreground text-sm">Consentement au traitement des données</p>
+          <p className="text-muted-foreground text-sm">{m.consent_page_subtitle()}</p>
         </CardHeader>
         <CardContent>
           <div className="space-y-4 text-sm">
-            <p>
-              Pour utiliser Unitae, votre assemblée locale a besoin de traiter certaines de vos données personnelles :
-              nom, prénom, email, et selon votre rôle, vos rapports d'activité et attributions de territoires.
-            </p>
-            <p>
-              Ces données sont des <strong>données de catégorie spéciale</strong> (affiliation religieuse) au sens de
-              l'article 9 du RGPD. Elles sont traitées uniquement dans le cadre des activités de votre assemblée locale
-              et ne sont pas communiquées en dehors de celle-ci.
-            </p>
-            <p>
-              Vous pouvez à tout moment consulter, exporter ou retirer votre consentement depuis votre profil. Pour
-              exercer votre droit à l'effacement, contactez l'administrateur de votre assemblée locale.
-            </p>
+            <p>{m.consent_description_1()}</p>
+            <p>{m.consent_description_2()}</p>
+            <p>{m.consent_description_3()}</p>
             <p>
               <Link to="/privacy" className="text-primary hover:underline">
-                Lire la politique de confidentialité complète
+                {m.consent_read_privacy_policy()}
               </Link>
             </p>
           </div>
@@ -85,22 +76,16 @@ export default function ConsentPage({ actionData }: Route.ComponentProps) {
           <Form method="post" className="mt-6 flex flex-col gap-4">
             <label className="flex items-start gap-3">
               <input type="checkbox" name="consent" value="on" className="mt-1" />
-              <span className="text-sm">
-                J'accepte le traitement de mes données personnelles tel que décrit ci-dessus et dans la{' '}
-                <Link to="/privacy" className="text-primary hover:underline">
-                  politique de confidentialité
-                </Link>
-                .
-              </span>
+              <span className="text-sm">{m.consent_accept_checkbox()}</span>
             </label>
             <Button type="submit" className="w-full">
-              Continuer
+              {m.consent_continue()}
             </Button>
           </Form>
         </CardContent>
         <CardFooter className="justify-center">
           <Link to="/logout" className="text-muted-foreground text-sm hover:text-foreground">
-            Se déconnecter
+            {m.consent_logout()}
           </Link>
         </CardFooter>
       </Card>

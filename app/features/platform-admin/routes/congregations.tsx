@@ -1,6 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { Link } from 'react-router'
 
+import * as m from '~/paraglide/messages'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
@@ -12,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/congregations'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Assemblées locales - Unitae Admin' }]
+  return [{ title: m.platform_admin_congregations_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -46,18 +47,18 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Assemblées locales" subtitle={`${congregations.length} assemblée(s) locale(s)`} />
+      <PageHeader title={m.platform_admin_congregations_title()} subtitle={m.platform_admin_congregations_subtitle({ count: congregations.length })} />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Slug</TableHead>
-              <TableHead className="text-center">Utilisateurs</TableHead>
-              <TableHead className="text-center">Territoires</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
-              <TableHead className="text-center">Creee le</TableHead>
+              <TableHead>{m.platform_admin_congregations_col_name()}</TableHead>
+              <TableHead>{m.platform_admin_congregations_col_slug()}</TableHead>
+              <TableHead className="text-center">{m.platform_admin_congregations_col_users()}</TableHead>
+              <TableHead className="text-center">{m.platform_admin_congregations_col_territories()}</TableHead>
+              <TableHead className="text-center">{m.platform_admin_congregations_col_status()}</TableHead>
+              <TableHead className="text-center">{m.platform_admin_congregations_col_created_at()}</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">Actions</span>
               </TableHead>
@@ -71,7 +72,7 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
                 <TableCell className="text-center">{c.userCount}</TableCell>
                 <TableCell className="text-center">{c.territoryCount}</TableCell>
                 <TableCell className="text-center">
-                  <Badge variant={c.active ? 'default' : 'destructive'}>{c.active ? 'Active' : 'Inactive'}</Badge>
+                  <Badge variant={c.active ? 'default' : 'destructive'}>{c.active ? m.platform_admin_congregations_status_active() : m.platform_admin_congregations_status_inactive()}</Badge>
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">
                   {new Date(c.createdAt).toLocaleDateString('fr')}

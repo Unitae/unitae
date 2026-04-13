@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 
 import { Role } from '~/features/authorization/model/roles.type'
 import { generatePublishersYearlyActivityXlsx } from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -9,7 +10,7 @@ import logger from '~/shared/libs/logger.server'
 import type { Route } from './+types/excel-export'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Génération d'un export Excel - Unitae` }]
+  return [{ title: m.activity_excel_export_meta_title() }]
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {

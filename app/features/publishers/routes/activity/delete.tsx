@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -52,15 +53,16 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
       <Card className="max-w-md">
         <CardContent className="pt-6">
           <p className="text-center text-muted-foreground">
-            Êtes-vous sûr de vouloir supprimer le rapport de{' '}
-            {date.toLocaleDateString('fr', { month: 'long', year: 'numeric' })} pour {activity.publisher.firstname}{' '}
-            {activity.publisher.lastname?.toLocaleUpperCase()} ? Cette action est irréversible.
+            {m.activity_delete_confirmation({
+              date: date.toLocaleDateString('fr', { month: 'long', year: 'numeric' }),
+              name: `${activity.publisher.firstname} ${activity.publisher.lastname?.toLocaleUpperCase()}`,
+            })}
           </p>
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
-            <Button type="submit" variant="destructive" title="Supprimer définitivement le rapport">
-              Supprimer le rapport
+            <Button type="submit" variant="destructive" title={m.activity_delete_title()}>
+              {m.activity_delete_button()}
             </Button>
           </Form>
         </CardFooter>
@@ -91,7 +93,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      `Le rapport d'activité de ${activity.publisher.firstname} ${activity.publisher.lastname?.toLocaleUpperCase()} a été correctement supprimé`,
+      m.activity_delete_success({
+        name: `${activity.publisher.firstname} ${activity.publisher.lastname?.toLocaleUpperCase()}`,
+      }),
     )
 
     const previousPage = request.headers.get('referer')

@@ -25,10 +25,12 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: `Territoire ${data.territory.number} - Unitae` }]
+  return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -130,8 +132,8 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Modification d'un territoire"
-        subtitle="Modifier un territoire existant"
+        title={m.territories_edit_title()}
+        subtitle={m.territories_edit_subtitle()}
         actions={
           <>
             <TerritoryDownloadLink
@@ -148,13 +150,13 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               showPhone={!phoneTypeActive}
               attributionType={attribution?.type as TerritoryAttributionKind}
             >
-              <Button variant="outline" size="icon" title="Télécharger le territoire en PDF">
+              <Button variant="outline" size="icon" title={m.territories_download_pdf_title()}>
                 <Download className="size-4" />
               </Button>
             </TerritoryDownloadLink>
 
             <Button variant="destructive" size="icon" asChild>
-              <Link to={`/territories/territory/${territory.id}/delete`} title="Supprimer complètement le territoire">
+              <Link to={`/territories/territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
                 <Trash2 className="size-4" />
               </Link>
             </Button>
@@ -168,30 +170,32 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             <CardContent className="pt-6">
               <div className="flex flex-col gap-3">
                 <p>
-                  Numéro : <span className="font-medium text-primary">{territory.number}</span>
+                  {m.territories_edit_number_label()}{' '}
+                  <span className="font-medium text-primary">{territory.number}</span>
                 </p>
                 <p>
-                  Type de territoire :{' '}
+                  {m.territories_edit_type_label()}{' '}
                   <span className="font-medium text-primary">
-                    {territory.type === TerritoryKind.Classical && 'Porte à Porte'}
-                    {territory.type === TerritoryKind.Commerces && 'Commerces'}
-                    {territory.type === TerritoryKind.Hotel && 'Hôtels'}
-                    {territory.type === TerritoryKind.Phone && 'Téléphone'}
-                    {territory.type === TerritoryKind.Univ && 'Université'}
+                    {territory.type === TerritoryKind.Classical && m.territories_type_classical_capitalized()}
+                    {territory.type === TerritoryKind.Commerces && m.territories_type_commerces()}
+                    {territory.type === TerritoryKind.Hotel && m.territories_type_hotel()}
+                    {territory.type === TerritoryKind.Phone && m.territories_type_phone_singular()}
+                    {territory.type === TerritoryKind.Univ && m.territories_type_university_singular()}
                   </span>
                 </p>
                 <p>
-                  Nombre de foyers : <span className="font-medium text-primary">{quantity}</span>
+                  {m.territories_edit_homes_label()}{' '}
+                  <span className="font-medium text-primary">{quantity}</span>
                 </p>
                 <p className="pt-3 text-muted-foreground text-sm italic">
-                  Si certaines de ces informations ne sont pas bonnes, merci de contacter le service Territoires.
+                  {m.territories_edit_info_notice()}
                 </p>
               </div>
             </CardContent>
           </Card>
 
           <Form method="post" className="flex flex-col gap-4">
-            <h2 className="font-semibold text-lg">Attribution en cours</h2>
+            <h2 className="font-semibold text-lg">{m.territories_edit_current_attribution()}</h2>
             {attribution != null ? (
               <div className="flex items-center justify-between gap-3 rounded-md border p-3">
                 <div className="flex flex-col">
@@ -208,7 +212,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                     <Link
                       to={`../../../attributions/${attribution.id}/edit`}
                       relative="path"
-                      title="Voir l'attribution en détail"
+                      title={m.territories_edit_view_attribution_title()}
                     >
                       <ExternalLink className="size-4 text-primary" />
                     </Link>
@@ -218,7 +222,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                       <Link
                         to={`../../../attributions/${attribution.id}/delete`}
                         relative="path"
-                        title="Annuler l'attribution"
+                        title={m.territories_edit_cancel_attribution_title()}
                       >
                         <X className="size-4" />
                       </Link>
@@ -229,15 +233,15 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             ) : (
               <>
                 <div className="flex items-center justify-center gap-3 rounded-md border p-3">
-                  <span className="text-muted-foreground italic">Aucune attribution en cours pour ce territoire</span>
+                  <span className="text-muted-foreground italic">{m.territories_edit_no_attribution()}</span>
                 </div>
                 <Button variant="secondary" asChild>
-                  <Link to={`/territories/attributions/new?territory=${territory.id}`}>Attribuer ce territoire</Link>
+                  <Link to={`/territories/attributions/new?territory=${territory.id}`}>{m.territories_edit_assign_button()}</Link>
                 </Button>
               </>
             )}
 
-            <h2 className="font-semibold text-lg">Allées</h2>
+            <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
             {territoryEntrances.map(entrance => (
               <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
                 <input type="hidden" name="entrances" value={entrance.id} />
@@ -245,13 +249,13 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                   <span className="font-medium">
                     {entrance.number} {entrance.street}, {entrance.zip}
                   </span>
-                  <span className="text-muted-foreground text-sm">{entrance.homes || entrance.phones} foyers</span>
+                  <span className="text-muted-foreground text-sm">{m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}</span>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="icon" asChild>
                     <Link
                       to={`/territories/building/${entrance.buildings[0].id}/view`}
-                      title="Voir le détail de ce batiment"
+                      title={m.territories_form_view_building_title()}
                     >
                       <ExternalLink className="size-4 text-primary" />
                     </Link>
@@ -265,7 +269,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                       const tmpBuilding = territoryEntrances.filter(tb => tb.id !== entrance.id)
                       setTerritoryEntrances(tmpBuilding)
                     }}
-                    title="Supprimer le batiment de ce territoire"
+                    title={m.territories_form_remove_building_title()}
                   >
                     <Trash2 className="size-4" />
                   </Button>
@@ -279,10 +283,11 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               selection={territoryEntrances}
               onSelectionChange={selection => setTerritoryEntrances(selection)}
             />
-            <h2 className="mt-3 font-semibold text-lg">Prédication</h2>
+            <h2 className="mt-3 font-semibold text-lg">{m.territories_edit_preaching_heading()}</h2>
             <div className="flex flex-col gap-1.5">
               <Label>
-                Notes <span className="text-muted-foreground text-sm">(Ne sera pas visible sur le territoire)</span>
+                {m.territories_edit_notes_label()}{' '}
+                <span className="text-muted-foreground text-sm">{m.territories_edit_notes_visibility()}</span>
               </Label>
               <textarea
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -293,7 +298,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             </div>
 
             <Button type="submit" className="mt-2">
-              Modifier le territoire
+              {m.territories_edit_submit()}
             </Button>
           </Form>
         </div>

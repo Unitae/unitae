@@ -1,4 +1,5 @@
 import { Form, redirect } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
@@ -18,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: "Modifier l'évènement - Unitae" }]
+  return [{ title: m.programs_edit_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -114,7 +115,7 @@ async function handleUpdateEvent(form: FormData, db: TransactionClient, eventId:
     },
     data,
   })
-  return 'Évènement mis à jour.'
+  return m.programs_edit_event_updated()
 }
 
 async function handleAddPart(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
@@ -130,7 +131,7 @@ async function handleAddPart(form: FormData, db: TransactionClient, eventId: num
       congregationId,
     },
   })
-  return 'Partie ajoutée.'
+  return m.programs_edit_part_added()
 }
 
 async function handleDeletePart(form: FormData, db: TransactionClient, congregationId: number) {
@@ -140,7 +141,7 @@ async function handleDeletePart(form: FormData, db: TransactionClient, congregat
       id_congregationId: { id: Number(form.get('partAssignmentId')), congregationId },
     },
   })
-  return 'Partie supprimée.'
+  return m.programs_edit_part_deleted()
 }
 
 async function handleAddService(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
@@ -149,7 +150,7 @@ async function handleAddService(form: FormData, db: TransactionClient, eventId: 
   await db.programmeServiceRoleAssignment.create({
     data: { eventId, name: serviceName, congregationId },
   })
-  return 'Service ajouté.'
+  return m.programs_edit_service_added()
 }
 
 async function handleDeleteService(form: FormData, db: TransactionClient, congregationId: number) {
@@ -159,7 +160,7 @@ async function handleDeleteService(form: FormData, db: TransactionClient, congre
       id_congregationId: { id: Number(form.get('serviceAssignmentId')), congregationId },
     },
   })
-  return 'Service supprimé.'
+  return m.programs_edit_service_deleted()
 }
 
 async function handleApplyTemplate(
@@ -205,7 +206,7 @@ async function handleApplyTemplate(
   }
 
   logger.info(`Applied template ${templateId} to event ${eventId}. User ID: ${userId}.`)
-  return `Modèle « ${template.name} » appliqué.`
+  return m.programs_edit_template_applied({ name: template.name })
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
@@ -214,21 +215,21 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Modifier l'évènement" subtitle={event.name} />
+      <PageHeader title={m.programs_edit_page_title()} subtitle={event.name} />
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">Informations</CardTitle>
+          <CardTitle className="text-base">{m.programs_edit_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <input type="hidden" name="intent" value="update-event" />
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom</Label>
+              <Label htmlFor="name">{m.common_name()}</Label>
               <Input id="name" name="name" defaultValue={event.name} required />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="date">Date</Label>
+              <Label htmlFor="date">{m.programs_edit_date_label()}</Label>
               <Input
                 id="date"
                 name="date"
@@ -239,7 +240,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
             </div>
             <div className="flex gap-4">
               <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="startTime">Début</Label>
+                <Label htmlFor="startTime">{m.programs_edit_start_time_label()}</Label>
                 <Input
                   id="startTime"
                   name="startTime"
@@ -249,7 +250,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 />
               </div>
               <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="endTime">Fin</Label>
+                <Label htmlFor="endTime">{m.programs_edit_end_time_label()}</Label>
                 <Input
                   id="endTime"
                   name="endTime"
@@ -260,7 +261,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
             <Button type="submit" className="w-fit">
-              Enregistrer
+              {m.common_save()}
             </Button>
           </Form>
         </CardContent>
@@ -269,19 +270,19 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
       {!hasParts && (
         <Card className="max-w-lg">
           <CardHeader>
-            <CardTitle className="text-base">Appliquer un modèle</CardTitle>
+            <CardTitle className="text-base">{m.programs_edit_apply_template_title()}</CardTitle>
           </CardHeader>
           <CardContent>
             <Form method="post" className="flex flex-col gap-4">
               <input type="hidden" name="intent" value="apply-template" />
               <p className="text-muted-foreground text-sm">
-                Appliquer un modèle ajoutera toutes ses parties et rôles de service au programme.
+                {m.programs_edit_apply_template_hint()}
               </p>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="templateId">Modèle</Label>
+                <Label htmlFor="templateId">{m.programs_edit_template_label()}</Label>
                 <Select name="templateId">
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un modèle" />
+                    <SelectValue placeholder={m.programs_edit_select_template()} />
                   </SelectTrigger>
                   <SelectContent>
                     {templates.map(template => (
@@ -293,7 +294,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 </Select>
               </div>
               <Button type="submit" className="w-fit">
-                Appliquer
+                {m.programs_edit_apply_button()}
               </Button>
             </Form>
           </CardContent>
@@ -302,7 +303,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Programme spirituel</CardTitle>
+          <CardTitle className="text-base">{m.programs_edit_spiritual_program()}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {event.partAssignments.map(assignment => (
@@ -318,7 +319,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 <input type="hidden" name="intent" value="delete-part" />
                 <input type="hidden" name="partAssignmentId" value={assignment.id} />
                 <Button type="submit" variant="destructive" size="sm">
-                  Supprimer
+                  {m.common_delete()}
                 </Button>
               </Form>
             </div>
@@ -327,15 +328,15 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex flex-wrap items-end gap-2 border-t pt-3">
             <input type="hidden" name="intent" value="add-part" />
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Nom</Label>
-              <Input name="partName" placeholder="Nouvelle partie" className="w-40" required />
+              <Label className="text-xs">{m.programs_edit_part_name_label()}</Label>
+              <Input name="partName" placeholder={m.programs_edit_new_part_placeholder()} className="w-40" required />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Section</Label>
+              <Label className="text-xs">{m.programs_edit_part_section_label()}</Label>
               <Input name="partSection" className="w-40" />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Ordre</Label>
+              <Label className="text-xs">{m.programs_edit_part_order_label()}</Label>
               <Input
                 name="partOrder"
                 type="number"
@@ -345,11 +346,11 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
               />
             </div>
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Durée (min)</Label>
+              <Label className="text-xs">{m.programs_edit_part_duration_label()}</Label>
               <Input name="partDuration" type="number" className="w-20" />
             </div>
             <Button type="submit" size="sm">
-              Ajouter
+              {m.programs_edit_add_button()}
             </Button>
           </Form>
         </CardContent>
@@ -357,7 +358,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Services</CardTitle>
+          <CardTitle className="text-base">{m.programs_edit_services_title()}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {event.serviceRoleAssignments.map(assignment => (
@@ -367,7 +368,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 <input type="hidden" name="intent" value="delete-service" />
                 <input type="hidden" name="serviceAssignmentId" value={assignment.id} />
                 <Button type="submit" variant="destructive" size="sm">
-                  Supprimer
+                  {m.common_delete()}
                 </Button>
               </Form>
             </div>
@@ -376,11 +377,11 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex items-end gap-2 border-t pt-3">
             <input type="hidden" name="intent" value="add-service" />
             <div className="flex flex-col gap-1">
-              <Label className="text-xs">Nom</Label>
-              <Input name="serviceName" placeholder="Nouveau service" className="w-48" required />
+              <Label className="text-xs">{m.programs_edit_part_name_label()}</Label>
+              <Input name="serviceName" placeholder={m.programs_edit_new_service_placeholder()} className="w-48" required />
             </div>
             <Button type="submit" size="sm">
-              Ajouter
+              {m.programs_edit_add_button()}
             </Button>
           </Form>
         </CardContent>

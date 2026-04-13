@@ -18,10 +18,12 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Modification d'une attribution de territoire - Unitae` }]
+  return [{ title: m.attributions_edit_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -60,22 +62,22 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Modifier une attribution"
-        subtitle="Mettre à jour l'attribution d'un proclamateur"
+        title={m.attributions_edit_title()}
+        subtitle={m.attributions_edit_subtitle()}
         actions={
           attribution.endDate === null && (
             <>
               <Button
                 variant={shouldShowEndDate ? 'default' : 'outline'}
                 size="icon"
-                title="Rentrer le territoire"
+                title={m.attributions_edit_return_territory_title()}
                 type="button"
                 onClick={() => showEndDate(state => !state)}
               >
                 <ArrowDownToLine className="size-4" />
               </Button>
               <Button variant="destructive" size="sm" asChild>
-                <a href={`./${attribution.id}/delete`} title="Annuler l'attribution">
+                <a href={`./${attribution.id}/delete`} title={m.attributions_cancel_title()}>
                   <X className="size-4" />
                 </a>
               </Button>
@@ -87,12 +89,12 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>Territoire</Label>
+              <Label>{m.attributions_new_territory_label()}</Label>
               <input type="hidden" name="territory" value={attribution.territory.id} />
               <TerritoryCardLink territory={attribution.territory} entrances={entrances} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Proclamateur</Label>
+              <Label>{m.attributions_new_publisher_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 name="publisher"
@@ -100,7 +102,7 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                 defaultValue={String(attribution.publisherId)}
                 disabled={attribution.endDate !== null}
               >
-                <option disabled>Selectionnez un proclamateur</option>
+                <option disabled>{m.attributions_new_publisher_placeholder()}</option>
                 {users.map(user => (
                   <option key={user.id} value={user.id}>
                     {user.lastname?.toLocaleUpperCase()} {user.firstname}
@@ -109,7 +111,7 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
               </select>
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Type d'attribution</Label>
+              <Label>{m.attributions_edit_type_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 name="type"
@@ -118,15 +120,15 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                 disabled={attribution.endDate !== null}
               >
                 <option value={TerritoryAttributionKind.Default}>
-                  {phoneTypeActive ? 'Classique' : 'Porte à Porte'}
+                  {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                 </option>
-                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>Téléphone</option>}
-                <option value={TerritoryAttributionKind.Campaign}>Campagne de distribution</option>
+                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>}
+                <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Date de sortie</Label>
+                <Label>{m.attributions_edit_start_date_label()}</Label>
                 <Input
                   name="start-date"
                   type="date"
@@ -136,7 +138,7 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
               </div>
               {attribution.endDate || shouldShowEndDate ? (
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <Label className={attribution.endDate ? '' : 'text-destructive'}>Date de rentrée</Label>
+                  <Label className={attribution.endDate ? '' : 'text-destructive'}>{m.attributions_edit_end_date_label()}</Label>
                   <Input
                     className={attribution.endDate ? '' : 'border-destructive'}
                     name="end-date"
@@ -150,7 +152,7 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                 </div>
               ) : (
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <Label>À rentrer le :</Label>
+                  <Label>{m.attributions_edit_late_date_label()}</Label>
                   <Input
                     name="late-date"
                     type="date"
@@ -162,7 +164,8 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>
-                Notes <span className="text-muted-foreground text-xs">(Ne sera pas visible du proclamateur)</span>
+                {m.attributions_new_notes_label()}{' '}
+                <span className="text-muted-foreground text-xs">{m.attributions_new_notes_visibility()}</span>
               </Label>
               <textarea
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -176,11 +179,11 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
 
             {shouldShowEndDate ? (
               <Button variant="destructive" type="submit" disabled={attribution.endDate !== null} className="mt-2">
-                Rentrer le territoire
+                {m.attributions_edit_return_submit()}
               </Button>
             ) : (
               <Button type="submit" disabled={attribution.endDate !== null} className="mt-2">
-                Enregistrer l'attribution
+                {m.attributions_edit_save_submit()}
               </Button>
             )}
           </Form>

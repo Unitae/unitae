@@ -9,10 +9,12 @@ import { Button } from '~/shared/ui/button'
 
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/active-building-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Batiments actifs - Unitae' }]
+  return [{ title: m.prospection_active_buildings_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -51,10 +53,9 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   if (buildings.length < 1) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-        <p>Il n'y a aucun batiment actif pour le moment !</p>
+        <p>{m.prospection_empty_active_buildings()}</p>
         <p>
-          Pour ajouter des batiments utilisez le bouton "Nouveau batiment" ou lancez une synchronisation avec la{' '}
-          <em>Base d'Adresses Nationale Ouverte</em> fournie par l'état.
+          {m.prospection_empty_buildings_hint({ bano: m.prospection_bano_name() })}
         </p>
       </div>
     )
@@ -66,14 +67,14 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code Postal</TableHead>
-              <TableHead>Rue</TableHead>
-              <TableHead className="text-center">Nº</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
-              <TableHead className="text-center max-sm:hidden">Latitude</TableHead>
-              <TableHead className="text-center max-sm:hidden">Longitude</TableHead>
+              <TableHead>{m.prospection_table_zip()}</TableHead>
+              <TableHead>{m.prospection_table_street()}</TableHead>
+              <TableHead className="text-center">{m.prospection_table_number()}</TableHead>
+              <TableHead className="text-center">{m.prospection_table_status()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.prospection_table_latitude()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.prospection_table_longitude()}</TableHead>
               <TableHead className="w-0">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{m.common_actions()}</span>
               </TableHead>
             </TableRow>
           </TableHeader>

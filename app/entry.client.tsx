@@ -1,12 +1,19 @@
-/**
- * By default, Remix will handle hydrating your app on the client for you.
- * You are free to delete this file if you'd like to, but if you ever want it revealed again, you can run `npx remix reveal` ✨
- * For more information, see https://remix.run/file-conventions/entry.client
- */
-
 import { StrictMode, startTransition } from 'react'
 import { hydrateRoot } from 'react-dom/client'
 import { HydratedRouter } from 'react-router/dom'
+
+import { defineCustomClientStrategy, isLocale } from '~/paraglide/runtime'
+
+defineCustomClientStrategy('custom-congregation', {
+  getLocale: () => {
+    const lang = document.documentElement.lang
+    if (isLocale(lang)) return lang
+    return undefined
+  },
+  setLocale: (_newLocale: string) => {
+    // Locale is server-driven (congregation setting), no client-side persistence needed
+  },
+})
 
 startTransition(() => {
   hydrateRoot(

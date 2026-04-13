@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Nouveau modèle - Unitae' }]
+  return [{ title: m.settings_template_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -34,7 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
   const weekDay = rawWeekDay && rawWeekDay !== 'none' ? Number(rawWeekDay) : null
 
   if (!name || !key) {
-    session.flash('error', 'Le nom et la clé sont requis.')
+    session.flash('error', m.settings_template_new_name_key_required_error())
     return redirect('/settings/congregation/templates/new', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
@@ -43,7 +44,7 @@ export async function action({ request }: Route.ActionArgs) {
   return withScope(congregationId, async db => {
     const existing = await db.programmeTemplate.findFirst({ where: { key, congregationId } })
     if (existing) {
-      session.flash('error', 'Un modèle avec cette clé existe déjà.')
+      session.flash('error', m.settings_template_new_key_exists_error())
       return redirect('/settings/congregation/templates/new', {
         headers: { 'Set-Cookie': await commitSession(session) },
       })
@@ -60,7 +61,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     logger.info(`Created template "${name}" (${key}). User ID: ${currentUser.id}.`)
-    session.flash('success', `Modèle « ${name} » créé.`)
+    session.flash('success', m.settings_template_new_success({ name }))
 
     return redirect(`/settings/congregation/templates/${template.id}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -71,45 +72,43 @@ export async function action({ request }: Route.ActionArgs) {
 export default function NewTemplatePage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Nouveau modèle" subtitle="Créez un nouveau modèle de programme pour votre assemblée." />
+      <PageHeader title={m.settings_template_new_title()} subtitle={m.settings_template_new_subtitle()} />
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">Informations</CardTitle>
+          <CardTitle className="text-base">{m.settings_template_new_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom</Label>
-              <Input id="name" name="name" placeholder="Ex : Réunion de semaine" required />
+              <Label htmlFor="name">{m.settings_template_new_name_label()}</Label>
+              <Input id="name" name="name" placeholder={m.settings_template_new_name_placeholder()} required />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="key">Clé unique</Label>
-              <Input id="key" name="key" placeholder="Ex : midweek-meeting" required />
-              <p className="text-muted-foreground text-xs">
-                Identifiant unique pour ce modèle (en minuscules, sans espaces).
-              </p>
+              <Label htmlFor="key">{m.settings_template_new_key_label()}</Label>
+              <Input id="key" name="key" placeholder={m.settings_template_new_key_placeholder()} required />
+              <p className="text-muted-foreground text-xs">{m.settings_template_new_key_hint()}</p>
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="weekDay">Jour de la semaine</Label>
+              <Label htmlFor="weekDay">{m.settings_template_new_weekday_label()}</Label>
               <Select name="weekDay" defaultValue="none">
                 <SelectTrigger>
-                  <SelectValue placeholder="Aucun (évènement ponctuel)" />
+                  <SelectValue placeholder={m.settings_template_edit_weekday_none()} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Aucun (évènement ponctuel)</SelectItem>
-                  <SelectItem value="0">Dimanche</SelectItem>
-                  <SelectItem value="1">Lundi</SelectItem>
-                  <SelectItem value="2">Mardi</SelectItem>
-                  <SelectItem value="3">Mercredi</SelectItem>
-                  <SelectItem value="4">Jeudi</SelectItem>
-                  <SelectItem value="5">Vendredi</SelectItem>
-                  <SelectItem value="6">Samedi</SelectItem>
+                  <SelectItem value="none">{m.settings_template_edit_weekday_none()}</SelectItem>
+                  <SelectItem value="0">{m.settings_template_edit_day_sunday()}</SelectItem>
+                  <SelectItem value="1">{m.settings_template_edit_day_monday()}</SelectItem>
+                  <SelectItem value="2">{m.settings_template_edit_day_tuesday()}</SelectItem>
+                  <SelectItem value="3">{m.settings_template_edit_day_wednesday()}</SelectItem>
+                  <SelectItem value="4">{m.settings_template_edit_day_thursday()}</SelectItem>
+                  <SelectItem value="5">{m.settings_template_edit_day_friday()}</SelectItem>
+                  <SelectItem value="6">{m.settings_template_edit_day_saturday()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <Button type="submit" className="w-fit">
-              Créer le modèle
+              {m.settings_template_new_submit()}
             </Button>
           </Form>
         </CardContent>

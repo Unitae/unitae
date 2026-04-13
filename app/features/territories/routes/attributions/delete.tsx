@@ -8,6 +8,8 @@ import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/delete'
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -42,18 +44,17 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
     <div className="flex items-center justify-center p-7">
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-center">Annuler l'attribution</CardTitle>
+          <CardTitle className="text-center">{m.attributions_delete_card_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground">
-            Êtes-vous sûr de vouloir annuler l'attribution de {attribution.publisher.firstname} ? Cette action est
-            irréversible.
+            {m.attributions_delete_confirm_message({ name: attribution.publisher.firstname ?? '' })}
           </p>
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
             <Button type="submit" variant="destructive">
-              Annuler l'attribution du territoire {attribution.territory.number}
+              {m.attributions_delete_submit({ number: String(attribution.territory.number) })}
             </Button>
           </Form>
         </CardFooter>
@@ -81,7 +82,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      `L'attribution de ${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname} a été annulée`,
+      m.attributions_delete_flash_success({ name: `${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname}` }),
     )
 
     const previousPage = request.headers.get('referer')

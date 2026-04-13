@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -41,14 +42,12 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
     <div className="flex items-center justify-center p-7">
       <Card className="max-w-md">
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            Êtes-vous sûr de vouloir supprimer le groupe {group.name} ? Cette action est irréversible.
-          </p>
+          <p className="text-center text-muted-foreground">{m.groups_delete_confirmation({ name: group.name })}</p>
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
-            <Button type="submit" variant="destructive" title="Supprimer complètement le groupe de prédication">
-              Supprimer le groupe {group.name}
+            <Button type="submit" variant="destructive" title={m.groups_delete_title()}>
+              {m.groups_delete_button({ name: group.name })}
             </Button>
           </Form>
         </CardFooter>
@@ -73,7 +72,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
 
-    session.flash('success', `Le groupe ${group.name} a été correctement supprimé`)
+    session.flash('success', m.groups_delete_success({ name: group.name }))
 
     const previousPage = request.headers.get('referer')
     return redirect(previousPage ?? '/congregation/publisher-groups/', {

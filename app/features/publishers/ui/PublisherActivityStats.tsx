@@ -1,3 +1,4 @@
+import * as m from '~/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 
 export default function PublisherActivityStats({
@@ -36,13 +37,17 @@ export default function PublisherActivityStats({
           <span className="font-black text-4xl tracking-tight">
             {stats.all.hours}
             <span className="text-lg text-muted-foreground">h</span> / {stats.all.studies}{' '}
-            <span className="text-lg text-muted-foreground">études</span>
+            <span className="text-lg text-muted-foreground">{m.activity_stats_studies()}</span>
           </span>
           <span className="text-muted-foreground text-xs">
-            par les {stats.all.count} membres de l'assemblée{' '}
+            {m.activity_stats_all_members({ count: String(stats.all.count) })}{' '}
             {iregular > 0 && (
               <span className="text-destructive">
-                (dont {iregular} irrégulier{iregular > 1 && 's'})
+                (
+                {iregular > 1
+                  ? m.activity_stats_irregular_plural({ count: String(iregular) })
+                  : m.activity_stats_irregular({ count: String(iregular) })}
+                )
               </span>
             )}
           </span>
@@ -51,9 +56,11 @@ export default function PublisherActivityStats({
       <Card className="border-dashed">
         <CardContent className="flex flex-col items-center justify-center gap-1 p-4 text-center">
           <span className="font-black text-4xl text-muted-foreground tracking-tight">
-            - / {stats.publishers.studies} <span className="text-lg">études</span>
+            - / {stats.publishers.studies} <span className="text-lg">{m.activity_stats_studies()}</span>
           </span>
-          <span className="text-muted-foreground text-xs">par les {stats.publishers.count} proclamateurs</span>
+          <span className="text-muted-foreground text-xs">
+            {m.activity_stats_publishers({ count: String(stats.publishers.count) })}
+          </span>
         </CardContent>
       </Card>
       <Card className="border-dashed">
@@ -61,10 +68,10 @@ export default function PublisherActivityStats({
           <span className="font-black text-4xl text-muted-foreground tracking-tight">
             {stats.auxiliaryPionneer.hours}
             <span className="text-lg">h</span> / {stats.auxiliaryPionneer.studies}{' '}
-            <span className="text-lg">études</span>
+            <span className="text-lg">{m.activity_stats_studies()}</span>
           </span>
           <span className="text-muted-foreground text-xs">
-            par les {stats.auxiliaryPionneer.count} pionniers auxiliaires
+            {m.activity_stats_auxiliary_pioneers({ count: String(stats.auxiliaryPionneer.count) })}
           </span>
         </CardContent>
       </Card>
@@ -73,10 +80,10 @@ export default function PublisherActivityStats({
           <span className="font-black text-4xl text-muted-foreground tracking-tight">
             {stats.permanentPionneer.hours}
             <span className="text-lg">h</span> / {stats.permanentPionneer.studies}{' '}
-            <span className="text-lg">études</span>
+            <span className="text-lg">{m.activity_stats_studies()}</span>
           </span>
           <span className="text-muted-foreground text-xs">
-            par les {stats.permanentPionneer.count} pionniers permanents
+            {m.activity_stats_permanent_pioneers({ count: String(stats.permanentPionneer.count) })}
           </span>
         </CardContent>
       </Card>

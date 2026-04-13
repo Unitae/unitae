@@ -7,6 +7,7 @@ import {
 } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
+import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb } from '~/shared/libs/db.server'
@@ -15,11 +16,10 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-
 import type { Route } from './+types/login'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Connexion - Unitae' }]
+  return [{ title: `${m.auth_login_page_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -81,22 +81,22 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.auth_login_email()}</Label>
               <Input id="email" name="email" type="email" autoFocus={true} autoComplete="username" required />
             </div>
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Mot de passe</Label>
+                <Label htmlFor="password">{m.auth_login_password()}</Label>
                 <Link to="/password/forgot" className="text-primary text-xs hover:underline">
-                  Mot de passe oublié
+                  {m.auth_login_forgot_password()}
                 </Link>
               </div>
               <Input id="password" name="password" type="password" autoComplete="current-password" />
             </div>
 
             <Button type="submit" className="mt-4 w-full">
-              Connexion
+              {m.auth_login_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -114,7 +114,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const allowed = await checkLoginRateLimit(username)
   if (!allowed) {
-    session.flash('error', 'Trop de tentatives. Réessayez dans quelques minutes.')
+    session.flash('error', m.auth_login_rate_limit_error())
 
     return redirect('/login', {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -133,7 +133,7 @@ export async function action({ request }: Route.ActionArgs) {
         actorEmail: username,
       })
     }
-    session.flash('error', 'Email ou mot de passe invalide')
+    session.flash('error', m.auth_login_invalid_credentials_error())
 
     return redirect('/login', {
       headers: { 'Set-Cookie': await commitSession(session) },

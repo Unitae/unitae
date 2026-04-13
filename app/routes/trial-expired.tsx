@@ -1,4 +1,5 @@
 import { Link } from 'react-router'
+import * as m from '~/paraglide/messages'
 
 import { getHostSettings } from '~/shared/libs/host-settings.server'
 
@@ -23,19 +24,16 @@ export default function TrialExpiredPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">
       <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-4 font-bold text-2xl text-gray-900">Période d'essai terminée</h1>
-        <p className="mb-6 text-gray-600">
-          Votre période d'essai est arrivée à son terme. Pour continuer à utiliser Unitae, veuillez mettre à niveau
-          votre abonnement.
-        </p>
+        <h1 className="mb-4 font-bold text-2xl text-gray-900">{m.trial_expired_title()}</h1>
+        <p className="mb-6 text-gray-600">{m.trial_expired_message()}</p>
         <div className="flex flex-col gap-3">
           {upgradeUrl && (
             <a href={upgradeUrl} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-              Mettre à niveau mon abonnement
+              {m.trial_expired_upgrade()}
             </a>
           )}
           <Link to="/logout" className="text-gray-500 text-sm hover:text-gray-700">
-            Se déconnecter
+            {m.trial_expired_logout()}
           </Link>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -16,7 +17,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Activité du proclamateurs - Unitae' }]
+  return [{ title: m.activity_edit_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -68,13 +69,13 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`Rapport de ${date.toLocaleDateString('fr', {
-          month: 'long',
-          year: 'numeric',
-        })} - ${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`}
-        subtitle="Modifier le rapport d'activité du proclamateur"
+        title={m.activity_edit_title({
+          date: date.toLocaleDateString('fr', { month: 'long', year: 'numeric' }),
+          name: `${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`,
+        })}
+        subtitle={m.activity_edit_subtitle()}
         actions={
-          <Button asChild variant="destructive" size="icon" title="Supprimer le rapport">
+          <Button asChild variant="destructive" size="icon" title={m.activity_edit_delete_title()}>
             <Link to={`/congregation/publishers/activity/${activity.id}/delete`}>
               <Trash2 className="size-4" />
             </Link>
@@ -84,12 +85,12 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Détails du rapport</CardTitle>
+          <CardTitle>{m.activity_edit_report_details()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="type">Service de pionnier</Label>
+              <Label htmlFor="type">{m.activity_edit_pioneer_label()}</Label>
               <select
                 id="type"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
@@ -100,15 +101,11 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
                 }}
                 required
               >
-                <option value={PublisherType.Normal}>Le proclamateur n'a pas pris le service ce mois</option>
-                <option value={PublisherType.PionnierAuxiliaires}>
-                  Le proclamateur a pris le service de Pionnier Auxiliaire ce mois
-                </option>
-                <option value={PublisherType.PionnierPermanant}>
-                  Le proclamateur était Pionnier Permanent ce mois
-                </option>
-                <option value={PublisherType.PionnierSpecial}>Le proclamateur était Pionnier Spécial ce mois</option>
-                <option value={PublisherType.Missionnaire}>Le proclamateur était Missionnaire ce mois</option>
+                <option value={PublisherType.Normal}>{m.activity_edit_pioneer_none()}</option>
+                <option value={PublisherType.PionnierAuxiliaires}>{m.activity_edit_pioneer_auxiliary()}</option>
+                <option value={PublisherType.PionnierPermanant}>{m.activity_edit_pioneer_permanent()}</option>
+                <option value={PublisherType.PionnierSpecial}>{m.activity_edit_pioneer_special()}</option>
+                <option value={PublisherType.Missionnaire}>{m.activity_edit_pioneer_missionary()}</option>
               </select>
             </div>
 
@@ -120,7 +117,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
                 PublisherType.Missionnaire,
               ].includes(type as PublisherType) ? (
                 <div className="space-y-2">
-                  <Label htmlFor="hours">Heures</Label>
+                  <Label htmlFor="hours">{m.activity_new_hours_label()}</Label>
                   <Input id="hours" name="hours" type="number" required defaultValue={activity.hours ?? 0} min={0} />
                 </div>
               ) : (
@@ -133,12 +130,12 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
                     defaultChecked={activity.isPublisher}
                   />
                   <Label htmlFor="preached" className="font-normal">
-                    Le proclamateur a préché ce mois
+                    {m.activity_new_preached_label()}
                   </Label>
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="studies">Études</Label>
+                <Label htmlFor="studies">{m.activity_new_studies_label()}</Label>
                 <Input
                   id="studies"
                   name="studies"
@@ -151,7 +148,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="observations">Observations</Label>
+              <Label htmlFor="observations">{m.activity_new_observations_label()}</Label>
               <textarea
                 id="observations"
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs"
@@ -161,7 +158,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
             </div>
 
             <Button type="submit" className="self-start">
-              Enregistrer le rapport
+              {m.activity_new_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -205,7 +202,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const observations = String(form.get('observations'))
 
     if (activity?.publisher == null) {
-      session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
+      session.flash('error', m.activity_form_error_incomplete())
       throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
         headers: {
           'Set-Cookie': await commitSession(session),
@@ -233,7 +230,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      `Le rapport d'activité de ${activity.publisher.firstname} ${activity.publisher.lastname} à été enregistré avec succès`,
+      m.activity_edit_success({ name: `${activity.publisher.firstname} ${activity.publisher.lastname}` }),
     )
     return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {

@@ -5,16 +5,16 @@ import {
 } from '~/features/authentication/server/invalidate-user-password.server'
 import { resetUserPassword } from '~/features/authentication/server/reset-user-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import * as m from '~/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-
 import type { Route } from './+types/password-reset'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Réinitialiser le mot de passe - Unitae' }]
+  return [{ title: `${m.auth_password_reset_page_title()} - Unitae` }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -47,12 +47,12 @@ export default function PasswordResetPage({ loaderData }: Route.ComponentProps) 
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
           <h1 className="font-bold font-display text-2xl tracking-tight">{brandingName}</h1>
-          <p className="text-muted-foreground text-sm">Réinitialiser votre mot de passe</p>
+          <p className="text-muted-foreground text-sm">{m.auth_password_reset_subtitle()}</p>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.auth_password_reset_email_label()}</Label>
               <Input
                 id="email"
                 name="email"
@@ -66,17 +66,17 @@ export default function PasswordResetPage({ loaderData }: Route.ComponentProps) 
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Nouveau mot de passe</Label>
+              <Label htmlFor="password">{m.auth_password_reset_new_password_label()}</Label>
               <Input id="password" name="password" type="password" autoComplete="new-password" />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="repeat-password">Confirmer le mot de passe</Label>
+              <Label htmlFor="repeat-password">{m.auth_password_reset_confirm_password_label()}</Label>
               <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" />
             </div>
 
             <Button type="submit" className="mt-4 w-full">
-              Modifier le mot de passe
+              {m.auth_password_reset_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -93,7 +93,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const repeatPassword = form.get('repeat-password')
 
   if (password !== repeatPassword) {
-    session.flash('error', 'Les mots de passe ne correspondent pas')
+    session.flash('error', m.auth_password_reset_mismatch_error())
 
     throw redirect(`/password/${params.userHash}/reset`, {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -103,7 +103,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
   if (user == null || user.email !== String(username)) {
-    session.flash('error', 'Le lien de réinitialisation est invalide ou expiré')
+    session.flash('error', m.auth_password_reset_invalid_token_error())
 
     throw redirect('/', {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -113,7 +113,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   await resetUserPassword(user.id, String(password))
   await consumePasswordResetToken(params.userHash ?? '')
 
-  session.flash('success', 'Mot de passe modifié avec succès')
+  session.flash('success', m.auth_password_reset_success_message())
   return redirect('/', {
     headers: { 'Set-Cookie': await commitSession(session) },
   })

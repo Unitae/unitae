@@ -1,6 +1,7 @@
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -21,7 +22,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Nouveau territoire - Unitae' }]
+  return [{ title: m.territories_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -75,26 +76,26 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Création d'un territoire" subtitle="Créer manuellement un nouveau territoire" />
+      <PageHeader title={m.territories_new_title()} subtitle={m.territories_new_subtitle()} />
       <div className="flex gap-10 max-sm:flex-col">
         <Card className="flex-1">
           <CardContent className="pt-6">
             <Form method="post" className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label>Numéro</Label>
-                <Input name="number" type="text" placeholder="Numéro du territoire" required />
+                <Label>{m.territories_form_number()}</Label>
+                <Input name="number" type="text" placeholder={m.territories_form_number_placeholder()} required />
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>Type de territoire</Label>
+                <Label>{m.territories_form_type()}</Label>
                 <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" name="type" required>
-                  <option value={TerritoryKind.Classical}>Porte à Porte</option>
-                  <option value={TerritoryKind.Commerces}>Commerces</option>
-                  <option value={TerritoryKind.Hotel}>Hôtels</option>
-                  {phoneTypeActive && <option value={TerritoryKind.Phone}>Téléphone</option>}
-                  <option value={TerritoryKind.Univ}>Université</option>
+                  <option value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</option>
+                  <option value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</option>
+                  <option value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</option>
+                  {phoneTypeActive && <option value={TerritoryKind.Phone}>{m.territories_type_phone_singular()}</option>}
+                  <option value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</option>
                 </select>
               </div>
-              <h2 className="font-semibold text-lg">Allées</h2>
+              <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
               {territoryEntrances.map(entrance => (
                 <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
                   <input type="hidden" name="entrances" value={entrance.id} />
@@ -104,14 +105,14 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                       {entrance.buildings[0].zip}
                     </span>
                     <span className="text-muted-foreground text-sm">
-                      {(entrance.homes ?? 0) || (entrance.phones ?? 0)} foyers
+                      {m.territories_form_homes_count({ count: (entrance.homes ?? 0) || (entrance.phones ?? 0) })}
                     </span>
                   </div>
                   <div className="flex gap-2">
                     <Button variant="ghost" size="icon" asChild>
                       <Link
                         to={`/territories/building/${entrance.buildings[0].id}/edit`}
-                        title="Voir le détail de ce batiment"
+                        title={m.territories_form_view_building_title()}
                       >
                         <ExternalLink className="size-4 text-primary" />
                       </Link>
@@ -125,7 +126,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                         const tmpBuilding = territoryEntrances.filter(tb => tb.id !== entrance.id)
                         setTerritoryEntrances(tmpBuilding)
                       }}
-                      title="Supprimer le batiment de ce territoire"
+                      title={m.territories_form_remove_building_title()}
                     >
                       <Trash2 className="size-4" />
                     </Button>
@@ -140,7 +141,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                 onSelectionChange={selection => setTerritoryEntrances(selection)}
               />
               <Button type="submit" className="mt-2">
-                Créer le territoire
+                {m.territories_form_create_submit()}
               </Button>
             </Form>
           </CardContent>

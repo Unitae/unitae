@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -51,10 +52,10 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Modification d'un groupe"
-        subtitle="Modifier un groupe de prédication"
+        title={m.groups_edit_title()}
+        subtitle={m.groups_edit_subtitle()}
         actions={
-          <Button asChild variant="destructive" size="icon" title="Supprimer complètement le groupe de prédication">
+          <Button asChild variant="destructive" size="icon" title={m.groups_edit_delete_title()}>
             <Link to={`/congregation/publisher-groups/${group.id}/delete`}>
               <Trash2 className="size-4" />
             </Link>
@@ -64,35 +65,35 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Informations du groupe</CardTitle>
+          <CardTitle>{m.groups_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="name">Nom</Label>
+                <Label htmlFor="name">{m.groups_form_name()}</Label>
                 <Input
                   id="name"
                   name="name"
                   type="text"
-                  placeholder="Nom du groupe"
+                  placeholder={m.groups_form_name_placeholder()}
                   defaultValue={group.name}
                   required
                 />
               </div>
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor="address">Adresse</Label>
+                <Label htmlFor="address">{m.groups_form_address()}</Label>
                 <Input
                   id="address"
                   name="address"
                   type="text"
-                  placeholder="Adresse du groupe de prédication"
+                  placeholder={m.groups_form_address_placeholder()}
                   defaultValue={group.adress}
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="responsible">Responsable</Label>
+                <Label htmlFor="responsible">{m.groups_form_responsible()}</Label>
                 <select
                   id="responsible"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
@@ -100,7 +101,7 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
                   required
                   defaultValue={group.responsibleId}
                 >
-                  <option disabled>Choisir un frère responsable de groupe</option>
+                  <option disabled>{m.groups_form_responsible_placeholder()}</option>
                   {brothers.map(brother => (
                     <option key={brother.id} value={brother.id}>
                       {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
@@ -109,14 +110,14 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="deputy">Adjoint</Label>
+                <Label htmlFor="deputy">{m.groups_form_deputy()}</Label>
                 <select
                   id="deputy"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                   name="deputy"
                   defaultValue={group.deputyId ?? ''}
                 >
-                  <option value="">Aucun adjoint</option>
+                  <option value="">{m.groups_form_no_deputy()}</option>
                   {brothers.map(brother => (
                     <option key={brother.id} value={brother.id}>
                       {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
@@ -127,7 +128,7 @@ export default function EditGroup({ loaderData }: Route.ComponentProps) {
             </div>
 
             <Button type="submit" className="self-start">
-              Enregistrer
+              {m.common_save()}
             </Button>
           </Form>
         </CardContent>
@@ -154,7 +155,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const session = await getSession(request.headers.get('Cookie'))
   if (name == null || address == null || Number.isNaN(responsibleId)) {
-    session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
+    session.flash('error', m.groups_form_error_incomplete())
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -163,7 +164,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if (deputyId != null && responsibleId === deputyId) {
-    session.flash('error', 'Le responsable de groupe et son adjoint ne peuvent pas être la même personne')
+    session.flash('error', m.groups_form_error_same_person())
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -189,7 +190,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
 
-    session.flash('success', `Le groupe de prédication ${group.name} à été modifié avec succès`)
+    session.flash('success', m.groups_edit_success({ name: group.name }))
     return redirect('/congregation/publisher-groups', {
       headers: {
         'Set-Cookie': await commitSession(session),

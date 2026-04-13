@@ -1,4 +1,5 @@
 import { MapPinOff } from 'lucide-react'
+import * as m from '~/paraglide/messages'
 import type { NeverWorkedTerritory } from '~/features/territories/server/territories-never-worked.server'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -10,8 +11,8 @@ export default function TerritoriesNeverWorkedList({ territories }: { territorie
     return (
       <EmptyState
         icon={MapPinOff}
-        title="Tous les territoires ont été travaillés"
-        description="Chaque territoire a eu au moins une attribution sur la période."
+        title={m.stats_never_worked_all_worked_title()}
+        description={m.stats_never_worked_all_worked_desc()}
       />
     )
   }
@@ -22,7 +23,9 @@ export default function TerritoriesNeverWorkedList({ territories }: { territorie
   return (
     <div className="flex flex-col gap-3">
       <p className="text-muted-foreground text-sm">
-        {territories.length} territoire{territories.length > 1 ? 's' : ''} sans aucune attribution sur la période :
+        {territories.length > 1
+          ? m.stats_never_worked_count_other({ count: territories.length })
+          : m.stats_never_worked_count_one({ count: territories.length })}
       </p>
       <div className="flex flex-wrap gap-2">
         {displayed.map(t => (
@@ -30,7 +33,7 @@ export default function TerritoriesNeverWorkedList({ territories }: { territorie
             {t.number}
           </Badge>
         ))}
-        {remaining > 0 && <Badge variant="secondary">+{remaining} autres</Badge>}
+        {remaining > 0 && <Badge variant="secondary">{m.stats_never_worked_more({ count: remaining })}</Badge>}
       </div>
     </div>
   )

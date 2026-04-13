@@ -6,6 +6,7 @@ import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldSe
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { getBoolSetting } from '~/features/settings/server/settings'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -15,7 +16,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit-publisher'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Fiche Proclamateur - Unitae' }]
+  return [{ title: m.publishers_edit_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -60,23 +61,18 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Modification d'un proclamateur"
-        subtitle="Modifier la fiche d'un proclamateur"
+        title={m.publishers_edit_title()}
+        subtitle={m.publishers_edit_subtitle()}
         actions={
           user.isPublisher ? (
             <Form method="post" action={`/settings/users/${user.id}/unmake-publisher`}>
-              <Button
-                type="submit"
-                variant="secondary"
-                size="icon"
-                title="Désactiver la fiche proclamateur. L'utilisateur ne sera plus proclamateur dans cette assemblée."
-              >
+              <Button type="submit" variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
                 <Archive className="size-4" />
               </Button>
             </Form>
           ) : (
             <Form method="post" action={`/settings/users/${user.id}/make-publisher`}>
-              <Button type="submit" size="icon" title="Activer le batiment">
+              <Button type="submit" size="icon" title={m.publishers_edit_activate_title()}>
                 <IdCard className="size-4" />
               </Button>
             </Form>
@@ -90,7 +86,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
         <Button type="submit" size="lg" className="self-start">
-          Modifier le proclamateur
+          {m.publishers_edit_submit()}
         </Button>
       </Form>
     </div>
@@ -142,7 +138,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
     const session = await getSession(request.headers.get('Cookie'))
-    session.flash('success', `La fiche de proclammateur pour ${user.firstname} à été modifiée avec succès`)
+    session.flash('success', m.publishers_edit_success({ name: user.firstname ?? '' }))
     return redirect(previousPage ?? `/congregation/publishers/${user.id}/view`, {
       headers: {
         'Set-Cookie': await commitSession(session),

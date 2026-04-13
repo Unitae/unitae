@@ -1,5 +1,6 @@
 import { FileDown } from 'lucide-react'
 import { Link } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 
@@ -7,7 +8,7 @@ export default function S13ExportButton({ theocraticYear }: { theocraticYear: nu
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" title="Télécharger les exports">
+        <Button variant="outline" size="icon" title={m.export_button_title()}>
           <FileDown className="size-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -15,19 +16,19 @@ export default function S13ExportButton({ theocraticYear }: { theocraticYear: nu
         <DropdownMenuItem asChild>
           <Link
             to={`/territories/attributions/export/${theocraticYear}/xlsx`}
-            title={`Télécharger le fichier S-13 au format Excel pour l'année ${theocraticYear}`}
+            title={m.export_s13_excel_title({ theocraticYear: String(theocraticYear) })}
             reloadDocument
           >
-            Exporter la S-13 (Excel)
+            {m.export_s13_excel()}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link
             to={`/territories/attributions/export/${theocraticYear}/pdf`}
-            title={`Télécharger le fichier S-13 au format PDF pour l'année ${theocraticYear}`}
+            title={m.export_s13_pdf_title({ theocraticYear: String(theocraticYear) })}
             reloadDocument
           >
-            Exporter la S-13 (PDF)
+            {m.export_s13_pdf()}
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -23,7 +24,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const sections = await db.boardSection.findMany({ where: { congregationId }, orderBy: { order: 'asc' } })
     const currentSection = sections.find(section => section.id === requireParamId(params.sectionId, '/board'))
     if (currentSection == null) {
-      session.flash('error', `La section n'existe pas`)
+      session.flash('error', m.board_sections_move_not_found())
       return redirect('/board/sections', {
         headers: {
           'Set-Cookie': await commitSession(session),
@@ -52,7 +53,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', `La section "${currentSection.name}" a été correctement déplacée vers le haut`)
+    session.flash('success', m.board_sections_move_up_success({ name: currentSection.name }))
 
     return redirect('/board/sections', {
       headers: {

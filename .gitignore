@@ -9,4 +9,5 @@ node_modules
 
 .react-router/
 app/database/generated/
+app/paraglide/
 coverage/

@@ -4,7 +4,8 @@ import { createPasswordResetToken } from '~/features/authentication/server/inval
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import * as m from '~/paraglide/messages'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
@@ -51,7 +52,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     entityId: user.id,
   })
 
-  session.flash('success', `Le mot de passe de ${user.email} a été réinitialisé`)
+  session.flash('success', m.auth_password_invalidation_success({ email: user.email }))
 
   return redirect(`/settings/users/${user.id}/edit`, {
     headers: { 'Set-Cookie': await commitSession(session) },

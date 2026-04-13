@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -28,7 +29,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
 
     if (currentDocument == null) {
-      session.flash('error', `Le document n'existe pas`)
+      session.flash('error', m.board_documents_move_not_found())
       return redirect('/board/documents', {
         headers: {
           'Set-Cookie': await commitSession(session),
@@ -61,7 +62,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', `La section "${currentDocument.title}" a été correctement déplacée vers le bas`)
+    session.flash('success', m.board_documents_move_down_success({ name: currentDocument.title }))
 
     return redirect('/board/documents', {
       headers: {

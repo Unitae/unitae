@@ -1,6 +1,7 @@
 import { data, NavLink, Outlet, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
@@ -14,7 +15,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Propection - Unitae' }]
+  return [{ title: m.split_tool_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -113,8 +114,8 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
       <AlertMessages messages={messages} />
 
       <PageHeader
-        title="Découpage des territoires"
-        subtitle="Liste des bâtiments du territoire de l'assemblée locale à attribuer à des territoires"
+        title={m.split_tool_title()}
+        subtitle={m.split_tool_subtitle()}
       />
 
       <div className="flex flex-wrap justify-around gap-3 rounded-lg border bg-muted/50 p-2">
@@ -125,13 +126,13 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title="Batiments disponibles pour du porte à portes"
+          title={m.split_tool_classical_title()}
           caseSensitive
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.classical.toLocaleString()}</span>
           <span className="text-sm">
-            batiments disponibles <br /> pour le porte à porte
+            {m.split_tool_classical_label_line1()} <br /> {m.split_tool_classical_label_line2()}
           </span>
         </NavLink>
         <NavLink
@@ -141,12 +142,12 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title="Batiments disponibles pour l'activité Commerces"
+          title={m.split_tool_commerces_title()}
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.commerce.toLocaleString()}</span>
           <span className="text-sm">
-            commerces <br /> disponibles
+            {m.split_tool_commerces_label_line1()} <br /> {m.split_tool_commerces_label_line2()}
           </span>
         </NavLink>
         {phoneTypeActive && (
@@ -157,12 +158,12 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
                 ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
                 : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
             }
-            title={'Batiments disponibles avec du téléphone'}
+            title={m.split_tool_phones_title()}
             end
           >
             <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.phones.toLocaleString()}</span>
             <span className="text-sm">
-              batiments disponibles <br /> avec du téléphone
+              {m.split_tool_phones_label_line1()} <br /> {m.split_tool_phones_label_line2()}
             </span>
           </NavLink>
         )}
@@ -173,12 +174,12 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title="Batiments disponibles avec des logements pour étudiants"
+          title={m.split_tool_campus_title()}
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.campus.toLocaleString()}</span>
           <span className="text-sm">
-            résidences universitaires <br /> disponibles
+            {m.split_tool_campus_label_line1()} <br /> {m.split_tool_campus_label_line2()}
           </span>
         </NavLink>
         <NavLink
@@ -188,12 +189,12 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title="Batiments disponibles avec des hotels"
+          title={m.split_tool_hotels_title()}
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.hotel.toLocaleString()}</span>
           <span className="text-sm">
-            hôtels <br /> disponibles
+            {m.split_tool_hotels_label_line1()} <br /> {m.split_tool_hotels_label_line2()}
           </span>
         </NavLink>
       </div>

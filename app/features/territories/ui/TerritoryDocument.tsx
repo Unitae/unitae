@@ -1,5 +1,6 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { BuildingAccess } from '~/database/generated/client'
+import * as m from '~/paraglide/messages'
 import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -117,12 +118,12 @@ export function TerritoryDocument({
   restitutionDate,
   attributionType = TerritoryAttributionKind.Default,
 }: TerritoryDocumentProps) {
-  let unit = 'allées'
+  let unit = m.territory_doc_unit_entrances()
   if (type === TerritoryKind.Phone) {
-    unit = 'numéros'
+    unit = m.territory_doc_unit_phones()
   }
   if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
-    unit = 'foyers'
+    unit = m.territory_doc_unit_homes()
   }
 
   let quantity = entrances.length
@@ -149,7 +150,7 @@ export function TerritoryDocument({
       <Page size={{ width: 270, height: 425 }} style={styles.page}>
         <View>
           <View style={styles.header}>
-            <Text style={styles.title}>Territoire nº{name}</Text>
+            <Text style={styles.title}>{m.territory_doc_title({ name })}</Text>
             <Text style={styles.alt}>
               {quantity} {unit}
             </Text>
@@ -164,8 +165,8 @@ export function TerritoryDocument({
           })}
         </View>
         <View style={styles.footer}>
-          <Text style={styles.alt}>Sorti par {owner ?? '........................'}</Text>
-          <Text style={styles.alt}>Jusqu'au {restitutionDate?.toLocaleDateString('fr') ?? '..................'}</Text>
+          <Text style={styles.alt}>{m.territory_doc_checked_out_by()} {owner ?? '........................'}</Text>
+          <Text style={styles.alt}>{m.territory_doc_return_by()} {restitutionDate?.toLocaleDateString('fr') ?? '..................'}</Text>
         </View>
         <DocumentWaterMark type={attributionType} />
       </Page>
@@ -176,7 +177,7 @@ export function TerritoryDocument({
           />
           <View style={styles.footerMap}>
             <Image src="/marker-google.jpg" style={{ height: 20 }} />
-            <Text>Position du territoire attribué</Text>
+            <Text>{m.territory_doc_map_position()}</Text>
           </View>
         </Page>
       )}
@@ -186,11 +187,11 @@ export function TerritoryDocument({
 
 function DocumentWaterMark({ type }: { type: TerritoryAttributionKind }) {
   if (type === TerritoryAttributionKind.Campaign) {
-    return <Text style={styles.watermark}>Campagne</Text>
+    return <Text style={styles.watermark}>{m.territory_doc_watermark_campaign()}</Text>
   }
 
   if (type === TerritoryAttributionKind.Phone) {
-    return <Text style={[styles.watermark, { color: '#0f766e', left: '10%' }]}>Téléphones</Text>
+    return <Text style={[styles.watermark, { color: '#0f766e', left: '10%' }]}>{m.territory_doc_watermark_phones()}</Text>
   }
 
   return null
@@ -199,18 +200,18 @@ function DocumentWaterMark({ type }: { type: TerritoryAttributionKind }) {
 function TypeInformations({ type }: { type: TerritoryKind }) {
   return (
     <Text style={styles.type}>
-      {type === TerritoryKind.Phone && 'Téléphone'}
-      {type === TerritoryKind.Univ && 'Univ'}
-      {type === TerritoryKind.Commerces && 'Commerce'}
-      {type === TerritoryKind.Hotel && 'Hôtel'}
+      {type === TerritoryKind.Phone && m.territories_type_phone_singular()}
+      {type === TerritoryKind.Univ && m.territories_type_university_singular()}
+      {type === TerritoryKind.Commerces && m.territory_doc_type_commerce()}
+      {type === TerritoryKind.Hotel && m.territories_type_hotel_singular()}
     </Text>
   )
 }
 
 function formatAccessLabel(accessType: number): string {
-  if (accessType === TerritoryAccess.Intercom) return 'Interphone'
-  if (accessType === TerritoryAccess.Code) return 'Digicode'
-  if (accessType === TerritoryAccess.Doorbell) return 'Sonnette extérieure'
+  if (accessType === TerritoryAccess.Intercom) return m.territory_doc_access_intercom()
+  if (accessType === TerritoryAccess.Code) return m.territory_doc_access_digicode()
+  if (accessType === TerritoryAccess.Doorbell) return m.territory_doc_access_doorbell()
   return ''
 }
 
@@ -247,8 +248,8 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
       </Text>
       <Text style={styles.secondary}>
         {accessText.length > 0 && `${accessText}. `}
-        {hasCode && entrance.isOpenEarly === true && 'Ouvert le matin. '}
-        {hasCode && entrance.isMailboxOpen === true && 'Boite aux lettres accessible. '}
+        {hasCode && entrance.isOpenEarly === true && `${m.territory_doc_open_morning()} `}
+        {hasCode && entrance.isMailboxOpen === true && `${m.territory_doc_mailbox_accessible()} `}
         {canShowPhone && phones > 0 && `${phones} tél.`}
       </Text>
       {entrance.notes.length > 0 && <Text style={styles.alert}>{entrance.notes}</Text>}

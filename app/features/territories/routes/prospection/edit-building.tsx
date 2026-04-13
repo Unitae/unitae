@@ -15,6 +15,8 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/edit-building'
 
 export const meta: Route.MetaFunction = ({ data }) => {
@@ -64,10 +66,10 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
       <PageHeader
         title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
-        subtitle="Modifier les informations d'un batiment"
+        subtitle={m.prospection_edit_building_subtitle()}
         actions={
           <Button variant="destructive" size="icon" asChild>
-            <Link to={`/territories/building/${building.id}/delete`} title="Supprimer complètement le batiment">
+            <Link to={`/territories/building/${building.id}/delete`} title={m.prospection_edit_building_delete_title()}>
               <Trash2 className="size-4" />
             </Link>
           </Button>
@@ -77,44 +79,44 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
       <Card>
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
-            <h2 className="font-semibold text-lg">Identification</h2>
+            <h2 className="font-semibold text-lg">{m.prospection_building_identification()}</h2>
             <div className="flex flex-col gap-1.5">
-              <Label>Numéro</Label>
+              <Label>{m.territories_form_number()}</Label>
               <Input
                 name="number"
                 type="text"
-                placeholder="Numéro du batiment"
+                placeholder={m.prospection_new_building_number_placeholder()}
                 required
                 defaultValue={building.number}
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Voie</Label>
-              <Input name="street" type="text" placeholder="Nom de la voie" required defaultValue={building.street} />
+              <Label>{m.prospection_new_building_street_label()}</Label>
+              <Input name="street" type="text" placeholder={m.prospection_new_building_street_placeholder()} required defaultValue={building.street} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>Code postal</Label>
+              <Label>{m.prospection_new_building_zip_label()}</Label>
               <Input
                 name="zip"
                 type="text"
-                placeholder="Code postal de la ville"
+                placeholder={m.prospection_new_building_zip_placeholder()}
                 required
                 defaultValue={building.zip}
               />
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Latitude</Label>
+                <Label>{m.prospection_table_latitude()}</Label>
                 <Input defaultValue={building.latitude ?? ''} name="latitude" type="number" step={0.0000001} />
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Longitude</Label>
+                <Label>{m.prospection_table_longitude()}</Label>
                 <Input defaultValue={building.longitude ?? ''} name="longitude" type="number" step={0.0000001} />
               </div>
             </div>
 
             <Button type="submit" className="mt-2">
-              Modifier le batiment
+              {m.prospection_edit_building_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -156,10 +158,10 @@ export async function action({ request, params }: Route.ActionArgs) {
         },
       })
 
-      session.flash('success', 'Le batiment a été correctement modifié')
+      session.flash('success', m.prospection_edit_building_success())
     } catch (e) {
       logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-      session.flash('error', `Erreur lors de l'enregistrement du batiment`)
+      session.flash('error', m.prospection_edit_building_error())
     }
 
     const previousPage = request.headers.get('referer')

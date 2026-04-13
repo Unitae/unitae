@@ -22,10 +22,12 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Listes des attributions - Unitae' }]
+  return [{ title: m.attributions_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -112,14 +114,14 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       <div className="flex flex-col gap-5">
         <AlertMessages messages={messages} />
         <PageHeader
-          title="Attributions"
-          subtitle="Liste des attributions en cours"
+          title={m.attributions_title()}
+          subtitle={m.attributions_subtitle()}
           actions={
             <>
               <S13ExportButton theocraticYear={theocraticYear} />
               {canManageTerritories && (
                 <Button asChild>
-                  <Link to="./new/available-territories">Attribuer un territoire</Link>
+                  <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
                 </Button>
               )}
             </>
@@ -130,8 +132,8 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
 
         <EmptyState
           icon={CalendarCheck}
-          title="Il n'y a aucune attribution pour le moment !"
-          description="Pour attribuer un territoire à un proclamateur, utilisez le bouton &laquo; Attribuer un territoire &raquo; en haut à droite de l'écran."
+          title={m.attributions_empty_title()}
+          description={m.attributions_empty_description()}
         />
       </div>
     )
@@ -141,14 +143,14 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
       <PageHeader
-        title="Attributions"
-        subtitle="Liste des attributions en cours"
+        title={m.attributions_title()}
+        subtitle={m.attributions_subtitle()}
         actions={
           <>
             <S13ExportButton theocraticYear={theocraticYear} />
             {canManageTerritories && (
               <Button asChild>
-                <Link to="./new/available-territories">Attribuer un territoire</Link>
+                <Link to="./new/available-territories">{m.attributions_assign_button()}</Link>
               </Button>
             )}
           </>
@@ -162,14 +164,14 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Sortie le</TableHead>
-                <TableHead className="text-center">Nº</TableHead>
-                <TableHead className="text-center">Proclamateur</TableHead>
-                <TableHead className="text-center max-sm:hidden">Type</TableHead>
-                <TableHead className="text-center">Statut</TableHead>
-                <TableHead className="max-sm:hidden">Notes</TableHead>
+                <TableHead>{m.attributions_table_checkout_date()}</TableHead>
+                <TableHead className="text-center">{m.attributions_table_number()}</TableHead>
+                <TableHead className="text-center">{m.attributions_table_publisher()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.attributions_table_type()}</TableHead>
+                <TableHead className="text-center">{m.attributions_table_status()}</TableHead>
+                <TableHead className="max-sm:hidden">{m.attributions_table_notes()}</TableHead>
                 <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{m.common_actions()}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -193,7 +195,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     <TableCell>
                       {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
                       <span className="text-muted-foreground text-xs">
-                        ({((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2)} jours)
+                        ({m.attributions_days_count({ count: ((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2) })})
                       </span>
                     </TableCell>
                     <TableCell className="text-center">
@@ -219,9 +221,9 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                       )}
                     </TableCell>
                     <TableCell className="text-center max-sm:hidden">
-                      {attribution.type === TerritoryAttributionKind.Default && 'Porte à porte'}
-                      {attribution.type === TerritoryAttributionKind.Campaign && 'Campagne de distribution'}
-                      {attribution.type === TerritoryAttributionKind.Phone && 'Téléphones'}
+                      {attribution.type === TerritoryAttributionKind.Default && m.attributions_type_default()}
+                      {attribution.type === TerritoryAttributionKind.Campaign && m.attributions_type_campaign()}
+                      {attribution.type === TerritoryAttributionKind.Phone && m.attributions_type_phone()}
                     </TableCell>
                     <TableCell className="text-center">
                       <AttributionStatus attribution={attribution} />
@@ -247,7 +249,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                               >
                                 <Link
                                   to={`/territories/attributions/${attribution.id}/delete`}
-                                  title="Annuler l'attribution"
+                                  title={m.attributions_cancel_title()}
                                 >
                                   <X className="size-4" />
                                 </Link>

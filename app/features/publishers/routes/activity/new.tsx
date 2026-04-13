@@ -4,6 +4,7 @@ import { sanitizeUser } from '~/features/authentication/server/sanitize-user.ser
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getPublishers } from '~/features/publishers/server/publishers'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -15,7 +16,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Activité du proclamateurs - Unitae' }]
+  return [{ title: m.activity_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -86,21 +87,18 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Nouveau rapport d'activité"
-        subtitle="Créer un nouveau rapport d'activité pour un proclamateur"
-      />
+      <PageHeader title={m.activity_new_title()} subtitle={m.activity_new_subtitle()} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Informations du rapport</CardTitle>
+          <CardTitle>{m.activity_new_report_info()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <input type="hidden" name="previousPage" value={previousPage ?? ''} />
 
             <div className="space-y-2">
-              <Label htmlFor="publisher">Proclamateur</Label>
+              <Label htmlFor="publisher">{m.activity_new_publisher_label()}</Label>
               <select
                 id="publisher"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
@@ -112,7 +110,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
                 }}
                 required
               >
-                <option>Sélectionner un proclamateur</option>
+                <option>{m.activity_new_publisher_placeholder()}</option>
                 {publishers.map(p => (
                   <option key={p.id} value={p?.id}>
                     {p.firstname} {p.lastname?.toLocaleUpperCase()}
@@ -123,7 +121,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="month">Mois concerné</Label>
+                <Label htmlFor="month">{m.activity_new_month_label()}</Label>
                 <select
                   id="month"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
@@ -135,47 +133,47 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
                   }}
                   required
                 >
-                  <option>Mois</option>
+                  <option>{m.activity_new_month_placeholder()}</option>
                   <option value={0} disabled={unavailableMonths.includes(0)}>
-                    Janvier
+                    {m.activity_month_january()}
                   </option>
                   <option value={1} disabled={unavailableMonths.includes(1)}>
-                    Février
+                    {m.activity_month_february()}
                   </option>
                   <option value={2} disabled={unavailableMonths.includes(2)}>
-                    Mars
+                    {m.activity_month_march()}
                   </option>
                   <option value={3} disabled={unavailableMonths.includes(3)}>
-                    Avril
+                    {m.activity_month_april()}
                   </option>
                   <option value={4} disabled={unavailableMonths.includes(4)}>
-                    Mai
+                    {m.activity_month_may()}
                   </option>
                   <option value={5} disabled={unavailableMonths.includes(5)}>
-                    Juin
+                    {m.activity_month_june()}
                   </option>
                   <option value={6} disabled={unavailableMonths.includes(6)}>
-                    Juillet
+                    {m.activity_month_july()}
                   </option>
                   <option value={7} disabled={unavailableMonths.includes(7)}>
-                    Aout
+                    {m.activity_month_august()}
                   </option>
                   <option value={8} disabled={unavailableMonths.includes(8)}>
-                    Septembre
+                    {m.activity_month_september()}
                   </option>
                   <option value={9} disabled={unavailableMonths.includes(9)}>
-                    Octobre
+                    {m.activity_month_october()}
                   </option>
                   <option value={10} disabled={unavailableMonths.includes(10)}>
-                    Novembre
+                    {m.activity_month_november()}
                   </option>
                   <option value={11} disabled={unavailableMonths.includes(11)}>
-                    Décembre
+                    {m.activity_month_december()}
                   </option>
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="year">Année</Label>
+                <Label htmlFor="year">{m.activity_new_year_label()}</Label>
                 <select
                   id="year"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
@@ -187,7 +185,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
                   }}
                   required
                 >
-                  <option>Année</option>
+                  <option>{m.activity_new_year_placeholder()}</option>
                   <option value={2022}>2022</option>
                   <option value={2023}>2023</option>
                   <option value={2024}>2024</option>
@@ -213,7 +211,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
             {[PublisherType.Normal].includes(publisher?.type as PublisherType) && (
               <div className="space-y-2">
-                <Label htmlFor="type">Service de pionnier</Label>
+                <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
                 <select
                   id="type"
                   className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
@@ -224,10 +222,8 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
                   }}
                   required
                 >
-                  <option value={PublisherType.Normal}>Le proclamateur n'a pas pris le service</option>
-                  <option value={PublisherType.PionnierAuxiliaires}>
-                    Le proclamateur a pris le service de Pionnier Auxiliaire ce mois
-                  </option>
+                  <option value={PublisherType.Normal}>{m.activity_new_pioneer_none()}</option>
+                  <option value={PublisherType.PionnierAuxiliaires}>{m.activity_new_pioneer_auxiliary()}</option>
                 </select>
               </div>
             )}
@@ -241,25 +237,25 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
               ].includes(publisher?.type as PublisherType) ||
               [PublisherType.PionnierAuxiliaires].includes(pioneer as PublisherType) ? (
                 <div className="space-y-2">
-                  <Label htmlFor="hours">Heures</Label>
+                  <Label htmlFor="hours">{m.activity_new_hours_label()}</Label>
                   <Input id="hours" name="hours" type="number" required min={0} />
                 </div>
               ) : (
                 <div className="flex items-center gap-3 self-end">
                   <input className="size-4 rounded border border-input" name="preached" type="checkbox" id="preached" />
                   <Label htmlFor="preached" className="font-normal">
-                    Le proclamateur a préché ce mois
+                    {m.activity_new_preached_label()}
                   </Label>
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="studies">Études</Label>
+                <Label htmlFor="studies">{m.activity_new_studies_label()}</Label>
                 <Input id="studies" name="studies" type="number" defaultValue={0} min={0} required />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="observations">Observations</Label>
+              <Label htmlFor="observations">{m.activity_new_observations_label()}</Label>
               <textarea
                 id="observations"
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs"
@@ -268,7 +264,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
             </div>
 
             <Button type="submit" className="self-start">
-              Enregistrer le rapport
+              {m.activity_new_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -309,7 +305,7 @@ export async function action({ request }: Route.ActionArgs) {
     const observations = String(form.get('observations'))
 
     if (publisher == null) {
-      session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
+      session.flash('error', m.activity_form_error_incomplete())
       throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
         headers: {
           'Set-Cookie': await commitSession(session),
@@ -335,10 +331,7 @@ export async function action({ request }: Route.ActionArgs) {
       },
     })
 
-    session.flash(
-      'success',
-      `Le rapport d'activité de ${publisher.firstname} ${publisher.lastname} à été enregistré avec succès`,
-    )
+    session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))
     return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),

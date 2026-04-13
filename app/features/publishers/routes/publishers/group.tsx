@@ -3,6 +3,7 @@ import { Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getGroup } from '~/features/publishers/server/groups'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -57,10 +58,10 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={group.name.toLocaleUpperCase()}
-        subtitle="Toutes les informations disponibles sur ce groupe de prédication sont visualisables sur cette page"
+        subtitle={m.groups_view_subtitle()}
         actions={
           roles.canManagePublisher && (
-            <Button asChild variant="outline" size="icon" title="Modifier le groupe de prédication">
+            <Button asChild variant="outline" size="icon" title={m.groups_view_edit_title()}>
               <Link to={'../edit'} relative="path">
                 <Pencil className="size-4" />
               </Link>
@@ -71,11 +72,11 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Informations du groupe</CardTitle>
+          <CardTitle>{m.groups_info_title()}</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <p className="text-muted-foreground text-sm">
-            Responsable :{' '}
+            {m.groups_view_responsible()} :{' '}
             <Link
               to={`../../../publishers/${group.responsible.id}/view`}
               relative="path"
@@ -85,7 +86,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             </Link>
           </p>
           <p className="text-muted-foreground text-sm">
-            Adjoint au responsable :{' '}
+            {m.groups_view_deputy()} :{' '}
             {group.deputy ? (
               <Link
                 to={`../../../publishers/${group.deputy.id}/view`}
@@ -95,46 +96,38 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                 {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
               </Link>
             ) : (
-              <span className="font-medium text-foreground">Aucun</span>
+              <span className="font-medium text-foreground">{m.groups_view_no_deputy()}</span>
             )}
           </p>
           <p className="text-muted-foreground text-sm">
-            Adresse : <span className="font-medium text-foreground">{group.address}</span>
+            {m.groups_view_address()} : <span className="font-medium text-foreground">{group.address}</span>
           </p>
           <Separator className="my-2" />
-          <p className="text-muted-foreground text-xs italic">
-            Si certaines de ces informations ne sont pas bonnes, merci de contacter le secrétaire.
-          </p>
+          <p className="text-muted-foreground text-xs italic">{m.groups_view_contact_notice()}</p>
         </CardContent>
       </Card>
 
       <div className="flex flex-col gap-4">
-        <h2 className="font-bold font-display text-2xl tracking-tight">Membres du groupe</h2>
-        <p className="text-muted-foreground text-sm">Liste de tous les membres de ce groupe de prédication</p>
+        <h2 className="font-bold font-display text-2xl tracking-tight">{m.groups_view_members_title()}</h2>
+        <p className="text-muted-foreground text-sm">{m.groups_view_members_subtitle()}</p>
 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-center max-sm:text-left">Prénom</TableHead>
-              <TableHead className="text-center">Nom</TableHead>
-              <TableHead className="text-center max-sm:hidden">Contact</TableHead>
+              <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
+              <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
               {roles.canManageActivity === true && (
                 <>
                   <TableHead className="text-center">
-                    Activité (
-                    {lastMonth.toLocaleDateString('fr', {
-                      month: 'short',
-                      year: 'numeric',
+                    {m.groups_view_activity_column({
+                      date: lastMonth.toLocaleDateString('fr', { month: 'short', year: 'numeric' }),
                     })}
-                    )
                   </TableHead>
                   <TableHead className="text-center max-sm:hidden">
-                    Activité (
-                    {today.toLocaleDateString('fr', {
-                      month: 'short',
-                      year: 'numeric',
+                    {m.groups_view_activity_column({
+                      date: today.toLocaleDateString('fr', { month: 'short', year: 'numeric' }),
                     })}
-                    )
                   </TableHead>
                 </>
               )}
@@ -171,15 +164,15 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                               ? `/congregation/publishers/activity/${member.previousActivity?.id}/edit`
                               : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
                           }
-                          title="Modifier l'activité du proclamateur pour le mois courant"
+                          title={m.groups_view_activity_edit_title()}
                         >
                           {member.previousActivity ? (
                             <>
-                              <BarChart3 className="size-4" /> Voir
+                              <BarChart3 className="size-4" /> {m.groups_view_activity_view()}
                             </>
                           ) : (
                             <>
-                              <Plus className="size-4" /> Ajouter
+                              <Plus className="size-4" /> {m.groups_view_activity_add()}
                             </>
                           )}
                         </Link>
@@ -193,15 +186,15 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                               ? `/congregation/publishers/activity/${member.currentActivity?.id}/edit`
                               : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
                           }
-                          title="Modifier l'activité du proclamateur pour le mois courant"
+                          title={m.groups_view_activity_edit_title()}
                         >
                           {member.currentActivity ? (
                             <>
-                              <BarChart3 className="size-4" /> Voir
+                              <BarChart3 className="size-4" /> {m.groups_view_activity_view()}
                             </>
                           ) : (
                             <>
-                              <Plus className="size-4" /> Ajouter
+                              <Plus className="size-4" /> {m.groups_view_activity_add()}
                             </>
                           )}
                         </Link>
@@ -252,7 +245,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const session = await getSession(request.headers.get('Cookie'))
   if (name == null || address == null || Number.isNaN(responsibleId)) {
-    session.flash('error', 'Veuillez remplir entièrement le formulaire avant soumission')
+    session.flash('error', m.groups_form_error_incomplete())
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -261,7 +254,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   if (deputyId != null && responsibleId === deputyId) {
-    session.flash('error', 'Le responsable de groupe et son adjoint ne peuvent pas être la même personne')
+    session.flash('error', m.groups_form_error_same_person())
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -287,7 +280,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
 
-    session.flash('success', `Le groupe de prédication ${group.name} à été modifié avec succès`)
+    session.flash('success', m.groups_edit_success({ name: group.name }))
     return redirect('/congregation/publisher-groups', {
       headers: {
         'Set-Cookie': await commitSession(session),

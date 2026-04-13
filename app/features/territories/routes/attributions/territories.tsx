@@ -4,31 +4,42 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
-const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKind.Classical]: 'Porte à porte',
-  [TerritoryKind.Commerces]: 'Commerces',
-  [TerritoryKind.Phone]: 'Téléphones',
-  [TerritoryKind.Hotel]: 'Hôtels',
-  [TerritoryKind.Univ]: 'Universités',
+function getTerritoryTypeLabel(type: string): string {
+  const labels: Record<string, () => string> = {
+    [TerritoryKind.Classical]: () => m.territories_type_classical(),
+    [TerritoryKind.Commerces]: () => m.territories_type_commerces(),
+    [TerritoryKind.Phone]: () => m.territories_type_phone(),
+    [TerritoryKind.Hotel]: () => m.territories_type_hotel(),
+    [TerritoryKind.Univ]: () => m.territories_type_university(),
+  }
+  return labels[type]?.() ?? type
 }
 
 function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
   const count = entrances.length
   if (type === TerritoryKind.Phone) {
     const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
-    return `${phones} tél.`
+    return m.territories_content_phones({ count: String(phones) })
   }
   if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
     const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
-    return `${homes} foyer${homes > 1 ? 's' : ''}`
+    return homes > 1
+      ? m.territories_content_homes_other({ count: String(homes) })
+      : m.territories_content_homes_one({ count: String(homes) })
   }
   if (type === TerritoryKind.Commerces) {
-    return `${count} commerce${count > 1 ? 's' : ''}`
+    return count > 1
+      ? m.territories_content_commerces_other({ count: String(count) })
+      : m.territories_content_commerces_one({ count: String(count) })
   }
   if (type === TerritoryKind.Hotel) {
-    return `${count} hôtel${count > 1 ? 's' : ''}`
+    return count > 1
+      ? m.territories_content_hotels_other({ count: String(count) })
+      : m.territories_content_hotels_one({ count: String(count) })
   }
-  return `${count} entrée${count > 1 ? 's' : ''}`
+  return count > 1
+    ? m.territories_content_entrances_other({ count: String(count) })
+    : m.territories_content_entrances_one({ count: String(count) })
 }
 
 import { getZips } from '~/features/territories/server/buildings'
@@ -45,10 +56,12 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/territories'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Attribution d'un territoire - Unitae` }]
+  return [{ title: m.attributions_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -103,14 +116,13 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
     return (
       <div className="flex flex-col gap-5">
         <AlertMessages messages={messages} />
-        <PageHeader title="Territoires disponibles" subtitle="Sélectionnez le territoire à attribuer au proclamateur" />
+        <PageHeader title={m.attributions_available_title()} subtitle={m.attributions_available_subtitle()} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-          <p>Il n'y a aucun territoire disponible pour le moment !</p>
+          <p>{m.attributions_available_empty_title()}</p>
           <p>
-            Pour ajouter des territoires, utilisez le bouton "Nouveau territoire" sur la page liste des territoires ou
-            visitez le module de découpage des territoires sur la page de prospection.
+            {m.attributions_available_empty_details()}
           </p>
         </div>
       </div>
@@ -120,17 +132,17 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
   return (
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
-      <PageHeader title="Territoires disponibles" subtitle="Sélectionnez le territoire à attribuer au proclamateur" />
+      <PageHeader title={m.attributions_available_title()} subtitle={m.attributions_available_subtitle()} />
       <TerritoryFilters zips={zips} showZip showAccess showSearch showType />
 
       <div className="flex grow flex-col gap-3">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[150px]">Nº</TableHead>
-              <TableHead className="w-[150px] text-center">Type</TableHead>
-              <TableHead className="w-[150px] text-center">Contenu</TableHead>
-              <TableHead className="w-[150px] text-center">Statut</TableHead>
+              <TableHead className="w-[150px]">{m.territories_table_number()}</TableHead>
+              <TableHead className="w-[150px] text-center">{m.territories_table_type()}</TableHead>
+              <TableHead className="w-[150px] text-center">{m.territories_table_content()}</TableHead>
+              <TableHead className="w-[150px] text-center">{m.attributions_available_table_status()}</TableHead>
               <TableHead className="w-[150px] text-center" />
             </TableRow>
           </TableHeader>
@@ -138,7 +150,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
             {territories.map(territory => (
               <TableRow key={territory.id}>
                 <TableCell>{territory.number}</TableCell>
-                <TableCell className="text-center">{territoryTypeLabels[territory.type] ?? territory.type}</TableCell>
+                <TableCell className="text-center">{getTerritoryTypeLabel(territory.type)}</TableCell>
                 <TableCell className="text-center">
                   {territoryContentLabel(territory.type, territory.entrances)}
                 </TableCell>
@@ -148,7 +160,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                 <TableCell>
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/territories/territory/${territory.id}/view`} title="Voir le détail du territoire">
+                      <Link to={`/territories/territory/${territory.id}/view`} title={m.attributions_available_view_title()}>
                         <ExternalLink className="size-4" />
                       </Link>
                     </Button>
@@ -156,15 +168,15 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                       <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
                         <Link
                           to={`/territories/attributions/new?territory=${territory.id}`}
-                          title="Atrribuer ce territoire"
+                          title={m.attributions_available_assign_title()}
                         >
-                          <span className="max-sm:hidden">Attribuer</span>
+                          <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
                           <Send className="size-4 -rotate-12" />
                         </Link>
                       </Button>
                     ) : (
                       <Button variant="ghost" size="sm" disabled className="gap-1.5">
-                        <span className="max-sm:hidden">Attribuer</span>
+                        <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
                         <Send className="size-4 -rotate-12" />
                       </Button>
                     )}

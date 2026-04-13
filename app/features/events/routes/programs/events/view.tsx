@@ -1,5 +1,6 @@
 import { AlertTriangle, Clock, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
@@ -16,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Programme - Unitae' }]
+  return [{ title: m.programs_view_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -60,13 +61,13 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
               <Button variant="outline" size="sm" asChild>
                 <Link to="./edit">
                   <Pencil className="size-4" />
-                  Modifier
+                  {m.common_edit()}
                 </Link>
               </Button>
               <Button variant="destructive" size="sm" asChild>
                 <Link to="./delete">
                   <Trash2 className="size-4" />
-                  Supprimer
+                  {m.common_delete()}
                 </Link>
               </Button>
             </div>
@@ -76,18 +77,18 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Programme spirituel</CardTitle>
+          <CardTitle className="text-base">{m.programs_view_spiritual_program()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Partie</TableHead>
-                <TableHead>Sujet</TableHead>
-                <TableHead className="w-24">Durée</TableHead>
-                <TableHead>Intervenant</TableHead>
-                <TableHead>Lecteur</TableHead>
-                {canEdit && <TableHead className="w-20">Actions</TableHead>}
+                <TableHead>{m.programs_view_part_col()}</TableHead>
+                <TableHead>{m.programs_view_topic_col()}</TableHead>
+                <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
+                <TableHead>{m.programs_view_speaker_col()}</TableHead>
+                <TableHead>{m.programs_view_reader_col()}</TableHead>
+                {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -128,7 +129,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" asChild className="size-7">
-                          <Link to={`./assign-part?assignmentId=${assignment.id}`} title="Attribuer">
+                          <Link to={`./assign-part?assignmentId=${assignment.id}`} title={m.programs_view_assign_title()}>
                             <UserPlus className="size-3" />
                           </Link>
                         </Button>
@@ -141,7 +142,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                           >
                             <Link
                               to={`./remove-assignment?type=part&id=${assignment.id}`}
-                              title="Retirer l'attribution"
+                              title={m.programs_view_remove_assignment_title()}
                             >
                               <X className="size-3" />
                             </Link>
@@ -159,15 +160,15 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Services</CardTitle>
+          <CardTitle className="text-base">{m.programs_view_services()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Rôle</TableHead>
-                <TableHead>Proclamateur</TableHead>
-                {canEdit && <TableHead className="w-20">Actions</TableHead>}
+                <TableHead>{m.programs_view_role_col()}</TableHead>
+                <TableHead>{m.programs_view_publisher_col()}</TableHead>
+                {canEdit && <TableHead className="w-20">{m.common_actions()}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -181,7 +182,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" asChild className="size-7">
-                          <Link to={`./assign-service?assignmentId=${assignment.id}`} title="Attribuer">
+                          <Link to={`./assign-service?assignmentId=${assignment.id}`} title={m.programs_view_assign_title()}>
                             <UserPlus className="size-3" />
                           </Link>
                         </Button>
@@ -194,7 +195,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                           >
                             <Link
                               to={`./remove-assignment?type=service&id=${assignment.id}`}
-                              title="Retirer l'attribution"
+                              title={m.programs_view_remove_assignment_title()}
                             >
                               <X className="size-3" />
                             </Link>
@@ -221,7 +222,7 @@ function AssigneeCell({
   hasConflict: boolean
 }) {
   if (!assignee) {
-    return <span className="text-muted-foreground text-sm italic">Non attribué</span>
+    return <span className="text-muted-foreground text-sm italic">{m.programs_view_unassigned()}</span>
   }
 
   return (
@@ -232,7 +233,7 @@ function AssigneeCell({
       {hasConflict && (
         <Badge variant="destructive" className="gap-1 text-xs">
           <AlertTriangle className="size-3" />
-          Absence
+          {m.programs_view_absence_badge()}
         </Badge>
       )}
     </div>

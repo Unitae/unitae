@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Form, redirect, useSearchParams } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
@@ -18,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import type { Route } from './+types/assign-service'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Attribuer un service - Unitae' }]
+  return [{ title: m.programs_assign_service_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -70,7 +71,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       session.flash('error', result.error)
       logger.warn(`Service role assignment conflict. User ID: ${currentUser.id}. Event: ${eventId}.`)
     } else {
-      session.flash('success', 'Attribution de service enregistrée.')
+      session.flash('success', m.programs_assign_service_success())
       logger.info(`Assigned service role. User ID: ${currentUser.id}. Event: ${eventId}.`)
     }
 
@@ -88,27 +89,27 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Attribuer un service"
+        title={m.programs_assign_service_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{assignment?.name ?? 'Service'}</CardTitle>
+            <CardTitle className="text-base">{assignment?.name ?? m.programs_assign_service_default()}</CardTitle>
           </CardHeader>
           <CardContent>
             <Form method="post" className="flex flex-col gap-4">
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assigneeId">Proclamateur</Label>
+                <Label htmlFor="assigneeId">{m.programs_assign_service_publisher_label()}</Label>
                 <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un proclamateur" />
+                    <SelectValue placeholder={m.programs_assign_service_select_publisher()} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Aucun</SelectItem>
+                    <SelectItem value="none">{m.programs_assign_service_none()}</SelectItem>
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.firstname} {user.lastname}
@@ -119,7 +120,7 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
               </div>
 
               <Button type="submit" className="w-fit">
-                Enregistrer
+                {m.common_save()}
               </Button>
             </Form>
           </CardContent>

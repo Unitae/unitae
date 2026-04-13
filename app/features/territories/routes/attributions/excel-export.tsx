@@ -6,10 +6,12 @@ import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/excel-export'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Génération d'un export Excel s13 - Unitae` }]
+  return [{ title: m.attributions_excel_export_meta_title() }]
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {

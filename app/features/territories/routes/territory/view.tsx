@@ -22,10 +22,12 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
+import * as m from '~/paraglide/messages'
+
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: `Territoire ${data.territory.number} - Unitae` }]
+  return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -68,12 +70,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKind.Classical]: 'Porte à Porte',
-  [TerritoryKind.Commerces]: 'Commerces',
-  [TerritoryKind.Hotel]: 'Hôtels',
-  [TerritoryKind.Phone]: 'Téléphone',
-  [TerritoryKind.Univ]: 'Université',
+function getTerritoryTypeLabel(type: string): string {
+  const labels: Record<string, () => string> = {
+    [TerritoryKind.Classical]: () => m.territories_type_classical_capitalized(),
+    [TerritoryKind.Commerces]: () => m.territories_type_commerces(),
+    [TerritoryKind.Hotel]: () => m.territories_type_hotel(),
+    [TerritoryKind.Phone]: () => m.territories_type_phone_singular(),
+    [TerritoryKind.Univ]: () => m.territories_type_university_singular(),
+  }
+  return labels[type]?.() ?? type
 }
 
 function CurrentAttributionSection({
@@ -91,11 +96,11 @@ function CurrentAttributionSection({
     return (
       <>
         <div className="flex items-center justify-center gap-3 rounded-md border p-3">
-          <span className="text-muted-foreground italic">Aucune attribution en cours pour ce territoire</span>
+          <span className="text-muted-foreground italic">{m.territories_view_no_attribution()}</span>
         </div>
         {canManageTerritories && (
           <Button variant="secondary" asChild>
-            <Link to={`/territories/attributions/new?territory=${territoryId}`}>Attribuer ce territoire</Link>
+            <Link to={`/territories/attributions/new?territory=${territoryId}`}>{m.territories_view_assign_button()}</Link>
           </Button>
         )}
       </>
@@ -125,13 +130,13 @@ function CurrentAttributionSection({
         {canManageTerritories && (
           <>
             <Button variant="ghost" size="icon" asChild>
-              <Link to={`/territories/attributions/${attribution.id}/edit`} title="Voir l'attribution en détail">
+              <Link to={`/territories/attributions/${attribution.id}/edit`} title={m.territories_edit_view_attribution_title()}>
                 <ExternalLink className="size-4 text-primary" />
               </Link>
             </Button>
             {attribution.endDate == null && (
               <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
-                <Link to={`/territories/attributions/${attribution.id}/delete`} title="Annuler l'attribution">
+                <Link to={`/territories/attributions/${attribution.id}/delete`} title={m.territories_edit_cancel_attribution_title()}>
                   <X className="size-4" />
                 </Link>
               </Button>
@@ -154,8 +159,8 @@ function AttributionHistoryTable({
     return (
       <EmptyState
         icon={CalendarCheck}
-        title="Aucun historique d'attribution"
-        description="Ce territoire n'a pas encore été attribué par le passé."
+        title={m.territories_view_empty_history_title()}
+        description={m.territories_view_empty_history_description()}
       />
     )
   }
@@ -165,11 +170,11 @@ function AttributionHistoryTable({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Proclamateur</TableHead>
-            <TableHead className="text-center">Sortie le</TableHead>
-            <TableHead className="text-center">Rendu le</TableHead>
-            <TableHead className="text-center max-sm:hidden">Durée</TableHead>
-            <TableHead className="text-center max-sm:hidden">Type</TableHead>
+            <TableHead>{m.territories_view_table_publisher()}</TableHead>
+            <TableHead className="text-center">{m.territories_view_table_checkout_date()}</TableHead>
+            <TableHead className="text-center">{m.territories_view_table_return_date()}</TableHead>
+            <TableHead className="text-center max-sm:hidden">{m.territories_view_table_duration()}</TableHead>
+            <TableHead className="text-center max-sm:hidden">{m.territories_view_table_type()}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -197,12 +202,12 @@ function AttributionHistoryTable({
                 <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
                 <TableCell className="text-center">{attribution.endDate?.toLocaleDateString('fr-FR')}</TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {durationDays != null ? `${durationDays} jours` : '-'}
+                  {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {attribution.type === 'default' && 'Porte à porte'}
-                  {attribution.type === 'campaign' && 'Campagne'}
-                  {attribution.type === 'phones' && 'Téléphones'}
+                  {attribution.type === 'default' && m.territories_view_attribution_type_default()}
+                  {attribution.type === 'campaign' && m.territories_view_attribution_type_campaign()}
+                  {attribution.type === 'phones' && m.territories_view_attribution_type_phones()}
                 </TableCell>
               </TableRow>
             )
@@ -230,8 +235,8 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`Territoire ${territory.number}`}
-        subtitle="Fiche du territoire"
+        title={m.territories_view_title({ number: String(territory.number) })}
+        subtitle={m.territories_view_subtitle()}
         actions={
           <>
             <TerritoryDownloadLink
@@ -248,13 +253,13 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
               showPhone={!phoneTypeActive}
               attributionType={currentAttribution?.type as TerritoryAttributionKind}
             >
-              <Button variant="outline" size="icon" title="Télécharger le territoire en PDF">
+              <Button variant="outline" size="icon" title={m.territories_download_pdf_title()}>
                 <Download className="size-4" />
               </Button>
             </TerritoryDownloadLink>
 
             {canManageTerritories && (
-              <Button asChild variant="outline" size="icon" title="Modifier le territoire">
+              <Button asChild variant="outline" size="icon" title={m.territories_edit_title_attr()}>
                 <Link to="../edit" relative="path">
                   <Pencil className="size-4" />
                 </Link>
@@ -268,24 +273,28 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
         <div className="flex flex-1 flex-col gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Informations du territoire</CardTitle>
+              <CardTitle>{m.territories_view_info_title()}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-3">
                 <p className="text-muted-foreground text-sm">
-                  Numéro : <span className="font-medium text-foreground">{territory.number}</span>
+                  {m.territories_view_number_label()}{' '}
+                  <span className="font-medium text-foreground">{territory.number}</span>
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  Type de territoire :{' '}
-                  <span className="font-medium text-foreground">{territoryTypeLabels[territory.type]}</span>
+                  {m.territories_view_type_label()}{' '}
+                  <span className="font-medium text-foreground">{getTerritoryTypeLabel(territory.type)}</span>
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  {territory.type === TerritoryKind.Phone ? 'Nombre de téléphones' : 'Nombre de foyers'} :{' '}
+                  {territory.type === TerritoryKind.Phone
+                    ? m.territories_view_phones_count_label()
+                    : m.territories_view_homes_count_label()}{' '}
                   <span className="font-medium text-foreground">{quantity}</span>
                 </p>
                 {territory.notes.length > 0 && (
                   <p className="text-muted-foreground text-sm">
-                    Notes : <span className="font-medium text-foreground">{territory.notes}</span>
+                    {m.territories_view_notes_label()}{' '}
+                    <span className="font-medium text-foreground">{territory.notes}</span>
                   </p>
                 )}
               </div>
@@ -295,7 +304,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
           {territory.type === TerritoryKind.Commerces && territoryEntrances.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Commerces</CardTitle>
+                <CardTitle>{m.territories_view_commerces_title()}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-2">
@@ -317,7 +326,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
           {territory.type !== TerritoryKind.Commerces && territoryEntrances.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Allées</CardTitle>
+                <CardTitle>{m.territories_view_entrances_title()}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col gap-2">
@@ -328,7 +337,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
                           {entrance.number} {entrance.street}, {entrance.zip}
                         </span>
                         <span className="text-muted-foreground text-sm">
-                          {entrance.homes || entrance.phones} foyers
+                          {m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}
                         </span>
                       </div>
                     </div>
@@ -338,7 +347,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
             </Card>
           )}
 
-          <h2 className="font-semibold text-lg">Attribution en cours</h2>
+          <h2 className="font-semibold text-lg">{m.territories_view_current_attribution_heading()}</h2>
           <CurrentAttributionSection
             attribution={currentAttribution}
             territoryId={territory.id}
@@ -346,7 +355,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
             canViewPublisher={canViewPublisher}
           />
 
-          <h2 className="font-semibold text-lg">Historique des attributions</h2>
+          <h2 className="font-semibold text-lg">{m.territories_view_history_heading()}</h2>
           <AttributionHistoryTable attributions={pastAttributions} canViewPublisher={canViewPublisher} />
         </div>
 

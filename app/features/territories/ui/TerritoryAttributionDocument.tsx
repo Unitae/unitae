@@ -1,5 +1,6 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { Attribution, Territory, User } from '~/database/generated/client'
+import * as m from '~/paraglide/messages'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 type TerritoryRepport = Territory & { attributions: (Attribution & { publisher: User })[] }
@@ -42,20 +43,20 @@ export function TerritoryAttributionDocument({
       {territoryPages.map((territoriesOfPage, index) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: no other way to key pages
         <Page key={index} size={'A4'} orientation="portrait" style={{ padding: 20 }}>
-          <Text style={styles.title}>REGISTRE D'ATTRIBUTION DES TERRITOIRES</Text>
+          <Text style={styles.title}>{m.territory_s13_title()}</Text>
           <Text style={[styles.text]}>
-            <Text style={styles.label}>Année de service :</Text> {year}
+            <Text style={styles.label}>{m.territory_s13_service_year()}</Text> {year}
           </Text>
 
           <Table>
             <TableRow>
               <TableHeaderCell width="7%" borderLeft={3}>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>Terr. nº</Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_territory_number()}</Text>
               </TableHeaderCell>
               <TableHeaderCell width="13%">
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>Parcouru pour</Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>la dernière fois</Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>le*</Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_last_covered()}</Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_last_covered_line2()}</Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_last_covered_line3()}</Text>
               </TableHeaderCell>
               <AttributionHeaderCell width="20%" borderLeft={3} />
               <AttributionHeaderCell width="20%" />
@@ -102,8 +103,7 @@ export function TerritoryAttributionDocument({
             })}
           </Table>
           <Text style={{ fontSize: 9, fontWeight: 500, fontFamily: 'Helvetica', color: 'black' }}>
-            * Lorsque vous commencez une nouvelle feuille, notez dans cette colonne la date à laquelle chaque territoire
-            a été entièrement parcouru pour la dernière fois.
+            {m.territory_s13_footnote()}
           </Text>
 
           <View style={{ position: 'absolute', bottom: 20, left: 20, right: 20 }}>
@@ -283,7 +283,7 @@ function AttributionHeaderCell({
           padding: 4,
         }}
       >
-        Attribué à
+        {m.territory_s13_assigned_to()}
       </Text>
       <View style={{ flexDirection: 'row', alignItems: 'stretch', width: '100%' }}>
         <View
@@ -296,7 +296,7 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>Attribué le</Text>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_assigned_date()}</Text>
         </View>
         <View
           style={{
@@ -309,8 +309,8 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>Entièrement</Text>
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>parcouru le</Text>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_fully_covered()}</Text>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_fully_covered_line2()}</Text>
         </View>
       </View>
     </View>

@@ -1,4 +1,5 @@
 import { Form, redirect } from 'react-router'
+import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -40,17 +41,17 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
     <div className="flex items-center justify-center p-7">
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-center">Supprimer le territoire</CardTitle>
+          <CardTitle className="text-center">{m.territories_delete_card_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground">
-            Êtes-vous sûr de vouloir supprimer le territoire nº{territory.number} ? Cette action est irréversible.
+            {m.territories_delete_confirm_message({ number: territory.number })}
           </p>
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
             <Button type="submit" variant="destructive">
-              Supprimer le territoire nº{territory.number}
+              {m.territories_delete_submit({ number: territory.number })}
             </Button>
           </Form>
         </CardFooter>
@@ -75,7 +76,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
 
-    session.flash('success', `Le territoire nº${territory.number} a été correctement supprimé`)
+    session.flash('success', m.territories_delete_flash_success({ number: territory.number }))
 
     return redirect('/territories', {
       headers: {

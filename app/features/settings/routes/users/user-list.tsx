@@ -1,7 +1,7 @@
 import { BadgeCheck, BadgeMinus, IdCard, Pencil, UserPlus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -14,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/user-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Réglages - Unitae' }]
+  return [{ title: m.settings_users_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -79,11 +79,11 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Utilisateurs"
-        subtitle="Liste de tous les utilisateurs"
+        title={m.settings_users_title()}
+        subtitle={m.settings_users_subtitle()}
         actions={
           <Button asChild>
-            <Link to="./new">Nouvel utilisateur</Link>
+            <Link to="./new">{m.settings_users_new_button()}</Link>
           </Button>
         }
       />
@@ -92,13 +92,13 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Prénom</TableHead>
-              <TableHead>Nom</TableHead>
-              <TableHead className="max-sm:hidden">Email</TableHead>
-              <TableHead className="text-center">Proclamateur</TableHead>
-              <TableHead className="text-center max-sm:hidden">Droits</TableHead>
+              <TableHead>{m.settings_users_table_firstname()}</TableHead>
+              <TableHead>{m.settings_users_table_lastname()}</TableHead>
+              <TableHead className="max-sm:hidden">{m.settings_users_table_email()}</TableHead>
+              <TableHead className="text-center">{m.settings_users_table_publisher()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_users_table_rights()}</TableHead>
               <TableHead className="w-0">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -113,7 +113,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                     roles.canViewPublishers ? (
                       <Link
                         to={`/congregation/publishers/${user.id}/view`}
-                        title="Voir la fiche proclamateur de cet utilisateur"
+                        title={m.settings_users_view_publisher_title()}
                         className="text-primary"
                       >
                         <IdCard className="inline size-4" />
@@ -128,7 +128,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                           type="submit"
                           variant="ghost"
                           size="icon"
-                          title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
+                          title={m.settings_users_create_publisher_title()}
                         >
                           <UserPlus className="size-4" />
                         </Button>
@@ -138,12 +138,12 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
                   {user.isAdmin ? (
-                    <Badge variant="default" title="Utilisateur ayant les droits administrateur">
-                      <BadgeCheck className="mr-1 size-3" /> Admin
+                    <Badge variant="default" title={m.settings_users_admin_badge_title()}>
+                      <BadgeCheck className="mr-1 size-3" /> {m.settings_users_admin_badge()}
                     </Badge>
                   ) : user.roles.length > 0 ? (
-                    <Badge variant="secondary" title="Utilisateur qui possède des droits supplémentaires">
-                      <BadgeMinus className="mr-1 size-3" /> Droits
+                    <Badge variant="secondary" title={m.settings_users_rights_badge_title()}>
+                      <BadgeMinus className="mr-1 size-3" /> {m.settings_users_rights_badge()}
                     </Badge>
                   ) : null}
                 </TableCell>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Form, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters'
@@ -18,7 +19,7 @@ import Pagination from '~/shared/ui/Pagination'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Découpage des territoires Porte à Porte - Unitae' }]
+  return [{ title: m.split_tool_classical_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -77,8 +78,8 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   if (entrances.length < 1) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-        <p>Il n'y a aucun batiment pour le moment !</p>
-        <p>Pour ajouter des batiments revenez sur la page "Prospection".</p>
+        <p>{m.split_tool_empty_classical()}</p>
+        <p>{m.split_tool_empty_classical_hint()}</p>
       </div>
     )
   }
@@ -91,26 +92,26 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         {selectedEntranceIds.length > 0 ? (
           <>
             <p>
-              Création d'un territoire avec{' '}
-              {entrances.reduce((countForTerritory, currentEntrance) => {
-                if (selectedEntranceIds.includes(currentEntrance.id)) {
-                  return countForTerritory + ((currentEntrance.homes ?? 0) || (currentEntrance.phones ?? 0))
-                }
+              {m.split_tool_creating_with_homes({
+                count: entrances.reduce((countForTerritory, currentEntrance) => {
+                  if (selectedEntranceIds.includes(currentEntrance.id)) {
+                    return countForTerritory + ((currentEntrance.homes ?? 0) || (currentEntrance.phones ?? 0))
+                  }
 
-                return countForTerritory
-              }, 0)}{' '}
-              foyers
+                  return countForTerritory
+                }, 0),
+              })}
             </p>
             <Form action="/territories/buildings/split-territories/create" method="post">
               <input type="hidden" name="type" value={TerritoryKind.Classical} />
               <input type="hidden" name="entranceIds" value={selectedEntranceIds.join(',')} />
               <Button type="submit" size="sm">
-                Créer le territoire
+                {m.split_tool_create_button()}
               </Button>
             </Form>
           </>
         ) : (
-          <p className="text-muted-foreground">Aucun batiment sélectionné</p>
+          <p className="text-muted-foreground">{m.split_tool_no_selection()}</p>
         )}
       </div>
 

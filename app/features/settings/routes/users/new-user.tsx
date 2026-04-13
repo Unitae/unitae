@@ -2,7 +2,8 @@ import { Form, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import * as m from '~/paraglide/messages'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
@@ -14,7 +15,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/new-user'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Réglages - Unitae' }]
+  return [{ title: m.settings_users_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -33,25 +34,25 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Nouvel utilisateur" subtitle="Créer un nouvel utilisateur" />
+      <PageHeader title={m.settings_user_new_title()} subtitle={m.settings_user_new_subtitle()} />
 
       <Card>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstname">Prénom</Label>
-              <Input id="firstname" name="firstname" type="text" placeholder="Prénom" />
+              <Label htmlFor="firstname">{m.settings_user_new_firstname_label()}</Label>
+              <Input id="firstname" name="firstname" type="text" placeholder={m.settings_user_new_firstname_label()} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastname">Nom</Label>
-              <Input id="lastname" name="lastname" type="text" placeholder="Nom" />
+              <Label htmlFor="lastname">{m.settings_user_new_lastname_label()}</Label>
+              <Input id="lastname" name="lastname" type="text" placeholder={m.settings_user_new_lastname_label()} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="Email" />
+              <Label htmlFor="email">{m.settings_user_new_email_label()}</Label>
+              <Input id="email" name="email" type="email" placeholder={m.settings_user_new_email_label()} />
             </div>
             <Button type="submit" className="mt-2">
-              Créer l'utilisateur
+              {m.settings_user_new_submit()}
             </Button>
           </Form>
         </CardContent>

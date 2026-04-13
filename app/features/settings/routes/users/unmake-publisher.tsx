@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
-
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -26,12 +26,9 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
     if (user.isPublisher === true) {
-      session.flash('success', `La fiche proclamateur pour l'utilisateur ${user.email} a été correctement supprimée.`)
+      session.flash('success', m.settings_user_unmake_publisher_success({ email: user.email }))
     } else {
-      session.flash(
-        'error',
-        `La fiche proclamateur pour l'utilisateur ${user.email} n'a pas pu être supprimée correctement.`,
-      )
+      session.flash('error', m.settings_user_unmake_publisher_error({ email: user.email }))
     }
 
     const previousPage = request.headers.get('referer')
