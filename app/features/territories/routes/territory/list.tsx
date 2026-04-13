@@ -187,7 +187,9 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         {territory.number}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-center">{territoryTypeLabels[territory.type] ?? territory.type}</TableCell>
+                    <TableCell className="text-center">
+                      {territoryTypeLabels[territory.type] ?? territory.type}
+                    </TableCell>
                     <TableCell className="text-center">
                       {territoryContentLabel(territory.type, territory.entrances)}
                     </TableCell>

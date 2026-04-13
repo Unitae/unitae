@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/features/settings/server/consent.server'
 import { hash } from '~/shared/libs/crypto.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
@@ -57,6 +58,9 @@ export async function registerCongregation(
       congregationId: congregation.id,
     },
   })
+
+  // Create default programme templates
+  await seedDefaultTemplates(db, congregation.id)
 
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)

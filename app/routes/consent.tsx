@@ -5,7 +5,7 @@ import {
   hasDataProcessingConsent,
   recordConsentUnscoped,
 } from '~/features/settings/server/consent.server'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 

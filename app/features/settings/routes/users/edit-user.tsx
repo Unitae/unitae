@@ -2,7 +2,7 @@ import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -262,7 +262,10 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                 <AlertDialogFooter>
                   <AlertDialogCancel>Annuler</AlertDialogCancel>
                   <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
-                    <AlertDialogAction type="submit" className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogAction
+                      type="submit"
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
                       Confirmer l'anonymisation
                     </AlertDialogAction>
                   </Form>

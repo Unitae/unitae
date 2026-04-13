@@ -83,7 +83,12 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
     }
 
-    const streets = await getAvailableStreets(db, congregationId, String(url.searchParams.get('zip')), territory.type as TerritoryKind)
+    const streets = await getAvailableStreets(
+      db,
+      congregationId,
+      String(url.searchParams.get('zip')),
+      territory.type as TerritoryKind,
+    )
     if (!url.searchParams.has('street')) {
       return {
         territory,

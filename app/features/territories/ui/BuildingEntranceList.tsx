@@ -98,7 +98,7 @@ function BuildingEntranceListItem({
       </TableCell>
       <TableCell>{firstBuilding.street}</TableCell>
       {(variant === 'residential' || variant === 'phone') && (
-        <TableCell>{entrance.access != null ? accessLabels[entrance.access] ?? '-' : '-'}</TableCell>
+        <TableCell>{entrance.access != null ? (accessLabels[entrance.access] ?? '-') : '-'}</TableCell>
       )}
       {variant === 'residential' && <TableCell className="text-center">{entrance.homes ?? '-'}</TableCell>}
       {(variant === 'residential' || variant === 'phone') && (

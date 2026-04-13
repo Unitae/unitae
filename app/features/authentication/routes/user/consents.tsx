@@ -1,6 +1,6 @@
 import { Form, Link, redirect } from 'react-router'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'

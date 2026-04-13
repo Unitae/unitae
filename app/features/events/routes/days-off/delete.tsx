@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { deleteDayOff } from '~/features/events/server/days-off.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -82,12 +83,12 @@ export async function action({ request, params }: Route.ActionArgs) {
       })
     }
 
-    const deletedEvent = await db.event.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.eventId, '/me/days-off'), congregationId },
-      },
-    })
+    const deletedEvent = await deleteDayOff(
+      db,
+      requireParamId(params.eventId, '/me/days-off'),
+      currentUser.id,
+      congregationId,
+    )
 
     session.flash('success', `L'absence du ${deletedEvent.startDate.toLocaleDateString()} a été supprimée avec succès.`)
     logger.warn(`Successfully removed days off. User ID: ${currentUser.id}. Event: ${params.eventId}.`)

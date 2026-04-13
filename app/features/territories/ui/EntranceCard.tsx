@@ -172,9 +172,7 @@ export function CommerceEntranceCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            {entranceKindLabels['commerce' as EntranceKind]}
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2">{entranceKindLabels['commerce' as EntranceKind]}</CardTitle>
           {onDelete && (
             <Button type="button" variant="ghost" size="icon" onClick={onDelete} title="Supprimer cette entrée">
               <Trash2 className="size-4 text-destructive" />

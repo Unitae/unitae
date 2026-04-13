@@ -1,9 +1,9 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import type { BuildingAccess } from '~/database/generated/client'
 import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { BuildingAccess } from '~/database/generated/client'
 import type { Entrance } from '~/shared/types/entrance'
 
 Font.register({
@@ -217,7 +217,10 @@ function formatAccessLabel(accessType: number): string {
 function formatAccessSequence(entrance: Entrance): string {
   const accesses: BuildingAccess[] = entrance.accesses ?? []
   if (accesses.length > 0) {
-    return accesses.map(a => formatAccessLabel(a.type)).filter(Boolean).join(' → ')
+    return accesses
+      .map(a => formatAccessLabel(a.type))
+      .filter(Boolean)
+      .join(' → ')
   }
 
   // Fallback to old single access field
@@ -234,7 +237,8 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
   const phones = entrance.phones ?? 0
 
   const accessText = formatAccessSequence(entrance)
-  const hasCode = (entrance.accesses ?? []).some(a => a.type === TerritoryAccess.Code) || entrance.access === TerritoryAccess.Code
+  const hasCode =
+    (entrance.accesses ?? []).some(a => a.type === TerritoryAccess.Code) || entrance.access === TerritoryAccess.Code
 
   return (
     <View key={entrance.id} style={styles.building}>

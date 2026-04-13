@@ -29,12 +29,16 @@ describe('fetchAttributionsForStats', () => {
       },
     ] as never)
 
-    const result = await fetchAttributionsForStats(db, {
-      territoryKind: [TerritoryKind.Classical],
-      attributionKind: [TerritoryAttributionKind.Default],
-      startDate: new Date(2025, 8, 1),
-      endDate: new Date(2026, 7, 31),
-    }, 1)
+    const result = await fetchAttributionsForStats(
+      db,
+      {
+        territoryKind: [TerritoryKind.Classical],
+        attributionKind: [TerritoryAttributionKind.Default],
+        startDate: new Date(2025, 8, 1),
+        endDate: new Date(2026, 7, 31),
+      },
+      1,
+    )
 
     expect(result).toEqual([
       {
@@ -53,12 +57,16 @@ describe('fetchAttributionsForStats', () => {
   it("retourne un tableau vide quand il n'y a aucune attribution", async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 
-    const result = await fetchAttributionsForStats(db, {
-      territoryKind: [TerritoryKind.Classical],
-      attributionKind: [TerritoryAttributionKind.Default],
-      startDate: new Date(2025, 8, 1),
-      endDate: new Date(2026, 7, 31),
-    }, 1)
+    const result = await fetchAttributionsForStats(
+      db,
+      {
+        territoryKind: [TerritoryKind.Classical],
+        attributionKind: [TerritoryAttributionKind.Default],
+        startDate: new Date(2025, 8, 1),
+        endDate: new Date(2026, 7, 31),
+      },
+      1,
+    )
 
     expect(result).toEqual([])
   })
@@ -66,13 +74,17 @@ describe('fetchAttributionsForStats', () => {
   it('fonctionne avec un filtre de groupe', async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([])
 
-    const result = await fetchAttributionsForStats(db, {
-      territoryKind: [TerritoryKind.Classical],
-      attributionKind: [TerritoryAttributionKind.Default],
-      startDate: new Date(2025, 8, 1),
-      endDate: new Date(2026, 7, 31),
-      groupId: 42,
-    }, 1)
+    const result = await fetchAttributionsForStats(
+      db,
+      {
+        territoryKind: [TerritoryKind.Classical],
+        attributionKind: [TerritoryAttributionKind.Default],
+        startDate: new Date(2025, 8, 1),
+        endDate: new Date(2026, 7, 31),
+        groupId: 42,
+      },
+      1,
+    )
 
     expect(result).toEqual([])
   })

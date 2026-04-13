@@ -35,7 +35,14 @@ export async function createBuilding(
       congregation: { connect: { id: congregationId } },
     },
     include: {
-      entrances: { include: { buildings: true, territories: true, accesses: { orderBy: { position: 'asc' } }, residentialData: true } },
+      entrances: {
+        include: {
+          buildings: true,
+          territories: true,
+          accesses: { orderBy: { position: 'asc' } },
+          residentialData: true,
+        },
+      },
       residentialData: true,
     },
   })

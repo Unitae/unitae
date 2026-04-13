@@ -54,6 +54,13 @@ model Congregation {
   consentRecords          ConsentRecord[]
   auditLogs               AuditLog[]
 
+  programmeTemplates              ProgrammeTemplate[]
+  programmeTemplateParts          ProgrammeTemplatePart[]
+  programmeTemplateServiceRoles   ProgrammeTemplateServiceRole[]
+  programmePartAssignments        ProgrammePartAssignment[]
+  programmeServiceRoleAssignments ProgrammeServiceRoleAssignment[]
+  programmeTemplateResponsibles   ProgrammeTemplateResponsible[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -89,6 +96,11 @@ model User {
   attributions  Attribution[]       @relation("publisher")
   activities    PublisherActivity[] @relation("publisherActivity")
   eventsCreated Event[]             @relation("createdBy")
+
+  partAssignments          ProgrammePartAssignment[]        @relation("partAssignee")
+  partAssistantAssignments ProgrammePartAssignment[]        @relation("partAssistant")
+  serviceRoleAssignments   ProgrammeServiceRoleAssignment[] @relation("serviceRoleAssignee")
+  templateResponsibilities ProgrammeTemplateResponsible[]   @relation("templateResponsible")
 
   documentsViewed     BoardDocument[]      @relation("viewedBy")
   passwordResetTokens PasswordResetToken[]
@@ -331,6 +343,12 @@ model Event {
   startDate   DateTime
   endDate     DateTime
 
+  template   ProgrammeTemplate? @relation("templateEvents", fields: [templateId], references: [id])
+  templateId Int?
+
+  partAssignments        ProgrammePartAssignment[]
+  serviceRoleAssignments ProgrammeServiceRoleAssignment[]
+
   createdBy   User     @relation("createdBy", fields: [createdById], references: [id])
   createdById Int
   createdAt   DateTime @default(now())
@@ -358,6 +376,133 @@ model EventKind {
   congregationId Int
 
   @@unique([key, congregationId])
+  @@unique([id, congregationId])
+}
+
+model ProgrammeTemplate {
+  id          Int     @id @default(autoincrement())
+  name        String
+  key         String
+  description String  @default("")
+  weekDay     Int?
+  isRecurring Boolean @default(true)
+
+  parts        ProgrammeTemplatePart[]
+  serviceRoles ProgrammeTemplateServiceRole[]
+  events       Event[]                        @relation("templateEvents")
+  responsibles ProgrammeTemplateResponsible[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, congregationId])
+  @@unique([id, congregationId])
+}
+
+model ProgrammeTemplatePart {
+  id          Int     @id @default(autoincrement())
+  name        String
+  section     String  @default("")
+  order       Int
+  durationMin Int?
+  isVariable  Boolean @default(false)
+
+  template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId Int
+
+  assignments ProgrammePartAssignment[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+}
+
+model ProgrammeTemplateServiceRole {
+  id   Int    @id @default(autoincrement())
+  name String
+  key  String
+
+  template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId Int
+
+  assignments ProgrammeServiceRoleAssignment[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+}
+
+model ProgrammePartAssignment {
+  id          Int     @id @default(autoincrement())
+  topic       String  @default("")
+  note        String  @default("")
+  hasConflict Boolean @default(false)
+
+  // Inline fields (copied from template part on generation, or set manually for custom parts)
+  name        String  @default("")
+  section     String  @default("")
+  order       Int     @default(0)
+  durationMin Int?
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+
+  part   ProgrammeTemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
+  partId Int?
+
+  assignee   User? @relation("partAssignee", fields: [assigneeId], references: [id])
+  assigneeId Int?
+
+  assistant   User? @relation("partAssistant", fields: [assistantId], references: [id])
+  assistantId Int?
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+}
+
+model ProgrammeServiceRoleAssignment {
+  id          Int     @id @default(autoincrement())
+  note        String  @default("")
+  hasConflict Boolean @default(false)
+
+  // Inline field (copied from template service role on generation, or set manually)
+  name String @default("")
+
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId Int
+
+  serviceRole   ProgrammeTemplateServiceRole? @relation(fields: [serviceRoleId], references: [id], onDelete: SetNull)
+  serviceRoleId Int?
+
+  assignee   User? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
+  assigneeId Int?
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+}
+
+model ProgrammeTemplateResponsible {
+  id Int @id @default(autoincrement())
+
+  template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  templateId Int
+
+  user   User @relation("templateResponsible", fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([templateId, congregationId])
   @@unique([id, congregationId])
 }
 

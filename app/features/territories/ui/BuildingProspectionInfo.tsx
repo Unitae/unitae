@@ -43,9 +43,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
       <CardContent className="flex flex-col gap-2">
         {residentialEntrance != null && <ResidentialSummary entrance={residentialEntrance} />}
 
-        {residentialEntrance == null && (
-          <p>Ce batiment ne contient pas de logements résidentiels.</p>
-        )}
+        {residentialEntrance == null && <p>Ce batiment ne contient pas de logements résidentiels.</p>}
 
         {commerceEntrances.length > 0 && <CommerceSummary entrances={commerceEntrances} />}
 
@@ -143,8 +141,7 @@ function CommerceSummary({ entrances }: { entrances: BuildingEntrance[] }) {
     )
   }
 
-  const labels = entrances
-    .map(e => shopKindLabels[e.shopKind as ShopKind]?.toLowerCase() ?? 'autre')
+  const labels = entrances.map(e => shopKindLabels[e.shopKind as ShopKind]?.toLowerCase() ?? 'autre')
 
   return (
     <p>

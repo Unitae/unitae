@@ -4,7 +4,16 @@ import { createLogger as createWinstonLogger, format, transports } from 'winston
 const { combine, json, errors, timestamp } = format
 
 const EMAIL_PATTERN = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-const PII_KEYS = new Set(['email', 'userEmail', 'phone', 'address', 'firstname', 'lastname', 'birthDate', 'baptismDate'])
+const PII_KEYS = new Set([
+  'email',
+  'userEmail',
+  'phone',
+  'address',
+  'firstname',
+  'lastname',
+  'birthDate',
+  'baptismDate',
+])
 
 function hashValue(value: string): string {
   return createHash('sha256').update(value).digest('hex').slice(0, 12)

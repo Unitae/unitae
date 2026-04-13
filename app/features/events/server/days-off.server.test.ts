@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/libs/db.server', () => ({
   db: {
-    event: { findMany: vi.fn(), create: vi.fn() },
+    event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
     eventKind: { findFirst: vi.fn() },
+    programmePartAssignment: { updateMany: vi.fn() },
+    programmeServiceRoleAssignment: { updateMany: vi.fn() },
   },
 }))
 
@@ -12,6 +14,8 @@ const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // Default: no overlapping programme events for conflict refresh
+  vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 })
 
 describe('createDayOff', () => {

@@ -36,13 +36,16 @@ Track publisher profiles, organize them into groups, and record field service ac
 
 See [Publishers](publishers.md) for details.
 
-## Events
+## Events & Programme Management
 
-Manage congregation events and personal availability.
+Manage congregation meeting programmes, event scheduling, and publisher assignments.
 
-- **Types d'évènement** — Define categories with custom colors and optional weekday assignment
-- **Programs** — Create events with name, description, kind, and date range
-- **Days off** — Members can record their upcoming absences so program organizers can plan accordingly
+- **Programme templates** — Define meeting structures (parts + service roles) with recurring weekdays. Ships with midweek, weekend, and memorial defaults
+- **Event generation** — Auto-generate events from templates for 2 months, or create one-time events from templates or freeform
+- **Publisher assignments** — Assign speakers, readers, and service roles with a dynamic info card showing availability, conflicts, and rotation history
+- **Conflict detection** — Days-off conflicts block assignments in real time and retroactively flag existing ones
+- **Per-template responsibility** — Delegate programme management to specific elders without granting full ProgramManager role
+- **Days off** — Members record their upcoming absences so programme organizers can plan accordingly
 
 See [Events](events.md) for details.
 
@@ -51,7 +54,7 @@ See [Events](events.md) for details.
 Configure the congregation and manage users.
 
 - **Utilisateurs** — Create, edit, and deactivate user accounts and assign roles
-- **Réglages assemblée** — Display name, publisher profile options, types d'évènement management
+- **Réglages assemblée** — Display name, publisher profile options, programme template management
 - **Réglages territoires** — Allowed postal codes for open data sync, phone territory toggle
 
 See [Roles and Permissions](roles-and-permissions.md) for how access control works.

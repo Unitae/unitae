@@ -11,7 +11,11 @@ import { setBuildingProspectionData } from '~/features/territories/server/set-bu
 import { unserializeSharedEntranceFormValue } from '~/features/territories/server/unserialize-shared-entrance-form-value.server'
 import { updateBuildingsInEntrance } from '~/features/territories/server/update-buildings-in-entrance.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
-import { CommerceEntranceCard, ResidentialEntranceCard, SimpleEntranceCard } from '~/features/territories/ui/EntranceCard'
+import {
+  CommerceEntranceCard,
+  ResidentialEntranceCard,
+  SimpleEntranceCard,
+} from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -72,7 +76,11 @@ const entranceKindFormNames: Record<string, string> = {
 
 // Commerce can have multiples, others are unique per building
 const uniqueKinds = [EntranceKind.Residential, EntranceKind.Hotel, EntranceKind.Campus, EntranceKind.Laundromat]
-const allAddableKinds = [EntranceKind.Residential, EntranceKind.Commerce, ...uniqueKinds.filter(k => k !== EntranceKind.Residential)]
+const allAddableKinds = [
+  EntranceKind.Residential,
+  EntranceKind.Commerce,
+  ...uniqueKinds.filter(k => k !== EntranceKind.Residential),
+]
 
 type EntranceEntry = { uid: string; kind: EntranceKind; entranceId?: number; shopKind?: string }
 
@@ -142,7 +150,11 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
                 name="prospection-date"
                 type="date"
                 disabled={isDisabled}
-                title={isDisabled ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer' : ''}
+                title={
+                  isDisabled
+                    ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer'
+                    : ''
+                }
               />
             </div>
           </CardContent>
@@ -169,9 +181,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
         {entries.map(entry => {
           if (entry.kind === EntranceKind.Commerce) {
-            const entrance = entry.entranceId
-              ? building.entrances.find(e => e.id === entry.entranceId)
-              : undefined
+            const entrance = entry.entranceId ? building.entrances.find(e => e.id === entry.entranceId) : undefined
             return (
               <CommerceEntranceCard
                 key={entry.uid}

@@ -95,9 +95,9 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-              <span className="text-sm">Types d'évènements</span>
+              <span className="text-sm">Modèles de programme</span>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="./event-kinds" className="flex items-center gap-2">
+                <Link to="./templates" className="flex items-center gap-2">
                   Voir tout <ArrowRight className="size-4" />
                 </Link>
               </Button>

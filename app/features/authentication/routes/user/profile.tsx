@@ -90,7 +90,9 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
           <div className="flex items-center justify-between">
             <div>
               <p className="font-medium text-sm">Gérer mes consentements</p>
-              <p className="text-muted-foreground text-xs">Consulter et retirer vos consentements au traitement des données.</p>
+              <p className="text-muted-foreground text-xs">
+                Consulter et retirer vos consentements au traitement des données.
+              </p>
             </div>
             <Button asChild variant="outline" size="sm">
               <Link to="/me/consents">Gérer</Link>
@@ -100,8 +102,8 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
           <div className="border-t pt-4">
             <p className="font-medium text-sm">Droit à l'effacement</p>
             <p className="mt-1 text-muted-foreground text-xs">
-              Conformément à l'article 17 du RGPD, vous pouvez demander l'effacement de vos données personnelles.
-              Pour exercer ce droit, contactez l'administrateur de votre assemblée locale.
+              Conformément à l'article 17 du RGPD, vous pouvez demander l'effacement de vos données personnelles. Pour
+              exercer ce droit, contactez l'administrateur de votre assemblée locale.
             </p>
           </div>
 
