@@ -7,6 +7,7 @@ import { setBuildingNotes } from '~/features/territories/server/set-building-not
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -15,8 +16,6 @@ import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/building'
 
@@ -119,9 +118,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
                 </span>
               </p>
             )}
-            <p className="pt-3 text-muted-foreground text-sm italic">
-              {m.prospection_building_info_notice()}
-            </p>
+            <p className="pt-3 text-muted-foreground text-sm italic">{m.prospection_building_info_notice()}</p>
           </div>
         </CardContent>
       </Card>

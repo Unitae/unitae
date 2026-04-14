@@ -4,6 +4,7 @@ import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -12,8 +13,6 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/new'
 
@@ -101,7 +100,9 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
                 <option value={TerritoryAttributionKind.Default}>
                   {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                 </option>
-                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>}
+                {!phoneTypeActive && (
+                  <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>
+                )}
                 <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
             </div>

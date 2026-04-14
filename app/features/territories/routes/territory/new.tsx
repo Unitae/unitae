@@ -1,13 +1,13 @@
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
@@ -91,7 +91,9 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                   <option value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</option>
                   <option value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</option>
                   <option value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</option>
-                  {phoneTypeActive && <option value={TerritoryKind.Phone}>{m.territories_type_phone_singular()}</option>}
+                  {phoneTypeActive && (
+                    <option value={TerritoryKind.Phone}>{m.territories_type_phone_singular()}</option>
+                  )}
                   <option value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</option>
                 </select>
               </div>

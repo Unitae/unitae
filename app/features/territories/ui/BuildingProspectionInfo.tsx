@@ -1,8 +1,11 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
-import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
-import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
+import {
+  type EntranceKind,
+  entranceKindLabels as getEntranceKindLabels,
+} from '~/features/territories/model/entrance-kind.type'
+import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import * as m from '~/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
@@ -29,9 +32,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
           <CardTitle>{m.prospection_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground italic">
-            {m.prospection_info_no_data()}
-          </p>
+          <p className="text-muted-foreground italic">{m.prospection_info_no_data()}</p>
         </CardContent>
       </Card>
     )
@@ -58,7 +59,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
             {allNotes.map(entrance => (
               <p key={entrance.id} className="text-destructive text-sm">
                 <span className="font-medium">
-                  {entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind} :
+                  {getEntranceKindLabels()[entrance.kind as EntranceKind] ?? entrance.kind} :
                 </span>{' '}
                 {entrance.notes}
               </p>
@@ -78,9 +79,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
           </p>
         )}
 
-        <p className="text-muted-foreground text-sm italic">
-          {m.prospection_info_edit_hint()}
-        </p>
+        <p className="text-muted-foreground text-sm italic">{m.prospection_info_edit_hint()}</p>
       </CardContent>
     </Card>
   )
@@ -92,7 +91,12 @@ function describeResidentialCounts(entrance: BuildingEntrance): string[] {
   const liberals = entrance.liberals ?? 0
   const parts: string[] = []
 
-  if (homes > 0) parts.push(homes > 1 ? m.territories_content_homes_other({ count: homes }) : m.territories_content_homes_one({ count: homes }))
+  if (homes > 0)
+    parts.push(
+      homes > 1
+        ? m.territories_content_homes_other({ count: homes })
+        : m.territories_content_homes_one({ count: homes }),
+    )
   if (phones > 0) parts.push(m.prospection_info_phones_count({ count: phones }))
   if (liberals > 0) parts.push(m.prospection_info_liberals_count({ count: liberals }))
 
@@ -136,45 +140,31 @@ function ResidentialSummary({ entrance }: { entrance: BuildingEntrance }) {
 
 function CommerceSummary({ entrances }: { entrances: BuildingEntrance[] }) {
   if (entrances.length === 1) {
-    const shopLabel = shopKindLabels[entrances[0].shopKind as ShopKind] ?? 'commerce'
-    return (
-      <p>
-        {m.prospection_info_commerce_single({ type: shopLabel.toLowerCase() })}
-      </p>
-    )
+    const shopLabel = getShopKindLabels()[entrances[0].shopKind as ShopKind] ?? m.prospection_info_commerce_fallback()
+    return <p>{m.prospection_info_commerce_single({ type: shopLabel.toLowerCase() })}</p>
   }
 
-  const labels = entrances.map(e => shopKindLabels[e.shopKind as ShopKind]?.toLowerCase() ?? 'autre')
-
-  return (
-    <p>
-      {m.prospection_info_commerce_multiple({ count: entrances.length, labels: labels.join(', ') })}
-    </p>
+  const labels = entrances.map(
+    e => getShopKindLabels()[e.shopKind as ShopKind]?.toLowerCase() ?? m.prospection_info_other_fallback(),
   )
+
+  return <p>{m.prospection_info_commerce_multiple({ count: entrances.length, labels: labels.join(', ') })}</p>
 }
 
 function OtherEntranceSummary({ entrance }: { entrance: BuildingEntrance }) {
-  const kindLabel = entranceKindLabels[entrance.kind as EntranceKind]?.toLowerCase() ?? entrance.kind
+  const kindLabel = getEntranceKindLabels()[entrance.kind as EntranceKind]?.toLowerCase() ?? entrance.kind
 
   if (entrance.kind === 'hotel') {
-    return (
-      <p>{m.prospection_info_hotel()}</p>
-    )
+    return <p>{m.prospection_info_hotel()}</p>
   }
 
   if (entrance.kind === 'campus') {
-    return (
-      <p>{m.prospection_info_campus()}</p>
-    )
+    return <p>{m.prospection_info_campus()}</p>
   }
 
   if (entrance.kind === 'laundromat') {
-    return (
-      <p>{m.prospection_info_laundromat()}</p>
-    )
+    return <p>{m.prospection_info_laundromat()}</p>
   }
 
-  return (
-    <p>{m.prospection_info_other_entrance({ type: kindLabel })}</p>
-  )
+  return <p>{m.prospection_info_other_entrance({ type: kindLabel })}</p>
 }

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -35,10 +35,7 @@ export default function DaysOffPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={m.days_off_new_page_title()}
-        subtitle={m.days_off_new_page_subtitle()}
-      />
+      <PageHeader title={m.days_off_new_page_title()} subtitle={m.days_off_new_page_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">

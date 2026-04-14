@@ -1,7 +1,6 @@
 import { Form, redirect } from 'react-router'
-
-import * as m from '~/paraglide/messages'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
+import * as m from '~/paraglide/messages'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Badge } from '~/shared/ui/badge'
@@ -56,9 +55,15 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
       <PageHeader title={congregation.name} />
 
       <div className="flex gap-3">
-        <Badge variant="secondary">{m.platform_admin_edit_congregation_users({ count: congregation.stats.users })}</Badge>
-        <Badge variant="secondary">{m.platform_admin_edit_congregation_territories({ count: congregation.stats.territories })}</Badge>
-        <Badge variant="secondary">{m.platform_admin_edit_congregation_buildings({ count: congregation.stats.buildings })}</Badge>
+        <Badge variant="secondary">
+          {m.platform_admin_edit_congregation_users({ count: congregation.stats.users })}
+        </Badge>
+        <Badge variant="secondary">
+          {m.platform_admin_edit_congregation_territories({ count: congregation.stats.territories })}
+        </Badge>
+        <Badge variant="secondary">
+          {m.platform_admin_edit_congregation_buildings({ count: congregation.stats.buildings })}
+        </Badge>
       </div>
 
       <Card className="max-w-2xl">

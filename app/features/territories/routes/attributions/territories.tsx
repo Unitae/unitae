@@ -47,6 +47,7 @@ import { findAvailableTerritoriesPaginated } from '~/features/territories/server
 import { computeFilters } from '~/features/territories/server/territory-filters'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -55,8 +56,6 @@ import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/territories'
 
@@ -121,9 +120,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
 
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
           <p>{m.attributions_available_empty_title()}</p>
-          <p>
-            {m.attributions_available_empty_details()}
-          </p>
+          <p>{m.attributions_available_empty_details()}</p>
         </div>
       </div>
     )
@@ -160,7 +157,10 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                 <TableCell>
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" asChild>
-                      <Link to={`/territories/territory/${territory.id}/view`} title={m.attributions_available_view_title()}>
+                      <Link
+                        to={`/territories/territory/${territory.id}/view`}
+                        title={m.attributions_available_view_title()}
+                      >
                         <ExternalLink className="size-4" />
                       </Link>
                     </Button>

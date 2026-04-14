@@ -1,8 +1,8 @@
 import { Form, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -69,7 +69,10 @@ export default function DeleteEventPage({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-sm">
-            {m.programs_delete_confirm_message({ name: event.name, date: new Date(event.startDate).toLocaleDateString('fr-FR') })}
+            {m.programs_delete_confirm_message({
+              name: event.name,
+              date: new Date(event.startDate).toLocaleDateString('fr-FR'),
+            })}
           </p>
         </CardContent>
         <CardFooter>

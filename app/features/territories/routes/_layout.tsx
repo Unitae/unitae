@@ -1,6 +1,6 @@
 import { Outlet, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 
 import type { Route } from './+types/_layout'

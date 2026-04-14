@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
-import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
-import * as m from '~/paraglide/messages'
+import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import * as m from '~/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -35,8 +35,12 @@ export default function BuildingEntranceList({
           <TableHead className="w-[100px]">{m.territories_entrance_list_zip()}</TableHead>
           <TableHead className="w-[80px] text-center">{m.territories_entrance_list_number()}</TableHead>
           <TableHead>{m.territories_entrance_list_street()}</TableHead>
-          {(variant === 'residential' || variant === 'phone') && <TableHead className="w-[120px]">{m.territories_entrance_list_access()}</TableHead>}
-          {variant === 'residential' && <TableHead className="w-[80px] text-center">{m.territories_entrance_list_homes()}</TableHead>}
+          {(variant === 'residential' || variant === 'phone') && (
+            <TableHead className="w-[120px]">{m.territories_entrance_list_access()}</TableHead>
+          )}
+          {variant === 'residential' && (
+            <TableHead className="w-[80px] text-center">{m.territories_entrance_list_homes()}</TableHead>
+          )}
           {(variant === 'residential' || variant === 'phone') && (
             <TableHead className="w-[80px] text-center">{m.territories_entrance_list_phone()}</TableHead>
           )}
@@ -109,7 +113,7 @@ function BuildingEntranceListItem({
         <TableCell className="text-center">{entrance.phones ?? '-'}</TableCell>
       )}
       {variant === 'commerce' && (
-        <TableCell>{shopKindLabels[entrance.shopKind as ShopKind] ?? (entrance.shopKind || '-')}</TableCell>
+        <TableCell>{getShopKindLabels()[entrance.shopKind as ShopKind] ?? (entrance.shopKind || '-')}</TableCell>
       )}
       <TableCell className="max-w-[200px] truncate">{entrance.notes || '-'}</TableCell>
     </TableRow>

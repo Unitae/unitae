@@ -1,10 +1,10 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { BuildingAccess } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
-import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
+import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import * as m from '~/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 
 Font.register({
@@ -165,8 +165,12 @@ export function TerritoryDocument({
           })}
         </View>
         <View style={styles.footer}>
-          <Text style={styles.alt}>{m.territory_doc_checked_out_by()} {owner ?? '........................'}</Text>
-          <Text style={styles.alt}>{m.territory_doc_return_by()} {restitutionDate?.toLocaleDateString('fr') ?? '..................'}</Text>
+          <Text style={styles.alt}>
+            {m.territory_doc_checked_out_by()} {owner ?? '........................'}
+          </Text>
+          <Text style={styles.alt}>
+            {m.territory_doc_return_by()} {restitutionDate?.toLocaleDateString('fr') ?? '..................'}
+          </Text>
         </View>
         <DocumentWaterMark type={attributionType} />
       </Page>
@@ -191,7 +195,9 @@ function DocumentWaterMark({ type }: { type: TerritoryAttributionKind }) {
   }
 
   if (type === TerritoryAttributionKind.Phone) {
-    return <Text style={[styles.watermark, { color: '#0f766e', left: '10%' }]}>{m.territory_doc_watermark_phones()}</Text>
+    return (
+      <Text style={[styles.watermark, { color: '#0f766e', left: '10%' }]}>{m.territory_doc_watermark_phones()}</Text>
+    )
   }
 
   return null
@@ -250,7 +256,7 @@ function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; 
         {accessText.length > 0 && `${accessText}. `}
         {hasCode && entrance.isOpenEarly === true && `${m.territory_doc_open_morning()} `}
         {hasCode && entrance.isMailboxOpen === true && `${m.territory_doc_mailbox_accessible()} `}
-        {canShowPhone && phones > 0 && `${phones} tél.`}
+        {canShowPhone && phones > 0 && m.territory_doc_phone_abbr({ count: phones })}
       </Text>
       {entrance.notes.length > 0 && <Text style={styles.alert}>{entrance.notes}</Text>}
     </View>
@@ -261,7 +267,7 @@ function CommerceInformations({ entrance }: { entrance: Entrance }) {
   const firstBuilding = entrance.buildings[0]
   const numbers = entrance.buildings.map(building => building.number).join(', ')
 
-  const shopLabel = shopKindLabels[entrance.shopKind as ShopKind] ?? 'Autres'
+  const shopLabel = getShopKindLabels()[entrance.shopKind as ShopKind] ?? m.territory_doc_shop_fallback()
 
   return (
     <View key={entrance.id} style={styles.building}>

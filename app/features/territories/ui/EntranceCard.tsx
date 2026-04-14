@@ -1,10 +1,13 @@
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { BuildingAccess, BuildingEntrance, BuildingResidentialData } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
-import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
+import {
+  type EntranceKind,
+  entranceKindLabels as getEntranceKindLabels,
+} from '~/features/territories/model/entrance-kind.type'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -41,7 +44,13 @@ export function ResidentialEntranceCard({
             <Badge variant="outline">{m.prospection_entrance_door_to_door_badge()}</Badge>
           </CardTitle>
           {onDelete && (
-            <Button type="button" variant="ghost" size="icon" onClick={onDelete} title={m.prospection_entrance_delete_title()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              title={m.prospection_entrance_delete_title()}
+            >
               <Trash2 className="size-4 text-destructive" />
             </Button>
           )}
@@ -134,7 +143,8 @@ export function ResidentialEntranceCard({
             disabled={isDisabled}
           />
           <span>
-            {m.prospection_entrance_pmr_label()} <span className="font-semibold text-primary">{m.prospection_entrance_pmr_highlight()}</span>
+            {m.prospection_entrance_pmr_label()}{' '}
+            <span className="font-semibold text-primary">{m.prospection_entrance_pmr_highlight()}</span>
           </span>
         </label>
 
@@ -173,9 +183,17 @@ export function CommerceEntranceCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">{entranceKindLabels['commerce' as EntranceKind]}</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            {getEntranceKindLabels()['commerce' as EntranceKind]}
+          </CardTitle>
           {onDelete && (
-            <Button type="button" variant="ghost" size="icon" onClick={onDelete} title={m.prospection_entrance_delete_title()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              title={m.prospection_entrance_delete_title()}
+            >
               <Trash2 className="size-4 text-destructive" />
             </Button>
           )}
@@ -236,9 +254,15 @@ export function SimpleEntranceCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">{entranceKindLabels[kind]}</CardTitle>
+          <CardTitle className="flex items-center gap-2">{getEntranceKindLabels()[kind]}</CardTitle>
           {onDelete && (
-            <Button type="button" variant="ghost" size="icon" onClick={onDelete} title={m.prospection_entrance_delete_title()}>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onDelete}
+              title={m.prospection_entrance_delete_title()}
+            >
               <Trash2 className="size-4 text-destructive" />
             </Button>
           )}
@@ -247,7 +271,7 @@ export function SimpleEntranceCard({
       <CardContent>
         <input type="hidden" name={formName} value="on" />
         <p className="text-muted-foreground text-sm">
-          {m.prospection_entrance_simple_description({ kind: entranceKindLabels[kind].toLowerCase() })}
+          {m.prospection_entrance_simple_description({ kind: getEntranceKindLabels()[kind].toLowerCase() })}
         </p>
       </CardContent>
     </Card>

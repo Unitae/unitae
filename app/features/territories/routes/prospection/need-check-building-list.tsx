@@ -2,12 +2,12 @@ import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
-import * as m from '~/paraglide/messages'
 import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings'
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -118,9 +118,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
         <p>{m.prospection_empty_need_check()}</p>
-        <p>
-          {m.prospection_empty_need_check_hint()}
-        </p>
+        <p>{m.prospection_empty_need_check_hint()}</p>
       </div>
     )
   }

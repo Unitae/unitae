@@ -1,6 +1,6 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }

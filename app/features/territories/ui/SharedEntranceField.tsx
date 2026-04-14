@@ -1,9 +1,8 @@
 import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Building } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
-
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Label } from '~/shared/ui/label'
 

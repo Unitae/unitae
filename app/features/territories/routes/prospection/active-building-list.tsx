@@ -3,13 +3,12 @@ import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
-
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/active-building-list'
 
@@ -54,9 +53,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
         <p>{m.prospection_empty_active_buildings()}</p>
-        <p>
-          {m.prospection_empty_buildings_hint({ bano: m.prospection_bano_name() })}
-        </p>
+        <p>{m.prospection_empty_buildings_hint({ bano: m.prospection_bano_name() })}</p>
       </div>
     )
   }

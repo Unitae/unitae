@@ -22,9 +22,7 @@ export default function BuildingTerritoryInfo({ building }: { building: Building
               {building.notes}
             </textarea>
           </div>
-          <p className="text-muted-foreground text-sm italic">
-            {m.prospection_territory_notes_hint()}
-          </p>
+          <p className="text-muted-foreground text-sm italic">{m.prospection_territory_notes_hint()}</p>
           <Button type="submit" className="self-start">
             {m.prospection_territory_notes_submit()}
           </Button>

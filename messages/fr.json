@@ -1495,5 +1495,49 @@
     "shop_kind_tech": "Technologie",
     "shop_kind_newspaper": "Tabac / Press",
     "shop_kind_gas_station": "Station Services",
-    "shop_kind_other": "Autres"
+    "shop_kind_other": "Autres",
+
+    "entrance_kind_residential": "Résidentiel",
+    "entrance_kind_commerce": "Commerce",
+    "entrance_kind_hotel": "Hôtel",
+    "entrance_kind_laundromat": "Laverie",
+    "entrance_kind_campus": "Résidence universitaire",
+
+    "territory_kind_label_classical": "Porte à porte",
+    "territory_kind_label_univ": "Université",
+    "territory_kind_label_commerces": "Commerces",
+    "territory_kind_label_phone": "Téléphone",
+    "territory_kind_label_hotel": "Hôtel",
+
+    "board_sections_edit_meta_title": "Modification d'une section du Tableau d'affichage - Unitae",
+    "board_documents_edit_meta_title": "Modification d'un document du Tableau d'affichage - Unitae",
+
+    "territory_doc_phone_abbr": "{count} tél.",
+    "territory_doc_shop_fallback": "Autres",
+    "prospection_info_commerce_fallback": "commerce",
+    "prospection_info_other_fallback": "autre",
+
+    "email_sync_done_preview": "La synchronisation des bâtiments du territoire avec les données du gouvernement est terminée...",
+    "email_sync_done_heading_line1": "Synchronisation",
+    "email_sync_done_heading_line2": "des bâtiments terminée.",
+    "email_sync_done_greeting": "Bonjour {name},",
+    "email_sync_done_body_1": "Depuis le module de gestion des territoires, vous avez demandé une synchronisation des données de la plateforme avec celles des bases d'adresses ouvertes du gouvernement.",
+    "email_sync_done_body_2": "Cette synchronisation est terminée.",
+    "email_sync_done_body_3": "Pour voir le résultat visitez la page \"Prospection\" dans le module des territoires ou cliquez sur ce button :",
+    "email_sync_done_button": "Voir les mises à jour",
+    "email_sync_done_regards": "Cordialement,",
+    "email_sync_done_team": "L'équipe {platformName}",
+    "email_sync_done_footer": "Cet email est destiné à {email}. Si vous n'attendiez pas cet email, vous pouvez l'ignorer.",
+
+    "email_new_document_preview": "Un nouveau document a été ajouté au tableau d'affichage...",
+    "email_new_document_heading_line1": "Nouveau document",
+    "email_new_document_heading_line2": "disponible sur le tableau d'affichage.",
+    "email_new_document_greeting": "Bonjour {name},",
+    "email_new_document_body_1": "Un nouveau document appelé \"{filename}\" a été ajouté au tableau d'affichage de l'assemblée.",
+    "email_new_document_body_2": "Vous recevez ce mail car vous possèdez les droits pour décider de rendre accessible ce document à tous les proclamateurs.",
+    "email_new_document_body_3": "Pour modifier la visibilité du document, visitez la page \"Liste des documents\" dans le module du tableau d'affichage ou cliquez sur ce button :",
+    "email_new_document_button": "Modifier le document",
+    "email_new_document_regards": "Cordialement,",
+    "email_new_document_team": "L'équipe {platformName}",
+    "email_new_document_footer": "Cet email est destiné à {email}. Si vous n'attendiez pas cet email, vous pouvez l'ignorer."
 }

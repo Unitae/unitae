@@ -4,6 +4,7 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -14,8 +15,6 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/edit-building'
 
@@ -92,7 +91,13 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>{m.prospection_new_building_street_label()}</Label>
-              <Input name="street" type="text" placeholder={m.prospection_new_building_street_placeholder()} required defaultValue={building.street} />
+              <Input
+                name="street"
+                type="text"
+                placeholder={m.prospection_new_building_street_placeholder()}
+                required
+                defaultValue={building.street}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>{m.prospection_new_building_zip_label()}</Label>

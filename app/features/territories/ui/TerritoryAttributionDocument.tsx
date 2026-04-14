@@ -1,7 +1,7 @@
 import { Document, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { Attribution, Territory, User } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import * as m from '~/paraglide/messages'
 
 type TerritoryRepport = Territory & { attributions: (Attribution & { publisher: User })[] }
 
@@ -51,12 +51,20 @@ export function TerritoryAttributionDocument({
           <Table>
             <TableRow>
               <TableHeaderCell width="7%" borderLeft={3}>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_territory_number()}</Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                  {m.territory_s13_territory_number()}
+                </Text>
               </TableHeaderCell>
               <TableHeaderCell width="13%">
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_last_covered()}</Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_last_covered_line2()}</Text>
-                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_last_covered_line3()}</Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                  {m.territory_s13_last_covered()}
+                </Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                  {m.territory_s13_last_covered_line2()}
+                </Text>
+                <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+                  {m.territory_s13_last_covered_line3()}
+                </Text>
               </TableHeaderCell>
               <AttributionHeaderCell width="20%" borderLeft={3} />
               <AttributionHeaderCell width="20%" />
@@ -296,7 +304,9 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_assigned_date()}</Text>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+            {m.territory_s13_assigned_date()}
+          </Text>
         </View>
         <View
           style={{
@@ -309,8 +319,12 @@ function AttributionHeaderCell({
             alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_fully_covered()}</Text>
-          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>{m.territory_s13_fully_covered_line2()}</Text>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+            {m.territory_s13_fully_covered()}
+          </Text>
+          <Text style={{ fontSize: 8, fontWeight: 500, fontFamily: 'Helvetica' }}>
+            {m.territory_s13_fully_covered_line2()}
+          </Text>
         </View>
       </View>
     </View>

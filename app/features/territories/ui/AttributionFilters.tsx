@@ -1,8 +1,8 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
 import type { PublisherGroup } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 
@@ -25,8 +25,12 @@ export default function AttributionFilters({ action, phoneTypeActive = false, gr
           defaultValue={params.get('type') ?? undefined}
         >
           <option value="none">{m.territories_filter_mode()}</option>
-          <option value={TerritoryAttributionKind.Default}>{phoneTypeActive ? m.territories_filter_default_classic() : m.territories_type_classical_capitalized()}</option>
-          {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>}
+          <option value={TerritoryAttributionKind.Default}>
+            {phoneTypeActive ? m.territories_filter_default_classic() : m.territories_type_classical_capitalized()}
+          </option>
+          {!phoneTypeActive && (
+            <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>
+          )}
           <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
         </select>
         <select

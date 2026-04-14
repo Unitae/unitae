@@ -1,8 +1,8 @@
 import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -46,7 +46,9 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground">
-            {m.prospection_delete_building_confirm({ address: `${building.number} ${building.street}, ${building.zip}` })}
+            {m.prospection_delete_building_confirm({
+              address: `${building.number} ${building.street}, ${building.zip}`,
+            })}
           </p>
         </CardContent>
         <CardFooter className="justify-center">
@@ -79,7 +81,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      m.prospection_delete_building_flash_success({ address: `${building.number} ${building.street}, ${building.zip}` }),
+      m.prospection_delete_building_flash_success({
+        address: `${building.number} ${building.street}, ${building.zip}`,
+      }),
     )
 
     const previousPage = request.headers.get('referer')

@@ -1,10 +1,10 @@
 import { Form, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { type TransactionClient, withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -275,9 +275,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
           <CardContent>
             <Form method="post" className="flex flex-col gap-4">
               <input type="hidden" name="intent" value="apply-template" />
-              <p className="text-muted-foreground text-sm">
-                {m.programs_edit_apply_template_hint()}
-              </p>
+              <p className="text-muted-foreground text-sm">{m.programs_edit_apply_template_hint()}</p>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="templateId">{m.programs_edit_template_label()}</Label>
                 <Select name="templateId">
@@ -378,7 +376,12 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
             <input type="hidden" name="intent" value="add-service" />
             <div className="flex flex-col gap-1">
               <Label className="text-xs">{m.programs_edit_part_name_label()}</Label>
-              <Input name="serviceName" placeholder={m.programs_edit_new_service_placeholder()} className="w-48" required />
+              <Input
+                name="serviceName"
+                placeholder={m.programs_edit_new_service_placeholder()}
+                className="w-48"
+                required
+              />
             </div>
             <Button type="submit" size="sm">
               {m.programs_edit_add_button()}

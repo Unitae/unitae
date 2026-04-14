@@ -1,5 +1,5 @@
-import * as m from '~/paraglide/messages'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
+import * as m from '~/paraglide/messages'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
 
@@ -42,7 +42,10 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title={m.platform_admin_users_title()} subtitle={m.platform_admin_users_subtitle({ count: users.length })} />
+      <PageHeader
+        title={m.platform_admin_users_title()}
+        subtitle={m.platform_admin_users_subtitle({ count: users.length })}
+      />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>
@@ -64,7 +67,9 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell>{u.congregationName}</TableCell>
                 <TableCell className="text-center">
-                  <Badge variant={u.active ? 'default' : 'destructive'}>{u.active ? m.platform_admin_users_status_active() : m.platform_admin_users_status_inactive()}</Badge>
+                  <Badge variant={u.active ? 'default' : 'destructive'}>
+                    {u.active ? m.platform_admin_users_status_active() : m.platform_admin_users_status_inactive()}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-center">
                   {u.platformAdmin && <Badge variant="secondary">{m.platform_admin_users_badge_admin()}</Badge>}

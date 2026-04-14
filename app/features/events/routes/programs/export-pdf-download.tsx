@@ -1,8 +1,8 @@
 import { pdf } from '@react-pdf/renderer'
 import { redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { ProgrammeDocument } from '~/features/events/ui/ProgrammeDocument'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -46,7 +46,9 @@ export async function loader({ request }: Route.LoaderArgs) {
       orderBy: { startDate: 'asc' },
     })
 
-    const templateName = templateId ? (events[0]?.template?.name ?? m.programs_export_default_title()) : m.programs_export_default_title()
+    const templateName = templateId
+      ? (events[0]?.template?.name ?? m.programs_export_default_title())
+      : m.programs_export_default_title()
     const title = `${templateName} — ${startDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
 
     const file = await pdf(

@@ -1495,5 +1495,49 @@
     "shop_kind_tech": "Technology",
     "shop_kind_newspaper": "Tobacco / Press",
     "shop_kind_gas_station": "Gas Station",
-    "shop_kind_other": "Other"
+    "shop_kind_other": "Other",
+
+    "entrance_kind_residential": "Residential",
+    "entrance_kind_commerce": "Commerce",
+    "entrance_kind_hotel": "Hotel",
+    "entrance_kind_laundromat": "Laundromat",
+    "entrance_kind_campus": "Student residence",
+
+    "territory_kind_label_classical": "Door to door",
+    "territory_kind_label_univ": "University",
+    "territory_kind_label_commerces": "Businesses",
+    "territory_kind_label_phone": "Phone",
+    "territory_kind_label_hotel": "Hotel",
+
+    "board_sections_edit_meta_title": "Edit a notice board section - Unitae",
+    "board_documents_edit_meta_title": "Edit a notice board document - Unitae",
+
+    "territory_doc_phone_abbr": "{count} ph.",
+    "territory_doc_shop_fallback": "Other",
+    "prospection_info_commerce_fallback": "shop",
+    "prospection_info_other_fallback": "other",
+
+    "email_sync_done_preview": "The building synchronization with government data is complete...",
+    "email_sync_done_heading_line1": "Building",
+    "email_sync_done_heading_line2": "synchronization complete.",
+    "email_sync_done_greeting": "Hello {name},",
+    "email_sync_done_body_1": "From the territory management module, you requested a synchronization of the platform data with the government open address databases.",
+    "email_sync_done_body_2": "This synchronization is now complete.",
+    "email_sync_done_body_3": "To see the results, visit the \"Prospecting\" page in the territories module or click this button:",
+    "email_sync_done_button": "View updates",
+    "email_sync_done_regards": "Kind regards,",
+    "email_sync_done_team": "The {platformName} team",
+    "email_sync_done_footer": "This email is intended for {email}. If you were not expecting this email, you can ignore it.",
+
+    "email_new_document_preview": "A new document has been added to the notice board...",
+    "email_new_document_heading_line1": "New document",
+    "email_new_document_heading_line2": "available on the notice board.",
+    "email_new_document_greeting": "Hello {name},",
+    "email_new_document_body_1": "A new document called \"{filename}\" has been added to the congregation's notice board.",
+    "email_new_document_body_2": "You are receiving this email because you have the rights to decide whether to make this document accessible to all publishers.",
+    "email_new_document_body_3": "To change the document's visibility, visit the \"Document list\" page in the notice board module or click this button:",
+    "email_new_document_button": "Edit document",
+    "email_new_document_regards": "Kind regards,",
+    "email_new_document_team": "The {platformName} team",
+    "email_new_document_footer": "This email is intended for {email}. If you were not expecting this email, you can ignore it."
 }

@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 
@@ -45,10 +45,7 @@ export async function action({ request }: Route.ActionArgs) {
       congregationId: currentUser.congregationId,
     })
 
-    session.flash(
-      'success',
-      m.prospection_sync_flash_success(),
-    )
+    session.flash('success', m.prospection_sync_flash_success())
 
     return redirect('/territories/buildings', {
       headers: {

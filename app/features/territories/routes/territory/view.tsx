@@ -11,6 +11,7 @@ import { computeTerritoryQuantity } from '~/features/territories/server/compute-
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
@@ -21,8 +22,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/view'
 
@@ -100,7 +99,9 @@ function CurrentAttributionSection({
         </div>
         {canManageTerritories && (
           <Button variant="secondary" asChild>
-            <Link to={`/territories/attributions/new?territory=${territoryId}`}>{m.territories_view_assign_button()}</Link>
+            <Link to={`/territories/attributions/new?territory=${territoryId}`}>
+              {m.territories_view_assign_button()}
+            </Link>
           </Button>
         )}
       </>
@@ -130,13 +131,19 @@ function CurrentAttributionSection({
         {canManageTerritories && (
           <>
             <Button variant="ghost" size="icon" asChild>
-              <Link to={`/territories/attributions/${attribution.id}/edit`} title={m.territories_edit_view_attribution_title()}>
+              <Link
+                to={`/territories/attributions/${attribution.id}/edit`}
+                title={m.territories_edit_view_attribution_title()}
+              >
                 <ExternalLink className="size-4 text-primary" />
               </Link>
             </Button>
             {attribution.endDate == null && (
               <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
-                <Link to={`/territories/attributions/${attribution.id}/delete`} title={m.territories_edit_cancel_attribution_title()}>
+                <Link
+                  to={`/territories/attributions/${attribution.id}/delete`}
+                  title={m.territories_edit_cancel_attribution_title()}
+                >
                   <X className="size-4" />
                 </Link>
               </Button>

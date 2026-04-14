@@ -10,19 +10,18 @@ import { findActiveAttributionsPaginated } from '~/features/territories/server/a
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
-
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/list'
 
@@ -195,7 +194,11 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     <TableCell>
                       {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
                       <span className="text-muted-foreground text-xs">
-                        ({m.attributions_days_count({ count: ((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2) })})
+                        (
+                        {m.attributions_days_count({
+                          count: ((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2),
+                        })}
+                        )
                       </span>
                     </TableCell>
                     <TableCell className="text-center">

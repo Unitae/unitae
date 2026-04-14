@@ -15,6 +15,7 @@ import { computeTerritoryQuantity } from '~/features/territories/server/compute-
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
@@ -24,8 +25,6 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/edit'
 
@@ -184,12 +183,9 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                   </span>
                 </p>
                 <p>
-                  {m.territories_edit_homes_label()}{' '}
-                  <span className="font-medium text-primary">{quantity}</span>
+                  {m.territories_edit_homes_label()} <span className="font-medium text-primary">{quantity}</span>
                 </p>
-                <p className="pt-3 text-muted-foreground text-sm italic">
-                  {m.territories_edit_info_notice()}
-                </p>
+                <p className="pt-3 text-muted-foreground text-sm italic">{m.territories_edit_info_notice()}</p>
               </div>
             </CardContent>
           </Card>
@@ -236,7 +232,9 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                   <span className="text-muted-foreground italic">{m.territories_edit_no_attribution()}</span>
                 </div>
                 <Button variant="secondary" asChild>
-                  <Link to={`/territories/attributions/new?territory=${territory.id}`}>{m.territories_edit_assign_button()}</Link>
+                  <Link to={`/territories/attributions/new?territory=${territory.id}`}>
+                    {m.territories_edit_assign_button()}
+                  </Link>
                 </Button>
               </>
             )}
@@ -249,7 +247,9 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                   <span className="font-medium">
                     {entrance.number} {entrance.street}, {entrance.zip}
                   </span>
-                  <span className="text-muted-foreground text-sm">{m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}</span>
+                  <span className="text-muted-foreground text-sm">
+                    {m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}
+                  </span>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="ghost" size="icon" asChild>

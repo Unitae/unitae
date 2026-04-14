@@ -2,13 +2,12 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/delete'
 
@@ -82,7 +81,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      m.attributions_delete_flash_success({ name: `${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname}` }),
+      m.attributions_delete_flash_success({
+        name: `${attribution.publisher.lastname?.toLocaleUpperCase()} ${attribution.publisher.firstname}`,
+      }),
     )
 
     const previousPage = request.headers.get('referer')

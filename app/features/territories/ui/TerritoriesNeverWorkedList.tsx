@@ -1,6 +1,6 @@
 import { MapPinOff } from 'lucide-react'
-import * as m from '~/paraglide/messages'
 import type { NeverWorkedTerritory } from '~/features/territories/server/territories-never-worked.server'
+import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 

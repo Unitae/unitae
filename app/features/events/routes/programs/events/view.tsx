@@ -1,9 +1,9 @@
 import { AlertTriangle, Clock, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -129,7 +129,10 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" asChild className="size-7">
-                          <Link to={`./assign-part?assignmentId=${assignment.id}`} title={m.programs_view_assign_title()}>
+                          <Link
+                            to={`./assign-part?assignmentId=${assignment.id}`}
+                            title={m.programs_view_assign_title()}
+                          >
                             <UserPlus className="size-3" />
                           </Link>
                         </Button>
@@ -182,7 +185,10 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" asChild className="size-7">
-                          <Link to={`./assign-service?assignmentId=${assignment.id}`} title={m.programs_view_assign_title()}>
+                          <Link
+                            to={`./assign-service?assignmentId=${assignment.id}`}
+                            title={m.programs_view_assign_title()}
+                          >
                             <UserPlus className="size-3" />
                           </Link>
                         </Button>

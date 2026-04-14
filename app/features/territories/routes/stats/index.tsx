@@ -1,6 +1,5 @@
 import { Info } from 'lucide-react'
 import { redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Cell, Pie, PieChart } from 'recharts'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getGroups } from '~/features/publishers/server/groups'
@@ -38,6 +37,7 @@ import MonthlyCoverageChart from '~/features/territories/ui/MonthlyCoverageChart
 import StatsFilters from '~/features/territories/ui/StatsFilters'
 import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -252,19 +252,13 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.total}</span>
-              <StatLabel
-                label={m.stats_total_territories()}
-                help={m.stats_total_territories_help()}
-              />
+              <StatLabel label={m.stats_total_territories()} help={m.stats_total_territories_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.available}</span>
-              <StatLabel
-                label={m.stats_available_territories()}
-                help={m.stats_available_territories_help()}
-              />
+              <StatLabel label={m.stats_available_territories()} help={m.stats_available_territories_help()} />
             </CardContent>
           </Card>
         </div>
@@ -272,28 +266,19 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.working}</span>
-              <StatLabel
-                label={m.stats_working_territories()}
-                help={m.stats_working_territories_help()}
-              />
+              <StatLabel label={m.stats_working_territories()} help={m.stats_working_territories_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.delayed}</span>
-              <StatLabel
-                label={m.stats_delayed_territories()}
-                help={m.stats_delayed_territories_help()}
-              />
+              <StatLabel label={m.stats_delayed_territories()} help={m.stats_delayed_territories_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.resting}</span>
-              <StatLabel
-                label={m.stats_resting_territories()}
-                help={m.stats_resting_territories_help()}
-              />
+              <StatLabel label={m.stats_resting_territories()} help={m.stats_resting_territories_help()} />
             </CardContent>
           </Card>
         </div>
@@ -316,10 +301,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   ))}
                 </Pie>
               </PieChart>
-              <StatLabel
-                label={m.stats_pie_label()}
-                help={m.stats_pie_help()}
-              />
+              <StatLabel label={m.stats_pie_label()} help={m.stats_pie_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -344,10 +326,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               ) : (
                 <span className="py-12 text-muted-foreground text-sm italic">{m.stats_no_active_attributions()}</span>
               )}
-              <StatLabel
-                label={m.stats_group_distribution_label()}
-                help={m.stats_group_distribution_help()}
-              />
+              <StatLabel label={m.stats_group_distribution_label()} help={m.stats_group_distribution_help()} />
             </CardContent>
           </Card>
         </div>
@@ -363,10 +342,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.coverage.toFixed(2)} %</span>
-              <StatLabel
-                label={m.stats_coverage()}
-                help={m.stats_coverage_help()}
-              />
+              <StatLabel label={m.stats_coverage()} help={m.stats_coverage_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -374,10 +350,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               <span className="font-black font-display text-5xl max-sm:text-3xl">
                 {stats.totalCoverage.toFixed(2)} %
               </span>
-              <StatLabel
-                label={m.stats_total_coverage()}
-                help={m.stats_total_coverage_help()}
-              />
+              <StatLabel label={m.stats_total_coverage()} help={m.stats_total_coverage_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -390,10 +363,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   {m.stats_times_count({ count: progression.ranked.most.count })}
                 </span>
               )}
-              <StatLabel
-                label={m.stats_most_worked()}
-                help={m.stats_most_worked_help()}
-              />
+              <StatLabel label={m.stats_most_worked()} help={m.stats_most_worked_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -406,10 +376,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   {m.stats_times_count({ count: progression.ranked.least.count })}
                 </span>
               )}
-              <StatLabel
-                label={m.stats_least_worked()}
-                help={m.stats_least_worked_help()}
-              />
+              <StatLabel label={m.stats_least_worked()} help={m.stats_least_worked_help()} />
             </CardContent>
           </Card>
         </div>
@@ -419,10 +386,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               <span className="font-black font-display text-5xl max-sm:text-3xl">
                 {progression.durationStats.averageDays} j
               </span>
-              <StatLabel
-                label={m.stats_avg_duration()}
-                help={m.stats_avg_duration_help()}
-              />
+              <StatLabel label={m.stats_avg_duration()} help={m.stats_avg_duration_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -437,10 +401,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                 </span>
                 <span className="font-display text-2xl">j</span>
               </div>
-              <StatLabel
-                label={m.stats_longest_shortest()}
-                help={m.stats_longest_shortest_help()}
-              />
+              <StatLabel label={m.stats_longest_shortest()} help={m.stats_longest_shortest_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -448,10 +409,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               <span className="font-black font-display text-5xl max-sm:text-3xl">
                 {progression.overdueRate.toFixed(1)} %
               </span>
-              <StatLabel
-                label={m.stats_overdue_rate()}
-                help={m.stats_overdue_rate_help()}
-              />
+              <StatLabel label={m.stats_overdue_rate()} help={m.stats_overdue_rate_help()} />
             </CardContent>
           </Card>
         </div>
@@ -459,19 +417,13 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.availabilityGap} j</span>
-              <StatLabel
-                label={m.stats_availability_gap()}
-                help={m.stats_availability_gap_help()}
-              />
+              <StatLabel label={m.stats_availability_gap()} help={m.stats_availability_gap_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.restUtilization} j</span>
-              <StatLabel
-                label={m.stats_rest_utilization()}
-                help={m.stats_rest_utilization_help()}
-              />
+              <StatLabel label={m.stats_rest_utilization()} help={m.stats_rest_utilization_help()} />
             </CardContent>
           </Card>
         </div>
@@ -510,11 +462,10 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   <span className="font-black font-display text-4xl max-sm:text-2xl">
                     {ct.totalCoverage.toFixed(1)} %
                   </span>
-                  <span className="text-muted-foreground text-xs">{m.stats_attributions_percentage({ percentage: ct.coverage.toFixed(1) })}</span>
-                  <StatLabel
-                    label={ct.label}
-                    help={m.stats_coverage_by_type_help({ label: ct.label })}
-                  />
+                  <span className="text-muted-foreground text-xs">
+                    {m.stats_attributions_percentage({ percentage: ct.coverage.toFixed(1) })}
+                  </span>
+                  <StatLabel label={ct.label} help={m.stats_coverage_by_type_help({ label: ct.label })} />
                 </CardContent>
               </Card>
             ))}
@@ -535,7 +486,10 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
       <Card>
         <CardHeader>
           <CardTitle className="font-display text-lg">
-            {m.stats_year_comparison_title({ current: `${theocraticYear}/${theocraticYear + 1}`, previous: `${theocraticYear - 1}/${theocraticYear}` })}
+            {m.stats_year_comparison_title({
+              current: `${theocraticYear}/${theocraticYear + 1}`,
+              previous: `${theocraticYear - 1}/${theocraticYear}`,
+            })}
           </CardTitle>
         </CardHeader>
         <CardContent>

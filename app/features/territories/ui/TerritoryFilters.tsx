@@ -1,10 +1,10 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 

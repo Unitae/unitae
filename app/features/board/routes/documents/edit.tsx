@@ -15,7 +15,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Modification d'une section du Tableau d'affichage - Unitae` }]
+  return [{ title: m.board_documents_edit_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {

@@ -1,7 +1,7 @@
 import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -52,7 +52,10 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
             <Card key={event.id}>
               <CardContent className="flex items-center justify-between py-3">
                 <span className="text-sm">
-                  {m.days_off_date_range({ startDate: new Date(event.startDate).toLocaleDateString(), endDate: new Date(event.endDate).toLocaleDateString() })}
+                  {m.days_off_date_range({
+                    startDate: new Date(event.startDate).toLocaleDateString(),
+                    endDate: new Date(event.endDate).toLocaleDateString(),
+                  })}
                 </span>
                 <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
                   <Link to={`/me/days-off/${event.id}/delete`} title={m.days_off_delete_title()}>
@@ -64,11 +67,7 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={CalendarOff}
-          title={m.days_off_empty_title()}
-          description={m.days_off_empty_description()}
-        />
+        <EmptyState icon={CalendarOff} title={m.days_off_empty_title()} description={m.days_off_empty_description()} />
       )}
     </div>
   )

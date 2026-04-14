@@ -1,11 +1,11 @@
 import { data, NavLink, Outlet, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import * as m from '~/paraglide/messages'
 import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -113,10 +113,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-7">
       <AlertMessages messages={messages} />
 
-      <PageHeader
-        title={m.split_tool_title()}
-        subtitle={m.split_tool_subtitle()}
-      />
+      <PageHeader title={m.split_tool_title()} subtitle={m.split_tool_subtitle()} />
 
       <div className="flex flex-wrap justify-around gap-3 rounded-lg border bg-muted/50 p-2">
         <NavLink

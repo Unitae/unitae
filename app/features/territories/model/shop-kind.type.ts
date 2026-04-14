@@ -1,3 +1,5 @@
+import * as m from '~/paraglide/messages'
+
 export enum ShopKind {
   Food = 'alimentaire',
   Clothing = 'vetements-chaussures',
@@ -13,16 +15,18 @@ export enum ShopKind {
 }
 
 // biome-ignore lint/style/useNamingConvention: labels map keyed by enum
-export const shopKindLabels: { [key in ShopKind]: string } = {
-  [ShopKind.Catering]: 'Restaurant / Café / Snack',
-  [ShopKind.Clothing]: 'Vêtements / Chaussures',
-  [ShopKind.Cosmetics]: 'Coiffure / Cosmétiques',
-  [ShopKind.Food]: 'Alimentaire',
-  [ShopKind.Health]: 'Santé / Optique',
-  [ShopKind.Home]: 'Maison',
-  [ShopKind.Jewelry]: 'Bijoux',
-  [ShopKind.Newspaper]: 'Tabac / Press',
-  [ShopKind.GasStation]: 'Station Services',
-  [ShopKind.Tech]: 'Technologie',
-  [ShopKind.Other]: 'Autres',
+export function shopKindLabels(): { [key in ShopKind]: string } {
+  return {
+    [ShopKind.Catering]: m.shop_kind_catering(),
+    [ShopKind.Clothing]: m.shop_kind_clothing(),
+    [ShopKind.Cosmetics]: m.shop_kind_cosmetics(),
+    [ShopKind.Food]: m.shop_kind_food(),
+    [ShopKind.Health]: m.shop_kind_health(),
+    [ShopKind.Home]: m.shop_kind_home(),
+    [ShopKind.Jewelry]: m.shop_kind_jewelry(),
+    [ShopKind.Newspaper]: m.shop_kind_newspaper(),
+    [ShopKind.GasStation]: m.shop_kind_gas_station(),
+    [ShopKind.Tech]: m.shop_kind_tech(),
+    [ShopKind.Other]: m.shop_kind_other(),
+  }
 }

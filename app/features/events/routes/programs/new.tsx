@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { dayLabel } from '~/features/events/model/day-label'
@@ -9,6 +8,7 @@ import {
   generateEventsFromTemplate,
 } from '~/features/events/server/programme-generation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -120,10 +120,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title={m.programs_new_page_title()}
-        subtitle={m.programs_new_page_subtitle()}
-      />
+      <PageHeader title={m.programs_new_page_title()} subtitle={m.programs_new_page_subtitle()} />
 
       <Card className="max-w-lg">
         <CardHeader>
@@ -134,9 +131,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-col gap-2">
               <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
               {templates.length === 0 && (
-                <p className="text-muted-foreground text-xs">
-                  {m.programs_new_no_templates_hint()}
-                </p>
+                <p className="text-muted-foreground text-xs">{m.programs_new_no_templates_hint()}</p>
               )}
               <Select
                 name={isNoTemplate ? undefined : 'templateId'}

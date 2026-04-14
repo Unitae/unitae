@@ -1,8 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { Link } from 'react-router'
-
-import * as m from '~/paraglide/messages'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
+import * as m from '~/paraglide/messages'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -47,7 +46,10 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="space-y-6">
-      <PageHeader title={m.platform_admin_congregations_title()} subtitle={m.platform_admin_congregations_subtitle({ count: congregations.length })} />
+      <PageHeader
+        title={m.platform_admin_congregations_title()}
+        subtitle={m.platform_admin_congregations_subtitle({ count: congregations.length })}
+      />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>
@@ -72,7 +74,11 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
                 <TableCell className="text-center">{c.userCount}</TableCell>
                 <TableCell className="text-center">{c.territoryCount}</TableCell>
                 <TableCell className="text-center">
-                  <Badge variant={c.active ? 'default' : 'destructive'}>{c.active ? m.platform_admin_congregations_status_active() : m.platform_admin_congregations_status_inactive()}</Badge>
+                  <Badge variant={c.active ? 'default' : 'destructive'}>
+                    {c.active
+                      ? m.platform_admin_congregations_status_active()
+                      : m.platform_admin_congregations_status_inactive()}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-center text-muted-foreground">
                   {new Date(c.createdAt).toLocaleDateString('fr')}

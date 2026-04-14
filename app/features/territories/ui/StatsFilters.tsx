@@ -2,9 +2,9 @@ import { SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Form, useSearchParams } from 'react-router'
 import type { PublisherGroup } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -53,7 +53,9 @@ export default function StatsFilters({
         {attributionKinds.map(attribution => (
           <Badge key={attribution} variant="outline" className="border-amber-500 text-amber-500">
             {TerritoryAttributionKind.Campaign === attribution && m.stats_filter_badge_campaign()}
-            {TerritoryAttributionKind.Default === attribution && phoneTypeActive === true && m.stats_filter_badge_door_classic()}
+            {TerritoryAttributionKind.Default === attribution &&
+              phoneTypeActive === true &&
+              m.stats_filter_badge_door_classic()}
             {TerritoryAttributionKind.Default === attribution &&
               phoneTypeActive === false &&
               m.stats_filter_badge_door()}
@@ -62,7 +64,9 @@ export default function StatsFilters({
         ))}
         {group != null && (
           <Badge variant="outline" className="border-violet-500 text-violet-500">
-            {m.stats_filter_badge_group({ group: groups?.find(g => g.id === Number(group))?.name.toLocaleUpperCase() ?? '' })}
+            {m.stats_filter_badge_group({
+              group: groups?.find(g => g.id === Number(group))?.name.toLocaleUpperCase() ?? '',
+            })}
           </Badge>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { Calendar, CalendarOff, ChevronRight, FileDown } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -108,11 +108,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={CalendarOff}
-          title={m.programs_empty_title()}
-          description={m.programs_empty_description()}
-        />
+        <EmptyState icon={CalendarOff} title={m.programs_empty_title()} description={m.programs_empty_description()} />
       )}
     </div>
   )

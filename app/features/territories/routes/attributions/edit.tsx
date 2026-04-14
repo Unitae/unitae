@@ -8,6 +8,7 @@ import { getBoolSetting } from '~/features/settings/server/settings'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -17,8 +18,6 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
-import * as m from '~/paraglide/messages'
 
 import type { Route } from './+types/edit'
 
@@ -122,7 +121,9 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                 <option value={TerritoryAttributionKind.Default}>
                   {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                 </option>
-                {!phoneTypeActive && <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>}
+                {!phoneTypeActive && (
+                  <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>
+                )}
                 <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
             </div>
@@ -138,7 +139,9 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
               </div>
               {attribution.endDate || shouldShowEndDate ? (
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <Label className={attribution.endDate ? '' : 'text-destructive'}>{m.attributions_edit_end_date_label()}</Label>
+                  <Label className={attribution.endDate ? '' : 'text-destructive'}>
+                    {m.attributions_edit_end_date_label()}
+                  </Label>
                   <Input
                     className={attribution.endDate ? '' : 'border-destructive'}
                     name="end-date"

@@ -1,8 +1,8 @@
 import { ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
 import type { Territory } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import * as m from '~/paraglide/messages'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Card, CardContent } from '~/shared/ui/card'
 

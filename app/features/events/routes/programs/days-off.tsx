@@ -1,10 +1,10 @@
 import { CalendarOff } from 'lucide-react'
 import { redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { Role } from '~/features/authorization/model/roles.type'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -85,10 +85,16 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
             <Card key={event.id}>
               <CardContent className="flex items-center justify-between py-3">
                 <span className="font-medium text-sm">
-                  {m.days_off_admin_absence_of({ firstname: event.createdBy.firstname ?? '', lastname: event.createdBy.lastname?.toLocaleUpperCase() ?? '' })}
+                  {m.days_off_admin_absence_of({
+                    firstname: event.createdBy.firstname ?? '',
+                    lastname: event.createdBy.lastname?.toLocaleUpperCase() ?? '',
+                  })}
                 </span>
                 <span className="text-muted-foreground text-sm">
-                  {m.days_off_date_range({ startDate: new Date(event.startDate).toLocaleDateString(), endDate: new Date(event.endDate).toLocaleDateString() })}
+                  {m.days_off_date_range({
+                    startDate: new Date(event.startDate).toLocaleDateString(),
+                    endDate: new Date(event.endDate).toLocaleDateString(),
+                  })}
                 </span>
               </CardContent>
             </Card>

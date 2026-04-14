@@ -1,6 +1,5 @@
 import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings'
@@ -11,6 +10,7 @@ import { findTerritoriesWithDetailsPaginated } from '~/features/territories/serv
 import { computeFilters } from '~/features/territories/server/territory-filters'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
@@ -41,7 +41,9 @@ function territoryContentLabel(type: string, entrances: { homes: number | null; 
   }
   if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
     const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
-    return homes > 1 ? m.territories_content_homes_other({ count: homes }) : m.territories_content_homes_one({ count: homes })
+    return homes > 1
+      ? m.territories_content_homes_other({ count: homes })
+      : m.territories_content_homes_one({ count: homes })
   }
   if (type === TerritoryKind.Commerces) {
     return count > 1 ? m.territories_content_commerces_other({ count }) : m.territories_content_commerces_one({ count })
@@ -199,7 +201,12 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
                           {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
                           {' — '}
-                          {m.territories_assigned_until({ date: attribution.lateDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) })}
+                          {m.territories_assigned_until({
+                            date: attribution.lateDate.toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                            }),
+                          })}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">{m.territories_available()}</span>
@@ -236,10 +243,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                               asChild
                               className="text-destructive hover:text-destructive max-sm:hidden"
                             >
-                              <Link
-                                to={`./territory/${territory.id}/delete`}
-                                title={m.territories_delete_title_attr()}
-                              >
+                              <Link to={`./territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
                                 <Trash2 className="size-4" />
                               </Link>
                             </Button>

@@ -1,6 +1,6 @@
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import * as m from '~/paraglide/messages'
 import type { MonthlyCount } from '~/features/territories/server/compute-attributions-per-month.server'
+import * as m from '~/paraglide/messages'
 
 const MONTH_LABELS: Record<string, string> = {
   '01': 'Jan',

@@ -3,7 +3,10 @@ import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
+import {
+  EntranceKind,
+  entranceKindLabels as getEntranceKindLabels,
+} from '~/features/territories/model/entrance-kind.type'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -17,6 +20,7 @@ import {
   SimpleEntranceCard,
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -27,7 +31,6 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import * as m from '~/paraglide/messages'
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
@@ -151,11 +154,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
                 name="prospection-date"
                 type="date"
                 disabled={isDisabled}
-                title={
-                  isDisabled
-                    ? m.prospection_edit_prospection_shared_modified_warning()
-                    : ''
-                }
+                title={isDisabled ? m.prospection_edit_prospection_shared_modified_warning() : ''}
               />
             </div>
           </CardContent>
@@ -217,7 +216,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
               <option value="">{m.prospection_edit_prospection_add_entrance()}</option>
               {availableKinds.map(kind => (
                 <option key={kind} value={kind}>
-                  {entranceKindLabels[kind]}
+                  {getEntranceKindLabels()[kind]}
                 </option>
               ))}
             </select>

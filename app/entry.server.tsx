@@ -8,7 +8,7 @@ import { renderToPipeableStream } from 'react-dom/server'
 import type { AppLoadContext, EntryContext } from 'react-router'
 import { ServerRouter } from 'react-router'
 
-import { overwriteGetLocale, type Locale, baseLocale, isLocale } from '~/paraglide/runtime'
+import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/paraglide/runtime'
 import { resolveLocaleFromRequest } from '~/shared/libs/locale.server'
 import logger from '~/shared/libs/logger.server'
 
