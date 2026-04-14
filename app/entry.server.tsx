@@ -1,4 +1,5 @@
 import '~/shared/libs/env.server'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { PassThrough } from 'node:stream'
 
 import { createReadableStreamFromReadable } from '@react-router/node'
@@ -7,31 +8,36 @@ import { renderToPipeableStream } from 'react-dom/server'
 import type { AppLoadContext, EntryContext } from 'react-router'
 import { ServerRouter } from 'react-router'
 
-import { defineCustomServerStrategy } from '~/paraglide/runtime'
-import { paraglideMiddleware } from '~/paraglide/server'
+import { overwriteGetLocale, type Locale, baseLocale, isLocale } from '~/paraglide/runtime'
 import { resolveLocaleFromRequest } from '~/shared/libs/locale.server'
 import logger from '~/shared/libs/logger.server'
 
 const ABORT_DELAY = 5_000
 
-defineCustomServerStrategy('custom-congregation', {
-  getLocale: (request?: Request) => {
-    if (!request) return undefined
-    return resolveLocaleFromRequest(request)
-  },
+const localeStore = new AsyncLocalStorage<Locale>()
+
+overwriteGetLocale(() => {
+  return localeStore.getStore() ?? baseLocale
 })
 
-export default function handleRequest(
+export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
   _loadContext: AppLoadContext,
 ) {
-  return paraglideMiddleware(request, ({ request: localizedRequest }) => {
+  const resolvedLocale = await resolveLocaleFromRequest(request)
+  const locale = isLocale(resolvedLocale) ? resolvedLocale : baseLocale
+
+  // Set the PARAGLIDE_LOCALE cookie via HTTP header so the client-side
+  // cookie strategy can read it during hydration (before any JS executes)
+  responseHeaders.append('Set-Cookie', `PARAGLIDE_LOCALE=${locale}; Path=/; Max-Age=34560000; SameSite=Lax`)
+
+  return localeStore.run(locale, () => {
     return isbot(request.headers.get('user-agent') || '')
-      ? handleBotRequest(localizedRequest, responseStatusCode, responseHeaders, reactRouterContext)
-      : handleBrowserRequest(localizedRequest, responseStatusCode, responseHeaders, reactRouterContext)
+      ? handleBotRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
+      : handleBrowserRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
   })
 }
 

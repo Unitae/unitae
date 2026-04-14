@@ -9,8 +9,5 @@
   ],
   "plugin.inlang.messageFormat": {
     "pathPattern": "./messages/{languageTag}.json"
-  },
-  "paraglide": {
-    "strategy": ["custom-congregation", "baseLocale"]
   }
 }
