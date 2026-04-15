@@ -17,7 +17,7 @@ export function DocumentCard({ file, alreadyViewed = false }: { file: BoardDocum
         <CardContent className="flex flex-col items-center justify-center px-3 py-5 text-center text-muted-foreground max-sm:flex-row max-sm:justify-between">
           {file.thumbnailUri ? (
             <img
-              src={`./documents/${file.id}/thumbnail`}
+              src={`/board/documents/${file.id}/thumbnail`}
               alt=""
               className="mb-3 h-20 w-auto rounded object-contain max-sm:mb-0 max-sm:h-10"
               loading="lazy"
