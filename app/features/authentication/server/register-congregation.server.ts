@@ -18,12 +18,12 @@ export async function registerCongregation(
 ) {
   const existingCongregation = await db.congregation.findUnique({ where: { slug: congregationSlug } })
   if (existingCongregation) {
-    return { error: "Ce nom d'assemblée locale est déjà pris." }
+    return { error: m.auth_register_slug_taken_error() }
   }
 
   const existingUser = await db.user.findUnique({ where: { email: adminEmail.toLowerCase() } })
   if (existingUser) {
-    return { error: 'Un compte existe déjà avec cette adresse email.' }
+    return { error: m.auth_register_email_taken_error() }
   }
 
   const hashedPassword = await hash(adminPassword)
