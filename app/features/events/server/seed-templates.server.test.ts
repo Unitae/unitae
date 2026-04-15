@@ -101,7 +101,7 @@ describe('seedDefaultTemplates', () => {
     await seedDefaultTemplates(db, 1, 'fr')
 
     const createdNames = db.programmeTemplate.create.mock.calls.map(
-      (call: [{ data: { name: string } }]) => call[0].data.name,
+      (call: unknown[]) => (call[0] as { data: { name: string } }).data.name,
     )
     expect(createdNames).toEqual(['[seed_template_midweek]', '[seed_template_weekend]', '[seed_template_memorial]'])
   })
