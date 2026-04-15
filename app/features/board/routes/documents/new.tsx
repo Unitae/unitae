@@ -1,8 +1,14 @@
-import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
+import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { saveFile } from '~/features/board/server/document'
+import {
+  FileValidationError,
+  MAX_FILE_SIZE_BYTES,
+  validateBoardFile,
+  validateVisibilityDates,
+} from '~/features/board/server/file-validation.server'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -177,7 +183,18 @@ export async function action({ request }: Route.ActionArgs) {
     logger.warn(`Issue on file creation. User ID: ${currentUser.id}. Bad field name.`, { currentUser, fileUpload })
   }
 
-  const form = await parseFormData(request, uploadHandler)
+  let form: FormData
+  try {
+    form = await parseFormData(request, { maxFileSize: MAX_FILE_SIZE_BYTES }, uploadHandler)
+  } catch (error) {
+    if (error instanceof MaxFileSizeExceededError) {
+      session.flash('error', m.board_documents_invalid_file())
+      return redirect('/board/documents/new', {
+        headers: { 'Set-Cookie': await commitSession(session) },
+      })
+    }
+    throw error
+  }
   const file = uploadedFile ?? (form.get('document') as File | null)
   const name = String(form.get('name'))
   const sectionId = Number(form.get('sectionId'))
@@ -203,9 +220,36 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/board/documents/new')
   }
 
+  const parsedFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
+  const parsedUntil = visibleUntil.getTime() > 0 ? visibleUntil : null
+  if (!validateVisibilityDates(parsedFrom, parsedUntil)) {
+    session.flash('error', m.board_documents_date_range_error())
+    return redirect('/board/documents/new', {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
+  }
+
   return withScope(congregationId, async db => {
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('boardDocuments')
+
+    try {
+      await validateBoardFile(file)
+    } catch (error) {
+      if (error instanceof FileValidationError) {
+        logger.warn(`Document creation failed. User ID: ${currentUser.id}. File validation: ${error.messageKey}.`, {
+          currentUser,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        })
+        session.flash('error', m.board_documents_invalid_file())
+        return redirect('/board/documents/new', {
+          headers: { 'Set-Cookie': await commitSession(session) },
+        })
+      }
+      throw error
+    }
 
     const storageKey = await saveFile(congregationId, file)
 

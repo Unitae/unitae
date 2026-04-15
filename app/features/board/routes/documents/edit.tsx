@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { validateVisibilityDates } from '~/features/board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -176,6 +177,15 @@ export async function action({ request, params }: Route.ActionArgs) {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
+    })
+  }
+
+  const parsedFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
+  const parsedUntil = visibleUntil.getTime() > 0 ? visibleUntil : null
+  if (!validateVisibilityDates(parsedFrom, parsedUntil)) {
+    session.flash('error', m.board_documents_date_range_error())
+    return redirect(`/board/documents/${params.documentId}/edit`, {
+      headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
 
