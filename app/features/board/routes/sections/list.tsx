@@ -1,5 +1,8 @@
-import { ChevronDown, ChevronUp, FolderOpen, Pencil, Trash2 } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
+import { type DragEndEvent, DndContext, closestCenter } from '@dnd-kit/core'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { FolderOpen, GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { Link, redirect, useFetcher } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -45,8 +48,72 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 }
 
+type SectionItem = Awaited<ReturnType<typeof loader>>['sections'][number]
+
+function SortableSectionRow({ section }: { section: SectionItem }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: section.id,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell className="w-8">
+        <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
+          <GripVertical className="size-4" />
+        </button>
+      </TableCell>
+      <TableCell>{section.name}</TableCell>
+      <TableCell className="text-center max-sm:hidden">{section.documents.length}</TableCell>
+      <TableCell className="text-right">
+        <div className="flex items-center justify-end gap-1">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to={`./${section.id}/edit`}>
+              <Pencil className="size-4" />
+            </Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            className="text-destructive hover:text-destructive max-sm:hidden"
+          >
+            <Link to={`./${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
+              <Trash2 className="size-4" />
+            </Link>
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
 export default function SectionListPage({ loaderData }: Route.ComponentProps) {
   const { sections } = loaderData
+  const fetcher = useFetcher()
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    const oldIndex = sections.findIndex(s => s.id === active.id)
+    const newIndex = sections.findIndex(s => s.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+
+    const reordered = [...sections]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    fetcher.submit(
+      { orderedIds: reordered.map(s => s.id) },
+      { method: 'POST', action: '/board/sections/reorder', encType: 'application/json' },
+    )
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,59 +135,29 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
         />
       ) : (
         <div className="overflow-hidden rounded-xl border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{m.board_sections_table_name()}</TableHead>
-                <TableHead className="text-center max-sm:hidden">{m.board_sections_table_documents()}</TableHead>
-                <TableHead className="text-center">{m.board_sections_table_position()}</TableHead>
-                <TableHead className="w-0">
-                  <span className="sr-only">{m.board_sections_table_actions()}</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sections.map(section => (
-                <TableRow key={section.id}>
-                  <TableCell>{section.name}</TableCell>
-                  <TableCell className="text-center max-sm:hidden">{section.documents.length}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <Form method="post" action={`/board/sections/${section.id}/move-up`}>
-                        <Button type="submit" variant="ghost" size="icon">
-                          <ChevronUp className="size-4" />
-                        </Button>
-                      </Form>
-                      <Form method="post" action={`/board/sections/${section.id}/move-down`}>
-                        <Button type="submit" variant="ghost" size="icon">
-                          <ChevronDown className="size-4" />
-                        </Button>
-                      </Form>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`./${section.id}/edit`}>
-                          <Pencil className="size-4" />
-                        </Link>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        asChild
-                        className="text-destructive hover:text-destructive max-sm:hidden"
-                      >
-                        <Link to={`./${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
-                          <Trash2 className="size-4" />
-                        </Link>
-                      </Button>
-                    </div>
-                  </TableCell>
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8">
+                    <span className="sr-only">{m.board_sections_table_position()}</span>
+                  </TableHead>
+                  <TableHead>{m.board_sections_table_name()}</TableHead>
+                  <TableHead className="text-center max-sm:hidden">{m.board_sections_table_documents()}</TableHead>
+                  <TableHead className="w-0">
+                    <span className="sr-only">{m.board_sections_table_actions()}</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <SortableContext items={sections.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <TableBody>
+                  {sections.map(section => (
+                    <SortableSectionRow key={section.id} section={section} />
+                  ))}
+                </TableBody>
+              </SortableContext>
+            </Table>
+          </DndContext>
         </div>
       )}
     </div>
