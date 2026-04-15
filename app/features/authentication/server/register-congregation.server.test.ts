@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+const scopedDb = {
+  eventKind: { create: vi.fn() },
+  programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
+}
+
 vi.mock('~/shared/libs/db.server', () => ({
   unscopedDb: {
     congregation: { findUnique: vi.fn(), create: vi.fn() },
     user: { findUnique: vi.fn(), create: vi.fn() },
     userRole: { findUnique: vi.fn() },
     congregationUserRole: { create: vi.fn() },
-    eventKind: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
-    programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
   },
+  withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
 vi.mock('~/shared/libs/crypto.server', () => ({
@@ -27,7 +31,9 @@ beforeEach(() => {
   vi.mocked(db.user.create).mockResolvedValue({ id: 10 } as never)
   vi.mocked(db.userRole.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
   vi.mocked(db.congregationUserRole.create).mockResolvedValue({} as never)
-  vi.mocked(db.eventKind.create).mockResolvedValue({} as never)
+  scopedDb.eventKind.create.mockResolvedValue({} as never)
+  scopedDb.programmeTemplate.findFirst.mockResolvedValue(null as never)
+  scopedDb.programmeTemplate.create.mockResolvedValue({} as never)
 })
 
 describe('registerCongregation', () => {

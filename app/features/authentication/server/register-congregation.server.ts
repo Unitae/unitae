@@ -7,7 +7,7 @@ import { hash } from '~/shared/libs/crypto.server'
 
 type Locale = (typeof locales)[number]
 
-import { unscopedDb as db } from '~/shared/libs/db.server'
+import { unscopedDb as db, withScope } from '~/shared/libs/db.server'
 
 export async function registerCongregation(
   congregationName: string,
@@ -56,18 +56,20 @@ export async function registerCongregation(
     })
   }
 
-  // Create default EventKind
-  await db.eventKind.create({
-    data: {
-      name: m.seed_event_kind_absence({}, { locale }),
-      key: EventKind.Off,
-      color: '#cfcfcf',
-      congregationId: congregation.id,
-    },
-  })
+  // Create default EventKind and programme templates inside a scoped
+  // transaction so PostgreSQL RLS allows the inserts.
+  await withScope(congregation.id, async scopedDb => {
+    await scopedDb.eventKind.create({
+      data: {
+        name: m.seed_event_kind_absence({}, { locale }),
+        key: EventKind.Off,
+        color: '#cfcfcf',
+        congregationId: congregation.id,
+      },
+    })
 
-  // Create default programme templates
-  await seedDefaultTemplates(db, congregation.id, locale)
+    await seedDefaultTemplates(scopedDb, congregation.id, locale)
+  })
 
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)
