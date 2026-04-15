@@ -158,6 +158,8 @@
     "user_consents_privacy_link": "privacy policy",
     "board_sections_list_subtitle": "List of all notice board sections",
     "board_sections_create_button": "Create a section",
+    "board_sections_search_placeholder": "Search for a section...",
+    "board_sections_bulk_selected": "{count} section(s) selected",
     "board_sections_empty_title": "There are no sections yet!",
     "board_sections_empty_description": "When sections are created, they will appear here. To add one, click the button above.",
     "board_sections_table_name": "Name",

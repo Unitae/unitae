@@ -158,6 +158,8 @@
     "user_consents_privacy_link": "politique de confidentialité",
     "board_sections_list_subtitle": "Liste de toutes les sections du tableau d'affichage",
     "board_sections_create_button": "Créer une section",
+    "board_sections_search_placeholder": "Rechercher une section...",
+    "board_sections_bulk_selected": "{count} section(s) sélectionnée(s)",
     "board_sections_empty_title": "Il n'y a aucune section pour le moment !",
     "board_sections_empty_description": "Lorsque des sections seront crées, elles apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus.",
     "board_sections_table_name": "Nom",

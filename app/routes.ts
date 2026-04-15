@@ -27,6 +27,7 @@ export default [
         index('features/board/routes/sections/list.tsx'),
         route('new', 'features/board/routes/sections/new.tsx'),
         route('reorder', 'features/board/routes/sections/reorder.tsx'),
+        route('bulk-delete', 'features/board/routes/sections/bulk-delete.tsx'),
         route('/:sectionId/edit', 'features/board/routes/sections/edit.tsx'),
         route('/:sectionId/delete', 'features/board/routes/sections/delete.tsx'),
         route('/:sectionId/move-up', 'features/board/routes/sections/move-up.tsx'),
