@@ -29,6 +29,26 @@ import { Separator } from '~/shared/ui/separator'
 
 import type { Route } from './+types/edit-user'
 
+function getRoleDescription(key: string): string {
+  const descriptions: Record<string, () => string> = {
+    'admin': () => m.role_desc_admin(),
+    'board-uploader': () => m.role_desc_board_uploader(),
+    'board-validator': () => m.role_desc_board_validator(),
+    'territories-viewer': () => m.role_desc_territories_viewer(),
+    'territories-manager': () => m.role_desc_territories_manager(),
+    'settings-user-manager': () => m.role_desc_settings_user_manager(),
+    'publisher-viewer': () => m.role_desc_publisher_viewer(),
+    'publisher-manager': () => m.role_desc_publisher_manager(),
+    'activity-manager': () => m.role_desc_activity_manager(),
+    'activity-viewer': () => m.role_desc_activity_viewer(),
+    'program-viewer': () => m.role_desc_program_viewer(),
+    'program-manager': () => m.role_desc_program_manager(),
+    'prospection-viewer': () => m.role_desc_prospection_viewer(),
+    'prospection-manager': () => m.role_desc_prospection_manager(),
+  }
+  return descriptions[key]?.() ?? key
+}
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
@@ -223,7 +243,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                       defaultChecked={user.roles.map(el => el.key).includes(role.key)}
                     />
                     <Label htmlFor={`role-${role.id}`} className="font-normal">
-                      {role.description}
+                      {getRoleDescription(role.key)}
                     </Label>
                   </div>
                 ))

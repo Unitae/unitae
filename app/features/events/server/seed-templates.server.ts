@@ -1,4 +1,8 @@
 import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import * as m from '~/paraglide/messages'
+import type { locales } from '~/paraglide/runtime'
+
+type Locale = (typeof locales)[number]
 
 interface PartDefinition {
   name: string
@@ -22,80 +26,158 @@ interface TemplateDefinition {
   serviceRoles: ServiceRoleDefinition[]
 }
 
-const sharedServiceRoles: ServiceRoleDefinition[] = [
-  { name: 'Sono', key: 'sono' },
-  { name: 'Estrade', key: 'stage' },
-  { name: 'Accueil', key: 'welcome' },
-  { name: 'Nettoyage', key: 'cleaning' },
-]
+function getSharedServiceRoles(locale: Locale): ServiceRoleDefinition[] {
+  return [
+    { name: m.seed_service_sound({}, { locale }), key: 'sono' },
+    { name: m.seed_service_stage({}, { locale }), key: 'stage' },
+    { name: m.seed_service_reception({}, { locale }), key: 'welcome' },
+    { name: m.seed_service_cleaning({}, { locale }), key: 'cleaning' },
+  ]
+}
 
-const templates: TemplateDefinition[] = [
-  {
-    name: 'Réunion de semaine',
-    key: ProgrammeTemplateKey.MidweekMeeting,
-    weekDay: 2, // Tuesday
-    isRecurring: true,
-    parts: [
-      { name: 'Cantique et prière', section: '', order: 1, durationMin: 5, isVariable: false },
-      { name: 'Discours', section: 'Joyaux spirituels', order: 2, durationMin: 10, isVariable: true },
-      {
-        name: 'Recherchons des perles spirituelles',
-        section: 'Joyaux spirituels',
-        order: 3,
-        durationMin: 10,
-        isVariable: false,
-      },
-      { name: 'Lecture de la Bible', section: 'Joyaux spirituels', order: 4, durationMin: 4, isVariable: false },
-      { name: '1re partie', section: 'Appliquons-nous au ministère', order: 5, durationMin: null, isVariable: true },
-      { name: '2e partie', section: 'Appliquons-nous au ministère', order: 6, durationMin: null, isVariable: true },
-      { name: '3e partie', section: 'Appliquons-nous au ministère', order: 7, durationMin: null, isVariable: true },
-      { name: 'Cantique', section: '', order: 8, durationMin: 5, isVariable: false },
-      { name: '1re partie', section: 'Vie chrétienne', order: 9, durationMin: null, isVariable: true },
-      { name: '2e partie', section: 'Vie chrétienne', order: 10, durationMin: null, isVariable: true },
-      {
-        name: "Étude biblique de l'assemblée",
-        section: 'Vie chrétienne',
-        order: 11,
-        durationMin: 30,
-        isVariable: false,
-      },
-      { name: 'Cantique et prière de conclusion', section: '', order: 12, durationMin: 5, isVariable: false },
-    ],
-    serviceRoles: sharedServiceRoles,
-  },
-  {
-    name: 'Réunion du week-end',
-    key: ProgrammeTemplateKey.WeekendMeeting,
-    weekDay: 6, // Saturday
-    isRecurring: true,
-    parts: [
-      { name: 'Cantique et prière', section: '', order: 1, durationMin: 5, isVariable: false },
-      { name: 'Discours public', section: '', order: 2, durationMin: 30, isVariable: true },
-      { name: 'Cantique', section: '', order: 3, durationMin: 5, isVariable: false },
-      { name: 'Étude de La Tour de Garde', section: '', order: 4, durationMin: 60, isVariable: false },
-      { name: 'Cantique et prière de conclusion', section: '', order: 5, durationMin: 5, isVariable: false },
-    ],
-    serviceRoles: sharedServiceRoles,
-  },
-  {
-    name: 'Mémorial',
-    key: ProgrammeTemplateKey.Memorial,
-    weekDay: null,
-    isRecurring: false,
-    parts: [
-      { name: 'Cantique et prière', section: '', order: 1, durationMin: 5, isVariable: false },
-      { name: 'Discours du Mémorial', section: '', order: 2, durationMin: 45, isVariable: true },
-      { name: 'Prière sur le pain', section: '', order: 3, durationMin: null, isVariable: false },
-      { name: 'Prière sur le vin', section: '', order: 4, durationMin: null, isVariable: false },
-      { name: 'Cantique et prière de conclusion', section: '', order: 5, durationMin: 5, isVariable: false },
-    ],
-    serviceRoles: sharedServiceRoles,
-  },
-]
+function getTemplates(locale: Locale): TemplateDefinition[] {
+  const sharedServiceRoles = getSharedServiceRoles(locale)
+
+  return [
+    {
+      name: m.seed_template_midweek({}, { locale }),
+      key: ProgrammeTemplateKey.MidweekMeeting,
+      weekDay: 2, // Tuesday
+      isRecurring: true,
+      parts: [
+        { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, isVariable: false },
+        {
+          name: m.seed_part_discourse({}, { locale }),
+          section: m.seed_section_spiritual_gems({}, { locale }),
+          order: 2,
+          durationMin: 10,
+          isVariable: true,
+        },
+        {
+          name: m.seed_part_search_spiritual_pearls({}, { locale }),
+          section: m.seed_section_spiritual_gems({}, { locale }),
+          order: 3,
+          durationMin: 10,
+          isVariable: false,
+        },
+        {
+          name: m.seed_part_bible_reading({}, { locale }),
+          section: m.seed_section_spiritual_gems({}, { locale }),
+          order: 4,
+          durationMin: 4,
+          isVariable: false,
+        },
+        {
+          name: m.seed_part_first_part({}, { locale }),
+          section: m.seed_section_ministry({}, { locale }),
+          order: 5,
+          durationMin: null,
+          isVariable: true,
+        },
+        {
+          name: m.seed_part_second_part({}, { locale }),
+          section: m.seed_section_ministry({}, { locale }),
+          order: 6,
+          durationMin: null,
+          isVariable: true,
+        },
+        {
+          name: m.seed_part_third_part({}, { locale }),
+          section: m.seed_section_ministry({}, { locale }),
+          order: 7,
+          durationMin: null,
+          isVariable: true,
+        },
+        { name: m.seed_part_song({}, { locale }), section: '', order: 8, durationMin: 5, isVariable: false },
+        {
+          name: m.seed_part_first_part({}, { locale }),
+          section: m.seed_section_christian_life({}, { locale }),
+          order: 9,
+          durationMin: null,
+          isVariable: true,
+        },
+        {
+          name: m.seed_part_second_part({}, { locale }),
+          section: m.seed_section_christian_life({}, { locale }),
+          order: 10,
+          durationMin: null,
+          isVariable: true,
+        },
+        {
+          name: m.seed_part_congregation_bible_study({}, { locale }),
+          section: m.seed_section_christian_life({}, { locale }),
+          order: 11,
+          durationMin: 30,
+          isVariable: false,
+        },
+        {
+          name: m.seed_part_song_and_closing_prayer({}, { locale }),
+          section: '',
+          order: 12,
+          durationMin: 5,
+          isVariable: false,
+        },
+      ],
+      serviceRoles: sharedServiceRoles,
+    },
+    {
+      name: m.seed_template_weekend({}, { locale }),
+      key: ProgrammeTemplateKey.WeekendMeeting,
+      weekDay: 6, // Saturday
+      isRecurring: true,
+      parts: [
+        { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, isVariable: false },
+        { name: m.seed_part_public_discourse({}, { locale }), section: '', order: 2, durationMin: 30, isVariable: true },
+        { name: m.seed_part_song({}, { locale }), section: '', order: 3, durationMin: 5, isVariable: false },
+        {
+          name: m.seed_part_watchtower_study({}, { locale }),
+          section: '',
+          order: 4,
+          durationMin: 60,
+          isVariable: false,
+        },
+        {
+          name: m.seed_part_song_and_closing_prayer({}, { locale }),
+          section: '',
+          order: 5,
+          durationMin: 5,
+          isVariable: false,
+        },
+      ],
+      serviceRoles: sharedServiceRoles,
+    },
+    {
+      name: m.seed_template_memorial({}, { locale }),
+      key: ProgrammeTemplateKey.Memorial,
+      weekDay: null,
+      isRecurring: false,
+      parts: [
+        { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, isVariable: false },
+        {
+          name: m.seed_part_memorial_discourse({}, { locale }),
+          section: '',
+          order: 2,
+          durationMin: 45,
+          isVariable: true,
+        },
+        { name: m.seed_part_prayer_bread({}, { locale }), section: '', order: 3, durationMin: null, isVariable: false },
+        { name: m.seed_part_prayer_wine({}, { locale }), section: '', order: 4, durationMin: null, isVariable: false },
+        {
+          name: m.seed_part_song_and_closing_prayer({}, { locale }),
+          section: '',
+          order: 5,
+          durationMin: 5,
+          isVariable: false,
+        },
+      ],
+      serviceRoles: sharedServiceRoles,
+    },
+  ]
+}
 
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and unscoped db
-export async function seedDefaultTemplates(db: any, congregationId: number) {
-  for (const tpl of templates) {
+export async function seedDefaultTemplates(db: any, congregationId: number, locale: Locale) {
+  for (const tpl of getTemplates(locale)) {
     const existing = await db.programmeTemplate.findFirst({
       where: { key: tpl.key, congregationId },
     })

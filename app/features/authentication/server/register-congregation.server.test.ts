@@ -32,7 +32,7 @@ beforeEach(() => {
 
 describe('registerCongregation', () => {
   it('retourne le slug et userId en cas de succès', async () => {
-    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
+    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
     expect(result).toEqual({ congregationSlug: 'test-congre', userId: 10 })
   })
@@ -40,7 +40,7 @@ describe('registerCongregation', () => {
   it('retourne une erreur si le slug est déjà pris', async () => {
     vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 99, slug: 'test-congre' } as never)
 
-    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
+    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
     expect(result).toHaveProperty('error')
     expect(result.error).toContain('déjà pris')
@@ -49,7 +49,7 @@ describe('registerCongregation', () => {
   it("retourne une erreur si l'email existe déjà", async () => {
     vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
-    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
+    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
     expect(result).toHaveProperty('error')
     expect(result.error).toContain('email')
@@ -59,7 +59,7 @@ describe('registerCongregation', () => {
     // Simule un utilisateur existant avec l'email en minuscules
     vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
-    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'ADMIN@TEST.COM', 'motdepasse')
+    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'ADMIN@TEST.COM', 'motdepasse', 'fr')
 
     expect(result).toHaveProperty('error')
   })
@@ -67,7 +67,7 @@ describe('registerCongregation', () => {
   it("fonctionne même si le rôle admin n'existe pas", async () => {
     vi.mocked(db.userRole.findUnique).mockResolvedValue(null as never)
 
-    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse')
+    const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
     // Ne doit pas planter, juste ne pas assigner de rôle
     expect(result).toEqual({ congregationSlug: 'test-congre', userId: 10 })

@@ -48,6 +48,8 @@
     "common_close": "Fermer",
     "common_yes": "Oui",
     "common_no": "Non",
+    "common_locale_fr": "Français",
+    "common_locale_en": "English",
     "common_actions": "Actions",
     "common_name": "Nom",
     "common_email": "Email",
@@ -105,6 +107,7 @@
     "auth_register_password_min_error": "Le mot de passe doit faire au moins 8 caractères.",
     "auth_register_password_mismatch_error": "Les mots de passe ne correspondent pas.",
     "auth_register_slug_invalid_error": "Le nom de l'assemblée locale génère un identifiant invalide.",
+    "auth_register_locale_label": "Langue",
     "auth_register_generic_error": "Une erreur est survenue.",
 
     "auth_setup_page_title": "Installation",
@@ -115,6 +118,7 @@
     "auth_setup_submit": "Créer l'utilisateur",
     "auth_setup_password_mismatch_error": "Les mots de passe ne sont pas les mêmes",
     "auth_setup_email_invalid_error": "Utilisez une adresse email valide",
+    "auth_setup_locale_label": "Langue",
     "auth_setup_generic_error": "Quelque chose s'est mal passé. Réessayez.",
 
     "auth_password_forgot_page_title": "Mot de passe oublié",
@@ -1539,5 +1543,52 @@
     "email_new_document_button": "Modifier le document",
     "email_new_document_regards": "Cordialement,",
     "email_new_document_team": "L'équipe {platformName}",
-    "email_new_document_footer": "Cet email est destiné à {email}. Si vous n'attendiez pas cet email, vous pouvez l'ignorer."
+    "email_new_document_footer": "Cet email est destiné à {email}. Si vous n'attendiez pas cet email, vous pouvez l'ignorer.",
+
+    "role_desc_admin": "Peut administrer l'application",
+    "role_desc_board_uploader": "Peut téléverser de nouveaux documents sur le tableau d'affichage",
+    "role_desc_board_validator": "Peut valider les documents sur le tableau d'affichage et les rendre visibles",
+    "role_desc_territories_viewer": "Peut voir les listes de territoires et les attributations",
+    "role_desc_territories_manager": "Peut gérer les territoires (créer, modifier, supprimer)",
+    "role_desc_settings_user_manager": "Peut gérer les utilisateurs (créer, modifier, supprimer)",
+    "role_desc_publisher_viewer": "Peut voir les proclamateurs",
+    "role_desc_publisher_manager": "Peut gérer les proclamateurs (créer, modifier, supprimer)",
+    "role_desc_activity_manager": "Peut gérer l'activité des proclamateurs (modifier)",
+    "role_desc_activity_viewer": "Peut voir l'activité des proclamateurs",
+    "role_desc_program_viewer": "Peut voir les programmes de l'assemblée",
+    "role_desc_program_manager": "Peut gérer les programmes de l'assemblée (modifier)",
+    "role_desc_prospection_viewer": "Peut voir les données de prospection du territoires",
+    "role_desc_prospection_manager": "Peut gérer les données de prospection du territoires (modifier)",
+
+    "seed_event_kind_absence": "Absence",
+
+    "seed_template_midweek": "Réunion de semaine",
+    "seed_template_weekend": "Réunion du week-end",
+    "seed_template_memorial": "Mémorial",
+
+    "seed_part_song_and_prayer": "Cantique et prière",
+    "seed_part_discourse": "Discours",
+    "seed_part_spiritual_gems": "Joyaux spirituels",
+    "seed_part_search_spiritual_pearls": "Recherchons des perles spirituelles",
+    "seed_part_bible_reading": "Lecture de la Bible",
+    "seed_part_first_part": "1re partie",
+    "seed_part_second_part": "2e partie",
+    "seed_part_third_part": "3e partie",
+    "seed_part_song": "Cantique",
+    "seed_part_congregation_bible_study": "Étude biblique de l'assemblée",
+    "seed_part_song_and_closing_prayer": "Cantique et prière de conclusion",
+    "seed_part_public_discourse": "Discours public",
+    "seed_part_watchtower_study": "Étude de La Tour de Garde",
+    "seed_part_memorial_discourse": "Discours du Mémorial",
+    "seed_part_prayer_bread": "Prière sur le pain",
+    "seed_part_prayer_wine": "Prière sur le vin",
+
+    "seed_section_spiritual_gems": "Joyaux spirituels",
+    "seed_section_ministry": "Appliquons-nous au ministère",
+    "seed_section_christian_life": "Vie chrétienne",
+
+    "seed_service_sound": "Sono",
+    "seed_service_stage": "Estrade",
+    "seed_service_reception": "Accueil",
+    "seed_service_cleaning": "Nettoyage"
 }

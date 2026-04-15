@@ -6,7 +6,9 @@ vi.mock('~/shared/libs/db.server', () => ({
     user: { create: vi.fn() },
     userRole: { findUnique: vi.fn() },
     congregationUserRole: { create: vi.fn() },
+    eventKind: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
+    programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
   },
 }))
 
@@ -23,18 +25,19 @@ beforeEach(() => {
   vi.mocked(db.user.create).mockResolvedValue({ id: 42 } as never)
   vi.mocked(db.userRole.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
   vi.mocked(db.congregationUserRole.create).mockResolvedValue({} as never)
+  vi.mocked(db.eventKind.create).mockResolvedValue({} as never)
 })
 
 describe('setupFirstUser', () => {
   it("retourne l'id de l'utilisateur créé", async () => {
-    const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre')
+    const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre', 'fr')
     expect(result).toBe(42)
   })
 
   it("fonctionne même si le rôle admin n'existe pas", async () => {
     vi.mocked(db.userRole.findUnique).mockResolvedValue(null as never)
 
-    const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre')
+    const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre', 'fr')
     expect(result).toBe(42)
   })
 })

@@ -2,11 +2,13 @@ import { data, Form, Link, redirect } from 'react-router'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
+import { locales } from '~/paraglide/runtime'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import type { Route } from './+types/register'
 
 export const meta: Route.MetaFunction = () => {
@@ -70,6 +72,22 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
             </div>
 
             <div className="flex flex-col gap-2">
+              <Label htmlFor="locale">{m.auth_register_locale_label()}</Label>
+              <Select name="locale" defaultValue="fr">
+                <SelectTrigger id="locale">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {locales.map((locale) => (
+                    <SelectItem key={locale} value={locale}>
+                      {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
               <Label htmlFor="email">{m.auth_register_admin_email_label()}</Label>
               <Input id="email" name="email" type="email" autoComplete="email" required />
             </div>
@@ -107,6 +125,7 @@ export async function action({ request }: Route.ActionArgs) {
   const form = await request.formData()
 
   const congregationName = String(form.get('congregation-name')).trim()
+  const locale = String(form.get('locale') ?? 'fr') as (typeof locales)[number]
   const email = String(form.get('email')).trim()
   const password = String(form.get('password'))
   const repeatPassword = String(form.get('repeat-password'))
@@ -137,7 +156,7 @@ export async function action({ request }: Route.ActionArgs) {
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
-  const result = await registerCongregation(congregationName, slug, email, password)
+  const result = await registerCongregation(congregationName, slug, email, password, locale)
 
   if ('error' in result) {
     session.flash('error', result.error ?? m.auth_register_generic_error())

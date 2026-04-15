@@ -1,7 +1,11 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/features/settings/server/consent.server'
+import * as m from '~/paraglide/messages'
+import type { locales } from '~/paraglide/runtime'
 import { hash } from '~/shared/libs/crypto.server'
+
+type Locale = (typeof locales)[number]
 import { unscopedDb as db } from '~/shared/libs/db.server'
 
 export async function registerCongregation(
@@ -9,6 +13,7 @@ export async function registerCongregation(
   congregationSlug: string,
   adminEmail: string,
   adminPassword: string,
+  locale: Locale,
 ) {
   const existingCongregation = await db.congregation.findUnique({ where: { slug: congregationSlug } })
   if (existingCongregation) {
@@ -26,6 +31,7 @@ export async function registerCongregation(
     data: {
       name: congregationName,
       slug: congregationSlug,
+      locale,
     },
   })
 
@@ -52,7 +58,7 @@ export async function registerCongregation(
   // Create default EventKind
   await db.eventKind.create({
     data: {
-      name: 'Absence',
+      name: m.seed_event_kind_absence({}, { locale }),
       key: EventKind.Off,
       color: '#cfcfcf',
       congregationId: congregation.id,
@@ -60,7 +66,7 @@ export async function registerCongregation(
   })
 
   // Create default programme templates
-  await seedDefaultTemplates(db, congregation.id)
+  await seedDefaultTemplates(db, congregation.id, locale)
 
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)
