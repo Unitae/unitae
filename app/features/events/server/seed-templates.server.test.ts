@@ -1,45 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// Build a mock that returns the function name as the string value
-const messageNames = [
-  'seed_service_sound',
-  'seed_service_stage',
-  'seed_service_reception',
-  'seed_service_cleaning',
-  'seed_template_midweek',
-  'seed_template_weekend',
-  'seed_template_memorial',
-  'seed_part_song_and_prayer',
-  'seed_part_discourse',
-  'seed_part_search_spiritual_pearls',
-  'seed_part_bible_reading',
-  'seed_part_first_part',
-  'seed_part_second_part',
-  'seed_part_third_part',
-  'seed_part_song',
-  'seed_part_congregation_bible_study',
-  'seed_part_song_and_closing_prayer',
-  'seed_part_public_discourse',
-  'seed_part_watchtower_study',
-  'seed_part_memorial_discourse',
-  'seed_part_prayer_bread',
-  'seed_part_prayer_wine',
-  'seed_section_spiritual_gems',
-  'seed_section_ministry',
-  'seed_section_christian_life',
-]
-
-const messageMocks: Record<string, ReturnType<typeof vi.fn>> = {}
-for (const name of messageNames) {
-  messageMocks[name] = vi.fn(() => `[${name}]`)
-}
-
-vi.mock('~/paraglide/messages', () => messageMocks)
-
-vi.mock('~/paraglide/runtime', () => ({
-  locales: ['fr', 'en'],
-}))
-
 const { seedDefaultTemplates } = await import('./seed-templates.server')
 
 function makeDb() {
@@ -53,10 +13,6 @@ function makeDb() {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  // Re-set message mock return values after reset
-  for (const name of messageNames) {
-    messageMocks[name].mockReturnValue(`[${name}]`)
-  }
 })
 
 describe('seedDefaultTemplates', () => {
@@ -103,7 +59,7 @@ describe('seedDefaultTemplates', () => {
     const createdNames = db.programmeTemplate.create.mock.calls.map(
       (call: unknown[]) => (call[0] as { data: { name: string } }).data.name,
     )
-    expect(createdNames).toEqual(['[seed_template_midweek]', '[seed_template_weekend]', '[seed_template_memorial]'])
+    expect(createdNames).toEqual(['Réunion de semaine', 'Réunion du week-end', 'Mémorial'])
   })
 
   it('creates parts with correct structure', async () => {
@@ -121,7 +77,7 @@ describe('seedDefaultTemplates', () => {
 
     // First part: song and prayer
     expect(midweekParts[0]).toEqual({
-      name: '[seed_part_song_and_prayer]',
+      name: 'Cantique et prière',
       section: '',
       order: 1,
       durationMin: 5,
