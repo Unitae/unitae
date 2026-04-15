@@ -31,7 +31,7 @@ import type { Route } from './+types/edit-user'
 
 function getRoleDescription(key: string): string {
   const descriptions: Record<string, () => string> = {
-    'admin': () => m.role_desc_admin(),
+    admin: () => m.role_desc_admin(),
     'board-uploader': () => m.role_desc_board_uploader(),
     'board-validator': () => m.role_desc_board_validator(),
     'territories-viewer': () => m.role_desc_territories_viewer(),

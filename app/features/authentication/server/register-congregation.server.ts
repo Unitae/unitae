@@ -6,6 +6,7 @@ import type { locales } from '~/paraglide/runtime'
 import { hash } from '~/shared/libs/crypto.server'
 
 type Locale = (typeof locales)[number]
+
 import { unscopedDb as db } from '~/shared/libs/db.server'
 
 export async function registerCongregation(

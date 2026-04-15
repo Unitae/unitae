@@ -72,7 +72,7 @@ export default function SignupPage({ loaderData }: Route.ComponentProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {locales.map((locale) => (
+                  {locales.map(locale => (
                     <SelectItem key={locale} value={locale}>
                       {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
                     </SelectItem>

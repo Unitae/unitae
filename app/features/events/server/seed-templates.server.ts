@@ -127,7 +127,13 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       isRecurring: true,
       parts: [
         { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, isVariable: false },
-        { name: m.seed_part_public_discourse({}, { locale }), section: '', order: 2, durationMin: 30, isVariable: true },
+        {
+          name: m.seed_part_public_discourse({}, { locale }),
+          section: '',
+          order: 2,
+          durationMin: 30,
+          isVariable: true,
+        },
         { name: m.seed_part_song({}, { locale }), section: '', order: 3, durationMin: 5, isVariable: false },
         {
           name: m.seed_part_watchtower_study({}, { locale }),
