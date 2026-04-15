@@ -127,7 +127,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const userId = await setupFirstUser(String(username), String(password), 'Ma Congrégation', 'default', locale)
+  const userId = await setupFirstUser(String(username), String(password), m.auth_setup_default_congregation_name(), 'default', locale)
 
   if (userId == null) {
     session.flash('error', m.auth_setup_generic_error())

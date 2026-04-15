@@ -7,7 +7,7 @@ import { hash } from '~/shared/libs/crypto.server'
 
 type Locale = (typeof locales)[number]
 
-import { unscopedDb as db } from '~/shared/libs/db.server'
+import { unscopedDb as db, withScope } from '~/shared/libs/db.server'
 
 export async function registerCongregation(
   congregationName: string,
@@ -18,12 +18,12 @@ export async function registerCongregation(
 ) {
   const existingCongregation = await db.congregation.findUnique({ where: { slug: congregationSlug } })
   if (existingCongregation) {
-    return { error: "Ce nom d'assemblée locale est déjà pris." }
+    return { error: m.auth_register_slug_taken_error() }
   }
 
   const existingUser = await db.user.findUnique({ where: { email: adminEmail.toLowerCase() } })
   if (existingUser) {
-    return { error: 'Un compte existe déjà avec cette adresse email.' }
+    return { error: m.auth_register_email_taken_error() }
   }
 
   const hashedPassword = await hash(adminPassword)
@@ -56,18 +56,20 @@ export async function registerCongregation(
     })
   }
 
-  // Create default EventKind
-  await db.eventKind.create({
-    data: {
-      name: m.seed_event_kind_absence({}, { locale }),
-      key: EventKind.Off,
-      color: '#cfcfcf',
-      congregationId: congregation.id,
-    },
-  })
+  // Create default EventKind and programme templates inside a scoped
+  // transaction so PostgreSQL RLS allows the inserts.
+  await withScope(congregation.id, async scopedDb => {
+    await scopedDb.eventKind.create({
+      data: {
+        name: m.seed_event_kind_absence({}, { locale }),
+        key: EventKind.Off,
+        color: '#cfcfcf',
+        congregationId: congregation.id,
+      },
+    })
 
-  // Create default programme templates
-  await seedDefaultTemplates(db, congregation.id, locale)
+    await seedDefaultTemplates(scopedDb, congregation.id, locale)
+  })
 
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)
