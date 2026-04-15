@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { FileValidationError, validateBoardFile, validateVisibilityDates } from './file-validation.server'
+import { FileValidationError, MAX_FILE_SIZE_BYTES, validateBoardFile, validateVisibilityDates } from './file-validation.server'
 
 function createFakeFile(content: Uint8Array, type: string, name = 'test.pdf'): File {
   return new File([content as BlobPart], name, { type })
@@ -28,6 +28,20 @@ describe('validateBoardFile', () => {
     await expect(validateBoardFile(file)).rejects.toThrow('file_too_large')
   })
 
+  it('accepte un fichier juste en dessous de la limite de taille', async () => {
+    const content = new Uint8Array(MAX_FILE_SIZE_BYTES)
+    content.set(validPdfHeader)
+    const file = createFakeFile(content, 'application/pdf')
+    await expect(validateBoardFile(file)).resolves.toBeUndefined()
+  })
+
+  it('rejette un fichier depassant la limite de 1 octet', async () => {
+    const content = new Uint8Array(MAX_FILE_SIZE_BYTES + 1)
+    content.set(validPdfHeader)
+    const file = createFakeFile(content, 'application/pdf')
+    await expect(validateBoardFile(file)).rejects.toThrow('file_too_large')
+  })
+
   it('rejette un fichier PDF avec des magic bytes incorrects', async () => {
     const fakeContent = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]) // PNG header
     const file = createFakeFile(fakeContent, 'application/pdf')
@@ -39,6 +53,12 @@ describe('validateBoardFile', () => {
     const file = createFakeFile(new Uint8Array(0), 'application/pdf')
     await expect(validateBoardFile(file)).rejects.toThrow(FileValidationError)
     await expect(validateBoardFile(file)).rejects.toThrow('invalid_content')
+  })
+})
+
+describe('MAX_FILE_SIZE_BYTES', () => {
+  it('vaut 20 Mo', () => {
+    expect(MAX_FILE_SIZE_BYTES).toBe(20 * 1024 * 1024)
   })
 })
 

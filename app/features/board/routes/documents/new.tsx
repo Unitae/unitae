@@ -1,10 +1,11 @@
-import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
+import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { saveFile } from '~/features/board/server/document'
 import {
   FileValidationError,
+  MAX_FILE_SIZE_BYTES,
   validateBoardFile,
   validateVisibilityDates,
 } from '~/features/board/server/file-validation.server'
@@ -182,7 +183,18 @@ export async function action({ request }: Route.ActionArgs) {
     logger.warn(`Issue on file creation. User ID: ${currentUser.id}. Bad field name.`, { currentUser, fileUpload })
   }
 
-  const form = await parseFormData(request, uploadHandler)
+  let form: FormData
+  try {
+    form = await parseFormData(request, { maxFileSize: MAX_FILE_SIZE_BYTES }, uploadHandler)
+  } catch (error) {
+    if (error instanceof MaxFileSizeExceededError) {
+      session.flash('error', m.board_documents_invalid_file())
+      return redirect('/board/documents/new', {
+        headers: { 'Set-Cookie': await commitSession(session) },
+      })
+    }
+    throw error
+  }
   const file = uploadedFile ?? (form.get('document') as File | null)
   const name = String(form.get('name'))
   const sectionId = Number(form.get('sectionId'))
