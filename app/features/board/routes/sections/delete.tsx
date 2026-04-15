@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { deleteSectionWithFiles } from '~/features/board/server/document'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -62,12 +63,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const section = await db.boardSection.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.sectionId, '/board'), congregationId },
-      },
-    })
+    const sectionId = requireParamId(params.sectionId, '/board')
+    const section = await deleteSectionWithFiles(db, sectionId, congregationId)
 
     session.flash('success', m.board_sections_delete_success({ name: section.name }))
 

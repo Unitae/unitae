@@ -217,6 +217,8 @@
   "board_documents_delete_confirmation": "Êtes-vous sûr de vouloir supprimer le document \"{name}\" ? Cette action est irréversible.",
   "board_documents_delete_button": "Supprimer le document",
   "board_documents_delete_success": "Le document \"{name}\" a été correctement supprimé",
+  "board_documents_invalid_file": "Le fichier fourni n'est pas un document PDF valide ou dépasse la taille maximale autorisée (20 Mo).",
+  "board_documents_date_range_error": "La date de fin de visibilité doit être postérieure à la date de début.",
   "board_documents_move_not_found": "Le document n'existe pas",
   "board_documents_move_up_success": "Le document \"{name}\" a été correctement déplacé vers le haut",
   "board_documents_move_down_success": "Le document \"{name}\" a été correctement déplacé vers le bas",
