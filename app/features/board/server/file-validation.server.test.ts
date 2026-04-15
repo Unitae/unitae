@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { FileValidationError, MAX_FILE_SIZE_BYTES, validateBoardFile, validateVisibilityDates } from './file-validation.server'
+import {
+  FileValidationError,
+  MAX_FILE_SIZE_BYTES,
+  validateBoardFile,
+  validateVisibilityDates,
+} from './file-validation.server'
 
 function createFakeFile(content: Uint8Array, type: string, name = 'test.pdf'): File {
   return new File([content as BlobPart], name, { type })

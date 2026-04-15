@@ -53,10 +53,7 @@ describe('deleteSectionWithFiles', () => {
   })
 
   it('supprime les documents de la section avant de supprimer la section', async () => {
-    vi.mocked(mockDb.boardDocument.findMany).mockResolvedValue([
-      { uri: '10/board/a.pdf' },
-      { uri: '10/board/b.pdf' },
-    ])
+    vi.mocked(mockDb.boardDocument.findMany).mockResolvedValue([{ uri: '10/board/a.pdf' }, { uri: '10/board/b.pdf' }])
 
     await deleteSectionWithFiles(mockDb as never, 1, 10)
 
@@ -65,10 +62,7 @@ describe('deleteSectionWithFiles', () => {
   })
 
   it('supprime les fichiers du stockage apres la suppression en base', async () => {
-    vi.mocked(mockDb.boardDocument.findMany).mockResolvedValue([
-      { uri: '10/board/a.pdf' },
-      { uri: '10/board/b.pdf' },
-    ])
+    vi.mocked(mockDb.boardDocument.findMany).mockResolvedValue([{ uri: '10/board/a.pdf' }, { uri: '10/board/b.pdf' }])
 
     await deleteSectionWithFiles(mockDb as never, 1, 10)
 
