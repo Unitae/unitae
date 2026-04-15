@@ -92,17 +92,17 @@ function SortableDocumentRow({
   return (
     <TableRow ref={setNodeRef} style={style}>
       <TableCell className="w-8">
+        <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
+          <GripVertical className="size-4" />
+        </button>
+      </TableCell>
+      <TableCell className="w-8">
         <input
           type="checkbox"
           checked={selected}
           onChange={() => onToggle(document.id)}
           className="size-4 rounded border border-input accent-primary"
         />
-      </TableCell>
-      <TableCell className="w-8">
-        <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
-          <GripVertical className="size-4" />
-        </button>
       </TableCell>
       <TableCell>{document.title}</TableCell>
       <TableCell className="max-sm:hidden">{document.section.name}</TableCell>
@@ -290,15 +290,15 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8">
+                      <span className="sr-only">{m.board_documents_table_position()}</span>
+                    </TableHead>
+                    <TableHead className="w-8">
                       <input
                         type="checkbox"
                         checked={selectedIds.size === documents.length && documents.length > 0}
                         onChange={toggleAll}
                         className="size-4 rounded border border-input accent-primary"
                       />
-                    </TableHead>
-                    <TableHead className="w-8">
-                      <span className="sr-only">{m.board_documents_table_position()}</span>
                     </TableHead>
                     <TableHead>{m.board_documents_table_name()}</TableHead>
                     <TableHead>

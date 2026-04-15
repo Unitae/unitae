@@ -76,17 +76,17 @@ function SortableSectionRow({
   return (
     <TableRow ref={setNodeRef} style={style}>
       <TableCell className="w-8">
+        <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
+          <GripVertical className="size-4" />
+        </button>
+      </TableCell>
+      <TableCell className="w-8">
         <input
           type="checkbox"
           checked={selected}
           onChange={() => onToggle(section.id)}
           className="size-4 rounded border border-input accent-primary"
         />
-      </TableCell>
-      <TableCell className="w-8">
-        <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
-          <GripVertical className="size-4" />
-        </button>
       </TableCell>
       <TableCell>{section.name}</TableCell>
       <TableCell className="text-center max-sm:hidden">{section.documents.length}</TableCell>
@@ -218,15 +218,15 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-8">
+                      <span className="sr-only">{m.board_sections_table_position()}</span>
+                    </TableHead>
+                    <TableHead className="w-8">
                       <input
                         type="checkbox"
                         checked={selectedIds.size === sections.length && sections.length > 0}
                         onChange={toggleAll}
                         className="size-4 rounded border border-input accent-primary"
                       />
-                    </TableHead>
-                    <TableHead className="w-8">
-                      <span className="sr-only">{m.board_sections_table_position()}</span>
                     </TableHead>
                     <TableHead>{m.board_sections_table_name()}</TableHead>
                     <TableHead className="text-center max-sm:hidden">{m.board_sections_table_documents()}</TableHead>
