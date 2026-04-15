@@ -1,7 +1,8 @@
 import { Form, Link, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { audit, AuditAction } from '~/shared/libs/audit.server'
+import * as m from '~/paraglide/messages'
+import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import logger from '~/shared/libs/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -13,7 +14,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/profile'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Mon profil - Unitae' }]
+  return [{ title: `${m.user_profile_page_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -38,78 +39,70 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Mon profil" subtitle="Informations de ton compte et paramètres de sécurité." />
+      <PageHeader title={m.user_profile_page_title()} subtitle={m.user_profile_page_subtitle()} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Mon compte</CardTitle>
+          <CardTitle>{m.user_profile_account_section()}</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
           <div className="flex justify-between border-b pb-2">
-            <span className="text-muted-foreground text-sm">Nom</span>
+            <span className="text-muted-foreground text-sm">{m.user_profile_lastname_label()}</span>
             <span className="font-medium text-sm">{user.lastname?.toLocaleUpperCase() ?? '—'}</span>
           </div>
           <div className="flex justify-between border-b pb-2">
-            <span className="text-muted-foreground text-sm">Prénom</span>
+            <span className="text-muted-foreground text-sm">{m.user_profile_firstname_label()}</span>
             <span className="font-medium text-sm">{user.firstname ?? '—'}</span>
           </div>
           <div className="flex justify-between border-b pb-2">
-            <span className="text-muted-foreground text-sm">Adresse email</span>
+            <span className="text-muted-foreground text-sm">{m.user_profile_email_label()}</span>
             <span className="font-medium text-sm">{user.email.toLocaleLowerCase()}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground text-sm">Proclamateur à {congregationName}</span>
-            <span className="font-medium text-sm">{user.isPublisher ? 'Oui' : 'Non'}</span>
+            <span className="text-muted-foreground text-sm">
+              {m.user_profile_publisher_label({ congregationName })}
+            </span>
+            <span className="font-medium text-sm">{user.isPublisher ? m.common_yes() : m.common_no()}</span>
           </div>
-          <p className="mt-2 text-muted-foreground text-xs italic">
-            Si certaines de ces informations ne sont pas bonnes, merci de contacter ton responsable de groupe de
-            prédication.
-          </p>
+          <p className="mt-2 text-muted-foreground text-xs italic">{m.user_profile_contact_group_leader()}</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle>Confidentialité et données personnelles</CardTitle>
+          <CardTitle>{m.user_profile_privacy_section()}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-sm">Exporter mes données</p>
-              <p className="text-muted-foreground text-xs">
-                Télécharger l'ensemble de vos données personnelles au format JSON (articles 15 et 20 du RGPD).
-              </p>
+              <p className="font-medium text-sm">{m.user_profile_export_data_title()}</p>
+              <p className="text-muted-foreground text-xs">{m.user_profile_export_data_description()}</p>
             </div>
             <Button asChild variant="outline" size="sm">
               <a href={`/settings/users/${user.id}/export-data`} download>
-                Exporter
+                {m.user_profile_export_button()}
               </a>
             </Button>
           </div>
 
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-medium text-sm">Gérer mes consentements</p>
-              <p className="text-muted-foreground text-xs">
-                Consulter et retirer vos consentements au traitement des données.
-              </p>
+              <p className="font-medium text-sm">{m.user_profile_manage_consents_title()}</p>
+              <p className="text-muted-foreground text-xs">{m.user_profile_manage_consents_description()}</p>
             </div>
             <Button asChild variant="outline" size="sm">
-              <Link to="/me/consents">Gérer</Link>
+              <Link to="/me/consents">{m.user_profile_manage_button()}</Link>
             </Button>
           </div>
 
           <div className="border-t pt-4">
-            <p className="font-medium text-sm">Droit à l'effacement</p>
-            <p className="mt-1 text-muted-foreground text-xs">
-              Conformément à l'article 17 du RGPD, vous pouvez demander l'effacement de vos données personnelles. Pour
-              exercer ce droit, contactez l'administrateur de votre assemblée locale.
-            </p>
+            <p className="font-medium text-sm">{m.user_profile_erasure_right_title()}</p>
+            <p className="mt-1 text-muted-foreground text-xs">{m.user_profile_erasure_right_description()}</p>
           </div>
 
           <p className="text-muted-foreground text-xs">
             <Link to="/privacy" className="text-primary hover:underline">
-              Politique de confidentialité
+              {m.user_profile_privacy_policy_link()}
             </Link>
           </p>
         </CardContent>
@@ -117,7 +110,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Changer le mot de passe</CardTitle>
+          <CardTitle>{m.user_profile_change_password_section()}</CardTitle>
         </CardHeader>
         <CardContent>
           {error && (
@@ -127,15 +120,15 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Mot de passe actuel</Label>
+              <Label htmlFor="password">{m.user_profile_current_password_label()}</Label>
               <Input id="password" name="password" type="password" autoComplete="current-password" />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="new_password">Nouveau mot de passe</Label>
+              <Label htmlFor="new_password">{m.user_profile_new_password_label()}</Label>
               <Input id="new_password" name="new_password" type="password" autoComplete="new-password" />
             </div>
             <Button type="submit" className="w-fit">
-              Changer mon mot de passe
+              {m.user_profile_change_password_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -163,7 +156,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (!isSuccess) {
-    session.flash('error', 'Impossible modifier le mot de passe.')
+    session.flash('error', m.user_profile_change_password_error())
     return redirect('/me/profile', {
       headers: {
         'Set-Cookie': await commitSession(session),

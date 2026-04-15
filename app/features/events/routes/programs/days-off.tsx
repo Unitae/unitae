@@ -4,6 +4,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -16,7 +17,7 @@ import Pagination from '~/shared/ui/Pagination'
 import type { Route } from './+types/days-off'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Absences - Unitae' }]
+  return [{ title: m.days_off_admin_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -68,15 +69,15 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Absences" subtitle="Liste de toutes les absences à la date sélectionnée." />
+      <PageHeader title={m.days_off_admin_page_title()} subtitle={m.days_off_admin_page_subtitle()} />
 
       <EventFilters />
 
       {events.length < 1 ? (
         <EmptyState
           icon={CalendarOff}
-          title="Il n'y a aucune absence planifiée pour cette date !"
-          description="Les absences s'afficheront une fois que les proclamateurs les auront indiquées dans leur profil."
+          title={m.days_off_admin_empty_title()}
+          description={m.days_off_admin_empty_description()}
         />
       ) : (
         <div className="flex flex-col gap-3">
@@ -84,10 +85,16 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
             <Card key={event.id}>
               <CardContent className="flex items-center justify-between py-3">
                 <span className="font-medium text-sm">
-                  Absence de {event.createdBy.firstname} {event.createdBy.lastname?.toLocaleUpperCase()}
+                  {m.days_off_admin_absence_of({
+                    firstname: event.createdBy.firstname ?? '',
+                    lastname: event.createdBy.lastname?.toLocaleUpperCase() ?? '',
+                  })}
                 </span>
                 <span className="text-muted-foreground text-sm">
-                  du {new Date(event.startDate).toLocaleDateString()} au {new Date(event.endDate).toLocaleDateString()}
+                  {m.days_off_date_range({
+                    startDate: new Date(event.startDate).toLocaleDateString(),
+                    endDate: new Date(event.endDate).toLocaleDateString(),
+                  })}
                 </span>
               </CardContent>
             </Card>

@@ -7,6 +7,7 @@ import { computeFilters } from '~/features/territories/server/building-filters'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings'
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
@@ -16,7 +17,7 @@ import Pagination from '~/shared/ui/Pagination'
 import type { Route } from './+types/hotels'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Découpage des territoires Hotels - Unitae' }]
+  return [{ title: m.split_tool_hotels_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -62,8 +63,8 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   if (entrances.length < 1) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-        <p>Il n'y a aucun batiment avec des hotels pour le moment !</p>
-        <p>Pour ajouter des batiments revenez sur la page "Prospection".</p>
+        <p>{m.split_tool_empty_hotels()}</p>
+        <p>{m.split_tool_empty_hint()}</p>
       </div>
     )
   }
@@ -76,19 +77,20 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         {selectedEntranceIds.length > 0 ? (
           <>
             <p>
-              Création d'un territoire avec {selectedEntranceIds.length} hôtel
-              {selectedEntranceIds.length > 1 && 's'}
+              {selectedEntranceIds.length > 1
+                ? m.split_tool_creating_with_hotels_other({ count: selectedEntranceIds.length })
+                : m.split_tool_creating_with_hotels_one({ count: selectedEntranceIds.length })}
             </p>
             <Form action="/territories/buildings/split-territories/create" method="post">
               <input type="hidden" name="type" value={TerritoryKind.Hotel} />
               <input type="hidden" name="entranceIds" value={selectedEntranceIds.join(',')} />
               <Button type="submit" size="sm">
-                Créer le territoire
+                {m.split_tool_create_button()}
               </Button>
             </Form>
           </>
         ) : (
-          <p className="text-muted-foreground">Aucun batiment sélectionné</p>
+          <p className="text-muted-foreground">{m.split_tool_no_selection()}</p>
         )}
       </div>
 

@@ -3,7 +3,10 @@ import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
+import {
+  EntranceKind,
+  entranceKindLabels as getEntranceKindLabels,
+} from '~/features/territories/model/entrance-kind.type'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -17,6 +20,7 @@ import {
   SimpleEntranceCard,
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -30,7 +34,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Batiment - Unitae' }]
+  return [{ title: m.prospection_sync_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -125,13 +129,13 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
       <AlertMessages messages={messages} />
       <PageHeader
         title={`Prospection du ${building.number} ${building.street}, ${building.zip}`}
-        subtitle="Modifier les informations de prospection du batiment. Ces informations seront utilisées pour organiser le territoire."
+        subtitle={m.prospection_edit_prospection_subtitle()}
         actions={
           <>
             {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}
             {roles.canManageTerritories && (
               <Button variant="outline" size="icon" asChild>
-                <Link to="../edit" relative="path" title="Modifier le batiment">
+                <Link to="../edit" relative="path" title={m.prospection_building_edit_title()}>
                   <Pencil className="size-4" />
                 </Link>
               </Button>
@@ -143,18 +147,14 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-1.5">
-              <Label>Date de prospection</Label>
+              <Label>{m.prospection_edit_prospection_date_label()}</Label>
               <Input
                 className={isDisabled ? 'cursor-not-allowed opacity-50' : ''}
                 defaultValue={building.prospectionDate?.toLocaleDateString('en-CA') ?? ''}
                 name="prospection-date"
                 type="date"
                 disabled={isDisabled}
-                title={
-                  isDisabled
-                    ? 'Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer'
-                    : ''
-                }
+                title={isDisabled ? m.prospection_edit_prospection_shared_modified_warning() : ''}
               />
             </div>
           </CardContent>
@@ -213,10 +213,10 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
                 }
               }}
             >
-              <option value="">Ajouter une entrée...</option>
+              <option value="">{m.prospection_edit_prospection_add_entrance()}</option>
               {availableKinds.map(kind => (
                 <option key={kind} value={kind}>
-                  {entranceKindLabels[kind]}
+                  {getEntranceKindLabels()[kind]}
                 </option>
               ))}
             </select>
@@ -225,7 +225,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
         )}
 
         <Button type="submit" className="mt-2">
-          Mettre à jour la prospection
+          {m.prospection_edit_prospection_submit()}
         </Button>
       </Form>
     </div>
@@ -264,10 +264,10 @@ export async function action({ request, params }: Route.ActionArgs) {
         try {
           const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
           await updateBuildingsInEntrance(db, Number(residentialEntrance?.id), entranceIds, congregation.id)
-          session.flash('success', 'Le batiment a été correctement modifié')
+          session.flash('success', m.prospection_edit_prospection_shared_success())
         } catch (e) {
           logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-          session.flash('error', `Erreur lors de l'enregistrement du batiment`)
+          session.flash('error', m.prospection_edit_prospection_shared_error())
         }
 
         return redirect(previousPage, {
@@ -282,10 +282,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     try {
       await setBuildingProspectionData(db, building.id, form)
 
-      session.flash('success', 'Les données de prospection ont été correctement mise à jour')
+      session.flash('success', m.prospection_edit_prospection_success())
     } catch (e) {
       logger.error(e)
-      session.flash('error', 'Erreur lors de la mise à jour des données de prospection du batiment')
+      session.flash('error', m.prospection_edit_prospection_error())
     }
 
     return redirect(previousPage, {

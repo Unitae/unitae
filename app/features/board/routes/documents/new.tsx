@@ -4,6 +4,7 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { saveFile } from '~/features/board/server/document'
 import { sendNewDocumentNotificationEmail } from '~/features/board/server/notifications'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
@@ -54,18 +55,24 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Nouveau document" subtitle="Ajouter un nouveau document sur le tableau d'affichage" />
+      <PageHeader title={m.board_documents_new_title()} subtitle={m.board_documents_new_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom</Label>
-              <Input id="name" name="name" type="text" placeholder="Nom du document" autoComplete="off" />
+              <Label htmlFor="name">{m.board_documents_new_name_label()}</Label>
+              <Input
+                id="name"
+                name="name"
+                type="text"
+                placeholder={m.board_documents_new_name_placeholder()}
+                autoComplete="off"
+              />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sectionId">Section</Label>
+              <Label htmlFor="sectionId">{m.board_documents_new_section_label()}</Label>
               <select
                 id="sectionId"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -82,29 +89,29 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
             {rights.canManageBoard && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-from">Visible à partir du</Label>
+                  <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
                   <Input
                     id="visible-from"
                     name="visible-from"
                     type="datetime-local"
-                    placeholder="Début de la période de visibilité"
+                    placeholder={m.board_documents_new_visible_from_placeholder()}
                     defaultValue={formattedDate}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-until">Visible jusqu'au</Label>
+                  <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
                   <Input
                     id="visible-until"
                     name="visible-until"
                     type="datetime-local"
-                    placeholder="Fin de la période de visibilité"
+                    placeholder={m.board_documents_new_visible_until_placeholder()}
                   />
                 </div>
               </div>
             )}
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="document">Fichier à uploader</Label>
+              <Label htmlFor="document">{m.board_documents_new_file_label()}</Label>
               <Input id="document" name="document" type="file" accept="application/pdf" />
             </div>
 
@@ -119,15 +126,15 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
                 <Label
                   htmlFor="hightlighted"
                   className="cursor-pointer font-normal"
-                  title="Le document s'affichera également tout en haut du tableau d'affichage pour être visible par tous"
+                  title={m.board_documents_new_highlight_tooltip()}
                 >
-                  Mettre en avant le document sur le tableau d'affichage
+                  {m.board_documents_new_highlight_label()}
                 </Label>
               </div>
             )}
 
             <Button type="submit" className="w-fit">
-              Envoyer le document
+              {m.board_documents_new_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -183,7 +190,7 @@ export async function action({ request }: Route.ActionArgs) {
       currentUser,
       form: { name, sectionId, file },
     })
-    session.flash('error', 'Vous devez remplir tous les champs du formulaire. Réessayez.')
+    session.flash('error', m.common_empty_fields_error())
     throw redirect('/board/documents/new')
   }
 
@@ -192,7 +199,7 @@ export async function action({ request }: Route.ActionArgs) {
       `Document creation failed. User ID: ${currentUser.id}. ${file == null ? 'File is empty' : 'File is not empty'}.`,
       { currentUser, form: { name, sectionId, file } },
     )
-    session.flash('error', 'Vous devez remplir tous les champs du formulaire. Réessayez.')
+    session.flash('error', m.common_empty_fields_error())
     throw redirect('/board/documents/new')
   }
 
@@ -229,7 +236,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     if (document == null) {
-      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+      session.flash('error', m.common_generic_error())
       logger.warn(`Document creation failed. User ID: ${currentUser.id}. Database entity not created.`, {
         currentUser,
         form: { name, sectionId, file },
@@ -242,7 +249,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', `Document "${document.title}" créée avec succès.`)
+    session.flash('success', m.board_documents_new_success({ name: document.title }))
     logger.info(`Document created. User ID: ${currentUser.id}. Document ID: ${document.id}. File key: ${storageKey}.`, {
       currentUser,
       document,

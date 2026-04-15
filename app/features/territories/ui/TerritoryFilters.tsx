@@ -4,6 +4,7 @@ import type { Prisma } from '~/database/generated/client'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 
@@ -30,7 +31,7 @@ export default function TerritoryFilters({
 
   return (
     <Form className="flex flex-col gap-1.5" action={action}>
-      <span className="font-medium text-muted-foreground text-sm">Filtres :</span>
+      <span className="font-medium text-muted-foreground text-sm">{m.territories_filter_label()}</span>
       <div className="flex flex-wrap gap-2">
         {showZip && (
           <select
@@ -38,7 +39,7 @@ export default function TerritoryFilters({
             name="zip"
             defaultValue={params.get('zip') ?? undefined}
           >
-            <option value="none">Code Postal</option>
+            <option value="none">{m.territories_filter_zip()}</option>
             {zips.map(el => (
               <option key={el.zip} value={el.zip}>
                 {el.zip}
@@ -52,12 +53,12 @@ export default function TerritoryFilters({
             name="type"
             defaultValue={params.get('type') ?? undefined}
           >
-            <option value="none">Type</option>
-            <option value={TerritoryKind.Classical}>Porte à Porte</option>
-            <option value={TerritoryKind.Commerces}>Commerces</option>
-            <option value={TerritoryKind.Hotel}>Hôtels</option>
-            <option value={TerritoryKind.Phone}>Téléphones</option>
-            <option value={TerritoryKind.Univ}>Université</option>
+            <option value="none">{m.territories_filter_type()}</option>
+            <option value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</option>
+            <option value={TerritoryKind.Commerces}>{m.territories_filter_shops()}</option>
+            <option value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</option>
+            <option value={TerritoryKind.Phone}>{m.territories_type_phone()}</option>
+            <option value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</option>
           </select>
         )}
         {showAccess && (
@@ -66,10 +67,10 @@ export default function TerritoryFilters({
             name="access"
             defaultValue={params.get('access') ?? undefined}
           >
-            <option value="none">Accès</option>
-            <option value={TerritoryAccess.Code}>Digicode</option>
-            <option value={TerritoryAccess.Doorbell}>Sonnette</option>
-            <option value={TerritoryAccess.Intercom}>Interphone</option>
+            <option value="none">{m.territories_filter_access()}</option>
+            <option value={TerritoryAccess.Code}>{m.territories_filter_access_digicode()}</option>
+            <option value={TerritoryAccess.Doorbell}>{m.territories_filter_access_doorbell()}</option>
+            <option value={TerritoryAccess.Intercom}>{m.territories_filter_access_intercom()}</option>
           </select>
         )}
         {showShops && (
@@ -78,18 +79,18 @@ export default function TerritoryFilters({
             name="shops"
             defaultValue={params.get('shops') ?? undefined}
           >
-            <option value="none">Commerces</option>
-            <option value={ShopKind.Food}>Alimentaire</option>
-            <option value={ShopKind.Clothing}>Vêtements / Chaussures</option>
-            <option value={ShopKind.Jewelry}>Bijoux</option>
-            <option value={ShopKind.Health}>Santé / Optique</option>
-            <option value={ShopKind.Home}>Maison</option>
-            <option value={ShopKind.Catering}>Restaurant / Café / Snack</option>
-            <option value={ShopKind.Cosmetics}>Coiffure / Cosmétiques</option>
-            <option value={ShopKind.Tech}>Technologie</option>
-            <option value={ShopKind.Newspaper}>Tabac / Press</option>
-            <option value={ShopKind.GasStation}>Station Services</option>
-            <option value={ShopKind.Other}>Autres</option>
+            <option value="none">{m.territories_filter_shops()}</option>
+            <option value={ShopKind.Food}>{m.shop_kind_food()}</option>
+            <option value={ShopKind.Clothing}>{m.shop_kind_clothing()}</option>
+            <option value={ShopKind.Jewelry}>{m.shop_kind_jewelry()}</option>
+            <option value={ShopKind.Health}>{m.shop_kind_health()}</option>
+            <option value={ShopKind.Home}>{m.shop_kind_home()}</option>
+            <option value={ShopKind.Catering}>{m.shop_kind_catering()}</option>
+            <option value={ShopKind.Cosmetics}>{m.shop_kind_cosmetics()}</option>
+            <option value={ShopKind.Tech}>{m.shop_kind_tech()}</option>
+            <option value={ShopKind.Newspaper}>{m.shop_kind_newspaper()}</option>
+            <option value={ShopKind.GasStation}>{m.shop_kind_gas_station()}</option>
+            <option value={ShopKind.Other}>{m.shop_kind_other()}</option>
           </select>
         )}
         {showSearch && (
@@ -97,13 +98,13 @@ export default function TerritoryFilters({
             type="text"
             name="search"
             className="w-auto max-sm:flex-1"
-            placeholder="Recherche"
+            placeholder={m.territories_filter_search()}
             defaultValue={params.get('search') ?? undefined}
           />
         )}
         <Button type="submit" variant="outline" size="sm" className="gap-1.5">
           <SlidersHorizontal className="size-4" />
-          Filtrer
+          {m.territories_filter_submit()}
         </Button>
       </div>
     </Form>

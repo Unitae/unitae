@@ -2,11 +2,11 @@ import { ChevronDown, ChevronUp, Eye, FileText, Pencil, Trash2 } from 'lucide-re
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
-
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -61,10 +61,10 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Documents"
-        subtitle="Liste de toutes les documents du tableau d'affichage"
+        subtitle={m.board_documents_list_subtitle()}
         actions={
           <Button asChild>
-            <Link to="./new">Téléverser un document</Link>
+            <Link to="./new">{m.board_documents_upload_button()}</Link>
           </Button>
         }
       />
@@ -72,30 +72,36 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
       {documents.length === 0 ? (
         <EmptyState
           icon={FileText}
-          title="Il n'y a aucun document pour le moment !"
-          description="Lorsque des documents seront ajoutés, ils apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus."
+          title={m.board_documents_empty_title()}
+          description={m.board_documents_empty_description()}
         />
       ) : (
         <div className="overflow-hidden rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nom</TableHead>
+                <TableHead>{m.board_documents_table_name()}</TableHead>
                 <TableHead>
-                  Sec<span className="hidden max-sm:inline">.</span>
-                  <span className="max-sm:hidden">tion</span>
+                  <span className="max-sm:hidden">{m.board_documents_table_section()}</span>
+                  <span className="hidden max-sm:inline" aria-hidden="true">
+                    Sec.
+                  </span>
                 </TableHead>
-                <TableHead className="text-center max-sm:hidden">Vues uniques</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.board_documents_table_views()}</TableHead>
                 <TableHead className="text-center">
-                  Vis<span className="hidden max-sm:inline">.</span>
-                  <span className="max-sm:hidden">ibilité</span>
+                  <span className="max-sm:hidden">{m.board_documents_table_visibility()}</span>
+                  <span className="hidden max-sm:inline" aria-hidden="true">
+                    Vis.
+                  </span>
                 </TableHead>
                 <TableHead className="text-center">
-                  Pos<span className="hidden max-sm:inline">.</span>
-                  <span className="max-sm:hidden">ition</span>
+                  <span className="max-sm:hidden">{m.board_documents_table_position()}</span>
+                  <span className="hidden max-sm:inline" aria-hidden="true">
+                    Pos.
+                  </span>
                 </TableHead>
                 <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{m.board_documents_table_actions()}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -141,7 +147,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
                         asChild
                         className="text-destructive hover:text-destructive max-sm:hidden"
                       >
-                        <Link to={`./${document.id}/delete`} title="Supprimer complètement le document">
+                        <Link to={`./${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
                           <Trash2 className="size-4" />
                         </Link>
                       </Button>

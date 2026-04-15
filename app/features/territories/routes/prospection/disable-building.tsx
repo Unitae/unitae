@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -32,12 +33,12 @@ export async function action({ request, params }: Route.ActionArgs) {
     if (building.active === false) {
       session.flash(
         'success',
-        `Le batiment au ${building.number} ${building.street}, ${building.zip} a été correctement désactivé`,
+        m.prospection_disable_building_success({ address: `${building.number} ${building.street}, ${building.zip}` }),
       )
     } else {
       session.flash(
         'error',
-        `Le batiment au ${building.number} ${building.street}, ${building.zip} n'a pas pu être désactivé`,
+        m.prospection_disable_building_error({ address: `${building.number} ${building.street}, ${building.zip}` }),
       )
     }
 

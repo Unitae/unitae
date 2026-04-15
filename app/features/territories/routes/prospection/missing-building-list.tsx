@@ -3,6 +3,7 @@ import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
@@ -13,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/missing-building-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Batiments manquants dans BANO - Unitae' }]
+  return [{ title: m.prospection_missing_buildings_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -54,11 +55,8 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   if (buildings.length < 1) {
     return (
       <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-        <p>Il n'y a aucun batiment potentiellement détruit pour le moment !</p>
-        <p>
-          Si des batiments actifs n'apparaissent plus dans les données de la <em>Base d'Adresses Nationale Ouverte</em>{' '}
-          fournie par l'état, il apparaitront ici pour être prospectés.
-        </p>
+        <p>{m.prospection_empty_missing_buildings()}</p>
+        <p>{m.prospection_empty_missing_buildings_hint({ bano: m.prospection_bano_name() })}</p>
       </div>
     )
   }
@@ -69,14 +67,14 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Code Postal</TableHead>
-              <TableHead>Rue</TableHead>
-              <TableHead className="text-center">Nº</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
-              <TableHead className="text-center max-sm:hidden">Latitude</TableHead>
-              <TableHead className="text-center max-sm:hidden">Longitude</TableHead>
+              <TableHead>{m.prospection_table_zip()}</TableHead>
+              <TableHead>{m.prospection_table_street()}</TableHead>
+              <TableHead className="text-center">{m.prospection_table_number()}</TableHead>
+              <TableHead className="text-center">{m.prospection_table_status()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.prospection_table_latitude()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.prospection_table_longitude()}</TableHead>
               <TableHead className="w-0">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{m.common_actions()}</span>
               </TableHead>
             </TableRow>
           </TableHeader>

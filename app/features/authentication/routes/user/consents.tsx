@@ -1,23 +1,23 @@
 import { Form, Link, redirect } from 'react-router'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
+import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
-
 import type { Route } from './+types/consents'
 
-const PURPOSE_LABELS: Record<string, string> = {
+const PURPOSE_LABELS: Record<string, () => string> = {
   // biome-ignore lint/style/useNamingConvention: database enum values
-  DATA_PROCESSING: 'Traitement des données personnelles',
+  DATA_PROCESSING: () => m.consent_purpose_data_processing(),
   // biome-ignore lint/style/useNamingConvention: database enum values
-  EMAIL_NOTIFICATIONS: 'Notifications par email',
+  EMAIL_NOTIFICATIONS: () => m.consent_purpose_email_notifications(),
 }
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Mes consentements - Unitae' }]
+  return [{ title: `${m.user_consents_page_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -53,30 +53,32 @@ export default function ConsentsPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Mes consentements" subtitle="Gestion de vos consentements au titre du RGPD." />
+      <PageHeader title={m.user_consents_page_title()} subtitle={m.user_consents_page_subtitle()} />
 
       <Card>
         <CardHeader>
-          <CardTitle>Consentements actifs</CardTitle>
+          <CardTitle>{m.user_consents_active_section()}</CardTitle>
         </CardHeader>
         <CardContent>
           {consents.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Aucun consentement actif.</p>
+            <p className="text-muted-foreground text-sm">{m.user_consents_empty_message()}</p>
           ) : (
             <div className="divide-y">
               {consents.map(consent => (
                 <div key={consent.id} className="flex items-center justify-between gap-4 py-3">
                   <div>
-                    <p className="font-medium text-sm">{PURPOSE_LABELS[consent.purpose] ?? consent.purpose}</p>
+                    <p className="font-medium text-sm">{PURPOSE_LABELS[consent.purpose]?.() ?? consent.purpose}</p>
                     <p className="text-muted-foreground text-xs">
-                      Accordé le {new Date(consent.consentedAt).toLocaleDateString('fr-FR')} — version{' '}
-                      {consent.consentVersion}
+                      {m.user_consents_granted_on({
+                        date: new Date(consent.consentedAt).toLocaleDateString('fr-FR'),
+                        version: consent.consentVersion,
+                      })}
                     </p>
                   </div>
                   <Form method="post">
                     <input type="hidden" name="purpose" value={consent.purpose} />
                     <Button type="submit" variant="outline" size="sm">
-                      Retirer
+                      {m.user_consents_withdraw_button()}
                     </Button>
                   </Form>
                 </div>
@@ -87,9 +89,9 @@ export default function ConsentsPage({ loaderData }: Route.ComponentProps) {
       </Card>
 
       <p className="text-muted-foreground text-xs">
-        Pour en savoir plus sur vos droits, consultez notre{' '}
+        {m.user_consents_privacy_notice()}{' '}
         <Link to="/privacy" className="underline">
-          politique de confidentialité
+          {m.user_consents_privacy_link()}
         </Link>
         .
       </p>

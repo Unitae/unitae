@@ -223,7 +223,6 @@ function formatDate(date: Date | string): string {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-
 export function ProgrammeDocument({ events, title, showParts, showServices }: ProgrammeDocumentProps) {
   const pages: ProgrammeEvent[][] = []
   for (let i = 0; i < events.length; i += 2) {
@@ -302,9 +301,7 @@ function EventBlock({
             // biome-ignore lint/suspicious/noArrayIndexKey: section groups have no stable id
             <View key={groupIdx}>
               {group.section !== '' && (
-                <View
-                  style={[styles.sectionHeader, { backgroundColor: color ?? '#64748b' }]}
-                >
+                <View style={[styles.sectionHeader, { backgroundColor: color ?? '#64748b' }]}>
                   <Text style={styles.sectionHeaderText}>{group.section}</Text>
                 </View>
               )}
@@ -330,11 +327,7 @@ function EventBlock({
                 // biome-ignore lint/suspicious/noArrayIndexKey: service role rows
                 <View key={roleIdx} style={styles.serviceItem}>
                   <Text style={styles.serviceRoleName}>{role.name}</Text>
-                  {name ? (
-                    <Text style={styles.serviceAssignee}>{name}</Text>
-                  ) : (
-                    <Text style={styles.unassigned}>—</Text>
-                  )}
+                  {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}
                 </View>
               )
             })}

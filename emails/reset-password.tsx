@@ -11,6 +11,7 @@ import {
   Tailwind,
   Text,
 } from '@react-email/components'
+import * as m from '~/paraglide/messages'
 
 export default function ResetPassword({
   email = 'test@email.com',
@@ -30,18 +31,17 @@ export default function ResetPassword({
   return (
     <Html>
       <Head />
-      <Preview>Pour réinitialiser votre mot de passe cliquez sur le lien suivant...</Preview>
+      <Preview>{m.email_reset_password_preview()}</Preview>
       <Tailwind>
         <Body className="mx-auto my-auto bg-white px-2 font-sans">
           <Container className="mx-auto my-[40px] max-w-[465px] rounded border border-[#eaeaea] border-solid p-[20px]">
             <Heading className="mx-0 my-[30px] p-0 text-center font-normal text-[24px] text-black">
-              Demande de <strong>réinitialisation</strong> <br />
-              de <strong>mot de passe</strong>.
+              {m.email_reset_password_heading()}
             </Heading>
             <Section>
-              <Text>Bonjour {firstname ?? email},</Text>
+              <Text>{m.email_reset_password_greeting({ name: firstname ?? email })}</Text>
               <Text>
-                Vous pouvez réinitialiser votre mot de passe en cliquant sur ce lien :{' '}
+                {m.email_reset_password_body()}{' '}
                 <Link
                   href={resetLink}
                   className="text-ellipsis text-wrap break-words break-all text-blue-600 no-underline"
@@ -49,13 +49,12 @@ export default function ResetPassword({
                   {resetLink}
                 </Link>
               </Text>
-              <Text>Cordialement,</Text>
-              <Text>L'équipe {platformName}</Text>
+              <Text>{m.email_reset_password_regards()}</Text>
+              <Text>{m.email_reset_password_signature({ platformName: platformName ?? 'Unitae' })}</Text>
             </Section>
             <Hr className="mx-0 my-[26px] w-full border border-[#eaeaea] border-solid" />
             <Text className="text-[#666666] text-[12px] leading-[24px]">
-              Cet email est destiné à <span className="text-black">{email}</span>. Si vous n'attendiez pas cet email,
-              vous pouvez l'ignorer.
+              {m.email_reset_password_footer({ email })}
             </Text>
           </Container>
         </Body>

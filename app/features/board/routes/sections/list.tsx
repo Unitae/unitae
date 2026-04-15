@@ -1,11 +1,11 @@
 import { ChevronDown, ChevronUp, FolderOpen, Pencil, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
-
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -52,10 +52,10 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Sections"
-        subtitle="Liste de toutes les sections du tableau d'affichage"
+        subtitle={m.board_sections_list_subtitle()}
         actions={
           <Button asChild>
-            <Link to="./new">Créer une section</Link>
+            <Link to="./new">{m.board_sections_create_button()}</Link>
           </Button>
         }
       />
@@ -63,19 +63,19 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
       {sections.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
-          title="Il n'y a aucune section pour le moment !"
-          description="Lorsque des sections seront crées, elles apparaîtront ici. Pour en ajouter, cliquez sur le bouton ci-dessus."
+          title={m.board_sections_empty_title()}
+          description={m.board_sections_empty_description()}
         />
       ) : (
         <div className="overflow-hidden rounded-xl border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nom</TableHead>
-                <TableHead className="text-center max-sm:hidden">Documents</TableHead>
-                <TableHead className="text-center">Position</TableHead>
+                <TableHead>{m.board_sections_table_name()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.board_sections_table_documents()}</TableHead>
+                <TableHead className="text-center">{m.board_sections_table_position()}</TableHead>
                 <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{m.board_sections_table_actions()}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -111,7 +111,7 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
                         asChild
                         className="text-destructive hover:text-destructive max-sm:hidden"
                       >
-                        <Link to={`./${section.id}/delete`} title="Supprimer complètement la section">
+                        <Link to={`./${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
                           <Trash2 className="size-4" />
                         </Link>
                       </Button>

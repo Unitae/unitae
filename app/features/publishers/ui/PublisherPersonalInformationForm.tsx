@@ -1,3 +1,4 @@
+import * as m from '~/paraglide/messages'
 import type { UserInput } from '~/shared/types/user-input'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -7,28 +8,28 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Informations personnelles</CardTitle>
+        <CardTitle>{m.publishers_form_personal_info()}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="firstname">Prénom</Label>
+            <Label htmlFor="firstname">{m.publishers_form_firstname()}</Label>
             <Input
               id="firstname"
               name="firstname"
               type="text"
-              placeholder="Prénom"
+              placeholder={m.publishers_form_firstname()}
               required
               defaultValue={user?.firstname ?? ''}
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastname">Nom</Label>
+            <Label htmlFor="lastname">{m.publishers_form_lastname()}</Label>
             <Input
               id="lastname"
               name="lastname"
               type="text"
-              placeholder="Nom"
+              placeholder={m.publishers_form_lastname()}
               defaultValue={user?.lastname ?? ''}
               required
             />
@@ -36,7 +37,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="birthDate">Date de naissance</Label>
+            <Label htmlFor="birthDate">{m.publishers_form_birth_date()}</Label>
             <Input
               id="birthDate"
               name="birthDate"
@@ -45,7 +46,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="baptismDate">Date de baptême</Label>
+            <Label htmlFor="baptismDate">{m.publishers_form_baptism_date()}</Label>
             <Input
               id="baptismDate"
               name="baptismDate"
@@ -56,7 +57,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label>Genre</Label>
+            <Label>{m.publishers_form_gender()}</Label>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -67,7 +68,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
                   required
                   defaultChecked={user?.isMale === true}
                 />
-                Homme
+                {m.publishers_form_gender_male()}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <input
@@ -78,7 +79,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
                   required
                   defaultChecked={user?.isMale === false}
                 />
-                Femme
+                {m.publishers_form_gender_female()}
               </label>
             </div>
           </div>
@@ -91,22 +92,42 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
               defaultChecked={user?.isAnointed}
             />
             <Label htmlFor="isAnointed" className="font-normal">
-              Le proclamateur est <span className="font-bold text-primary">oint</span>.
+              {m.publishers_form_anointed_before()}{' '}
+              <span className="font-bold text-primary">{m.publishers_form_anointed_highlight()}</span>
+              {m.publishers_form_anointed_after()}
             </Label>
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" placeholder="Email" defaultValue={user?.email ?? ''} />
+          <Label htmlFor="email">{m.publishers_form_email()}</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder={m.publishers_form_email()}
+            defaultValue={user?.email ?? ''}
+          />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="phone">Téléphone</Label>
-            <Input id="phone" name="phone" type="text" placeholder="Téléphone" defaultValue={user?.phone ?? ''} />
+            <Label htmlFor="phone">{m.publishers_form_phone()}</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="text"
+              placeholder={m.publishers_form_phone_placeholder()}
+              defaultValue={user?.phone ?? ''}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address">Adresse</Label>
-            <Input id="address" name="address" type="text" placeholder="Domicile" defaultValue={user?.address ?? ''} />
+            <Label htmlFor="address">{m.publishers_form_address()}</Label>
+            <Input
+              id="address"
+              name="address"
+              type="text"
+              placeholder={m.publishers_form_address_placeholder()}
+              defaultValue={user?.address ?? ''}
+            />
           </div>
         </div>
       </CardContent>

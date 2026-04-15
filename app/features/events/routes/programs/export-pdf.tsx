@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import type { Route } from './+types/export-pdf'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Exporter un programme en PDF - Unitae' }]
+  return [{ title: m.programs_export_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -44,22 +45,22 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Exporter en PDF" subtitle="Générez un document PDF du programme pour impression." />
+      <PageHeader title={m.programs_export_page_title()} subtitle={m.programs_export_page_subtitle()} />
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">Options d'export</CardTitle>
+          <CardTitle className="text-base">{m.programs_export_options_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="templateId">Type de réunion</Label>
+              <Label htmlFor="templateId">{m.programs_export_meeting_type_label()}</Label>
               <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Tous les types" />
+                  <SelectValue placeholder={m.programs_export_all_types()} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
+                  <SelectItem value="all">{m.programs_export_all_types()}</SelectItem>
                   {templates.map(template => (
                     <SelectItem key={template.id} value={template.id.toString()}>
                       {template.name}
@@ -71,7 +72,7 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
 
             <div className="flex gap-4">
               <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="startDate">Du</Label>
+                <Label htmlFor="startDate">{m.programs_export_from_label()}</Label>
                 <Input
                   id="startDate"
                   type="date"
@@ -81,28 +82,28 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
                 />
               </div>
               <div className="flex flex-1 flex-col gap-2">
-                <Label htmlFor="endDate">Au</Label>
+                <Label htmlFor="endDate">{m.programs_export_to_label()}</Label>
                 <Input id="endDate" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} required />
               </div>
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="contentType">Contenu</Label>
+              <Label htmlFor="contentType">{m.programs_export_content_label()}</Label>
               <Select value={contentType} onValueChange={setContentType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="both">Programme spirituel et services</SelectItem>
-                  <SelectItem value="parts">Programme spirituel uniquement</SelectItem>
-                  <SelectItem value="services">Services uniquement</SelectItem>
+                  <SelectItem value="both">{m.programs_export_content_both()}</SelectItem>
+                  <SelectItem value="parts">{m.programs_export_content_parts_only()}</SelectItem>
+                  <SelectItem value="services">{m.programs_export_content_services_only()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <Button asChild className="w-fit">
               <a href={downloadUrl} target="_blank" rel="noreferrer">
-                Télécharger le PDF
+                {m.programs_export_download_button()}
               </a>
             </Button>
           </div>

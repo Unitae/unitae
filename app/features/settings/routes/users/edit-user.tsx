@@ -2,6 +2,7 @@ import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -28,8 +29,28 @@ import { Separator } from '~/shared/ui/separator'
 
 import type { Route } from './+types/edit-user'
 
+function getRoleDescription(key: string): string {
+  const descriptions: Record<string, () => string> = {
+    admin: () => m.role_desc_admin(),
+    'board-uploader': () => m.role_desc_board_uploader(),
+    'board-validator': () => m.role_desc_board_validator(),
+    'territories-viewer': () => m.role_desc_territories_viewer(),
+    'territories-manager': () => m.role_desc_territories_manager(),
+    'settings-user-manager': () => m.role_desc_settings_user_manager(),
+    'publisher-viewer': () => m.role_desc_publisher_viewer(),
+    'publisher-manager': () => m.role_desc_publisher_manager(),
+    'activity-manager': () => m.role_desc_activity_manager(),
+    'activity-viewer': () => m.role_desc_activity_viewer(),
+    'program-viewer': () => m.role_desc_program_viewer(),
+    'program-manager': () => m.role_desc_program_manager(),
+    'prospection-viewer': () => m.role_desc_prospection_viewer(),
+    'prospection-manager': () => m.role_desc_prospection_manager(),
+  }
+  return descriptions[key]?.() ?? key
+}
+
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Réglages - Unitae' }]
+  return [{ title: m.settings_users_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -103,12 +124,12 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
       )}
 
       <PageHeader
-        title="Modification d'utilisateur"
-        subtitle="Modifier un utilisateur"
+        title={m.settings_user_edit_title()}
+        subtitle={m.settings_user_edit_subtitle()}
         actions={
           <>
             {user.isPublisher === true ? (
-              <Button asChild variant="outline" size="icon" title="Voir la fiche proclamateur de cet utilisateur">
+              <Button asChild variant="outline" size="icon" title={m.settings_user_edit_view_publisher_title()}>
                 <Link to={`/congregation/publishers/${user.id}/edit`}>
                   <IdCard className="size-4" />
                 </Link>
@@ -119,13 +140,13 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                   type="submit"
                   variant="outline"
                   size="icon"
-                  title="Créer automatiquement une fiche proclamateur pour cet utilisateur"
+                  title={m.settings_user_edit_create_publisher_title()}
                 >
                   <UserPlus className="size-4" />
                 </Button>
               </Form>
             )}
-            <Button asChild variant="outline" size="icon" title="Exporter les données de cet utilisateur (RGPD)">
+            <Button asChild variant="outline" size="icon" title={m.settings_user_edit_export_data_title()}>
               <a href={`/settings/users/${user.id}/export-data`} download>
                 <Download className="size-4" />
               </a>
@@ -137,11 +158,11 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                 disabled={user.email == null}
                 title={
                   user.email == null
-                    ? `Ajoutez d'abord une adresse email pour créer le compte utilisateur`
-                    : `Envoi un email à l'utilisateur pour lui demander modifier son mot de passe`
+                    ? m.settings_user_edit_reset_no_email_hint()
+                    : m.settings_user_edit_reset_email_hint()
                 }
               >
-                Réinitialiser le mot de passe
+                {m.settings_user_edit_reset_password()}
               </Button>
             </Form>
           </>
@@ -153,27 +174,33 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex gap-4 max-sm:flex-col">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="firstname">Prénom</Label>
+                <Label htmlFor="firstname">{m.settings_user_edit_firstname_label()}</Label>
                 <Input
                   id="firstname"
                   name="firstname"
                   type="text"
-                  placeholder="Prénom"
+                  placeholder={m.settings_user_edit_firstname_label()}
                   defaultValue={user.firstname ?? ''}
                 />
               </div>
               <div className="flex-1 space-y-2">
-                <Label htmlFor="lastname">Nom</Label>
-                <Input id="lastname" name="lastname" type="text" placeholder="Nom" defaultValue={user.lastname ?? ''} />
+                <Label htmlFor="lastname">{m.settings_user_edit_lastname_label()}</Label>
+                <Input
+                  id="lastname"
+                  name="lastname"
+                  type="text"
+                  placeholder={m.settings_user_edit_lastname_label()}
+                  defaultValue={user.lastname ?? ''}
+                />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.settings_user_edit_email_label()}</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder="Email"
+                placeholder={m.settings_user_edit_email_label()}
                 defaultValue={user.email ?? ''}
                 required
               />
@@ -187,23 +214,21 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                 disabled={publisherNotUser}
               />
               <Label htmlFor="active" className="font-normal">
-                L'utilisateur peut se connecter et utiliser l'application
+                {m.settings_user_edit_active_label()}
               </Label>
             </div>
 
             <Separator />
 
             <CardHeader className="p-0">
-              <CardTitle className="text-lg">Droits utilisateur</CardTitle>
+              <CardTitle className="text-lg">{m.settings_user_edit_rights_title()}</CardTitle>
             </CardHeader>
             <div className="flex flex-wrap gap-4 max-sm:flex-col">
               {publisherNotUser ? (
                 <p className="text-center text-muted-foreground text-sm">
-                  Cette personne n'est pas utilisatrice de l'application. Vous ne pouvez donner des droits qu'à des
-                  utilisateurs.
+                  {m.settings_user_edit_publisher_only_notice()}
                   <br />
-                  Pour transformer ce proclamateur en utilisateur, ajoutez lui une adresse email et réinitialisez son
-                  mot de passe.
+                  {m.settings_user_edit_publisher_only_hint()}
                 </p>
               ) : (
                 roleList.map(role => (
@@ -218,14 +243,14 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                       defaultChecked={user.roles.map(el => el.key).includes(role.key)}
                     />
                     <Label htmlFor={`role-${role.id}`} className="font-normal">
-                      {role.description}
+                      {getRoleDescription(role.key)}
                     </Label>
                   </div>
                 ))
               )}
             </div>
             <Button type="submit" className="mt-2">
-              Modifier l'utilisateur
+              {m.settings_user_edit_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -236,37 +261,30 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive text-lg">
               <ShieldAlert className="size-5" />
-              Zone dangereuse
+              {m.settings_user_edit_danger_zone()}
             </CardTitle>
           </CardHeader>
           <CardContent className="flex items-center justify-between gap-4">
-            <p className="text-muted-foreground text-sm">
-              Anonymiser cet utilisateur supprimera toutes ses données personnelles de manière irréversible. Les
-              rapports d'activité et attributions seront conservés mais ne seront plus identifiables.
-            </p>
+            <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant="destructive" className="shrink-0">
-                  Anonymiser l'utilisateur
+                  {m.settings_user_edit_anonymize_button()}
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Anonymiser cet utilisateur ?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Cette action est irréversible. Toutes les données personnelles (nom, email, téléphone, adresse,
-                    dates) seront supprimées. L'utilisateur ne pourra plus se connecter. Les rapports d'activité et
-                    attributions de territoires seront conservés de manière anonyme.
-                  </AlertDialogDescription>
+                  <AlertDialogTitle>{m.settings_user_edit_anonymize_dialog_title()}</AlertDialogTitle>
+                  <AlertDialogDescription>{m.settings_user_edit_anonymize_dialog_description()}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Annuler</AlertDialogCancel>
+                  <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
                   <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
                     <AlertDialogAction
                       type="submit"
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      Confirmer l'anonymisation
+                      {m.settings_user_edit_anonymize_confirm()}
                     </AlertDialogAction>
                   </Form>
                 </AlertDialogFooter>
@@ -279,7 +297,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
       {anonymizedAt && (
         <Alert variant="destructive">
           <AlertDescription>
-            Cet utilisateur a été anonymisé le {new Date(anonymizedAt).toLocaleDateString('fr-FR')}.
+            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString('fr-FR') })}
           </AlertDescription>
         </Alert>
       )}

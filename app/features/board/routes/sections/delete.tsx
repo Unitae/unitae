@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -40,11 +41,11 @@ export default function DeleteSectionPage({ loaderData }: Route.ComponentProps) 
     <Card className="mx-auto max-w-lg">
       <CardContent className="flex flex-col items-center justify-center gap-6 pt-6">
         <p className="text-center text-muted-foreground">
-          Êtes-vous sûr de vouloir supprimer la section "{section.name}" ? Cette action est irréversible.
+          {m.board_sections_delete_confirmation({ name: section.name })}
         </p>
         <Form method="post">
-          <Button type="submit" variant="destructive" title="Supprimer la section définitivement">
-            Supprimer la section
+          <Button type="submit" variant="destructive" title={m.board_sections_delete_tooltip()}>
+            {m.board_sections_delete_button()}
           </Button>
         </Form>
       </CardContent>
@@ -68,7 +69,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
     })
 
-    session.flash('success', `La section "${section.name}" a été correctement supprimée`)
+    session.flash('success', m.board_sections_delete_success({ name: section.name }))
 
     return redirect('/board/sections', {
       headers: {

@@ -1,5 +1,6 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
+import * as m from '~/paraglide/messages'
 import type { TransactionClient } from '~/shared/libs/db.server'
 
 export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {
@@ -42,7 +43,7 @@ export async function createDayOff(
       startDate,
       endDate,
       createdBy: { connect: { id: userId } },
-      name: 'Absence',
+      name: m.seed_event_kind_absence(),
       congregation: { connect: { id: congregationId } },
     },
   })

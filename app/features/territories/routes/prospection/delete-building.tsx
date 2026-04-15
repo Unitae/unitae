@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -41,18 +42,19 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
     <div className="flex items-center justify-center p-7">
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-center">Supprimer le batiment</CardTitle>
+          <CardTitle className="text-center">{m.prospection_delete_building_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground">
-            Êtes-vous sûr de vouloir supprimer le batiment au {building.number} {building.street}, {building.zip} ?
-            Cette action est irréversible.
+            {m.prospection_delete_building_confirm({
+              address: `${building.number} ${building.street}, ${building.zip}`,
+            })}
           </p>
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
             <Button type="submit" variant="destructive">
-              Supprimer ce batiment
+              {m.prospection_delete_building_submit()}
             </Button>
           </Form>
         </CardFooter>
@@ -79,7 +81,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash(
       'success',
-      `Le batiment au ${building.number} ${building.street}, ${building.zip} a été correctement supprimé`,
+      m.prospection_delete_building_flash_success({
+        address: `${building.number} ${building.street}, ${building.zip}`,
+      }),
     )
 
     const previousPage = request.headers.get('referer')

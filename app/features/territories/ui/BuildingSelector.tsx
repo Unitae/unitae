@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
+import * as m from '~/paraglide/messages'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -28,7 +29,7 @@ export default function BuildingSelector({
         <CardContent className="flex flex-col gap-3 pt-4">
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1.5">
-              <Label>Code postal</Label>
+              <Label>{m.prospection_selector_zip_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 onChange={event => {
@@ -38,7 +39,7 @@ export default function BuildingSelector({
                 defaultValue={searchParams.get('zip') ?? ''}
               >
                 <option disabled selected={!searchParams.has('zip')}>
-                  Sélectionner un code postal
+                  {m.prospection_selector_zip_placeholder()}
                 </option>
                 {zips.map(el => (
                   <option key={el.zip} value={el.zip}>
@@ -49,7 +50,7 @@ export default function BuildingSelector({
             </div>
             {streets.length > 0 && (
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>Voie</Label>
+                <Label>{m.prospection_selector_street_label()}</Label>
                 <select
                   className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                   onChange={event => {
@@ -59,7 +60,7 @@ export default function BuildingSelector({
                   defaultValue={searchParams.get('street') ?? ''}
                 >
                   <option disabled selected={!searchParams.has('street')}>
-                    Sélectionner une voie
+                    {m.prospection_selector_street_placeholder()}
                   </option>
                   {streets.map(el => (
                     <option key={el.street} value={el.street}>
@@ -72,7 +73,7 @@ export default function BuildingSelector({
           </div>
           {entrances.length > 0 && (
             <div className="flex flex-col gap-1.5">
-              <Label>Allée</Label>
+              <Label>{m.prospection_selector_entrance_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 onChange={event => {
@@ -80,7 +81,7 @@ export default function BuildingSelector({
                 }}
               >
                 <option disabled selected={selectedEntrance == null}>
-                  Sélectionner un numéro
+                  {m.prospection_selector_entrance_placeholder()}
                 </option>
                 {entrances
                   .filter(el => !selection.map(tbuilding => tbuilding.id).includes(el.id))
@@ -108,7 +109,7 @@ export default function BuildingSelector({
                 showSearchBox(false)
               }}
             >
-              Ajouter l'allée au territoire
+              {m.prospection_selector_add_entrance()}
             </Button>
           )}
         </CardContent>
@@ -118,7 +119,7 @@ export default function BuildingSelector({
 
   return (
     <Button type="button" variant="secondary" onClick={() => showSearchBox(true)}>
-      Ajouter une allée
+      {m.prospection_selector_add_button()}
     </Button>
   )
 }

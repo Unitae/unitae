@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -14,7 +15,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/edit'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: `Modification d'une section du Tableau d'affichage - Unitae` }]
+  return [{ title: m.board_documents_edit_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -62,11 +63,11 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Modification d'un document"
-        subtitle="Modifier un document du tableau d'affichage"
+        title={m.board_documents_edit_title()}
+        subtitle={m.board_documents_edit_subtitle()}
         actions={
           <Button variant="destructive" size="icon" asChild>
-            <Link to={`/board/documents/${document.id}/delete`} title="Supprimer complètement le document">
+            <Link to={`/board/documents/${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
               <Trash2 className="size-4" />
             </Link>
           </Button>
@@ -77,19 +78,19 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="title">Nom</Label>
+              <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>
               <Input
                 id="title"
                 name="title"
                 type="text"
-                placeholder="Nom du document"
+                placeholder={m.board_documents_new_name_placeholder()}
                 autoComplete="off"
                 defaultValue={document.title ?? ''}
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sectionId">Section</Label>
+              <Label htmlFor="sectionId">{m.board_documents_new_section_label()}</Label>
               <select
                 id="sectionId"
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
@@ -107,22 +108,22 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
             {rights.canManageBoard && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-from">Visible à partir du</Label>
+                  <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
                   <Input
                     id="visible-from"
                     name="visible-from"
                     type="datetime-local"
-                    placeholder="Début de la période de visibilité"
+                    placeholder={m.board_documents_new_visible_from_placeholder()}
                     defaultValue={formattedVisibleFrom}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-until">Visible jusqu'au</Label>
+                  <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
                   <Input
                     id="visible-until"
                     name="visible-until"
                     type="datetime-local"
-                    placeholder="Fin de la période de visibilité"
+                    placeholder={m.board_documents_new_visible_until_placeholder()}
                     defaultValue={formattedVisibleUntil}
                   />
                 </div>
@@ -141,15 +142,15 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
                 <Label
                   htmlFor="hightlighted"
                   className="cursor-pointer font-normal"
-                  title="Le document s'affichera également tout en haut du tableau d'affichage pour être visible par tous"
+                  title={m.board_documents_new_highlight_tooltip()}
                 >
-                  Mettre en avant le document sur le tableau d'affichage
+                  {m.board_documents_new_highlight_label()}
                 </Label>
               </div>
             )}
 
             <Button type="submit" className="w-fit">
-              Modifier le document
+              {m.board_documents_edit_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -170,7 +171,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const isHighlighted = form.get('hightlighted') === 'on'
 
   if (title.length < 1) {
-    session.flash('error', 'Vous devez remplir tous les champs du formulaire. Réessayez.')
+    session.flash('error', m.common_empty_fields_error())
     throw redirect(`/board/document/${params.documentId}/edit`, {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -198,7 +199,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
 
     if (document == null) {
-      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+      session.flash('error', m.common_generic_error())
 
       return redirect(`/board/document/${params.documentId}/edit`, {
         headers: {
@@ -207,7 +208,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', `Section "${document.title}" modifiée avec succès.`)
+    session.flash('success', m.board_documents_edit_success({ name: document.title }))
 
     return redirect(`/board/documents/${document.id}/edit`, {
       headers: {

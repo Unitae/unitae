@@ -1,15 +1,21 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
-import { type EntranceKind, entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
-import { type ShopKind, shopKindLabels } from '~/features/territories/model/shop-kind.type'
+import {
+  type EntranceKind,
+  entranceKindLabels as getEntranceKindLabels,
+} from '~/features/territories/model/entrance-kind.type'
+import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
+import * as m from '~/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
 
-const accessLabels: Record<number, string> = {
-  [TerritoryAccess.Intercom]: 'interphone',
-  [TerritoryAccess.Code]: 'digicode',
-  [TerritoryAccess.Doorbell]: 'sonnette extérieure',
+function getAccessLabels(): Record<number, string> {
+  return {
+    [TerritoryAccess.Intercom]: m.prospection_info_access_intercom(),
+    [TerritoryAccess.Code]: m.prospection_info_access_digicode(),
+    [TerritoryAccess.Doorbell]: m.prospection_info_access_doorbell(),
+  }
 }
 
 export default function BuildingProspectionInfo({ building }: { building: BuildingWithEntrances }) {
@@ -23,13 +29,10 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Résumé de prospection</CardTitle>
+          <CardTitle>{m.prospection_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground italic">
-            Ce batiment n'a pas encore été prospecté. Utilisez le bouton en forme de loupe pour saisir les données de
-            prospection.
-          </p>
+          <p className="text-muted-foreground italic">{m.prospection_info_no_data()}</p>
         </CardContent>
       </Card>
     )
@@ -38,12 +41,12 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Résumé de prospection</CardTitle>
+        <CardTitle>{m.prospection_info_title()}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-2">
         {residentialEntrance != null && <ResidentialSummary entrance={residentialEntrance} />}
 
-        {residentialEntrance == null && <p>Ce batiment ne contient pas de logements résidentiels.</p>}
+        {residentialEntrance == null && <p>{m.prospection_info_no_residential()}</p>}
 
         {commerceEntrances.length > 0 && <CommerceSummary entrances={commerceEntrances} />}
 
@@ -56,7 +59,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
             {allNotes.map(entrance => (
               <p key={entrance.id} className="text-destructive text-sm">
                 <span className="font-medium">
-                  {entranceKindLabels[entrance.kind as EntranceKind] ?? entrance.kind} :
+                  {getEntranceKindLabels()[entrance.kind as EntranceKind] ?? entrance.kind} :
                 </span>{' '}
                 {entrance.notes}
               </p>
@@ -66,18 +69,17 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
 
         {building.prospectionDate != null && (
           <p className="mt-2 text-muted-foreground text-sm">
-            Dernière prospection le{' '}
-            {building.prospectionDate.toLocaleDateString('fr-FR', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
+            {m.prospection_info_last_prospection({
+              date: building.prospectionDate.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
             })}
           </p>
         )}
 
-        <p className="text-muted-foreground text-sm italic">
-          Pour modifier ces données, utilisez le bouton en forme de loupe en haut à droite.
-        </p>
+        <p className="text-muted-foreground text-sm italic">{m.prospection_info_edit_hint()}</p>
       </CardContent>
     </Card>
   )
@@ -89,21 +91,27 @@ function describeResidentialCounts(entrance: BuildingEntrance): string[] {
   const liberals = entrance.liberals ?? 0
   const parts: string[] = []
 
-  if (homes > 0) parts.push(`${homes} foyer${homes > 1 ? 's' : ''}`)
-  if (phones > 0) parts.push(`${phones} numéro${phones > 1 ? 's' : ''} de téléphone`)
-  if (liberals > 0) parts.push(`${liberals} professionnel${liberals > 1 ? 's' : ''} libéra${liberals > 1 ? 'ux' : 'l'}`)
+  if (homes > 0)
+    parts.push(
+      homes > 1
+        ? m.territories_content_homes_other({ count: homes })
+        : m.territories_content_homes_one({ count: homes }),
+    )
+  if (phones > 0) parts.push(m.prospection_info_phones_count({ count: phones }))
+  if (liberals > 0) parts.push(m.prospection_info_liberals_count({ count: liberals }))
 
   return parts
 }
 
 function describeAccess(entrance: BuildingEntrance): string[] {
   const parts: string[] = []
+  const accessLabels = getAccessLabels()
   const label = entrance.access != null ? accessLabels[entrance.access] : null
 
-  if (label != null) parts.push(`accessible par ${label}`)
-  if (entrance.access === TerritoryAccess.Code && entrance.isOpenEarly) parts.push('portes ouvertes le matin')
-  if (entrance.access === TerritoryAccess.Code && entrance.isMailboxOpen) parts.push('boites aux lettres accessibles')
-  if (entrance.isPMR) parts.push('accessible PMR')
+  if (label != null) parts.push(label)
+  if (entrance.access === TerritoryAccess.Code && entrance.isOpenEarly) parts.push(m.prospection_info_open_early())
+  if (entrance.access === TerritoryAccess.Code && entrance.isMailboxOpen) parts.push(m.prospection_info_mailbox_open())
+  if (entrance.isPMR) parts.push(m.prospection_info_pmr())
 
   return parts
 }
@@ -113,12 +121,12 @@ function ResidentialSummary({ entrance }: { entrance: BuildingEntrance }) {
   const accessParts = describeAccess(entrance)
 
   if (counts.length === 0) {
-    return <p>L'entrée résidentielle est présente mais aucun foyer ni téléphone n'a été recensé.</p>
+    return <p>{m.prospection_info_residential_empty()}</p>
   }
 
   return (
     <p>
-      Ce batiment contient <span className="font-medium text-primary">{counts.join(', ')}</span>
+      {m.prospection_info_building_contains()} <span className="font-medium text-primary">{counts.join(', ')}</span>
       {accessParts.length > 0 && (
         <>
           {' '}
@@ -132,55 +140,31 @@ function ResidentialSummary({ entrance }: { entrance: BuildingEntrance }) {
 
 function CommerceSummary({ entrances }: { entrances: BuildingEntrance[] }) {
   if (entrances.length === 1) {
-    const shopLabel = shopKindLabels[entrances[0].shopKind as ShopKind] ?? 'commerce'
-    return (
-      <p>
-        Un commerce de type <span className="font-medium text-primary">{shopLabel.toLowerCase()}</span> est disponible
-        pour la prédication.
-      </p>
-    )
+    const shopLabel = getShopKindLabels()[entrances[0].shopKind as ShopKind] ?? m.prospection_info_commerce_fallback()
+    return <p>{m.prospection_info_commerce_single({ type: shopLabel.toLowerCase() })}</p>
   }
 
-  const labels = entrances.map(e => shopKindLabels[e.shopKind as ShopKind]?.toLowerCase() ?? 'autre')
-
-  return (
-    <p>
-      <span className="font-medium text-primary">{entrances.length} commerces</span> sont disponibles pour la
-      prédication : {labels.join(', ')}.
-    </p>
+  const labels = entrances.map(
+    e => getShopKindLabels()[e.shopKind as ShopKind]?.toLowerCase() ?? m.prospection_info_other_fallback(),
   )
+
+  return <p>{m.prospection_info_commerce_multiple({ count: entrances.length, labels: labels.join(', ') })}</p>
 }
 
 function OtherEntranceSummary({ entrance }: { entrance: BuildingEntrance }) {
-  const kindLabel = entranceKindLabels[entrance.kind as EntranceKind]?.toLowerCase() ?? entrance.kind
+  const kindLabel = getEntranceKindLabels()[entrance.kind as EntranceKind]?.toLowerCase() ?? entrance.kind
 
   if (entrance.kind === 'hotel') {
-    return (
-      <p>
-        Un <span className="font-medium text-primary">hôtel</span> est présent dans ce batiment.
-      </p>
-    )
+    return <p>{m.prospection_info_hotel()}</p>
   }
 
   if (entrance.kind === 'campus') {
-    return (
-      <p>
-        Une <span className="font-medium text-primary">résidence universitaire</span> est présente dans ce batiment.
-      </p>
-    )
+    return <p>{m.prospection_info_campus()}</p>
   }
 
   if (entrance.kind === 'laundromat') {
-    return (
-      <p>
-        Une <span className="font-medium text-primary">laverie automatique</span> est présente dans ce batiment.
-      </p>
-    )
+    return <p>{m.prospection_info_laundromat()}</p>
   }
 
-  return (
-    <p>
-      Une entrée de type <span className="font-medium text-primary">{kindLabel}</span> est présente dans ce batiment.
-    </p>
-  )
+  return <p>{m.prospection_info_other_entrance({ type: kindLabel })}</p>
 }

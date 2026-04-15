@@ -9,6 +9,7 @@ export type CongregationInfo = {
   id: number
   name: string
   slug: string
+  locale: string
   displayName: string
   emailFrom: string
   baseUrl: string
@@ -38,6 +39,7 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     id: congregation.id,
     name: congregation.name,
     slug: congregation.slug,
+    locale: congregation.locale ?? 'fr',
     displayName: congregation.displayName ?? congregation.name,
     emailFrom: congregation.emailFromAddress
       ? `${congregation.emailFromName ?? congregation.name} <${congregation.emailFromAddress}>`

@@ -1,6 +1,7 @@
 import { Calendar, CalendarOff, ChevronRight, FileDown } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -12,7 +13,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Programmes - Unitae' }]
+  return [{ title: m.programs_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -58,23 +59,23 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Programmes"
-        subtitle="Évènements à venir"
+        title={m.programs_page_title()}
+        subtitle={m.programs_page_subtitle()}
         actions={
           <div className="flex gap-2">
             {roles.canManagePrograms && (
               <Button asChild>
-                <Link to="./new">Nouvel évènement</Link>
+                <Link to="./new">{m.programs_new_event_button()}</Link>
               </Button>
             )}
             <Button variant="outline" asChild>
               <Link to="./export-pdf">
                 <FileDown className="size-4" />
-                Exporter en PDF
+                {m.programs_export_pdf_button()}
               </Link>
             </Button>
             <Button variant="outline" asChild>
-              <Link to="./days-off">Absences</Link>
+              <Link to="./days-off">{m.programs_days_off_button()}</Link>
             </Button>
           </div>
         }
@@ -107,11 +108,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
           ))}
         </div>
       ) : (
-        <EmptyState
-          icon={CalendarOff}
-          title="Aucun évènement à venir"
-          description="Utilisez le bouton « Nouvel évènement » pour générer des évènements à partir d'un modèle."
-        />
+        <EmptyState icon={CalendarOff} title={m.programs_empty_title()} description={m.programs_empty_description()} />
       )}
     </div>
   )

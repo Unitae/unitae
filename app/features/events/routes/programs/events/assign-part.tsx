@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -19,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import type { Route } from './+types/assign-part'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Attribuer une partie - Unitae' }]
+  return [{ title: m.programs_assign_part_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -74,7 +75,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       session.flash('error', result.error)
       logger.warn(`Assignment conflict. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
     } else {
-      session.flash('success', 'Attribution enregistrée.')
+      session.flash('success', m.programs_assign_part_success())
       logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
     }
 
@@ -96,32 +97,32 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Attribuer une partie"
+        title={m.programs_assign_part_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">{assignment?.name ?? 'Partie'}</CardTitle>
+            <CardTitle className="text-base">{assignment?.name ?? m.programs_assign_part_default()}</CardTitle>
           </CardHeader>
           <CardContent>
             <Form method="post" className="flex flex-col gap-4">
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="topic">Sujet / Titre</Label>
+                <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
                 <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assigneeId">Intervenant</Label>
+                <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
                 <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un proclamateur" />
+                    <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Aucun</SelectItem>
+                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.firstname} {user.lastname}
@@ -132,13 +133,13 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="assistantId">Lecteur (facultatif)</Label>
+                <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
                 <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Aucun lecteur" />
+                    <SelectValue placeholder={m.programs_assign_part_no_reader()} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="none">Aucun</SelectItem>
+                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
                     {users.map(user => (
                       <SelectItem key={user.id} value={user.id.toString()}>
                         {user.firstname} {user.lastname}
@@ -149,7 +150,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
               </div>
 
               <Button type="submit" className="w-fit">
-                Enregistrer
+                {m.common_save()}
               </Button>
             </Form>
           </CardContent>

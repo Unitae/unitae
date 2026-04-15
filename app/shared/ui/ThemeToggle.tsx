@@ -1,5 +1,6 @@
 import { Moon, Sun } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
 export function ThemeToggle() {
@@ -21,7 +22,7 @@ export function ThemeToggle() {
   }, [theme])
 
   return (
-    <Button variant="ghost" size="icon-sm" onClick={toggleTheme} aria-label="Changer le thème">
+    <Button variant="ghost" size="icon-sm" onClick={toggleTheme} aria-label={m.theme_toggle_aria_label()}>
       {theme === 'dark' ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </Button>
   )

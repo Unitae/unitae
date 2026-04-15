@@ -9,6 +9,7 @@ import {
   serializeTerritoryPolygon,
   serializeZips,
 } from '~/features/territories/server/settings'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -23,7 +24,7 @@ import { Separator } from '~/shared/ui/separator'
 import type { Route } from './+types/settings'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Paramètres des Territoires - Unitae' }]
+  return [{ title: m.settings_territories_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -56,41 +57,41 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Territoires" subtitle='Paramètres du module "Territoire"' />
+      <PageHeader title={m.settings_territories_title()} subtitle={m.settings_territories_subtitle()} />
 
       <Form method="post" className="flex flex-col gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Prospection</CardTitle>
+            <CardTitle>{m.settings_territories_prospection_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bano-url">Adresse URL de la Base d'Adresses Nationale Ouverte - BANO</Label>
+              <Label htmlFor="bano-url">{m.settings_territories_bano_url_label()}</Label>
               <Input
                 id="bano-url"
                 name="bano-url"
                 type="text"
-                placeholder="Adresse vers le fichier CSV"
+                placeholder={m.settings_territories_bano_url_placeholder()}
                 defaultValue={banoUrl}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="zips">Code postaux à récuperer depuis la Base d'Adresses Nationale Ouverte - BANO</Label>
+              <Label htmlFor="zips">{m.settings_territories_zips_label()}</Label>
               <Input
                 id="zips"
                 name="zips"
                 type="text"
-                placeholder="Code postaux séparés par des virgules"
+                placeholder={m.settings_territories_zips_placeholder()}
                 defaultValue={zips}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prospection-validity">Validité de la prospection</Label>
+              <Label htmlFor="prospection-validity">{m.settings_territories_prospection_validity_label()}</Label>
               <Input
                 id="prospection-validity"
                 name="prospection-validity"
                 type="number"
-                placeholder="Entrez la durée de validité de la prospection en mois"
+                placeholder={m.settings_territories_prospection_validity_placeholder()}
                 defaultValue={prospectionValidity}
               />
             </div>
@@ -99,23 +100,23 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
 
         <Card>
           <CardHeader>
-            <CardTitle>Territoire</CardTitle>
+            <CardTitle>{m.settings_territories_territory_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="territory">Polygone du territoire</Label>
+              <Label htmlFor="territory">{m.settings_territories_polygon_label()}</Label>
               <Input
                 id="territory"
                 name="territory"
                 type="text"
-                placeholder="Entrez les coordonnées du polygone : latitude longitude,latitude longitude,..."
+                placeholder={m.settings_territories_polygon_placeholder()}
                 defaultValue={territory}
               />
             </div>
 
             <Separator />
 
-            <p className="font-medium text-sm">Types de territoires</p>
+            <p className="font-medium text-sm">{m.settings_territories_types_title()}</p>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="phone-territory-active"
@@ -124,13 +125,15 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
                 defaultChecked={phoneTypeActivated}
               />
               <Label htmlFor="phone-territory-active" className="font-normal">
-                Activer la gestion des territoires <span className="font-bold text-primary">téléphone</span>.
+                {m.settings_territories_phone_type_before()}{' '}
+                <span className="font-bold text-primary">{m.settings_territories_phone_type_highlight()}</span>
+                {m.settings_territories_phone_type_after()}
               </Label>
             </div>
           </CardContent>
         </Card>
 
-        <Button type="submit">Enregistrer</Button>
+        <Button type="submit">{m.common_save()}</Button>
       </Form>
     </div>
   )

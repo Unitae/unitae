@@ -1,6 +1,7 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
 import type { SanitizedUser } from '~/features/authentication/server/sanitize-user.server'
+import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -15,7 +16,7 @@ export default function EventFilters({ action }: EventFiltersProps) {
 
   return (
     <Form className="flex flex-col gap-2" action={action}>
-      <Label className="font-medium text-muted-foreground text-sm">Filtres :</Label>
+      <Label className="font-medium text-muted-foreground text-sm">{m.events_filters_label()}</Label>
       <div className="flex flex-wrap items-center gap-3">
         <Input
           type="date"
@@ -25,7 +26,7 @@ export default function EventFilters({ action }: EventFiltersProps) {
         />
         <Button type="submit" variant="outline" size="sm">
           <SlidersHorizontal className="size-4" />
-          Filtrer
+          {m.events_filters_submit()}
         </Button>
       </div>
     </Form>

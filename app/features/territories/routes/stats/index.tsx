@@ -37,6 +37,7 @@ import MonthlyCoverageChart from '~/features/territories/ui/MonthlyCoverageChart
 import StatsFilters from '~/features/territories/ui/StatsFilters'
 import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -46,7 +47,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shar
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Statistiques du territoire - Unitae' }]
+  return [{ title: m.stats_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -229,41 +230,35 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
   const { stats, progression, coverageOverTime, yearOverYear, attributionsByGroup, theocraticYear, groups } = loaderData
 
   const pieData = [
-    { name: 'Disponible', value: stats.available },
-    { name: 'Sortis', value: stats.active },
-    { name: 'En retard', value: stats.delayed },
-    { name: 'En repos', value: stats.resting },
+    { name: m.stats_pie_available(), value: stats.available },
+    { name: m.stats_pie_active(), value: stats.active },
+    { name: m.stats_pie_delayed(), value: stats.delayed },
+    { name: m.stats_pie_resting(), value: stats.resting },
   ]
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Statistiques du territoire"
-        subtitle="Ensemble de donnée analytique sur le territoire de l'assemblée"
+        title={m.stats_title()}
+        subtitle={m.stats_subtitle()}
         actions={<S13ExportButton theocraticYear={theocraticYear} />}
       />
 
       {/* ═══ État global ═══ */}
-      <h2 className="font-display font-semibold text-xl">État global</h2>
+      <h2 className="font-display font-semibold text-xl">{m.stats_global_heading()}</h2>
 
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.total}</span>
-              <StatLabel
-                label="Territoires existants"
-                help="Nombre total de territoires enregistrés, qu'ils soient disponibles, sortis ou en repos."
-              />
+              <StatLabel label={m.stats_total_territories()} help={m.stats_total_territories_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.available}</span>
-              <StatLabel
-                label="Territoires disponibles"
-                help="Territoires qui ne sont ni sortis, ni en période de repos. Ils peuvent être attribués à un proclamateur."
-              />
+              <StatLabel label={m.stats_available_territories()} help={m.stats_available_territories_help()} />
             </CardContent>
           </Card>
         </div>
@@ -271,28 +266,19 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.working}</span>
-              <StatLabel
-                label="Territoires sortis"
-                help="Territoires actuellement attribués à un proclamateur (en cours + en retard)."
-              />
+              <StatLabel label={m.stats_working_territories()} help={m.stats_working_territories_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.delayed}</span>
-              <StatLabel
-                label="Territoires en retard"
-                help="Territoires sortis dont la date de retour prévue est dépassée."
-              />
+              <StatLabel label={m.stats_delayed_territories()} help={m.stats_delayed_territories_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.resting}</span>
-              <StatLabel
-                label="Territoires en repos"
-                help="Territoires rendus récemment et en période de repos (90 jours pour le porte-à-porte, 15 jours pour les campagnes et le téléphone)."
-              />
+              <StatLabel label={m.stats_resting_territories()} help={m.stats_resting_territories_help()} />
             </CardContent>
           </Card>
         </div>
@@ -315,10 +301,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   ))}
                 </Pie>
               </PieChart>
-              <StatLabel
-                label="État du territoire"
-                help="Répartition visuelle des territoires entre disponibles, sortis, en retard et en repos."
-              />
+              <StatLabel label={m.stats_pie_label()} help={m.stats_pie_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -341,19 +324,16 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   </Pie>
                 </PieChart>
               ) : (
-                <span className="py-12 text-muted-foreground text-sm italic">Aucune attribution active</span>
+                <span className="py-12 text-muted-foreground text-sm italic">{m.stats_no_active_attributions()}</span>
               )}
-              <StatLabel
-                label="Répartition par groupe"
-                help="Répartition des territoires actuellement sortis par groupe de prédication."
-              />
+              <StatLabel label={m.stats_group_distribution_label()} help={m.stats_group_distribution_help()} />
             </CardContent>
           </Card>
         </div>
       </div>
 
       {/* ═══ Progression ═══ */}
-      <h2 className="mt-3 font-display font-semibold text-xl">Progression</h2>
+      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_progression_heading()}</h2>
       <div className="flex flex-col gap-3">
         <div className="my-2">
           <StatsFilters groups={groups} />
@@ -362,10 +342,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.coverage.toFixed(2)} %</span>
-              <StatLabel
-                label="Couverture du territoire"
-                help="Nombre d'attributions ayant touché la période sélectionnée, rapporté au nombre total de territoires. Peut dépasser 100 % si un territoire a été attribué plusieurs fois."
-              />
+              <StatLabel label={m.stats_coverage()} help={m.stats_coverage_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -373,10 +350,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               <span className="font-black font-display text-5xl max-sm:text-3xl">
                 {stats.totalCoverage.toFixed(2)} %
               </span>
-              <StatLabel
-                label="Couverture complète du territoire"
-                help="Pourcentage de territoires ayant eu au moins une attribution durant la période sélectionnée. Maximum 100 %."
-              />
+              <StatLabel label={m.stats_total_coverage()} help={m.stats_total_coverage_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -386,13 +360,10 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               </span>
               {progression.ranked.most != null && (
                 <span className="font-display text-lg text-muted-foreground">
-                  ({progression.ranked.most.count} fois)
+                  {m.stats_times_count({ count: progression.ranked.most.count })}
                 </span>
               )}
-              <StatLabel
-                label="Territoire le plus travaillé"
-                help="Territoire ayant reçu le plus d'attributions sur la période sélectionnée."
-              />
+              <StatLabel label={m.stats_most_worked()} help={m.stats_most_worked_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -402,13 +373,10 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               </span>
               {progression.ranked.least != null && (
                 <span className="font-display text-lg text-muted-foreground">
-                  ({progression.ranked.least.count} fois)
+                  {m.stats_times_count({ count: progression.ranked.least.count })}
                 </span>
               )}
-              <StatLabel
-                label="Territoire le moins travaillé"
-                help="Territoire ayant reçu le moins d'attributions sur la période sélectionnée."
-              />
+              <StatLabel label={m.stats_least_worked()} help={m.stats_least_worked_help()} />
             </CardContent>
           </Card>
         </div>
@@ -418,10 +386,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               <span className="font-black font-display text-5xl max-sm:text-3xl">
                 {progression.durationStats.averageDays} j
               </span>
-              <StatLabel
-                label="Durée moyenne des attributions"
-                help="Nombre moyen de jours entre la sortie et le retour d'un territoire (attributions terminées uniquement)."
-              />
+              <StatLabel label={m.stats_avg_duration()} help={m.stats_avg_duration_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -436,10 +401,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                 </span>
                 <span className="font-display text-2xl">j</span>
               </div>
-              <StatLabel
-                label="Plus longue / Plus courte attribution"
-                help="Durée en jours de l'attribution la plus longue et la plus courte sur la période."
-              />
+              <StatLabel label={m.stats_longest_shortest()} help={m.stats_longest_shortest_help()} />
             </CardContent>
           </Card>
           <Card>
@@ -447,10 +409,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
               <span className="font-black font-display text-5xl max-sm:text-3xl">
                 {progression.overdueRate.toFixed(1)} %
               </span>
-              <StatLabel
-                label="Taux de retard"
-                help="Pourcentage d'attributions rendues après la date de retour prévue."
-              />
+              <StatLabel label={m.stats_overdue_rate()} help={m.stats_overdue_rate_help()} />
             </CardContent>
           </Card>
         </div>
@@ -458,25 +417,19 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.availabilityGap} j</span>
-              <StatLabel
-                label="Délai moyen de disponibilité"
-                help="Nombre moyen de jours entre le retour d'un territoire et sa prochaine attribution."
-              />
+              <StatLabel label={m.stats_availability_gap()} help={m.stats_availability_gap_help()} />
             </CardContent>
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.restUtilization} j</span>
-              <StatLabel
-                label="Inactivité moy. après repos"
-                help="Nombre moyen de jours d'attente entre la fin de la période de repos et la prochaine attribution."
-              />
+              <StatLabel label={m.stats_rest_utilization()} help={m.stats_rest_utilization_help()} />
             </CardContent>
           </Card>
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="font-display text-lg">Attributions par mois</CardTitle>
+            <CardTitle className="font-display text-lg">{m.stats_attributions_per_month()}</CardTitle>
           </CardHeader>
           <CardContent>
             <AttributionsPerMonthChart data={progression.attributionsPerMonth} />
@@ -485,11 +438,11 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
       </div>
 
       {/* ═══ Couverture dans le temps ═══ */}
-      <h2 className="mt-3 font-display font-semibold text-xl">Couverture dans le temps</h2>
+      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_coverage_over_time_heading()}</h2>
       <div className="flex flex-col gap-3">
         <Card>
           <CardHeader>
-            <CardTitle className="font-display text-lg">Évolution mensuelle de la couverture</CardTitle>
+            <CardTitle className="font-display text-lg">{m.stats_monthly_coverage_title()}</CardTitle>
           </CardHeader>
           <CardContent>
             <MonthlyCoverageChart data={coverageOverTime.monthlyCoverage} />
@@ -509,11 +462,10 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                   <span className="font-black font-display text-4xl max-sm:text-2xl">
                     {ct.totalCoverage.toFixed(1)} %
                   </span>
-                  <span className="text-muted-foreground text-xs">({ct.coverage.toFixed(1)} % d'attributions)</span>
-                  <StatLabel
-                    label={ct.label}
-                    help={`Couverture complète pour les territoires "${ct.label}" : pourcentage de territoires ayant eu au moins une attribution.`}
-                  />
+                  <span className="text-muted-foreground text-xs">
+                    {m.stats_attributions_percentage({ percentage: ct.coverage.toFixed(1) })}
+                  </span>
+                  <StatLabel label={ct.label} help={m.stats_coverage_by_type_help({ label: ct.label })} />
                 </CardContent>
               </Card>
             ))}
@@ -521,7 +473,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
         )}
         <Card>
           <CardHeader>
-            <CardTitle className="font-display text-lg">Territoires jamais travaillés</CardTitle>
+            <CardTitle className="font-display text-lg">{m.stats_never_worked_title()}</CardTitle>
           </CardHeader>
           <CardContent>
             <TerritoriesNeverWorkedList territories={coverageOverTime.neverWorked} />
@@ -530,11 +482,14 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
       </div>
 
       {/* ═══ Comparaison annuelle ═══ */}
-      <h2 className="mt-3 font-display font-semibold text-xl">Comparaison annuelle</h2>
+      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_year_comparison_heading()}</h2>
       <Card>
         <CardHeader>
           <CardTitle className="font-display text-lg">
-            Année {theocraticYear}/{theocraticYear + 1} vs {theocraticYear - 1}/{theocraticYear}
+            {m.stats_year_comparison_title({
+              current: `${theocraticYear}/${theocraticYear + 1}`,
+              previous: `${theocraticYear - 1}/${theocraticYear}`,
+            })}
           </CardTitle>
         </CardHeader>
         <CardContent>

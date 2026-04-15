@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { Button } from '~/shared/ui/button'
@@ -29,17 +30,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function NewSectionPage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Nouvelle section" subtitle="Créer une nouvelle section sur le tableau d'affichage" />
+      <PageHeader title={m.board_sections_new_title()} subtitle={m.board_sections_new_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">Nom</Label>
-              <Input id="name" name="name" type="text" placeholder="Nom de la section" />
+              <Label htmlFor="name">{m.board_sections_new_name_label()}</Label>
+              <Input id="name" name="name" type="text" placeholder={m.board_sections_new_name_placeholder()} />
             </div>
             <Button type="submit" className="w-fit">
-              Créer la section
+              {m.board_sections_new_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -54,7 +55,7 @@ export async function action({ request }: Route.ActionArgs) {
   const name = String(form.get('name'))
 
   if (name.length < 1) {
-    session.flash('error', 'Vous devez remplir tous les champs du formulaire. Réessayez.')
+    session.flash('error', m.common_empty_fields_error())
     throw redirect('/board/sections/new')
   }
 
@@ -67,7 +68,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     if (section == null) {
-      session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+      session.flash('error', m.common_generic_error())
 
       return redirect('/board', {
         headers: {
@@ -76,7 +77,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    session.flash('success', `Section "${section.name}" créée avec succès.`)
+    session.flash('success', m.board_sections_new_success({ name: section.name }))
 
     return redirect(`/board/sections/${section.id}/edit`, {
       headers: {

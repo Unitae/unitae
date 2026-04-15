@@ -1,5 +1,8 @@
 import type { LinksFunction } from 'react-router'
-import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router'
+import { Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useRouteLoaderData } from 'react-router'
+
+import * as m from '~/paraglide/messages'
+import { getLocale } from '~/paraglide/runtime'
 
 import './tailwind.css'
 
@@ -16,9 +19,16 @@ export const links: LinksFunction = () => [
   },
 ]
 
+export function loader() {
+  return { locale: getLocale() }
+}
+
 export function Layout({ children }: { children: React.ReactNode }) {
+  const data = useRouteLoaderData<typeof loader>('root')
+  const locale = data?.locale ?? 'fr'
+
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -49,10 +59,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
 export function ErrorBoundary() {
   return (
     <div className="flex h-screen flex-col items-center justify-center">
-      <h1 className="m-5 font-bold font-display text-4xl">Oops ! Quelque chose s'est mal passé...</h1>
+      <h1 className="m-5 font-bold font-display text-4xl">{m.error_boundary_title()}</h1>
       <p>
         <Link to="/" className="text-primary underline">
-          Revenir à l'accueil
+          {m.error_boundary_back_home()}
         </Link>
       </p>
     </div>

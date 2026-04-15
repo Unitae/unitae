@@ -1,6 +1,6 @@
 import { Form, redirect } from 'react-router'
-
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
+import * as m from '~/paraglide/messages'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Badge } from '~/shared/ui/badge'
@@ -14,7 +14,7 @@ import { Separator } from '~/shared/ui/separator'
 import type { Route } from './+types/edit-congregation'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Modifier une assemblée locale - Unitae Admin' }]
+  return [{ title: m.platform_admin_edit_congregation_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -55,34 +55,40 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
       <PageHeader title={congregation.name} />
 
       <div className="flex gap-3">
-        <Badge variant="secondary">{congregation.stats.users} utilisateurs</Badge>
-        <Badge variant="secondary">{congregation.stats.territories} territoires</Badge>
-        <Badge variant="secondary">{congregation.stats.buildings} batiments</Badge>
+        <Badge variant="secondary">
+          {m.platform_admin_edit_congregation_users({ count: congregation.stats.users })}
+        </Badge>
+        <Badge variant="secondary">
+          {m.platform_admin_edit_congregation_territories({ count: congregation.stats.territories })}
+        </Badge>
+        <Badge variant="secondary">
+          {m.platform_admin_edit_congregation_buildings({ count: congregation.stats.buildings })}
+        </Badge>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Informations generales</CardTitle>
+          <CardTitle>{m.platform_admin_edit_congregation_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nom</Label>
+              <Label htmlFor="name">{m.platform_admin_edit_congregation_name_label()}</Label>
               <Input id="name" name="name" type="text" defaultValue={congregation.name} required />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug</Label>
+              <Label htmlFor="slug">{m.platform_admin_edit_congregation_slug_label()}</Label>
               <Input id="slug" name="slug" type="text" defaultValue={congregation.slug} required />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="domain">Domaine personnalise</Label>
+              <Label htmlFor="domain">{m.platform_admin_edit_congregation_domain_label()}</Label>
               <Input id="domain" name="domain" type="text" defaultValue={congregation.domain ?? ''} />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="displayName">Nom d'affichage</Label>
+              <Label htmlFor="displayName">{m.platform_admin_edit_congregation_display_name_label()}</Label>
               <Input id="displayName" name="displayName" type="text" defaultValue={congregation.displayName ?? ''} />
             </div>
 
@@ -96,11 +102,11 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
                 defaultChecked={congregation.active}
                 className="size-4 rounded border-input accent-primary"
               />
-              <Label htmlFor="active">Active</Label>
+              <Label htmlFor="active">{m.platform_admin_edit_congregation_active_label()}</Label>
             </div>
 
             <div className="pt-2">
-              <Button type="submit">Enregistrer</Button>
+              <Button type="submit">{m.common_save()}</Button>
             </div>
           </Form>
         </CardContent>

@@ -3,16 +3,18 @@ import { data, Form, redirect } from 'react-router'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { setupFirstUser } from '~/features/authentication/server/setup-first-user.server'
+import * as m from '~/paraglide/messages'
+import { locales } from '~/paraglide/runtime'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
-
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import type { Route } from './+types/setup'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Installation - Unitae' }]
+  return [{ title: `${m.auth_setup_page_title()} - Unitae` }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -49,7 +51,7 @@ export default function SignupPage({ loaderData }: Route.ComponentProps) {
         <div className="h-1 bg-primary" />
         <CardHeader className="items-center space-y-2 text-center">
           <h1 className="font-bold font-display text-2xl tracking-tight">Unitae</h1>
-          <p className="text-muted-foreground text-sm">Création du premier utilisateur pour l'accès à la plateforme.</p>
+          <p className="text-muted-foreground text-sm">{m.auth_setup_subtitle()}</p>
         </CardHeader>
         <CardContent>
           {error && (
@@ -59,22 +61,38 @@ export default function SignupPage({ loaderData }: Route.ComponentProps) {
           )}
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{m.auth_setup_email_label()}</Label>
               <Input id="email" name="email" type="email" autoFocus={true} autoComplete="email" required />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="locale">{m.auth_setup_locale_label()}</Label>
+              <Select name="locale" defaultValue="fr">
+                <SelectTrigger id="locale">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {locales.map(locale => (
+                    <SelectItem key={locale} value={locale}>
+                      {locale === 'fr' ? m.common_locale_fr() : m.common_locale_en()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="password">{m.auth_setup_password_label()}</Label>
               <Input id="password" name="password" type="password" autoComplete="new-password" />
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="repeat-password">Répéter le mot de passe</Label>
+              <Label htmlFor="repeat-password">{m.auth_setup_confirm_password_label()}</Label>
               <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" />
             </div>
 
             <Button type="submit" className="mt-4 w-full">
-              Créer l'utilisateur
+              {m.auth_setup_submit()}
             </Button>
           </Form>
         </CardContent>
@@ -87,11 +105,12 @@ export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
   const form = await request.formData()
   const username = form.get('email')
+  const locale = String(form.get('locale') ?? 'fr') as (typeof locales)[number]
   const password = form.get('password')
   const secondPassword = form.get('repeat-password')
 
   if (password !== secondPassword) {
-    session.flash('error', 'Les mots de passe ne sont pas les mêmes')
+    session.flash('error', m.auth_setup_password_mismatch_error())
     return redirect('/setup', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -100,7 +119,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   if (String(username).length < 5 || !String(username).includes('@')) {
-    session.flash('error', 'Utilisez une adresse email valide')
+    session.flash('error', m.auth_setup_email_invalid_error())
     return redirect('/setup', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -108,10 +127,10 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const userId = await setupFirstUser(String(username), String(password), 'Ma Congrégation', 'default')
+  const userId = await setupFirstUser(String(username), String(password), 'Ma Congrégation', 'default', locale)
 
   if (userId == null) {
-    session.flash('error', `Quelque chose s'est mal passé. Réessayez.`)
+    session.flash('error', m.auth_setup_generic_error())
 
     return redirect('/setup', {
       headers: {

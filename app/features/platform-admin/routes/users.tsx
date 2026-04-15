@@ -1,4 +1,5 @@
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
+import * as m from '~/paraglide/messages'
 import { unscopedDb } from '~/shared/libs/db.server'
 import { Badge } from '~/shared/ui/badge'
 
@@ -8,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/users'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Utilisateurs - Unitae Admin' }]
+  return [{ title: m.platform_admin_users_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -41,17 +42,20 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Utilisateurs" subtitle={`${users.length} utilisateur(s)`} />
+      <PageHeader
+        title={m.platform_admin_users_title()}
+        subtitle={m.platform_admin_users_subtitle({ count: users.length })}
+      />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Assemblée locale</TableHead>
-              <TableHead className="text-center">Statut</TableHead>
-              <TableHead className="text-center">Admin plateforme</TableHead>
+              <TableHead>{m.platform_admin_users_col_name()}</TableHead>
+              <TableHead>{m.platform_admin_users_col_email()}</TableHead>
+              <TableHead>{m.platform_admin_users_col_congregation()}</TableHead>
+              <TableHead className="text-center">{m.platform_admin_users_col_status()}</TableHead>
+              <TableHead className="text-center">{m.platform_admin_users_col_platform_admin()}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -63,10 +67,12 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
                 <TableCell>{u.congregationName}</TableCell>
                 <TableCell className="text-center">
-                  <Badge variant={u.active ? 'default' : 'destructive'}>{u.active ? 'Actif' : 'Inactif'}</Badge>
+                  <Badge variant={u.active ? 'default' : 'destructive'}>
+                    {u.active ? m.platform_admin_users_status_active() : m.platform_admin_users_status_inactive()}
+                  </Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  {u.platformAdmin && <Badge variant="secondary">Admin</Badge>}
+                  {u.platformAdmin && <Badge variant="secondary">{m.platform_admin_users_badge_admin()}</Badge>}
                 </TableCell>
               </TableRow>
             ))}

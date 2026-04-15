@@ -8,6 +8,7 @@ import {
   getTemplateById,
   isTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -21,7 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/view'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Modèle de programme - Unitae' }]
+  return [{ title: m.settings_template_view_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -58,14 +59,14 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     const copy = await duplicateTemplate(db, templateId, congregationId)
     if (copy) {
-      session.flash('success', `Modèle dupliqué : « ${copy.name} ».`)
+      session.flash('success', m.settings_template_view_duplicate_success({ name: copy.name }))
       logger.info(`Duplicated template ${templateId} → ${copy.id}. User ID: ${currentUser.id}.`)
       return redirect(`/settings/congregation/templates/${copy.id}`, {
         headers: { 'Set-Cookie': await commitSession(session) },
       })
     }
 
-    session.flash('error', 'Impossible de dupliquer ce modèle.')
+    session.flash('error', m.settings_template_view_duplicate_error())
     return redirect(`/settings/congregation/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
@@ -79,26 +80,26 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={template.name}
-        subtitle={template.description || 'Modèle de programme'}
+        subtitle={template.description || m.settings_template_view_default_subtitle()}
         actions={
           canEdit && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link to="./responsible">
                   <UserCog className="size-4" />
-                  Responsable
+                  {m.settings_template_view_responsible_button()}
                 </Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link to="./edit">
                   <Pencil className="size-4" />
-                  Modifier
+                  {m.settings_template_view_edit_button()}
                 </Link>
               </Button>
               <Form method="post">
                 <Button variant="outline" size="sm" type="submit">
                   <Copy className="size-4" />
-                  Dupliquer
+                  {m.settings_template_view_duplicate_button()}
                 </Button>
               </Form>
             </div>
@@ -113,7 +114,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
             {dayLabel(template.weekDay)}
           </Badge>
         )}
-        {template.weekDay == null && <Badge variant="secondary">Évènement ponctuel</Badge>}
+        {template.weekDay == null && <Badge variant="secondary">{m.settings_template_view_one_time_event()}</Badge>}
         {template.responsibles[0] && (
           <Badge variant="outline">
             <UserCog className="mr-1 size-3" />
@@ -124,16 +125,16 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Programme spirituel</CardTitle>
+          <CardTitle className="text-base">{m.settings_template_view_spiritual_program()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-12">#</TableHead>
-                <TableHead>Partie</TableHead>
-                <TableHead>Section</TableHead>
-                <TableHead className="w-24">Durée</TableHead>
+                <TableHead>{m.settings_template_view_part_column()}</TableHead>
+                <TableHead>{m.settings_template_view_section_column()}</TableHead>
+                <TableHead className="w-24">{m.settings_template_view_duration_column()}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -144,7 +145,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
                     {part.name}
                     {part.isVariable && (
                       <Badge variant="secondary" className="ml-2 text-xs">
-                        Variable
+                        {m.settings_template_view_variable()}
                       </Badge>
                     )}
                   </TableCell>
@@ -153,10 +154,10 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
                     {part.durationMin ? (
                       <span className="flex items-center gap-1 text-muted-foreground text-sm">
                         <Clock className="size-3" />
-                        {part.durationMin} min
+                        {m.settings_template_view_duration_min({ minutes: String(part.durationMin) })}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Variable</span>
+                      <span className="text-muted-foreground text-sm">{m.settings_template_view_variable()}</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -168,7 +169,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Rôles de service</CardTitle>
+          <CardTitle className="text-base">{m.settings_template_view_service_roles_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-2">

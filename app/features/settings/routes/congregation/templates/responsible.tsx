@@ -6,6 +6,7 @@ import {
   removeTemplateResponsible,
   setTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -19,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import type { Route } from './+types/responsible'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Responsable du programme - Unitae' }]
+  return [{ title: m.settings_template_responsible_meta_title() }]
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -59,13 +60,13 @@ export async function action({ request, params }: Route.ActionArgs) {
   return withScope(congregationId, async db => {
     if (userId) {
       await setTemplateResponsible(db, templateId, userId, congregationId)
-      session.flash('success', 'Responsable assigné.')
+      session.flash('success', m.settings_template_responsible_assigned_success())
       logger.info(
         `Set template responsible. User ID: ${currentUser.id}. Template: ${templateId}. Responsible: ${userId}.`,
       )
     } else {
       await removeTemplateResponsible(db, templateId, congregationId)
-      session.flash('success', 'Responsable retiré.')
+      session.flash('success', m.settings_template_responsible_removed_success())
       logger.info(`Removed template responsible. User ID: ${currentUser.id}. Template: ${templateId}.`)
     }
 
@@ -81,24 +82,24 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={`Responsable : ${template.name}`}
-        subtitle="Désignez un frère responsable de ce programme. Il pourra gérer les évènements et les attributions sans avoir le rôle de gestionnaire de programmes."
+        title={m.settings_template_responsible_title({ name: template.name })}
+        subtitle={m.settings_template_responsible_subtitle()}
       />
 
       <Card className="max-w-md">
         <CardHeader>
-          <CardTitle className="text-base">Choisir un responsable</CardTitle>
+          <CardTitle className="text-base">{m.settings_template_responsible_choose_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="userId">Responsable</Label>
+              <Label htmlFor="userId">{m.settings_template_responsible_label()}</Label>
               <Select name="userId" defaultValue={currentResponsibleId?.toString() ?? 'none'}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Aucun responsable" />
+                  <SelectValue placeholder={m.settings_template_responsible_none()} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Aucun responsable</SelectItem>
+                  <SelectItem value="none">{m.settings_template_responsible_none()}</SelectItem>
                   {users.map(user => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.firstname} {user.lastname}
@@ -108,7 +109,7 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
               </Select>
             </div>
             <Button type="submit" className="w-fit">
-              Enregistrer
+              {m.common_save()}
             </Button>
           </Form>
         </CardContent>

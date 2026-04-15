@@ -1,6 +1,7 @@
 import { FileText } from 'lucide-react'
 import { Role } from '~/features/authorization/model/roles.type'
 import { DocumentCard } from '~/features/board/ui/DocumentCard'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -110,11 +111,7 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
   if (nonEmptyFolders.length < 1) {
     return (
       <div className="flex flex-col gap-6">
-        <EmptyState
-          icon={FileText}
-          title="Il n'y a aucun document pour le moment !"
-          description="Lorsque des documents seront ajoutés, ils apparaîtront ici."
-        />
+        <EmptyState icon={FileText} title={m.board_empty_title()} description={m.board_empty_description()} />
       </div>
     )
   }

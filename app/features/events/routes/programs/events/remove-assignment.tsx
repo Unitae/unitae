@@ -3,6 +3,7 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -38,7 +39,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       logger.info(`Unassigned service role. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
     }
 
-    session.flash('success', 'Attribution retirée.')
+    session.flash('success', m.programs_remove_assignment_success())
 
     return redirect(`/congregation/programs/events/${eventId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },

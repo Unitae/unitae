@@ -1,10 +1,5 @@
-/**
- * By default, Remix will handle generating the HTTP Response for you.
- * You are free to delete this file if you'd like to, but if you ever want it revealed again, you can run `npx remix reveal` ✨
- * For more information, see https://remix.run/file-conventions/entry.server
- */
-
 import '~/shared/libs/env.server'
+import { AsyncLocalStorage } from 'node:async_hooks'
 import { PassThrough } from 'node:stream'
 
 import { createReadableStreamFromReadable } from '@react-router/node'
@@ -12,23 +7,38 @@ import { isbot } from 'isbot'
 import { renderToPipeableStream } from 'react-dom/server'
 import type { AppLoadContext, EntryContext } from 'react-router'
 import { ServerRouter } from 'react-router'
+
+import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/paraglide/runtime'
+import { resolveLocaleFromRequest } from '~/shared/libs/locale.server'
 import logger from '~/shared/libs/logger.server'
 
 const ABORT_DELAY = 5_000
 
-export default function handleRequest(
+const localeStore = new AsyncLocalStorage<Locale>()
+
+overwriteGetLocale(() => {
+  return localeStore.getStore() ?? baseLocale
+})
+
+export default async function handleRequest(
   request: Request,
   responseStatusCode: number,
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
-  // This is ignored so we can keep it in the template for visibility.  Feel
-  // free to delete this parameter in your app if you're not using it!
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _loadContext: AppLoadContext,
 ) {
-  return isbot(request.headers.get('user-agent') || '')
-    ? handleBotRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
-    : handleBrowserRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
+  const resolvedLocale = await resolveLocaleFromRequest(request)
+  const locale = isLocale(resolvedLocale) ? resolvedLocale : baseLocale
+
+  // Set the PARAGLIDE_LOCALE cookie via HTTP header so the client-side
+  // cookie strategy can read it during hydration (before any JS executes)
+  responseHeaders.append('Set-Cookie', `PARAGLIDE_LOCALE=${locale}; Path=/; Max-Age=34560000; SameSite=Lax`)
+
+  return localeStore.run(locale, () => {
+    return isbot(request.headers.get('user-agent') || '')
+      ? handleBotRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
+      : handleBrowserRequest(request, responseStatusCode, responseHeaders, reactRouterContext)
+  })
 }
 
 function handleBotRequest(
@@ -37,7 +47,7 @@ function handleBotRequest(
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
 ) {
-  return new Promise((resolve, reject) => {
+  return new Promise<Response>((resolve, reject) => {
     let shellRendered = false
     const { pipe, abort } = renderToPipeableStream(<ServerRouter context={reactRouterContext} url={request.url} />, {
       onAllReady() {
@@ -61,9 +71,6 @@ function handleBotRequest(
       },
       onError(error: unknown) {
         responseStatusCode = 500
-        // Log streaming rendering errors from inside the shell.  Don't log
-        // errors encountered during initial shell rendering since they'll
-        // reject and get logged in handleDocumentRequest.
         if (shellRendered) {
           logger.error(error)
         }
@@ -80,7 +87,7 @@ function handleBrowserRequest(
   responseHeaders: Headers,
   reactRouterContext: EntryContext,
 ) {
-  return new Promise((resolve, reject) => {
+  return new Promise<Response>((resolve, reject) => {
     let shellRendered = false
     const { pipe, abort } = renderToPipeableStream(<ServerRouter context={reactRouterContext} url={request.url} />, {
       onShellReady() {
@@ -104,9 +111,6 @@ function handleBrowserRequest(
       },
       onError(error: unknown) {
         responseStatusCode = 500
-        // Log streaming rendering errors from inside the shell.  Don't log
-        // errors encountered during initial shell rendering since they'll
-        // reject and get logged in handleDocumentRequest.
         if (shellRendered) {
           logger.error(error)
         }

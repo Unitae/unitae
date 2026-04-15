@@ -1,3 +1,5 @@
+import * as m from '~/paraglide/messages'
+
 export enum EntranceKind {
   Residential = 'residential',
   Commerce = 'commerce',
@@ -7,10 +9,12 @@ export enum EntranceKind {
 }
 
 // biome-ignore lint/style/useNamingConvention: labels map keyed by enum
-export const entranceKindLabels: { [key in EntranceKind]: string } = {
-  [EntranceKind.Residential]: 'Résidentiel',
-  [EntranceKind.Commerce]: 'Commerce',
-  [EntranceKind.Hotel]: 'Hôtel',
-  [EntranceKind.Laundromat]: 'Laverie',
-  [EntranceKind.Campus]: 'Résidence universitaire',
+export function entranceKindLabels(): { [key in EntranceKind]: string } {
+  return {
+    [EntranceKind.Residential]: m.entrance_kind_residential(),
+    [EntranceKind.Commerce]: m.entrance_kind_commerce(),
+    [EntranceKind.Hotel]: m.entrance_kind_hotel(),
+    [EntranceKind.Laundromat]: m.entrance_kind_laundromat(),
+    [EntranceKind.Campus]: m.entrance_kind_campus(),
+  }
 }

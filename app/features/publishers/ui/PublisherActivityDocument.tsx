@@ -1,5 +1,6 @@
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import type { PublisherActivity, User } from '~/database/generated/client'
+import * as m from '~/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {
@@ -53,14 +54,14 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
   return (
     <Document>
       <Page size={'A4'} orientation="portrait" style={{ padding: 20 }}>
-        <Text style={styles.title}>ACTIVITÉ DU PROCLAMATEUR (DOSSIER DE L’ASSEMBLÉE)</Text>
+        <Text style={styles.title}>{m.activity_pdf_title()}</Text>
         <Text style={[styles.text]}>
-          <Text style={styles.label}>Nom :</Text> {publisher.firstname} {publisher.lastname}
+          <Text style={styles.label}>{m.activity_pdf_name_label()}</Text> {publisher.firstname} {publisher.lastname}
         </Text>
         <View style={styles.containerCols}>
           <View style={[styles.column, { flexGrow: 3, flexBasis: '50%' }]}>
             <Text style={[styles.text]}>
-              <Text style={styles.label}>Date de naissance :</Text>{' '}
+              <Text style={styles.label}>{m.activity_pdf_birth_date_label()}</Text>{' '}
               {publisher.birthDate?.toLocaleDateString('fr-FR', {
                 year: 'numeric',
                 month: '2-digit',
@@ -68,7 +69,7 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
               })}
             </Text>
             <Text style={[styles.text]}>
-              <Text style={styles.label}>Date de baptême :</Text>{' '}
+              <Text style={styles.label}>{m.activity_pdf_baptism_date_label()}</Text>{' '}
               {publisher.baptismDate?.toLocaleDateString('fr-FR', {
                 year: 'numeric',
                 month: '2-digit',
@@ -79,76 +80,76 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
           <View style={[styles.column, { flexGrow: 1 }]}>
             <View style={styles.containerLabel}>
               <Checkbox checked={publisher.isMale === true} />
-              <Text style={styles.label}>Homme</Text>
+              <Text style={styles.label}>{m.activity_pdf_male()}</Text>
             </View>
             <View style={styles.containerLabel}>
               <Checkbox checked={publisher.isAnointed === false} />
-              <Text style={styles.label}>Autre brebis</Text>
+              <Text style={styles.label}>{m.activity_pdf_other_sheep()}</Text>
             </View>
           </View>
           <View style={[styles.column, { flexGrow: 1 }]}>
             <View style={styles.containerLabel}>
               <Checkbox checked={publisher.isMale === false} />
-              <Text style={styles.label}>Femme</Text>
+              <Text style={styles.label}>{m.activity_pdf_female()}</Text>
             </View>
             <View style={styles.containerLabel}>
               <Checkbox checked={publisher.isAnointed === true} />
-              <Text style={styles.label}>Oint</Text>
+              <Text style={styles.label}>{m.activity_pdf_anointed()}</Text>
             </View>
           </View>
         </View>
         <View style={[styles.checkboxLine, { marginTop: 5 }]}>
           <View style={styles.containerLabel}>
             <Checkbox checked={publisher.isHelder === true} />
-            <Text style={styles.label}>Ancien</Text>
+            <Text style={styles.label}>{m.activity_pdf_elder()}</Text>
           </View>
           <View style={styles.containerLabel}>
             <Checkbox checked={publisher.isServant === true} />
-            <Text style={styles.label}>Assistant</Text>
+            <Text style={styles.label}>{m.activity_pdf_servant()}</Text>
           </View>
           <View style={styles.containerLabel}>
             <Checkbox checked={publisher.type === PublisherType.PionnierPermanant} />
-            <Text style={styles.label}>Pionnier permanent</Text>
+            <Text style={styles.label}>{m.activity_pdf_permanent_pioneer()}</Text>
           </View>
           <View style={styles.containerLabel}>
             <Checkbox checked={publisher.type === PublisherType.PionnierSpecial} />
-            <Text style={styles.label}>Pionnier spécial</Text>
+            <Text style={styles.label}>{m.activity_pdf_special_pioneer()}</Text>
           </View>
         </View>
         <View style={styles.checkboxLine}>
           <View style={styles.containerLabel}>
             <Checkbox checked={publisher.type === PublisherType.Missionnaire} />
-            <Text style={styles.label}>Missionnaire affecté dans le territoire</Text>
+            <Text style={styles.label}>{m.activity_pdf_missionary()}</Text>
           </View>
         </View>
 
         <Table>
           <TableRow>
             <TableHeaderCell>
-              <Text style={styles.label}>Année</Text>
-              <Text style={styles.label}>de service</Text>
+              <Text style={styles.label}>{m.activity_pdf_service_year()}</Text>
+              <Text style={styles.label}>{m.activity_pdf_service_year_of()}</Text>
               <Text style={{ fontSize: 12 }}>
                 {year} - {year + 1}
               </Text>
             </TableHeaderCell>
             <TableHeaderCell width={'15%'}>
-              <Text style={styles.label}>A participé</Text>
-              <Text style={styles.label}>à la prédication</Text>
+              <Text style={styles.label}>{m.activity_pdf_participated()}</Text>
+              <Text style={styles.label}>{m.activity_pdf_participated_preaching()}</Text>
             </TableHeaderCell>
             <TableHeaderCell width={'10%'}>
-              <Text style={styles.label}>Cours</Text>
-              <Text style={styles.label}>bibliques</Text>
+              <Text style={styles.label}>{m.activity_pdf_bible_studies()}</Text>
+              <Text style={styles.label}>{m.activity_pdf_bible_studies_label()}</Text>
             </TableHeaderCell>
             <TableHeaderCell width={'10%'}>
-              <Text style={styles.label}>Pionnier</Text>
-              <Text style={styles.label}>auxiliaire</Text>
+              <Text style={styles.label}>{m.activity_pdf_auxiliary_pioneer()}</Text>
+              <Text style={styles.label}>{m.activity_pdf_auxiliary_pioneer_label()}</Text>
             </TableHeaderCell>
             <TableHeaderCell width={'10%'}>
-              <Text style={styles.label}>Heures</Text>
-              <Text style={{ fontSize: 9 }}>(si pionnier ou missionnaire)</Text>
+              <Text style={styles.label}>{m.activity_pdf_hours()}</Text>
+              <Text style={{ fontSize: 9 }}>{m.activity_pdf_hours_note()}</Text>
             </TableHeaderCell>
             <TableHeaderCell width={'30%'} borderRight={true}>
-              <Text style={styles.label}>Observations</Text>
+              <Text style={styles.label}>{m.activity_pdf_observations()}</Text>
             </TableHeaderCell>
           </TableRow>
 
@@ -188,7 +189,7 @@ export function PublisherActivityDocument({ publisher }: PublisherActivityDocume
             <View style={{ width: '15%', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }} />
             <View style={{ width: '10%', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }} />
             <View style={{ width: '10%', flexGrow: 1, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={styles.label}>Total</Text>
+              <Text style={styles.label}>{m.activity_pdf_total()}</Text>
             </View>
             <TableCell width={'10%'}>
               <Text style={[styles.text, { fontSize: 10 }]}>{totalHours}</Text>

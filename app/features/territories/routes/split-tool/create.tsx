@@ -3,6 +3,7 @@ import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { LimitService } from '~/shared/libs/limits.server'
@@ -66,7 +67,7 @@ export async function action({ request }: Route.ActionArgs) {
       },
     })
 
-    session.flash('success', `Le territoire ${number} a été créé avec succès.`)
+    session.flash('success', m.split_tool_create_flash_success({ number }))
 
     const previousPage = request.headers.get('referer')
     return redirect(previousPage ?? '/territories/buildings/split-territories', {

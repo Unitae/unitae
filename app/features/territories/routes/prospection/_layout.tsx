@@ -6,6 +6,7 @@ import { getSetting } from '~/features/settings/server/settings'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -16,7 +17,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Propection - Unitae' }]
+  return [{ title: m.prospection_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -141,13 +142,13 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-7">
       <AlertMessages messages={messages} />
       <PageHeader
-        title="Prospection"
-        subtitle="Liste des bâtiments du territoire de l'assemblée locale"
+        title={m.prospection_title()}
+        subtitle={m.prospection_subtitle()}
         actions={
           <>
             {canManageTerritories && (
               <Button variant="outline" size="icon" asChild>
-                <Link to="../buildings/split-territories" title="Accéder à l'outil de découpage des territoires">
+                <Link to="../buildings/split-territories" title={m.prospection_split_tool_title()}>
                   <MapIcon className="size-4" />
                 </Link>
               </Button>
@@ -158,7 +159,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
                   type="submit"
                   variant="outline"
                   size="icon"
-                  title="Mettre à jour les données à partir du cadastre"
+                  title={m.prospection_sync_title()}
                   disabled={!openDataAvailable}
                 >
                   <RefreshCw className={`size-4 ${openDataAvailable ? 'hover:animate-spin' : ''}`} />
@@ -167,7 +168,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
             )}
             {canManageTerritories && (
               <Button asChild>
-                <Link to="../building/new">Nouveau batiment</Link>
+                <Link to="../building/new">{m.prospection_new_building_button()}</Link>
               </Button>
             )}
           </>
@@ -182,12 +183,12 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title="Tous les batiments actifs et donc disponibles pour la prédication."
+          title={m.prospection_active_buildings_title()}
           caseSensitive
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.active.toLocaleString()}</span>
-          <span className="text-sm">batiments actifs</span>
+          <span className="text-sm">{m.prospection_active_buildings()}</span>
         </NavLink>
         <NavLink
           to={'./all'}
@@ -196,11 +197,11 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title="Tous les batiments enregistrés dans la base de données."
+          title={m.prospection_all_buildings_title()}
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.total.toLocaleString()}</span>
-          <span className="text-sm">batiments enregistrés</span>
+          <span className="text-sm">{m.prospection_all_buildings()}</span>
         </NavLink>
         <NavLink
           to={'./need-check'}
@@ -209,11 +210,11 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
               ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
               : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
           }
-          title={`Batiments qui ont été prospecté avant le ${staleDate.toLocaleDateString()}. À prospecter de nouveau.`}
+          title={m.prospection_need_check_title({ date: staleDate.toLocaleDateString() })}
           end
         >
           <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.stale.toLocaleString()}</span>
-          <span className="text-sm">batiments à vérifier</span>
+          <span className="text-sm">{m.prospection_need_check()}</span>
         </NavLink>
         {openDataAvailable && (
           <NavLink
@@ -223,11 +224,11 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
                 ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
                 : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
             }
-            title="Batiments de la Base d'Adresses Nationale Ouverte qui n'ont jamais été prospecté."
+            title={m.prospection_new_buildings_title()}
             end
           >
             <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.created.toLocaleString()}</span>
-            <span className="text-sm">nouveaux batiments</span>
+            <span className="text-sm">{m.prospection_new_buildings()}</span>
           </NavLink>
         )}
         {openDataAvailable && canManageTerritories && (
@@ -238,11 +239,11 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
                 ? 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md bg-background p-4 text-center shadow-sm'
                 : 'flex shrink grow flex-col items-center justify-center gap-1 rounded-md p-4 text-center text-muted-foreground hover:text-foreground'
             }
-            title="Batiments absents de la Base d'Adresses Nationale Ouverte."
+            title={m.prospection_destroyed_buildings_title()}
             end
           >
             <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.removed.toLocaleString()}</span>
-            <span className="text-sm">batiments détruits</span>
+            <span className="text-sm">{m.prospection_destroyed_buildings()}</span>
           </NavLink>
         )}
       </div>

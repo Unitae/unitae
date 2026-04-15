@@ -10,6 +10,7 @@ import { findTerritoriesWithDetailsPaginated } from '~/features/territories/serv
 import { computeFilters } from '~/features/territories/server/territory-filters'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { getOptionalEnv } from '~/shared/libs/env.server'
@@ -25,34 +26,36 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/list'
 
 const territoryTypeLabels: Record<string, string> = {
-  [TerritoryKind.Classical]: 'Porte à porte',
-  [TerritoryKind.Commerces]: 'Commerces',
-  [TerritoryKind.Phone]: 'Téléphones',
-  [TerritoryKind.Hotel]: 'Hôtels',
-  [TerritoryKind.Univ]: 'Universités',
+  [TerritoryKind.Classical]: m.territories_type_classical(),
+  [TerritoryKind.Commerces]: m.territories_type_commerces(),
+  [TerritoryKind.Phone]: m.territories_type_phone(),
+  [TerritoryKind.Hotel]: m.territories_type_hotel(),
+  [TerritoryKind.Univ]: m.territories_type_university(),
 }
 
 function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
   const count = entrances.length
   if (type === TerritoryKind.Phone) {
     const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
-    return `${phones} tél.`
+    return m.territories_content_phones({ count: phones })
   }
   if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
     const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
-    return `${homes} foyer${homes > 1 ? 's' : ''}`
+    return homes > 1
+      ? m.territories_content_homes_other({ count: homes })
+      : m.territories_content_homes_one({ count: homes })
   }
   if (type === TerritoryKind.Commerces) {
-    return `${count} commerce${count > 1 ? 's' : ''}`
+    return count > 1 ? m.territories_content_commerces_other({ count }) : m.territories_content_commerces_one({ count })
   }
   if (type === TerritoryKind.Hotel) {
-    return `${count} hôtel${count > 1 ? 's' : ''}`
+    return count > 1 ? m.territories_content_hotels_other({ count }) : m.territories_content_hotels_one({ count })
   }
-  return `${count} entrée${count > 1 ? 's' : ''}`
+  return count > 1 ? m.territories_content_entrances_other({ count }) : m.territories_content_entrances_one({ count })
 }
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Tous les territoires - Unitae' }]
+  return [{ title: m.territories_list_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -123,12 +126,12 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
         <AlertMessages messages={messages} />
 
         <PageHeader
-          title="Territoires"
-          subtitle="Liste des territoires de l'assemblée locale"
+          title={m.territories_title()}
+          subtitle={m.territories_subtitle()}
           actions={
             canManageTerritories && (
               <Button asChild>
-                <Link to="./territory/new">Nouveau territoire</Link>
+                <Link to="./territory/new">{m.territories_new_button()}</Link>
               </Button>
             )
           }
@@ -138,8 +141,8 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
         <EmptyState
           icon={MapIcon}
-          title="Il n'y a aucun territoire pour le moment !"
-          description="Pour ajouter des territoires, utilisez le bouton &laquo; Nouveau territoire &raquo; ou visitez le module de découpage des territoires sur la page de prospection."
+          title={m.territories_empty_title()}
+          description={m.territories_empty_description()}
         />
       </div>
     )
@@ -149,12 +152,12 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
       <PageHeader
-        title="Territoires"
-        subtitle="Liste des territoires de l'assemblée locale"
+        title={m.territories_title()}
+        subtitle={m.territories_subtitle()}
         actions={
           canManageTerritories && (
             <Button asChild>
-              <Link to="./territory/new">Nouveau territoire</Link>
+              <Link to="./territory/new">{m.territories_new_button()}</Link>
             </Button>
           )
         }
@@ -167,10 +170,10 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nº</TableHead>
-                <TableHead className="text-center">Type</TableHead>
-                <TableHead className="text-center">Contenu</TableHead>
-                <TableHead>Attribué à</TableHead>
+                <TableHead>{m.territories_table_number()}</TableHead>
+                <TableHead className="text-center">{m.territories_table_type()}</TableHead>
+                <TableHead className="text-center">{m.territories_table_content()}</TableHead>
+                <TableHead>{m.territories_table_assigned_to()}</TableHead>
                 <TableHead className="w-0">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -198,11 +201,15 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
                           {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
                           {' — '}
-                          jusqu'au{' '}
-                          {attribution.lateDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}
+                          {m.territories_assigned_until({
+                            date: attribution.lateDate.toLocaleDateString('fr-FR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                            }),
+                          })}
                         </span>
                       ) : (
-                        <span className="text-muted-foreground">Disponible</span>
+                        <span className="text-muted-foreground">{m.territories_available()}</span>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -226,7 +233,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         {canManageTerritories && (
                           <>
                             <Button variant="ghost" size="icon" asChild>
-                              <Link to={`./territory/${territory.id}/edit`} title="Modifier le territoire">
+                              <Link to={`./territory/${territory.id}/edit`} title={m.territories_edit_title_attr()}>
                                 <Pencil className="size-4" />
                               </Link>
                             </Button>
@@ -236,10 +243,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                               asChild
                               className="text-destructive hover:text-destructive max-sm:hidden"
                             >
-                              <Link
-                                to={`./territory/${territory.id}/delete`}
-                                title="Supprimer complètement le territoire"
-                              >
+                              <Link to={`./territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
                                 <Trash2 className="size-4" />
                               </Link>
                             </Button>

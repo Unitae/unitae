@@ -4,6 +4,7 @@ import { PrismaClient } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
+import * as m from '~/paraglide/messages'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
@@ -160,17 +161,19 @@ async function main() {
     },
   })
 
+  const seedLocale = 'fr'
+
   await prisma.eventKind.upsert({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       key_congregationId: { key: EventKind.Off, congregationId: defaultCongregation.id },
     },
     update: {
-      name: 'Absence',
+      name: m.seed_event_kind_absence({}, { locale: seedLocale }),
       color: '#cfcfcf',
     },
     create: {
-      name: 'Absence',
+      name: m.seed_event_kind_absence({}, { locale: seedLocale }),
       color: '#cfcfcf',
       key: EventKind.Off,
       congregationId: defaultCongregation.id,
@@ -180,7 +183,7 @@ async function main() {
   // Seed default programme templates for all congregations
   const allCongregations = await prisma.congregation.findMany({ select: { id: true } })
   for (const congregation of allCongregations) {
-    await seedDefaultTemplates(prisma, congregation.id)
+    await seedDefaultTemplates(prisma, congregation.id, seedLocale)
   }
 }
 

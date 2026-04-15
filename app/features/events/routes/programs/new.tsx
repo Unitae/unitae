@@ -8,6 +8,7 @@ import {
   generateEventsFromTemplate,
 } from '~/features/events/server/programme-generation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -23,7 +24,7 @@ import type { Route } from './+types/new'
 const NO_TEMPLATE = 'none'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Nouvel évènement - Unitae' }]
+  return [{ title: m.programs_new_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -54,8 +55,8 @@ export async function action({ request }: Route.ActionArgs) {
       session.flash(
         'success',
         events.length > 0
-          ? `${events.length} évènement(s) généré(s) pour les 2 prochains mois.`
-          : 'Aucun nouvel évènement à générer. Les évènements existent déjà pour cette période.',
+          ? m.programs_new_generated_success({ count: events.length })
+          : m.programs_new_generated_none(),
       )
     }
 
@@ -66,9 +67,9 @@ export async function action({ request }: Route.ActionArgs) {
       logger.info(`Created single event from template ${templateId}. User ID: ${currentUser.id}.`)
 
       if (event) {
-        session.flash('success', 'Évènement créé avec succès.')
+        session.flash('success', m.programs_new_created_success())
       } else {
-        session.flash('error', 'Un évènement existe déjà pour ce modèle à cette date.')
+        session.flash('error', m.programs_new_already_exists())
       }
     }
 
@@ -77,7 +78,7 @@ export async function action({ request }: Route.ActionArgs) {
       const date = new Date(String(form.get('date')))
 
       if (!name) {
-        session.flash('error', "Le nom de l'évènement est requis.")
+        session.flash('error', m.programs_new_name_required())
         return redirect('/congregation/programs/new', {
           headers: { 'Set-Cookie': await commitSession(session) },
         })
@@ -99,7 +100,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
 
       logger.info(`Created freeform event "${name}". User ID: ${currentUser.id}.`)
-      session.flash('success', 'Évènement créé avec succès.')
+      session.flash('success', m.programs_new_created_success())
     }
 
     return redirect('/congregation/programs', {
@@ -119,24 +120,18 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Nouvel évènement"
-        subtitle="Créez un évènement libre ou générez-en à partir d'un modèle de programme."
-      />
+      <PageHeader title={m.programs_new_page_title()} subtitle={m.programs_new_page_subtitle()} />
 
       <Card className="max-w-lg">
         <CardHeader>
-          <CardTitle className="text-base">Configuration</CardTitle>
+          <CardTitle className="text-base">{m.programs_new_config_title()}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="templateId">Modèle de programme (facultatif)</Label>
+              <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
               {templates.length === 0 && (
-                <p className="text-muted-foreground text-xs">
-                  Aucun modèle configuré. Vous pouvez créer un évènement libre ou configurer des modèles dans les
-                  réglages.
-                </p>
+                <p className="text-muted-foreground text-xs">{m.programs_new_no_templates_hint()}</p>
               )}
               <Select
                 name={isNoTemplate ? undefined : 'templateId'}
@@ -144,10 +139,10 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
                 onValueChange={setSelectedValue}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner un modèle" />
+                  <SelectValue placeholder={m.programs_new_select_template()} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={NO_TEMPLATE}>Aucun modèle (évènement libre)</SelectItem>
+                  <SelectItem value={NO_TEMPLATE}>{m.programs_new_no_template_option()}</SelectItem>
                   {templates.map(template => (
                     <SelectItem key={template.id} value={template.id.toString()}>
                       {template.name}
@@ -162,11 +157,11 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
               <>
                 <input type="hidden" name="mode" value="freeform" />
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="name">Nom de l'évènement</Label>
-                  <Input id="name" name="name" placeholder="Ex : Assemblée spéciale" required />
+                  <Label htmlFor="name">{m.programs_new_event_name_label()}</Label>
+                  <Input id="name" name="name" placeholder={m.programs_new_event_name_placeholder()} required />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="date">Date</Label>
+                  <Label htmlFor="date">{m.programs_new_date_label()}</Label>
                   <Input id="date" name="date" type="date" min={new Date().toISOString().split('T')[0]} required />
                 </div>
               </>
@@ -176,9 +171,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
               <>
                 <input type="hidden" name="mode" value="recurring" />
                 <p className="text-muted-foreground text-sm">
-                  Les évènements pour les 2 prochains mois seront générés automatiquement chaque{' '}
-                  <strong>{dayLabel(selectedTemplate.weekDay ?? 0).toLowerCase()}</strong>. Les évènements existants ne
-                  seront pas dupliqués.
+                  {m.programs_new_recurring_hint({ day: dayLabel(selectedTemplate.weekDay ?? 0).toLowerCase() })}
                 </p>
               </>
             )}
@@ -187,7 +180,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
               <>
                 <input type="hidden" name="mode" value="single" />
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="date">Date de l'évènement</Label>
+                  <Label htmlFor="date">{m.programs_new_event_date_label()}</Label>
                   <Input id="date" name="date" type="date" min={new Date().toISOString().split('T')[0]} required />
                 </div>
               </>
@@ -195,9 +188,9 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
             {showForm && (
               <Button type="submit" className="w-fit">
-                {isNoTemplate && "Créer l'évènement"}
-                {selectedTemplate && isRecurring && 'Générer les évènements'}
-                {selectedTemplate && !isRecurring && "Créer l'évènement"}
+                {isNoTemplate && m.programs_new_create_event()}
+                {selectedTemplate && isRecurring && m.programs_new_generate_events()}
+                {selectedTemplate && !isRecurring && m.programs_new_create_event()}
               </Button>
             )}
           </Form>

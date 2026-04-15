@@ -1,6 +1,7 @@
 import { Eye, Pencil, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -13,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 import type { Route } from './+types/group-list'
 
 export const meta: Route.MetaFunction = () => {
-  return [{ title: 'Proclamateurs - Unitae' }]
+  return [{ title: m.publishers_list_meta_title() }]
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -60,21 +61,17 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="Groupes de prédication"
-          subtitle="Liste de tous les groupes de prédication"
+          title={m.groups_list_title()}
+          subtitle={m.groups_list_subtitle()}
           actions={
             canManagePublisher && (
               <Button asChild>
-                <Link to="./new">Nouveau groupe</Link>
+                <Link to="./new">{m.groups_new_button()}</Link>
               </Button>
             )
           }
         />
-        <EmptyState
-          icon={UsersRound}
-          title="Il n'y a aucun groupe de prédication pour le moment !"
-          description="Pour ajouter des groupes de prédication utilisez le bouton &laquo; Nouveau groupe &raquo; en haut à droite de cette page."
-        />
+        <EmptyState icon={UsersRound} title={m.groups_empty_title()} description={m.groups_empty_description()} />
       </div>
     )
   }
@@ -82,12 +79,12 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Groupes de prédication"
-        subtitle="Liste de tous les groupes de prédication"
+        title={m.groups_list_title()}
+        subtitle={m.groups_list_subtitle()}
         actions={
           canManagePublisher && (
             <Button asChild>
-              <Link to="./new">Nouveau groupe</Link>
+              <Link to="./new">{m.groups_new_button()}</Link>
             </Button>
           )
         }
@@ -97,11 +94,11 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nom</TableHead>
-              <TableHead className="text-center max-sm:hidden">Responsable</TableHead>
-              <TableHead className="text-center max-sm:hidden">Adjoint</TableHead>
-              <TableHead className="text-center max-sm:hidden">Adresse</TableHead>
-              <TableHead className="text-center">Proclamateurs</TableHead>
+              <TableHead>{m.groups_table_name()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.groups_table_responsible()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.groups_table_deputy()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.groups_table_address()}</TableHead>
+              <TableHead className="text-center">{m.groups_table_publishers()}</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">Actions</span>
               </TableHead>
