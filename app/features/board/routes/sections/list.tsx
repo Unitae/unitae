@@ -1,9 +1,9 @@
-import { type DragEndEvent, DndContext, closestCenter } from '@dnd-kit/core'
+import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { FolderOpen, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Form as RouterForm, Link, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
+import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -62,7 +62,11 @@ function SortableSectionRow({
   section,
   selected,
   onToggle,
-}: { section: SectionItem; selected: boolean; onToggle: (id: number) => void }) {
+}: {
+  section: SectionItem
+  selected: boolean
+  onToggle: (id: number) => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: section.id,
   })
@@ -97,12 +101,7 @@ function SortableSectionRow({
               <Pencil className="size-4" />
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="text-destructive hover:text-destructive max-sm:hidden"
-          >
+          <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive max-sm:hidden">
             <Link to={`./${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
               <Trash2 className="size-4" />
             </Link>

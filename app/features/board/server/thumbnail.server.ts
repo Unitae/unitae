@@ -22,7 +22,6 @@ export async function generateThumbnail(pdfStorageKey: string): Promise<Buffer |
     const canvas = createCanvas(scaledViewport.width, scaledViewport.height)
     const context = canvas.getContext('2d')
 
-    // biome-ignore lint/suspicious/noExplicitAny: pdfjs-dist RenderParameters type requires canvas but node-canvas uses canvasContext
     await page.render({
       canvasContext: context,
       viewport: scaledViewport,

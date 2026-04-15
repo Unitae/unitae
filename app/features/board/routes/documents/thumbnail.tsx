@@ -1,7 +1,7 @@
+import { getBoardFileBuffer } from '~/features/board/server/document-storage'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
-import { getBoardFileBuffer } from '~/features/board/server/document-storage'
 
 import type { Route } from './+types/thumbnail'
 

@@ -1,9 +1,9 @@
-import { type DragEndEvent, DndContext, closestCenter } from '@dnd-kit/core'
+import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Eye, FileText, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Form as RouterForm, Link, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
+import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
 import * as m from '~/paraglide/messages'
@@ -78,7 +78,11 @@ function SortableDocumentRow({
   document,
   selected,
   onToggle,
-}: { document: DocumentItem; selected: boolean; onToggle: (id: number) => void }) {
+}: {
+  document: DocumentItem
+  selected: boolean
+  onToggle: (id: number) => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: document.id,
   })
@@ -123,12 +127,7 @@ function SortableDocumentRow({
               <Pencil className="size-4" />
             </Link>
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            asChild
-            className="text-destructive hover:text-destructive max-sm:hidden"
-          >
+          <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive max-sm:hidden">
             <Link to={`./${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
               <Trash2 className="size-4" />
             </Link>
@@ -319,24 +318,23 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
                     </TableHead>
                   </TableRow>
                 </TableHeader>
-              <SortableContext items={documents.map(d => d.id)} strategy={verticalListSortingStrategy}>
-                <TableBody>
-                  {documents.map(document => (
-                    <SortableDocumentRow
-                      key={document.id}
-                      document={document}
-                      selected={selectedIds.has(document.id)}
-                      onToggle={toggleSelection}
-                    />
-                  ))}
-                </TableBody>
-              </SortableContext>
-            </Table>
-          </DndContext>
-        </div>
+                <SortableContext items={documents.map(d => d.id)} strategy={verticalListSortingStrategy}>
+                  <TableBody>
+                    {documents.map(document => (
+                      <SortableDocumentRow
+                        key={document.id}
+                        document={document}
+                        selected={selectedIds.has(document.id)}
+                        onToggle={toggleSelection}
+                      />
+                    ))}
+                  </TableBody>
+                </SortableContext>
+              </Table>
+            </DndContext>
+          </div>
         </>
       )}
-
     </div>
   )
 }
