@@ -29,3 +29,14 @@ export function getBoardFileBuffer(key: string): Promise<Buffer | null> {
 export async function deleteBoardFile(key: string): Promise<void> {
   await deleteFileFromStorage(key)
 }
+
+export function getThumbnailStorageKey(congregationId: number): string {
+  const uuid = crypto.randomUUID()
+  return buildStorageKey(congregationId, 'board', `${uuid}.thumb.png`)
+}
+
+export async function saveThumbnailFile(congregationId: number, buffer: Buffer): Promise<string> {
+  const key = getThumbnailStorageKey(congregationId)
+  await uploadFile(key, buffer, 'image/png')
+  return key
+}

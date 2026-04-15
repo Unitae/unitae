@@ -1,7 +1,8 @@
 import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
-import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage'
+import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile, saveThumbnailFile } from './document-storage'
+import { generateThumbnail } from './thumbnail.server'
 
 export function saveFile(congregationId: number, file: File): Promise<string> {
   return saveBoardFile(congregationId, file)
@@ -31,6 +32,17 @@ export async function getFileUrl(document: BoardDocument): Promise<string> {
   return `data:application/pdf;base64,${data}`
 }
 
+export async function generateAndSaveThumbnail(congregationId: number, pdfStorageKey: string): Promise<string | null> {
+  try {
+    const thumbnailBuffer = await generateThumbnail(pdfStorageKey)
+    if (!thumbnailBuffer) return null
+    return await saveThumbnailFile(congregationId, thumbnailBuffer)
+  } catch (error) {
+    logger.error('Failed to generate and save thumbnail', { error, pdfStorageKey })
+    return null
+  }
+}
+
 export async function deleteFile(document: Pick<BoardDocument, 'uri'>): Promise<void> {
   const key = document.uri ?? ''
   try {
@@ -47,7 +59,7 @@ export async function deleteSectionWithFiles(
 ): Promise<{ name: string }> {
   const documents = await db.boardDocument.findMany({
     where: { sectionId },
-    select: { uri: true },
+    select: { uri: true, thumbnailUri: true },
   })
 
   // Delete documents first (FK constraint prevents deleting section while documents exist)
@@ -63,6 +75,9 @@ export async function deleteSectionWithFiles(
   // Clean up stored files after DB deletion succeeds
   for (const doc of documents) {
     await deleteFile(doc)
+    if (doc.thumbnailUri) {
+      await deleteFile({ uri: doc.thumbnailUri })
+    }
   }
 
   return { name: section.name }

@@ -148,6 +148,7 @@ model BoardDocument {
   id            Int          @id @default(autoincrement())
   title         String
   uri           String?
+  thumbnailUri  String?
   section       BoardSection @relation(fields: [sectionId], references: [id])
   sectionId     Int
   order         Int?

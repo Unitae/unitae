@@ -73,6 +73,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     try {
       await deleteFile(document)
+      if (document.thumbnailUri) {
+        await deleteFile({ uri: document.thumbnailUri })
+      }
     } catch (error) {
       logger.error('Document removal failed. Unexpected error during deletion of the file on the disk', { error })
     }

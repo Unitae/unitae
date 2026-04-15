@@ -2,7 +2,7 @@ import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjack
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { saveFile } from '~/features/board/server/document'
+import { generateAndSaveThumbnail, saveFile } from '~/features/board/server/document'
 import {
   FileValidationError,
   MAX_FILE_SIZE_BYTES,
@@ -252,12 +252,14 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const storageKey = await saveFile(congregationId, file)
+    const thumbnailUri = await generateAndSaveThumbnail(congregationId, storageKey)
 
     const document = await db.boardDocument.create({
       data: {
         title: String(name),
         type: 'pdf',
         uri: storageKey,
+        thumbnailUri,
         sectionId: sectionId,
         order: 0,
         congregationId,

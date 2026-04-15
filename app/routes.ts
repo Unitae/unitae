@@ -26,6 +26,8 @@ export default [
       ...prefix('sections', [
         index('features/board/routes/sections/list.tsx'),
         route('new', 'features/board/routes/sections/new.tsx'),
+        route('reorder', 'features/board/routes/sections/reorder.tsx'),
+        route('bulk-delete', 'features/board/routes/sections/bulk-delete.tsx'),
         route('/:sectionId/edit', 'features/board/routes/sections/edit.tsx'),
         route('/:sectionId/delete', 'features/board/routes/sections/delete.tsx'),
         route('/:sectionId/move-up', 'features/board/routes/sections/move-up.tsx'),
@@ -34,11 +36,15 @@ export default [
       ...prefix('documents', [
         index('features/board/routes/documents/list.tsx'),
         route('new', 'features/board/routes/documents/new.tsx'),
+        route('reorder', 'features/board/routes/documents/reorder.tsx'),
+        route('bulk-delete', 'features/board/routes/documents/bulk-delete.tsx'),
+        route('bulk-move', 'features/board/routes/documents/bulk-move.tsx'),
         route('/:documentId/edit', 'features/board/routes/documents/edit.tsx'),
         route('/:documentId/delete', 'features/board/routes/documents/delete.tsx'),
         route('/:documentId/move-up', 'features/board/routes/documents/move-up.tsx'),
         route('/:documentId/move-down', 'features/board/routes/documents/move-down.tsx'),
         route('/:documentId/view', 'features/board/routes/documents/pdf-loader.tsx'),
+        route('/:documentId/thumbnail', 'features/board/routes/documents/thumbnail.tsx'),
       ]),
     ]),
     route('settings', 'features/settings/routes/_layout.tsx', [
