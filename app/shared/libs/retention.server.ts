@@ -39,11 +39,59 @@ export async function cleanupOldWithdrawnConsents(): Promise<number> {
 }
 
 /**
+ * Supprime les entrees de suivi de lecture (viewedBy) pour les documents
+ * dont la visibilite a expire depuis plus d'un an.
+ * Evite de conserver indefiniment des donnees comportementales.
+ */
+export async function cleanupExpiredDocumentViewTracking(): Promise<number> {
+  const oneYearAgo = new Date()
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+
+  // Find documents that expired more than 1 year ago
+  const expiredDocuments = await unscopedDb.boardDocument.findMany({
+    where: {
+      visibleUntil: { not: null, lt: oneYearAgo },
+    },
+    select: { id: true },
+  })
+
+  if (expiredDocuments.length === 0) return 0
+
+  // Disconnect all viewedBy entries for these documents
+  let cleaned = 0
+  for (const doc of expiredDocuments) {
+    const document = await unscopedDb.boardDocument.findUnique({
+      where: { id: doc.id },
+      select: { viewedBy: { select: { id: true } } },
+    })
+
+    if (document && document.viewedBy.length > 0) {
+      await unscopedDb.boardDocument.update({
+        where: { id: doc.id },
+        data: {
+          viewedBy: {
+            set: [],
+          },
+        },
+      })
+      cleaned += document.viewedBy.length
+    }
+  }
+
+  if (cleaned > 0) {
+    logger.info(`Cleaned up ${cleaned} view tracking entries for ${expiredDocuments.length} expired documents`)
+  }
+
+  return cleaned
+}
+
+/**
  * Execute toutes les taches de nettoyage de retention des donnees.
  */
-export async function runRetentionCleanup(): Promise<{ tokens: number; consents: number }> {
+export async function runRetentionCleanup(): Promise<{ tokens: number; consents: number; viewTracking: number }> {
   const tokens = await cleanupExpiredPasswordResetTokens()
   const consents = await cleanupOldWithdrawnConsents()
+  const viewTracking = await cleanupExpiredDocumentViewTracking()
 
-  return { tokens, consents }
+  return { tokens, consents, viewTracking }
 }

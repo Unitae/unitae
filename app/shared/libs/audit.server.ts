@@ -36,6 +36,10 @@ export const AuditAction = {
   PasswordChanged: 'password.changed',
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   PasswordResetRequested: 'password.reset.requested',
+
+  // Board
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardReadStatusViewed: 'board.read_status.viewed',
 } as const
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]

@@ -1,35 +1,50 @@
-import { createCanvas } from 'canvas'
-import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { execFile } from 'node:child_process'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { promisify } from 'node:util'
 import logger from '~/shared/libs/logger.server'
 import { getBoardFileBuffer } from './document-storage'
 
-const THUMBNAIL_WIDTH = 200
-const THUMBNAIL_SCALE = 1.5
+const execFileAsync = promisify(execFile)
+
+const THUMBNAIL_WIDTH = 300
 
 export async function generateThumbnail(pdfStorageKey: string): Promise<Buffer | null> {
+  let tempDir: string | null = null
+
   try {
     const pdfBuffer = await getBoardFileBuffer(pdfStorageKey)
     if (!pdfBuffer) return null
 
-    const pdfData = new Uint8Array(pdfBuffer)
-    const pdf = await getDocument({ data: pdfData, useSystemFonts: true }).promise
-    const page = await pdf.getPage(1)
-    const viewport = page.getViewport({ scale: THUMBNAIL_SCALE })
+    tempDir = await mkdtemp(join(tmpdir(), 'unitae-thumb-'))
+    const pdfPath = join(tempDir, 'input.pdf')
+    const outputPrefix = join(tempDir, 'thumb')
 
-    const scale = THUMBNAIL_WIDTH / viewport.width
-    const scaledViewport = page.getViewport({ scale: THUMBNAIL_SCALE * scale })
+    await writeFile(pdfPath, pdfBuffer)
 
-    const canvas = createCanvas(scaledViewport.width, scaledViewport.height)
-    const context = canvas.getContext('2d')
+    // pdftoppm renders PDF page to image — first page only (-l 1 -f 1)
+    await execFileAsync('pdftoppm', [
+      '-png',
+      '-f',
+      '1',
+      '-l',
+      '1',
+      '-scale-to',
+      String(THUMBNAIL_WIDTH),
+      '-singlefile',
+      pdfPath,
+      outputPrefix,
+    ])
 
-    await page.render({
-      canvasContext: context,
-      viewport: scaledViewport,
-    } as any).promise
-
-    return canvas.toBuffer('image/png')
+    const thumbnailPath = `${outputPrefix}.png`
+    return await readFile(thumbnailPath)
   } catch (error) {
     logger.error('Failed to generate PDF thumbnail', { error, pdfStorageKey })
     return null
+  } finally {
+    if (tempDir) {
+      await rm(tempDir, { recursive: true, force: true }).catch(() => {})
+    }
   }
 }

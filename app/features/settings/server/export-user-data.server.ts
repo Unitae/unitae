@@ -10,6 +10,7 @@ interface UserDataExport {
   publisherGroup: Record<string, unknown> | null
   eventsCreated: Record<string, unknown>[]
   boardDocumentsViewed: Record<string, unknown>[]
+  boardDocumentVersionUploads: Record<string, unknown>[]
   consentRecords: Record<string, unknown>[]
 }
 
@@ -46,82 +47,93 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
     throw new Error(`Utilisateur introuvable : ${userId}`)
   }
 
-  const [roles, activities, attributions, group, events, documentsViewed, consentRecords] = await Promise.all([
-    db.congregationUserRole.findMany({
-      where: { userId },
-      select: {
-        role: { select: { key: true, description: true } },
-      },
-    }),
-    db.publisherActivity.findMany({
-      where: { publisherId: userId },
-      select: {
-        month: true,
-        year: true,
-        hours: true,
-        studies: true,
-        type: true,
-        isPublisher: true,
-        notes: true,
-      },
-      orderBy: [{ year: 'desc' }, { month: 'desc' }],
-    }),
-    db.attribution.findMany({
-      where: { publisherId: userId },
-      select: {
-        territory: { select: { number: true, type: true } },
-        type: true,
-        startDate: true,
-        endDate: true,
-        lateDate: true,
-        notes: true,
-      },
-      orderBy: { startDate: 'desc' },
-    }),
-    db.publisherGroup.findFirst({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma OR operator
-        OR: [{ members: { some: { id: userId } } }, { responsibleId: userId }, { deputyId: userId }],
-      },
-      select: {
-        name: true,
-        adress: true,
-        responsibleId: true,
-        deputyId: true,
-      },
-    }),
-    db.event.findMany({
-      where: { createdById: userId },
-      select: {
-        name: true,
-        description: true,
-        startDate: true,
-        endDate: true,
-        kind: { select: { name: true, key: true } },
-        createdAt: true,
-      },
-      orderBy: { startDate: 'desc' },
-    }),
-    db.boardDocument.findMany({
-      where: { viewedBy: { some: { id: userId } } },
-      select: {
-        title: true,
-        type: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    db.consentRecord.findMany({
-      where: { userId },
-      select: {
-        purpose: true,
-        consentedAt: true,
-        withdrawnAt: true,
-        consentVersion: true,
-      },
-      orderBy: { consentedAt: 'desc' },
-    }),
-  ])
+  const [roles, activities, attributions, group, events, documentsViewed, documentVersionUploads, consentRecords] =
+    await Promise.all([
+      db.congregationUserRole.findMany({
+        where: { userId },
+        select: {
+          role: { select: { key: true, description: true } },
+        },
+      }),
+      db.publisherActivity.findMany({
+        where: { publisherId: userId },
+        select: {
+          month: true,
+          year: true,
+          hours: true,
+          studies: true,
+          type: true,
+          isPublisher: true,
+          notes: true,
+        },
+        orderBy: [{ year: 'desc' }, { month: 'desc' }],
+      }),
+      db.attribution.findMany({
+        where: { publisherId: userId },
+        select: {
+          territory: { select: { number: true, type: true } },
+          type: true,
+          startDate: true,
+          endDate: true,
+          lateDate: true,
+          notes: true,
+        },
+        orderBy: { startDate: 'desc' },
+      }),
+      db.publisherGroup.findFirst({
+        where: {
+          // biome-ignore lint/style/useNamingConvention: Prisma OR operator
+          OR: [{ members: { some: { id: userId } } }, { responsibleId: userId }, { deputyId: userId }],
+        },
+        select: {
+          name: true,
+          adress: true,
+          responsibleId: true,
+          deputyId: true,
+        },
+      }),
+      db.event.findMany({
+        where: { createdById: userId },
+        select: {
+          name: true,
+          description: true,
+          startDate: true,
+          endDate: true,
+          kind: { select: { name: true, key: true } },
+          createdAt: true,
+        },
+        orderBy: { startDate: 'desc' },
+      }),
+      db.boardDocument.findMany({
+        where: { viewedBy: { some: { id: userId } } },
+        select: {
+          title: true,
+          type: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      db.boardDocumentVersion.findMany({
+        where: { uploadedById: userId },
+        select: {
+          documentId: true,
+          versionNumber: true,
+          createdAt: true,
+          document: { select: { title: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      db.consentRecord.findMany({
+        where: { userId },
+        select: {
+          purpose: true,
+          consentedAt: true,
+          withdrawnAt: true,
+          consentVersion: true,
+        },
+        orderBy: { consentedAt: 'desc' },
+      }),
+    ])
 
   return {
     exportDate: new Date().toISOString(),
@@ -140,6 +152,11 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
     publisherGroup: group,
     eventsCreated: events,
     boardDocumentsViewed: documentsViewed,
+    boardDocumentVersionUploads: documentVersionUploads.map(v => ({
+      documentTitle: v.document.title,
+      versionNumber: v.versionNumber,
+      createdAt: v.createdAt,
+    })),
     consentRecords,
   }
 }

@@ -7,6 +7,7 @@ const mockDb = {
   publisherGroup: { updateMany: vi.fn() },
   congregationUserRole: { deleteMany: vi.fn() },
   passwordResetToken: { deleteMany: vi.fn() },
+  boardDocumentVersion: { updateMany: vi.fn() },
   dataDeletionRecord: { create: vi.fn() },
 }
 
@@ -27,6 +28,7 @@ describe('anonymizeUser', () => {
     mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 2 } as never)
     mockDb.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 } as never)
+    mockDb.boardDocumentVersion.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.dataDeletionRecord.create.mockResolvedValue({} as never)
 
     await anonymizeUser(mockDb as never, 1, 'admin:5')
@@ -47,6 +49,10 @@ describe('anonymizeUser', () => {
     expect(mockDb.publisherGroup.updateMany).toHaveBeenCalledWith({ where: { deputyId: 1 }, data: { deputyId: null } })
     expect(mockDb.congregationUserRole.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
     expect(mockDb.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
+    expect(mockDb.boardDocumentVersion.updateMany).toHaveBeenCalledWith({
+      where: { uploadedById: 1 },
+      data: { uploadedById: null },
+    })
 
     const deletionRecord = mockDb.dataDeletionRecord.create.mock.calls[0][0]
     expect(deletionRecord.data.entityType).toBe('User')

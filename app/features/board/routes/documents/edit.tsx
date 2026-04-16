@@ -1,15 +1,10 @@
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
-import { Trash2 } from 'lucide-react'
+import { History, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { deleteFile, generateAndSaveThumbnail, saveFile } from '~/features/board/server/document'
-import {
-  FileValidationError,
-  MAX_FILE_SIZE_BYTES,
-  validateBoardFile,
-  validateVisibilityDates,
-} from '~/features/board/server/file-validation.server'
+import { replaceDocumentFile } from '~/features/board/server/document'
+import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -75,11 +70,18 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
         title={m.board_documents_edit_title()}
         subtitle={m.board_documents_edit_subtitle()}
         actions={
-          <Button variant="destructive" size="icon" asChild>
-            <Link to={`/board/documents/${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
-              <Trash2 className="size-4" />
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="icon" asChild>
+              <Link to={`/board/documents/${document.id}/versions`} title={m.board_versions_link_tooltip()}>
+                <History className="size-4" />
+              </Link>
+            </Button>
+            <Button variant="destructive" size="icon" asChild>
+              <Link to={`/board/documents/${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
+                <Trash2 className="size-4" />
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -142,7 +144,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-col gap-2">
               <Label htmlFor="document">{m.board_documents_edit_replace_file_label()}</Label>
               <Input id="document" name="document" type="file" accept="application/pdf" />
-              <p className="text-xs text-muted-foreground">{m.board_documents_edit_replace_file_hint()}</p>
+              <p className="text-muted-foreground text-xs">{m.board_documents_edit_replace_file_hint()}</p>
             </div>
 
             {rights.canManageBoard && (
@@ -174,10 +176,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-  const canManageBoard = can(Role.BoardValidator)
-
+async function parseMultipartForm(request: Request) {
   let uploadedFile: File | null = null
   const uploadHandler = async (fileUpload: FileUpload) => {
     if (fileUpload.fieldName === 'document') {
@@ -195,9 +194,20 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
   }
 
-  let form: FormData
+  const form = await parseFormData(request, { maxFileSize: MAX_FILE_SIZE_BYTES }, uploadHandler)
+  const file = uploadedFile ?? (form.get('document') as File | null)
+  const hasNewFile = file != null && file.size > 0
+
+  return { form, file: hasNewFile ? file : null }
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+  const canManageBoard = can(Role.BoardValidator)
+
+  let formResult: Awaited<ReturnType<typeof parseMultipartForm>>
   try {
-    form = await parseFormData(request, { maxFileSize: MAX_FILE_SIZE_BYTES }, uploadHandler)
+    formResult = await parseMultipartForm(request)
   } catch (error) {
     if (error instanceof MaxFileSizeExceededError) {
       session.flash('error', m.board_documents_invalid_file())
@@ -208,8 +218,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw error
   }
 
-  const file = uploadedFile ?? (form.get('document') as File | null)
-  const hasNewFile = file != null && file.size > 0
+  const { form, file } = formResult
   const title = String(form.get('title'))
   const sectionId = Number(form.get('sectionId'))
   const visibleFrom = new Date(String(form.get('visible-from')))
@@ -234,42 +243,23 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
+  const resolvedVisibleFrom = visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined
+  const resolvedVisibleUntil = visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined
+
   return withScope(congregationId, async db => {
     const documentId = requireParamId(params.documentId, '/board')
 
     // Handle file replacement if a new file was uploaded
-    let newStorageKey: string | undefined
-    if (hasNewFile) {
-      try {
-        await validateBoardFile(file)
-      } catch (error) {
-        if (error instanceof FileValidationError) {
-          logger.warn(`Document edit failed. User ID: ${currentUser.id}. File validation: ${error.messageKey}.`)
-          session.flash('error', m.board_documents_invalid_file())
-          return redirect(`/board/documents/${params.documentId}/edit`, {
-            headers: { 'Set-Cookie': await commitSession(session) },
-          })
-        }
-        throw error
-      }
-      newStorageKey = await saveFile(congregationId, file)
-    }
-
-    let newThumbnailUri: string | null | undefined
-    if (newStorageKey) {
-      newThumbnailUri = await generateAndSaveThumbnail(congregationId, newStorageKey)
-    }
-
-    // Fetch old document to clean up old file after update
-    const oldDocument = hasNewFile
-      ? await db.boardDocument.findUnique({
-          where: {
-            // biome-ignore lint/style/useNamingConvention: prisma compound key
-            id_congregationId: { id: documentId, congregationId },
-          },
-          select: { uri: true, thumbnailUri: true },
+    if (file) {
+      const result = await replaceDocumentFile(db, documentId, congregationId, currentUser.id, file)
+      if (!result.replaced) {
+        logger.warn(`Document edit failed. User ID: ${currentUser.id}. File validation: ${result.error.messageKey}.`)
+        session.flash('error', m.board_documents_invalid_file())
+        return redirect(`/board/documents/${params.documentId}/edit`, {
+          headers: { 'Set-Cookie': await commitSession(session) },
         })
-      : null
+      }
+    }
 
     const document = await db.boardDocument.update({
       where: {
@@ -278,25 +268,12 @@ export async function action({ request, params }: Route.ActionArgs) {
       },
       data: {
         title: String(title),
-        section: {
-          connect: {
-            id: sectionId,
-          },
-        },
-        visibleFrom: visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined,
-        visibleUntil: visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined,
+        section: { connect: { id: sectionId } },
+        visibleFrom: resolvedVisibleFrom,
+        visibleUntil: resolvedVisibleUntil,
         isHighlighted,
-        ...(newStorageKey ? { uri: newStorageKey, thumbnailUri: newThumbnailUri } : {}),
       },
     })
-
-    // Clean up old files after successful DB update
-    if (oldDocument?.uri && newStorageKey) {
-      await deleteFile(oldDocument)
-      if (oldDocument.thumbnailUri) {
-        await deleteFile({ uri: oldDocument.thumbnailUri })
-      }
-    }
 
     if (document == null) {
       session.flash('error', m.common_generic_error())

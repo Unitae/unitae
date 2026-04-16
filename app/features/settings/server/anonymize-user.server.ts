@@ -65,6 +65,12 @@ export async function anonymizeUser(db: TransactionClient, userId: number, reque
     where: { userId },
   })
 
+  // Dissocier l'utilisateur des versions de documents du tableau d'affichage
+  await db.boardDocumentVersion.updateMany({
+    where: { uploadedById: userId },
+    data: { uploadedById: null },
+  })
+
   // Enregistrer dans le registre de suppression (reconciliation des sauvegardes)
   await db.dataDeletionRecord.create({
     data: {

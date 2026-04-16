@@ -2,6 +2,8 @@ import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile, saveThumbnailFile } from './document-storage'
+import { createVersionFromCurrent } from './document-versions.server'
+import { FileValidationError, validateBoardFile } from './file-validation.server'
 import { generateThumbnail } from './thumbnail.server'
 
 export function saveFile(congregationId: number, file: File): Promise<string> {
@@ -50,6 +52,63 @@ export async function deleteFile(document: Pick<BoardDocument, 'uri'>): Promise<
   } catch (error) {
     logger.error(`Failed to delete board document file: ${key}`, { error })
   }
+}
+
+export type FileReplacementResult =
+  | { replaced: true; uri: string; thumbnailUri: string | null }
+  | { replaced: false; error: FileValidationError }
+
+/**
+ * Valide, versionne et remplace le fichier d'un document existant.
+ * Retourne le nouveau URI et thumbnailUri, ou une erreur de validation.
+ */
+export async function replaceDocumentFile(
+  db: TransactionClient,
+  documentId: number,
+  congregationId: number,
+  uploadedById: number,
+  file: File,
+): Promise<FileReplacementResult> {
+  try {
+    await validateBoardFile(file)
+  } catch (error) {
+    if (error instanceof FileValidationError) {
+      return { replaced: false, error }
+    }
+    throw error
+  }
+
+  await createVersionFromCurrent(db, documentId, congregationId, uploadedById)
+
+  const uri = await saveFile(congregationId, file)
+  const thumbnailUri = await generateAndSaveThumbnail(congregationId, uri)
+
+  // Fetch old document to clean up files after update
+  const oldDocument = await db.boardDocument.findUnique({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id: documentId, congregationId },
+    },
+    select: { uri: true, thumbnailUri: true },
+  })
+
+  await db.boardDocument.update({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id: documentId, congregationId },
+    },
+    data: { uri, thumbnailUri },
+  })
+
+  // Clean up old files
+  if (oldDocument?.uri) {
+    await deleteFile(oldDocument)
+    if (oldDocument.thumbnailUri) {
+      await deleteFile({ uri: oldDocument.thumbnailUri })
+    }
+  }
+
+  return { replaced: true, uri, thumbnailUri }
 }
 
 export async function deleteSectionWithFiles(

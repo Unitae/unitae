@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { deleteFile } from '~/features/board/server/document'
+import { deleteAllVersionFiles } from '~/features/board/server/document-versions.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -64,10 +65,15 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
+    const documentId = requireParamId(params.documentId, '/board')
+
+    // Delete version files before cascade removes the rows
+    await deleteAllVersionFiles(db, documentId)
+
     const document = await db.boardDocument.delete({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
+        id_congregationId: { id: documentId, congregationId },
       },
     })
 

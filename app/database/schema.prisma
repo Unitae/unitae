@@ -43,8 +43,9 @@ model Congregation {
   publisherGroups    PublisherGroup[]
   publisherActivities PublisherActivity[]
   boardSections      BoardSection[]
-  boardDocuments     BoardDocument[]
-  events             Event[]
+  boardDocuments        BoardDocument[]
+  boardDocumentVersions BoardDocumentVersion[]
+  events                Event[]
   eventKinds         EventKind[]
   settings           Setting[]
   userRoles               CongregationUserRole[]
@@ -102,8 +103,9 @@ model User {
   serviceRoleAssignments   ProgrammeServiceRoleAssignment[] @relation("serviceRoleAssignee")
   templateResponsibilities ProgrammeTemplateResponsible[]   @relation("templateResponsible")
 
-  documentsViewed     BoardDocument[]      @relation("viewedBy")
-  passwordResetTokens PasswordResetToken[]
+  documentsViewed        BoardDocument[]        @relation("viewedBy")
+  documentVersionUploads BoardDocumentVersion[] @relation("boardDocumentVersionUploader")
+  passwordResetTokens    PasswordResetToken[]
   consentRecords      ConsentRecord[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
@@ -158,6 +160,24 @@ model BoardDocument {
   viewedBy      User[]       @relation("viewedBy")
   isHighlighted Boolean      @default(false)
   createdAt     DateTime     @default(now())
+  versions      BoardDocumentVersion[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+}
+
+model BoardDocumentVersion {
+  id            Int           @id @default(autoincrement())
+  document      BoardDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId    Int
+  uri           String
+  thumbnailUri  String?
+  versionNumber Int           @default(1)
+  uploadedBy    User?         @relation("boardDocumentVersionUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedById  Int?
+  createdAt     DateTime      @default(now())
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
