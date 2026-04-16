@@ -8,7 +8,7 @@ export function DocumentCard({ file, alreadyViewed = false }: { file: BoardDocum
       <div className="relative w-44 rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-primary max-sm:w-full max-sm:flex-row max-sm:items-center">
         <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-xl bg-muted max-sm:aspect-square max-sm:w-16 max-sm:shrink-0 max-sm:rounded-l-xl max-sm:rounded-tr-none">
           {!alreadyViewed && (
-            <div className="absolute top-2 right-2 z-10 size-3 rounded-full bg-destructive" />
+            <div className="absolute top-2 right-2 z-10 size-3.5 rounded-full border-2 border-white bg-destructive shadow-sm" />
           )}
           {file.thumbnailUri ? (
             <img
