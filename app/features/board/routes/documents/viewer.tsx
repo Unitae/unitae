@@ -88,9 +88,11 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
       {useFallback ? (
         <PdfViewer url={pdfUrl} />
       ) : (
-        <object data={embedUrl} type="application/pdf" className="h-full w-full flex-1">
-          <PdfViewer url={pdfUrl} />
-        </object>
+        <div className="flex flex-1 justify-center bg-muted/30 p-4 md:p-6">
+          <object data={embedUrl} type="application/pdf" className="h-full w-full max-w-4xl rounded-md shadow-sm">
+            <PdfViewer url={pdfUrl} />
+          </object>
+        </div>
       )}
     </div>
   )
