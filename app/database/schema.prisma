@@ -469,6 +469,7 @@ model ProgrammeTemplatePart {
   id          Int     @id @default(autoincrement())
   name        String
   section     String  @default("")
+  track       String  @default("")
   order       Int
   durationMin Int?
   isVariable  Boolean @default(false)
@@ -509,6 +510,7 @@ model ProgrammePartAssignment {
   // Inline fields (copied from template part on generation, or set manually for custom parts)
   name        String  @default("")
   section     String  @default("")
+  track       String  @default("")
   order       Int     @default(0)
   durationMin Int?
 

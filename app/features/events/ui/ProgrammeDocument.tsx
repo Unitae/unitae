@@ -31,6 +31,7 @@ function sectionColor(section: string): string | null {
 interface PartAssignment {
   name: string
   section: string
+  track: string
   order: number
   durationMin: number | null
   topic: string
@@ -341,10 +342,11 @@ function EventBlock({
 function PartRow({ part, isAlt }: { part: PartAssignment; isAlt: boolean }) {
   const assigneeName = formatName(part.assignee)
   const assistantName = part.assistant ? formatName(part.assistant) : null
+  const displayName = part.track ? `${part.name} — ${part.track}` : part.name
 
   return (
     <View style={[styles.partRow, isAlt ? styles.partRowAlt : {}]}>
-      <Text style={styles.partName}>{part.name}</Text>
+      <Text style={styles.partName}>{displayName}</Text>
       <Text style={styles.partDuration}>{part.durationMin ? `${part.durationMin}'` : ''}</Text>
       <Text style={styles.partTopic}>{part.topic || ''}</Text>
       {assigneeName ? (

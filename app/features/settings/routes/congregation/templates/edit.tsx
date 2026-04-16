@@ -95,6 +95,7 @@ async function handlePartIntent(
         id: partId,
         name: String(form.get('partName') ?? ''),
         section: String(form.get('partSection') ?? ''),
+        track: String(form.get('partTrack') ?? ''),
         order: Number(form.get('partOrder') ?? 0),
         durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
         isVariable: form.get('partIsVariable') === 'on',
@@ -199,6 +200,10 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                   <Input name="partSection" defaultValue={part.section} className="w-40" />
                 </div>
                 <div className="flex flex-col gap-1">
+                  <Label className="text-xs">{m.settings_template_edit_part_track_label()}</Label>
+                  <Input name="partTrack" defaultValue={part.track} className="w-40" />
+                </div>
+                <div className="flex flex-col gap-1">
                   <Label className="text-xs">{m.settings_template_edit_part_order_label()}</Label>
                   <Input name="partOrder" type="number" defaultValue={part.order} className="w-16" required />
                 </div>
@@ -240,6 +245,10 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-col gap-1">
               <Label className="text-xs">{m.settings_template_edit_part_section_label()}</Label>
               <Input name="partSection" className="w-40" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">{m.settings_template_edit_part_track_label()}</Label>
+              <Input name="partTrack" className="w-40" />
             </div>
             <div className="flex flex-col gap-1">
               <Label className="text-xs">{m.settings_template_edit_part_order_label()}</Label>

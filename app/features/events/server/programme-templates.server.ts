@@ -44,6 +44,7 @@ export function upsertTemplatePart(
     id?: number
     name: string
     section: string
+    track: string
     order: number
     durationMin: number | null
     isVariable: boolean
@@ -59,6 +60,7 @@ export function upsertTemplatePart(
       data: {
         name: partData.name,
         section: partData.section,
+        track: partData.track,
         order: partData.order,
         durationMin: partData.durationMin,
         isVariable: partData.isVariable,
@@ -70,6 +72,7 @@ export function upsertTemplatePart(
     data: {
       name: partData.name,
       section: partData.section,
+      track: partData.track,
       order: partData.order,
       durationMin: partData.durationMin,
       isVariable: partData.isVariable,
@@ -182,6 +185,7 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
         create: source.parts.map(part => ({
           name: part.name,
           section: part.section,
+          track: part.track,
           order: part.order,
           durationMin: part.durationMin,
           isVariable: part.isVariable,

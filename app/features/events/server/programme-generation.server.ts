@@ -4,7 +4,7 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 interface TemplateWithRelations {
   id: number
   name: string
-  parts: { id: number; name: string; section: string; order: number; durationMin: number | null }[]
+  parts: { id: number; name: string; section: string; track: string; order: number; durationMin: number | null }[]
   serviceRoles: { id: number; name: string }[]
 }
 
@@ -50,6 +50,7 @@ async function createEventWithAssignments(
         partId: part.id,
         name: part.name,
         section: part.section,
+        track: part.track,
         order: part.order,
         durationMin: part.durationMin,
         congregationId,

@@ -96,7 +96,14 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                 <TableRow key={assignment.id}>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium text-sm">{assignment.name}</span>
+                      <span className="font-medium text-sm">
+                        {assignment.name}
+                        {assignment.track && (
+                          <span className="ml-2 rounded bg-primary/10 px-1.5 py-0.5 font-medium text-[10px] text-primary uppercase tracking-wide">
+                            {assignment.track}
+                          </span>
+                        )}
+                      </span>
                       {assignment.section && (
                         <span className="text-muted-foreground text-xs">{assignment.section}</span>
                       )}
