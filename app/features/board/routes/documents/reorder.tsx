@@ -5,6 +5,8 @@ import { withScope } from '~/shared/libs/db.server'
 
 import type { Route } from './+types/reorder'
 
+type OrderedItem = { kind: 'pdf' | 'dyn'; id: number }
+
 export function loader(_args: Route.LoaderArgs) {
   throw redirect('/board/documents')
 }
@@ -16,24 +18,35 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const { orderedIds } = (await request.json()) as { orderedIds: number[] }
+  const { orderedItems } = (await request.json()) as { orderedItems: OrderedItem[] }
 
-  if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+  if (!Array.isArray(orderedItems) || orderedItems.length === 0) {
     return { ok: false }
   }
 
   return withScope(congregationId, async db => {
-    // Serialize concurrent reorders on documents
-    await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_000, orderedIds[0])
+    // Serialize concurrent reorders on documents — lock on first item id to avoid interleaving
+    await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_000, orderedItems[0].id)
 
-    for (let i = 0; i < orderedIds.length; i++) {
-      await db.boardDocument.update({
-        where: {
-          // biome-ignore lint/style/useNamingConvention: prisma compound key
-          id_congregationId: { id: orderedIds[i], congregationId },
-        },
-        data: { order: i * 5 },
-      })
+    for (let i = 0; i < orderedItems.length; i++) {
+      const item = orderedItems[i]
+      if (item.kind === 'pdf') {
+        await db.boardDocument.update({
+          where: {
+            // biome-ignore lint/style/useNamingConvention: prisma compound key
+            id_congregationId: { id: item.id, congregationId },
+          },
+          data: { order: i * 5 },
+        })
+      } else {
+        await db.boardDynamicDocumentSettings.update({
+          where: {
+            // biome-ignore lint/style/useNamingConvention: prisma compound key
+            id_congregationId: { id: item.id, congregationId },
+          },
+          data: { order: i * 5 },
+        })
+      }
     }
 
     return { ok: true }

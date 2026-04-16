@@ -35,9 +35,15 @@ export default [
         route('/:sectionId/move-up', 'features/board/routes/sections/move-up.tsx'),
         route('/:sectionId/move-down', 'features/board/routes/sections/move-down.tsx'),
       ]),
+      ...prefix('dynamic', [
+        route('/:dynamicId/viewer', 'features/board/routes/dynamic/viewer.tsx'),
+        route('/:dynamicId/edit', 'features/board/routes/dynamic/edit.tsx'),
+        route('/:dynamicId/delete', 'features/board/routes/dynamic/delete.tsx'),
+      ]),
       ...prefix('documents', [
         index('features/board/routes/documents/list.tsx'),
         route('new', 'features/board/routes/documents/new.tsx'),
+        route('new-dynamic', 'features/board/routes/documents/new-dynamic.tsx'),
         route('reorder', 'features/board/routes/documents/reorder.tsx'),
         route('bulk-delete', 'features/board/routes/documents/bulk-delete.tsx'),
         route('bulk-move', 'features/board/routes/documents/bulk-move.tsx'),
