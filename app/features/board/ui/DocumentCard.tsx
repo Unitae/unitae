@@ -23,8 +23,8 @@ export function DocumentCard({ file, alreadyViewed = false }: { file: BoardDocum
         </div>
 
         <div className="flex flex-col gap-1 p-3 max-sm:flex-1 max-sm:py-2">
-          <span className="line-clamp-2 text-sm font-medium text-foreground">{file.title}</span>
-          <span className="text-xs text-muted-foreground">{new Date(file.createdAt).toLocaleDateString('fr-FR')}</span>
+          <span className="line-clamp-2 font-medium text-foreground text-sm">{file.title}</span>
+          <span className="text-muted-foreground text-xs">{new Date(file.createdAt).toLocaleDateString('fr-FR')}</span>
         </div>
       </div>
     </Link>

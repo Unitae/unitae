@@ -3,7 +3,7 @@ import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile, saveThumbnailFile } from './document-storage'
 import { createVersionFromCurrent } from './document-versions.server'
-import { validateBoardFile, FileValidationError } from './file-validation.server'
+import { FileValidationError, validateBoardFile } from './file-validation.server'
 import { generateThumbnail } from './thumbnail.server'
 
 export function saveFile(congregationId: number, file: File): Promise<string> {

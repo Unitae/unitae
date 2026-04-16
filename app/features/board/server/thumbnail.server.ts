@@ -26,9 +26,12 @@ export async function generateThumbnail(pdfStorageKey: string): Promise<Buffer |
     // pdftoppm renders PDF page to image — first page only (-l 1 -f 1)
     await execFileAsync('pdftoppm', [
       '-png',
-      '-f', '1',
-      '-l', '1',
-      '-scale-to', String(THUMBNAIL_WIDTH),
+      '-f',
+      '1',
+      '-l',
+      '1',
+      '-scale-to',
+      String(THUMBNAIL_WIDTH),
       '-singlefile',
       pdfPath,
       outputPrefix,
