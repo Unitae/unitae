@@ -35,9 +35,15 @@ export default [
         route('/:sectionId/move-up', 'features/board/routes/sections/move-up.tsx'),
         route('/:sectionId/move-down', 'features/board/routes/sections/move-down.tsx'),
       ]),
+      ...prefix('dynamic', [
+        route('/:dynamicId/viewer', 'features/board/routes/dynamic/viewer.tsx'),
+        route('/:dynamicId/edit', 'features/board/routes/dynamic/edit.tsx'),
+        route('/:dynamicId/delete', 'features/board/routes/dynamic/delete.tsx'),
+      ]),
       ...prefix('documents', [
         index('features/board/routes/documents/list.tsx'),
         route('new', 'features/board/routes/documents/new.tsx'),
+        route('new-dynamic', 'features/board/routes/documents/new-dynamic.tsx'),
         route('reorder', 'features/board/routes/documents/reorder.tsx'),
         route('bulk-delete', 'features/board/routes/documents/bulk-delete.tsx'),
         route('bulk-move', 'features/board/routes/documents/bulk-move.tsx'),
@@ -46,6 +52,7 @@ export default [
         route('/:documentId/move-up', 'features/board/routes/documents/move-up.tsx'),
         route('/:documentId/move-down', 'features/board/routes/documents/move-down.tsx'),
         route('/:documentId/view', 'features/board/routes/documents/pdf-loader.tsx'),
+        route('/:documentId/viewer', 'features/board/routes/documents/viewer.tsx'),
         route('/:documentId/read-status', 'features/board/routes/documents/read-status.tsx'),
         route('/:documentId/versions', 'features/board/routes/documents/versions.tsx'),
         route('/:documentId/thumbnail', 'features/board/routes/documents/thumbnail.tsx'),

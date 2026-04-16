@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { BarChart3, Eye, FileText, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
+import { BarChart3, Eye, FileText, GripVertical, Pencil, Search, Sparkles, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -54,37 +54,105 @@ export async function loader({ request }: Route.LoaderArgs) {
       },
       include: {
         section: true,
-        viewedBy: {
-          select: {
-            id: true,
-          },
-        },
+        viewedBy: { select: { id: true } },
       },
-      orderBy: [
-        {
-          section: { order: 'asc' },
-        },
-        { order: 'asc' },
-      ],
     })
 
-    return { documents, sections }
+    const dynamicDocuments = await db.boardDynamicDocumentSettings.findMany({
+      where: {
+        congregationId,
+        ...(searchQuery ? { title: { contains: searchQuery, mode: 'insensitive' as const } } : {}),
+        ...(filterSectionId ? { sectionId: Number(filterSectionId) } : {}),
+      },
+      include: { section: true },
+    })
+
+    return { documents, dynamicDocuments, sections }
   })
 }
 
-type DocumentItem = Awaited<ReturnType<typeof loader>>['documents'][number]
+type Kind = 'pdf' | 'dyn'
 
-function SortableDocumentRow({
-  document,
+type UnifiedItem = {
+  kind: Kind
+  id: number
+  dndId: string
+  title: string
+  sectionId: number
+  sectionName: string
+  sectionOrder: number | null
+  order: number | null
+  visibleFrom: Date | null
+  visibleUntil: Date | null
+  isHighlighted: boolean
+  viewsCount: number | null
+}
+
+function buildDndId(kind: Kind, id: number): string {
+  return `${kind}-${id}`
+}
+
+function parseDndId(dndId: string): { kind: Kind; id: number } {
+  const [kind, rest] = dndId.split('-', 2)
+  return { kind: kind as Kind, id: Number(rest) }
+}
+
+function mergeAndSort(
+  pdfs: Awaited<ReturnType<typeof loader>>['documents'],
+  dyns: Awaited<ReturnType<typeof loader>>['dynamicDocuments'],
+): UnifiedItem[] {
+  const items: UnifiedItem[] = [
+    ...pdfs.map<UnifiedItem>(d => ({
+      kind: 'pdf',
+      id: d.id,
+      dndId: buildDndId('pdf', d.id),
+      title: d.title,
+      sectionId: d.sectionId,
+      sectionName: d.section.name,
+      sectionOrder: d.section.order,
+      order: d.order,
+      visibleFrom: d.visibleFrom,
+      visibleUntil: d.visibleUntil,
+      isHighlighted: d.isHighlighted,
+      viewsCount: d.viewedBy.length,
+    })),
+    ...dyns.map<UnifiedItem>(d => ({
+      kind: 'dyn',
+      id: d.id,
+      dndId: buildDndId('dyn', d.id),
+      title: d.title,
+      sectionId: d.sectionId,
+      sectionName: d.section.name,
+      sectionOrder: d.section.order,
+      order: d.order,
+      visibleFrom: d.visibleFrom,
+      visibleUntil: d.visibleUntil,
+      isHighlighted: d.isHighlighted,
+      viewsCount: null,
+    })),
+  ]
+  items.sort((a, b) => {
+    const secA = a.sectionOrder ?? 0
+    const secB = b.sectionOrder ?? 0
+    if (secA !== secB) return secA - secB
+    const ordA = a.order ?? 0
+    const ordB = b.order ?? 0
+    return ordA - ordB
+  })
+  return items
+}
+
+function SortableItemRow({
+  item,
   selected,
   onToggle,
 }: {
-  document: DocumentItem
+  item: UnifiedItem
   selected: boolean
-  onToggle: (id: number) => void
+  onToggle: (dndId: string) => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: document.id,
+    id: item.dndId,
   })
 
   const style = {
@@ -92,6 +160,10 @@ function SortableDocumentRow({
     transition,
     opacity: isDragging ? 0.5 : 1,
   }
+
+  const editHref = item.kind === 'pdf' ? `./${item.id}/edit` : `/board/dynamic/${item.id}/edit`
+  const viewerHref = item.kind === 'pdf' ? `./${item.id}/viewer` : `/board/dynamic/${item.id}/viewer`
+  const deleteHref = item.kind === 'pdf' ? `./${item.id}/delete` : `/board/dynamic/${item.id}/delete`
 
   return (
     <TableRow ref={setNodeRef} style={style}>
@@ -104,36 +176,45 @@ function SortableDocumentRow({
         <input
           type="checkbox"
           checked={selected}
-          onChange={() => onToggle(document.id)}
+          onChange={() => onToggle(item.dndId)}
           className="size-4 rounded border border-input accent-primary"
         />
       </TableCell>
-      <TableCell>{document.title}</TableCell>
-      <TableCell className="max-sm:hidden">{document.section.name}</TableCell>
-      <TableCell className="hidden max-sm:table-cell">{(document.section.order ?? 0) / 5 + 1}</TableCell>
-      <TableCell className="text-center max-sm:hidden">{document.viewedBy.length}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <span>{item.title}</span>
+          {item.kind === 'dyn' && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-primary text-xs">
+              {m.board_dynamic_badge()}
+            </span>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-center max-sm:hidden">{item.viewsCount ?? '—'}</TableCell>
       <TableCell className="text-center">
-        <DocumentVisibility document={document} />
+        <DocumentVisibility document={item} />
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" asChild>
-            <Link reloadDocument to={`./${document.id}/view`}>
+            <Link to={viewerHref}>
               <Eye className="size-4" />
             </Link>
           </Button>
+          {item.kind === 'pdf' && (
+            <Button variant="ghost" size="icon" asChild>
+              <Link to={`./${item.id}/read-status`} title={m.board_read_status_link_tooltip()}>
+                <BarChart3 className="size-4" />
+              </Link>
+            </Button>
+          )}
           <Button variant="ghost" size="icon" asChild>
-            <Link to={`./${document.id}/read-status`} title={m.board_read_status_link_tooltip()}>
-              <BarChart3 className="size-4" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" asChild>
-            <Link to={`./${document.id}/edit`}>
+            <Link to={editHref}>
               <Pencil className="size-4" />
             </Link>
           </Button>
           <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive max-sm:hidden">
-            <Link to={`./${document.id}/delete`} title={m.board_documents_delete_tooltip()}>
+            <Link to={deleteHref} title={m.board_documents_delete_tooltip()}>
               <Trash2 className="size-4" />
             </Link>
           </Button>
@@ -144,33 +225,47 @@ function SortableDocumentRow({
 }
 
 export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
-  const { documents, sections } = loaderData
+  const { documents, dynamicDocuments, sections } = loaderData
   const fetcher = useFetcher()
   const bulkFetcher = useFetcher()
   const revalidator = useRevalidator()
   const [searchParams] = useSearchParams()
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  function toggleSelection(id: number) {
+  const items = mergeAndSort(documents, dynamicDocuments)
+  const sectionsWithItems = sections
+    .map(section => ({
+      section,
+      sectionItems: items.filter(i => i.sectionId === section.id),
+    }))
+    .filter(({ sectionItems }) => sectionItems.length > 0)
+
+  function toggleSelection(dndId: string) {
     setSelectedIds(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(dndId)) next.delete(dndId)
+      else next.add(dndId)
       return next
     })
   }
 
-  function toggleAll() {
-    if (selectedIds.size === documents.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(documents.map(d => d.id)))
-    }
+  function toggleAllInSection(sectionItems: UnifiedItem[]) {
+    const allSelected = sectionItems.every(i => selectedIds.has(i.dndId))
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allSelected) {
+        for (const item of sectionItems) next.delete(item.dndId)
+      } else {
+        for (const item of sectionItems) next.add(item.dndId)
+      }
+      return next
+    })
   }
 
   function handleBulkDelete() {
+    const selected = [...selectedIds].map(parseDndId)
     bulkFetcher.submit(
-      { ids: [...selectedIds] },
+      { items: selected },
       { method: 'POST', action: '/board/documents/bulk-delete', encType: 'application/json' },
     )
     setSelectedIds(new Set())
@@ -178,8 +273,9 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
   }
 
   function handleBulkMove(sectionId: number) {
+    const selected = [...selectedIds].map(parseDndId)
     bulkFetcher.submit(
-      { ids: [...selectedIds], sectionId },
+      { items: selected, sectionId },
       { method: 'POST', action: '/board/documents/bulk-move', encType: 'application/json' },
     )
     setSelectedIds(new Set())
@@ -190,24 +286,24 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
     const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const oldIndex = documents.findIndex(d => d.id === active.id)
-    const newIndex = documents.findIndex(d => d.id === over.id)
-    if (oldIndex === -1 || newIndex === -1) return
+    const activeIndex = items.findIndex(i => i.dndId === active.id)
+    const overIndex = items.findIndex(i => i.dndId === over.id)
+    if (activeIndex === -1 || overIndex === -1) return
 
     // Only reorder within the same section
-    if (documents[oldIndex].sectionId !== documents[newIndex].sectionId) return
+    if (items[activeIndex].sectionId !== items[overIndex].sectionId) return
 
-    const sectionId = documents[oldIndex].sectionId
-    const sectionDocs = documents.filter(d => d.sectionId === sectionId)
-    const oldSectionIndex = sectionDocs.findIndex(d => d.id === active.id)
-    const newSectionIndex = sectionDocs.findIndex(d => d.id === over.id)
+    const sectionId = items[activeIndex].sectionId
+    const sectionItems = items.filter(i => i.sectionId === sectionId)
+    const oldSectionIndex = sectionItems.findIndex(i => i.dndId === active.id)
+    const newSectionIndex = sectionItems.findIndex(i => i.dndId === over.id)
 
-    const reordered = [...sectionDocs]
+    const reordered = [...sectionItems]
     const [moved] = reordered.splice(oldSectionIndex, 1)
     reordered.splice(newSectionIndex, 0, moved)
 
     fetcher.submit(
-      { orderedIds: reordered.map(d => d.id) },
+      { orderedItems: reordered.map(i => ({ kind: i.kind, id: i.id })) },
       { method: 'POST', action: '/board/documents/reorder', encType: 'application/json' },
     )
   }
@@ -218,9 +314,17 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
         title="Documents"
         subtitle={m.board_documents_list_subtitle()}
         actions={
-          <Button asChild>
-            <Link to="./new">{m.board_documents_upload_button()}</Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link to="./new-dynamic">
+                <Sparkles className="mr-2 size-4" />
+                {m.board_add_dynamic_button()}
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="./new">{m.board_documents_upload_button()}</Link>
+            </Button>
+          </div>
         }
       />
 
@@ -252,7 +356,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
         </Button>
       </RouterForm>
 
-      {documents.length === 0 ? (
+      {items.length === 0 ? (
         <EmptyState
           icon={FileText}
           title={m.board_documents_empty_title()}
@@ -288,58 +392,90 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          <div className="overflow-hidden rounded-xl border">
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8">
-                      <span className="sr-only">{m.board_documents_table_position()}</span>
-                    </TableHead>
-                    <TableHead className="w-8">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.size === documents.length && documents.length > 0}
-                        onChange={toggleAll}
-                        className="size-4 rounded border border-input accent-primary"
-                      />
-                    </TableHead>
-                    <TableHead>{m.board_documents_table_name()}</TableHead>
-                    <TableHead>
-                      <span className="max-sm:hidden">{m.board_documents_table_section()}</span>
-                      <span className="hidden max-sm:inline" aria-hidden="true">
-                        Sec.
-                      </span>
-                    </TableHead>
-                    <TableHead className="text-center max-sm:hidden">{m.board_documents_table_views()}</TableHead>
-                    <TableHead className="text-center">
-                      <span className="max-sm:hidden">{m.board_documents_table_visibility()}</span>
-                      <span className="hidden max-sm:inline" aria-hidden="true">
-                        Vis.
-                      </span>
-                    </TableHead>
-                    <TableHead className="w-0">
-                      <span className="sr-only">{m.board_documents_table_actions()}</span>
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <SortableContext items={documents.map(d => d.id)} strategy={verticalListSortingStrategy}>
-                  <TableBody>
-                    {documents.map(document => (
-                      <SortableDocumentRow
-                        key={document.id}
-                        document={document}
-                        selected={selectedIds.has(document.id)}
-                        onToggle={toggleSelection}
-                      />
-                    ))}
-                  </TableBody>
-                </SortableContext>
-              </Table>
-            </DndContext>
+          <div className="flex flex-col gap-6">
+            {sectionsWithItems.map(({ section, sectionItems }) => (
+              <SectionBlock
+                key={section.id}
+                section={section}
+                items={sectionItems}
+                allSelected={sectionItems.every(i => selectedIds.has(i.dndId)) && sectionItems.length > 0}
+                selectedIds={selectedIds}
+                onToggleAllInSection={() => toggleAllInSection(sectionItems)}
+                onToggle={toggleSelection}
+                onDragEnd={handleDragEnd}
+              />
+            ))}
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+function SectionBlock({
+  section,
+  items,
+  allSelected,
+  selectedIds,
+  onToggleAllInSection,
+  onToggle,
+  onDragEnd,
+}: {
+  section: { id: number; name: string }
+  items: UnifiedItem[]
+  allSelected: boolean
+  selectedIds: Set<string>
+  onToggleAllInSection: () => void
+  onToggle: (dndId: string) => void
+  onDragEnd: (event: DragEndEvent) => void
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <h2 className="font-display font-semibold text-lg">{section.name}</h2>
+      <div className="overflow-hidden rounded-xl border">
+        <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8">
+                  <span className="sr-only">{m.board_documents_table_position()}</span>
+                </TableHead>
+                <TableHead className="w-8">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={onToggleAllInSection}
+                    className="size-4 rounded border border-input accent-primary"
+                  />
+                </TableHead>
+                <TableHead>{m.board_documents_table_name()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.board_documents_table_views()}</TableHead>
+                <TableHead className="text-center">
+                  <span className="max-sm:hidden">{m.board_documents_table_visibility()}</span>
+                  <span className="hidden max-sm:inline" aria-hidden="true">
+                    Vis.
+                  </span>
+                </TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">{m.board_documents_table_actions()}</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <SortableContext items={items.map(i => i.dndId)} strategy={verticalListSortingStrategy}>
+              <TableBody>
+                {items.map(item => (
+                  <SortableItemRow
+                    key={item.dndId}
+                    item={item}
+                    selected={selectedIds.has(item.dndId)}
+                    onToggle={onToggle}
+                  />
+                ))}
+              </TableBody>
+            </SortableContext>
+          </Table>
+        </DndContext>
+      </div>
     </div>
   )
 }

@@ -30,20 +30,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   logger.info(`Loading program list. User ID: ${currentUser.id}.`)
 
   return withScope(congregationId, async db => {
+    // Inclure tous les évènements à partir du début du mois en cours —
+    // permet de voir les évènements planifiés plusieurs mois à l'avance.
     const now = new Date()
-    const fourWeeksLater = new Date()
-    fourWeeksLater.setDate(fourWeeksLater.getDate() + 28)
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
     const upcomingEvents = await db.event.findMany({
       where: {
         congregationId,
-        startDate: { gte: now, lte: fourWeeksLater },
+        startDate: { gte: startOfCurrentMonth },
         // biome-ignore lint/style/useNamingConvention: prisma syntax
         NOT: { kind: { key: 'off' } },
       },
       include: { template: true },
       orderBy: { startDate: 'asc' },
-      take: 20,
     })
 
     return {

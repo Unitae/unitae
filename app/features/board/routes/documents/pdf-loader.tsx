@@ -15,17 +15,10 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 
   return withScope(congregationId, async db => {
-    const document = await db.boardDocument.update({
+    const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
-      },
-      data: {
-        viewedBy: {
-          connect: {
-            id: currentUser.id,
-          },
-        },
       },
     })
 

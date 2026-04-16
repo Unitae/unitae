@@ -126,6 +126,7 @@ async function handleAddPart(form: FormData, db: TransactionClient, eventId: num
       eventId,
       name: partName,
       section: String(form.get('partSection') ?? ''),
+      track: String(form.get('partTrack') ?? ''),
       order: Number(form.get('partOrder') ?? 0),
       durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
       congregationId,
@@ -192,6 +193,7 @@ async function handleApplyTemplate(
         partId: part.id,
         name: part.name,
         section: part.section,
+        track: part.track,
         order: part.order,
         durationMin: part.durationMin,
         congregationId,
@@ -332,6 +334,10 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-col gap-1">
               <Label className="text-xs">{m.programs_edit_part_section_label()}</Label>
               <Input name="partSection" className="w-40" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs">{m.programs_edit_part_track_label()}</Label>
+              <Input name="partTrack" className="w-40" />
             </div>
             <div className="flex flex-col gap-1">
               <Label className="text-xs">{m.programs_edit_part_order_label()}</Label>

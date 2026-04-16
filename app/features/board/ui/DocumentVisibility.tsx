@@ -1,7 +1,12 @@
-import type { BoardDocument } from '~/database/generated/client'
 import { Badge } from '~/shared/ui/badge'
 
-export function DocumentVisibility({ document }: { document: BoardDocument }) {
+interface VisibilityAware {
+  visibleFrom: Date | null
+  visibleUntil: Date | null
+  isHighlighted: boolean
+}
+
+export function DocumentVisibility({ document }: { document: VisibilityAware }) {
   const today = new Date()
 
   if (document.visibleFrom == null || document.visibleFrom > today) {

@@ -43,9 +43,10 @@ model Congregation {
   publisherGroups    PublisherGroup[]
   publisherActivities PublisherActivity[]
   boardSections      BoardSection[]
-  boardDocuments        BoardDocument[]
-  boardDocumentVersions BoardDocumentVersion[]
-  events                Event[]
+  boardDocuments                BoardDocument[]
+  boardDocumentVersions         BoardDocumentVersion[]
+  boardDynamicDocumentSettings  BoardDynamicDocumentSettings[]
+  events                        Event[]
   eventKinds         EventKind[]
   settings           Setting[]
   userRoles               CongregationUserRole[]
@@ -103,10 +104,14 @@ model User {
   serviceRoleAssignments   ProgrammeServiceRoleAssignment[] @relation("serviceRoleAssignee")
   templateResponsibilities ProgrammeTemplateResponsible[]   @relation("templateResponsible")
 
-  documentsViewed        BoardDocument[]        @relation("viewedBy")
-  documentVersionUploads BoardDocumentVersion[] @relation("boardDocumentVersionUploader")
-  passwordResetTokens    PasswordResetToken[]
+  documentsViewed           BoardDocument[]            @relation("viewedBy")
+  documentVersionUploads    BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
+  dynamicDocumentViews      BoardDynamicDocumentView[]
+  passwordResetTokens       PasswordResetToken[]
   consentRecords      ConsentRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -135,10 +140,11 @@ model CongregationUserRole {
 }
 
 model BoardSection {
-  id        Int             @id @default(autoincrement())
-  name      String
-  order     Int?
-  documents BoardDocument[]
+  id               Int                            @id @default(autoincrement())
+  name             String
+  order            Int?
+  documents        BoardDocument[]
+  dynamicDocuments BoardDynamicDocumentSettings[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -183,6 +189,39 @@ model BoardDocumentVersion {
   congregationId Int
 
   @@unique([id, congregationId])
+}
+
+model BoardDynamicDocumentSettings {
+  id            Int          @id @default(autoincrement())
+  title         String
+  dynamicType   String
+  dynamicRef    String?
+  section       BoardSection @relation(fields: [sectionId], references: [id])
+  sectionId     Int
+  order         Int?
+  visibleFrom   DateTime?
+  visibleUntil  DateTime?
+  isHighlighted Boolean      @default(false)
+  showServices  Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  views         BoardDynamicDocumentView[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([congregationId, dynamicType, dynamicRef])
+  @@unique([id, congregationId])
+}
+
+model BoardDynamicDocumentView {
+  id         Int                          @id @default(autoincrement())
+  settings   BoardDynamicDocumentSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
+  settingsId Int
+  user       User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  viewedAt   DateTime                     @default(now())
+
+  @@unique([settingsId, userId])
 }
 
 model Territory {
@@ -329,6 +368,9 @@ model PublisherGroup {
   deputy        User?  @relation("groupDeputy", fields: [deputyId], references: [id])
   deputyId      Int?   @unique
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
@@ -427,6 +469,7 @@ model ProgrammeTemplatePart {
   id          Int     @id @default(autoincrement())
   name        String
   section     String  @default("")
+  track       String  @default("")
   order       Int
   durationMin Int?
   isVariable  Boolean @default(false)
@@ -467,6 +510,7 @@ model ProgrammePartAssignment {
   // Inline fields (copied from template part on generation, or set manually for custom parts)
   name        String  @default("")
   section     String  @default("")
+  track       String  @default("")
   order       Int     @default(0)
   durationMin Int?
 
@@ -481,6 +525,9 @@ model ProgrammePartAssignment {
 
   assistant   User? @relation("partAssistant", fields: [assistantId], references: [id])
   assistantId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -504,6 +551,9 @@ model ProgrammeServiceRoleAssignment {
 
   assignee   User? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
