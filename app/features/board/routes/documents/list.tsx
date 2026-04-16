@@ -118,7 +118,7 @@ function SortableDocumentRow({
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" asChild>
-            <Link reloadDocument to={`./${document.id}/view`}>
+            <Link to={`./${document.id}/viewer`}>
               <Eye className="size-4" />
             </Link>
           </Button>

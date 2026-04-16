@@ -46,6 +46,7 @@ export default [
         route('/:documentId/move-up', 'features/board/routes/documents/move-up.tsx'),
         route('/:documentId/move-down', 'features/board/routes/documents/move-down.tsx'),
         route('/:documentId/view', 'features/board/routes/documents/pdf-loader.tsx'),
+        route('/:documentId/viewer', 'features/board/routes/documents/viewer.tsx'),
         route('/:documentId/read-status', 'features/board/routes/documents/read-status.tsx'),
         route('/:documentId/versions', 'features/board/routes/documents/versions.tsx'),
         route('/:documentId/thumbnail', 'features/board/routes/documents/thumbnail.tsx'),
