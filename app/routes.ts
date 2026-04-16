@@ -14,6 +14,7 @@ export default [
   route('privacy', 'routes/privacy.tsx'),
   route('consent', 'routes/consent.tsx'),
   route('cron/retention', 'routes/cron.retention.tsx'),
+  route('cron/board-expirations', 'routes/cron.board-expirations.tsx'),
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     route('me', 'features/authentication/routes/user/_layout.tsx', [
@@ -23,6 +24,7 @@ export default [
     ]),
     route('board', 'features/board/routes/_layout.tsx', [
       index('features/board/routes/index.tsx'),
+      route('read-dashboard', 'features/board/routes/read-dashboard.tsx'),
       ...prefix('sections', [
         index('features/board/routes/sections/list.tsx'),
         route('new', 'features/board/routes/sections/new.tsx'),
@@ -44,6 +46,8 @@ export default [
         route('/:documentId/move-up', 'features/board/routes/documents/move-up.tsx'),
         route('/:documentId/move-down', 'features/board/routes/documents/move-down.tsx'),
         route('/:documentId/view', 'features/board/routes/documents/pdf-loader.tsx'),
+        route('/:documentId/read-status', 'features/board/routes/documents/read-status.tsx'),
+        route('/:documentId/versions', 'features/board/routes/documents/versions.tsx'),
         route('/:documentId/thumbnail', 'features/board/routes/documents/thumbnail.tsx'),
       ]),
     ]),

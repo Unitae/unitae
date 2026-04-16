@@ -1,4 +1,5 @@
 import { createCanvas } from 'canvas'
+import type { RenderParameters } from 'pdfjs-dist/types/src/display/api'
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs'
 import logger from '~/shared/libs/logger.server'
 import { getBoardFileBuffer } from './document-storage'
@@ -22,10 +23,9 @@ export async function generateThumbnail(pdfStorageKey: string): Promise<Buffer |
     const canvas = createCanvas(scaledViewport.width, scaledViewport.height)
     const context = canvas.getContext('2d')
 
-    await page.render({
-      canvasContext: context,
-      viewport: scaledViewport,
-    } as any).promise
+    // node-canvas context is compatible with pdfjs-dist at runtime but types diverge
+    const renderParams = { canvasContext: context, viewport: scaledViewport } as unknown as RenderParameters
+    await page.render(renderParams).promise
 
     return canvas.toBuffer('image/png')
   } catch (error) {

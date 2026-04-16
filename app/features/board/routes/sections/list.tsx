@@ -202,7 +202,7 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
         <>
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 {m.board_sections_bulk_selected({ count: selectedIds.size })}
               </span>
               <Button variant="destructive" size="sm" onClick={handleBulkDelete}>

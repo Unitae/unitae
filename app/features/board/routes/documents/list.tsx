@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Eye, FileText, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
+import { BarChart3, Eye, FileText, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
@@ -120,6 +120,11 @@ function SortableDocumentRow({
           <Button variant="ghost" size="icon" asChild>
             <Link reloadDocument to={`./${document.id}/view`}>
               <Eye className="size-4" />
+            </Link>
+          </Button>
+          <Button variant="ghost" size="icon" asChild>
+            <Link to={`./${document.id}/read-status`} title={m.board_read_status_link_tooltip()}>
+              <BarChart3 className="size-4" />
             </Link>
           </Button>
           <Button variant="ghost" size="icon" asChild>
@@ -257,7 +262,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
         <>
           {selectedIds.size > 0 && (
             <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-muted-foreground text-sm">
                 {m.board_documents_bulk_selected({ count: selectedIds.size })}
               </span>
               <select

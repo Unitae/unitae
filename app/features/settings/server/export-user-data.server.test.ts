@@ -8,6 +8,7 @@ const mockDb = {
   publisherGroup: { findFirst: vi.fn() },
   event: { findMany: vi.fn() },
   boardDocument: { findMany: vi.fn() },
+  boardDocumentVersion: { findMany: vi.fn() },
   consentRecord: { findMany: vi.fn() },
 }
 
@@ -64,6 +65,7 @@ describe('exportUserData', () => {
     } as never)
     mockDb.event.findMany.mockResolvedValue([] as never)
     mockDb.boardDocument.findMany.mockResolvedValue([] as never)
+    mockDb.boardDocumentVersion.findMany.mockResolvedValue([] as never)
     mockDb.consentRecord.findMany.mockResolvedValue([] as never)
 
     const result = await exportUserData(mockDb as never, 1)

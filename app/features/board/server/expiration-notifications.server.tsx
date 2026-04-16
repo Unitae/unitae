@@ -1,0 +1,101 @@
+import DocumentsExpiring from 'emails/notifications/documents-expiring'
+import { Role } from '~/features/authorization/model/roles.type'
+import { unscopedDb } from '~/shared/libs/db.server'
+import logger from '~/shared/libs/logger.server'
+import { mailer } from '~/shared/libs/mailer.server'
+
+/**
+ * Verifie tous les documents dont la visibilite expire dans les 48 prochaines heures
+ * et envoie une notification aux valideurs du tableau d'affichage.
+ */
+export async function checkExpiringDocuments(): Promise<{ congregationsNotified: number; documentsFound: number }> {
+  const now = new Date()
+  const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+
+  // Find documents expiring within 48h across all congregations
+  const expiringDocuments = await unscopedDb.boardDocument.findMany({
+    where: {
+      visibleUntil: {
+        gte: now,
+        lte: in48h,
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      congregationId: true,
+      congregation: {
+        select: {
+          id: true,
+          displayName: true,
+          slug: true,
+        },
+      },
+    },
+  })
+
+  if (expiringDocuments.length === 0) {
+    return { congregationsNotified: 0, documentsFound: 0 }
+  }
+
+  // Group by congregation
+  const byCongregation = new Map<number, { docs: { id: number; title: string }[]; displayName: string; slug: string }>()
+  for (const doc of expiringDocuments) {
+    const existing = byCongregation.get(doc.congregationId)
+    if (existing) {
+      existing.docs.push({ id: doc.id, title: doc.title })
+    } else {
+      byCongregation.set(doc.congregationId, {
+        docs: [{ id: doc.id, title: doc.title }],
+        displayName: doc.congregation.displayName ?? doc.congregation.slug,
+        slug: doc.congregation.slug,
+      })
+    }
+  }
+
+  let congregationsNotified = 0
+
+  for (const [congregationId, { docs, displayName, slug }] of byCongregation) {
+    // Find BoardValidator users for this congregation
+    const validators = await unscopedDb.user.findMany({
+      where: {
+        congregationId,
+        active: true,
+        congregationRoles: {
+          some: {
+            role: { key: Role.BoardValidator },
+          },
+        },
+      },
+      select: { email: true, firstname: true },
+    })
+
+    const baseUrl = process.env.BASE_URL ?? `https://${slug}.unitae.app`
+    const emailFrom = `${displayName} <noreply@unitae.app>`
+
+    for (const user of validators) {
+      try {
+        await mailer.emails.send({
+          to: user.email,
+          from: emailFrom,
+          subject: `${docs.length} document(s) arrive(nt) à expiration`,
+          react: (
+            <DocumentsExpiring
+              email={user.email}
+              firstname={user.firstname ?? undefined}
+              documents={docs}
+              baseUrl={baseUrl}
+              platformName={displayName}
+            />
+          ),
+        })
+      } catch (error) {
+        logger.error('Failed to send expiration notification email', { userId: user.email, congregationId, error })
+      }
+    }
+
+    congregationsNotified++
+  }
+
+  return { congregationsNotified, documentsFound: expiringDocuments.length }
+}
