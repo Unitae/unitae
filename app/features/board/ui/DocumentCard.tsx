@@ -4,7 +4,7 @@ import type { BoardDocument } from '~/database/generated/client'
 
 export function DocumentCard({ file, alreadyViewed = false }: { file: BoardDocument; alreadyViewed?: boolean }) {
   return (
-    <Link reloadDocument to={`./documents/${file.id}/view`} className="group">
+    <Link to={`./documents/${file.id}/viewer`} className="group">
       <div className="relative w-44 rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-primary max-sm:w-full max-sm:flex-row max-sm:items-center">
         <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-xl bg-muted max-sm:aspect-square max-sm:w-16 max-sm:shrink-0 max-sm:rounded-l-xl max-sm:rounded-tr-none">
           {!alreadyViewed && (
