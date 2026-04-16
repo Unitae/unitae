@@ -52,9 +52,14 @@ function isAndroidDevice(): boolean {
   return ANDROID_UA_REGEX.test(navigator.userAgent)
 }
 
+// PDF open parameters to hide the browser's default PDF viewer chrome.
+// Supported by Chrome/Edge (PDFium) and partially by Firefox. Safari ignores them.
+const PDF_VIEWER_PARAMS = '#toolbar=0&navpanes=0&scrollbar=1&view=FitH'
+
 export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   const { document } = loaderData
   const pdfUrl = `/board/documents/${document.id}/view`
+  const embedUrl = `${pdfUrl}${PDF_VIEWER_PARAMS}`
   const [useFallback, setUseFallback] = useState(false)
 
   useEffect(() => {
@@ -83,7 +88,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
       {useFallback ? (
         <PdfViewer url={pdfUrl} />
       ) : (
-        <object data={pdfUrl} type="application/pdf" className="h-full w-full flex-1">
+        <object data={embedUrl} type="application/pdf" className="h-full w-full flex-1">
           <PdfViewer url={pdfUrl} />
         </object>
       )}
