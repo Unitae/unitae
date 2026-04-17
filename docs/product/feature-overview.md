@@ -2,12 +2,16 @@
 
 ## Virtual Display Board
 
-The display board is a digital notice board where congregation administrators can share PDF documents with all members.
+The display board is a digital notice board where congregation administrators can share PDF documents and live data views with all members.
 
 - **Sections** — Organize documents into named sections with custom ordering
 - **Visibility scheduling** — Set *Visible à partir du* and *Visible jusqu'au* dates to control when documents appear
 - **Highlighting** — Pin important documents to the top of the board
 - **View tracking** — See which members have viewed each document
+- **Dynamic documents** — Live views of publisher groups, pioneer lists, and meeting programmes alongside uploaded PDFs
+- **In-app PDF viewer** — Embedded viewer with native rendering on desktop and PDF.js fallback on Android
+- **File replacement & versioning** — Replace a document's PDF while preserving previous versions
+- **Thumbnails** — Auto-generated first-page preview thumbnails for PDF documents
 
 See [Display Board](display-board.md) for details.
 
@@ -41,7 +45,8 @@ See [Publishers](publishers.md) for details.
 Manage congregation meeting programmes, event scheduling, and publisher assignments.
 
 - **Programme templates** — Define meeting structures (parts + service roles) with recurring weekdays. Ships with midweek, weekend, and memorial defaults
-- **Event generation** — Auto-generate events from templates for 2 months, or create one-time events from templates or freeform
+- **Parallel parts (tracks)** — Mark template parts to run simultaneously in different rooms/groups (e.g., "Main hall" vs "Children"). Parts with the same order and different tracks render side-by-side in the board viewer and PDF export
+- **Event generation** — Auto-generate events from templates, or create one-time events from templates or freeform. Events are listed from the start of the current month onward
 - **Publisher assignments** — Assign speakers, readers, and service roles with a dynamic info card showing availability, conflicts, and rotation history
 - **Conflict detection** — Days-off conflicts block assignments in real time and retroactively flag existing ones
 - **Per-template responsibility** — Delegate programme management to specific elders without granting full ProgramManager role

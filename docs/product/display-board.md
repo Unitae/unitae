@@ -26,6 +26,14 @@ Documents are stored in the configured file storage backend (local filesystem or
 
 **Required role**: `BoardUploader`, `BoardValidator`, or `Admin`
 
+### File Replacement
+
+Existing documents can have their PDF file replaced from the edit page. The previous file is automatically saved as a version — see "Version History" below.
+
+### Version History
+
+When a document's file is replaced, the previous version is preserved. Access version history from the edit page (clock icon). Previous versions can be downloaded or restored. Restoring a version saves the current file as a new version first.
+
 ### Visibility Scheduling
 
 Control when a document appears on the board:
@@ -43,9 +51,36 @@ Important documents can be featured on the board using the *Mettre en avant le d
 
 **Required role**: `BoardValidator` or `Admin`
 
+## In-App PDF Viewer
+
+Clicking a document opens an in-app viewer page that keeps the sidebar and navigation visible:
+
+- **Desktop / iOS** — Uses the browser's native PDF embed with a clean toolbar-less view
+- **Android** — Lazy-loads a PDF.js canvas renderer (~500 KB, loaded on demand) for inline viewing
+
+The viewer includes a back button to the board and a download button. Document viewing is tracked server-side when the page loads.
+
 ## View Tracking
 
 The system tracks which members have viewed each document. This gives administrators visibility into document reach without requiring explicit acknowledgment from members.
+
+## Dynamic Documents
+
+In addition to uploaded PDFs, the board can display **live data** from other Unitae features. Board validators add dynamic documents from a catalog via the "Ajouter un document dynamique" button.
+
+Available types (appear only when the related feature has data):
+
+- **Groupes de prédication** — Live list of publisher groups with responsible, deputy, and members
+- **Pionniers** — List of publishers registered as regular pioneers, special pioneers, or missionaries
+- **Programmes** — One entry per programme template (e.g., "Réunion de semaine"). Shows all events from the start of the current month with their assigned parts, grouped by section. An optional "Afficher les services" toggle adds service role assignments.
+
+Dynamic documents support the same visibility, highlighting, ordering, and section placement controls as PDF documents. They appear alongside PDFs in the same sections on the board.
+
+### Unread Detection
+
+For PDFs, the unread badge disappears once a member opens the document. For dynamic documents, the badge **reappears when the underlying data changes** — e.g., when a new publisher is added to a group or a programme assignment is updated. This ensures members are notified of fresh content.
+
+**Required role**: `BoardValidator` or `Admin` to add/configure. Any authenticated user can view.
 
 ## Permissions
 
@@ -54,8 +89,7 @@ The system tracks which members have viewed each document. This gives administra
 | `BoardUploader` | Upload documents to the board |
 | `BoardValidator` | Upload, edit, delete documents. Manage sections. Set visibility and highlighting |
 | `Admin` | Everything |
-
-Any authenticated user can view the board and its visible documents.
+| Any authenticated user | View the board, its visible documents, and dynamic documents |
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
 
