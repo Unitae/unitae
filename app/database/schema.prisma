@@ -88,7 +88,8 @@ model User {
   isServant   Boolean   @default(false)
   isAnointed  Boolean   @default(false)
 
-  anonymizedAt DateTime?
+  emailVerifiedAt DateTime?
+  anonymizedAt    DateTime?
 
   publisherGroupId Int?
   publisherGroup   PublisherGroup? @relation("group", fields: [publisherGroupId], references: [id])
@@ -107,7 +108,8 @@ model User {
   documentsViewed           BoardDocument[]            @relation("viewedBy")
   documentVersionUploads    BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
   dynamicDocumentViews      BoardDynamicDocumentView[]
-  passwordResetTokens       PasswordResetToken[]
+  passwordResetTokens        PasswordResetToken[]
+  emailVerificationTokens    EmailVerificationToken[]
   consentRecords      ConsentRecord[]
 
   createdAt DateTime @default(now())
@@ -578,6 +580,15 @@ model ProgrammeTemplateResponsible {
 }
 
 model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model EmailVerificationToken {
   id        Int      @id @default(autoincrement())
   token     String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
