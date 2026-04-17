@@ -10,6 +10,7 @@ Programme templates (*Modèles de programme*) define the recurring structure of 
 - **Clé unique** — An internal identifier
 - **Jour de la semaine** — The recurring weekday (null for one-time events like the Memorial)
 - **Parties** — Ordered list of programme parts (spiritual content), each with a name, section grouping, order, optional duration, and a variable flag
+- **Piste / Salle** (`track`) — Optional label for parts happening simultaneously. Parts sharing the same order number with different tracks run in parallel (e.g., an adult class in the main hall while children have a separate activity). Leave empty for normal sequential parts
 - **Rôles de service** — Service attributions needed during the event (Sono, Estrade, Accueil, Nettoyage)
 - **Responsable** — An optional user designated as manager for this template's programmes
 
@@ -36,17 +37,21 @@ Each event has:
 - **Programme spirituel** — Ordered list of parts with speaker/reader assignments and topics
 - **Services** — List of service role assignments
 
-Events are accessible at **Programmes** in the sidebar.
+Events are accessible at **Programmes** in the sidebar. The list shows all events from the start of the current month onward, so events planned several months ahead are visible.
 
 ### Event Structure Editing
 
 Each event's structure (parts and service roles) can be edited independently from its template:
 
-- **Add/remove parts** — Custom parts can be added to any event, even template-based ones
+- **Add/remove parts** — Custom parts can be added to any event, even template-based ones. Custom parts can also specify a **track** to run in parallel with other parts at the same order position
 - **Add/remove service roles** — Same flexibility for service attributions
 - **Apply a template** — Freeform events can retroactively adopt a template's structure
 
 Parts and service roles are stored inline on each event (with name, section, order, duration), so editing one event's structure does not affect the template or other events.
+
+## PDF Export
+
+Events can be exported to PDF from the programme list. The export supports filtering by template and date range. Parallel parts (sharing the same order) are rendered with their track label appended to the part name.
 
 ## Assignments
 
