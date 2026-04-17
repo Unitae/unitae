@@ -93,6 +93,7 @@ export async function action({ request }: Route.ActionArgs) {
         email: String(email).toLocaleLowerCase(),
         active: true,
         password: 'password',
+        emailVerifiedAt: new Date(),
         congregationId,
       },
     })

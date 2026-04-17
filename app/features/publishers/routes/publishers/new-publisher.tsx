@@ -85,6 +85,7 @@ export async function action({ request }: Route.ActionArgs) {
             : `${firstname}.${lastname}@placeholder.unitae.app`.toLowerCase(),
         active: true,
         password: 'password',
+        emailVerifiedAt: new Date(),
         isPublisher: true,
         isMale: String(gender) === 'male',
         baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,

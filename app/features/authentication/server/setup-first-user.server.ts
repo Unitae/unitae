@@ -30,6 +30,7 @@ export async function setupFirstUser(
     data: {
       email,
       password: hashedPassword,
+      emailVerifiedAt: new Date(),
       congregationId: congregation.id,
     },
   })

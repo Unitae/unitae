@@ -40,6 +40,7 @@ export async function registerCongregation(
     data: {
       email: adminEmail.toLowerCase(),
       password: hashedPassword,
+      emailVerifiedAt: new Date(),
       congregationId: congregation.id,
     },
   })

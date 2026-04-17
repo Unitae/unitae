@@ -87,6 +87,10 @@ export async function verifySession(request: Request) {
     throw redirect('/trial-expired')
   }
 
+  if (!user.emailVerifiedAt) {
+    throw redirect('/verify-email')
+  }
+
   return {
     currentUser: sanitizeUser(user),
     congregation,
