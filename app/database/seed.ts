@@ -150,40 +150,41 @@ async function main() {
     },
   })
 
-  // Create or get default congregation
-  const defaultCongregation = await prisma.congregation.upsert({
-    where: { slug: 'ma-congregation' },
-    update: {},
-    create: {
-      name: 'Ma Congrégation',
-      slug: 'ma-congregation',
-      domain: 'ma-congregation.example.com',
-    },
-  })
+  // Single-tenant installations: pre-create a default congregation with its
+  // EventKind and programme templates. In multi-tenant mode, congregations
+  // are created through the /register flow (registerCongregation), which
+  // already seeds templates for each new tenant.
+  if (process.env.MULTI_TENANT !== 'true') {
+    const seedLocale = 'fr'
 
-  const seedLocale = 'fr'
+    const defaultCongregation = await prisma.congregation.upsert({
+      where: { slug: 'ma-congregation' },
+      update: {},
+      create: {
+        name: 'Ma Congrégation',
+        slug: 'ma-congregation',
+        domain: 'ma-congregation.example.com',
+      },
+    })
 
-  await prisma.eventKind.upsert({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-      key_congregationId: { key: EventKind.Off, congregationId: defaultCongregation.id },
-    },
-    update: {
-      name: m.seed_event_kind_absence({}, { locale: seedLocale }),
-      color: '#cfcfcf',
-    },
-    create: {
-      name: m.seed_event_kind_absence({}, { locale: seedLocale }),
-      color: '#cfcfcf',
-      key: EventKind.Off,
-      congregationId: defaultCongregation.id,
-    },
-  })
+    await prisma.eventKind.upsert({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+        key_congregationId: { key: EventKind.Off, congregationId: defaultCongregation.id },
+      },
+      update: {
+        name: m.seed_event_kind_absence({}, { locale: seedLocale }),
+        color: '#cfcfcf',
+      },
+      create: {
+        name: m.seed_event_kind_absence({}, { locale: seedLocale }),
+        color: '#cfcfcf',
+        key: EventKind.Off,
+        congregationId: defaultCongregation.id,
+      },
+    })
 
-  // Seed default programme templates for all congregations
-  const allCongregations = await prisma.congregation.findMany({ select: { id: true } })
-  for (const congregation of allCongregations) {
-    await seedDefaultTemplates(prisma, congregation.id, seedLocale)
+    await seedDefaultTemplates(prisma, defaultCongregation.id, seedLocale)
   }
 }
 
