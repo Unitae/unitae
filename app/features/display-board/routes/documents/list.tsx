@@ -5,7 +5,7 @@ import { BarChart3, Eye, FileText, GripVertical, Pencil, Search, Sparkles, Trash
 import { useState } from 'react'
 import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { DocumentVisibility } from '~/features/board/ui/DocumentVisibility'
+import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'

@@ -5,6 +5,7 @@ import {
   CalendarOff,
   FileText,
   FolderOpen,
+  Home,
   LayoutGrid,
   LogOut,
   Map as MapIcon,
@@ -71,15 +72,14 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent>
-        {permissions.canViewBoard && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarNavItem to="/" icon={Home} label={m.sidebar_home()} end />
+              {permissions.canViewBoard && <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         {showDocuments && (
           <SidebarGroup>
