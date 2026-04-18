@@ -42,6 +42,7 @@ Redis is used for the BullMQ job queue and login rate limiting.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `RESEND_API_KEY` | — | [Resend](https://resend.com/) API key for sending emails. Without this, the app works but cannot send password reset emails or notifications |
+| `EMAIL_FROM` | `Unitae <noreply@unitae.app>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account |
 
 ## File Storage
 
