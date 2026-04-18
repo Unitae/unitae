@@ -1,5 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
-import { checkExpiringDocuments } from '~/features/board/server/expiration-notifications.server'
+import { checkExpiringDocuments } from '~/features/display-board/server/expiration-notifications.server'
 
 import type { Route } from './+types/cron.board-expirations'
 

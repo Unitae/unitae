@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { reorderDocument } from '~/features/board/server/document'
+import { reorderSection } from '~/features/display-board/server/document'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -10,7 +10,7 @@ import { requireParamId } from '~/shared/libs/params.server'
 import type { Route } from './+types/move-up'
 
 export function loader(_args: Route.LoaderArgs) {
-  throw redirect('/board/documents')
+  throw redirect('/board/sections')
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
@@ -22,16 +22,16 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const documentId = requireParamId(params.documentId, '/board')
-    const result = await reorderDocument(db, documentId, congregationId, 'up')
+    const sectionId = requireParamId(params.sectionId, '/board')
+    const result = await reorderSection(db, sectionId, congregationId, 'up')
 
     if (result == null) {
-      session.flash('error', m.board_documents_move_not_found())
+      session.flash('error', m.board_sections_move_not_found())
     } else {
-      session.flash('success', m.board_documents_move_up_success({ name: result.title }))
+      session.flash('success', m.board_sections_move_up_success({ name: result.name }))
     }
 
-    return redirect('/board/documents', {
+    return redirect('/board/sections', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

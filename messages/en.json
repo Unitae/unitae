@@ -1578,5 +1578,22 @@
     "seed_service_cleaning": "Cleaning",
     "auth_setup_default_congregation_name": "My Congregation",
     "auth_register_slug_taken_error": "This congregation name is already taken.",
-    "auth_register_email_taken_error": "An account already exists with this email address."
+    "auth_register_email_taken_error": "An account already exists with this email address.",
+    "sidebar_home": "Home",
+    "dashboard_greeting": "Hello, {name}",
+    "dashboard_my_territories": "My territories",
+    "dashboard_no_territories": "No territory assigned",
+    "dashboard_territory_on_time": "On time",
+    "dashboard_territory_due_soon": "Due soon",
+    "dashboard_territory_overdue": "Overdue",
+    "dashboard_territory_due_date": "Due: {date}",
+    "dashboard_recent_documents": "Recent documents",
+    "dashboard_no_documents": "No recent documents",
+    "dashboard_view_all": "View all",
+    "dashboard_my_absences": "My absences",
+    "dashboard_no_absences": "No planned absences",
+    "dashboard_absence_nudge": "Remember to fill in your absences for the next 2 months.",
+    "dashboard_my_assignments": "Upcoming assignments",
+    "dashboard_no_assignments": "No upcoming assignments",
+    "dashboard_widget_error": "Unable to load this information."
 }

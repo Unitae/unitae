@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { deleteFile } from '~/features/board/server/document'
+import { deleteFile } from '~/features/display-board/server/document'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'

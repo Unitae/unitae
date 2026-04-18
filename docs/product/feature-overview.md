@@ -1,5 +1,18 @@
 # Feature Overview
 
+## Dashboard
+
+The dashboard is the personal homepage every member sees after logging in. It brings together the most important information at a glance.
+
+- **Greeting** — Personalized welcome with the member's name and current date
+- **Mes territoires** — Currently assigned territories with color-coded due-date status (on time, due soon, overdue)
+- **Prochaines interventions** — Upcoming programme assignments (speaking parts, reading, service roles)
+- **Derniers documents** — Most recent display board documents with unread indicators
+- **Mes absences** — Upcoming days off with a nudge when nothing is planned
+- **Error resilience** — Each widget loads independently; a failure in one does not affect the others
+
+See [Dashboard](dashboard.md) for details.
+
 ## Virtual Display Board
 
 The display board is a digital notice board where congregation administrators can share PDF documents and live data views with all members.

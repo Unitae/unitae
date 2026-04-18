@@ -1,4 +1,4 @@
-import { getBoardFileBuffer } from '~/features/board/server/document-storage'
+import { getBoardFileBuffer } from '~/features/display-board/server/document-storage'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'

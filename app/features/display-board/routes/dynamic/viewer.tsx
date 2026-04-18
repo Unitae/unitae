@@ -1,11 +1,14 @@
 import { ArrowLeft } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { DynamicType } from '~/features/board/model/dynamic-document.type'
-import { getDynamicDocumentData, markDynamicDocumentViewed } from '~/features/board/server/dynamic-documents.server'
-import { PioneersView } from '~/features/board/ui/dynamic/PioneersView'
-import { ProgrammeView } from '~/features/board/ui/dynamic/ProgrammeView'
-import { PublisherGroupsView } from '~/features/board/ui/dynamic/PublisherGroupsView'
+import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import {
+  getDynamicDocumentData,
+  markDynamicDocumentViewed,
+} from '~/features/display-board/server/dynamic-documents.server'
+import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
+import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
+import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
