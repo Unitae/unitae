@@ -1594,5 +1594,6 @@
     "dashboard_no_absences": "No planned absences",
     "dashboard_absence_nudge": "Remember to fill in your absences for the next 2 months.",
     "dashboard_my_assignments": "Upcoming assignments",
-    "dashboard_no_assignments": "No upcoming assignments"
+    "dashboard_no_assignments": "No upcoming assignments",
+    "dashboard_widget_error": "Unable to load this information."
 }

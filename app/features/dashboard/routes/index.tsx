@@ -1,4 +1,4 @@
-import { CalendarOff, FileText, Info, MapPin, Mic } from 'lucide-react'
+import { AlertTriangle, CalendarOff, FileText, Info, MapPin, Mic } from 'lucide-react'
 import { Link } from 'react-router'
 
 import {
@@ -11,6 +11,7 @@ import {
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
+import logger from '~/shared/libs/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -23,15 +24,24 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Accueil - Unitae' }]
 }
 
+async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn()
+  } catch (error) {
+    logger.error(`Dashboard widget "${label}" failed for user ${userId}`, error)
+    return null
+  }
+}
+
 export async function loader({ request }: Route.LoaderArgs) {
   const { currentUser, congregationId } = await authenticateAndAuthorize(request)
 
   return withScope(congregationId, async db => {
     const [territories, recentDocuments, absences, assignments] = await Promise.all([
-      getUserTerritories(db, currentUser.id),
-      getRecentDocuments(db, currentUser.id, congregationId),
-      getUpcomingAbsences(db, currentUser.id, congregationId),
-      getUpcomingAssignments(db, currentUser.id),
+      safeQuery('territories', currentUser.id, () => getUserTerritories(db, currentUser.id)),
+      safeQuery('documents', currentUser.id, () => getRecentDocuments(db, currentUser.id, congregationId)),
+      safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, congregationId)),
+      safeQuery('assignments', currentUser.id, () => getUpcomingAssignments(db, currentUser.id)),
     ])
 
     return {
@@ -94,20 +104,31 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         <TerritoriesCard territories={territories} />
         <AssignmentsCard assignments={assignments} />
         <DocumentsCard documents={recentDocuments} />
-        <AbsencesCard absences={absences.upcoming} shouldNudge={absences.shouldNudge} />
+        <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
       </div>
     </div>
   )
 }
 
-function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<typeof getUserTerritories>> }) {
+function WidgetError() {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400">
+      <AlertTriangle className="size-4 shrink-0" />
+      <span className="text-sm">{m.dashboard_widget_error()}</span>
+    </div>
+  )
+}
+
+function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<typeof getUserTerritories>> | null }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{m.dashboard_my_territories()}</CardTitle>
       </CardHeader>
       <CardContent>
-        {territories.length === 0 ? (
+        {territories == null ? (
+          <WidgetError />
+        ) : territories.length === 0 ? (
           <EmptyState icon={MapPin} title={m.dashboard_no_territories()} />
         ) : (
           <div className="flex flex-col gap-2">
@@ -129,14 +150,16 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
   )
 }
 
-function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<typeof getUpcomingAssignments>> }) {
+function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<typeof getUpcomingAssignments>> | null }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{m.dashboard_my_assignments()}</CardTitle>
       </CardHeader>
       <CardContent>
-        {assignments.length === 0 ? (
+        {assignments == null ? (
+          <WidgetError />
+        ) : assignments.length === 0 ? (
           <EmptyState icon={Mic} title={m.dashboard_no_assignments()} />
         ) : (
           <div className="flex flex-col gap-2">
@@ -157,14 +180,16 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
   )
 }
 
-function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof getRecentDocuments>> }) {
+function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof getRecentDocuments>> | null }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>{m.dashboard_recent_documents()}</CardTitle>
       </CardHeader>
       <CardContent>
-        {documents.length === 0 ? (
+        {documents == null ? (
+          <WidgetError />
+        ) : documents.length === 0 ? (
           <EmptyState icon={FileText} title={m.dashboard_no_documents()} />
         ) : (
           <div className="flex flex-col gap-2">
@@ -197,7 +222,7 @@ function AbsencesCard({
   absences,
   shouldNudge,
 }: {
-  absences: Awaited<ReturnType<typeof getUpcomingAbsences>>['upcoming']
+  absences: Awaited<ReturnType<typeof getUpcomingAbsences>>['upcoming'] | null
   shouldNudge: boolean
 }) {
   return (
@@ -206,25 +231,27 @@ function AbsencesCard({
         <CardTitle>{m.dashboard_my_absences()}</CardTitle>
       </CardHeader>
       <CardContent>
-        {shouldNudge && (
-          <Alert className="mb-3 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
-            <Info className="size-4" />
-            <AlertDescription>{m.dashboard_absence_nudge()}</AlertDescription>
-          </Alert>
-        )}
-        {absences.length === 0 ? (
-          !shouldNudge && <EmptyState icon={CalendarOff} title={m.dashboard_no_absences()} />
+        {absences == null ? (
+          <WidgetError />
         ) : (
-          <div className="flex flex-col gap-2">
-            {absences.map(a => (
-              <div key={a.id} className="flex items-center gap-2 rounded-lg border px-3 py-2">
-                <CalendarOff className="size-4 shrink-0 text-muted-foreground" />
-                <span className="text-sm">
-                  {formatDate(a.startDate)} — {formatDate(a.endDate)}
-                </span>
-              </div>
-            ))}
-          </div>
+          <>
+            {shouldNudge && (
+              <Alert className="mb-3 border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400">
+                <Info className="size-4" />
+                <AlertDescription>{m.dashboard_absence_nudge()}</AlertDescription>
+              </Alert>
+            )}
+            {absences.length === 0
+              ? !shouldNudge && <EmptyState icon={CalendarOff} title={m.dashboard_no_absences()} />
+              : absences.map(a => (
+                  <div key={a.id} className="flex items-center gap-2 rounded-lg border px-3 py-2">
+                    <CalendarOff className="size-4 shrink-0 text-muted-foreground" />
+                    <span className="text-sm">
+                      {formatDate(a.startDate)} — {formatDate(a.endDate)}
+                    </span>
+                  </div>
+                ))}
+          </>
         )}
       </CardContent>
       <CardFooter>

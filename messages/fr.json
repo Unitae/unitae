@@ -1594,5 +1594,6 @@
     "dashboard_no_absences": "Aucune absence planifiée",
     "dashboard_absence_nudge": "Pensez à renseigner vos prochaines absences pour les 2 prochains mois.",
     "dashboard_my_assignments": "Prochaines interventions",
-    "dashboard_no_assignments": "Aucune intervention prévue"
+    "dashboard_no_assignments": "Aucune intervention prévue",
+    "dashboard_widget_error": "Impossible de charger ces informations."
 }
