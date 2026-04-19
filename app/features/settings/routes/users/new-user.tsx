@@ -1,6 +1,7 @@
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
@@ -62,7 +63,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, congregation, congregationId } = await authenticateAndAuthorize(request)
+  const { currentUser, congregation, congregationId, session } = await authenticateAndAuthorize(request)
   const form = await request.formData()
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
@@ -101,7 +102,7 @@ export async function action({ request }: Route.ActionArgs) {
     const token = await createPasswordResetToken(user.id)
 
     const ResetPasswordRequired = (await import('emails/reset-password-required')).default
-    await sendResetUserPasswordEmail(
+    const sent = await sendResetUserPasswordEmail(
       user.id,
       <ResetPasswordRequired
         email={user.email}
@@ -120,6 +121,12 @@ export async function action({ request }: Route.ActionArgs) {
       entityId: user.id,
     })
 
-    return redirect('/settings/users')
+    if (!sent) {
+      session.flash('error', m.auth_email_send_warning_user_created())
+    }
+
+    return redirect('/settings/users', {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
   })
 }

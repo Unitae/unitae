@@ -16,5 +16,5 @@ export async function verifyPlatformAdmin(request: Request) {
     throw redirect('/')
   }
 
-  return { userId: user.id, email: user.email }
+  return { userId: user.id, email: user.email, congregationId: user.congregationId }
 }

@@ -97,7 +97,7 @@ export async function action({ request }: Route.ActionArgs) {
   const token = await createEmailVerificationToken(userId)
   const congregation = await resolveCongregation(user.congregationId)
 
-  await sendVerificationEmail(
+  const sent = await sendVerificationEmail(
     userId,
     VerifyEmailTemplate({
       email: user.email,
@@ -108,7 +108,11 @@ export async function action({ request }: Route.ActionArgs) {
     }),
   )
 
-  session.flash('success', m.verify_email_resent())
+  if (sent) {
+    session.flash('success', m.verify_email_resent())
+  } else {
+    session.flash('success', m.auth_email_send_error())
+  }
   return redirect('/verify-email', {
     headers: { 'Set-Cookie': await commitSession(session) },
   })

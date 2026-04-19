@@ -115,6 +115,8 @@
     "auth_password_forgot_submit": "Envoyer",
     "auth_password_forgot_back_to_login": "Retour à la connexion",
     "auth_password_forgot_success_message": "Si votre adresse correspond à un compte utilisateur, vous recevrez un email contenant les instructions pour modifier votre mot de passe.",
+    "auth_email_send_error": "Impossible d'envoyer l'email. Veuillez réessayer.",
+    "auth_email_send_warning_user_created": "L'utilisateur a été créé mais l'email n'a pas pu être envoyé. Vous pouvez réessayer via le bouton de réinitialisation du mot de passe.",
     "auth_password_reset_page_title": "Réinitialiser le mot de passe",
     "auth_password_reset_subtitle": "Réinitialiser votre mot de passe",
     "auth_password_reset_email_label": "Email",

@@ -314,13 +314,21 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const form = await request.formData()
-  const firstname = form.get('firstname')
-  const lastname = form.get('lastname')
-  const email = form.get('email')
+  const firstname = String(form.get('firstname'))
+  const lastname = String(form.get('lastname'))
+  const email = String(form.get('email'))
   const active = form.get('active')
   const roles = form.getAll('roles')
 
   const userId = requireParamId(params.userId, '/settings/users')
+
+  if (firstname.length < 1 || lastname.length < 1) {
+    throw redirect(`/settings/users/${userId}/edit`)
+  }
+
+  if (email.length < 1 || !email.includes('@')) {
+    throw redirect(`/settings/users/${userId}/edit`)
+  }
 
   return withScope(congregationId, async db => {
     await db.user.update({
@@ -329,9 +337,9 @@ export async function action({ request, params }: Route.ActionArgs) {
         id_congregationId: { id: userId, congregationId },
       },
       data: {
-        firstname: String(firstname),
-        lastname: String(lastname),
-        email: String(email).toLocaleLowerCase(),
+        firstname,
+        lastname,
+        email: email.toLocaleLowerCase(),
         active: Boolean(active),
       },
     })

@@ -34,7 +34,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  await sendResetUserPasswordEmail(
+  const sent = await sendResetUserPasswordEmail(
     user.id,
     <ResetPasswordRequired
       email={user.email}
@@ -44,6 +44,14 @@ export async function action({ request, params }: Route.ActionArgs) {
       platformName={congregation.displayName}
     />,
   )
+
+  if (!sent) {
+    session.flash('error', m.auth_email_send_error())
+    return redirect(`/settings/users/${user.id}/edit`, {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
+  }
+
   audit({
     action: AuditAction.PasswordResetRequested,
     congregationId: user.congregationId,

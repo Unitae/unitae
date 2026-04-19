@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/libs/redis.server', () => ({
-  redis: {
+  redisRateLimit: {
     get: vi.fn(),
     incr: vi.fn(),
     expire: vi.fn(),
@@ -16,7 +16,7 @@ vi.mock('~/shared/libs/logger.server', () => ({
 }))
 
 const { checkLoginRateLimit, recordLoginAttempt, clearLoginAttempts } = await import('./rate-limit.server')
-const { redis } = await import('~/shared/libs/redis.server')
+const { redisRateLimit: redis } = await import('~/shared/libs/redis.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

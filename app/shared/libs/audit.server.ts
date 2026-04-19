@@ -40,6 +40,12 @@ export const AuditAction = {
   // Board
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   BoardReadStatusViewed: 'board.read_status.viewed',
+
+  // Platform admin
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PlatformCongregationUpdated: 'platform.congregation.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PlatformUsersListed: 'platform.users.listed',
 } as const
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction]

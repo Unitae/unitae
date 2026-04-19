@@ -1,6 +1,10 @@
 import ResetPassword from 'emails/reset-password'
 import { data, Form, Link, redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
+import {
+  checkPasswordResetRateLimit,
+  recordPasswordResetAttempt,
+} from '~/features/authentication/server/rate-limit.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
@@ -84,7 +88,16 @@ export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
   session.flash('success', m.auth_password_forgot_success_message())
 
-  const user = await db.user.findFirst({ where: { email: String(username) } })
+  const emailStr = String(username).toLocaleLowerCase()
+
+  const allowed = await checkPasswordResetRateLimit(emailStr)
+  if (!allowed) {
+    throw redirect('/password/forgot', {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
+  }
+
+  const user = await db.user.findFirst({ where: { email: emailStr } })
 
   if (user == null) {
     throw redirect('/password/forgot', {
@@ -94,7 +107,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  await sendResetUserPasswordEmail(
+  const sent = await sendResetUserPasswordEmail(
     user.id,
     <ResetPassword
       email={user.email}
@@ -104,6 +117,12 @@ export async function action({ request }: Route.ActionArgs) {
       platformName={congregation.displayName}
     />,
   )
+
+  if (!sent) {
+    session.flash('error', m.auth_email_send_error())
+  }
+
+  await recordPasswordResetAttempt(emailStr)
 
   audit({
     action: AuditAction.PasswordResetRequested,

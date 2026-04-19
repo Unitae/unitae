@@ -5,7 +5,7 @@ import { unscopedDb as db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { mailer } from '~/shared/libs/mailer.server'
 
-export async function sendVerificationEmail(userId: number, email: ReactNode) {
+export async function sendVerificationEmail(userId: number, email: ReactNode): Promise<boolean> {
   const user = await db.user.findFirst({ where: { id: userId } })
 
   if (user == null) return false
@@ -19,7 +19,9 @@ export async function sendVerificationEmail(userId: number, email: ReactNode) {
       subject: m.email_verify_subject(),
       react: email,
     })
+    return true
   } catch (error) {
     logger.error('Failed to send verification email', { userId, error })
+    return false
   }
 }
