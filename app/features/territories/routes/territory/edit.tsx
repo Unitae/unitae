@@ -1,6 +1,7 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
-import { Form, Link, redirect } from 'react-router'
+import { Form, Link, data, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -11,6 +12,7 @@ import {
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
+import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
@@ -317,14 +319,17 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const entrances = form.getAll('entrances')
-  const notes = form.get('notes')
+  const submission = parseWithZod(await request.formData(), { schema: updateTerritorySchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { entrances, notes } = submission.value
 
   return withScope(congregationId, async db => {
     await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, {
-      entranceIds: entrances.map(el => Number(el)),
-      notes: String(notes),
+      entranceIds: entrances,
+      notes,
     })
 
     return redirect('/territories')

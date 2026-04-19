@@ -1,4 +1,4 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const createAttributionSchema = z.object({
   territory: z.coerce.number(),

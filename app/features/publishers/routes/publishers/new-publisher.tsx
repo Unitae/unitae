@@ -1,6 +1,8 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createPublisherSchema } from '~/features/publishers/schemas/publisher.schema'
 import { createPublisher } from '~/features/publishers/server/create-publisher.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
@@ -54,28 +56,28 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const { congregation, congregationId } = await authenticateAndAuthorize(request)
-  const form = await request.formData()
-  const firstname = String(form.get('firstname'))
-  const lastname = String(form.get('lastname'))
-  const email = String(form.get('email'))
+  const submission = parseWithZod(await request.formData(), { schema: createPublisherSchema })
 
-  if (firstname.length < 1 || lastname.length < 1) {
-    throw redirect('/congregation/publishers/new')
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const { firstname, lastname, email, gender, birthDate, baptismDate, isHelder, isServant, isAnointed, group, type } =
+    submission.value
 
   return withScope(congregationId, async db => {
     const user = await createPublisher(db, congregation, {
       firstname,
       lastname,
-      email: form.has('email') && email.length > 0 ? email : null,
-      gender: String(form.get('gender')),
-      birthDate: form.get('birthDate')?.toString() ?? null,
-      baptismDate: form.get('baptismDate')?.toString() ?? null,
-      isHelder: Boolean(form.get('isHelder')),
-      isServant: Boolean(form.get('isServant')),
-      isAnointed: Boolean(form.get('isAnointed')),
-      groupId: Number(form.get('group')),
-      type: String(form.get('type')),
+      email: email && email.length > 0 ? email : null,
+      gender,
+      birthDate: birthDate || null,
+      baptismDate: baptismDate || null,
+      isHelder,
+      isServant,
+      isAnointed,
+      groupId: group ?? 0,
+      type,
       congregationId,
     })
 

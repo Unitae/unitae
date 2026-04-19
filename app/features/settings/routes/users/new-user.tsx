@@ -1,6 +1,9 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createUserSchema } from '~/features/settings/schemas/user.schema'
 import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -27,8 +30,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   return null
 }
 
-export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
+export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const _users = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createUserSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -36,18 +45,30 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstname">{m.settings_user_new_firstname_label()}</Label>
-              <Input id="firstname" name="firstname" type="text" placeholder={m.settings_user_new_firstname_label()} />
+              <Label htmlFor={fields.firstname.id}>{m.settings_user_new_firstname_label()}</Label>
+              <Input
+                {...getInputProps(fields.firstname, { type: 'text' })}
+                placeholder={m.settings_user_new_firstname_label()}
+              />
+              {fields.firstname.errors && <p className="text-destructive text-sm">{fields.firstname.errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastname">{m.settings_user_new_lastname_label()}</Label>
-              <Input id="lastname" name="lastname" type="text" placeholder={m.settings_user_new_lastname_label()} />
+              <Label htmlFor={fields.lastname.id}>{m.settings_user_new_lastname_label()}</Label>
+              <Input
+                {...getInputProps(fields.lastname, { type: 'text' })}
+                placeholder={m.settings_user_new_lastname_label()}
+              />
+              {fields.lastname.errors && <p className="text-destructive text-sm">{fields.lastname.errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{m.settings_user_new_email_label()}</Label>
-              <Input id="email" name="email" type="email" placeholder={m.settings_user_new_email_label()} />
+              <Label htmlFor={fields.email.id}>{m.settings_user_new_email_label()}</Label>
+              <Input
+                {...getInputProps(fields.email, { type: 'email' })}
+                placeholder={m.settings_user_new_email_label()}
+              />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
             <Button type="submit" className="mt-2">
               {m.settings_user_new_submit()}
@@ -61,14 +82,13 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const { currentUser, congregation, congregationId, session } = await authenticateAndAuthorize(request)
-  const form = await request.formData()
-  const firstname = String(form.get('firstname'))
-  const lastname = String(form.get('lastname'))
-  const email = String(form.get('email'))
+  const submission = parseWithZod(await request.formData(), { schema: createUserSchema })
 
-  if (firstname.length < 1 || lastname.length < 1 || email.length < 1) {
-    throw redirect('/settings/users/new')
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const { firstname, lastname, email } = submission.value
 
   return withScope(congregationId, async db => {
     try {

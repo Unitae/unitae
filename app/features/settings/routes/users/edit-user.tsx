@@ -1,7 +1,9 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -313,30 +315,22 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const firstname = String(form.get('firstname'))
-  const lastname = String(form.get('lastname'))
-  const email = String(form.get('email'))
-  const active = form.get('active')
-  const roles = form.getAll('roles')
-
   const userId = requireParamId(params.userId, '/settings/users')
+  const submission = parseWithZod(await request.formData(), { schema: editUserSchema })
 
-  if (firstname.length < 1 || lastname.length < 1) {
-    throw redirect(`/settings/users/${userId}/edit`)
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  if (email.length < 1 || !email.includes('@')) {
-    throw redirect(`/settings/users/${userId}/edit`)
-  }
+  const { firstname, lastname, email, active, roles } = submission.value
 
   return withScope(congregationId, async db => {
     await updateUser(db, userId, congregationId, currentUser.id, {
       firstname,
       lastname,
       email,
-      active: Boolean(active),
-      roles: roles.map(String),
+      active,
+      roles,
     })
 
     return redirect('/settings/users')

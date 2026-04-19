@@ -1,7 +1,9 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { Form, data, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { createAttributionSchema } from '~/features/territories/schemas/attribution.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { createAttribution } from '~/features/territories/server/create-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
@@ -141,22 +143,18 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const territoryId = Number(form.get('territory'))
-  const publisherId = Number(form.get('publisher'))
-  const startDateText = String(form.get('start-date'))
-  const notes = String(form.get('notes'))
-  const type = String(form.get('type'))
-
-  if (Number.isNaN(territoryId) || Number.isNaN(publisherId) || startDateText.length < 1) {
-    throw redirect('/territories/territory/new')
+  const submission = parseWithZod(await request.formData(), { schema: createAttributionSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const { territory: territoryId, publisher: publisherId, 'start-date': startDate, notes, type } = submission.value
 
   return withScope(congregationId, async db => {
     const attribution = await createAttribution(db, {
       publisherId,
       territoryId,
-      startDate: startDateText,
+      startDate,
       notes,
       type,
       congregationId: congregation.id,

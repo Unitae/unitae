@@ -1,9 +1,11 @@
+import { parseWithZod } from '@conform-to/zod'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Form, Link, redirect } from 'react-router'
+import { Form, Link, data, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { createTerritory } from '~/features/territories/server/create-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
@@ -164,23 +166,21 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const number = form.get('number')
-  const type = form.get('type')
-  const entrances = form.getAll('entrances')
-
-  if (!number) {
-    throw redirect('/territories/territory/new')
+  const submission = parseWithZod(await request.formData(), { schema: createTerritorySchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const { number, type, entrances } = submission.value
 
   return withScope(congregationId, async db => {
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('territories')
 
     await createTerritory(db, {
-      number: String(number),
-      type: String(type),
-      entranceIds: entrances.map(el => Number(el)),
+      number,
+      type,
+      entranceIds: entrances,
       congregationId: congregation.id,
     })
 

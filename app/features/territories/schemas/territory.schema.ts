@@ -1,4 +1,4 @@
-import { z } from 'zod/v4'
+import { z } from 'zod'
 
 export const createTerritorySchema = z.object({
   number: z.string().min(1),
