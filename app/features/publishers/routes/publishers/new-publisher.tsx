@@ -12,7 +12,7 @@ import {
   permissionsContext,
   userContext,
   withScopeFromContext,
-} from '~/shared/libs/route-context.server'
+} from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'

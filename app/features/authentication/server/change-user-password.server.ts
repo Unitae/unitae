@@ -1,5 +1,5 @@
 import { unscopedDb as db } from '~/shared/infra/db.server'
-import { compare } from '~/shared/libs/crypto.server'
+import { compare } from '~/shared/auth/crypto.server'
 
 import { resetUserPassword } from './reset-user-password.server'
 

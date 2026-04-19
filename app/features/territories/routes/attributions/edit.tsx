@@ -10,7 +10,7 @@ import { updateAttribution } from '~/features/territories/server/update-attribut
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'

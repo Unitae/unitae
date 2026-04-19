@@ -4,7 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'

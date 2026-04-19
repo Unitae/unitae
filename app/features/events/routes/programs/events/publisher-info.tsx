@@ -1,5 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
 

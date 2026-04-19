@@ -10,7 +10,7 @@ import {
 } from '~/features/dashboard/server/dashboard.server'
 import * as m from '~/paraglide/messages'
 import logger from '~/shared/infra/logger.server'
-import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'

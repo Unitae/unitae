@@ -1,4 +1,5 @@
 import { redirect } from 'react-router'
+// Intentional cross-feature import: platform-admin depends on authentication for session management
 import { getSession } from '~/features/authentication/server/session.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 

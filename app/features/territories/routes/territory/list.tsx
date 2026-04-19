@@ -10,7 +10,7 @@ import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownlo
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'

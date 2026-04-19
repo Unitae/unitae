@@ -1,6 +1,6 @@
 import { Outlet, redirect } from 'react-router'
 import * as m from '~/paraglide/messages'
-import { permissionsContext } from '~/shared/libs/route-context.server'
+import { permissionsContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/_layout'

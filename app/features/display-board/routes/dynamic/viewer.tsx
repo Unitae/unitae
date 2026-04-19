@@ -9,7 +9,7 @@ import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { requireParamId } from '~/shared/utils/params.server'
 

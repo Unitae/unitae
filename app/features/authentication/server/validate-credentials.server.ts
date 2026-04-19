@@ -1,5 +1,5 @@
 import { unscopedDb as db } from '~/shared/infra/db.server'
-import { compare } from '~/shared/libs/crypto.server'
+import { compare } from '~/shared/auth/crypto.server'
 
 export async function validateCredentials(email: string, password: string, congregationId?: number) {
   const user = await db.user.findFirst({

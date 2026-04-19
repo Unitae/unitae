@@ -9,7 +9,7 @@ import PublisherNominationForm from '~/features/publishers/ui/PublisherNominatio
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import * as m from '~/paraglide/messages'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

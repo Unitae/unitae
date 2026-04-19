@@ -6,7 +6,7 @@ import { splitToolCreateSchema } from '~/features/territories/schemas/building.s
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
 import { LimitService } from '~/shared/domain/limits.server'
-import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/create'

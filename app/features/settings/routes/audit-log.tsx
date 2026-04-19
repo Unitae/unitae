@@ -1,7 +1,7 @@
 import { Form as RouterForm, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/paraglide/messages'
-import { userContext } from '~/shared/libs/route-context.server'
+import { userContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'

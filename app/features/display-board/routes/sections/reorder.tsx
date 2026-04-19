@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { reorderBoardSections } from '~/features/display-board/server/board-section.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/reorder'

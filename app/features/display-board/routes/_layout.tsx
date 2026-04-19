@@ -1,6 +1,6 @@
 import { data, Outlet } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { permissionsContext } from '~/shared/libs/route-context.server'
+import { permissionsContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import type { Route } from './+types/_layout'
 

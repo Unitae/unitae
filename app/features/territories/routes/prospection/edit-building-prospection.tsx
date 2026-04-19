@@ -26,7 +26,7 @@ import {
   permissionsContext,
   userContext,
   withScopeFromContext,
-} from '~/shared/libs/route-context.server'
+} from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'

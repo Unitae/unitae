@@ -16,7 +16,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
-vi.mock('~/shared/libs/crypto.server', () => ({
+vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('hashed-password' as never),
 }))
 

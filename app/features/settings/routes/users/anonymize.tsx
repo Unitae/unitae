@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { anonymizeUser } from '~/features/settings/server/anonymize-user.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
 

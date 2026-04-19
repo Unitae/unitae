@@ -1,5 +1,5 @@
 import { getBoardFileBuffer } from '~/features/display-board/server/document-storage.server'
-import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/thumbnail'

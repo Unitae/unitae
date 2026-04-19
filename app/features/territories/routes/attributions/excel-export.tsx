@@ -3,7 +3,7 @@ import { generateS13ExportExcel } from '~/features/territories/server/s13-export
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import * as m from '~/paraglide/messages'
 import logger from '~/shared/infra/logger.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/excel-export'

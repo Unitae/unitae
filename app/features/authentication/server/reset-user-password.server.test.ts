@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-vi.mock('~/shared/libs/crypto.server', () => ({
+vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('new-hashed-password' as never),
 }))
 

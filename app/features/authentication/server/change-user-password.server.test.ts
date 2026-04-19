@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-vi.mock('~/shared/libs/crypto.server', () => ({
+vi.mock('~/shared/auth/crypto.server', () => ({
   compare: vi.fn(),
   hash: vi.fn(),
 }))
@@ -17,7 +17,7 @@ vi.mock('./reset-user-password.server', () => ({
 
 const { changeUserPassword } = await import('./change-user-password.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { compare } = await import('~/shared/libs/crypto.server')
+const { compare } = await import('~/shared/auth/crypto.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

@@ -4,7 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
 import logger from '~/shared/infra/logger.server'
-import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'

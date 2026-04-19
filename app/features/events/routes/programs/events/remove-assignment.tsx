@@ -4,7 +4,7 @@ import { unassignPart, unassignServiceRole } from '~/features/events/server/prog
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'
 import logger from '~/shared/infra/logger.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
 

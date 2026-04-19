@@ -1,3 +1,4 @@
+// Intentional cross-feature import: authorization depends on authentication for session management
 import { getSession } from '~/features/authentication/server/session.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import type { Role } from '~/shared/types/role'

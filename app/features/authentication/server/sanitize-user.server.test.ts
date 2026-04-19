@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
+import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 
 describe('sanitizeUser', () => {
   it("supprime le mot de passe de l'objet utilisateur", () => {

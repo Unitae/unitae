@@ -4,7 +4,7 @@ import {
   ConsentPurpose,
   hasDataProcessingConsent,
   recordConsentUnscoped,
-} from '~/features/settings/server/consent.server'
+} from '~/shared/domain/consent.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Button } from '~/shared/ui/button'

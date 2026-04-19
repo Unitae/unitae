@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { renderActivityPdfZip } from '~/features/publishers/server/render-activity-pdf-zip.server'
 import * as m from '~/paraglide/messages'
 import logger from '~/shared/infra/logger.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/pdf-export'
