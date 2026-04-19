@@ -2,14 +2,15 @@ import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjack
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { generateAndSaveThumbnail, saveFile } from '~/features/display-board/server/document.server'
+import { saveFile } from '~/features/display-board/server/document.server'
+import { emailQueue } from '~/features/display-board/server/email-queue.server'
 import {
   FileValidationError,
   MAX_FILE_SIZE_BYTES,
   validateBoardFile,
   validateVisibilityDates,
 } from '~/features/display-board/server/file-validation.server'
-import { sendNewDocumentNotificationEmail } from '~/features/display-board/server/notifications.server'
+import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -252,14 +253,13 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const storageKey = await saveFile(congregationId, file)
-    const thumbnailUri = await generateAndSaveThumbnail(congregationId, storageKey)
 
     const document = await db.boardDocument.create({
       data: {
         title: String(name),
         type: 'pdf',
         uri: storageKey,
-        thumbnailUri,
+        thumbnailUri: null,
         sectionId: sectionId,
         order: 0,
         congregationId,
@@ -301,8 +301,18 @@ export async function action({ request }: Route.ActionArgs) {
       document,
     })
 
+    await thumbnailQueue.add('generate-thumbnail', {
+      congregationId,
+      documentId: document.id,
+      pdfStorageKey: storageKey,
+    })
+
     if (!canManageBoard) {
-      sendNewDocumentNotificationEmail(congregation, { document })
+      await emailQueue.add('new-document-notification', {
+        type: 'new-document-notification',
+        congregationId,
+        documentId: document.id,
+      })
     }
 
     return redirect(`/board/documents/${document.id}/edit`, {

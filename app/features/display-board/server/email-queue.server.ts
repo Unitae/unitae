@@ -1,0 +1,29 @@
+import { Queue } from 'bullmq'
+import { QUEUE_NAMES } from '~/shared/libs/queues.server'
+import { redis } from '~/shared/libs/redis.server'
+
+export const emailQueue = new Queue(QUEUE_NAMES.email, {
+  connection: redis,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 5000,
+    },
+    removeOnComplete: 10,
+    removeOnFail: 20,
+  },
+})
+
+export type EmailJobData =
+  | { type: 'new-document-notification'; congregationId: number; documentId: number }
+  | {
+      type: 'documents-expiring'
+      congregationId: number
+      documents: { id: number; title: string }[]
+      validatorEmail: string
+      validatorFirstname?: string
+      emailFrom: string
+      baseUrl: string
+      displayName: string
+    }

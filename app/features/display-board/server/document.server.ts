@@ -1,10 +1,10 @@
 import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
-import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile, saveThumbnailFile } from './document-storage.server'
+import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage.server'
 import { createVersionFromCurrent } from './document-versions.server'
 import { FileValidationError, validateBoardFile } from './file-validation.server'
-import { generateThumbnail } from './thumbnail.server'
+import { thumbnailQueue } from './thumbnail-queue.server'
 
 export function saveFile(congregationId: number, file: File): Promise<string> {
   return saveBoardFile(congregationId, file)
@@ -32,17 +32,6 @@ export async function getFileUrl(document: BoardDocument): Promise<string> {
   }
   const data = fileBuffer.toString('base64')
   return `data:application/pdf;base64,${data}`
-}
-
-export async function generateAndSaveThumbnail(congregationId: number, pdfStorageKey: string): Promise<string | null> {
-  try {
-    const thumbnailBuffer = await generateThumbnail(pdfStorageKey)
-    if (!thumbnailBuffer) return null
-    return await saveThumbnailFile(congregationId, thumbnailBuffer)
-  } catch (error) {
-    logger.error('Failed to generate and save thumbnail', { error, pdfStorageKey })
-    return null
-  }
 }
 
 export async function deleteFile(document: Pick<BoardDocument, 'uri'>): Promise<void> {
@@ -81,7 +70,6 @@ export async function replaceDocumentFile(
   await createVersionFromCurrent(db, documentId, congregationId, uploadedById)
 
   const uri = await saveFile(congregationId, file)
-  const thumbnailUri = await generateAndSaveThumbnail(congregationId, uri)
 
   // Fetch old document to clean up files after update
   const oldDocument = await db.boardDocument.findUnique({
@@ -97,7 +85,7 @@ export async function replaceDocumentFile(
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: documentId, congregationId },
     },
-    data: { uri, thumbnailUri },
+    data: { uri, thumbnailUri: null },
   })
 
   // Clean up old files
@@ -108,7 +96,14 @@ export async function replaceDocumentFile(
     }
   }
 
-  return { replaced: true, uri, thumbnailUri }
+  // Enqueue thumbnail regeneration
+  await thumbnailQueue.add('generate-thumbnail', {
+    congregationId,
+    documentId,
+    pdfStorageKey: uri,
+  })
+
+  return { replaced: true, uri, thumbnailUri: null }
 }
 
 export async function deleteSectionWithFiles(

@@ -2,21 +2,21 @@ import { Queue } from 'bullmq'
 import { QUEUE_NAMES } from '~/shared/libs/queues.server'
 import { redis } from '~/shared/libs/redis.server'
 
-export const syncQueue = new Queue(QUEUE_NAMES.sync, {
+export const thumbnailQueue = new Queue(QUEUE_NAMES.thumbnail, {
   connection: redis,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
       type: 'exponential',
-      delay: 10000,
+      delay: 5000,
     },
-    removeOnComplete: 5,
+    removeOnComplete: 20,
     removeOnFail: 10,
   },
 })
 
-export interface SyncJobData {
-  userEmail: string
-  userName?: string
+export interface ThumbnailJobData {
   congregationId: number
+  documentId: number
+  pdfStorageKey: string
 }

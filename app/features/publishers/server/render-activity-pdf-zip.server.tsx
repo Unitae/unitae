@@ -1,5 +1,6 @@
 import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
+import pLimit from 'p-limit'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import type { TransactionClient } from '~/shared/libs/db.server'
@@ -63,11 +64,16 @@ export async function renderActivityPdfZip(db: TransactionClient, congregationId
   }
 
   const zip = new JsZip()
-  for (const user of users) {
-    const publisher = sanitizeUser(user)
-    const buffer = await pdf(<PublisherActivityDocument publisher={publisher} />).toBuffer()
-    zip.file(`${user.firstname}-${user.lastname}.pdf`, buffer)
-  }
+  const limit = pLimit(4)
+  await Promise.all(
+    users.map(user =>
+      limit(async () => {
+        const publisher = sanitizeUser(user)
+        const buffer = await pdf(<PublisherActivityDocument publisher={publisher} />).toBuffer()
+        zip.file(`${user.firstname}-${user.lastname}.pdf`, buffer)
+      }),
+    ),
+  )
 
   return zip.generateAsync({ type: 'arraybuffer' })
 }
