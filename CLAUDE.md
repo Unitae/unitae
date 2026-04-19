@@ -312,6 +312,13 @@ Uses Biome for formatting with these key rules:
 - **Biome suppress for Prisma/AWS**: Prisma compound keys (`key_congregationId`) and AWS SDK properties (`Bucket`, `Key`) need `biome-ignore lint/style/useNamingConvention` suppression
 - **Non-interactive Prisma CLI**: `prisma migrate dev` fails in non-interactive shells — use `migrate diff` + manual migration + `migrate deploy`
 - **`LimitService` pattern**: Always get congregation from context first, then `new LimitService(db, congregation)`, then `await limits.errorIfWouldGoOverLimit('name')` before `db.*.create()` calls
+- **`.server.ts` suffix exceptions**: Files in `features/*/server/` that are pure functions used in client route components (e.g., `compute-territory-quantity.ts`) must NOT have the `.server.ts` suffix — React Router's bundler will reject them with "Server-only module referenced by client"
+- **Zod version**: Must use Zod v3 (`zod@^3.25`), not v4 — `@conform-to/zod` v1.x imports `ZodEffects`/`ZodBranded` which were removed in Zod v4. Import as `from 'zod'` (not `from 'zod/v4'`)
+- **Middleware context types**: The `context.set()` in middleware requires `RouterContext` type constraint: `context: { set<C extends RouterContext>(context: C, value: ...): void }`. Don't use plain object types.
+- **File upload + Zod**: Routes with file uploads (e.g., `documents/new.tsx`) use `parseFormData` from `@mjackson/form-data-parser` first, then `parseWithZod` on the resulting FormData for text fields. Don't try to validate files through Zod.
+- **Batch import path updates**: Use `find app workers -name '*.ts' -o -name '*.tsx' | xargs perl -pi -e 's|old-path|new-path|g'` — also update `vi.mock()` strings and dynamic `import()` calls in test files
+- **Multi-queue worker**: `workers/worker.server.ts` runs 3 queues (sync concurrency 1, email concurrency 5, thumbnail concurrency 2). Queue names in `app/shared/infra/queues.server.ts`. Worker locale via `app/shared/utils/worker-locale.server.ts` + `runWithLocale()`.
+- **Two Redis clients**: `redis` (60s timeout, for BullMQ) and `redisRateLimit` (2s timeout, for auth rate limiting) in `app/shared/infra/redis.server.ts`
 
 ## Development Notes
 
