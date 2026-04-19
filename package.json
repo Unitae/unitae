@@ -18,7 +18,8 @@
         "test:typecheck": "react-router typegen && tsc",
         "test:unit": "react-router typegen && vitest run",
         "test:unit:watch": "react-router typegen && vitest",
-        "test:unit:coverage": "vitest run --coverage"
+        "test:unit:coverage": "vitest run --coverage",
+        "test:integration": "react-router typegen && vitest run --config vitest.config.integration.ts"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1024.0",
