@@ -1,6 +1,6 @@
 import { BadgeCheck, BadgeMinus, IdCard, Pencil, UserPlus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'

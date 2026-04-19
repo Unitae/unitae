@@ -1,4 +1,4 @@
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'

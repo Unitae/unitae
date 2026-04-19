@@ -1,5 +1,5 @@
 import { getSession } from '~/features/authentication/server/session.server'
-import type { Role } from '~/features/authorization/model/roles.type'
+import type { Role } from '~/shared/types/role'
 
 import { unscopedDb } from '~/shared/libs/db.server'
 

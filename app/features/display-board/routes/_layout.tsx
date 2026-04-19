@@ -1,6 +1,6 @@
 import { data, Outlet } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import type { Route } from './+types/_layout'
 

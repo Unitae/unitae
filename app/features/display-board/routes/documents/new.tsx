@@ -1,7 +1,7 @@
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { saveFile } from '~/features/display-board/server/document.server'
 import { emailQueue } from '~/features/display-board/server/email-queue.server'
 import {

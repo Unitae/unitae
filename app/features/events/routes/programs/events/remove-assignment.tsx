@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'

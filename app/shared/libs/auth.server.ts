@@ -1,5 +1,5 @@
 import { verifySession } from '~/features/authentication/server/session.server'
-import type { Role } from '~/features/authorization/model/roles.type'
+import type { Role } from '~/shared/types/role'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 
 /**

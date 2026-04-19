@@ -1,7 +1,7 @@
 import { ArrowLeft, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/paraglide/messages'

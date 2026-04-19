@@ -3,7 +3,7 @@ import { createCookieSessionStorage, redirect } from 'react-router'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
 import { unscopedDb } from '~/shared/libs/db.server'
 
-import { sanitizeUser } from './sanitize-user.server'
+import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
 
 type SessionData = {
   userId: string

@@ -1,6 +1,6 @@
 import { redirect, type RouterContext } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
-import type { Role } from '~/features/authorization/model/roles.type'
+import type { Role } from '~/shared/types/role'
 import { verifyRole } from '~/features/authorization/server/verify-role.server'
 import { hasDataProcessingConsent } from '~/features/settings/server/consent.server'
 import { congregationContext, permissionsContext, userContext } from '~/shared/libs/route-context.server'

@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import {
   getDynamicDocumentData,

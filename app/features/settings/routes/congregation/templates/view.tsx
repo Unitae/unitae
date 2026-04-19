@@ -1,7 +1,7 @@
 import { Calendar, Clock, Copy, Pencil, UserCog } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { dayLabel } from '~/features/events/model/day-label'
 import {
   duplicateTemplate,

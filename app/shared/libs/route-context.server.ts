@@ -1,6 +1,6 @@
 import { createContext, type RouterContext } from 'react-router'
-import type { SanitizedUser } from '~/features/authentication/server/sanitize-user.server'
-import type { Role } from '~/features/authorization/model/roles.type'
+import type { SanitizedUser } from '~/shared/libs/sanitize-user.server'
+import type { Role } from '~/shared/types/role'
 import type { CongregationInfo } from './congregation.server'
 import type { TransactionClient } from './db.server'
 import { withScope } from './db.server'

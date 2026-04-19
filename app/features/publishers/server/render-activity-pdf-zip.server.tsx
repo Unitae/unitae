@@ -1,7 +1,7 @@
 import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
 import pLimit from 'p-limit'
-import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
+import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import type { TransactionClient } from '~/shared/libs/db.server'
 

@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { renderActivityPdfZip } from '~/features/publishers/server/render-activity-pdf-zip.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

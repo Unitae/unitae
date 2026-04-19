@@ -6,13 +6,13 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
 }))
 
-vi.mock('./settings.server', () => ({
+vi.mock('~/shared/libs/settings.server', () => ({
   setSetting: vi.fn(),
 }))
 
 const { updateCongregationSettings } = await import('./congregation-settings.server')
 const { unscopedDb } = await import('~/shared/libs/db.server')
-const { setSetting } = await import('./settings.server')
+const { setSetting } = await import('~/shared/libs/settings.server')
 
 const mockDb = {
   user: {

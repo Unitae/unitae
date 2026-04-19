@@ -1,7 +1,7 @@
 import { Pencil, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'

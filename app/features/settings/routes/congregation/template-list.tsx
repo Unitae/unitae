@@ -1,6 +1,6 @@
 import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { dayLabelShort } from '~/features/events/model/day-label'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'

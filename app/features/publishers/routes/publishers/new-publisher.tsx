@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { createPublisherSchema } from '~/features/publishers/schemas/publisher.schema'
 import { createPublisher } from '~/features/publishers/server/create-publisher.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'

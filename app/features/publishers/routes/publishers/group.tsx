@@ -1,7 +1,7 @@
 import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/paraglide/messages'

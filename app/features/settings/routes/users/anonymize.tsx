@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { anonymizeUser } from '~/features/settings/server/anonymize-user.server'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

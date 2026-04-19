@@ -1,6 +1,6 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { computeFilters } from '~/features/territories/server/building-filters.server'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'

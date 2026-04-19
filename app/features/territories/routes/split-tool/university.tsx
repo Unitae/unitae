@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Form, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters.server'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings.server'

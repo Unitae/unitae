@@ -1,6 +1,6 @@
 import { Form, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings.server'
+import { Role } from '~/shared/types/role'
+import { getBoolSetting, getSetting, setSetting } from '~/shared/libs/settings.server'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,

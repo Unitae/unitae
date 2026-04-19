@@ -1,6 +1,6 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
-import type { SanitizedUser } from '~/features/authentication/server/sanitize-user.server'
+import type { SanitizedUser } from '~/shared/libs/sanitize-user.server'
 import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'

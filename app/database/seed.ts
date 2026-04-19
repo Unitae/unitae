@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '~/database/generated/client'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
 import * as m from '~/paraglide/messages'

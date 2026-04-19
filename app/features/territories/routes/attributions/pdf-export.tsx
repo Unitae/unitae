@@ -1,6 +1,6 @@
 import { pdf } from '@react-pdf/renderer'
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
 import * as m from '~/paraglide/messages'

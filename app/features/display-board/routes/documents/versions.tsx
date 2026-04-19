@@ -1,7 +1,7 @@
 import { Download, History, RotateCcw } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { deleteFile } from '~/features/display-board/server/document.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import * as m from '~/paraglide/messages'

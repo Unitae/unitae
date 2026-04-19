@@ -1,7 +1,7 @@
 import { Info } from 'lucide-react'
 import { redirect } from 'react-router'
 import { Cell, Pie, PieChart } from 'recharts'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'

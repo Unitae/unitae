@@ -1,6 +1,6 @@
 import { BarChart3, Eye, Mail, Pencil, Search, Users } from 'lucide-react'
 import { Link, Form as RouterForm, redirect, useSearchParams } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

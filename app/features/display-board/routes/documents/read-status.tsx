@@ -1,6 +1,6 @@
 import { CheckCircle, XCircle } from 'lucide-react'
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 
 vi.mock('~/features/authentication/server/session.server', () => ({
   verifySession: vi.fn(),

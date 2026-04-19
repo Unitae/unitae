@@ -1,4 +1,4 @@
-import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
+import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
 
 export async function getGroups(db: TransactionClient, congregationId: number) {

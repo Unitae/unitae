@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq'
 import DocumentsExpiring from 'emails/notifications/documents-expiring'
 import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb } from '~/shared/libs/db.server'

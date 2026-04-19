@@ -1,6 +1,6 @@
 import { CalendarOff } from 'lucide-react'
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'

@@ -1,7 +1,7 @@
 import { Calendar, Star, Users } from 'lucide-react'
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'

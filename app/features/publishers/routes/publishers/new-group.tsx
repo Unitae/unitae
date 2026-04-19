@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { createGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { createPublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'

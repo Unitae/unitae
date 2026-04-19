@@ -2,7 +2,7 @@ import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjack
 import { History, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'

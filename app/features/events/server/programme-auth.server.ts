@@ -1,4 +1,4 @@
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { isTemplateResponsible } from '~/features/events/server/programme-templates.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
 

@@ -1,5 +1,5 @@
 import { FileText } from 'lucide-react'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { getContentVersion } from '~/features/display-board/server/dynamic-documents.server'
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/paraglide/messages'

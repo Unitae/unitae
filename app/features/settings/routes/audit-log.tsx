@@ -1,5 +1,5 @@
 import { Form as RouterForm, useSearchParams } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

@@ -1,7 +1,7 @@
 import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { deletePublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

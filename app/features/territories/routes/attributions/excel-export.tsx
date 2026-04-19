@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { Role } from '~/shared/types/role'
 import { generateS13ExportExcel } from '~/features/territories/server/s13-export.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import * as m from '~/paraglide/messages'
