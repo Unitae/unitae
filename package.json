@@ -29,7 +29,6 @@
         "@mjackson/form-data-parser": "^0.9.1",
         "@prisma/adapter-pg": "^7.6.0",
         "@prisma/client": "7.6.0",
-        "@radix-ui/react-slot": "^1.2.4",
         "@react-email/components": "^1.0.11",
         "@react-pdf/renderer": "^4.3.3",
         "@react-router/node": "^7.14.0",
@@ -45,7 +44,6 @@
         "isbot": "^5.1.37",
         "jszip": "^3.10.1",
         "lucide-react": "^1.7.0",
-        "next-themes": "^0.4.6",
         "pdfjs-dist": "^5.6.205",
         "radix-ui": "^1.4.3",
         "react": "^19.2.4",
@@ -70,7 +68,6 @@
         "react-email": "5.2.10",
         "shadcn": "^4.2.0",
         "tailwindcss": "^4.2.2",
-        "ts-node": "^10.9.2",
         "typescript": "^6.0.2",
         "vite": "^8.0.5",
         "vitest": "^4.1.3"

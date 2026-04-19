@@ -1,7 +1,12 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '~/database/generated/client'
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const poolMax = Number.parseInt(process.env.DATABASE_POOL_MAX ?? '10', 10)
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+  max: poolMax,
+  connectionTimeoutMillis: 5000,
+})
 const db = new PrismaClient({ adapter })
 
 // Unscoped = same client, no SET LOCAL → RLS allows all rows (for login, setup, health, platform admin)

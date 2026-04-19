@@ -87,10 +87,11 @@ Each feature owns all its code through consistent segments:
 **Congregation model**: Each congregation record isolates its data. 12 models carry a `congregationId` FK. `UserRole` is global (shared role definitions).
 
 **Scoped queries** (`app/shared/libs/db.server.ts`):
-- `AsyncLocalStorage` carries `congregationId` per-request
-- Prisma extension auto-injects `congregationId` into all queries on scoped models
-- `db` — Scoped client (use in authenticated routes)
-- `unscopedDb` — Global client (use for login, setup, health, password reset, platform admin)
+- `db` and `unscopedDb` are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
+- Tenant isolation relies on **PostgreSQL Row-Level Security (RLS)**: scoped tables have policies that filter by `current_setting('app.congregation_id')`
+- `withScope(congregationId, fn)` — Runs `fn` inside a `$transaction` that first executes `SET LOCAL app.congregation_id`. The `SET LOCAL` is automatically rolled back when the transaction ends, preventing context leakage through the connection pool
+- Without `SET LOCAL` (i.e., outside `withScope`), RLS policies permit all rows — this is the "unscoped" mode used for login, setup, health, password reset, and platform admin
+- All authenticated route loaders/actions that access tenant-scoped data must wrap their DB calls in `withScope(congregationId, async db => { ... })`
 
 **Congregation context** (`app/shared/libs/congregation.server.ts`):
 - `verifySession()` resolves congregation info and sets context via `congregationContext.enterWith()`
@@ -247,8 +248,8 @@ Uses Biome for formatting with these key rules:
 - **Prisma 7**: No `url` in schema — use `prisma.config.ts` with `import 'dotenv/config'` for env loading
 - **Prisma generate**: Run `pnpm prisma generate` after schema changes — generated client is in `app/database/generated/` (gitignored)
 - **Custom migrations**: Use `pnpm prisma migrate diff --from-config-datasource --to-schema app/database/schema.prisma --script` to generate SQL, create migration dir manually with `mkdir -p app/database/migrations/{timestamp}_{name}`
-- **Tenant scoping placeholder**: Prisma extension injects `congregationId` at runtime but TS requires it at compile time — use `congregationId: 0 as number` in create calls on scoped models
-- **`db` vs `unscopedDb`**: Use `unscopedDb` for: login, password reset, setup, health check, platform admin, seed. Use `db` everywhere else.
+- **Tenant scoping placeholder**: RLS injects `congregationId` at runtime but TS requires it at compile time — use `congregationId: 0 as number` in create calls on scoped models
+- **`db` vs `unscopedDb`**: Both reference the same PrismaClient. The distinction is semantic only. Use `withScope(congregationId, ...)` for tenant-scoped queries. Use `db`/`unscopedDb` directly (without `withScope`) for cross-tenant operations: login, password reset, setup, health check, platform admin, seed.
 - **`findUnique` on compound keys**: Setting and EventKind have compound unique `[key, congregationId]` — use `findFirst({ where: { key } })` instead, the extension adds `congregationId`
 - **Biome suppress for Prisma/AWS**: Prisma compound keys (`key_congregationId`) and AWS SDK properties (`Bucket`, `Key`) need `biome-ignore lint/style/useNamingConvention` suppression
 - **Non-interactive Prisma CLI**: `prisma migrate dev` fails in non-interactive shells — use `migrate diff` + manual migration + `migrate deploy`

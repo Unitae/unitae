@@ -414,7 +414,7 @@
     "privacy_s9_title": "9. Security",
     "privacy_s9_intro": "Unitae implements the following security measures:",
     "privacy_s9_tls": "Data encryption in transit (TLS)",
-    "privacy_s9_bcrypt": "Password hashing (bcrypt)",
+    "privacy_s9_hashing": "Cryptographic password hashing",
     "privacy_s9_rls": "Data isolation per congregation (Row-Level Security)",
     "privacy_s9_rbac": "Role-based access control (14 roles)",
     "privacy_s9_cookies": "Secure session cookies (httpOnly, secure, SameSite)",

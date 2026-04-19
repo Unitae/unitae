@@ -414,7 +414,7 @@
     "privacy_s9_title": "9. Sécurité",
     "privacy_s9_intro": "Unitae met en œuvre les mesures de sécurité suivantes :",
     "privacy_s9_tls": "Chiffrement des données en transit (TLS)",
-    "privacy_s9_bcrypt": "Hachage des mots de passe (bcrypt)",
+    "privacy_s9_hashing": "Hachage cryptographique des mots de passe",
     "privacy_s9_rls": "Isolation des données par assemblée (Row-Level Security)",
     "privacy_s9_rbac": "Contrôle d'accès basé sur les rôles (14 rôles)",
     "privacy_s9_cookies": "Cookies de session sécurisés (httpOnly, secure, SameSite)",

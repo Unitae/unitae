@@ -157,7 +157,7 @@ export default function PrivacyPolicyPage() {
           <p>{m.privacy_s9_intro()}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>{m.privacy_s9_tls()}</li>
-            <li>{m.privacy_s9_bcrypt()}</li>
+            <li>{m.privacy_s9_hashing()}</li>
             <li>{m.privacy_s9_rls()}</li>
             <li>{m.privacy_s9_rbac()}</li>
             <li>{m.privacy_s9_cookies()}</li>

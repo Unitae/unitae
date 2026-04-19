@@ -1,11 +1,21 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from 'lucide-react'
-import { useTheme } from 'next-themes'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
+function useLocalTheme() {
+  const [theme, setTheme] = useState<string>('system')
+
+  useEffect(() => {
+    setTheme(localStorage.getItem('theme') ?? 'system')
+  }, [])
+
+  return { theme }
+}
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = 'system' } = useTheme()
+  const { theme = 'system' } = useLocalTheme()
 
   return (
     <Sonner
