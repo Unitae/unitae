@@ -15,9 +15,23 @@ export async function getPublishers(
   })
 }
 
-export async function getPublishersWithGroup(db: TransactionClient, congregationId: number) {
+export async function getPublishersWithGroup(
+  db: TransactionClient,
+  congregationId: number,
+  options?: { search?: string },
+) {
+  const searchFilter = options?.search
+    ? {
+        // biome-ignore lint/style/useNamingConvention: Prisma syntax
+        OR: [
+          { firstname: { contains: options.search, mode: 'insensitive' as const } },
+          { lastname: { contains: options.search, mode: 'insensitive' as const } },
+        ],
+      }
+    : {}
+
   return await db.user.findMany({
-    where: { isPublisher: true, congregationId },
+    where: { isPublisher: true, congregationId, ...searchFilter },
     include: { publisherGroup: true },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })

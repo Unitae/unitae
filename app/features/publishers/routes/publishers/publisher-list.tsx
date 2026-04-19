@@ -1,5 +1,5 @@
-import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { BarChart3, Eye, Mail, Pencil, Search, Users } from 'lucide-react'
+import { Form as RouterForm, Link, redirect, useSearchParams } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
@@ -7,6 +7,7 @@ import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { Button } from '~/shared/ui/button'
+import { Input } from '~/shared/ui/input'
 
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -40,8 +41,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publishers. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get('q') ?? undefined
+
   return withScope(congregationId, async db => {
-    const users = await getPublishersWithGroup(db, congregationId)
+    const users = await getPublishersWithGroup(db, congregationId, { search })
 
     return {
       users: users.map(user => ({
@@ -61,6 +65,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
   const { users, canManagePublisher, canViewActivities } = loaderData
+  const [searchParams] = useSearchParams()
 
   if (users.length < 1) {
     return (
@@ -104,6 +109,22 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
           </>
         }
       />
+
+      <RouterForm method="get" className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            name="q"
+            type="search"
+            placeholder={m.publishers_search_placeholder()}
+            defaultValue={searchParams.get('q') ?? ''}
+            className="pl-9"
+          />
+        </div>
+        <Button type="submit" variant="secondary">
+          {m.publishers_search_button()}
+        </Button>
+      </RouterForm>
 
       <div className="overflow-hidden rounded-xl border">
         <Table>
