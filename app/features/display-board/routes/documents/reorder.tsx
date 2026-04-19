@@ -1,4 +1,5 @@
 import { redirect } from 'react-router'
+import { reorderBoardItems } from '~/features/display-board/server/board-document.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Role } from '~/shared/types/role'
 
@@ -24,29 +25,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
-    // Serialize concurrent reorders on documents — lock on first item id to avoid interleaving
-    await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_000, orderedItems[0].id)
-
-    for (let i = 0; i < orderedItems.length; i++) {
-      const item = orderedItems[i]
-      if (item.kind === 'pdf') {
-        await db.boardDocument.update({
-          where: {
-            // biome-ignore lint/style/useNamingConvention: prisma compound key
-            id_congregationId: { id: item.id, congregationId },
-          },
-          data: { order: i * 5 },
-        })
-      } else {
-        await db.boardDynamicDocumentSettings.update({
-          where: {
-            // biome-ignore lint/style/useNamingConvention: prisma compound key
-            id_congregationId: { id: item.id, congregationId },
-          },
-          data: { order: i * 5 },
-        })
-      }
-    }
+    await reorderBoardItems(db, congregationId, orderedItems)
 
     return { ok: true }
   })

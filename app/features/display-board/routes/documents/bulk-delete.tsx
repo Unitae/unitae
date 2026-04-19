@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { deleteFile } from '~/features/display-board/server/document.server'
+import { bulkDeleteBoardItems } from '~/features/display-board/server/board-document.server'
 import logger from '~/shared/infra/logger.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Role } from '~/shared/types/role'
@@ -29,34 +29,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
-    let pdfDeleted = 0
-    if (pdfIds.length > 0) {
-      const documents = await db.boardDocument.findMany({
-        where: { id: { in: pdfIds }, congregationId },
-        select: { uri: true, thumbnailUri: true },
-      })
-
-      await db.boardDocument.deleteMany({
-        where: { id: { in: pdfIds }, congregationId },
-      })
-
-      for (const doc of documents) {
-        await deleteFile(doc)
-        if (doc.thumbnailUri) {
-          await deleteFile({ uri: doc.thumbnailUri })
-        }
-      }
-
-      pdfDeleted = documents.length
-    }
-
-    let dynDeleted = 0
-    if (dynIds.length > 0) {
-      const result = await db.boardDynamicDocumentSettings.deleteMany({
-        where: { id: { in: dynIds }, congregationId },
-      })
-      dynDeleted = result.count
-    }
+    const { pdfDeleted, dynDeleted } = await bulkDeleteBoardItems(db, congregationId, pdfIds, dynIds)
 
     logger.info(`Bulk deleted ${pdfDeleted} PDF documents and ${dynDeleted} dynamic documents.`)
 

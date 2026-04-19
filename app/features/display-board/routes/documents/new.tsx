@@ -3,6 +3,7 @@ import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjack
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
+import { createBoardDocument } from '~/features/display-board/server/board-document.server'
 import { saveFile } from '~/features/display-board/server/document.server'
 import { emailQueue } from '~/features/display-board/server/email-queue.server'
 import {
@@ -256,31 +257,14 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const storageKey = await saveFile(congregationId, file)
 
-    const document = await db.boardDocument.create({
-      data: {
-        title: String(name),
-        type: 'pdf',
-        uri: storageKey,
-        thumbnailUri: null,
-        sectionId: sectionId,
-        order: 0,
-        congregationId,
-        ...(visibleFrom.getTime() > 0
-          ? {
-              visibleFrom,
-            }
-          : {}),
-        ...(visibleUntil.getTime() > 0
-          ? {
-              visibleUntil,
-            }
-          : {}),
-        ...(submission.value.hightlighted != null
-          ? {
-              isHighlighted: isHighlighted,
-            }
-          : {}),
-      },
+    const document = await createBoardDocument(db, {
+      title: String(name),
+      sectionId,
+      uri: storageKey,
+      congregationId,
+      visibleFrom: parsedFrom,
+      visibleUntil: parsedUntil,
+      ...(submission.value.hightlighted != null ? { isHighlighted } : {}),
     })
 
     if (document == null) {

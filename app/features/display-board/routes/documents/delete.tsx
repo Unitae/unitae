@@ -1,6 +1,6 @@
 import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { deleteFile } from '~/features/display-board/server/document.server'
+import { deleteBoardDocument } from '~/features/display-board/server/board-document.server'
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/paraglide/messages'
 import logger from '~/shared/infra/logger.server'
@@ -70,21 +70,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     // Delete version files before cascade removes the rows
     await deleteAllVersionFiles(db, documentId)
 
-    const document = await db.boardDocument.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-    })
-
-    try {
-      await deleteFile(document)
-      if (document.thumbnailUri) {
-        await deleteFile({ uri: document.thumbnailUri })
-      }
-    } catch (error) {
-      logger.error('Document removal failed. Unexpected error during deletion of the file on the disk', { error })
-    }
+    const document = await deleteBoardDocument(db, documentId, congregationId)
 
     session.flash('success', m.board_documents_delete_success({ name: document.title }))
     logger.info(`Document removed. User ID: ${currentUser.id}. Document ID: ${document.id}.`, {

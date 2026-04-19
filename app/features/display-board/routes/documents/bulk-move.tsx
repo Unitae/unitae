@@ -1,4 +1,5 @@
 import { redirect } from 'react-router'
+import { bulkMoveBoardItems } from '~/features/display-board/server/board-document.server'
 import logger from '~/shared/infra/logger.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Role } from '~/shared/types/role'
@@ -28,23 +29,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
-    let pdfMoved = 0
-    if (pdfIds.length > 0) {
-      const result = await db.boardDocument.updateMany({
-        where: { id: { in: pdfIds }, congregationId },
-        data: { sectionId },
-      })
-      pdfMoved = result.count
-    }
-
-    let dynMoved = 0
-    if (dynIds.length > 0) {
-      const result = await db.boardDynamicDocumentSettings.updateMany({
-        where: { id: { in: dynIds }, congregationId },
-        data: { sectionId },
-      })
-      dynMoved = result.count
-    }
+    const { pdfMoved, dynMoved } = await bulkMoveBoardItems(db, congregationId, sectionId, pdfIds, dynIds)
 
     logger.info(`Bulk moved ${pdfMoved} PDFs and ${dynMoved} dynamic docs to section ${sectionId}.`)
 
