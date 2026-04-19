@@ -1,12 +1,8 @@
 import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
-import {
-  ConsentPurpose,
-  hasDataProcessingConsent,
-  recordConsentUnscoped,
-} from '~/shared/domain/consent.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { ConsentPurpose, hasDataProcessingConsent, recordConsentUnscoped } from '~/shared/domain/consent.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 

@@ -5,7 +5,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Mon compte - Unitae' }]
 }
 
-export async function loader(_args: Route.LoaderArgs) {
+export function loader(_args: Route.LoaderArgs) {
   return {}
 }
 

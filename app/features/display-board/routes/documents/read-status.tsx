@@ -1,8 +1,8 @@
 import { CheckCircle, XCircle } from 'lucide-react'
 import { redirect } from 'react-router'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -15,7 +15,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_read_status_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 

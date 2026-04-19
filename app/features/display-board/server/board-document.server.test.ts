@@ -40,6 +40,7 @@ describe('updateBoardDocument', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDocument.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 1, congregationId: 10 } },
       data: {
         title: 'Lettre',
@@ -61,6 +62,7 @@ describe('markDocumentAsViewed', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDocument.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 7, congregationId: 10 } },
       data: { viewedBy: { connect: { id: 42 } } },
       select: { id: true, title: true },
@@ -104,6 +106,7 @@ describe('updateDynamicDocument', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDynamicDocumentSettings.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data,
     })
@@ -119,6 +122,7 @@ describe('deleteDynamicDocument', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDynamicDocumentSettings.delete).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
     })
   })

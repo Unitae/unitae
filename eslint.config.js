@@ -52,9 +52,7 @@ export default [
             {
               from: ['features'],
               disallow: ['features'],
-              allow: [
-                ['features', { feature: '${from.feature}' }],
-              ],
+              allow: [['features', { feature: '${from.feature}' }]],
               importKind: 'value',
             },
           ],

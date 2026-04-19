@@ -7,6 +7,7 @@ export default defineConfig({
   fullyParallel: false,
   retries: 0,
   use: {
+    // biome-ignore lint/style/useNamingConvention: playwright config property
     baseURL: 'http://localhost:5173',
     trace: 'on-first-retry',
   },

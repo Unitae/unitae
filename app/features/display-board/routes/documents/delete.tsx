@@ -3,8 +3,8 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { deleteBoardDocument } from '~/features/display-board/server/board-document.server'
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -12,7 +12,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')

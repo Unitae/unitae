@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
@@ -49,7 +49,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
   const { settings, data } = loaderData
 
   return (
-    <div className="-m-4 md:-m-6 flex h-[calc(100vh-2rem)] flex-col md:h-[calc(100vh-3rem)]">
+    <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
       <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon" asChild>

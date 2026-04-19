@@ -1,7 +1,7 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { deleteBoardFile } from './document-storage.server'
 import { deleteFile } from './document.server'
+import { deleteBoardFile } from './document-storage.server'
 import { thumbnailQueue } from './thumbnail-queue.server'
 
 /**

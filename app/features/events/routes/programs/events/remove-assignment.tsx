@@ -3,8 +3,8 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
 

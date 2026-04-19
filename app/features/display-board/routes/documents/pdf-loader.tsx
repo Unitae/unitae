@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/display-board/server/document.server'
-import logger from '~/shared/infra/logger.server'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/pdf-loader'
 
@@ -9,7 +9,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 

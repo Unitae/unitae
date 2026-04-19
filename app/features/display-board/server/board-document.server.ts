@@ -1,6 +1,6 @@
+import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { deleteFile } from './document.server'
-import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function createBoardDocument(
   db: TransactionClient,

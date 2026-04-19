@@ -4,7 +4,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/thumbnail'
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({

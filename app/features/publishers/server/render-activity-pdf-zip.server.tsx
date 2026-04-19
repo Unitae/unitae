@@ -2,8 +2,8 @@ import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
 import pLimit from 'p-limit'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
-import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function renderActivityPdfZip(db: TransactionClient, congregationId: number, year: number) {
   const yearBegining = new Date(year, 0, 1)

@@ -8,8 +8,8 @@ import { updateBoardDocument } from '~/features/display-board/server/board-docum
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_documents_edit_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canUploadDocument = permissions.has(Role.BoardUploader)
   const canManageBoard = permissions.has(Role.BoardValidator)

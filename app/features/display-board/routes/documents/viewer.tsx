@@ -4,8 +4,8 @@ import { Link, redirect } from 'react-router'
 import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -15,7 +15,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
 
   const documentId = requireParamId(params.documentId, '/board')
@@ -55,7 +55,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   }, [])
 
   return (
-    <div className="-m-4 md:-m-6 flex h-[calc(100vh-2rem)] flex-col md:h-[calc(100vh-3rem)]">
+    <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
       <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon" asChild>

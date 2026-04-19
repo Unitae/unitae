@@ -13,11 +13,13 @@ vi.mock('~/features/authentication/server/send-reset-user-password-email.server'
 }))
 
 vi.mock('~/shared/domain/audit.server', () => ({
+  // biome-ignore lint/style/useNamingConvention: matching exported enum shape
   AuditAction: { UserCreated: 'UserCreated' },
   audit: vi.fn(),
 }))
 
 vi.mock('~/shared/domain/limits.server', () => ({
+  // biome-ignore lint/style/useNamingConvention: matching exported class name
   LimitService: class {
     errorIfWouldGoOverLimit = mockErrorIfWouldGoOverLimit
   },
@@ -71,9 +73,9 @@ describe('createUser', () => {
   it('throws ConflictError when user already exists', async () => {
     mockDb.user.findUnique.mockResolvedValue({ id: 1, email: 'sophie@example.com' })
 
-    await expect(
-      createUser(mockDb as any, baseCongregation, 99, baseParams, mockRenderEmail),
-    ).rejects.toThrow(ConflictError)
+    await expect(createUser(mockDb as any, baseCongregation, 99, baseParams, mockRenderEmail)).rejects.toThrow(
+      ConflictError,
+    )
 
     expect(mockDb.user.create).not.toHaveBeenCalled()
   })

@@ -20,13 +20,13 @@ import {
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import {
   congregationContext,
   permissionsContext,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'

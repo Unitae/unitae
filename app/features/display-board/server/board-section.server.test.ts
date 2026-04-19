@@ -36,6 +36,7 @@ describe('updateBoardSection', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardSection.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { name: 'Lettres' },
     })

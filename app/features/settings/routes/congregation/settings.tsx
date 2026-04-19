@@ -4,13 +4,13 @@ import { data, Form, Link, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
 import * as m from '~/paraglide/messages'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import {
   congregationContext,
   permissionsContext,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

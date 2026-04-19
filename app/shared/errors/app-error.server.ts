@@ -32,10 +32,6 @@ export class ValidationError extends AppError {
 export class ConflictError extends AppError {
   readonly code = 'CONFLICT'
   readonly statusCode = 409
-
-  constructor(message: string) {
-    super(message)
-  }
 }
 
 export class ForbiddenError extends AppError {

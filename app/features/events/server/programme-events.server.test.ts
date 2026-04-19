@@ -66,6 +66,7 @@ describe('deleteEvent', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.event.delete).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 3, congregationId: 10 } },
     })
   })
@@ -81,6 +82,7 @@ describe('updateEvent', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.event.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 2, congregationId: 10 } },
       data,
     })
@@ -116,6 +118,7 @@ describe('deletePartAssignment', () => {
 
     expect(result).toEqual({ id: 5 })
     expect(mockDb.programmePartAssignment.delete).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
     })
   })
@@ -142,6 +145,7 @@ describe('deleteServiceRoleAssignment', () => {
 
     expect(result).toEqual({ id: 8 })
     expect(mockDb.programmeServiceRoleAssignment.delete).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 8, congregationId: 10 } },
     })
   })
@@ -176,6 +180,7 @@ describe('applyTemplateToEvent', () => {
 
     expect(result).toEqual(template)
     expect(mockDb.event.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 1, congregationId: 10 } },
       data: { templateId: 5 },
     })

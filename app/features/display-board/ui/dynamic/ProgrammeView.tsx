@@ -140,7 +140,7 @@ export function ProgrammeView({ events, showServices }: ProgrammeViewData) {
                             {slot.parts.map(part => (
                               <div key={part.id} className="flex flex-col gap-1">
                                 {part.track && (
-                                  <span className="font-semibold text-muted-foreground text-[10px] uppercase tracking-wide">
+                                  <span className="font-semibold text-[10px] text-muted-foreground uppercase tracking-wide">
                                     {part.track}
                                   </span>
                                 )}

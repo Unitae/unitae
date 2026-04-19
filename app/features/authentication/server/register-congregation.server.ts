@@ -1,8 +1,8 @@
-import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
-import { seedCongregationDefaults } from '~/shared/domain/setup.server'
 import * as m from '~/paraglide/messages'
 import type { locales } from '~/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
+import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
+import { seedCongregationDefaults } from '~/shared/domain/setup.server'
 
 type Locale = (typeof locales)[number]
 

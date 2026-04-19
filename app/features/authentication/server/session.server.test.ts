@@ -17,6 +17,7 @@ vi.mock('react-router', () => ({
   redirect: (url: string, init?: ResponseInit) => {
     const response = new Response(null, {
       status: 302,
+      // biome-ignore lint/style/useNamingConvention: HTTP header
       headers: { Location: url, ...(init?.headers as Record<string, string>) },
     })
     throw response

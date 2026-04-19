@@ -21,6 +21,7 @@ describe('togglePublisherStatus', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: true },
     })
@@ -34,6 +35,7 @@ describe('togglePublisherStatus', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: false },
     })

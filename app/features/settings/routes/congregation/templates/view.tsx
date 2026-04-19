@@ -8,8 +8,8 @@ import {
   isTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'

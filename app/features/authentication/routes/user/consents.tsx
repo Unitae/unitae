@@ -1,10 +1,10 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import { consentSchema } from '~/features/authentication/schemas/login.schema'
-import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -21,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.user_consents_page_title()} - Unitae` }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {

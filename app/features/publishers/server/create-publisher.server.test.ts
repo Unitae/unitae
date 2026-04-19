@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockErrorIfWouldGoOverLimit = vi.fn()
 
 vi.mock('~/shared/domain/limits.server', () => ({
+  // biome-ignore lint/style/useNamingConvention: matching exported class name
   LimitService: class {
     errorIfWouldGoOverLimit = mockErrorIfWouldGoOverLimit
   },
@@ -65,9 +66,7 @@ describe('createPublisher', () => {
   it('throws LimitError when publisher limit reached', async () => {
     mockErrorIfWouldGoOverLimit.mockRejectedValue(new Error('Limit reached'))
 
-    await expect(
-      createPublisher(mockDb as any, baseCongregation, baseParams),
-    ).rejects.toThrow('Limit reached')
+    await expect(createPublisher(mockDb as any, baseCongregation, baseParams)).rejects.toThrow('Limit reached')
 
     expect(mockDb.user.create).not.toHaveBeenCalled()
   })

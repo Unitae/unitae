@@ -9,8 +9,8 @@ import {
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
 import * as m from '~/paraglide/messages'
-import logger from '~/shared/infra/logger.server'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -32,7 +32,7 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
   }
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {

@@ -9,14 +9,14 @@ import { createTerritory } from '~/features/territories/server/create-territory.
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import * as m from '~/paraglide/messages'
-import { LimitService } from '~/shared/domain/limits.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import {
   congregationContext,
   permissionsContext,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { LimitService } from '~/shared/domain/limits.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'

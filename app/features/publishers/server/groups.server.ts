@@ -1,5 +1,5 @@
-import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function getGroups(db: TransactionClient, congregationId: number) {
   return await db.publisherGroup.findMany({ where: { congregationId } })
