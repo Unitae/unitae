@@ -11,6 +11,12 @@ importers:
       '@aws-sdk/client-s3':
         specifier: ^3.1024.0
         version: 3.1024.0
+      '@conform-to/react':
+        specifier: ^1.19.0
+        version: 1.19.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@conform-to/zod':
+        specifier: ^1.19.0
+        version: 1.19.0(zod@4.3.6)
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -113,6 +119,9 @@ importers:
       winston:
         specifier: ^3.19.0
         version: 3.19.0
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@biomejs/biome':
         specifier: 2.4.10
@@ -546,6 +555,20 @@ packages:
   '@colors/colors@1.6.0':
     resolution: {integrity: sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==}
     engines: {node: '>=0.1.90'}
+
+  '@conform-to/dom@1.19.0':
+    resolution: {integrity: sha512-2qegTdMy3ZT+SzzD8YyUWupAEhLl3X248bhrbhXdRsWjFdGSnTz12YB9j/f1MZ27A1LnmijKYiz2mgMdlblPAA==}
+
+  '@conform-to/react@1.19.0':
+    resolution: {integrity: sha512-xK6+d2hHhiypLOpXIGLw9tD57N0GJFtmHBceaumS45tSV5Hr/bRiz1kioymJJrUUwV0bT+f1sTmHQZD6YJDOiw==}
+    peerDependencies:
+      react: '>=18'
+      react-dom: '>=18'
+
+  '@conform-to/zod@1.19.0':
+    resolution: {integrity: sha512-kqwuubmJPcyDlf3gXLWjKsWhTiox4ICL/eXLFZONjnEAOHGP1sUvfhvuYwJpH0PJu82kgz9JZG5iuVOcZGsygw==}
+    peerDependencies:
+      zod: ^3.21.0 || ^4.0.0
 
   '@dabh/diagnostics@2.0.8':
     resolution: {integrity: sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q==}
@@ -6223,6 +6246,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
 snapshots:
 
   '@ampproject/remapping@2.3.0':
@@ -6938,6 +6964,19 @@ snapshots:
       sisteransi: 1.0.5
 
   '@colors/colors@1.6.0': {}
+
+  '@conform-to/dom@1.19.0': {}
+
+  '@conform-to/react@1.19.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      '@conform-to/dom': 1.19.0
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
+  '@conform-to/zod@1.19.0(zod@4.3.6)':
+    dependencies:
+      '@conform-to/dom': 1.19.0
+      zod: 4.3.6
 
   '@dabh/diagnostics@2.0.8':
     dependencies:
@@ -12745,3 +12784,5 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
+
+  zod@4.3.6: {}
