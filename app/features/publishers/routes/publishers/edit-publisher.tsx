@@ -8,8 +8,7 @@ import PublisherNominationForm from '~/features/publishers/ui/PublisherNominatio
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -20,19 +19,20 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const result = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId },
+        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId: currentUser.congregationId },
       },
     })
 
@@ -41,9 +41,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const showAuxiliaryPioneer = await getBoolSetting(
       db,
       CongregationSettingKey.AuxiliaryPioneerProfileActivated,
-      congregationId,
+      currentUser.congregationId,
     )
-    const groups = await db.publisherGroup.findMany({ where: { congregationId } })
+    const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
     const { email, password, ...user } = result
     return {
       user: {
@@ -94,8 +94,8 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
   const form = await request.formData()
   const firstname = form.get('firstname')
   const lastname = form.get('lastname')
@@ -116,11 +116,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     return redirect(previousPage ?? `/congregation/publishers/${params.publisherId}/view`)
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const user = await updatePublisher(
       db,
       requireParamId(params.publisherId, '/congregation/publishers'),
-      congregationId,
+      currentUser.congregationId,
       {
         firstname: String(firstname),
         lastname: String(lastname),

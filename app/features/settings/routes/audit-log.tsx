@@ -2,7 +2,7 @@ import { Form as RouterForm, useSearchParams } from 'react-router'
 import { Role } from '~/shared/types/role'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { userContext } from '~/shared/libs/route-context.server'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
@@ -17,8 +17,9 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.audit_log_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
+  const congregationId = currentUser.congregationId
 
   const url = new URL(request.url)
   const action = url.searchParams.get('action') ?? undefined

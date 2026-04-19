@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Form, redirect } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters.server'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings.server'
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
-import { getOptionalEnv } from '~/shared/utils/env.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
+import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/list'
 
@@ -22,17 +21,17 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_classical_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
-  const canViewTerritories = can(Role.TerritoriesViewer)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canViewTerritories) {
+  if (!permissions.has(Role.TerritoriesViewer)) {
     throw redirect('/')
   }
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
+  const { congregationId } = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)

@@ -2,8 +2,7 @@ import { Form, Link, redirect } from 'react-router'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -20,27 +19,27 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.user_consents_page_title()} - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
+export async function loader({ context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const consents = await getActiveConsents(db, currentUser.id)
     return { consents }
   })
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
   const form = await request.formData()
   const purpose = String(form.get('purpose'))
 
-  await withScope(congregationId, async db => {
+  await withScopeFromContext(context, async db => {
     await withdrawConsent(db, currentUser.id, purpose as ConsentPurpose)
   })
 
   audit({
     action: AuditAction.ConsentWithdrawn,
-    congregationId,
+    congregationId: currentUser.congregationId,
     actorId: currentUser.id,
     metadata: { purpose },
   })

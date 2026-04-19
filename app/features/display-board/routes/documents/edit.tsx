@@ -1,14 +1,13 @@
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { History, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
@@ -23,16 +22,17 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_documents_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
-  const canUploadDocument = can(Role.BoardUploader)
-  const canManageBoard = can(Role.BoardValidator)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canUploadDocument = permissions.has(Role.BoardUploader)
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
   if (!canUploadDocument) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -202,9 +202,11 @@ async function parseMultipartForm(request: Request) {
   return { form, file: hasNewFile ? file : null }
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-  const canManageBoard = can(Role.BoardValidator)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
   let formResult: Awaited<ReturnType<typeof parseMultipartForm>>
   try {
@@ -247,7 +249,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   const resolvedVisibleFrom = visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined
   const resolvedVisibleUntil = visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
     const documentId = requireParamId(params.documentId, '/board')
 
     // Handle file replacement if a new file was uploaded

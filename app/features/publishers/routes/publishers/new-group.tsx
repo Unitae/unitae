@@ -7,8 +7,7 @@ import { Role } from '~/shared/types/role'
 import { createGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { createPublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -17,18 +16,19 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/new-group'
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const brothers = await db.user.findMany({
       where: {
-        congregationId,
+        congregationId: currentUser.congregationId,
         // biome-ignore lint/style/useNamingConvention: Prisma OR operator
         OR: [{ isHelder: true }, { isServant: true }],
         responsibleFor: {
@@ -125,10 +125,11 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = can(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')
@@ -153,13 +154,13 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const group = await createPublisherGroup(db, {
       name,
       address,
       responsibleId,
       deputyId: deputyId ?? null,
-      congregationId,
+      congregationId: currentUser.congregationId,
     })
 
     session.flash('success', m.groups_new_success({ name: group.name }))

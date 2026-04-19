@@ -4,8 +4,7 @@ import { Role } from '~/shared/types/role'
 import { dayLabelShort } from '~/features/events/model/day-label'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -17,17 +16,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_templates_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.Admin,
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramViewer) && !can(Role.Admin)) throw redirect('/')
+  if (!permissions.has(Role.ProgramViewer) && !permissions.has(Role.Admin)) throw redirect('/')
 
-  return withScope(congregationId, async db => {
-    const templates = await getTemplates(db, congregationId)
+  return withScopeFromContext(context, async db => {
+    const templates = await getTemplates(db, currentUser.congregationId)
     return { templates }
   })
 }

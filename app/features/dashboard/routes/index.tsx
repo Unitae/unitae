@@ -9,8 +9,7 @@ import {
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
@@ -33,14 +32,14 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
   }
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
+export async function loader({ context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, absences, assignments] = await Promise.all([
       safeQuery('territories', currentUser.id, () => getUserTerritories(db, currentUser.id)),
-      safeQuery('documents', currentUser.id, () => getRecentDocuments(db, currentUser.id, congregationId)),
-      safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, congregationId)),
+      safeQuery('documents', currentUser.id, () => getRecentDocuments(db, currentUser.id, currentUser.congregationId)),
+      safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
       safeQuery('assignments', currentUser.id, () => getUpcomingAssignments(db, currentUser.id)),
     ])
 

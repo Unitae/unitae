@@ -1,5 +1,5 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
@@ -13,8 +13,8 @@ import {
 } from '~/features/events/server/programme-events.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { type TransactionClient, withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -29,12 +29,15 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/congregation/programs')
 
@@ -47,13 +50,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const form = await request.formData()
   const intent = form.get('intent')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/congregation/programs')
 

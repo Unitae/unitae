@@ -8,8 +8,7 @@ import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldSe
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
@@ -19,16 +18,17 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
-    const groups = await db.publisherGroup.findMany({ where: { congregationId } })
+  return withScopeFromContext(context, async db => {
+    const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
 
     return { groups, hideAuxiliaryPioneer: false }
   })
@@ -54,8 +54,9 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, context }: Route.ActionArgs) {
+  const congregation = context.get(congregationContext)
+  const currentUser = context.get(userContext)
   const submission = parseWithZod(await request.formData(), { schema: createPublisherSchema })
 
   if (submission.status !== 'success') {
@@ -65,7 +66,7 @@ export async function action({ request }: Route.ActionArgs) {
   const { firstname, lastname, email, gender, birthDate, baptismDate, isHelder, isServant, isAnointed, group, type } =
     submission.value
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const user = await createPublisher(db, congregation, {
       firstname,
       lastname,
@@ -78,7 +79,7 @@ export async function action({ request }: Route.ActionArgs) {
       isAnointed,
       groupId: group ?? 0,
       type,
-      congregationId,
+      congregationId: currentUser.congregationId,
     })
 
     const session = await getSession(request.headers.get('Cookie'))

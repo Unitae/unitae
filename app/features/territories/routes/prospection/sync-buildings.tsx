@@ -1,11 +1,10 @@
 import { redirect } from 'react-router'
 
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/sync-buildings'
 
@@ -17,17 +16,18 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesManager,
-  ])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const currentUser = context.get(userContext)
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const user = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound key

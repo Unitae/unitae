@@ -3,18 +3,19 @@ import { redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import { anonymizeUser } from '~/features/settings/server/anonymize-user.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/anonymize'
 
 // Action-only route : anonymise un utilisateur (admin uniquement)
-export async function action({ params, request }: Route.ActionArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
+export async function action({ params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const congregationId = currentUser.congregationId
 
-  if (!can(Role.Admin)) {
+  if (!permissions.has(Role.Admin)) {
     throw redirect('/')
   }
 
@@ -25,7 +26,7 @@ export async function action({ params, request }: Route.ActionArgs) {
     throw redirect('/settings/users')
   }
 
-  await withScope(congregationId, async db => {
+  await withScopeFromContext(context, async db => {
     await anonymizeUser(db, userId, `admin:${currentUser.id}`)
   })
 

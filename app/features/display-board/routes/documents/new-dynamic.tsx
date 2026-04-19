@@ -1,13 +1,12 @@
 import { Calendar, Star, Users } from 'lucide-react'
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -19,14 +18,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_new_dynamic_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const available = await listAvailableDynamicTypes(db, congregationId)
     const sections = await db.boardSection.findMany({
       where: { congregationId },
@@ -97,20 +96,21 @@ function AvailableCard({ item, disabled }: { item: AvailableDynamicType; disable
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
+  const session = await getSession(request.headers.get('Cookie'))
   const form = await request.formData()
   const dynamicType = String(form.get('dynamicType'))
   const dynamicRefRaw = String(form.get('dynamicRef') ?? '')
   const dynamicRef = dynamicRefRaw === '' ? null : dynamicRefRaw
   const title = String(form.get('title'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const section = await db.boardSection.findFirst({
       where: { congregationId },
       orderBy: { order: 'asc' },

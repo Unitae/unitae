@@ -1,11 +1,10 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { deleteEvent } from '~/features/events/server/programme-events.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
@@ -13,12 +12,15 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/congregation/programs')
 
@@ -30,12 +32,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/congregation/programs')
 

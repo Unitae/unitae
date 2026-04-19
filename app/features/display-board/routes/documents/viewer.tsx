@@ -1,12 +1,10 @@
 import { ArrowLeft, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
 import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
@@ -17,15 +15,13 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
 
   const documentId = requireParamId(params.documentId, '/board')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const document = await markDocumentAsViewed(db, documentId, currentUser.id, congregationId)
 
     if (!document) {

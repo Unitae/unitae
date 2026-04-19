@@ -1,14 +1,13 @@
 import { Map as MapIcon, RefreshCw } from 'lucide-react'
 import { data, Form, Link, NavLink, Outlet, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
-import { getSetting } from '~/shared/domain/settings.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { getSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -20,21 +19,20 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionViewer,
-    Role.ProspectionManager,
-    Role.TerritoriesManager,
-  ])
-  const canViewProspection = can(Role.ProspectionViewer)
-  const canManageProspection = can(Role.ProspectionManager)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canViewProspection = permissions.has(Role.ProspectionViewer)
+  const canManageProspection = permissions.has(Role.ProspectionManager)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   if (!canViewProspection) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const prospectionValidity = Number(
       (await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)) ?? '0',
     )

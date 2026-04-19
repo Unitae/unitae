@@ -7,8 +7,7 @@ import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSear
 import { Role } from '~/shared/types/role'
 import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -22,9 +21,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Liste des documents du Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader])
-  const canUploadDocument = can(Role.BoardUploader)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Role.BoardUploader)
 
   if (!canUploadDocument) {
     logger.warn(`Tried to load board documents. User ID: ${currentUser.id}. Does NOT have rights to upload document.`)
@@ -40,7 +40,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const searchQuery = url.searchParams.get('q') ?? ''
   const filterSectionId = url.searchParams.get('sectionId')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const sections = await db.boardSection.findMany({
       where: { congregationId },
       orderBy: { order: 'asc' },

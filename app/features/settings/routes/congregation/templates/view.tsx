@@ -1,6 +1,6 @@
 import { Calendar, Clock, Copy, Pencil, UserCog } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { dayLabel } from '~/features/events/model/day-label'
 import {
@@ -9,8 +9,7 @@ import {
   isTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Badge } from '~/shared/ui/badge'
@@ -25,22 +24,20 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_view_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramViewer)) throw redirect('/')
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/')
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
-  return withScope(congregationId, async db => {
-    const template = await getTemplateById(db, templateId, congregationId)
+  return withScopeFromContext(context, async db => {
+    const template = await getTemplateById(db, templateId, currentUser.congregationId)
     if (!template) throw redirect('/settings/congregation/templates')
 
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    const canEdit = can(Role.ProgramManager) || responsible != null
+    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
+    const canEdit = permissions.has(Role.ProgramManager) || responsible != null
 
     logger.info(`Loading template view. User ID: ${currentUser.id}. Template: ${template.name}.`)
 
@@ -48,16 +45,18 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
-  return withScope(congregationId, async db => {
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+  return withScopeFromContext(context, async db => {
+    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
+    if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
-    const copy = await duplicateTemplate(db, templateId, congregationId)
+    const session = await getSession(request.headers.get('Cookie'))
+    const copy = await duplicateTemplate(db, templateId, currentUser.congregationId)
     if (copy) {
       session.flash('success', m.settings_template_view_duplicate_success({ name: copy.name }))
       logger.info(`Duplicated template ${templateId} → ${copy.id}. User ID: ${currentUser.id}.`)

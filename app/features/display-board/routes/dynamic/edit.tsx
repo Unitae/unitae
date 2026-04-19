@@ -1,13 +1,12 @@
 import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -21,16 +20,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_dynamic_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const settings = await db.boardDynamicDocumentSettings.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -166,13 +165,13 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
+  const session = await getSession(request.headers.get('Cookie'))
   const form = await request.formData()
   const title = String(form.get('title')).trim()
   const sectionId = Number(form.get('sectionId'))
@@ -199,7 +198,9 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const settings = await updateDynamicDocument(db, dynamicId, congregationId, {
       title,
       sectionId,

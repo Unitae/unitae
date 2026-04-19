@@ -1,13 +1,12 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
 import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -19,9 +18,9 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
-  const canManageUser = can(Role.SettingsUserManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canManageUser = permissions.has(Role.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
@@ -80,8 +79,9 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, congregation, congregationId, session } = await authenticateAndAuthorize(request)
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
   const submission = parseWithZod(await request.formData(), { schema: createUserSchema })
 
   if (submission.status !== 'success') {
@@ -90,14 +90,15 @@ export async function action({ request }: Route.ActionArgs) {
 
   const { firstname, lastname, email } = submission.value
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     try {
       const ResetPasswordRequired = (await import('emails/reset-password-required')).default
       const result = await createUser(
         db,
         congregation,
         currentUser.id,
-        { firstname, lastname, email, congregationId },
+        { firstname, lastname, email, congregationId: currentUser.congregationId },
         (_userId, token) => (
           <ResetPasswordRequired
             email={email}

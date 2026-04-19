@@ -1,5 +1,5 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import {
   deleteTemplatePart,
@@ -11,8 +11,8 @@ import {
   upsertTemplateServiceRole,
 } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { type TransactionClient, withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
@@ -28,49 +28,49 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
-  return withScope(congregationId, async db => {
-    const template = await getTemplateById(db, templateId, congregationId)
+  return withScopeFromContext(context, async db => {
+    const template = await getTemplateById(db, templateId, currentUser.congregationId)
     if (!template) throw redirect('/settings/congregation/templates')
 
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
+    if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     return { template }
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
   const form = await request.formData()
   const intent = form.get('intent')
 
-  return withScope(congregationId, async db => {
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!can(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+  return withScopeFromContext(context, async db => {
+    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
+    if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
+    const session = await getSession(request.headers.get('Cookie'))
     if (intent === 'update-template') {
       const name = String(form.get('name') ?? '')
       const rawWeekDay = form.get('weekDay')
       const weekDay = rawWeekDay && rawWeekDay !== 'none' ? Number(rawWeekDay) : null
-      await updateTemplate(db, templateId, { name, weekDay }, congregationId)
+      await updateTemplate(db, templateId, { name, weekDay }, currentUser.congregationId)
       session.flash('success', m.settings_template_edit_update_success())
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }
 
-    const partMessage = await handlePartIntent(intent, form, db, templateId, congregationId)
+    const partMessage = await handlePartIntent(intent, form, db, templateId, currentUser.congregationId)
     if (partMessage) session.flash('success', partMessage)
 
-    const serviceMessage = await handleServiceRoleIntent(intent, form, db, templateId, congregationId)
+    const serviceMessage = await handleServiceRoleIntent(intent, form, db, templateId, currentUser.congregationId)
     if (serviceMessage) session.flash('success', serviceMessage)
 
     return redirect(`/settings/congregation/templates/${templateId}`, {

@@ -1,23 +1,22 @@
 import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { updateAttribution } from '~/features/territories/server/update-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -25,15 +24,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const attribution = await db.attribution.findUnique({
@@ -196,11 +196,10 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -214,8 +213,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'
+  const { congregationId } = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const attribution = await updateAttribution(
       db,
       requireParamId(params.attributionId, '/territories/attributions'),

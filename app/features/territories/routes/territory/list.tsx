@@ -1,8 +1,6 @@
 import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
@@ -11,17 +9,17 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
-import { getOptionalEnv } from '~/shared/utils/env.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
-
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/list'
 
@@ -58,23 +56,22 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_list_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesViewer,
-    Role.TerritoriesManager,
-  ])
-  const canViewTerritories = can(Role.TerritoriesViewer)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canViewTerritories) {
+  if (!permissions.has(Role.TerritoriesViewer)) {
     throw redirect('/')
   }
 
-  const canManageTerritories = can(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)

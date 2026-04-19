@@ -6,8 +6,7 @@ import { getPublisherStats } from '~/features/publishers/server/get-publisher-st
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -22,13 +21,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_list_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ActivityViewer,
-    Role.ActivityManager,
-  ])
-  const canViewActivities = can(Role.ActivityViewer)
-  const canManageActivities = can(Role.ActivityManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewActivities = permissions.has(Role.ActivityViewer)
+  const canManageActivities = permissions.has(Role.ActivityManager)
 
   if (!canViewActivities) {
     logger.warn(
@@ -44,8 +41,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const month = Number(searchParams.get('month') ?? timeRange.getMonth())
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
-  return withScope(congregationId, async db => {
-    const users = await getPublisherWithActivities(db, congregationId, month, year)
+  return withScopeFromContext(context, async db => {
+    const users = await getPublisherWithActivities(db, currentUser.congregationId, month, year)
 
     return {
       firstMonth: {
@@ -56,7 +53,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         month,
         year,
       },
-      stats: await getPublisherStats(db, congregationId, month, year),
+      stats: await getPublisherStats(db, currentUser.congregationId, month, year),
       publishers: users
         .map(sanitizeUser)
         .map(({ activities, ...member }) => ({

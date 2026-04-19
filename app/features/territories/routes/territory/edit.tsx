@@ -1,33 +1,32 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
-import { Form, Link, data, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
+import { data, Form, Link, redirect } from 'react-router'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import {
   aggregateEntrance,
   getAvailableEntrances,
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
-import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
-import { getOptionalEnv } from '~/shared/utils/env.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { getOptionalEnv } from '~/shared/utils/env.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -35,18 +34,18 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
+  const { congregationId } = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const territory = await db.territory.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound key
@@ -311,11 +310,10 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -325,8 +323,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   const { entrances, notes } = submission.value
+  const { congregationId } = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, {
       entranceIds: entrances,
       notes,

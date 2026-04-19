@@ -1,10 +1,9 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -17,11 +16,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_new_building_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -68,13 +66,10 @@ export default function CreateBuildingPage() {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesManager,
-  ])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -89,7 +84,10 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/buildings/new')
   }
 
-  return withScope(congregationId, async db => {
+  const congregation = context.get(congregationContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const building = await createBuilding(db, {
       address: {
         number: String(number),

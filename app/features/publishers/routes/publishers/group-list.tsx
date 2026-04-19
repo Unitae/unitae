@@ -2,8 +2,7 @@ import { Eye, Pencil, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 
@@ -17,13 +16,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_list_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.PublisherViewer,
-    Role.PublisherManager,
-  ])
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canManagePublisher = can(Role.PublisherManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canViewPublishers) {
     logger.warn(
@@ -37,9 +34,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publisher groups. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const groups = await db.publisherGroup.findMany({
-      where: { congregationId },
+      where: { congregationId: currentUser.congregationId },
       include: {
         responsible: true,
         deputy: true,

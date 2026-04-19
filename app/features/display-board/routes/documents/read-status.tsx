@@ -3,8 +3,7 @@ import { redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -16,13 +15,15 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_read_status_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.BoardValidator)) {
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
+  const { congregationId } = currentUser
   const documentId = requireParamId(params.documentId, '/board/documents')
 
   audit({
@@ -33,7 +34,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     entityId: documentId,
   })
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key

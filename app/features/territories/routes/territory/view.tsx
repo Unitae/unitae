@@ -1,8 +1,6 @@
 import { CalendarCheck, Download, ExternalLink, Pencil, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
@@ -12,16 +10,17 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
-import { getOptionalEnv } from '~/shared/utils/env.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { getOptionalEnv } from '~/shared/utils/env.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
 
@@ -29,21 +28,18 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesViewer,
-    Role.TerritoriesManager,
-    Role.PublisherViewer,
-  ])
-  const canViewTerritories = can(Role.TerritoriesViewer)
-  const canManageTerritories = can(Role.TerritoriesManager)
-  const canViewPublisher = can(Role.PublisherViewer)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canViewTerritories) {
+  if (!permissions.has(Role.TerritoriesViewer)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canViewPublisher = permissions.has(Role.PublisherViewer)
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const territory = await findTerritoryWithHistory(
       db,
       requireParamId(params.territoryId, '/territories'),

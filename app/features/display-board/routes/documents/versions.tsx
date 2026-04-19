@@ -1,12 +1,11 @@
 import { Download, History, RotateCcw } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { deleteFile } from '~/features/display-board/server/document.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -20,16 +19,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_versions_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
-
-  if (!can(Role.BoardUploader)) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')
   }
 
   const documentId = requireParamId(params.documentId, '/board/documents')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -129,21 +128,20 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
-
-  if (!can(Role.BoardUploader)) {
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')
   }
 
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   const documentId = requireParamId(params.documentId, '/board/documents')
   const form = await request.formData()
   const versionId = Number(form.get('versionId'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const version = await db.boardDocumentVersion.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key

@@ -4,8 +4,7 @@ import { Role } from '~/shared/types/role'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Badge } from '~/shared/ui/badge'
@@ -20,17 +19,17 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_view_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramViewer)) throw redirect('/')
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/')
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/congregation/programs')
 

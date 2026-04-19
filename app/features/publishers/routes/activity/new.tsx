@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { Form, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -20,13 +19,15 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
+  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
   const canManageMyGroupActivity =
-    currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
-    currentUser.deputyFor?.id === currentUser.publisherGroupId
+    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
+    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -39,8 +40,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const month = Number(searchParams.get('month') ?? timeRange.getMonth())
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
-  return withScope(congregationId, async db => {
-    const publishers = await getPublishers(db, congregationId, { groupId: groupFilter })
+  return withScopeFromContext(context, async db => {
+    const publishers = await getPublishers(db, currentUser.congregationId, { groupId: groupFilter })
 
     const activity = await db.publisherActivity.findFirst({
       where: {
@@ -60,7 +61,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       publisher = await db.user.findUnique({
         where: {
           // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-          id_congregationId: { id: Number(searchParams.get('publisherId')), congregationId },
+          id_congregationId: { id: Number(searchParams.get('publisherId')), congregationId: currentUser.congregationId },
         },
         include: {
           activities: true,
@@ -274,13 +275,15 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
+  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
   const canManageMyGroupActivity =
-    currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
-    currentUser.deputyFor?.id === currentUser.publisherGroupId
+    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
+    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -292,11 +295,11 @@ export async function action({ request }: Route.ActionArgs) {
   const month = Number(form.get('month'))
   const year = Number(form.get('year'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const publisher = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: publisherId, congregationId },
+        id_congregationId: { id: publisherId, congregationId: currentUser.congregationId },
       },
     })
 
@@ -305,6 +308,7 @@ export async function action({ request }: Route.ActionArgs) {
     const studies = Number(form.get('studies'))
     const observations = String(form.get('observations'))
 
+    const session = await getSession(request.headers.get('Cookie'))
     if (publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
       throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
@@ -327,7 +331,7 @@ export async function action({ request }: Route.ActionArgs) {
       hours,
       studies,
       notes: observations,
-      congregationId,
+      congregationId: currentUser.congregationId,
     })
 
     session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))

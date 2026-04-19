@@ -1,10 +1,9 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -19,15 +18,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.Admin])
-  if (!can(Role.Admin)) throw redirect('/')
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.Admin)) throw redirect('/')
   return {}
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
-  if (!can(Role.Admin)) throw redirect('/')
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  if (!permissions.has(Role.Admin)) throw redirect('/')
 
   const form = await request.formData()
   const name = String(form.get('name') ?? '').trim()
@@ -35,6 +35,7 @@ export async function action({ request }: Route.ActionArgs) {
   const rawWeekDay = form.get('weekDay')
   const weekDay = rawWeekDay && rawWeekDay !== 'none' ? Number(rawWeekDay) : null
 
+  const session = await getSession(request.headers.get('Cookie'))
   if (!name || !key) {
     session.flash('error', m.settings_template_new_name_key_required_error())
     return redirect('/settings/congregation/templates/new', {
@@ -42,8 +43,8 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  return withScope(congregationId, async db => {
-    const existing = await db.programmeTemplate.findFirst({ where: { key, congregationId } })
+  return withScopeFromContext(context, async db => {
+    const existing = await db.programmeTemplate.findFirst({ where: { key, congregationId: currentUser.congregationId } })
     if (existing) {
       session.flash('error', m.settings_template_new_key_exists_error())
       return redirect('/settings/congregation/templates/new', {
@@ -51,7 +52,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    const template = await createProgrammeTemplate(db, { name, key, weekDay, congregationId })
+    const template = await createProgrammeTemplate(db, { name, key, weekDay, congregationId: currentUser.congregationId })
 
     logger.info(`Created template "${name}" (${key}). User ID: ${currentUser.id}.`)
     session.flash('success', m.settings_template_new_success({ name }))

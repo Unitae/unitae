@@ -1,11 +1,10 @@
 import { redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
 import { generateS13ExportExcel } from '~/features/territories/server/s13-export.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/excel-export'
 
@@ -13,11 +12,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_excel_export_meta_title() }]
 }
 
-export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesViewer])
-  const canViewTerritories = can(Role.TerritoriesViewer)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!canViewTerritories) {
+  if (!permissions.has(Role.TerritoriesViewer)) {
     logger.warn(
       `Try to generate S-13 XLSX report. User ID: ${currentUser.id}. Does NOT have rights to access territories.`,
     )
@@ -28,7 +27,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     currentUser,
   })
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
     const exportData = await getTerritoriesExportData(db, congregationId, Number(params.year))
     const file = await generateS13ExportExcel(exportData, params.year)
 

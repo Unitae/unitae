@@ -1,11 +1,10 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 
 import Pagination from '~/shared/ui/Pagination'
@@ -17,21 +16,18 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_new_buildings_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionViewer,
-    Role.TerritoriesManager,
-    Role.ProspectionManager,
-  ])
-  const canViewProspection = can(Role.ProspectionViewer)
-  const canManageTerritories = can(Role.TerritoriesManager)
-  const canManageProspection = can(Role.ProspectionManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canViewProspection) {
+  if (!permissions.has(Role.ProspectionViewer)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageProspection = permissions.has(Role.ProspectionManager)
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const staleDate = await getProspectionStaleDate(db)
 
     const selectors = { inOpenData: true, active: true, prospectionDate: null }

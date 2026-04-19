@@ -3,18 +3,16 @@ import { redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import { ProgrammeDocument } from '~/features/events/ui/ProgrammeDocument'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 
 import type { Route } from './+types/export-pdf-download'
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
-  if (!can(Role.ProgramViewer)) throw redirect('/congregation/programs')
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/congregation/programs')
+
+  const currentUser = context.get(userContext)
 
   const url = new URL(request.url)
   const rawTemplateId = url.searchParams.get('templateId')
@@ -25,7 +23,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   logger.info(`Generating programme PDF. User ID: ${currentUser.id}. Template: ${templateId ?? 'all'}.`)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const events = await db.event.findMany({
       where: {
         congregationId,

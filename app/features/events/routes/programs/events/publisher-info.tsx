@@ -1,14 +1,13 @@
 import { Role } from '~/shared/types/role'
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
-  if (!can(Role.ProgramViewer)) return Response.json(null, { status: 403 })
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramViewer)) return Response.json(null, { status: 403 })
 
   const eventId = requireParamId(params.eventId, '/congregation/programs')
   const url = new URL(request.url)
@@ -17,7 +16,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) return Response.json(null)
 

@@ -1,12 +1,11 @@
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -21,19 +20,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
+  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
   const canManageMyGroupActivity =
-    currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
-    currentUser.deputyFor?.id === currentUser.publisherGroupId
+    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
+    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findFirst({
       where: {
         id: requireParamId(params.activityId, '/congregation/publishers/activity'),
@@ -168,14 +169,16 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
+  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
   const canManageMyGroupActivity =
-    currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
-    currentUser.deputyFor?.id === currentUser.publisherGroupId
+    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
+    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -183,13 +186,13 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const form = await request.formData()
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
           id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-          congregationId,
+          congregationId: currentUser.congregationId,
         },
       },
       include: {
@@ -202,6 +205,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     const studies = Number(form.get('studies'))
     const observations = String(form.get('observations'))
 
+    const session = await getSession(request.headers.get('Cookie'))
     if (activity?.publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
       throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
@@ -215,7 +219,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     await updatePublisherActivity(
       db,
       requireParamId(params.activityId, '/congregation/publishers/activity'),
-      congregationId,
+      currentUser.congregationId,
       {
         type,
         isPublisher: hours > 0 ? true : preached,

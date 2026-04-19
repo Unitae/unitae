@@ -1,13 +1,12 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
@@ -55,23 +54,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.SettingsUserManager,
-    Role.Admin,
-  ])
-  const canManageUser = can(Role.SettingsUserManager)
-  const isAdmin = can(Role.Admin)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageUser = permissions.has(Role.SettingsUserManager)
+  const isAdmin = permissions.has(Role.Admin)
 
   if (!canManageUser) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const user = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.userId, '/settings/users'), congregationId },
+        id_congregationId: { id: requireParamId(params.userId, '/settings/users'), congregationId: currentUser.congregationId },
       },
       include: {
         congregationRoles: { include: { role: true } },
@@ -82,6 +79,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     const roleList = await db.userRole.findMany()
     const missEmail = user.email.includes('@placeholder.unitae.app')
+    const session = await getSession(request.headers.get('Cookie'))
 
     return data(
       {
@@ -307,9 +305,10 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, congregationId, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
-  const canManageUser = can(Role.SettingsUserManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageUser = permissions.has(Role.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
@@ -324,8 +323,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const { firstname, lastname, email, active, roles } = submission.value
 
-  return withScope(congregationId, async db => {
-    await updateUser(db, userId, congregationId, currentUser.id, {
+  return withScopeFromContext(context, async db => {
+    await updateUser(db, userId, currentUser.congregationId, currentUser.id, {
       firstname,
       lastname,
       email,

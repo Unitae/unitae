@@ -1,5 +1,6 @@
 import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
+import { getSession } from '~/features/authentication/server/session.server'
 import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
 import { Role } from '~/shared/types/role'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
@@ -7,8 +8,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
@@ -23,17 +23,13 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: `${data.publisher.firstname} ${data.publisher.lastname} - Unitae` }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.PublisherViewer,
-    Role.PublisherManager,
-    Role.ActivityManager,
-    Role.TerritoriesViewer,
-  ])
-  const canViewPublisher = can(Role.PublisherViewer)
-  const canManagePublisher = can(Role.PublisherManager)
-  const canManageActivity = can(Role.ActivityManager)
-  const canViewTerritories = can(Role.TerritoriesViewer)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPublisher = permissions.has(Role.PublisherViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManageActivity = permissions.has(Role.ActivityManager)
+  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
 
   if (!canViewPublisher) {
     logger.warn(`Tried to load publisher file. User ID: ${currentUser.id}. Does NOT have rights to view publishers.`)
@@ -44,7 +40,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const today = new Date()
     const yearBegining = new Date(today.getFullYear(), 8, 1)
     if (today < yearBegining) {
@@ -53,7 +49,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     const publisher = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId },
+        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId: currentUser.congregationId },
       },
       include: {
         publisherGroup: {
@@ -88,9 +84,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       throw redirect('/congregation/publishers')
     }
 
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = { success: session.get('success'), error: session.get('error') }
 
-    const attributions = await findActiveAttributionsForPublisher(db, publisher.id, congregationId)
+    const attributions = await findActiveAttributionsForPublisher(db, publisher.id, currentUser.congregationId)
 
     return {
       publisher: sanitizeUser(publisher),

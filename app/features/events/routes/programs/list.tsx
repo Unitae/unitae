@@ -2,8 +2,7 @@ import { Calendar, CalendarOff, ChevronRight, FileDown } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -16,20 +15,19 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramViewer)) {
+  if (!permissions.has(Role.ProgramViewer)) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)
     throw redirect('/')
   }
 
   logger.info(`Loading program list. User ID: ${currentUser.id}.`)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     // Inclure tous les évènements à partir du début du mois en cours —
     // permet de voir les évènements planifiés plusieurs mois à l'avance.
     const now = new Date()
@@ -48,7 +46,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     return {
       upcomingEvents,
-      roles: { canManagePrograms: can(Role.ProgramManager) },
+      roles: { canManagePrograms: permissions.has(Role.ProgramManager) },
     }
   })
 }

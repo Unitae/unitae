@@ -1,12 +1,11 @@
 import { redirect } from 'react-router'
 
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/create'
 
@@ -14,13 +13,10 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesManager,
-  ])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -32,7 +28,10 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/buildings/split-territories')
   }
 
-  return withScope(congregationId, async db => {
+  const congregation = context.get(congregationContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('territories')
 

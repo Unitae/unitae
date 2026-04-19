@@ -2,11 +2,11 @@ import ResetPasswordRequired from 'emails/reset-password-required'
 import { redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { permissionsContext, userContext } from '~/shared/libs/route-context.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -20,11 +20,12 @@ export function loader() {
   throw redirect('/')
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
-  const canManageUser = can(Role.SettingsUserManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const permissions = context.get(permissionsContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  if (!canManageUser) throw redirect('/')
+  if (!permissions.has(Role.SettingsUserManager)) throw redirect('/')
 
   const user = await db.user.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },

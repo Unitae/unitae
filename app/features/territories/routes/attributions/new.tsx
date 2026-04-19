@@ -1,15 +1,19 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Form, data, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
+import { data, Form, redirect } from 'react-router'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { createAttributionSchema } from '~/features/territories/schemas/attribution.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { createAttribution } from '~/features/territories/server/create-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -23,11 +27,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -36,7 +39,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/territories/attributions/new/available-territories')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const territory = await db.territory.findUnique({
@@ -135,11 +140,10 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -149,8 +153,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const { territory: territoryId, publisher: publisherId, 'start-date': startDate, notes, type } = submission.value
+  const congregation = context.get(congregationContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const attribution = await createAttribution(db, {
       publisherId,
       territoryId,

@@ -5,8 +5,7 @@ import { Role } from '~/shared/types/role'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -16,21 +15,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~
 
 import type { Route } from './+types/group'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.PublisherViewer,
-    Role.PublisherManager,
-    Role.ActivityManager,
-  ])
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canManagePublisher = can(Role.PublisherManager)
-  const canManageActivity = can(Role.ActivityManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManageActivity = permissions.has(Role.ActivityManager)
 
   if (!canViewPublishers) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const group = await getGroup(db, requireParamId(params.groupId, '/congregation/publisher-groups'))
     if (group == null) {
       throw redirect('/congregation/publisher-groups/')
@@ -228,10 +224,11 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = can(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')
@@ -263,11 +260,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const group = await updateGroup(
       db,
       requireParamId(params.groupId, '/congregation/publisher-groups'),
-      congregationId,
+      currentUser.congregationId,
       {
         name: String(name),
         address: String(address),

@@ -1,8 +1,7 @@
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
   EntranceKind,
   entranceKindLabels as getEntranceKindLabels,
@@ -21,41 +20,45 @@ import {
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionManager,
-    Role.TerritoriesManager,
-  ])
-  const canManageProspection = can(Role.ProspectionManager)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!canManageProspection) {
+  if (!permissions.has(Role.ProspectionManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
     const buildings = await getBuildings(db, congregationId, building.zip, building.street)
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = {
       success: session.get('success'),
       error: session.get('error'),
@@ -232,21 +235,19 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionManager,
-    Role.TerritoriesManager,
-  ])
-  const canManageProspection = can(Role.ProspectionManager)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!canManageProspection) {
+  if (!permissions.has(Role.ProspectionManager)) {
     throw redirect('/')
   }
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
+  const congregation = context.get(congregationContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })

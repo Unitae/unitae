@@ -1,9 +1,9 @@
 import { Form, Link, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { congregationContext, userContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -17,8 +17,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.user_profile_page_title()} - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, congregation } = await authenticateAndAuthorize(request)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
+  const session = await getSession(request.headers.get('Cookie'))
   logger.info(`Loading profile data. User ID: ${currentUser.id}.`)
 
   return {
@@ -137,8 +139,9 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, currentUser, congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const password = formData.get('password')
   const newPassword = formData.get('new_password')
@@ -148,7 +151,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (isSuccess) {
     audit({
       action: AuditAction.PasswordChanged,
-      congregationId,
+      congregationId: currentUser.congregationId,
       actorId: currentUser.id,
       entityType: 'User',
       entityId: currentUser.id,

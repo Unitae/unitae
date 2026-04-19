@@ -1,9 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Form, Link, data, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
+import { data, Form, Link, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
@@ -11,16 +9,22 @@ import { createTerritory } from '~/features/territories/server/create-territory.
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/new'
 
@@ -28,17 +32,17 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
+  const { congregationId } = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
     const url = new URL(request.url)
     const zips = await db.building.groupBy({
@@ -158,11 +162,10 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -172,8 +175,9 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const { number, type, entrances } = submission.value
+  const congregation = context.get(congregationContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('territories')
 

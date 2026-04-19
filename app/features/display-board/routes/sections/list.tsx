@@ -6,8 +6,7 @@ import { useState } from 'react'
 import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -21,9 +20,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Liste des sections du Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-  const canManageBoard = can(Role.BoardValidator)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
   if (!canManageBoard) {
     logger.warn(`Tried to load board sections. User ID: ${currentUser.id}. Does NOT have rights to manage board.`)
@@ -38,7 +38,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const searchQuery = url.searchParams.get('q') ?? ''
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const sections = await db.boardSection.findMany({
       where: {
         congregationId,

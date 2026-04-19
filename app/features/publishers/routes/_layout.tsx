@@ -1,8 +1,8 @@
 import { data, Outlet, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { permissionsContext } from '~/shared/libs/route-context.server'
 
 import type { Route } from './+types/_layout'
 
@@ -10,24 +10,19 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_layout_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesViewer,
-    Role.SettingsUserManager,
-    Role.PublisherViewer,
-    Role.ProgramViewer,
-    Role.ProspectionViewer,
-  ])
-  const canViewTerritories = can(Role.TerritoriesViewer)
-  const canManageSettings = can(Role.SettingsUserManager)
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canViewPrograms = can(Role.ProgramViewer)
-  const canViewProspection = can(Role.ProspectionViewer)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
+  const canManageSettings = permissions.has(Role.SettingsUserManager)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canViewPrograms = permissions.has(Role.ProgramViewer)
+  const canViewProspection = permissions.has(Role.ProspectionViewer)
 
   if (!canViewPublishers && !canViewPrograms) {
     throw redirect('/')
   }
 
+  const session = await getSession(request.headers.get('Cookie'))
   const messages = { success: session.get('success'), error: session.get('error') }
   return data(
     { canManageSettings, canViewTerritories, canViewPublishers, messages, canViewPrograms, canViewProspection },

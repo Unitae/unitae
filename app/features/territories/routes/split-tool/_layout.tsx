@@ -1,13 +1,12 @@
 import { data, NavLink, Outlet, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting } from '~/shared/domain/settings.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -18,15 +17,17 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
     // biome-ignore lint/style/useNamingConvention: prisma keywords
     const prospectedBuilding = { active: true, congregationId, NOT: { prospectionDate: null } } as const

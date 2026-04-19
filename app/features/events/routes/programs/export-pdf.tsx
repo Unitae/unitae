@@ -3,8 +3,7 @@ import { redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -18,11 +17,12 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_export_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
-  if (!can(Role.ProgramViewer)) throw redirect('/congregation/programs')
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/congregation/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const templates = await getTemplates(db, congregationId)
     return { templates }
   })

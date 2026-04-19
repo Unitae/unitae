@@ -1,8 +1,7 @@
 import { redirect } from 'react-router'
 import { Role } from '~/shared/types/role'
 import { deleteFile } from '~/features/display-board/server/document.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 
 import type { Route } from './+types/bulk-delete'
@@ -13,10 +12,9 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/board/documents')
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
@@ -29,7 +27,8 @@ export async function action({ request }: Route.ActionArgs) {
   const pdfIds = items.filter(i => i.kind === 'pdf').map(i => i.id)
   const dynIds = items.filter(i => i.kind === 'dyn').map(i => i.id)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     let pdfDeleted = 0
     if (pdfIds.length > 0) {
       const documents = await db.boardDocument.findMany({

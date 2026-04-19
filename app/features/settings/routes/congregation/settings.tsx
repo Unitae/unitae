@@ -4,8 +4,7 @@ import { Role } from '~/shared/types/role'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -19,19 +18,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_congregation_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
-  const canManageSettings = can(Role.Admin)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
+  const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const auxiliaryPioneerProfileActivated = await getBoolSetting(
       db,
       CongregationSettingKey.AuxiliaryPioneerProfileActivated,
-      congregationId,
+      currentUser.congregationId,
     )
 
     return {
@@ -111,9 +112,10 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
-  const canManageSettings = can(Role.Admin)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const congregation = context.get(congregationContext)
+  const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
@@ -125,7 +127,7 @@ export async function action({ request }: Route.ActionArgs) {
     Boolean(form.get(CongregationSettingKey.AuxiliaryPioneerProfileActivated)),
   )
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     await updateCongregationSettings(db, congregation.id, {
       displayName: displayName ? String(displayName) : null,
       auxiliaryPioneerProfileActivated,

@@ -10,8 +10,7 @@ import {
   serializeZips,
 } from '~/features/territories/server/settings.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -27,20 +26,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_territories_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const territory = await getTerritoryPolygon(db)
     const zips = await getAllowedZips(db)
-    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, congregationId)
-    const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)
-    const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
+    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, currentUser.congregationId)
+    const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity, currentUser.congregationId)
+    const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId)
 
     return {
       territory: serializeTerritoryPolygon(territory),
@@ -139,9 +139,10 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
@@ -154,12 +155,12 @@ export async function action({ request }: Route.ActionArgs) {
   const prospectionValidity = String(form.get('prospection-validity'))
   const phoneTypeActivated = String(Boolean(form.get('phone-territory-active')))
 
-  return withScope(congregationId, async db => {
-    await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), congregationId)
-    await setSetting(db, TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), congregationId)
-    await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, congregationId)
-    await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, congregationId)
-    await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, congregationId)
+  return withScopeFromContext(context, async db => {
+    await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
 
     return redirect('/settings')
   })

@@ -1,20 +1,19 @@
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { permissionsContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-building'
 
@@ -26,20 +25,20 @@ export const meta: Route.MetaFunction = ({ data }) => {
   ]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = {
       success: session.get('success'),
       error: session.get('error'),
@@ -130,11 +129,10 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -149,7 +147,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect(`/territories/building/${params.buildingId}/edit`)
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     try {
       await editBuilding(db, requireParamId(params.buildingId, '/territories/buildings'), {
         coordinates: {

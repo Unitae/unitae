@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { dayLabel } from '~/features/events/model/day-label'
 import { createFreeformEvent } from '~/features/events/server/programme-events.server'
@@ -10,8 +10,7 @@ import {
 } from '~/features/events/server/programme-generation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -28,26 +27,28 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramManager)) throw redirect('/congregation/programs')
 
-  if (!can(Role.ProgramManager)) throw redirect('/congregation/programs')
-
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const templates = await getTemplates(db, congregationId)
     return { templates }
   })
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramManager)) throw redirect('/congregation/programs')
 
-  if (!can(Role.ProgramManager)) throw redirect('/congregation/programs')
-
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   const form = await request.formData()
   const mode = String(form.get('mode'))
+  const { congregationId } = currentUser
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     if (mode === 'recurring') {
       const templateId = Number(form.get('templateId'))
       const events = await generateEventsFromTemplate(db, templateId, 2, currentUser.id, congregationId)

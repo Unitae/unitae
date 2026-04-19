@@ -1,11 +1,10 @@
 import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { updateBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -19,15 +18,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_sections_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-  const canManageBoard = can(Role.BoardValidator)
-
-  if (!canManageBoard) {
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const section = await db.boardSection.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -81,8 +79,8 @@ export default function EditSectionPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const session = await getSession(request.headers.get('Cookie'))
   const form = await request.formData()
   const name = String(form.get('name'))
 
@@ -91,7 +89,8 @@ export async function action({ request, params }: Route.ActionArgs) {
     throw redirect('/board/sections/new')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const section = await updateBoardSection(db, requireParamId(params.sectionId, '/board'), congregationId, {
       name: String(name),
     })

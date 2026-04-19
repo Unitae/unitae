@@ -1,32 +1,32 @@
 import { Form, redirect } from 'react-router'
 
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import { deletePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/infra/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
 
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityManager])
-  const canManageActivity = can(Role.ActivityManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageActivity = permissions.has(Role.ActivityManager)
 
   if (!canManageActivity) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
           id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-          congregationId,
+          congregationId: currentUser.congregationId,
         },
       },
       include: {
@@ -72,21 +72,23 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityManager])
-  const canManageActivity = can(Role.ActivityManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageActivity = permissions.has(Role.ActivityManager)
 
   if (!canManageActivity) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const activity = await deletePublisherActivity(
       db,
       requireParamId(params.activityId, '/congregation/publishers/activity'),
-      congregationId,
+      currentUser.congregationId,
     )
 
+    const session = await getSession(request.headers.get('Cookie'))
     session.flash(
       'success',
       m.activity_delete_success({
