@@ -1,4 +1,6 @@
+import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
+import { registerSchema } from '~/features/authentication/schemas/login.schema'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
@@ -122,33 +124,17 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
+  const submission = parseWithZod(await request.formData(), { schema: registerSchema })
 
-  const congregationName = String(form.get('congregation-name')).trim()
-  const locale = String(form.get('locale') ?? 'fr') as (typeof locales)[number]
-  const email = String(form.get('email')).trim()
-  const password = String(form.get('password'))
-  const repeatPassword = String(form.get('repeat-password'))
-
-  if (congregationName.length < 2) {
-    session.flash('error', m.auth_register_congregation_name_min_error())
+  if (submission.status !== 'success') {
+    session.flash('error', m.auth_register_generic_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
-  if (!email.includes('@') || email.length < 5) {
-    session.flash('error', m.auth_register_email_invalid_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
-
-  if (password.length < 8) {
-    session.flash('error', m.auth_register_password_min_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
-
-  if (password !== repeatPassword) {
-    session.flash('error', m.auth_register_password_mismatch_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
+  const congregationName = submission.value['congregation-name'].trim()
+  const locale = submission.value.locale as (typeof locales)[number]
+  const email = submission.value.email.trim()
+  const password = submission.value.password
 
   const slug = slugify(congregationName)
   if (slug.length < 2) {

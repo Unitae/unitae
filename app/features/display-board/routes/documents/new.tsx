@@ -1,7 +1,8 @@
+import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { saveFile } from '~/features/display-board/server/document.server'
 import { emailQueue } from '~/features/display-board/server/email-queue.server'
 import {
@@ -12,9 +13,15 @@ import {
 } from '~/features/display-board/server/file-validation.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import logger from '~/shared/infra/logger.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -195,26 +202,21 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw error
   }
   const file = uploadedFile ?? (form.get('document') as File | null)
-  const name = String(form.get('name'))
-  const sectionId = Number(form.get('sectionId'))
-  const visibleFrom = new Date(String(form.get('visible-from')))
-  const visibleUntil = new Date(String(form.get('visible-until')))
-  const isHighlighted = form.get('hightlighted') === 'on'
+  const submission = parseWithZod(form, { schema: createDocumentSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  if (name.length < 1) {
-    logger.warn(`Document creation failed. User ID: ${currentUser.id}. Name is empty.`, {
+  const { name, sectionId } = submission.value
+  const visibleFrom = new Date(submission.value['visible-from'])
+  const visibleUntil = new Date(submission.value['visible-until'])
+  const isHighlighted = submission.value.hightlighted === 'on'
+
+  if (file == null) {
+    logger.warn(`Document creation failed. User ID: ${currentUser.id}. File is empty.`, {
       currentUser,
       form: { name, sectionId, file },
     })
-    session.flash('error', m.common_empty_fields_error())
-    throw redirect('/board/documents/new')
-  }
-
-  if (file == null || name == null) {
-    logger.warn(
-      `Document creation failed. User ID: ${currentUser.id}. ${file == null ? 'File is empty' : 'File is not empty'}.`,
-      { currentUser, form: { name, sectionId, file } },
-    )
     session.flash('error', m.common_empty_fields_error())
     throw redirect('/board/documents/new')
   }
@@ -273,7 +275,7 @@ export async function action({ request, context }: Route.ActionArgs) {
               visibleUntil,
             }
           : {}),
-        ...(form.has('hightlighted')
+        ...(submission.value.hightlighted != null
           ? {
               isHighlighted: isHighlighted,
             }

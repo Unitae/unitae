@@ -1,21 +1,21 @@
 import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { getSession } from '~/features/authentication/server/session.server'
-import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
-import { Role } from '~/shared/types/role'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher'
 
@@ -49,7 +49,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const publisher = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId: currentUser.congregationId },
+        id_congregationId: {
+          id: requireParamId(params.publisherId, '/congregation/publishers'),
+          congregationId: currentUser.congregationId,
+        },
       },
       include: {
         publisherGroup: {

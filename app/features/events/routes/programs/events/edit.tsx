@@ -1,6 +1,14 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import {
+  addPartSchema,
+  addServiceSchema,
+  applyTemplateSchema,
+  deletePartSchema,
+  deleteServiceSchema,
+  updateEventSchema,
+} from '~/features/events/schemas/program-edit.schema'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import {
@@ -13,15 +21,16 @@ import {
 } from '~/features/events/server/programme-events.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import type { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -55,8 +64,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
   const eventId = requireParamId(params.eventId, '/congregation/programs')
-  const form = await request.formData()
-  const intent = form.get('intent')
+  const formData = await request.formData()
+  const intent = formData.get('intent')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -68,8 +77,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/congregation/programs')
     }
 
-    const message = await handleEditIntent(intent, form, db, eventId, congregationId, currentUser.id)
-    if (message) session.flash('success', message)
+    const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id)
+    if (result && 'reply' in result) return data(result.reply(), { status: 400 })
+    if (result?.message) session.flash('success', result.message)
 
     return redirect(`/congregation/programs/events/${eventId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -77,98 +87,131 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   })
 }
 
+type IntentResult = { message: string | null } | { reply: () => unknown }
+
 function handleEditIntent(
   intent: FormDataEntryValue | null,
-  form: FormData,
+  formData: FormData,
   db: TransactionClient,
   eventId: number,
   congregationId: number,
   userId: number,
-): Promise<string | null> {
+): Promise<IntentResult | null> {
   switch (intent) {
     case 'update-event':
-      return handleUpdateEvent(form, db, eventId, congregationId)
+      return handleUpdateEvent(formData, db, eventId, congregationId)
     case 'add-part':
-      return handleAddPart(form, db, eventId, congregationId)
+      return handleAddPart(formData, db, eventId, congregationId)
     case 'delete-part':
-      return handleDeletePart(form, db, congregationId)
+      return handleDeletePart(formData, db, congregationId)
     case 'add-service':
-      return handleAddService(form, db, eventId, congregationId)
+      return handleAddService(formData, db, eventId, congregationId)
     case 'delete-service':
-      return handleDeleteService(form, db, congregationId)
+      return handleDeleteService(formData, db, congregationId)
     case 'apply-template':
-      return handleApplyTemplate(form, db, eventId, congregationId, userId)
+      return handleApplyTemplate(formData, db, eventId, congregationId, userId)
     default:
       return Promise.resolve(null)
   }
 }
 
-async function handleUpdateEvent(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
-  const name = String(form.get('name') ?? '').trim()
-  if (!name) return null
+async function handleUpdateEvent(
+  formData: FormData,
+  db: TransactionClient,
+  eventId: number,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: updateEventSchema })
+  if (submission.status !== 'success') return submission
 
-  const dateStr = String(form.get('date') ?? '')
-  const startTimeStr = String(form.get('startTime') ?? '')
-  const endTimeStr = String(form.get('endTime') ?? '')
-
-  const data: Record<string, unknown> = { name }
+  const { name, date: dateStr, startTime: startTimeStr, endTime: endTimeStr } = submission.value
+  const payload: Record<string, unknown> = { name }
 
   if (dateStr && startTimeStr) {
     const startDate = new Date(`${dateStr}T${startTimeStr}`)
-    if (!Number.isNaN(startDate.getTime())) data.startDate = startDate
+    if (!Number.isNaN(startDate.getTime())) payload.startDate = startDate
   }
   if (dateStr && endTimeStr) {
     const endDate = new Date(`${dateStr}T${endTimeStr}`)
-    if (!Number.isNaN(endDate.getTime())) data.endDate = endDate
+    if (!Number.isNaN(endDate.getTime())) payload.endDate = endDate
   }
 
-  await updateEvent(db, eventId, congregationId, data)
-  return m.programs_edit_event_updated()
+  await updateEvent(db, eventId, congregationId, payload)
+  return { message: m.programs_edit_event_updated() }
 }
 
-async function handleAddPart(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
-  const partName = String(form.get('partName') ?? '').trim()
-  if (!partName) return null
+async function handleAddPart(
+  formData: FormData,
+  db: TransactionClient,
+  eventId: number,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: addPartSchema })
+  if (submission.status !== 'success') return submission
+
+  const { partName, partSection, partTrack, partOrder, partDuration } = submission.value
   await addPartAssignment(db, {
     eventId,
     name: partName,
-    section: String(form.get('partSection') ?? ''),
-    track: String(form.get('partTrack') ?? ''),
-    order: Number(form.get('partOrder') ?? 0),
-    durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
+    section: partSection,
+    track: partTrack,
+    order: partOrder,
+    durationMin: partDuration ?? null,
     congregationId,
   })
-  return m.programs_edit_part_added()
+  return { message: m.programs_edit_part_added() }
 }
 
-async function handleDeletePart(form: FormData, db: TransactionClient, congregationId: number) {
-  await deletePartAssignment(db, Number(form.get('partAssignmentId')), congregationId)
-  return m.programs_edit_part_deleted()
+async function handleDeletePart(
+  formData: FormData,
+  db: TransactionClient,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: deletePartSchema })
+  if (submission.status !== 'success') return submission
+
+  await deletePartAssignment(db, submission.value.partAssignmentId, congregationId)
+  return { message: m.programs_edit_part_deleted() }
 }
 
-async function handleAddService(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
-  const serviceName = String(form.get('serviceName') ?? '').trim()
-  if (!serviceName) return null
-  await addServiceRoleAssignment(db, { eventId, name: serviceName, congregationId })
-  return m.programs_edit_service_added()
+async function handleAddService(
+  formData: FormData,
+  db: TransactionClient,
+  eventId: number,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: addServiceSchema })
+  if (submission.status !== 'success') return submission
+
+  await addServiceRoleAssignment(db, { eventId, name: submission.value.serviceName, congregationId })
+  return { message: m.programs_edit_service_added() }
 }
 
-async function handleDeleteService(form: FormData, db: TransactionClient, congregationId: number) {
-  await deleteServiceRoleAssignment(db, Number(form.get('serviceAssignmentId')), congregationId)
-  return m.programs_edit_service_deleted()
+async function handleDeleteService(
+  formData: FormData,
+  db: TransactionClient,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: deleteServiceSchema })
+  if (submission.status !== 'success') return submission
+
+  await deleteServiceRoleAssignment(db, submission.value.serviceAssignmentId, congregationId)
+  return { message: m.programs_edit_service_deleted() }
 }
 
 async function handleApplyTemplate(
-  form: FormData,
+  formData: FormData,
   db: TransactionClient,
   eventId: number,
   congregationId: number,
   userId: number,
-): Promise<string | null> {
-  const templateId = Number(form.get('templateId'))
-  const template = await applyTemplateToEvent(db, eventId, templateId, congregationId, userId)
-  if (!template) return null
-  return m.programs_edit_template_applied({ name: template.name })
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: applyTemplateSchema })
+  if (submission.status !== 'success') return submission
+
+  const template = await applyTemplateToEvent(db, eventId, submission.value.templateId, congregationId, userId)
+  if (!template) return { message: null }
+  return { message: m.programs_edit_template_applied({ name: template.name }) }
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {

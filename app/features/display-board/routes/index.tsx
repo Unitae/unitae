@@ -1,10 +1,10 @@
 import { FileText } from 'lucide-react'
-import { Role } from '~/shared/types/role'
 import { getContentVersion } from '~/features/display-board/server/dynamic-documents.server'
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
 import type { Route } from './+types/index'

@@ -1,4 +1,6 @@
-import { Form, Link, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, Link, redirect } from 'react-router'
+import { consentSchema } from '~/features/authentication/schemas/login.schema'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -30,8 +32,13 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
-  const form = await request.formData()
-  const purpose = String(form.get('purpose'))
+  const submission = parseWithZod(await request.formData(), { schema: consentSchema })
+
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { purpose } = submission.value
 
   await withScopeFromContext(context, async db => {
     await withdrawConsent(db, currentUser.id, purpose as ConsentPurpose)

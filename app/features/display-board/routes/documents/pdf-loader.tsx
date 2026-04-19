@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/display-board/server/document.server'
-import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/pdf-loader'
 

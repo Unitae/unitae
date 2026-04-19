@@ -7,9 +7,18 @@ export const createPublisherSchema = z.object({
   gender: z.enum(['male', 'female']),
   birthDate: z.string().optional().or(z.literal('')),
   baptismDate: z.string().optional().or(z.literal('')),
-  isHelder: z.string().optional().transform(v => v === 'on'),
-  isServant: z.string().optional().transform(v => v === 'on'),
-  isAnointed: z.string().optional().transform(v => v === 'on'),
+  isHelder: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
+  isServant: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
+  isAnointed: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
   group: z.coerce.number().optional(),
   type: z.string(),
 })

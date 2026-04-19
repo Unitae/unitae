@@ -1,20 +1,22 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import {
   getTemplateById,
   removeTemplateResponsible,
   setTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
+import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/responsible'
 
@@ -54,9 +56,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   if (!permissions.has(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
-  const form = await request.formData()
-  const rawUserId = form.get('userId')
-  const userId = rawUserId && rawUserId !== 'none' ? Number(rawUserId) : null
+  const submission = parseWithZod(await request.formData(), { schema: templateResponsibleSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { userId } = submission.value
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))

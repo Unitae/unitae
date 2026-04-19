@@ -10,8 +10,8 @@ import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
-import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/viewer'
 

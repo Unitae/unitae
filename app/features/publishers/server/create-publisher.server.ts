@@ -1,6 +1,6 @@
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
-import type { TransactionClient } from '~/shared/infra/db.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface CreatePublisherParams {
   firstname: string

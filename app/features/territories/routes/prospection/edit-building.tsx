@@ -1,6 +1,8 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
@@ -136,30 +138,22 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const number = form.get('number')
-  const street = form.get('street')
-  const zip = form.get('zip')
-  const latitude = form.get('latitude')
-  const longitude = form.get('longitude')
-
-  if (!number || !street || !zip) {
-    throw redirect(`/territories/building/${params.buildingId}/edit`)
+  const submission = parseWithZod(await request.formData(), { schema: updateBuildingSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const { number, street, zip, latitude, longitude } = submission.value
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
       await editBuilding(db, requireParamId(params.buildingId, '/territories/buildings'), {
         coordinates: {
-          latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
-          longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,
+          latitude: latitude ?? undefined,
+          longitude: longitude ?? undefined,
         },
-        address: {
-          number: String(number),
-          street: String(street),
-          zip: String(zip),
-        },
+        address: { number, street, zip },
       })
 
       session.flash('success', m.prospection_edit_building_success())

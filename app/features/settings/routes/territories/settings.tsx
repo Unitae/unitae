@@ -1,6 +1,4 @@
 import { Form, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
-import { getBoolSetting, getSetting, setSetting } from '~/shared/domain/settings.server'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,
@@ -10,7 +8,9 @@ import {
   serializeZips,
 } from '~/features/territories/server/settings.server'
 import * as m from '~/paraglide/messages'
+import { getBoolSetting, getSetting, setSetting } from '~/shared/domain/settings.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -39,8 +39,16 @@ export async function loader({ context }: Route.LoaderArgs) {
     const territory = await getTerritoryPolygon(db)
     const zips = await getAllowedZips(db)
     const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, currentUser.congregationId)
-    const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity, currentUser.congregationId)
-    const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId)
+    const prospectionValidity = await getSetting(
+      db,
+      TerritorySettingKey.ProspectionValidity,
+      currentUser.congregationId,
+    )
+    const phoneTypeActivated = await getBoolSetting(
+      db,
+      TerritorySettingKey.TerritoryTypePhoneActive,
+      currentUser.congregationId,
+    )
 
     return {
       territory: serializeTerritoryPolygon(territory),

@@ -1,17 +1,19 @@
+import { parseWithZod } from '@conform-to/zod'
 import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
 
@@ -234,23 +236,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect(previousPage ?? '/')
   }
 
-  const form = await request.formData()
-  const name = form.get('name')
-  const address = form.get('address')
-  const responsibleId = Number(form.get('responsible'))
-  const deputyRaw = form.get('deputy')
-  const deputyId = deputyRaw ? Number(deputyRaw) : null
-
-  const session = await getSession(request.headers.get('Cookie'))
-  if (name == null || address == null || Number.isNaN(responsibleId)) {
-    session.flash('error', m.groups_form_error_incomplete())
-    throw redirect(previousPage ?? '/congregation/publisher-groups', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+  const submission = parseWithZod(await request.formData(), { schema: updateGroupSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
+  const { name, address, responsible: responsibleId, deputy: deputyId } = submission.value
+
+  const session = await getSession(request.headers.get('Cookie'))
   if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', m.groups_form_error_same_person())
     throw redirect(previousPage ?? '/congregation/publisher-groups', {
@@ -266,10 +259,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       requireParamId(params.groupId, '/congregation/publisher-groups'),
       currentUser.congregationId,
       {
-        name: String(name),
-        address: String(address),
+        name,
+        address,
         responsibleId,
-        deputyId,
+        deputyId: deputyId ?? null,
       },
     )
 

@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import { reorderDocument } from '~/features/display-board/server/document.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/move-down'

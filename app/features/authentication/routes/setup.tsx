@@ -1,4 +1,6 @@
+import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
+import { setupSchema } from '~/features/authentication/schemas/login.schema'
 
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -103,14 +105,10 @@ export default function SignupPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
-  const username = form.get('email')
-  const locale = String(form.get('locale') ?? 'fr') as (typeof locales)[number]
-  const password = form.get('password')
-  const secondPassword = form.get('repeat-password')
+  const submission = parseWithZod(await request.formData(), { schema: setupSchema })
 
-  if (password !== secondPassword) {
-    session.flash('error', m.auth_setup_password_mismatch_error())
+  if (submission.status !== 'success') {
+    session.flash('error', m.auth_setup_generic_error())
     return redirect('/setup', {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -118,21 +116,14 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  if (String(username).length < 5 || !String(username).includes('@')) {
-    session.flash('error', m.auth_setup_email_invalid_error())
-    return redirect('/setup', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
-  }
+  const { email: username, password, locale } = submission.value
 
   const userId = await setupFirstUser(
-    String(username),
-    String(password),
+    username,
+    password,
     m.auth_setup_default_congregation_name(),
     'default',
-    locale,
+    locale as (typeof locales)[number],
   )
 
   if (userId == null) {

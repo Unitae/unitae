@@ -4,12 +4,7 @@ export function createBoardSection(db: TransactionClient, data: { name: string; 
   return db.boardSection.create({ data })
 }
 
-export function updateBoardSection(
-  db: TransactionClient,
-  id: number,
-  congregationId: number,
-  data: { name: string },
-) {
+export function updateBoardSection(db: TransactionClient, id: number, congregationId: number, data: { name: string }) {
   return db.boardSection.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key

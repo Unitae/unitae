@@ -1,11 +1,18 @@
+import { parseWithZod } from '@conform-to/zod'
 import { ArrowRight } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
+import { data, Form, Link, redirect } from 'react-router'
+import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/libs/route-context.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -121,15 +128,17 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const displayName = form.get('displayName')
-  const auxiliaryPioneerProfileActivated = String(
-    Boolean(form.get(CongregationSettingKey.AuxiliaryPioneerProfileActivated)),
-  )
+  const submission = parseWithZod(await request.formData(), { schema: congregationSettingsSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { displayName, [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
+    submission.value
 
   return withScopeFromContext(context, async db => {
     await updateCongregationSettings(db, congregation.id, {
-      displayName: displayName ? String(displayName) : null,
+      displayName: displayName || null,
       auxiliaryPioneerProfileActivated,
     })
 

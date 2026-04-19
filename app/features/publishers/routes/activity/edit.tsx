@@ -1,18 +1,20 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Form, Link, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { updateActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
-import { requireParamId } from '~/shared/utils/params.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -25,7 +27,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
+  const userWithRelations = currentUser as typeof currentUser & {
+    responsibleFor?: { id: number }
+    deputyFor?: { id: number }
+  }
   const canManageMyGroupActivity =
     userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
     userWithRelations.deputyFor?.id === currentUser.publisherGroupId
@@ -175,7 +180,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
+  const userWithRelations = currentUser as typeof currentUser & {
+    responsibleFor?: { id: number }
+    deputyFor?: { id: number }
+  }
   const canManageMyGroupActivity =
     userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
     userWithRelations.deputyFor?.id === currentUser.publisherGroupId
@@ -184,7 +192,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
+  const submission = parseWithZod(await request.formData(), { schema: updateActivitySchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { type, hours, studies, observations, preached } = submission.value
 
   return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findUnique({
@@ -200,11 +213,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       },
     })
 
-    const preached = form.get('preached') === 'on'
-    const hours = Number(form.get('hours'))
-    const studies = Number(form.get('studies'))
-    const observations = String(form.get('observations'))
-
     const session = await getSession(request.headers.get('Cookie'))
     if (activity?.publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
@@ -215,13 +223,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       })
     }
 
-    const type = form.get('type') as PublisherType
     await updatePublisherActivity(
       db,
       requireParamId(params.activityId, '/congregation/publishers/activity'),
       currentUser.congregationId,
       {
-        type,
+        type: type as PublisherType,
         isPublisher: hours > 0 ? true : preached,
         hours,
         studies,

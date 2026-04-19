@@ -1,6 +1,8 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Search } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { buildingNotesSchema } from '~/features/territories/schemas/building.schema'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
@@ -133,14 +135,18 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const notes = form.get('notes')
+  const submission = parseWithZod(await request.formData(), { schema: buildingNotesSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { notes } = submission.value
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
       await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
-        notes: String(notes),
+        notes,
       })
 
       session.flash('success', m.prospection_building_notes_updated_success())

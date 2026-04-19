@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
-import { Role } from '~/shared/types/role'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/bulk-move'
 

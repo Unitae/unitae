@@ -1,6 +1,6 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import {
   deleteTemplatePart,
   deleteTemplateServiceRole,
@@ -10,17 +10,25 @@ import {
   upsertTemplatePart,
   upsertTemplateServiceRole,
 } from '~/features/events/server/programme-templates.server'
+import {
+  deletePartSchema,
+  deleteServiceRoleSchema,
+  updateTemplateSchema,
+  upsertPartSchema,
+  upsertServiceRoleSchema,
+} from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -50,8 +58,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
-  const form = await request.formData()
-  const intent = form.get('intent')
+  const formData = await request.formData()
+  const intent = formData.get('intent')
 
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
@@ -59,19 +67,22 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     const session = await getSession(request.headers.get('Cookie'))
     if (intent === 'update-template') {
-      const name = String(form.get('name') ?? '')
-      const rawWeekDay = form.get('weekDay')
-      const weekDay = rawWeekDay && rawWeekDay !== 'none' ? Number(rawWeekDay) : null
+      const submission = parseWithZod(formData, { schema: updateTemplateSchema })
+      if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
+
+      const { name, weekDay } = submission.value
       await updateTemplate(db, templateId, { name, weekDay }, currentUser.congregationId)
       session.flash('success', m.settings_template_edit_update_success())
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }
 
-    const partMessage = await handlePartIntent(intent, form, db, templateId, currentUser.congregationId)
-    if (partMessage) session.flash('success', partMessage)
+    const partResult = await handlePartIntent(intent, formData, db, templateId, currentUser.congregationId)
+    if (partResult && 'reply' in partResult) return data(partResult.reply(), { status: 400 })
+    if (partResult?.message) session.flash('success', partResult.message)
 
-    const serviceMessage = await handleServiceRoleIntent(intent, form, db, templateId, currentUser.congregationId)
-    if (serviceMessage) session.flash('success', serviceMessage)
+    const serviceResult = await handleServiceRoleIntent(intent, formData, db, templateId, currentUser.congregationId)
+    if (serviceResult && 'reply' in serviceResult) return data(serviceResult.reply(), { status: 400 })
+    if (serviceResult?.message) session.flash('success', serviceResult.message)
 
     return redirect(`/settings/congregation/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
@@ -79,58 +90,69 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   })
 }
 
+type IntentResult = { message: string | null } | { reply: () => unknown }
+
 async function handlePartIntent(
   intent: FormDataEntryValue | null,
-  form: FormData,
+  formData: FormData,
   db: TransactionClient,
   templateId: number,
   congregationId: number,
-) {
+): Promise<IntentResult | null> {
   if (intent === 'upsert-part') {
-    const partId = form.get('partId') ? Number(form.get('partId')) : undefined
+    const submission = parseWithZod(formData, { schema: upsertPartSchema })
+    if (submission.status !== 'success') return submission
+
+    const { partId, partName, partSection, partTrack, partOrder, partDuration, partIsVariable } = submission.value
     await upsertTemplatePart(
       db,
       templateId,
       {
         id: partId,
-        name: String(form.get('partName') ?? ''),
-        section: String(form.get('partSection') ?? ''),
-        track: String(form.get('partTrack') ?? ''),
-        order: Number(form.get('partOrder') ?? 0),
-        durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
-        isVariable: form.get('partIsVariable') === 'on',
+        name: partName,
+        section: partSection,
+        track: partTrack,
+        order: partOrder,
+        durationMin: partDuration ?? null,
+        isVariable: partIsVariable,
       },
       congregationId,
     )
-    return partId ? m.settings_template_edit_part_updated() : m.settings_template_edit_part_added()
+    return { message: partId ? m.settings_template_edit_part_updated() : m.settings_template_edit_part_added() }
   }
   if (intent === 'delete-part') {
-    await deleteTemplatePart(db, Number(form.get('partId')), congregationId)
-    return m.settings_template_edit_part_deleted()
+    const submission = parseWithZod(formData, { schema: deletePartSchema })
+    if (submission.status !== 'success') return submission
+
+    await deleteTemplatePart(db, submission.value.partId, congregationId)
+    return { message: m.settings_template_edit_part_deleted() }
   }
   return null
 }
 
 async function handleServiceRoleIntent(
   intent: FormDataEntryValue | null,
-  form: FormData,
+  formData: FormData,
   db: TransactionClient,
   templateId: number,
   congregationId: number,
-) {
+): Promise<IntentResult | null> {
   if (intent === 'upsert-service-role') {
-    const roleId = form.get('roleId') ? Number(form.get('roleId')) : undefined
-    await upsertTemplateServiceRole(
-      db,
-      templateId,
-      { id: roleId, name: String(form.get('roleName') ?? ''), key: String(form.get('roleKey') ?? '') },
-      congregationId,
-    )
-    return roleId ? m.settings_template_edit_service_role_updated() : m.settings_template_edit_service_role_added()
+    const submission = parseWithZod(formData, { schema: upsertServiceRoleSchema })
+    if (submission.status !== 'success') return submission
+
+    const { roleId, roleName, roleKey } = submission.value
+    await upsertTemplateServiceRole(db, templateId, { id: roleId, name: roleName, key: roleKey }, congregationId)
+    return {
+      message: roleId ? m.settings_template_edit_service_role_updated() : m.settings_template_edit_service_role_added(),
+    }
   }
   if (intent === 'delete-service-role') {
-    await deleteTemplateServiceRole(db, Number(form.get('roleId')), congregationId)
-    return m.settings_template_edit_service_role_deleted()
+    const submission = parseWithZod(formData, { schema: deleteServiceRoleSchema })
+    if (submission.status !== 'success') return submission
+
+    await deleteTemplateServiceRole(db, submission.value.roleId, congregationId)
+    return { message: m.settings_template_edit_service_role_deleted() }
   }
   return null
 }

@@ -1,9 +1,8 @@
 import { redirect } from 'react-router'
-
-import { Role } from '~/shared/types/role'
 import { exportUserData } from '~/features/settings/server/export-user-data.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/export-data'

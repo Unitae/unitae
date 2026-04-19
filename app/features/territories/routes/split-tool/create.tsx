@@ -1,6 +1,8 @@
-import { redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
 import { LimitService } from '~/shared/domain/limits.server'
@@ -20,14 +22,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const type = form.get('type')
-  const entrances = form.get('entranceIds')
-
-  if (type == null || entrances == null) {
-    throw redirect('/territories/buildings/split-territories')
+  const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
+  const { type, entranceIds } = submission.value
   const congregation = context.get(congregationContext)
 
   return withScopeFromContext(context, async db => {
@@ -36,10 +36,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     await limits.errorIfWouldGoOverLimit('territories')
 
     const territory = await createTerritoryFromSplit(db, {
-      type: String(type),
-      entranceIds: String(entrances)
-        .split(',')
-        .map(el => Number(el)),
+      type,
+      entranceIds: entranceIds.split(',').map(el => Number(el)),
       congregationId: congregation.id,
     })
 

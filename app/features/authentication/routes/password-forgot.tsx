@@ -1,5 +1,7 @@
+import { parseWithZod } from '@conform-to/zod'
 import ResetPassword from 'emails/reset-password'
 import { data, Form, Link, redirect } from 'react-router'
+import { forgotPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import {
   checkPasswordResetRateLimit,
@@ -9,7 +11,11 @@ import { sendResetUserPasswordEmail } from '~/features/authentication/server/sen
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { getBrandingName, resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import {
+  getBrandingName,
+  resolveCongregation,
+  resolveCongregationFromRequest,
+} from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -82,13 +88,16 @@ export default function ForgotPassword({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const form = await request.formData()
-  const username = form.get('email')
-
   const session = await getSession(request.headers.get('Cookie'))
+  const submission = parseWithZod(await request.formData(), { schema: forgotPasswordSchema })
+
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
   session.flash('success', m.auth_password_forgot_success_message())
 
-  const emailStr = String(username).toLocaleLowerCase()
+  const emailStr = submission.value.email.toLocaleLowerCase()
 
   const allowed = await checkPasswordResetRateLimit(emailStr)
   if (!allowed) {

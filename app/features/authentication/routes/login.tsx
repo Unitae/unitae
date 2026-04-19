@@ -1,4 +1,6 @@
+import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
+import { loginSchema } from '~/features/authentication/schemas/login.schema'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
   checkLoginRateLimit,
@@ -108,9 +110,13 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
-  const username = String(form.get('email'))
-  const password = form.get('password')
+  const submission = parseWithZod(await request.formData(), { schema: loginSchema })
+
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { email: username, password } = submission.value
 
   const allowed = await checkLoginRateLimit(username)
   if (!allowed) {
@@ -122,7 +128,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const urlCongregation = await resolveCongregationFromRequest(request)
-  const userId = await validateCredentials(username, String(password), urlCongregation?.id)
+  const userId = await validateCredentials(username, password, urlCongregation?.id)
 
   if (userId == null) {
     await recordLoginAttempt(username)

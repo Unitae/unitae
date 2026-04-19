@@ -1,12 +1,14 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Calendar, Star, Users } from 'lucide-react'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { createDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -103,11 +105,13 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
-  const dynamicType = String(form.get('dynamicType'))
-  const dynamicRefRaw = String(form.get('dynamicRef') ?? '')
-  const dynamicRef = dynamicRefRaw === '' ? null : dynamicRefRaw
-  const title = String(form.get('title'))
+  const submission = parseWithZod(await request.formData(), { schema: createDynamicDocumentSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { dynamicType, title } = submission.value
+  const dynamicRef = submission.value.dynamicRef === '' ? null : submission.value.dynamicRef
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)

@@ -9,8 +9,8 @@ import type { AppLoadContext, EntryContext } from 'react-router'
 import { ServerRouter } from 'react-router'
 
 import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/paraglide/runtime'
-import { resolveLocaleFromRequest } from '~/shared/utils/locale.server'
 import logger from '~/shared/infra/logger.server'
+import { resolveLocaleFromRequest } from '~/shared/utils/locale.server'
 
 const ABORT_DELAY = 5_000
 

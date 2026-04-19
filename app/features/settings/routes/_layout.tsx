@@ -1,8 +1,8 @@
 import { Outlet, redirect } from 'react-router'
 import { getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { permissionsContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/_layout'
 

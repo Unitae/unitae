@@ -1,8 +1,10 @@
+import { parseWithZod } from '@conform-to/zod'
 import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { updateAttributionSchema } from '~/features/territories/schemas/attribution.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { updateAttribution } from '~/features/territories/server/update-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
@@ -203,13 +205,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const publisherId = Number(form.get('publisher'))
-  const startDateText = String(form.get('start-date'))
-  const lateDateText = String(form.get('late-date'))
-  const endDateText = String(form.get('end-date'))
-  const notes = String(form.get('notes'))
-  const type = String(form.get('type'))
+  const submission = parseWithZod(await request.formData(), { schema: updateAttributionSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { publisher: publisherId, notes, type } = submission.value
+  const startDateText = submission.value['start-date']
+  const lateDateText = submission.value['late-date']
+  const endDateText = submission.value['end-date']
 
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'

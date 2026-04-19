@@ -1,4 +1,6 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Form, redirect } from 'react-router'
+import { resetPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import {
   consumePasswordResetToken,
   verifyPasswordResetToken,
@@ -87,12 +89,9 @@ export default function PasswordResetPage({ loaderData }: Route.ComponentProps) 
 
 export async function action({ request, params }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
-  const username = form.get('email')
-  const password = form.get('password')
-  const repeatPassword = form.get('repeat-password')
+  const submission = parseWithZod(await request.formData(), { schema: resetPasswordSchema })
 
-  if (password !== repeatPassword) {
+  if (submission.status !== 'success') {
     session.flash('error', m.auth_password_reset_mismatch_error())
 
     throw redirect(`/password/${params.userHash}/reset`, {
@@ -100,9 +99,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
+  const { email: username, password } = submission.value
+
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
-  if (user == null || user.email !== String(username)) {
+  if (user == null || user.email !== username) {
     session.flash('error', m.auth_password_reset_invalid_token_error())
 
     throw redirect('/', {
@@ -110,7 +111,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  await resetUserPassword(user.id, String(password))
+  await resetUserPassword(user.id, password)
   await consumePasswordResetToken(params.userHash ?? '')
 
   session.flash('success', m.auth_password_reset_success_message())

@@ -3,11 +3,11 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/delete'
 
 export async function loader({ params, context }: Route.LoaderArgs) {

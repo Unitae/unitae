@@ -1,20 +1,22 @@
+import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { History, Trash2 } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { updateDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -222,20 +224,15 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const { form, file } = formResult
-  const title = String(form.get('title'))
-  const sectionId = Number(form.get('sectionId'))
-  const visibleFrom = new Date(String(form.get('visible-from')))
-  const visibleUntil = new Date(String(form.get('visible-until')))
-  const isHighlighted = form.get('hightlighted') === 'on'
-
-  if (title.length < 1) {
-    session.flash('error', m.common_empty_fields_error())
-    throw redirect(`/board/document/${params.documentId}/edit`, {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+  const submission = parseWithZod(form, { schema: updateDocumentSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const { title, sectionId } = submission.value
+  const visibleFrom = new Date(submission.value['visible-from'])
+  const visibleUntil = new Date(submission.value['visible-until'])
+  const isHighlighted = submission.value.hightlighted === 'on'
 
   const parsedFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
   const parsedUntil = visibleUntil.getTime() > 0 ? visibleUntil : null

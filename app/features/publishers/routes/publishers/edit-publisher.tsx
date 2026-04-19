@@ -1,18 +1,20 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Archive, IdCard } from 'lucide-react'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
 import { updatePublisher } from '~/features/publishers/server/update-publisher.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import * as m from '~/paraglide/messages'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
-import { requireParamId } from '~/shared/utils/params.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-publisher'
 
 export const meta: Route.MetaFunction = () => {
@@ -32,7 +34,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     const result = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId: currentUser.congregationId },
+        id_congregationId: {
+          id: requireParamId(params.publisherId, '/congregation/publishers'),
+          congregationId: currentUser.congregationId,
+        },
       },
     })
 
@@ -96,25 +101,28 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
-  const form = await request.formData()
-  const firstname = form.get('firstname')
-  const lastname = form.get('lastname')
-  const email = form.get('email')
-  const gender = form.get('gender')
-  const birthDate = form.get('birthDate')
-  const baptismDate = form.get('baptismDate')
-  const isHelder = form.get('isHelder')
-  const isServant = form.get('isServant')
-  const isAnointed = form.get('isAnointed')
-  const groupId = Number(form.get('group'))
-  const type = form.get('type')
-  const phone = form.get('phone')
-  const address = form.get('address')
+  const submission = parseWithZod(await request.formData(), { schema: updatePublisherSchema })
 
-  const previousPage = request.headers.get('referer')
-  if (!firstname || !lastname) {
-    return redirect(previousPage ?? `/congregation/publishers/${params.publisherId}/view`)
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
+
+  const {
+    firstname,
+    lastname,
+    email,
+    gender,
+    birthDate,
+    baptismDate,
+    isHelder,
+    isServant,
+    isAnointed,
+    group,
+    type,
+    phone,
+    address,
+  } = submission.value
+  const previousPage = request.headers.get('referer')
 
   return withScopeFromContext(context, async db => {
     const user = await updatePublisher(
@@ -122,19 +130,19 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       requireParamId(params.publisherId, '/congregation/publishers'),
       currentUser.congregationId,
       {
-        firstname: String(firstname),
-        lastname: String(lastname),
-        gender: String(gender),
-        baptismDate: baptismDate ? baptismDate.toString() : null,
-        birthDate: birthDate ? birthDate.toString() : null,
-        isHelder: Boolean(isHelder),
-        isServant: Boolean(isServant),
-        isAnointed: Boolean(isAnointed),
-        groupId,
-        email: email ? String(email) : null,
-        type: String(type),
-        address: String(address),
-        phone: String(phone),
+        firstname,
+        lastname,
+        gender,
+        baptismDate: baptismDate || null,
+        birthDate: birthDate || null,
+        isHelder,
+        isServant,
+        isAnointed,
+        groupId: group ?? 0,
+        email: email && email.length > 0 ? email : null,
+        type,
+        address,
+        phone,
       },
     )
     const session = await getSession(request.headers.get('Cookie'))

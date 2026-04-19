@@ -38,12 +38,7 @@ describe('updateCongregationSettings', () => {
       where: { id: 10 },
       data: { displayName: 'Ma Congregation' },
     })
-    expect(setSetting).toHaveBeenCalledWith(
-      mockDb,
-      'auxiliary-pioneer-profile-active',
-      'true',
-      10,
-    )
+    expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
     expect(mockDb.user.updateMany).not.toHaveBeenCalled()
   })
 

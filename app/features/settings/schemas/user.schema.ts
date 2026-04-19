@@ -10,8 +10,15 @@ export const editUserSchema = z.object({
   firstname: z.string().min(1),
   lastname: z.string().min(1),
   email: z.string().email(),
-  active: z.string().optional().transform(v => v === 'on'),
-  roles: z.array(z.string()).or(z.string().transform(v => [v])).optional().default([]),
+  active: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
+  roles: z
+    .array(z.string())
+    .or(z.string().transform(v => [v]))
+    .optional()
+    .default([]),
 })
 
 export type CreateUserInput = z.infer<typeof createUserSchema>

@@ -1,10 +1,9 @@
 import { redirect } from 'react-router'
-
-import { Role } from '~/shared/types/role'
 import { renderActivityPdfZip } from '~/features/publishers/server/render-activity-pdf-zip.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/pdf-export'
 

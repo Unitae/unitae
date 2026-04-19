@@ -1,5 +1,5 @@
-import { verifyCronSecret } from '~/shared/utils/cron.server'
 import { runRetentionCleanup } from '~/shared/domain/retention.server'
+import { verifyCronSecret } from '~/shared/utils/cron.server'
 
 import type { Route } from './+types/cron.retention'
 

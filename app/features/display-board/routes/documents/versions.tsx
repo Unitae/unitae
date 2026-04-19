@@ -1,17 +1,19 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Download, History, RotateCcw } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { restoreVersionSchema } from '~/features/display-board/schemas/board-document.schema'
 import { deleteFile } from '~/features/display-board/server/document.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/versions'
 
@@ -137,8 +139,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
   const documentId = requireParamId(params.documentId, '/board/documents')
-  const form = await request.formData()
-  const versionId = Number(form.get('versionId'))
+  const submission = parseWithZod(await request.formData(), { schema: restoreVersionSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { versionId } = submission.value
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser

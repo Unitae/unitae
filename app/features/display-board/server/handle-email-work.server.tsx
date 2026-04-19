@@ -1,12 +1,12 @@
 import type { Job } from 'bullmq'
 import DocumentsExpiring from 'emails/notifications/documents-expiring'
 import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
-import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
+import { Role } from '~/shared/types/role'
 import { runWithLocale } from '~/shared/utils/worker-locale.server'
 import type { EmailJobData } from './email-queue.server'
 

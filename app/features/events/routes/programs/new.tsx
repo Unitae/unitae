@@ -1,8 +1,13 @@
+import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import { dayLabel } from '~/features/events/model/day-label'
+import {
+  freeformEventSchema,
+  recurringEventSchema,
+  singleEventSchema,
+} from '~/features/events/schemas/program-new.schema'
 import { createFreeformEvent } from '~/features/events/server/programme-events.server'
 import {
   createSingleEventFromTemplate,
@@ -10,8 +15,9 @@ import {
 } from '~/features/events/server/programme-generation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -44,13 +50,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
-  const mode = String(form.get('mode'))
+  const formData = await request.formData()
+  const mode = formData.get('mode')
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {
     if (mode === 'recurring') {
-      const templateId = Number(form.get('templateId'))
+      const submission = parseWithZod(formData, { schema: recurringEventSchema })
+      if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
+
+      const { templateId } = submission.value
       const events = await generateEventsFromTemplate(db, templateId, 2, currentUser.id, congregationId)
       logger.info(`Generated ${events.length} events from template ${templateId}. User ID: ${currentUser.id}.`)
 
@@ -63,9 +72,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     if (mode === 'single') {
-      const templateId = Number(form.get('templateId'))
-      const date = new Date(String(form.get('date')))
-      const event = await createSingleEventFromTemplate(db, templateId, date, currentUser.id, congregationId)
+      const submission = parseWithZod(formData, { schema: singleEventSchema })
+      if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
+
+      const { templateId, date } = submission.value
+      const event = await createSingleEventFromTemplate(db, templateId, new Date(date), currentUser.id, congregationId)
       logger.info(`Created single event from template ${templateId}. User ID: ${currentUser.id}.`)
 
       if (event) {
@@ -76,15 +87,10 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     if (mode === 'freeform') {
-      const name = String(form.get('name') ?? '').trim()
-      const date = new Date(String(form.get('date')))
+      const submission = parseWithZod(formData, { schema: freeformEventSchema })
+      if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-      if (!name) {
-        session.flash('error', m.programs_new_name_required())
-        return redirect('/congregation/programs/new', {
-          headers: { 'Set-Cookie': await commitSession(session) },
-        })
-      }
+      const { name, date } = submission.value
 
       const startDate = new Date(date)
       startDate.setHours(19, 0, 0, 0)

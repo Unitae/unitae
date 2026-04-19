@@ -2,12 +2,11 @@ import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
-import { requireParamId } from '~/shared/utils/params.server'
+import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
   AlertDialog,
@@ -27,6 +26,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
 
@@ -68,7 +68,10 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     const user = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.userId, '/settings/users'), congregationId: currentUser.congregationId },
+        id_congregationId: {
+          id: requireParamId(params.userId, '/settings/users'),
+          congregationId: currentUser.congregationId,
+        },
       },
       include: {
         congregationRoles: { include: { role: true } },

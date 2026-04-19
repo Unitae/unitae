@@ -23,12 +23,7 @@ export function deleteEvent(db: TransactionClient, id: number, congregationId: n
   })
 }
 
-export function updateEvent(
-  db: TransactionClient,
-  id: number,
-  congregationId: number,
-  data: Record<string, unknown>,
-) {
+export function updateEvent(db: TransactionClient, id: number, congregationId: number, data: Record<string, unknown>) {
   return db.event.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key

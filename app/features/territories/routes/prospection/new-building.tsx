@@ -1,5 +1,7 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
 import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/libs/route-context.server'
@@ -73,30 +75,21 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const number = form.get('number')
-  const street = form.get('street')
-  const zip = form.get('zip')
-  const latitude = form.get('latitude')
-  const longitude = form.get('longitude')
-
-  if (!number || !street || !zip) {
-    throw redirect('/territories/buildings/new')
+  const submission = parseWithZod(await request.formData(), { schema: createBuildingSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
+  const { number, street, zip, latitude, longitude } = submission.value
   const congregation = context.get(congregationContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     const building = await createBuilding(db, {
-      address: {
-        number: String(number),
-        street: String(street),
-        zip: String(zip),
-      },
+      address: { number, street, zip },
       coordinates: {
-        latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
-        longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,
+        latitude: latitude ?? undefined,
+        longitude: longitude ?? undefined,
       },
       congregationId: congregation.id,
     })

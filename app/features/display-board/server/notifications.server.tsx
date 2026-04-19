@@ -1,11 +1,11 @@
 import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
 import type { BoardDocument } from '~/database/generated/client'
-import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
+import { Role } from '~/shared/types/role'
 
 export async function sendNewDocumentNotificationEmail(
   congregation: CongregationInfo,

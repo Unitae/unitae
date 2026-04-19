@@ -1,9 +1,10 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { editCongregationSchema } from '~/features/platform-admin/schemas/congregation.schema'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { unscopedDb } from '~/shared/infra/db.server'
-import { requireParamId } from '~/shared/utils/params.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -11,6 +12,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-congregation'
 
@@ -119,14 +121,14 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
 export async function action({ request, params }: Route.ActionArgs) {
   const admin = await verifyPlatformAdmin(request)
 
-  const form = await request.formData()
-  const congregationId = requireParamId(params.congregationId, '/platform-admin/congregations')
+  const submission = parseWithZod(await request.formData(), { schema: editCongregationSchema })
 
-  const name = String(form.get('name'))
-  const slug = String(form.get('slug'))
-  const domain = String(form.get('domain')) || null
-  const displayName = String(form.get('displayName')) || null
-  const active = form.get('active') === 'on'
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const congregationId = requireParamId(params.congregationId, '/platform-admin/congregations')
+  const { name, slug, domain, displayName, active } = submission.value
 
   await unscopedDb.congregation.update({
     where: { id: congregationId },

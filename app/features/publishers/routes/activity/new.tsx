@@ -1,13 +1,15 @@
+import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { Form, redirect, useSearchParams } from 'react-router'
-import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
+import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/shared/types/role'
+import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/libs/route-context.server'
+import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -24,7 +26,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
+  const userWithRelations = currentUser as typeof currentUser & {
+    responsibleFor?: { id: number }
+    deputyFor?: { id: number }
+  }
   const canManageMyGroupActivity =
     userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
     userWithRelations.deputyFor?.id === currentUser.publisherGroupId
@@ -61,7 +66,10 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       publisher = await db.user.findUnique({
         where: {
           // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-          id_congregationId: { id: Number(searchParams.get('publisherId')), congregationId: currentUser.congregationId },
+          id_congregationId: {
+            id: Number(searchParams.get('publisherId')),
+            congregationId: currentUser.congregationId,
+          },
         },
         include: {
           activities: true,
@@ -280,7 +288,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & { responsibleFor?: { id: number }; deputyFor?: { id: number } }
+  const userWithRelations = currentUser as typeof currentUser & {
+    responsibleFor?: { id: number }
+    deputyFor?: { id: number }
+  }
   const canManageMyGroupActivity =
     userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
     userWithRelations.deputyFor?.id === currentUser.publisherGroupId
@@ -289,11 +300,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const previousPage = String(form.get('previousPage'))
-  const publisherId = Number(form.get('publisher'))
-  const month = Number(form.get('month'))
-  const year = Number(form.get('year'))
+  const submission = parseWithZod(await request.formData(), { schema: createActivitySchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { publisher: publisherId, month, year, hours, studies, observations, preached, previousPage } = submission.value
 
   return withScopeFromContext(context, async db => {
     const publisher = await db.user.findUnique({
@@ -303,15 +315,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       },
     })
 
-    const preached = form.get('preached') === 'on'
-    const hours = Number(form.get('hours'))
-    const studies = Number(form.get('studies'))
-    const observations = String(form.get('observations'))
-
     const session = await getSession(request.headers.get('Cookie'))
     if (publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
-      throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+      throw redirect(previousPage || '/congregation/publishers/activity/new', {
         headers: {
           'Set-Cookie': await commitSession(session),
         },
@@ -320,7 +327,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const type =
       publisher.type === PublisherType.Normal
-        ? (form.get('type') as PublisherType)
+        ? (submission.value.type as PublisherType)
         : (publisher.type ?? PublisherType.Normal)
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
@@ -335,7 +342,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
 
     session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))
-    return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
+    return redirect(previousPage || `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

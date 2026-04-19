@@ -1,8 +1,8 @@
 import type { Building, Prisma } from '~/database/generated/client'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { paginationFromUrl } from '~/shared/utils/pagination.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
+import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
 function sortBuildingsByAddress<T extends { zip: string; street: string; number: string }>(buildings: T[]) {
   buildings.sort((a, b) => {
