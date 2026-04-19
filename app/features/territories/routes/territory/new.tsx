@@ -5,6 +5,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
+import { createTerritory } from '~/features/territories/server/create-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import * as m from '~/paraglide/messages'
@@ -176,15 +177,11 @@ export async function action({ request }: Route.ActionArgs) {
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('territories')
 
-    await db.territory.create({
-      data: {
-        number: String(number),
-        type: String(type),
-        entrances: {
-          connect: entrances.map(el => ({ id: Number(el) })),
-        },
-        congregationId: congregation.id,
-      },
+    await createTerritory(db, {
+      number: String(number),
+      type: String(type),
+      entranceIds: entrances.map(el => Number(el)),
+      congregationId: congregation.id,
     })
 
     return redirect('/territories')

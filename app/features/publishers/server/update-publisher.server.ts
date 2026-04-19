@@ -1,8 +1,6 @@
-import type { CongregationInfo } from '~/shared/libs/congregation.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
 
-export interface CreatePublisherParams {
+export interface UpdatePublisherParams {
   firstname: string
   lastname: string
   email: string | null
@@ -14,31 +12,24 @@ export interface CreatePublisherParams {
   isAnointed: boolean
   groupId: number | null
   type: string
-  congregationId: number
+  phone: string
+  address: string
 }
 
-export async function createPublisher(
+export function updatePublisher(
   db: TransactionClient,
-  congregation: CongregationInfo,
-  params: CreatePublisherParams,
+  id: number,
+  congregationId: number,
+  params: UpdatePublisherParams,
 ) {
-  const limits = new LimitService(db, congregation)
-  await limits.errorIfWouldGoOverLimit('publishers')
-
-  const email =
-    params.email && params.email.length > 0
-      ? params.email
-      : `${params.firstname}.${params.lastname}@placeholder.unitae.app`.toLowerCase()
-
-  return db.user.create({
+  return db.user.update({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+      id_congregationId: { id, congregationId },
+    },
     data: {
       firstname: params.firstname,
       lastname: params.lastname,
-      email,
-      active: true,
-      password: 'password',
-      emailVerifiedAt: new Date(),
-      isPublisher: true,
       isMale: params.gender === 'male',
       baptismDate: params.baptismDate ? new Date(params.baptismDate) : null,
       birthDate: params.birthDate ? new Date(params.birthDate) : null,
@@ -46,8 +37,10 @@ export async function createPublisher(
       isServant: params.isServant,
       isAnointed: params.isAnointed,
       publisherGroupId: Number.isNaN(params.groupId) ? null : params.groupId,
+      ...(params.email ? { email: params.email } : {}),
       type: params.type,
-      congregationId: params.congregationId,
+      address: params.address,
+      phone: params.phone,
     },
   })
 }

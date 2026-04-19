@@ -12,6 +12,7 @@ import {
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
+import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
@@ -321,17 +322,9 @@ export async function action({ request, params }: Route.ActionArgs) {
   const notes = form.get('notes')
 
   return withScope(congregationId, async db => {
-    await db.territory.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
-      },
-      data: {
-        entrances: {
-          set: entrances.map(el => ({ id: Number(el) })),
-        },
-        notes: String(notes),
-      },
+    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, {
+      entranceIds: entrances.map(el => Number(el)),
+      notes: String(notes),
     })
 
     return redirect('/territories')

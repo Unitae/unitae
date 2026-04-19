@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { deleteAttribution } from '~/features/territories/server/delete-attribution.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -71,13 +72,11 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const attribution = await db.attribution.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
-      },
-      include: { publisher: true },
-    })
+    const attribution = await deleteAttribution(
+      db,
+      requireParamId(params.attributionId, '/territories/attributions'),
+      congregationId,
+    )
 
     session.flash(
       'success',

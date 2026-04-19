@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import { AuditAction, audit } from '~/shared/libs/audit.server'
 import type { CongregationInfo } from '~/shared/libs/congregation.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
@@ -30,7 +31,7 @@ export async function createUser(
   })
 
   if (existingUser != null) {
-    throw new UserAlreadyExistsError()
+    throw new ConflictError('User already exists')
   }
 
   const limits = new LimitService(db, congregation)
@@ -62,8 +63,5 @@ export async function createUser(
   return { userId: user.id, emailSent }
 }
 
-export class UserAlreadyExistsError extends Error {
-  constructor() {
-    super('User already exists')
-  }
-}
+// Re-export for backwards compatibility — callers can catch ConflictError directly
+export { ConflictError as UserAlreadyExistsError } from '~/shared/errors/app-error.server'

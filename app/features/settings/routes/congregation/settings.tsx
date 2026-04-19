@@ -1,12 +1,12 @@
 import { ArrowRight } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting, setSetting } from '~/features/settings/server/settings.server'
+import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
+import { getBoolSetting } from '~/features/settings/server/settings.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { unscopedDb, withScope } from '~/shared/libs/db.server'
+import { withScope } from '~/shared/libs/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -125,29 +125,11 @@ export async function action({ request }: Route.ActionArgs) {
     Boolean(form.get(CongregationSettingKey.AuxiliaryPioneerProfileActivated)),
   )
 
-  await unscopedDb.congregation.update({
-    where: { id: congregation.id },
-    data: { displayName: displayName ? String(displayName) : null },
-  })
-
   return withScope(congregationId, async db => {
-    await setSetting(
-      db,
-      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+    await updateCongregationSettings(db, congregation.id, {
+      displayName: displayName ? String(displayName) : null,
       auxiliaryPioneerProfileActivated,
-      congregationId,
-    )
-    if (auxiliaryPioneerProfileActivated === 'false') {
-      await db.user.updateMany({
-        where: {
-          congregationId,
-          type: PublisherType.PionnierAuxiliaires,
-        },
-        data: {
-          type: PublisherType.Normal,
-        },
-      })
-    }
+    })
 
     return redirect('/settings')
   })

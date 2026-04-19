@@ -3,6 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { dayLabel } from '~/features/events/model/day-label'
+import { createFreeformEvent } from '~/features/events/server/programme-events.server'
 import {
   createSingleEventFromTemplate,
   generateEventsFromTemplate,
@@ -89,14 +90,12 @@ export async function action({ request }: Route.ActionArgs) {
       const endDate = new Date(date)
       endDate.setHours(21, 0, 0, 0)
 
-      await db.event.create({
-        data: {
-          name,
-          startDate,
-          endDate,
-          createdById: currentUser.id,
-          congregationId,
-        },
+      await createFreeformEvent(db, {
+        name,
+        startDate,
+        endDate,
+        createdById: currentUser.id,
+        congregationId,
       })
 
       logger.info(`Created freeform event "${name}". User ID: ${currentUser.id}.`)

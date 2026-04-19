@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { deleteTerritory } from '~/features/territories/server/delete-territory.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -69,12 +70,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const territory = await db.territory.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
-      },
-    })
+    const territory = await deleteTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId)
 
     session.flash('success', m.territories_delete_flash_success({ number: territory.number }))
 

@@ -3,6 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -199,19 +200,13 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const settings = await db.boardDynamicDocumentSettings.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: dynamicId, congregationId },
-      },
-      data: {
-        title,
-        sectionId,
-        visibleFrom: parsedFrom,
-        visibleUntil: parsedUntil,
-        isHighlighted,
-        showServices,
-      },
+    const settings = await updateDynamicDocument(db, dynamicId, congregationId, {
+      title,
+      sectionId,
+      visibleFrom: parsedFrom,
+      visibleUntil: parsedUntil,
+      isHighlighted,
+      showServices,
     })
 
     session.flash('success', m.board_dynamic_edit_success({ name: settings.title }))

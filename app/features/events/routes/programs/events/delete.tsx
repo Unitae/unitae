@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import { deleteEvent } from '~/features/events/server/programme-events.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -42,12 +43,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       throw redirect('/congregation/programs')
     }
 
-    await db.event.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: eventId, congregationId },
-      },
-    })
+    await deleteEvent(db, eventId, congregationId)
 
     logger.info(`Deleted event ${eventId}. User ID: ${currentUser.id}.`)
     session.flash('success', m.programs_delete_success({ name: event.name }))

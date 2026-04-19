@@ -3,6 +3,7 @@ import { Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getGroup } from '~/features/publishers/server/groups.server'
+import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -263,22 +264,17 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const membersToConnect = [{ id: responsibleId }]
-    if (deputyId != null) membersToConnect.push({ id: deputyId })
-
-    const group = await db.publisherGroup.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.groupId, '/congregation/publisher-groups'), congregationId },
-      },
-      data: {
+    const group = await updateGroup(
+      db,
+      requireParamId(params.groupId, '/congregation/publisher-groups'),
+      congregationId,
+      {
         name: String(name),
-        adress: String(address),
-        deputyId,
+        address: String(address),
         responsibleId,
-        members: { connect: membersToConnect },
+        deputyId,
       },
-    })
+    )
 
     session.flash('success', m.groups_edit_success({ name: group.name }))
     return redirect('/congregation/publisher-groups', {

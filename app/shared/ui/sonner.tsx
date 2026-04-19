@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { CircleCheckIcon, InfoIcon, Loader2Icon, OctagonXIcon, TriangleAlertIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Toaster as Sonner, type ToasterProps } from 'sonner'
 
 function useLocalTheme() {

@@ -2,6 +2,7 @@ import { Archive, IdCard } from 'lucide-react'
 import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { updatePublisher } from '~/features/publishers/server/update-publisher.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
@@ -116,27 +117,26 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const user = await db.user.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.publisherId, '/congregation/publishers'), congregationId },
-      },
-      data: {
+    const user = await updatePublisher(
+      db,
+      requireParamId(params.publisherId, '/congregation/publishers'),
+      congregationId,
+      {
         firstname: String(firstname),
         lastname: String(lastname),
-        isMale: String(gender) === 'male',
-        baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
-        birthDate: birthDate ? new Date(birthDate.toString()) : null,
+        gender: String(gender),
+        baptismDate: baptismDate ? baptismDate.toString() : null,
+        birthDate: birthDate ? birthDate.toString() : null,
         isHelder: Boolean(isHelder),
         isServant: Boolean(isServant),
         isAnointed: Boolean(isAnointed),
-        publisherGroupId: Number.isNaN(groupId) ? null : groupId,
-        ...(!email ? {} : { email: String(email) }),
+        groupId,
+        email: email ? String(email) : null,
         type: String(type),
         address: String(address),
         phone: String(phone),
       },
-    })
+    )
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.publishers_edit_success({ name: user.firstname ?? '' }))
     return redirect(previousPage ?? `/congregation/publishers/${user.id}/view`, {

@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -50,15 +51,7 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    const template = await db.programmeTemplate.create({
-      data: {
-        name,
-        key,
-        weekDay,
-        isRecurring: weekDay != null,
-        congregationId,
-      },
-    })
+    const template = await createProgrammeTemplate(db, { name, key, weekDay, congregationId })
 
     logger.info(`Created template "${name}" (${key}). User ID: ${currentUser.id}.`)
     session.flash('success', m.settings_template_new_success({ name }))

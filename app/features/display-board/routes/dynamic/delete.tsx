@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { deleteDynamicDocument } from '~/features/display-board/server/board-document.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -61,12 +62,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
   return withScope(congregationId, async db => {
-    const settings = await db.boardDynamicDocumentSettings.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: dynamicId, congregationId },
-      },
-    })
+    const settings = await deleteDynamicDocument(db, dynamicId, congregationId)
 
     session.flash('success', m.board_dynamic_delete_success({ name: settings.title }))
 

@@ -2,6 +2,7 @@ import { ArrowLeft, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
+import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -25,16 +26,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const documentId = requireParamId(params.documentId, '/board')
 
   return withScope(congregationId, async db => {
-    const document = await db.boardDocument.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-      data: {
-        viewedBy: { connect: { id: currentUser.id } },
-      },
-      select: { id: true, title: true },
-    })
+    const document = await markDocumentAsViewed(db, documentId, currentUser.id, congregationId)
 
     if (!document) {
       logger.warn(`Document ID: ${documentId} not found. User ID: ${currentUser.id}.`)

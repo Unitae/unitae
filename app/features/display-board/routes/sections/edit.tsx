@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { updateBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -91,14 +92,8 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const section = await db.boardSection.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.sectionId, '/board'), congregationId },
-      },
-      data: {
-        name: String(name),
-      },
+    const section = await updateBoardSection(db, requireParamId(params.sectionId, '/board'), congregationId, {
+      name: String(name),
     })
 
     if (section == null) {

@@ -7,7 +7,12 @@ export interface UpdateGroupParams {
   deputyId: number | null
 }
 
-export async function updateGroup(db: TransactionClient, groupId: number, congregationId: number, params: UpdateGroupParams) {
+export async function updateGroup(
+  db: TransactionClient,
+  groupId: number,
+  congregationId: number,
+  params: UpdateGroupParams,
+) {
   const membersToConnect = [{ id: params.responsibleId }]
   if (params.deputyId != null) membersToConnect.push({ id: params.deputyId })
 

@@ -3,6 +3,7 @@ import { History, Trash2 } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
@@ -261,18 +262,12 @@ export async function action({ request, params }: Route.ActionArgs) {
       }
     }
 
-    const document = await db.boardDocument.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-      data: {
-        title: String(title),
-        section: { connect: { id: sectionId } },
-        visibleFrom: resolvedVisibleFrom,
-        visibleUntil: resolvedVisibleUntil,
-        isHighlighted,
-      },
+    const document = await updateBoardDocument(db, documentId, congregationId, {
+      title: String(title),
+      sectionId,
+      visibleFrom: resolvedVisibleFrom,
+      visibleUntil: resolvedVisibleUntil,
+      isHighlighted,
     })
 
     if (document == null) {

@@ -130,7 +130,7 @@ describe('consumeEmailVerificationToken', () => {
 })
 
 describe('getLatestVerificationToken', () => {
-  it("retourne le token le plus récent pour un utilisateur", async () => {
+  it('retourne le token le plus récent pour un utilisateur', async () => {
     const fakeToken = { id: 1, token: 'latest', userId: 42, createdAt: new Date() }
     vi.mocked(db.emailVerificationToken.findFirst).mockResolvedValue(fakeToken as never)
 

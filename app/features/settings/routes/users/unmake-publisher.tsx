@@ -1,5 +1,6 @@
 import { redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
+import { togglePublisherStatus } from '~/features/settings/server/publisher-status.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -16,15 +17,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const user = await db.user.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.userId, '/settings/users'), congregationId },
-      },
-      data: {
-        isPublisher: false,
-      },
-    })
+    const user = await togglePublisherStatus(db, requireParamId(params.userId, '/settings/users'), congregationId, false)
     if (user.isPublisher === true) {
       session.flash('success', m.settings_user_unmake_publisher_success({ email: user.email }))
     } else {

@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createPublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -147,18 +148,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const membersToConnect = [{ id: responsibleId }]
-    if (deputyId != null) membersToConnect.push({ id: deputyId })
-
-    const group = await db.publisherGroup.create({
-      data: {
-        name: String(name),
-        adress: String(address),
-        deputyId,
-        responsibleId,
-        members: { connect: membersToConnect },
-        congregationId,
-      },
+    const group = await createPublisherGroup(db, {
+      name: String(name),
+      address: String(address),
+      responsibleId,
+      deputyId,
+      congregationId,
     })
 
     session.flash('success', m.groups_new_success({ name: group.name }))

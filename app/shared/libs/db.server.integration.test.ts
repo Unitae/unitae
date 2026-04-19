@@ -1,5 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 
 const adapter = new PrismaPg({
@@ -9,7 +9,10 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-async function withScope<T>(congregationId: number, fn: (tx: Parameters<Parameters<typeof testDb.$transaction>[0]>[0]) => Promise<T>): Promise<T> {
+async function withScope<T>(
+  congregationId: number,
+  fn: (tx: Parameters<Parameters<typeof testDb.$transaction>[0]>[0]) => Promise<T>,
+): Promise<T> {
   return testDb.$transaction(async tx => {
     await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
     return fn(tx)

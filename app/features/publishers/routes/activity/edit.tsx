@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -211,22 +212,18 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     const type = form.get('type') as PublisherType
-    await db.publisherActivity.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: {
-          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-          congregationId,
-        },
-      },
-      data: {
+    await updatePublisherActivity(
+      db,
+      requireParamId(params.activityId, '/congregation/publishers/activity'),
+      congregationId,
+      {
         type,
         isPublisher: hours > 0 ? true : preached,
         hours,
         studies,
         notes: observations,
       },
-    })
+    )
 
     session.flash(
       'success',

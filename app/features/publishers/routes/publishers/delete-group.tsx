@@ -2,6 +2,7 @@ import { Form, redirect } from 'react-router'
 
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { deletePublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -65,12 +66,11 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const group = await db.publisherGroup.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.groupId, '/congregation/publisher-groups'), congregationId },
-      },
-    })
+    const group = await deletePublisherGroup(
+      db,
+      requireParamId(params.groupId, '/congregation/publisher-groups'),
+      congregationId,
+    )
 
     session.flash('success', m.groups_delete_success({ name: group.name }))
 

@@ -1,4 +1,7 @@
+import { LimitReachedError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
+
+export { LimitReachedError as LimitError }
 
 const LIMIT_COLUMN_MAP = {
   publishers: 'maxPublishers',
@@ -15,15 +18,6 @@ type CongregationLimits = {
   maxUsers: number | null
   maxStorageBytes: bigint | null
   maxBoardDocuments: number | null
-}
-
-export class LimitError extends Error {
-  public readonly limitName: string
-
-  constructor(limitName: string) {
-    super(`Limite atteinte pour : ${limitName}`)
-    this.limitName = limitName
-  }
 }
 
 export class LimitService {
@@ -50,7 +44,7 @@ export class LimitService {
 
   async errorIfWouldGoOverLimit(name: LimitName): Promise<void> {
     if (await this.checkWouldGoOverLimit(name)) {
-      throw new LimitError(name)
+      throw new LimitReachedError(name)
     }
   }
 
@@ -65,7 +59,7 @@ export class LimitService {
 
   errorIfStorageOverLimit(currentBytes: bigint, additionalBytes: bigint): void {
     if (this.checkStorageLimit(currentBytes, additionalBytes)) {
-      throw new LimitError('storage')
+      throw new LimitReachedError('storage')
     }
   }
 

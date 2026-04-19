@@ -3,6 +3,7 @@ import { Form, redirect, useSearchParams } from 'react-router'
 import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -317,18 +318,16 @@ export async function action({ request }: Route.ActionArgs) {
       publisher.type === PublisherType.Normal
         ? (form.get('type') as PublisherType)
         : (publisher.type ?? PublisherType.Normal)
-    const activity = await db.publisherActivity.create({
-      data: {
-        publisherId: publisher.id,
-        month,
-        year,
-        type,
-        isPublisher: hours > 0 ? true : preached,
-        hours,
-        studies,
-        notes: observations,
-        congregationId,
-      },
+    const activity = await createPublisherActivity(db, {
+      publisherId: publisher.id,
+      month,
+      year,
+      type,
+      isPublisher: hours > 0 ? true : preached,
+      hours,
+      studies,
+      notes: observations,
+      congregationId,
     })
 
     session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))

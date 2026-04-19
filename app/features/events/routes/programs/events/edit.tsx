@@ -3,11 +3,18 @@ import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import {
+  addPartAssignment,
+  addServiceRoleAssignment,
+  applyTemplateToEvent,
+  deletePartAssignment,
+  deleteServiceRoleAssignment,
+  updateEvent,
+} from '~/features/events/server/programme-events.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { type TransactionClient, withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
 import { requireParamId } from '~/shared/libs/params.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -108,59 +115,39 @@ async function handleUpdateEvent(form: FormData, db: TransactionClient, eventId:
     if (!Number.isNaN(endDate.getTime())) data.endDate = endDate
   }
 
-  await db.event.update({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
-      id_congregationId: { id: eventId, congregationId },
-    },
-    data,
-  })
+  await updateEvent(db, eventId, congregationId, data)
   return m.programs_edit_event_updated()
 }
 
 async function handleAddPart(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
   const partName = String(form.get('partName') ?? '').trim()
   if (!partName) return null
-  await db.programmePartAssignment.create({
-    data: {
-      eventId,
-      name: partName,
-      section: String(form.get('partSection') ?? ''),
-      track: String(form.get('partTrack') ?? ''),
-      order: Number(form.get('partOrder') ?? 0),
-      durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
-      congregationId,
-    },
+  await addPartAssignment(db, {
+    eventId,
+    name: partName,
+    section: String(form.get('partSection') ?? ''),
+    track: String(form.get('partTrack') ?? ''),
+    order: Number(form.get('partOrder') ?? 0),
+    durationMin: form.get('partDuration') ? Number(form.get('partDuration')) : null,
+    congregationId,
   })
   return m.programs_edit_part_added()
 }
 
 async function handleDeletePart(form: FormData, db: TransactionClient, congregationId: number) {
-  await db.programmePartAssignment.delete({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
-      id_congregationId: { id: Number(form.get('partAssignmentId')), congregationId },
-    },
-  })
+  await deletePartAssignment(db, Number(form.get('partAssignmentId')), congregationId)
   return m.programs_edit_part_deleted()
 }
 
 async function handleAddService(form: FormData, db: TransactionClient, eventId: number, congregationId: number) {
   const serviceName = String(form.get('serviceName') ?? '').trim()
   if (!serviceName) return null
-  await db.programmeServiceRoleAssignment.create({
-    data: { eventId, name: serviceName, congregationId },
-  })
+  await addServiceRoleAssignment(db, { eventId, name: serviceName, congregationId })
   return m.programs_edit_service_added()
 }
 
 async function handleDeleteService(form: FormData, db: TransactionClient, congregationId: number) {
-  await db.programmeServiceRoleAssignment.delete({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
-      id_congregationId: { id: Number(form.get('serviceAssignmentId')), congregationId },
-    },
-  })
+  await deleteServiceRoleAssignment(db, Number(form.get('serviceAssignmentId')), congregationId)
   return m.programs_edit_service_deleted()
 }
 
@@ -172,42 +159,8 @@ async function handleApplyTemplate(
   userId: number,
 ): Promise<string | null> {
   const templateId = Number(form.get('templateId'))
-  const template = await db.programmeTemplate.findFirst({
-    where: { id: templateId, congregationId },
-    include: { parts: { orderBy: { order: 'asc' } }, serviceRoles: true },
-  })
+  const template = await applyTemplateToEvent(db, eventId, templateId, congregationId, userId)
   if (!template) return null
-
-  await db.event.update({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
-      id_congregationId: { id: eventId, congregationId },
-    },
-    data: { templateId },
-  })
-
-  for (const part of template.parts) {
-    await db.programmePartAssignment.create({
-      data: {
-        eventId,
-        partId: part.id,
-        name: part.name,
-        section: part.section,
-        track: part.track,
-        order: part.order,
-        durationMin: part.durationMin,
-        congregationId,
-      },
-    })
-  }
-
-  for (const role of template.serviceRoles) {
-    await db.programmeServiceRoleAssignment.create({
-      data: { eventId, serviceRoleId: role.id, name: role.name, congregationId },
-    })
-  }
-
-  logger.info(`Applied template ${templateId} to event ${eventId}. User ID: ${userId}.`)
   return m.programs_edit_template_applied({ name: template.name })
 }
 

@@ -1,12 +1,12 @@
 import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import type { Prisma } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import { getBoolSetting } from '~/features/settings/server/settings.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
+import { updateAttribution } from '~/features/territories/server/update-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -212,31 +212,23 @@ export async function action({ request, params }: Route.ActionArgs) {
   const notes = String(form.get('notes'))
   const type = String(form.get('type'))
 
-  const updateData: Prisma.XOR<Prisma.AttributionUpdateInput, Prisma.AttributionUncheckedUpdateInput> = {
-    publisherId: publisherId,
-    notes,
-    type,
-    startDate: new Date(startDateText),
-  }
-
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
-  if (hasLateDate) {
-    updateData.lateDate = new Date(lateDateText)
-  }
-
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'
-  if (hasEndDate) {
-    updateData.endDate = new Date(endDateText)
-  }
 
   return withScope(congregationId, async db => {
-    const attribution = await db.attribution.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
+    const attribution = await updateAttribution(
+      db,
+      requireParamId(params.attributionId, '/territories/attributions'),
+      congregationId,
+      {
+        publisherId,
+        notes,
+        type,
+        startDate: new Date(startDateText),
+        lateDate: hasLateDate ? new Date(lateDateText) : undefined,
+        endDate: hasEndDate ? new Date(endDateText) : undefined,
       },
-      data: updateData,
-    })
+    )
 
     return redirect(hasEndDate ? '/territories/attributions' : `/territories/attributions/${attribution.id}/edit`)
   })

@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -60,12 +61,7 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const section = await db.boardSection.create({
-      data: {
-        name: String(name),
-        congregationId,
-      },
-    })
+    const section = await createBoardSection(db, { name: String(name), congregationId })
 
     if (section == null) {
       session.flash('error', m.common_generic_error())

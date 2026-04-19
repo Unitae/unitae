@@ -73,15 +73,21 @@ export async function action({ request }: Route.ActionArgs) {
   return withScope(congregationId, async db => {
     try {
       const ResetPasswordRequired = (await import('emails/reset-password-required')).default
-      const result = await createUser(db, congregation, currentUser.id, { firstname, lastname, email, congregationId }, (_userId, token) => (
-        <ResetPasswordRequired
-          email={email}
-          firstname={firstname || undefined}
-          token={token}
-          baseUrl={congregation.baseUrl}
-          platformName={congregation.displayName}
-        />
-      ))
+      const result = await createUser(
+        db,
+        congregation,
+        currentUser.id,
+        { firstname, lastname, email, congregationId },
+        (_userId, token) => (
+          <ResetPasswordRequired
+            email={email}
+            firstname={firstname || undefined}
+            token={token}
+            baseUrl={congregation.baseUrl}
+            platformName={congregation.displayName}
+          />
+        ),
+      )
 
       if (!result.emailSent) {
         session.flash('error', m.auth_email_send_warning_user_created())

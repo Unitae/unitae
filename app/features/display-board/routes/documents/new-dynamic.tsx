@@ -3,6 +3,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
@@ -122,14 +123,12 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    const settings = await db.boardDynamicDocumentSettings.create({
-      data: {
-        title,
-        dynamicType,
-        dynamicRef,
-        sectionId: section.id,
-        congregationId,
-      },
+    const settings = await createDynamicDocument(db, {
+      title,
+      dynamicType,
+      dynamicRef,
+      sectionId: section.id,
+      congregationId,
     })
 
     session.flash('success', m.board_new_dynamic_added({ name: title }))

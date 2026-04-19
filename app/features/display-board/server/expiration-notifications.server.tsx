@@ -7,7 +7,11 @@ import { emailQueue } from './email-queue.server'
  * Verifie tous les documents dont la visibilite expire dans les 48 prochaines heures
  * et envoie une notification aux valideurs du tableau d'affichage.
  */
-export async function checkExpiringDocuments(): Promise<{ congregationsNotified: number; documentsFound: number; jobsEnqueued: number }> {
+export async function checkExpiringDocuments(): Promise<{
+  congregationsNotified: number
+  documentsFound: number
+  jobsEnqueued: number
+}> {
   const now = new Date()
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
 
