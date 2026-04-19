@@ -6,6 +6,7 @@ import { Role } from '~/features/authorization/model/roles.type'
 import { hasDataProcessingConsent } from '~/features/settings/server/consent.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { AppLayout } from '~/shared/ui/AppLayout'
+import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 
 import type { Route } from './+types/_authenticated-layout'
 
@@ -72,3 +73,5 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
 
   return <AppLayout permissions={permissions} congregationName={congregationName} />
 }
+
+export { RouteErrorBoundary as ErrorBoundary }

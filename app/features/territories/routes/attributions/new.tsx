@@ -1,6 +1,7 @@
 import { Form, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
 import { getBoolSetting } from '~/features/settings/server/settings.server'
+import { createAttribution } from '~/features/territories/server/create-attribution.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
@@ -151,20 +152,14 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/territories/territory/new')
   }
 
-  const lateDate = new Date(startDateText)
-  lateDate.setMonth(lateDate.getMonth() + 4)
-
   return withScope(congregationId, async db => {
-    const attribution = await db.attribution.create({
-      data: {
-        publisherId: publisherId,
-        territoryId: territoryId,
-        notes,
-        type,
-        startDate: new Date(startDateText),
-        lateDate: lateDate,
-        congregationId: congregation.id,
-      },
+    const attribution = await createAttribution(db, {
+      publisherId,
+      territoryId,
+      startDate: startDateText,
+      notes,
+      type,
+      congregationId: congregation.id,
     })
 
     return redirect(`/territories/attributions/${attribution.id}/edit`)

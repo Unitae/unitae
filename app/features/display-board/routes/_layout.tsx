@@ -48,3 +48,5 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
 
   return <Outlet context={{ canUploadDocument }} />
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

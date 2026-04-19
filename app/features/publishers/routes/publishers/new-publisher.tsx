@@ -1,13 +1,13 @@
 import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createPublisher } from '~/features/publishers/server/create-publisher.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
@@ -58,45 +58,25 @@ export async function action({ request }: Route.ActionArgs) {
   const firstname = String(form.get('firstname'))
   const lastname = String(form.get('lastname'))
   const email = String(form.get('email'))
-  const gender = form.get('gender')
-  const birthDate = form.get('birthDate')
-  const baptismDate = form.get('baptismDate')
-  const isHelder = form.get('isHelder')
-  const isServant = form.get('isServant')
-  const isAnointed = form.get('isAnointed')
-  const groupId = Number(form.get('group'))
-  const type = form.get('type')
 
   if (firstname.length < 1 || lastname.length < 1) {
     throw redirect('/congregation/publishers/new')
   }
 
   return withScope(congregationId, async db => {
-    const limits = new LimitService(db, congregation)
-    await limits.errorIfWouldGoOverLimit('publishers')
-
-    const user = await db.user.create({
-      data: {
-        firstname: firstname,
-        lastname: lastname,
-        email:
-          form.has('email') && email.length > 0
-            ? email
-            : `${firstname}.${lastname}@placeholder.unitae.app`.toLowerCase(),
-        active: true,
-        password: 'password',
-        emailVerifiedAt: new Date(),
-        isPublisher: true,
-        isMale: String(gender) === 'male',
-        baptismDate: baptismDate ? new Date(baptismDate.toString()) : null,
-        birthDate: birthDate ? new Date(birthDate.toString()) : null,
-        isHelder: Boolean(isHelder),
-        isServant: Boolean(isServant),
-        isAnointed: Boolean(isAnointed),
-        publisherGroupId: Number.isNaN(groupId) ? null : groupId,
-        type: String(type),
-        congregationId,
-      },
+    const user = await createPublisher(db, congregation, {
+      firstname,
+      lastname,
+      email: form.has('email') && email.length > 0 ? email : null,
+      gender: String(form.get('gender')),
+      birthDate: form.get('birthDate')?.toString() ?? null,
+      baptismDate: form.get('baptismDate')?.toString() ?? null,
+      isHelder: Boolean(form.get('isHelder')),
+      isServant: Boolean(form.get('isServant')),
+      isAnointed: Boolean(form.get('isAnointed')),
+      groupId: Number(form.get('group')),
+      type: String(form.get('type')),
+      congregationId,
     })
 
     const session = await getSession(request.headers.get('Cookie'))

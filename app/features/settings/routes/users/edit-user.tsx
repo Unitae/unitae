@@ -2,8 +2,8 @@ import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import { requireParamId } from '~/shared/libs/params.server'
@@ -331,45 +331,12 @@ export async function action({ request, params }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    await db.user.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: userId, congregationId },
-      },
-      data: {
-        firstname,
-        lastname,
-        email: email.toLocaleLowerCase(),
-        active: Boolean(active),
-      },
-    })
-
-    // Update congregation-scoped roles: delete existing, create new
-    await db.congregationUserRole.deleteMany({
-      where: { userId, congregationId },
-    })
-
-    const roleRecords = await db.userRole.findMany({
-      where: { key: { in: roles.map(String) } },
-    })
-
-    if (roleRecords.length > 0) {
-      await db.congregationUserRole.createMany({
-        data: roleRecords.map(role => ({
-          userId,
-          roleId: role.id,
-          congregationId,
-        })),
-      })
-    }
-
-    audit({
-      action: AuditAction.UserUpdated,
-      congregationId,
-      actorId: currentUser.id,
-      entityType: 'User',
-      entityId: userId,
-      metadata: { roles: roles.map(String) },
+    await updateUser(db, userId, congregationId, currentUser.id, {
+      firstname,
+      lastname,
+      email,
+      active: Boolean(active),
+      roles: roles.map(String),
     })
 
     return redirect('/settings/users')

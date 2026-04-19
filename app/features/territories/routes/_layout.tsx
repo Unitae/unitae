@@ -39,3 +39,5 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function BoardLayout() {
   return <Outlet />
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

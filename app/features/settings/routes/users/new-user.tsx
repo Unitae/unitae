@@ -1,13 +1,10 @@
 import { data, Form, redirect } from 'react-router'
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
+import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -74,55 +71,26 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   return withScope(congregationId, async db => {
-    const existingUser = await db.user.findUnique({
-      where: {
-        email: String(email),
-      },
-    })
+    try {
+      const ResetPasswordRequired = (await import('emails/reset-password-required')).default
+      const result = await createUser(db, congregation, currentUser.id, { firstname, lastname, email, congregationId }, (_userId, token) => (
+        <ResetPasswordRequired
+          email={email}
+          firstname={firstname || undefined}
+          token={token}
+          baseUrl={congregation.baseUrl}
+          platformName={congregation.displayName}
+        />
+      ))
 
-    if (existingUser != null) {
-      throw redirect('/settings/users/new')
-    }
-
-    const limits = new LimitService(db, congregation)
-    await limits.errorIfWouldGoOverLimit('users')
-
-    const user = await db.user.create({
-      data: {
-        firstname: String(firstname),
-        lastname: String(lastname),
-        email: String(email).toLocaleLowerCase(),
-        active: true,
-        password: 'password',
-        emailVerifiedAt: new Date(),
-        congregationId,
-      },
-    })
-
-    const token = await createPasswordResetToken(user.id)
-
-    const ResetPasswordRequired = (await import('emails/reset-password-required')).default
-    const sent = await sendResetUserPasswordEmail(
-      user.id,
-      <ResetPasswordRequired
-        email={user.email}
-        firstname={user.firstname || undefined}
-        token={token}
-        baseUrl={congregation.baseUrl}
-        platformName={congregation.displayName}
-      />,
-    )
-
-    audit({
-      action: AuditAction.UserCreated,
-      congregationId,
-      actorId: currentUser.id,
-      entityType: 'User',
-      entityId: user.id,
-    })
-
-    if (!sent) {
-      session.flash('error', m.auth_email_send_warning_user_created())
+      if (!result.emailSent) {
+        session.flash('error', m.auth_email_send_warning_user_created())
+      }
+    } catch (error) {
+      if (error instanceof UserAlreadyExistsError) {
+        throw redirect('/settings/users/new')
+      }
+      throw error
     }
 
     return redirect('/settings/users', {
