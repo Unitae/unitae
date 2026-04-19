@@ -41,6 +41,7 @@ Code is organized by feature under `app/features/`. Each feature owns all its co
 app/features/{feature}/
 ├── server/       # Server-side business logic and service functions
 ├── routes/       # Route components (referenced from app/routes.ts)
+├── schemas/      # Conform + Zod form validation schemas
 ├── ui/           # Feature-specific UI components
 └── model/        # TypeScript type definitions
 ```
@@ -53,9 +54,15 @@ Cross-cutting utilities live in `app/shared/`:
 
 ```
 app/shared/
-├── libs/         # Database, Redis, logger, mailer, crypto, pagination, file storage, limits, audit
-├── types/        # Shared TypeScript types
-└── ui/           # Shared UI components (shadcn/ui + custom)
+├── auth/         # Auth wrapper, crypto, sanitize-user, route context
+├── domain/       # Congregation, limits, audit, settings, retention, host-settings, consent, setup
+├── errors/       # AppError hierarchy (NotFoundError, ValidationError, ConflictError, etc.)
+├── hooks/        # Shared React hooks
+├── infra/        # Database, Redis, logger, mailer, file storage, queues
+├── middleware/    # requireAuth middleware
+├── types/        # Shared TypeScript types (role, entrance, publisher-type, setting keys)
+├── ui/           # Shared UI components (shadcn/ui + custom)
+└── utils/        # env, pagination, params, locale, cron, worker-locale, utils
 ```
 
 ### File Naming
@@ -98,8 +105,9 @@ Business logic belongs in **service functions** (`features/*/server/*.server.ts`
 ### Rules
 
 - Service functions take **typed parameters**, never the `Request` object
-- Service functions receive `db: TransactionClient` as their first parameter (from `app/shared/libs/db.server`)
-- Route loaders/actions call `authenticateAndAuthorize()`, then `withScope(congregationId, async db => {...})`, then delegate to service functions
+- Service functions receive `db: TransactionClient` as their first parameter (from `app/shared/infra/db.server`)
+- Route loaders/actions use `withScopeFromContext(context, async db => {...})` then delegate to service functions
+- The `requireAuth` middleware (applied via layout route) sets `userContext`, `congregationContext`, and `permissionsContext` on the route context
 - **Route files must NOT contain `db.*.create()`, `db.*.update()`, `db.*.delete()`, or `db.*.deleteMany()` calls directly.** All write operations go through service functions.
 
 ```typescript
@@ -110,11 +118,11 @@ export async function createPublisher(db: TransactionClient, congregation: Congr
   return db.user.create({ data: { ... } })
 }
 
-// Route action delegates to service
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, congregationId } = await authenticateAndAuthorize(request)
+// Route action delegates to service (middleware already set context)
+export async function action({ request, context }: Route.ActionArgs) {
+  const congregation = context.get(congregationContext)
   const form = await request.formData()
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const user = await createPublisher(db, congregation, { firstname, lastname, ... })
     return redirect(`/congregation/publishers/${user.id}/edit`)
   })
@@ -129,7 +137,8 @@ Files in `app/features/X/server/` **must not** import from `app/features/Y/serve
 
 ### Scoped vs Unscoped
 
-- **`withScope(congregationId, fn)`** — Wraps `fn` in a `$transaction` with `SET LOCAL app.congregation_id` for PostgreSQL RLS. Use in all authenticated routes.
+- **`withScopeFromContext(context, fn)`** — Reads `congregationId` from route context and wraps `fn` in a `$transaction` with `SET LOCAL app.congregation_id` for PostgreSQL RLS. Preferred in authenticated routes (middleware sets the context).
+- **`withScope(congregationId, fn)`** — Same as above but takes `congregationId` explicitly. Use when route context is not available (e.g., background jobs).
 - **`unscopedDb`** — Same PrismaClient, no `SET LOCAL`. RLS permits all rows. Use for: login, password reset, setup, health check, platform admin, audit logging, email sending.
 - **`db` and `unscopedDb`** are the same instance. The distinction is semantic only. Tenant isolation happens via `SET LOCAL` inside `withScope`, not via a different client.
 
@@ -169,11 +178,14 @@ db.setting.findUnique({ where: { key_congregationId: { key: 'bano-url', congrega
 
 ## Error Handling
 
-Service functions signal expected failures by **throwing typed error classes**:
+Service functions signal expected failures by **throwing typed error classes** from `app/shared/errors/app-error.server.ts`:
 
-- `LimitError` — congregation limit reached (publishers, territories, users, storage)
-- `FileValidationError` — invalid file upload (wrong type, too large)
-- `UserAlreadyExistsError` — duplicate email on user creation
+- `AppError` — Abstract base class with `code` and `statusCode` properties
+- `NotFoundError` — 404, entity not found
+- `ValidationError` — 400, with field name
+- `ConflictError` — 409, duplicate or conflicting state
+- `ForbiddenError` — 403, insufficient permissions
+- `LimitReachedError` — 429, congregation limit reached (publishers, territories, users, storage)
 
 Route actions catch these and convert them to user-facing responses (redirect with flash message). Unexpected errors (DB down, network issues) bubble up to the error boundary.
 
@@ -195,6 +207,7 @@ Tests are **black-box**: assert on observable outcomes (return values, thrown er
 | Unit | `*.server.test.ts` | `pnpm test:unit` | Service functions, utilities, pure logic |
 | Integration | `*.integration.test.ts` | `pnpm test:integration` | Database interactions, RLS isolation, multi-step workflows |
 | E2E | `tests/e2e/*.spec.ts` | `pnpm test:e2e` | Critical user flows (login, create publisher, upload document) |
+| Boundaries | n/a | `pnpm test:boundaries` | Cross-feature import rule enforcement |
 
 ### Conventions
 
@@ -204,7 +217,7 @@ Tests are **black-box**: assert on observable outcomes (return values, thrown er
 - Test descriptions are in English
 
 ```typescript
-vi.mock('~/shared/libs/db.server')
+vi.mock('~/shared/infra/db.server')
 
 test('returns null when territory not found', () => {
   vi.mocked(db.territory.findFirst).mockResolvedValue(null)
