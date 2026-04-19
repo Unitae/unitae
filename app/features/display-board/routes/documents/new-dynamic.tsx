@@ -7,7 +7,7 @@ import { createDynamicDocument } from '~/features/display-board/server/board-doc
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { withScope } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'

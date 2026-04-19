@@ -1,8 +1,8 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { unscopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { setSetting } from '~/shared/libs/settings.server'
+import { setSetting } from '~/shared/domain/settings.server'
 
 export async function updateCongregationSettings(
   db: TransactionClient,

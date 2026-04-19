@@ -1,6 +1,6 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { unscopedDb } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 
 export const AuditAction = {
   // Authentication

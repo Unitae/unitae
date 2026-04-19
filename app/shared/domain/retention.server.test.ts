@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     passwordResetToken: { deleteMany: vi.fn() },
     consentRecord: { deleteMany: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/logger.server', () => ({
+vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }))
 
 const { cleanupExpiredPasswordResetTokens, cleanupOldWithdrawnConsents } = await import('./retention.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

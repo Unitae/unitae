@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { update: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/settings.server', () => ({
+vi.mock('~/shared/domain/settings.server', () => ({
   setSetting: vi.fn(),
 }))
 
 const { updateCongregationSettings } = await import('./congregation-settings.server')
-const { unscopedDb } = await import('~/shared/libs/db.server')
-const { setSetting } = await import('~/shared/libs/settings.server')
+const { unscopedDb } = await import('~/shared/infra/db.server')
+const { setSetting } = await import('~/shared/domain/settings.server')
 
 const mockDb = {
   user: {

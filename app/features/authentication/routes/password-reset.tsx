@@ -6,7 +6,7 @@ import {
 import { resetUserPassword } from '~/features/authentication/server/reset-user-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
+import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'

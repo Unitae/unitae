@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
 
 export async function getTerritoriesExportData(db: TransactionClient, congregationId: number, theocraticYear?: number) {

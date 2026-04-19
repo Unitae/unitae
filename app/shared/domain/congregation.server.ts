@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
 const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM ?? 'Unitae <noreply@unitae.app>'

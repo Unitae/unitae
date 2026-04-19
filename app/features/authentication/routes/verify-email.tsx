@@ -7,8 +7,8 @@ import {
 import { sendVerificationEmail } from '~/features/authentication/server/send-verification-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
-import { resolveCongregation } from '~/shared/libs/congregation.server'
-import { unscopedDb as db } from '~/shared/libs/db.server'
+import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
 
 import type { Route } from './+types/verify-email'
 

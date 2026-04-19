@@ -1,4 +1,4 @@
-import logger from '~/shared/libs/logger.server'
+import logger from '~/shared/infra/logger.server'
 
 function requireEnv(name: string): string {
   const value = process.env[name]

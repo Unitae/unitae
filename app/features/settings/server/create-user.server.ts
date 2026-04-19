@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import type { CongregationInfo } from '~/shared/libs/congregation.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import type { CongregationInfo } from '~/shared/domain/congregation.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { LimitService } from '~/shared/domain/limits.server'
 
 export interface CreateUserParams {
   firstname: string

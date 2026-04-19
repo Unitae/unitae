@@ -1,13 +1,13 @@
-import '~/shared/libs/worker-locale.server'
+import '~/shared/utils/worker-locale.server'
 
 import http from 'node:http'
 import { Worker } from 'bullmq'
 import { handleEmailWork } from '~/features/display-board/server/handle-email-work.server'
 import { handleThumbnailWork } from '~/features/display-board/server/handle-thumbnail-work.server'
 import { handleSyncWork } from '~/features/territories/server/handle-sync-work.server'
-import { createLogger } from '~/shared/libs/logger.server'
-import { QUEUE_NAMES } from '~/shared/libs/queues.server'
-import { redis } from '~/shared/libs/redis.server'
+import { createLogger } from '~/shared/infra/logger.server'
+import { QUEUE_NAMES } from '~/shared/infra/queues.server'
+import { redis } from '~/shared/infra/redis.server'
 
 const logger = createLogger('worker')
 const HEALTH_PORT = Number(process.env.WORKER_HEALTH_PORT ?? '9090')

@@ -1,5 +1,5 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 
 async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number) {
   const aggregates = await db.buildingResidentialData.aggregate({

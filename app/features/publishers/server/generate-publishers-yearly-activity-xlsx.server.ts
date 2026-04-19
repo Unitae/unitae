@@ -1,6 +1,6 @@
 import excelJs from 'exceljs'
 
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic

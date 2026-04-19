@@ -2,10 +2,10 @@ import { redirect } from 'react-router'
 
 import { Role } from '~/shared/types/role'
 import { exportUserData } from '~/features/settings/server/export-user-data.server'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { withScope } from '~/shared/infra/db.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/export-data'
 

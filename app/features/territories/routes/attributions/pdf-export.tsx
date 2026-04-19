@@ -5,8 +5,8 @@ import { getTerritoriesExportData } from '~/features/territories/server/territor
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { withScope } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 
 import type { Route } from './+types/pdf-export'
 

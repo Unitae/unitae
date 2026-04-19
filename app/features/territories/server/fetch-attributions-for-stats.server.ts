@@ -1,6 +1,6 @@
 import type { Prisma } from '~/database/generated/client'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { StatsFilterParams } from './stats-filter-params.type'
 

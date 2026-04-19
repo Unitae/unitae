@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq'
-import { unscopedDb } from '~/shared/libs/db.server'
-import { createLogger } from '~/shared/libs/logger.server'
+import { unscopedDb } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { saveThumbnailFile } from './document-storage.server'
 import { generateThumbnail } from './thumbnail.server'
 import type { ThumbnailJobData } from './thumbnail-queue.server'

@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     territory: { findMany: vi.fn() },
   },
 }))
 
 const { getTerritoriesNeverWorked } = await import('./territories-never-worked.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

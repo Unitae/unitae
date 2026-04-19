@@ -2,14 +2,14 @@ import excelJs from 'exceljs'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     publisherActivity: { findMany: vi.fn() },
   },
 }))
 
 const { generatePublishersYearlyActivityXlsx } = await import('./generate-publishers-yearly-activity-xlsx.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

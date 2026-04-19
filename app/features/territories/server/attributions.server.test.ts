@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     attribution: { count: vi.fn(), findMany: vi.fn() },
     territory: { findUnique: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/pagination.server', () => ({
+vi.mock('~/shared/utils/pagination.server', () => ({
   paginationFromUrl: vi.fn(() => ({ offset: 0, size: 25, page: 1, pages: 1, total: 0 })),
 }))
 
 const { findActiveAttributionsForPublisher, findTerritoryWithHistory } = await import('./attributions.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

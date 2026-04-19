@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     territory: { groupBy: vi.fn() },
   },
@@ -9,7 +9,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 
 const { fetchTerritoryCounts } = await import('./fetch-territory-counts.server')
 const { getTotalTerritoryCount } = await import('./territory-count-by-type.type')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

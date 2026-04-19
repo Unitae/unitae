@@ -5,7 +5,7 @@ import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/terr
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { withScope } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
 
 import Pagination from '~/shared/ui/Pagination'

@@ -1,6 +1,6 @@
 import { getAllowedZips } from '~/features/territories/server/settings.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 
 import { fetchOpenData } from './fetch-open-data.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'

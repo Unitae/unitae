@@ -7,7 +7,7 @@ import { createPublisherActivity } from '~/features/publishers/server/publisher-
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { withScope } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'

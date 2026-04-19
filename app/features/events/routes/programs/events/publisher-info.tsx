@@ -1,8 +1,8 @@
 import { Role } from '~/shared/types/role'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { withScope } from '~/shared/infra/db.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
 

@@ -4,7 +4,7 @@ import {
   getFile,
   getFileBuffer,
   uploadFile,
-} from '~/shared/libs/file-storage.server'
+} from '~/shared/infra/file-storage.server'
 
 export function getStorageKey(congregationId: number): string {
   const uuid = crypto.randomUUID()

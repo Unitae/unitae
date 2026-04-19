@@ -6,9 +6,9 @@ import { markDocumentAsViewed } from '~/features/display-board/server/board-docu
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { withScope } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
+import { requireParamId } from '~/shared/utils/params.server'
 import { Button } from '~/shared/ui/button'
 
 import type { Route } from './+types/viewer'

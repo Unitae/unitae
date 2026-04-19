@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     programmeTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
     programmeTemplatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
@@ -21,7 +21,7 @@ const {
   removeTemplateResponsible,
   isTemplateResponsible,
 } = await import('./programme-templates.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

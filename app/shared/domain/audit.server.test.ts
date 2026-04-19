@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     auditLog: { create: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/logger.server', () => ({
+vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }))
 
 const { audit, AuditAction } = await import('./audit.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

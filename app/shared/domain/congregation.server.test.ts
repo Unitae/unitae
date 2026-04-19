@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { findUnique: vi.fn(), findFirst: vi.fn() },
   },
@@ -14,7 +14,7 @@ vi.mock('react-router', () => ({
 }))
 
 const { resolveCongregation, resolveCongregationFromRequest, getPlatformName } = await import('./congregation.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

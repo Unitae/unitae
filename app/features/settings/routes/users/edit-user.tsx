@@ -7,8 +7,8 @@ import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { withScope } from '~/shared/infra/db.server'
+import { requireParamId } from '~/shared/utils/params.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
   AlertDialog,

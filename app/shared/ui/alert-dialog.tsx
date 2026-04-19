@@ -1,7 +1,7 @@
 import { AlertDialog as AlertDialogPrimitive } from 'radix-ui'
 import type * as React from 'react'
 
-import { cn } from '~/shared/libs/utils'
+import { cn } from '~/shared/utils/utils'
 import { Button } from '~/shared/ui/button'
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {

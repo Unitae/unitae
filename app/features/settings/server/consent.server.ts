@@ -1,5 +1,5 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { unscopedDb } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 
 export const CONSENT_VERSION = '1.0'
 

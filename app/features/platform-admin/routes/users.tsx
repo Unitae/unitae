@@ -1,7 +1,7 @@
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import { unscopedDb } from '~/shared/libs/db.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
 
 import { PageHeader } from '~/shared/ui/PageHeader'

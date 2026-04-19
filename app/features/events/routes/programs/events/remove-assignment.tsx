@@ -5,9 +5,9 @@ import { unassignPart, unassignServiceRole } from '~/features/events/server/prog
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { withScope } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/remove-assignment'
 

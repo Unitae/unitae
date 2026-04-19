@@ -39,7 +39,7 @@ import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNev
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { withScope } from '~/shared/infra/db.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'

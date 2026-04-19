@@ -3,7 +3,7 @@ import JsZip from 'jszip'
 import pLimit from 'p-limit'
 import { sanitizeUser } from '~/shared/libs/sanitize-user.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function renderActivityPdfZip(db: TransactionClient, congregationId: number, year: number) {
   const yearBegining = new Date(year, 0, 1)

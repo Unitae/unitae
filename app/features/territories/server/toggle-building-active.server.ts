@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function toggleBuildingActive(db: TransactionClient, id: number, congregationId: number, active: boolean) {
   return db.building.update({

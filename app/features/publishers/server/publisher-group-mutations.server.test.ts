@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockCreate = vi.fn()
 const mockDelete = vi.fn()
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     publisherGroup: { create: mockCreate, delete: mockDelete },
   },
 }))
 
 const { createPublisherGroup, deletePublisherGroup } = await import('./publisher-group-mutations.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

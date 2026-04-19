@@ -4,8 +4,8 @@ import { getContentVersion } from '~/features/display-board/server/dynamic-docum
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { withScope } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
 import type { Route } from './+types/index'

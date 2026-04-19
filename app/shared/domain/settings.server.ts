@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import type { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 

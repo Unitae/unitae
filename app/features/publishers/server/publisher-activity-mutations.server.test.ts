@@ -4,7 +4,7 @@ const mockCreate = vi.fn()
 const mockUpdate = vi.fn()
 const mockDelete = vi.fn()
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     publisherActivity: { create: mockCreate, update: mockUpdate, delete: mockDelete },
   },
@@ -13,7 +13,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 const { createPublisherActivity, updatePublisherActivity, deletePublisherActivity } = await import(
   './publisher-activity-mutations.server'
 )
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

@@ -1,5 +1,5 @@
-import logger from '~/shared/libs/logger.server'
-import { redisRateLimit as redis } from '~/shared/libs/redis.server'
+import logger from '~/shared/infra/logger.server'
+import { redisRateLimit as redis } from '~/shared/infra/redis.server'
 
 const MAX_LOGIN_ATTEMPTS = 5
 const MAX_PASSWORD_RESET_ATTEMPTS = 3

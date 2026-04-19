@@ -1,4 +1,4 @@
-import { unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 
 interface AuditLogQueryParams {
   congregationId: number

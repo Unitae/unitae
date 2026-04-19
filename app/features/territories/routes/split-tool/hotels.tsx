@@ -9,8 +9,8 @@ import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { getOptionalEnv } from '~/shared/libs/env.server'
+import { withScope } from '~/shared/infra/db.server'
+import { getOptionalEnv } from '~/shared/utils/env.server'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
 

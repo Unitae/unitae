@@ -4,22 +4,22 @@ vi.mock('~/features/authentication/server/session.server', () => ({
   getSession: vi.fn(),
 }))
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findUnique: vi.fn() },
     congregation: { findUnique: vi.fn(), findFirst: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/congregation.server', () => ({
+vi.mock('~/shared/domain/congregation.server', () => ({
   resolveCongregation: vi.fn(),
   resolveCongregationFromRequest: vi.fn(),
 }))
 
 const { resolveLocaleFromRequest } = await import('./locale.server')
 const { getSession } = await import('~/features/authentication/server/session.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
-const { resolveCongregation, resolveCongregationFromRequest } = await import('~/shared/libs/congregation.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const { resolveCongregation, resolveCongregationFromRequest } = await import('~/shared/domain/congregation.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

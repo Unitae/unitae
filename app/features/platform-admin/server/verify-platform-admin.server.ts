@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { getSession } from '~/features/authentication/server/session.server'
-import { unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 
 export async function verifyPlatformAdmin(request: Request) {
   const session = await getSession(request.headers.get('Cookie'))

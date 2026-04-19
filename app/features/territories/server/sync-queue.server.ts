@@ -1,6 +1,6 @@
 import { Queue } from 'bullmq'
-import { QUEUE_NAMES } from '~/shared/libs/queues.server'
-import { redis } from '~/shared/libs/redis.server'
+import { QUEUE_NAMES } from '~/shared/infra/queues.server'
+import { redis } from '~/shared/infra/redis.server'
 
 export const syncQueue = new Queue(QUEUE_NAMES.sync, {
   connection: redis,

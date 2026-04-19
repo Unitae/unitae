@@ -1,6 +1,6 @@
 import { getSession } from '~/features/authentication/server/session.server'
-import { resolveCongregation, resolveCongregationFromRequest } from './congregation.server'
-import { unscopedDb } from './db.server'
+import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 
 const DEFAULT_LOCALE = 'fr'
 

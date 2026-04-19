@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function deleteAttribution(db: TransactionClient, id: number, congregationId: number) {
   return db.attribution.delete({

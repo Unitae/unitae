@@ -1,9 +1,9 @@
 import { createContext, type RouterContext } from 'react-router'
 import type { SanitizedUser } from '~/shared/libs/sanitize-user.server'
 import type { Role } from '~/shared/types/role'
-import type { CongregationInfo } from './congregation.server'
-import type { TransactionClient } from './db.server'
-import { withScope } from './db.server'
+import type { CongregationInfo } from '~/shared/domain/congregation.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { withScope } from '~/shared/infra/db.server'
 
 // Typed context keys for auth middleware → loader/action communication
 export const userContext = createContext<SanitizedUser>()

@@ -1,5 +1,5 @@
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateUserParams {
   firstname: string

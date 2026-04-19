@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const SENTINEL_ENTRANCE = { id: 42, kind: 'residential' }
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     building: { update: vi.fn() },
     buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
@@ -12,7 +12,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 }))
 
 const { setBuildingProspectionData } = await import('./set-building-prospection-data.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

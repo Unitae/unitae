@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function createBoardSection(db: TransactionClient, data: { name: string; congregationId: number }) {
   return db.boardSection.create({ data })

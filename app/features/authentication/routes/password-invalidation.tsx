@@ -5,11 +5,11 @@ import { sendResetUserPasswordEmail } from '~/features/authentication/server/sen
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/shared/types/role'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { resolveCongregation } from '~/shared/libs/congregation.server'
-import { unscopedDb as db } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/password-invalidation'
 
 export const meta: Route.MetaFunction = () => {

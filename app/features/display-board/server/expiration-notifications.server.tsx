@@ -1,6 +1,6 @@
 import { Role } from '~/shared/types/role'
-import { unscopedDb } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { emailQueue } from './email-queue.server'
 
 /**

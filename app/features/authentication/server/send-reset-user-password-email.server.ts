@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react'
 import * as m from '~/paraglide/messages'
-import { resolveCongregation } from '~/shared/libs/congregation.server'
-import { unscopedDb as db } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { mailer } from '~/shared/libs/mailer.server'
+import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
+import { mailer } from '~/shared/infra/mailer.server'
 
 export async function sendResetUserPasswordEmail(userId: number, email: ReactNode): Promise<boolean> {
   const user = await db.user.findFirst({ where: { id: userId } })

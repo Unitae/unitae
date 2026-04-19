@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     building: { create: vi.fn() },
     buildingResidentialData: { create: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/point-in-polygon.server', () => ({
+vi.mock('~/shared/utils/point-in-polygon.server', () => ({
   pointInPolygon: vi.fn(),
 }))
 
@@ -16,8 +16,8 @@ vi.mock('./get-territory-polygon.server', () => ({
 }))
 
 const { createBuilding } = await import('./create-building.server')
-const { db } = await import('~/shared/libs/db.server')
-const { pointInPolygon } = await import('~/shared/libs/point-in-polygon.server')
+const { db } = await import('~/shared/infra/db.server')
+const { pointInPolygon } = await import('~/shared/utils/point-in-polygon.server')
 const { getTerritoryPolygon } = await import('./get-territory-polygon.server')
 
 beforeEach(() => {

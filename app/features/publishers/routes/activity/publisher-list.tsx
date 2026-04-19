@@ -7,8 +7,8 @@ import { getPublisherWithActivities } from '~/features/publishers/server/get-pub
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { withScope } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 

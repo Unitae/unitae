@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function deleteBuilding(db: TransactionClient, id: number, congregationId: number) {
   return db.building.delete({

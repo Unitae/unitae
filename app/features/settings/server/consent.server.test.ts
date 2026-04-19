@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     consentRecord: { create: vi.fn() },
   },
@@ -9,7 +9,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 const { recordConsentUnscoped, withdrawConsent, getActiveConsents, ConsentPurpose, CONSENT_VERSION } = await import(
   './consent.server'
 )
-const { unscopedDb } = await import('~/shared/libs/db.server')
+const { unscopedDb } = await import('~/shared/infra/db.server')
 
 const mockScopedDb = {
   consentRecord: {

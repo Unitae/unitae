@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { unscopedDb as db } from '~/shared/libs/db.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
 
 const TOKEN_EXPIRY_HOURS = 24
 

@@ -1,6 +1,6 @@
 import type { BoardDocument } from '~/database/generated/client'
-import type { TransactionClient } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage.server'
 import { createVersionFromCurrent } from './document-versions.server'
 import { FileValidationError, validateBoardFile } from './file-validation.server'

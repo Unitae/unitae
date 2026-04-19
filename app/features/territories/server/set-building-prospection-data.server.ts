@@ -1,5 +1,5 @@
 import type { Building } from '~/database/generated/client'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function setBuildingProspectionData(
   db: TransactionClient,

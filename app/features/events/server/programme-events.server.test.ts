@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/logger.server', () => ({
+vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn() },
 }))
 

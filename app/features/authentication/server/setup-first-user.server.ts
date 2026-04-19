@@ -7,7 +7,7 @@ import { hash } from '~/shared/libs/crypto.server'
 
 type Locale = (typeof locales)[number]
 
-import { unscopedDb as db, withScope } from '~/shared/libs/db.server'
+import { unscopedDb as db, withScope } from '~/shared/infra/db.server'
 
 export async function setupFirstUser(
   email: string,

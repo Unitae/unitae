@@ -1,6 +1,6 @@
 import type { Prisma } from '~/database/generated/client'
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { paginationFromUrl } from '~/shared/libs/pagination.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
 export async function findActiveAttributionsPaginated(
   db: TransactionClient,

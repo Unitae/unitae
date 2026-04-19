@@ -1,5 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 interface TemplateWithRelations {
   id: number

@@ -1,4 +1,4 @@
-import '~/shared/libs/env.server'
+import '~/shared/utils/env.server'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { PassThrough } from 'node:stream'
 
@@ -9,8 +9,8 @@ import type { AppLoadContext, EntryContext } from 'react-router'
 import { ServerRouter } from 'react-router'
 
 import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/paraglide/runtime'
-import { resolveLocaleFromRequest } from '~/shared/libs/locale.server'
-import logger from '~/shared/libs/logger.server'
+import { resolveLocaleFromRequest } from '~/shared/utils/locale.server'
+import logger from '~/shared/infra/logger.server'
 
 const ABORT_DELAY = 5_000
 

@@ -6,7 +6,7 @@ import {
   recordConsentUnscoped,
 } from '~/features/settings/server/consent.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 

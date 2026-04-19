@@ -1,5 +1,5 @@
 import { LimitReachedError } from '~/shared/errors/app-error.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export { LimitReachedError as LimitError }
 

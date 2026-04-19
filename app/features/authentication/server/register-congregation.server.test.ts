@@ -5,7 +5,7 @@ const scopedDb = {
   programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
 }
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { findUnique: vi.fn(), create: vi.fn() },
     user: { findUnique: vi.fn(), create: vi.fn() },
@@ -21,7 +21,7 @@ vi.mock('~/shared/libs/crypto.server', () => ({
 }))
 
 const { registerCongregation } = await import('./register-congregation.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

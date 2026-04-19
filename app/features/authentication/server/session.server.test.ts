@@ -23,13 +23,13 @@ vi.mock('react-router', () => ({
   },
 }))
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findUnique: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/congregation.server', () => ({
+vi.mock('~/shared/domain/congregation.server', () => ({
   resolveCongregation: vi.fn(),
   resolveCongregationFromRequest: vi.fn(),
 }))
@@ -42,8 +42,8 @@ vi.mock('./sanitize-user.server', () => ({
 }))
 
 const { verifySession } = await import('./session.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
-const { resolveCongregation, resolveCongregationFromRequest } = await import('~/shared/libs/congregation.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const { resolveCongregation, resolveCongregationFromRequest } = await import('~/shared/domain/congregation.server')
 
 const fakeUser = {
   id: 42,
