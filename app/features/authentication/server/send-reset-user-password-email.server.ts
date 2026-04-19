@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import * as m from '~/paraglide/messages'
 import { resolveCongregation } from '~/shared/libs/congregation.server'
 import { unscopedDb as db } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
@@ -15,7 +16,7 @@ export async function sendResetUserPasswordEmail(userId: number, email: ReactNod
     await mailer.emails.send({
       to: user.email,
       from: congregation.emailFrom,
-      subject: 'Réinitialisation de votre mot de passe',
+      subject: m.email_password_reset_subject(),
       react: email,
     })
     return true

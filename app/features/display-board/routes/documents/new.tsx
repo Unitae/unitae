@@ -2,14 +2,14 @@ import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjack
 import { Form, redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { generateAndSaveThumbnail, saveFile } from '~/features/display-board/server/document'
+import { generateAndSaveThumbnail, saveFile } from '~/features/display-board/server/document.server'
 import {
   FileValidationError,
   MAX_FILE_SIZE_BYTES,
   validateBoardFile,
   validateVisibilityDates,
 } from '~/features/display-board/server/file-validation.server'
-import { sendNewDocumentNotificationEmail } from '~/features/display-board/server/notifications'
+import { sendNewDocumentNotificationEmail } from '~/features/display-board/server/notifications.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
@@ -302,7 +302,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
 
     if (!canManageBoard) {
-      sendNewDocumentNotificationEmail(db, congregation, { document })
+      sendNewDocumentNotificationEmail(congregation, { document })
     }
 
     return redirect(`/board/documents/${document.id}/edit`, {

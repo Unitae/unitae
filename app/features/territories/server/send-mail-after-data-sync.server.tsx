@@ -1,4 +1,5 @@
 import BuildingSyncDone from 'emails/notifications/buildings-sync-done'
+import * as m from '~/paraglide/messages'
 import type { CongregationInfo } from '~/shared/libs/congregation.server'
 import logger from '~/shared/libs/logger.server'
 import { mailer } from '~/shared/libs/mailer.server'
@@ -8,7 +9,7 @@ export async function sendMailAfterDataSync(email: string, username?: string, co
     await mailer.emails.send({
       to: email,
       from: congregation?.emailFrom ?? 'Unitae <noreply@unitae.app>',
-      subject: 'Mise à jour des données du territoires',
+      subject: m.email_territory_sync_subject(),
       react: (
         <BuildingSyncDone
           email={email}

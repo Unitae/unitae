@@ -1,7 +1,7 @@
 import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
-import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile, saveThumbnailFile } from './document-storage'
+import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile, saveThumbnailFile } from './document-storage.server'
 import { createVersionFromCurrent } from './document-versions.server'
 import { FileValidationError, validateBoardFile } from './file-validation.server'
 import { generateThumbnail } from './thumbnail.server'

@@ -6,7 +6,7 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
 }))
 
-const { findTerritoriesWithDetailsPaginated, findAvailableTerritoriesPaginated } = await import('./territories')
+const { findTerritoriesWithDetailsPaginated, findAvailableTerritoriesPaginated } = await import('./territories.server')
 const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {

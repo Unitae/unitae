@@ -2,7 +2,7 @@ import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting } from '~/features/settings/server/settings'
+import { getBoolSetting } from '~/features/settings/server/settings.server'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
@@ -10,7 +10,7 @@ import {
   getAvailableEntrances,
   getAvailableStreets,
   getAvailableZips,
-} from '~/features/territories/server/buildings'
+} from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'

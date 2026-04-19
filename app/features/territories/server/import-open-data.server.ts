@@ -1,4 +1,4 @@
-import { getAllowedZips } from '~/features/territories/server/settings'
+import { getAllowedZips } from '~/features/territories/server/settings.server'
 import type { TransactionClient } from '~/shared/libs/db.server'
 import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
 

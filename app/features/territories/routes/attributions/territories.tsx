@@ -42,9 +42,9 @@ function territoryContentLabel(type: string, entrances: { homes: number | null; 
     : m.territories_content_entrances_one({ count: String(count) })
 }
 
-import { getZips } from '~/features/territories/server/buildings'
-import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
-import { computeFilters } from '~/features/territories/server/territory-filters'
+import { getZips } from '~/features/territories/server/buildings.server'
+import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
+import { computeFilters } from '~/features/territories/server/territory-filters.server'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'

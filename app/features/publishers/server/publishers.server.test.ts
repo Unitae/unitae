@@ -6,7 +6,7 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
 }))
 
-const { getPublishers, getPublishersWithGroup } = await import('./publishers')
+const { getPublishers, getPublishersWithGroup } = await import('./publishers.server')
 const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {

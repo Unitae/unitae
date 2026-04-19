@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
 import logger from '~/shared/libs/logger.server'
-import { getBoardFileBuffer } from './document-storage'
+import { getBoardFileBuffer } from './document-storage.server'
 
 const execFileAsync = promisify(execFile)
 

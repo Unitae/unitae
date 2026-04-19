@@ -1,7 +1,7 @@
 import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
+import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'

@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
 import { Role } from '~/features/authorization/model/roles.type'
-import { reorderSection } from '~/features/display-board/server/document'
+import { reorderSection } from '~/features/display-board/server/document.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'

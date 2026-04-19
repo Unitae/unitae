@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { getFileStream } from '~/features/display-board/server/document'
+import { getFileStream } from '~/features/display-board/server/document.server'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'

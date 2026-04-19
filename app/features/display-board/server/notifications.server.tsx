@@ -1,17 +1,17 @@
 import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
 import type { BoardDocument } from '~/database/generated/client'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import type { CongregationInfo } from '~/shared/libs/congregation.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { mailer } from '~/shared/libs/mailer.server'
 
 export async function sendNewDocumentNotificationEmail(
-  db: TransactionClient,
   congregation: CongregationInfo,
   { document }: { document: BoardDocument },
 ) {
-  const users = await db.user.findMany({
+  const users = await unscopedDb.user.findMany({
     where: {
       congregationId: congregation.id,
       congregationRoles: {
@@ -27,7 +27,7 @@ export async function sendNewDocumentNotificationEmail(
       await mailer.emails.send({
         to: user.email,
         from: congregation.emailFrom,
-        subject: "Nouveau document sur le tableau d'affichage",
+        subject: m.email_board_new_document_subject(),
         react: (
           <NewDocumentInBoard
             email={user.email}

@@ -11,7 +11,7 @@ vi.mock('~/shared/libs/pagination.server', () => ({
   paginationFromUrl: vi.fn(() => ({ offset: 0, size: 25, page: 1, pages: 1, total: 0 })),
 }))
 
-const { findActiveAttributionsForPublisher, findTerritoryWithHistory } = await import('./attributions')
+const { findActiveAttributionsForPublisher, findTerritoryWithHistory } = await import('./attributions.server')
 const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {

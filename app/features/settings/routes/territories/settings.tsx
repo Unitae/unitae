@@ -1,6 +1,6 @@
 import { Form, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings'
+import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings.server'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,
@@ -8,7 +8,7 @@ import {
   parseZips,
   serializeTerritoryPolygon,
   serializeZips,
-} from '~/features/territories/server/settings'
+} from '~/features/territories/server/settings.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { withScope } from '~/shared/libs/db.server'

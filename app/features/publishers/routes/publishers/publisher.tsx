@@ -4,7 +4,7 @@ import { sanitizeUser } from '~/features/authentication/server/sanitize-user.ser
 import { Role } from '~/features/authorization/model/roles.type'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions'
+import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'

@@ -1,7 +1,7 @@
 import { ArrowRight } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
+import { getBoolSetting, setSetting } from '~/features/settings/server/settings.server'
 import * as m from '~/paraglide/messages'
 import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
 import { unscopedDb, withScope } from '~/shared/libs/db.server'

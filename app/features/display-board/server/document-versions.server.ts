@@ -1,6 +1,6 @@
 import type { TransactionClient } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
-import { deleteBoardFile } from './document-storage'
+import { deleteBoardFile } from './document-storage.server'
 
 /**
  * Sauvegarde la version courante du document avant remplacement du fichier.

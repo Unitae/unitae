@@ -1,5 +1,6 @@
 import DocumentsExpiring from 'emails/notifications/documents-expiring'
 import { Role } from '~/features/authorization/model/roles.type'
+import * as m from '~/paraglide/messages'
 import { unscopedDb } from '~/shared/libs/db.server'
 import logger from '~/shared/libs/logger.server'
 import { mailer } from '~/shared/libs/mailer.server'
@@ -78,7 +79,7 @@ export async function checkExpiringDocuments(): Promise<{ congregationsNotified:
         await mailer.emails.send({
           to: user.email,
           from: emailFrom,
-          subject: `${docs.length} document(s) arrive(nt) à expiration`,
+          subject: m.email_board_expiration_subject({ count: docs.length }),
           react: (
             <DocumentsExpiring
               email={user.email}

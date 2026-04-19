@@ -6,7 +6,7 @@ vi.mock('~/shared/libs/db.server', () => ({
   },
 }))
 
-const { getProspectionStaleDate } = await import('./buildings')
+const { getProspectionStaleDate } = await import('./buildings.server')
 const { db } = await import('~/shared/libs/db.server')
 
 beforeEach(() => {
