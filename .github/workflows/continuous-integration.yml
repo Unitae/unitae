@@ -31,6 +31,9 @@ jobs:
       - name: Run Biome lint
         run: pnpm test:lint
 
+      - name: Check cross-feature import boundaries
+        run: pnpm test:boundaries
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
