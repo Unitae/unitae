@@ -159,8 +159,8 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Generate Prisma client
-        run: pnpm prisma generate
+      - name: Generate Prisma client and Paraglide messages
+        run: pnpm prisma generate && pnpm react-router typegen
 
       - name: Apply database migrations
         run: pnpm prisma migrate deploy
