@@ -23,7 +23,7 @@ pnpm install
 Start PostgreSQL and Redis with Docker Compose:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker/docker-compose.dev.yml up -d
 ```
 
 This starts:

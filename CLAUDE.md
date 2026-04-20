@@ -44,7 +44,7 @@ pnpm start:worker          # Start sync background job worker (BullMQ)
 
 **Development** - Start infrastructure and create `.env` file:
 ```bash
-docker compose -f docker-compose.dev.yml up -d  # Start PostgreSQL + Redis
+docker compose -f docker/docker-compose.dev.yml up -d  # Start PostgreSQL + Redis
 ```
 ```ini
 DATABASE_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
@@ -196,13 +196,13 @@ if (submission.status !== 'success') return submission.reply()
 **Background Jobs** (BullMQ):
 - `syncQueue` in `app/features/territories/server/sync-queue.server.ts`
 - `handleSyncWork` in `app/features/territories/server/handle-sync-work.server.ts`
-- Worker at `workers/sync-worker.server.ts` with HTTP health server on port 9090
+- Worker at `app/workers/worker.server.ts` with HTTP health server on port 9090
 - Jobs carry `congregationId` — worker sets congregation context before processing
 - Worker concurrency: 1 for sync operations
 
 **Email**:
 - Resend API via `app/shared/infra/mailer.server.ts`
-- React Email templates in `emails/` directory
+- React Email templates in `app/emails/` directory
 - Sender address: per-congregation `emailFrom` or default `Unitae <noreply@unitae.app>`
 - All email sends wrapped in try/catch with logging
 
@@ -293,7 +293,7 @@ Uses Biome for formatting with these key rules:
 - **E2E tests**: Playwright tests in `tests/e2e/*.spec.ts`, run via `pnpm test:e2e`
 - **Boundary checks**: `eslint-plugin-boundaries` enforces cross-feature import rules via `pnpm test:boundaries`
 - **Test style**: Black-box testing — assert on observable outcomes, no spy assertions
-- **Config**: `vitest.config.ts` at project root (separate from `vite.config.ts` to avoid reactRouter plugin issues); `vitest.config.integration.ts` for integration tests
+- **Config**: `vitest.config.ts` at project root (separate from `vite.config.ts` to avoid reactRouter plugin issues); `app/tests/vitest.config.integration.ts` for integration tests; `app/tests/playwright.config.ts` for E2E tests
 - **Mocking**: `vi.mock()` for `db.server`, `redis.server`, `crypto.server` — mock return values, assert on results
 - TypeScript strict mode enabled
 - Biome linting with custom rules (no console.log in production)
@@ -317,7 +317,7 @@ Uses Biome for formatting with these key rules:
 - **Middleware context types**: The `context.set()` in middleware requires `RouterContext` type constraint: `context: { set<C extends RouterContext>(context: C, value: ...): void }`. Don't use plain object types.
 - **File upload + Zod**: Routes with file uploads (e.g., `documents/new.tsx`) use `parseFormData` from `@mjackson/form-data-parser` first, then `parseWithZod` on the resulting FormData for text fields. Don't try to validate files through Zod.
 - **Batch import path updates**: Use `find app workers -name '*.ts' -o -name '*.tsx' | xargs perl -pi -e 's|old-path|new-path|g'` — also update `vi.mock()` strings and dynamic `import()` calls in test files
-- **Multi-queue worker**: `workers/worker.server.ts` runs 3 queues (sync concurrency 1, email concurrency 5, thumbnail concurrency 2). Queue names in `app/shared/infra/queues.server.ts`. Worker locale via `app/shared/utils/worker-locale.server.ts` + `runWithLocale()`.
+- **Multi-queue worker**: `app/workers/worker.server.ts` runs 3 queues (sync concurrency 1, email concurrency 5, thumbnail concurrency 2). Queue names in `app/shared/infra/queues.server.ts`. Worker locale via `app/shared/utils/worker-locale.server.ts` + `runWithLocale()`.
 - **Two Redis clients**: `redis` (60s timeout, for BullMQ) and `redisRateLimit` (2s timeout, for auth rate limiting) in `app/shared/infra/redis.server.ts`
 
 ## Development Notes
@@ -328,6 +328,6 @@ Session cookies: 1 hour production, 8 hours development. Cookie domain configura
 
 ## Production
 
-- `Dockerfile` — Multi-stage build (node:22-slim) with `runtime` and `migrate` targets
+- `docker/Dockerfile` — Multi-stage build (node:22-slim) with `runtime` and `migrate` targets
 - `.github/workflows/continuous-deployment.yml` — Builds and pushes Docker images to GHCR
 - Kubernetes deployment manifests are managed in the private `unitae-platform` repository
