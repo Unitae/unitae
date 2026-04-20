@@ -3,6 +3,7 @@ import { login } from './helpers/auth'
 
 const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
+const BOARD_URL_RE = /\/board/
 
 test.describe('Display board', () => {
   test.beforeEach(async ({ page }) => {
@@ -13,6 +14,6 @@ test.describe('Display board', () => {
   test('board page loads', async ({ page }) => {
     await page.goto('/board')
     await page.waitForLoadState('networkidle')
-    await expect(page).toHaveURL(/\/board/)
+    await expect(page).toHaveURL(BOARD_URL_RE)
   })
 })
