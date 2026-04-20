@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -65,9 +66,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function EditActivity({ loaderData }: Route.ComponentProps) {
+export default function EditActivity({ loaderData, actionData }: Route.ComponentProps) {
   const { activity } = loaderData
   const [type, setType] = useState<PublisherType>(activity.type as PublisherType)
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: updateActivitySchema })
+    },
+  })
 
   const date = new Date()
   date.setMonth(activity.month)
@@ -95,7 +103,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
           <CardTitle>{m.activity_edit_report_details()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="space-y-2">
               <Label htmlFor="type">{m.activity_edit_pioneer_label()}</Label>
               <select
@@ -124,8 +132,15 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
                 PublisherType.Missionnaire,
               ].includes(type as PublisherType) ? (
                 <div className="space-y-2">
-                  <Label htmlFor="hours">{m.activity_new_hours_label()}</Label>
-                  <Input id="hours" name="hours" type="number" required defaultValue={activity.hours ?? 0} min={0} />
+                  <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
+                  <Input
+                    {...getInputProps(fields.hours, { type: 'number' })}
+                    key={fields.hours.id}
+                    defaultValue={activity.hours ?? 0}
+                    min={0}
+                    required
+                  />
+                  {fields.hours.errors && <p className="text-destructive text-sm">{fields.hours.errors}</p>}
                 </div>
               ) : (
                 <div className="flex items-center gap-3 self-end">
@@ -142,26 +157,27 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="studies">{m.activity_new_studies_label()}</Label>
+                <Label htmlFor={fields.studies.id}>{m.activity_new_studies_label()}</Label>
                 <Input
-                  id="studies"
-                  name="studies"
-                  type="number"
+                  {...getInputProps(fields.studies, { type: 'number' })}
+                  key={fields.studies.id}
                   defaultValue={activity.studies ?? 0}
-                  required
                   min={0}
+                  required
                 />
+                {fields.studies.errors && <p className="text-destructive text-sm">{fields.studies.errors}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="observations">{m.activity_new_observations_label()}</Label>
+              <Label htmlFor={fields.observations.id}>{m.activity_new_observations_label()}</Label>
               <textarea
-                id="observations"
+                id={fields.observations.id}
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs"
-                name="observations"
+                name={fields.observations.name}
                 defaultValue={activity.notes}
               />
+              {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
             <Button type="submit" className="self-start">

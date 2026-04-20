@@ -149,10 +149,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                 </TableCell>
                 <TableCell className="text-center">
                   {user.publisherGroup != null && (
-                    <Link
-                      to={`/groups/${user.publisherGroup.id}/edit`}
-                      className="hover:text-primary"
-                    >
+                    <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
                       {user.publisherGroup.name}
                     </Link>
                   )}

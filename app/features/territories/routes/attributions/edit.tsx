@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { ArrowDownToLine, X } from 'lucide-react'
 import { useState } from 'react'
@@ -56,9 +57,15 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function EditAttributionPage({ loaderData }: Route.ComponentProps) {
+export default function EditAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, attribution, phoneTypeActive, entrances } = loaderData
   const [shouldShowEndDate, showEndDate] = useState(false)
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: updateAttributionSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -88,17 +95,18 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
       />
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>{m.attributions_new_territory_label()}</Label>
               <input type="hidden" name="territory" value={attribution.territory.id} />
               <TerritoryCardLink territory={attribution.territory} entrances={entrances} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_publisher_label()}</Label>
+              <Label htmlFor={fields.publisher.id}>{m.attributions_new_publisher_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                name="publisher"
+                id={fields.publisher.id}
+                name={fields.publisher.name}
                 required
                 defaultValue={String(attribution.publisherId)}
                 disabled={attribution.endDate !== null}
@@ -110,12 +118,14 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                   </option>
                 ))}
               </select>
+              {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_edit_type_label()}</Label>
+              <Label htmlFor={fields.type.id}>{m.attributions_edit_type_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                name="type"
+                id={fields.type.id}
+                name={fields.type.name}
                 required
                 defaultValue={attribution.type}
                 disabled={attribution.endDate !== null}
@@ -128,26 +138,25 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                 )}
                 <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
+              {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.attributions_edit_start_date_label()}</Label>
+                <Label htmlFor={fields['start-date'].id}>{m.attributions_edit_start_date_label()}</Label>
                 <Input
-                  name="start-date"
-                  type="date"
+                  {...getInputProps(fields['start-date'], { type: 'date' })}
                   defaultValue={attribution.startDate.toLocaleDateString('en-CA')}
                   readOnly
                 />
               </div>
               {attribution.endDate || shouldShowEndDate ? (
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <Label className={attribution.endDate ? '' : 'text-destructive'}>
+                  <Label htmlFor={fields['end-date'].id} className={attribution.endDate ? '' : 'text-destructive'}>
                     {m.attributions_edit_end_date_label()}
                   </Label>
                   <Input
+                    {...getInputProps(fields['end-date'], { type: 'date' })}
                     className={attribution.endDate ? '' : 'border-destructive'}
-                    name="end-date"
-                    type="date"
                     defaultValue={
                       attribution.endDate?.toLocaleDateString('en-CA') ?? new Date().toLocaleDateString('en-CA')
                     }
@@ -157,10 +166,9 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
                 </div>
               ) : (
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <Label>{m.attributions_edit_late_date_label()}</Label>
+                  <Label htmlFor={fields['late-date'].id}>{m.attributions_edit_late_date_label()}</Label>
                   <Input
-                    name="late-date"
-                    type="date"
+                    {...getInputProps(fields['late-date'], { type: 'date' })}
                     defaultValue={attribution.lateDate?.toLocaleDateString('en-CA')}
                     disabled={attribution.endDate !== null}
                   />
@@ -168,18 +176,20 @@ export default function EditAttributionPage({ loaderData }: Route.ComponentProps
               )}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>
+              <Label htmlFor={fields.notes.id}>
                 {m.attributions_new_notes_label()}{' '}
                 <span className="text-muted-foreground text-xs">{m.attributions_new_notes_visibility()}</span>
               </Label>
               <textarea
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 rows={4}
-                name="notes"
+                id={fields.notes.id}
+                name={fields.notes.name}
                 readOnly={attribution.endDate !== null}
               >
                 {attribution.notes}
               </textarea>
+              {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
 
             {shouldShowEndDate ? (

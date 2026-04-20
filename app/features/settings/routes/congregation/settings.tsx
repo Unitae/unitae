@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { ArrowRight } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
@@ -49,28 +50,35 @@ export async function loader({ context }: Route.LoaderArgs) {
   })
 }
 
-export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
+export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { auxiliaryPioneerProfileActivated, congregationDisplayName } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: congregationSettingsSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.settings_congregation_title()} subtitle={m.settings_congregation_subtitle()} />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_congregation_local_title()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="displayName">{m.settings_congregation_display_name_label()}</Label>
+              <Label htmlFor={fields.displayName.id}>{m.settings_congregation_display_name_label()}</Label>
               <Input
-                id="displayName"
-                name="displayName"
-                type="text"
+                {...getInputProps(fields.displayName, { type: 'text' })}
+                key={fields.displayName.id}
                 placeholder={m.settings_congregation_display_name_placeholder()}
                 defaultValue={congregationDisplayName}
               />
+              {fields.displayName.errors && <p className="text-destructive text-sm">{fields.displayName.errors}</p>}
               <p className="text-muted-foreground text-xs">{m.settings_congregation_display_name_hint()}</p>
             </div>
           </CardContent>

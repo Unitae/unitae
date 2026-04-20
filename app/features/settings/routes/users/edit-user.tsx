@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
@@ -108,8 +109,15 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
+export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const { messages, roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: editUserSchema })
+    },
+  })
 
   const publisherNotUser = user.email == null
 
@@ -174,39 +182,39 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex gap-4 max-sm:flex-col">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="firstname">{m.settings_user_edit_firstname_label()}</Label>
+                <Label htmlFor={fields.firstname.id}>{m.settings_user_edit_firstname_label()}</Label>
                 <Input
-                  id="firstname"
-                  name="firstname"
-                  type="text"
+                  {...getInputProps(fields.firstname, { type: 'text' })}
+                  key={fields.firstname.id}
                   placeholder={m.settings_user_edit_firstname_label()}
                   defaultValue={user.firstname ?? ''}
                 />
+                {fields.firstname.errors && <p className="text-destructive text-sm">{fields.firstname.errors}</p>}
               </div>
               <div className="flex-1 space-y-2">
-                <Label htmlFor="lastname">{m.settings_user_edit_lastname_label()}</Label>
+                <Label htmlFor={fields.lastname.id}>{m.settings_user_edit_lastname_label()}</Label>
                 <Input
-                  id="lastname"
-                  name="lastname"
-                  type="text"
+                  {...getInputProps(fields.lastname, { type: 'text' })}
+                  key={fields.lastname.id}
                   placeholder={m.settings_user_edit_lastname_label()}
                   defaultValue={user.lastname ?? ''}
                 />
+                {fields.lastname.errors && <p className="text-destructive text-sm">{fields.lastname.errors}</p>}
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{m.settings_user_edit_email_label()}</Label>
+              <Label htmlFor={fields.email.id}>{m.settings_user_edit_email_label()}</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
+                {...getInputProps(fields.email, { type: 'email' })}
+                key={fields.email.id}
                 placeholder={m.settings_user_edit_email_label()}
                 defaultValue={user.email ?? ''}
                 required
               />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
             <div className="flex items-center gap-2">
               <Checkbox

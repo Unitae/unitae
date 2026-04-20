@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { setupSchema } from '~/features/authentication/schemas/login.schema'
@@ -44,8 +45,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   )
 }
 
-export default function SignupPage({ loaderData }: Route.ComponentProps) {
+export default function SignupPage({ loaderData, actionData }: Route.ComponentProps) {
   const { error } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: setupSchema })
+    },
+  })
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -61,16 +69,17 @@ export default function SignupPage({ loaderData }: Route.ComponentProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">{m.auth_setup_email_label()}</Label>
-              <Input id="email" name="email" type="email" autoFocus={true} autoComplete="email" required />
+              <Label htmlFor={fields.email.id}>{m.auth_setup_email_label()}</Label>
+              <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="email" />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="locale">{m.auth_setup_locale_label()}</Label>
-              <Select name="locale" defaultValue="fr">
-                <SelectTrigger id="locale">
+              <Label htmlFor={fields.locale.id}>{m.auth_setup_locale_label()}</Label>
+              <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? 'fr'}>
+                <SelectTrigger id={fields.locale.id}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -81,16 +90,21 @@ export default function SignupPage({ loaderData }: Route.ComponentProps) {
                   ))}
                 </SelectContent>
               </Select>
+              {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{m.auth_setup_password_label()}</Label>
-              <Input id="password" name="password" type="password" autoComplete="new-password" />
+              <Label htmlFor={fields.password.id}>{m.auth_setup_password_label()}</Label>
+              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="repeat-password">{m.auth_setup_confirm_password_label()}</Label>
-              <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" />
+              <Label htmlFor={fields['repeat-password'].id}>{m.auth_setup_confirm_password_label()}</Label>
+              <Input {...getInputProps(fields['repeat-password'], { type: 'password' })} autoComplete="new-password" />
+              {fields['repeat-password'].errors && (
+                <p className="text-destructive text-sm">{fields['repeat-password'].errors}</p>
+              )}
             </div>
 
             <Button type="submit" className="mt-4 w-full">

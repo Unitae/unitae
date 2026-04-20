@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
@@ -57,8 +58,14 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
+export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
   const { building, messages } = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: updateBuildingSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,46 +85,53 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <h2 className="font-semibold text-lg">{m.prospection_building_identification()}</h2>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.territories_form_number()}</Label>
+              <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
               <Input
-                name="number"
-                type="text"
+                {...getInputProps(fields.number, { type: 'text' })}
                 placeholder={m.prospection_new_building_number_placeholder()}
-                required
                 defaultValue={building.number}
               />
+              {fields.number.errors && <p className="text-destructive text-sm">{fields.number.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.prospection_new_building_street_label()}</Label>
+              <Label htmlFor={fields.street.id}>{m.prospection_new_building_street_label()}</Label>
               <Input
-                name="street"
-                type="text"
+                {...getInputProps(fields.street, { type: 'text' })}
                 placeholder={m.prospection_new_building_street_placeholder()}
-                required
                 defaultValue={building.street}
               />
+              {fields.street.errors && <p className="text-destructive text-sm">{fields.street.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.prospection_new_building_zip_label()}</Label>
+              <Label htmlFor={fields.zip.id}>{m.prospection_new_building_zip_label()}</Label>
               <Input
-                name="zip"
-                type="text"
+                {...getInputProps(fields.zip, { type: 'text' })}
                 placeholder={m.prospection_new_building_zip_placeholder()}
-                required
                 defaultValue={building.zip}
               />
+              {fields.zip.errors && <p className="text-destructive text-sm">{fields.zip.errors}</p>}
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.prospection_table_latitude()}</Label>
-                <Input defaultValue={building.latitude ?? ''} name="latitude" type="number" step={0.0000001} />
+                <Label htmlFor={fields.latitude.id}>{m.prospection_table_latitude()}</Label>
+                <Input
+                  {...getInputProps(fields.latitude, { type: 'number' })}
+                  defaultValue={building.latitude ?? ''}
+                  step={0.0000001}
+                />
+                {fields.latitude.errors && <p className="text-destructive text-sm">{fields.latitude.errors}</p>}
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.prospection_table_longitude()}</Label>
-                <Input defaultValue={building.longitude ?? ''} name="longitude" type="number" step={0.0000001} />
+                <Label htmlFor={fields.longitude.id}>{m.prospection_table_longitude()}</Label>
+                <Input
+                  {...getInputProps(fields.longitude, { type: 'number' })}
+                  defaultValue={building.longitude ?? ''}
+                  step={0.0000001}
+                />
+                {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
               </div>
             </div>
 

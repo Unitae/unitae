@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -28,34 +29,55 @@ export async function loader({ context }: Route.LoaderArgs) {
   return null
 }
 
-export default function CreateBuildingPage() {
+export default function CreateBuildingPage({ actionData }: Route.ComponentProps) {
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createBuildingSchema })
+    },
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.prospection_new_building_title()} subtitle={m.prospection_new_building_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>{m.territories_form_number()}</Label>
-              <Input name="number" type="text" placeholder={m.prospection_new_building_number_placeholder()} required />
+              <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
+              <Input
+                {...getInputProps(fields.number, { type: 'text' })}
+                placeholder={m.prospection_new_building_number_placeholder()}
+              />
+              {fields.number.errors && <p className="text-destructive text-sm">{fields.number.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.prospection_new_building_street_label()}</Label>
-              <Input name="street" type="text" placeholder={m.prospection_new_building_street_placeholder()} required />
+              <Label htmlFor={fields.street.id}>{m.prospection_new_building_street_label()}</Label>
+              <Input
+                {...getInputProps(fields.street, { type: 'text' })}
+                placeholder={m.prospection_new_building_street_placeholder()}
+              />
+              {fields.street.errors && <p className="text-destructive text-sm">{fields.street.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.prospection_new_building_zip_label()}</Label>
-              <Input name="zip" type="text" placeholder={m.prospection_new_building_zip_placeholder()} required />
+              <Label htmlFor={fields.zip.id}>{m.prospection_new_building_zip_label()}</Label>
+              <Input
+                {...getInputProps(fields.zip, { type: 'text' })}
+                placeholder={m.prospection_new_building_zip_placeholder()}
+              />
+              {fields.zip.errors && <p className="text-destructive text-sm">{fields.zip.errors}</p>}
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.prospection_table_latitude()}</Label>
-                <Input name="latitude" type="number" step={0.0000001} />
+                <Label htmlFor={fields.latitude.id}>{m.prospection_table_latitude()}</Label>
+                <Input {...getInputProps(fields.latitude, { type: 'number' })} step={0.0000001} />
+                {fields.latitude.errors && <p className="text-destructive text-sm">{fields.latitude.errors}</p>}
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.prospection_table_longitude()}</Label>
-                <Input name="longitude" type="number" step={0.0000001} />
+                <Label htmlFor={fields.longitude.id}>{m.prospection_table_longitude()}</Label>
+                <Input {...getInputProps(fields.longitude, { type: 'number' })} step={0.0000001} />
+                {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
               </div>
             </div>
             <Button type="submit" className="mt-2">

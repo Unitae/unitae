@@ -214,10 +214,7 @@ function PublisherRow({
       </TableCell>
       <TableCell className="text-center">
         {publisher.publisherGroup != null && (
-          <Link
-            to={`/groups/${publisher.publisherGroup.id}/edit`}
-            className="hover:text-primary"
-          >
+          <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className="hover:text-primary">
             {publisher.publisherGroup.name}
           </Link>
         )}

@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -27,17 +28,28 @@ export function loader({ context }: Route.LoaderArgs) {
   return null
 }
 
-export default function NewSectionPage() {
+export default function NewSectionPage({ actionData }: Route.ComponentProps) {
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createSectionSchema })
+    },
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.board_sections_new_title()} subtitle={m.board_sections_new_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">{m.board_sections_new_name_label()}</Label>
-              <Input id="name" name="name" type="text" placeholder={m.board_sections_new_name_placeholder()} />
+              <Label htmlFor={fields.name.id}>{m.board_sections_new_name_label()}</Label>
+              <Input
+                {...getInputProps(fields.name, { type: 'text' })}
+                placeholder={m.board_sections_new_name_placeholder()}
+              />
+              {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
             <Button type="submit" className="w-fit">
               {m.board_sections_new_submit()}

@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -77,9 +78,15 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
-export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
+export default function NewTerritoryPage({ loaderData, actionData }: Route.ComponentProps) {
   const { entrances, zips, streets, phoneTypeActive, apiKey } = loaderData
   const [territoryEntrances, setTerritoryEntrances] = useState<typeof entrances>([])
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createTerritorySchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,14 +94,23 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
       <div className="flex gap-10 max-sm:flex-col">
         <Card className="flex-1">
           <CardContent className="pt-6">
-            <Form method="post" className="flex flex-col gap-4">
+            <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <Label>{m.territories_form_number()}</Label>
-                <Input name="number" type="text" placeholder={m.territories_form_number_placeholder()} required />
+                <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
+                <Input
+                  {...getInputProps(fields.number, { type: 'text' })}
+                  placeholder={m.territories_form_number_placeholder()}
+                />
+                {fields.number.errors && <p className="text-destructive text-sm">{fields.number.errors}</p>}
               </div>
               <div className="flex flex-col gap-1.5">
-                <Label>{m.territories_form_type()}</Label>
-                <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" name="type" required>
+                <Label htmlFor={fields.type.id}>{m.territories_form_type()}</Label>
+                <select
+                  className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  id={fields.type.id}
+                  name={fields.type.name}
+                  required
+                >
                   <option value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</option>
                   <option value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</option>
                   <option value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</option>
@@ -103,6 +119,7 @@ export default function NewTerritoryPage({ loaderData }: Route.ComponentProps) {
                   )}
                   <option value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</option>
                 </select>
+                {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
               </div>
               <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
               {territoryEntrances.map(entrance => (

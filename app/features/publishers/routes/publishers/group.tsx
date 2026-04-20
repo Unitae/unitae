@@ -254,17 +254,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const group = await updateGroup(
-      db,
-      requireParamId(params.groupId, '/groups'),
-      currentUser.congregationId,
-      {
-        name,
-        address,
-        responsibleId,
-        deputyId: deputyId ?? null,
-      },
-    )
+    const group = await updateGroup(db, requireParamId(params.groupId, '/groups'), currentUser.congregationId, {
+      name,
+      address,
+      responsibleId,
+      deputyId: deputyId ?? null,
+    })
 
     session.flash('success', m.groups_edit_success({ name: group.name }))
     return redirect('/groups', {

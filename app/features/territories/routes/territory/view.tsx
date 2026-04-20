@@ -190,10 +190,7 @@ function AttributionHistoryTable({
               <TableRow key={attribution.id}>
                 <TableCell>
                   {canViewPublisher ? (
-                    <Link
-                      to={`/publishers/${attribution.publisherId}`}
-                      className="hover:text-primary"
-                    >
+                    <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
                       {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                     </Link>
                   ) : (

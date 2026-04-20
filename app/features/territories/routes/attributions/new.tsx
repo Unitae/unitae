@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -73,25 +74,32 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
-export default function CreateAttributionPage({ loaderData }: Route.ComponentProps) {
+export default function CreateAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createAttributionSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.attributions_new_title()} subtitle={m.attributions_new_subtitle()} />
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>{m.attributions_new_territory_label()}</Label>
-              <input type="hidden" name="territory" value={territory.id} />
+              <input type="hidden" name={fields.territory.name} value={territory.id} />
               <TerritoryCardLink territory={territory} entrances={territoryEntrances} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_publisher_label()}</Label>
+              <Label htmlFor={fields.publisher.id}>{m.attributions_new_publisher_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                name="publisher"
+                id={fields.publisher.id}
+                name={fields.publisher.name}
                 required
               >
                 <option disabled>{m.attributions_new_publisher_placeholder()}</option>
@@ -101,10 +109,16 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
                   </option>
                 ))}
               </select>
+              {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_type_label()}</Label>
-              <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" name="type" required>
+              <Label htmlFor={fields.type.id}>{m.attributions_new_type_label()}</Label>
+              <select
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                id={fields.type.id}
+                name={fields.type.name}
+                required
+              >
                 <option value={TerritoryAttributionKind.Default}>
                   {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                 </option>
@@ -113,21 +127,28 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
                 )}
                 <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
+              {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_start_date_label()}</Label>
-              <Input name="start-date" type="date" defaultValue={new Date().toLocaleDateString('en-CA')} required />
+              <Label htmlFor={fields['start-date'].id}>{m.attributions_new_start_date_label()}</Label>
+              <Input
+                {...getInputProps(fields['start-date'], { type: 'date' })}
+                defaultValue={new Date().toLocaleDateString('en-CA')}
+              />
+              {fields['start-date'].errors && <p className="text-destructive text-sm">{fields['start-date'].errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>
+              <Label htmlFor={fields.notes.id}>
                 {m.attributions_new_notes_label()}{' '}
                 <span className="text-muted-foreground text-xs">{m.attributions_new_notes_visibility()}</span>
               </Label>
               <textarea
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 rows={4}
-                name="notes"
+                id={fields.notes.id}
+                name={fields.notes.name}
               />
+              {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
 
             <Button type="submit" className="mt-2">

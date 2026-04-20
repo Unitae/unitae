@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import { loginSchema } from '~/features/authentication/schemas/login.schema'
@@ -65,8 +66,15 @@ export async function loader({ request }: Route.LoaderArgs) {
   )
 }
 
-export default function LoginPage({ loaderData }: Route.ComponentProps) {
+export default function LoginPage({ loaderData, actionData }: Route.ComponentProps) {
   const { error, brandingName } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: loginSchema })
+    },
+  })
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -81,20 +89,22 @@ export default function LoginPage({ loaderData }: Route.ComponentProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">{m.auth_login_email()}</Label>
-              <Input id="email" name="email" type="email" autoFocus={true} autoComplete="username" required />
+              <Label htmlFor={fields.email.id}>{m.auth_login_email()}</Label>
+              <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="username" />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">{m.auth_login_password()}</Label>
+                <Label htmlFor={fields.password.id}>{m.auth_login_password()}</Label>
                 <Link to="/password/forgot" className="text-primary text-xs hover:underline">
                   {m.auth_login_forgot_password()}
                 </Link>
               </div>
-              <Input id="password" name="password" type="password" autoComplete="current-password" />
+              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="current-password" />
+              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
             </div>
 
             <Button type="submit" className="mt-4 w-full">

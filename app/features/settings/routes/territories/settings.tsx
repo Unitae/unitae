@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
@@ -62,48 +63,59 @@ export async function loader({ context }: Route.LoaderArgs) {
   })
 }
 
-export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
+export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: territorySettingsSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.settings_territories_title()} subtitle={m.settings_territories_subtitle()} />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_territories_prospection_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bano-url">{m.settings_territories_bano_url_label()}</Label>
+              <Label htmlFor={fields['bano-url'].id}>{m.settings_territories_bano_url_label()}</Label>
               <Input
-                id="bano-url"
-                name="bano-url"
-                type="text"
+                {...getInputProps(fields['bano-url'], { type: 'text' })}
+                key={fields['bano-url'].id}
                 placeholder={m.settings_territories_bano_url_placeholder()}
                 defaultValue={banoUrl}
               />
+              {fields['bano-url'].errors && <p className="text-destructive text-sm">{fields['bano-url'].errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="zips">{m.settings_territories_zips_label()}</Label>
+              <Label htmlFor={fields.zips.id}>{m.settings_territories_zips_label()}</Label>
               <Input
-                id="zips"
-                name="zips"
-                type="text"
+                {...getInputProps(fields.zips, { type: 'text' })}
+                key={fields.zips.id}
                 placeholder={m.settings_territories_zips_placeholder()}
                 defaultValue={zips}
               />
+              {fields.zips.errors && <p className="text-destructive text-sm">{fields.zips.errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prospection-validity">{m.settings_territories_prospection_validity_label()}</Label>
+              <Label htmlFor={fields['prospection-validity'].id}>
+                {m.settings_territories_prospection_validity_label()}
+              </Label>
               <Input
-                id="prospection-validity"
-                name="prospection-validity"
-                type="number"
+                {...getInputProps(fields['prospection-validity'], { type: 'text' })}
+                key={fields['prospection-validity'].id}
                 placeholder={m.settings_territories_prospection_validity_placeholder()}
                 defaultValue={prospectionValidity}
               />
+              {fields['prospection-validity'].errors && (
+                <p className="text-destructive text-sm">{fields['prospection-validity'].errors}</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -114,14 +126,14 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="territory">{m.settings_territories_polygon_label()}</Label>
+              <Label htmlFor={fields.territory.id}>{m.settings_territories_polygon_label()}</Label>
               <Input
-                id="territory"
-                name="territory"
-                type="text"
+                {...getInputProps(fields.territory, { type: 'text' })}
+                key={fields.territory.id}
                 placeholder={m.settings_territories_polygon_placeholder()}
                 defaultValue={territory}
               />
+              {fields.territory.errors && <p className="text-destructive text-sm">{fields.territory.errors}</p>}
             </div>
 
             <Separator />

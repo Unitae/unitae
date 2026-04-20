@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
@@ -50,8 +51,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentProps) {
+export default function EditDynamicDocumentPage({ loaderData, actionData }: Route.ComponentProps) {
   const { settings, sections } = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: updateDynamicDocumentSchema })
+    },
+  })
 
   let formattedVisibleFrom = ''
   if (settings.visibleFrom !== null) {
@@ -83,17 +90,22 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>
-              <Input id="title" name="title" type="text" defaultValue={settings.title} autoComplete="off" />
+              <Label htmlFor={fields.title.id}>{m.board_documents_new_name_label()}</Label>
+              <Input
+                {...getInputProps(fields.title, { type: 'text' })}
+                defaultValue={settings.title}
+                autoComplete="off"
+              />
+              {fields.title.errors && <p className="text-destructive text-sm">{fields.title.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sectionId">{m.board_documents_new_section_label()}</Label>
+              <Label htmlFor={fields.sectionId.id}>{m.board_documents_new_section_label()}</Label>
               <select
-                id="sectionId"
-                name="sectionId"
+                id={fields.sectionId.id}
+                name={fields.sectionId.name}
                 defaultValue={settings.sectionId}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
@@ -103,24 +115,21 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
                   </option>
                 ))}
               </select>
+              {fields.sectionId.errors && <p className="text-destructive text-sm">{fields.sectionId.errors}</p>}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
+                <Label htmlFor={fields['visible-from'].id}>{m.board_documents_new_visible_from_label()}</Label>
                 <Input
-                  id="visible-from"
-                  name="visible-from"
-                  type="datetime-local"
+                  {...getInputProps(fields['visible-from'], { type: 'datetime-local' })}
                   defaultValue={formattedVisibleFrom}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
+                <Label htmlFor={fields['visible-until'].id}>{m.board_documents_new_visible_until_label()}</Label>
                 <Input
-                  id="visible-until"
-                  name="visible-until"
-                  type="datetime-local"
+                  {...getInputProps(fields['visible-until'], { type: 'datetime-local' })}
                   defaultValue={formattedVisibleUntil}
                 />
               </div>
@@ -128,13 +137,13 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
 
             <div className="flex items-center gap-2">
               <input
-                id="hightlighted"
-                name="hightlighted"
+                id={fields.hightlighted.id}
+                name={fields.hightlighted.name}
                 type="checkbox"
                 defaultChecked={settings.isHighlighted}
                 className="size-4 rounded border border-input accent-primary"
               />
-              <Label htmlFor="hightlighted" className="cursor-pointer font-normal">
+              <Label htmlFor={fields.hightlighted.id} className="cursor-pointer font-normal">
                 {m.board_documents_new_highlight_label()}
               </Label>
             </div>
@@ -144,13 +153,13 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
                 <h3 className="font-semibold text-sm">{m.board_dynamic_display_options_title()}</h3>
                 <div className="flex items-center gap-2">
                   <input
-                    id="showServices"
-                    name="showServices"
+                    id={fields.showServices.id}
+                    name={fields.showServices.name}
                     type="checkbox"
                     defaultChecked={settings.showServices}
                     className="size-4 rounded border border-input accent-primary"
                   />
-                  <Label htmlFor="showServices" className="cursor-pointer font-normal">
+                  <Label htmlFor={fields.showServices.id} className="cursor-pointer font-normal">
                     {m.board_dynamic_show_services_label()}
                   </Label>
                 </div>

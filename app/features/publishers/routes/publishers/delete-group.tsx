@@ -70,11 +70,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const group = await deletePublisherGroup(
-      db,
-      requireParamId(params.groupId, '/groups'),
-      currentUser.congregationId,
-    )
+    const group = await deletePublisherGroup(db, requireParamId(params.groupId, '/groups'), currentUser.congregationId)
 
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.groups_delete_success({ name: group.name }))
