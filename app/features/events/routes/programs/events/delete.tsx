@@ -16,16 +16,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     return { event }
@@ -37,16 +37,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     await deleteEvent(db, eventId, congregationId)
@@ -54,7 +54,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     logger.info(`Deleted event ${eventId}. User ID: ${currentUser.id}.`)
     session.flash('success', m.programs_delete_success({ name: event.name }))
 
-    return redirect('/congregation/programs', {
+    return redirect('/programs', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

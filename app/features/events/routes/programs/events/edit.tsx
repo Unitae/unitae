@@ -42,16 +42,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     const templates = await getTemplates(db, congregationId)
@@ -63,7 +63,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const formData = await request.formData()
   const intent = formData.get('intent')
 
@@ -71,17 +71,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id)
     if (result && 'reply' in result) return data(result.reply(), { status: 400 })
     if (result?.message) session.flash('success', result.message)
 
-    return redirect(`/congregation/programs/events/${eventId}`, {
+    return redirect(`/programs/events/${eventId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

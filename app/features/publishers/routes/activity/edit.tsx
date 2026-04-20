@@ -42,7 +42,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findFirst({
       where: {
-        id: requireParamId(params.activityId, '/congregation/publishers/activity'),
+        id: requireParamId(params.activityId, '/publishers/activity'),
       },
       include: {
         publisher: {
@@ -56,7 +56,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     if (activity == null) {
       // If the activity already exists, redirect to the edit page
-      throw redirect('/congregation/publishers/activity')
+      throw redirect('/publishers/activity')
     }
 
     return {
@@ -83,7 +83,7 @@ export default function EditActivity({ loaderData }: Route.ComponentProps) {
         subtitle={m.activity_edit_subtitle()}
         actions={
           <Button asChild variant="destructive" size="icon" title={m.activity_edit_delete_title()}>
-            <Link to={`/congregation/publishers/activity/${activity.id}/delete`}>
+            <Link to={`/publishers/activity/${activity.id}/delete`}>
               <Trash2 className="size-4" />
             </Link>
           </Button>
@@ -204,7 +204,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
+          id: requireParamId(params.activityId, '/publishers/activity'),
           congregationId: currentUser.congregationId,
         },
       },
@@ -216,7 +216,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     if (activity?.publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
-      throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+      throw redirect(previousPage ?? '/publishers/activity/new', {
         headers: {
           'Set-Cookie': await commitSession(session),
         },
@@ -225,7 +225,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     await updatePublisherActivity(
       db,
-      requireParamId(params.activityId, '/congregation/publishers/activity'),
+      requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
       {
         type: type as PublisherType,
@@ -240,7 +240,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       'success',
       m.activity_edit_success({ name: `${activity.publisher.firstname} ${activity.publisher.lastname}` }),
     )
-    return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
+    return redirect(previousPage ?? `/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

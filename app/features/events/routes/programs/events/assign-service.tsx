@@ -27,7 +27,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const assignmentId = Number(url.searchParams.get('assignmentId'))
 
@@ -35,10 +35,10 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     const assignment = event.serviceRoleAssignments.find(a => a.id === assignmentId)
@@ -57,7 +57,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const submission = parseWithZod(await request.formData(), { schema: assignServiceSchema })
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })
@@ -69,10 +69,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     const result = await assignServiceRole(db, assignmentId, assigneeId, congregationId)
@@ -85,7 +85,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       logger.info(`Assigned service role. User ID: ${currentUser.id}. Event: ${eventId}.`)
     }
 
-    return redirect(`/congregation/programs/events/${eventId}`, {
+    return redirect(`/programs/events/${eventId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

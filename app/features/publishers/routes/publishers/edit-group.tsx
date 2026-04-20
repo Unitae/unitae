@@ -39,14 +39,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.groupId, '/congregation/publisher-groups'),
+          id: requireParamId(params.groupId, '/groups'),
           congregationId: currentUser.congregationId,
         },
       },
     })
 
     if (group == null) {
-      throw redirect('/congregation/publisher-groups/')
+      throw redirect('/groups/')
     }
 
     return { brothers, group }
@@ -75,7 +75,7 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
         subtitle={m.groups_edit_subtitle()}
         actions={
           <Button asChild variant="destructive" size="icon" title={m.groups_edit_delete_title()}>
-            <Link to={`/congregation/publisher-groups/${group.id}/delete`}>
+            <Link to={`/groups/${group.id}/delete`}>
               <Trash2 className="size-4" />
             </Link>
           </Button>
@@ -174,7 +174,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', m.groups_form_error_same_person())
-    throw redirect(previousPage ?? '/congregation/publisher-groups', {
+    throw redirect(previousPage ?? '/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
@@ -184,7 +184,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const group = await updateGroup(
       db,
-      requireParamId(params.groupId, '/congregation/publisher-groups'),
+      requireParamId(params.groupId, '/groups'),
       currentUser.congregationId,
       {
         name,
@@ -195,7 +195,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     )
 
     session.flash('success', m.groups_edit_success({ name: group.name }))
-    return redirect('/congregation/publisher-groups', {
+    return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

@@ -209,7 +209,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     <TableCell className="text-center">
                       {canViewPublisher ? (
                         <Link
-                          to={`/congregation/publishers/${attribution.publisherId}/view`}
+                          to={`/publishers/${attribution.publisherId}`}
                           className="hover:text-primary"
                         >
                           {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}

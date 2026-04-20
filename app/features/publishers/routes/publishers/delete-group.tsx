@@ -25,14 +25,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.groupId, '/congregation/publisher-groups'),
+          id: requireParamId(params.groupId, '/groups'),
           congregationId: currentUser.congregationId,
         },
       },
     })
 
     if (group == null) {
-      throw redirect('/congregation/publisher-groups/')
+      throw redirect('/groups/')
     }
 
     return { group }
@@ -72,7 +72,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const group = await deletePublisherGroup(
       db,
-      requireParamId(params.groupId, '/congregation/publisher-groups'),
+      requireParamId(params.groupId, '/groups'),
       currentUser.congregationId,
     )
 
@@ -80,7 +80,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
     session.flash('success', m.groups_delete_success({ name: group.name }))
 
     const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/congregation/publisher-groups/', {
+    return redirect(previousPage ?? '/groups/', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

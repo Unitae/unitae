@@ -109,7 +109,7 @@ function CurrentAttributionSection({
       <div className="flex flex-col">
         <span className="font-medium">
           {canViewPublisher ? (
-            <Link to={`/congregation/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
+            <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
               {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
             </Link>
           ) : (
@@ -191,7 +191,7 @@ function AttributionHistoryTable({
                 <TableCell>
                   {canViewPublisher ? (
                     <Link
-                      to={`/congregation/publishers/${attribution.publisherId}/view`}
+                      to={`/publishers/${attribution.publisherId}`}
                       className="hover:text-primary"
                     >
                       {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}

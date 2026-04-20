@@ -50,7 +50,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.publisherId, '/congregation/publishers'),
+          id: requireParamId(params.publisherId, '/publishers'),
           congregationId: currentUser.congregationId,
         },
       },
@@ -84,7 +84,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     })
 
     if (!publisher) {
-      throw redirect('/congregation/publishers')
+      throw redirect('/publishers')
     }
 
     const session = await getSession(request.headers.get('Cookie'))

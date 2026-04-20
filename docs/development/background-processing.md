@@ -24,7 +24,7 @@ Web Pod                               Worker Pod (workers/worker.server.ts)
 
 ## Queue Registry
 
-Queue names are centralized in `app/shared/libs/queues.server.ts`:
+Queue names are centralized in `app/shared/infra/queues.server.ts`:
 
 ```typescript
 export const QUEUE_NAMES = {
@@ -77,10 +77,10 @@ Documents are created with `thumbnailUri: null` and updated asynchronously when 
 
 ## Worker Locale Support
 
-Background emails must render in the congregation's language. The worker uses `AsyncLocalStorage` via `app/shared/libs/worker-locale.server.ts`:
+Background emails must render in the congregation's language. The worker uses `AsyncLocalStorage` via `app/shared/utils/worker-locale.server.ts`:
 
 ```typescript
-import { runWithLocale } from '~/shared/libs/worker-locale.server'
+import { runWithLocale } from '~/shared/utils/worker-locale.server'
 
 // In email handler:
 await runWithLocale(congregation.locale, async () => {
@@ -123,7 +123,7 @@ The worker is only needed if you're working on territory sync, document uploads,
 
 ## Adding New Job Types
 
-1. Add queue name to `QUEUE_NAMES` in `app/shared/libs/queues.server.ts`
+1. Add queue name to `QUEUE_NAMES` in `app/shared/infra/queues.server.ts`
 2. Create queue producer: `app/features/{feature}/server/{name}-queue.server.ts`
 3. Create handler: `app/features/{feature}/server/handle-{name}-work.server.ts`
    - For scoped DB access: use `withScope(congregationId, ...)`

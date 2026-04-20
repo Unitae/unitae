@@ -203,19 +203,19 @@ function PublisherRow({
       className={publisher.notRegular ? 'bg-destructive/10 text-destructive dark:bg-destructive/5' : ''}
     >
       <TableCell className="text-center max-sm:text-left">
-        <Link to={`/congregation/publishers/${publisher.id}/view`} className="hover:text-primary">
+        <Link to={`/publishers/${publisher.id}`} className="hover:text-primary">
           {publisher.firstname}
         </Link>
       </TableCell>
       <TableCell className="text-center">
-        <Link to={`/congregation/publishers/${publisher.id}/view`} className="hover:text-primary">
+        <Link to={`/publishers/${publisher.id}`} className="hover:text-primary">
           {publisher.lastname?.toLocaleUpperCase()}
         </Link>
       </TableCell>
       <TableCell className="text-center">
         {publisher.publisherGroup != null && (
           <Link
-            to={`/congregation/publisher-groups/${publisher.publisherGroup.id}/edit`}
+            to={`/groups/${publisher.publisherGroup.id}/edit`}
             className="hover:text-primary"
           >
             {publisher.publisherGroup.name}

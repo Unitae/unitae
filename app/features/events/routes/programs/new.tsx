@@ -35,7 +35,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/congregation/programs')
+  if (!permissions.has(Role.ProgramManager)) throw redirect('/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -46,7 +46,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/congregation/programs')
+  if (!permissions.has(Role.ProgramManager)) throw redirect('/programs')
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
@@ -109,7 +109,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       session.flash('success', m.programs_new_created_success())
     }
 
-    return redirect('/congregation/programs', {
+    return redirect('/programs', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

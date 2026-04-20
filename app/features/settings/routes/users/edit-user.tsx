@@ -133,7 +133,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
           <>
             {user.isPublisher === true ? (
               <Button asChild variant="outline" size="icon" title={m.settings_user_edit_view_publisher_title()}>
-                <Link to={`/congregation/publishers/${user.id}/edit`}>
+                <Link to={`/publishers/${user.id}/edit`}>
                   <IdCard className="size-4" />
                 </Link>
               </Button>

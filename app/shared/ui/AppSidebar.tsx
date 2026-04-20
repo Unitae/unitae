@@ -3,6 +3,7 @@ import {
   CalendarCheck,
   CalendarDays,
   CalendarOff,
+  ClipboardList,
   FileText,
   FolderOpen,
   Home,
@@ -99,21 +100,21 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {permissions.canViewPublishers && (
-                  <SidebarNavItem to="/congregation/publishers" icon={Users} label={m.sidebar_publishers()} />
+                  <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} />
                 )}
                 {permissions.canViewPublishers && (
                   <SidebarNavItem
-                    to="/congregation/publisher-groups"
+                    to="/groups"
                     icon={UsersRound}
                     label={m.sidebar_publisher_groups()}
                   />
                 )}
                 {permissions.canViewPrograms && (
-                  <SidebarNavItem to="/congregation/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
+                  <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                 )}
                 {permissions.canViewPrograms && (
                   <SidebarNavItem
-                    to="/congregation/programs/days-off"
+                    to="/programs/days-off"
                     icon={CalendarOff}
                     label={m.sidebar_absences()}
                   />
@@ -168,6 +169,11 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                       to="/settings/congregation"
                       icon={Building2}
                       label={m.sidebar_settings_assembly()}
+                    />
+                    <SidebarNavItem
+                      to="/settings/audit-log"
+                      icon={ClipboardList}
+                      label={m.sidebar_audit_log()}
                     />
                   </>
                 )}

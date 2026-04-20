@@ -24,7 +24,6 @@ export default [
     ]),
     route('board', 'features/display-board/routes/_layout.tsx', [
       index('features/display-board/routes/index.tsx'),
-      route('read-dashboard', 'features/display-board/routes/read-dashboard.tsx'),
       ...prefix('sections', [
         index('features/display-board/routes/sections/list.tsx'),
         route('new', 'features/display-board/routes/sections/new.tsx'),
@@ -84,34 +83,32 @@ export default [
         ]),
       ]),
     ]),
-    route('congregation', 'features/publishers/routes/_layout.tsx', [
-      ...prefix('publishers', [
-        index('features/publishers/routes/publishers/publisher-list.tsx'),
-        route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
-        ...prefix(':publisherId', [
-          route('view', 'features/publishers/routes/publishers/publisher.tsx'),
-          route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
-        ]),
-        ...prefix('activity', [
-          index('features/publishers/routes/activity/publisher-list.tsx'),
-          route('export/:year/xlsx', 'features/publishers/routes/activity/excel-export.tsx'),
-          route('export/:year/pdfs', 'features/publishers/routes/activity/pdf-export.tsx'),
-          route('new', 'features/publishers/routes/activity/new.tsx'),
-          route(':activityId/edit', 'features/publishers/routes/activity/edit.tsx'),
-          route(':activityId/delete', 'features/publishers/routes/activity/delete.tsx'),
-        ]),
+    route('publishers', 'features/publishers/routes/_layout.tsx', [
+      index('features/publishers/routes/publishers/publisher-list.tsx'),
+      route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
+      ...prefix(':publisherId', [
+        index('features/publishers/routes/publishers/publisher.tsx'),
+        route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
       ]),
-      ...prefix('publisher-groups', [
-        index('features/publishers/routes/publishers/group-list.tsx'),
-        route('new', 'features/publishers/routes/publishers/new-group.tsx'),
-        ...prefix(':groupId', [
-          route('view', 'features/publishers/routes/publishers/group.tsx'),
-          route('edit', 'features/publishers/routes/publishers/edit-group.tsx'),
-          route('delete', 'features/publishers/routes/publishers/delete-group.tsx'),
-        ]),
+      ...prefix('activity', [
+        index('features/publishers/routes/activity/publisher-list.tsx'),
+        route('export/:year/xlsx', 'features/publishers/routes/activity/excel-export.tsx'),
+        route('export/:year/pdfs', 'features/publishers/routes/activity/pdf-export.tsx'),
+        route('new', 'features/publishers/routes/activity/new.tsx'),
+        route(':activityId/edit', 'features/publishers/routes/activity/edit.tsx'),
+        route(':activityId/delete', 'features/publishers/routes/activity/delete.tsx'),
       ]),
-      ...programsRoutes,
     ]),
+    route('groups', 'features/publishers/routes/_layout.tsx', { id: 'groups-layout' }, [
+      index('features/publishers/routes/publishers/group-list.tsx'),
+      route('new', 'features/publishers/routes/publishers/new-group.tsx'),
+      ...prefix(':groupId', [
+        index('features/publishers/routes/publishers/group.tsx'),
+        route('edit', 'features/publishers/routes/publishers/edit-group.tsx'),
+        route('delete', 'features/publishers/routes/publishers/delete-group.tsx'),
+      ]),
+    ]),
+    ...programsRoutes,
     ...territoryManagementRoutes,
     route('platform-admin', 'features/platform-admin/routes/_layout.tsx', [
       index('features/platform-admin/routes/index.tsx'),

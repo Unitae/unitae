@@ -29,9 +29,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const group = await getGroup(db, requireParamId(params.groupId, '/congregation/publisher-groups'))
+    const group = await getGroup(db, requireParamId(params.groupId, '/groups'))
     if (group == null) {
-      throw redirect('/congregation/publisher-groups/')
+      throw redirect('/groups/')
     }
 
     return {
@@ -77,7 +77,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           <p className="text-muted-foreground text-sm">
             {m.groups_view_responsible()} :{' '}
             <Link
-              to={`../../../publishers/${group.responsible.id}/view`}
+              to={`../../../publishers/${group.responsible.id}`}
               relative="path"
               className="font-medium text-primary hover:underline"
             >
@@ -88,7 +88,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             {m.groups_view_deputy()} :{' '}
             {group.deputy ? (
               <Link
-                to={`../../../publishers/${group.deputy.id}/view`}
+                to={`../../../publishers/${group.deputy.id}`}
                 relative="path"
                 className="font-medium text-primary hover:underline"
               >
@@ -137,12 +137,12 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             {group.members.map(member => (
               <TableRow key={member.email}>
                 <TableCell className="text-center max-sm:text-left">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}`} relative="path">
                     {member.firstname}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}`} relative="path">
                     {member.lastname?.toLocaleUpperCase()}
                   </Link>
                 </TableCell>
@@ -160,8 +160,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                         <Link
                           to={
                             member.previousActivity != null
-                              ? `/congregation/publishers/activity/${member.previousActivity?.id}/edit`
-                              : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
+                              ? `/publishers/activity/${member.previousActivity?.id}/edit`
+                              : `/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
                           }
                           title={m.groups_view_activity_edit_title()}
                         >
@@ -182,8 +182,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                         <Link
                           to={
                             member.currentActivity != null
-                              ? `/congregation/publishers/activity/${member.currentActivity?.id}/edit`
-                              : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
+                              ? `/publishers/activity/${member.currentActivity?.id}/edit`
+                              : `/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
                           }
                           title={m.groups_view_activity_edit_title()}
                         >
@@ -204,7 +204,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`../../../publishers/${member.id}/view`} relative="path">
+                      <Link to={`../../../publishers/${member.id}`} relative="path">
                         <Eye className="size-4" />
                       </Link>
                     </Button>
@@ -246,7 +246,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
   if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', m.groups_form_error_same_person())
-    throw redirect(previousPage ?? '/congregation/publisher-groups', {
+    throw redirect(previousPage ?? '/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
@@ -256,7 +256,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const group = await updateGroup(
       db,
-      requireParamId(params.groupId, '/congregation/publisher-groups'),
+      requireParamId(params.groupId, '/groups'),
       currentUser.congregationId,
       {
         name,
@@ -267,7 +267,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     )
 
     session.flash('success', m.groups_edit_success({ name: group.name }))
-    return redirect('/congregation/publisher-groups', {
+    return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

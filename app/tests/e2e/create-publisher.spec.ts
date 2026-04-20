@@ -17,12 +17,12 @@ test.describe('Proclamateurs', () => {
   })
 
   test('affiche la liste des proclamateurs', async ({ page }) => {
-    await page.goto('/congregation/publishers')
+    await page.goto('/publishers')
     await expect(page.getByRole('heading', { name: PROCLAMATEURS_RE })).toBeVisible()
   })
 
   test('accede au formulaire de creation', async ({ page }) => {
-    await page.goto('/congregation/publishers')
+    await page.goto('/publishers')
     const addLink = page.getByRole('link', { name: AJOUTER_RE })
     if (await addLink.isVisible()) {
       await addLink.click()
@@ -32,7 +32,7 @@ test.describe('Proclamateurs', () => {
   })
 
   test('affiche une erreur si le formulaire est soumis vide', async ({ page }) => {
-    await page.goto('/congregation/publishers/new')
+    await page.goto('/publishers/new')
     await page.getByRole('button', { name: SUBMIT_RE }).click()
     // Form should stay on the same page with validation errors
     await expect(page).toHaveURL(PUBLISHERS_NEW_RE)

@@ -58,7 +58,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     if (activity != null) {
       // If the activity already exists, redirect to the edit page
-      throw redirect(`/congregation/publishers/activity/${activity.id}/edit`)
+      throw redirect(`/publishers/activity/${activity.id}/edit`)
     }
 
     let publisher = null
@@ -318,7 +318,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     if (publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
-      throw redirect(previousPage || '/congregation/publishers/activity/new', {
+      throw redirect(previousPage || '/publishers/activity/new', {
         headers: {
           'Set-Cookie': await commitSession(session),
         },
@@ -342,7 +342,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
 
     session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))
-    return redirect(previousPage || `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
+    return redirect(previousPage || `/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

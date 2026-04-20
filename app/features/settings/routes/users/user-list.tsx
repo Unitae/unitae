@@ -108,7 +108,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
                   {user.isPublisher ? (
                     roles.canViewPublishers ? (
                       <Link
-                        to={`/congregation/publishers/${user.id}/view`}
+                        to={`/publishers/${user.id}`}
                         title={m.settings_users_view_publisher_title()}
                         className="text-primary"
                       >

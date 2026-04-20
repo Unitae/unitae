@@ -147,7 +147,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', m.groups_form_error_same_person())
-    throw redirect(previousPage ?? '/congregation/publisher-groups', {
+    throw redirect(previousPage ?? '/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
@@ -164,7 +164,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
 
     session.flash('success', m.groups_new_success({ name: group.name }))
-    return redirect('/congregation/publisher-groups', {
+    return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

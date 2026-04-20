@@ -25,7 +25,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
+          id: requireParamId(params.activityId, '/publishers/activity'),
           congregationId: currentUser.congregationId,
         },
       },
@@ -35,7 +35,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
 
     if (activity == null) {
-      throw redirect('/congregation/publishers/activity')
+      throw redirect('/publishers/activity')
     }
 
     return { activity }
@@ -84,7 +84,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const activity = await deletePublisherActivity(
       db,
-      requireParamId(params.activityId, '/congregation/publishers/activity'),
+      requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
     )
 
@@ -97,7 +97,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
     )
 
     const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/congregation/publishers/activity', {
+    return redirect(previousPage ?? '/publishers/activity', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

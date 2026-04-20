@@ -89,7 +89,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))
-    return redirect(`/congregation/publishers/${user.id}/edit`, {
+    return redirect(`/publishers/${user.id}/edit`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

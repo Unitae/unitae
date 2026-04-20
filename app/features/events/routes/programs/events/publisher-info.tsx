@@ -9,7 +9,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.ProgramViewer)) return Response.json(null, { status: 403 })
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const userId = Number(url.searchParams.get('userId'))
   const partName = url.searchParams.get('partName') ?? ''

@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramViewer)) throw redirect('/congregation/programs')
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -41,7 +41,7 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
   const [startDate, setStartDate] = useState(today.toISOString().split('T')[0])
   const [endDate, setEndDate] = useState(twoMonthsLater.toISOString().split('T')[0])
 
-  const downloadUrl = `/congregation/programs/export-pdf/download?templateId=${selectedTemplate}&startDate=${startDate}&endDate=${endDate}&contentType=${contentType}`
+  const downloadUrl = `/programs/export-pdf/download?templateId=${selectedTemplate}&startDate=${startDate}&endDate=${endDate}&contentType=${contentType}`
 
   return (
     <div className="flex flex-col gap-6">

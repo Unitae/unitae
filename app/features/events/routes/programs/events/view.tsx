@@ -25,13 +25,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   if (!permissions.has(Role.ProgramViewer)) throw redirect('/')
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     const canEdit = await canEditEvent(db, can, currentUser.id, event.templateId, congregationId)
 

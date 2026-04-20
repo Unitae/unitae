@@ -52,21 +52,25 @@
 ## Request Flow
 
 1. **Reverse Proxy** (Traefik/Nginx) routes incoming requests to web pods
-2. **React Router** matches route, runs loader/action
-3. **`authenticateAndAuthorize(request, roles)`** authenticates user and checks roles
-4. **`withScope(congregationId, fn)`** opens a PostgreSQL transaction with `SET LOCAL` for Row-Level Security
-5. **Service functions** (`features/*/server/`) receive the scoped `TransactionClient` and handle business logic
-6. **Route component** renders with loader data
+2. **React Router** matches route, runs middleware then loader/action
+3. **`requireAuth(roles)`** middleware (from `app/shared/middleware/auth.server.ts`) authenticates user, resolves permissions, checks GDPR consent, and sets typed context
+4. **Loader/action** reads context via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
+5. **`withScopeFromContext(context, fn)`** opens a PostgreSQL transaction with `SET LOCAL` for Row-Level Security
+6. **Service functions** (`features/*/server/`) receive the scoped `TransactionClient` and handle business logic
+7. **Route component** renders with loader data
 
 ```
-Request → authenticateAndAuthorize(request, [Role.X, Role.Y])
-        → verifySession(request)     // authenticates user, returns congregation
-        → verifyRole(request, role)  // checks permissions (via Promise.all)
-        → returns { currentUser, congregation, congregationId, session, can }
+Middleware → requireAuth([Role.X, Role.Y])
+           → verifySession(request)     // authenticates user, returns congregation
+           → verifyRole(request, role)  // checks permissions (via Promise.all)
+           → context.set(userContext, currentUser)
+           → context.set(congregationContext, congregation)
+           → context.set(permissionsContext, permissions)
 
-Route   → withScope(congregationId, async db => { ... })
-        → db is a TransactionClient scoped by RLS
-        → service functions receive db as first parameter
+Route     → context.get(userContext)             // read current user
+          → withScopeFromContext(context, async db => { ... })
+          → db is a TransactionClient scoped by RLS
+          → service functions receive db as first parameter
 ```
 
 ## Data Isolation
@@ -97,13 +101,15 @@ Login → validateCredentials(email, password)
       → set session cookie (userId)
       → redirect to /
 
-Protected Route → authenticateAndAuthorize(request, [roles])
+Protected Route → requireAuth([roles]) middleware on layout route
                 → verifySession: fetch user (unscopedDb), check suspension/trial/email
                 → verifyRole: check CongregationUserRole (unscopedDb, via Promise.all)
-                → return { currentUser, congregation, congregationId, session, can }
+                → context.set(userContext, currentUser)
+                → context.set(congregationContext, congregation)
+                → context.set(permissionsContext, Set<Role>)
 
-Role Check → can(Role.TerritoriesViewer) → boolean
-           (resolved during authenticateAndAuthorize, no extra DB query)
+Role Check → context.get(permissionsContext).has(Role.TerritoriesViewer) → boolean
+           (resolved during requireAuth middleware, no extra DB query)
 ```
 
 ## Redis Architecture
@@ -139,7 +145,7 @@ When not set, map features are silently disabled.
 
 ## Audit Logging
 
-Fire-and-forget audit logging via `audit()` from `app/shared/libs/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
+Fire-and-forget audit logging via `audit()` from `app/shared/domain/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
 
 Actions tracked: user login/logout/creation/update/anonymization, role changes, data export, consent grant/withdrawal, password changes, board read status, platform admin operations.
 

@@ -35,13 +35,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.publisherId, '/congregation/publishers'),
+          id: requireParamId(params.publisherId, '/publishers'),
           congregationId: currentUser.congregationId,
         },
       },
     })
 
-    if (result == null) throw redirect('/congregation/publishers')
+    if (result == null) throw redirect('/publishers')
 
     const showAuxiliaryPioneer = await getBoolSetting(
       db,
@@ -127,7 +127,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const user = await updatePublisher(
       db,
-      requireParamId(params.publisherId, '/congregation/publishers'),
+      requireParamId(params.publisherId, '/publishers'),
       currentUser.congregationId,
       {
         firstname,
@@ -147,7 +147,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     )
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.publishers_edit_success({ name: user.firstname ?? '' }))
-    return redirect(previousPage ?? `/congregation/publishers/${user.id}/view`, {
+    return redirect(previousPage ?? `/publishers/${user.id}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

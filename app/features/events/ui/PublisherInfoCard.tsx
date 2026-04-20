@@ -35,7 +35,7 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
     if (!userId || userId === 'none') return
     const searchParams = new URLSearchParams({ userId })
     if (partName) searchParams.set('partName', partName)
-    fetcher.load(`/congregation/programs/events/${eventId}/publisher-info?${searchParams}`)
+    fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)
   }, [userId, eventId, partName])
 
   if (!userId || userId === 'none') return null
