@@ -105,8 +105,8 @@ importers:
         specifier: ^3.8.1
         version: 3.8.1(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-is@18.3.1)(react@19.2.4)(redux@5.0.1)
       resend:
-        specifier: ^6.10.0
-        version: 6.10.0(@react-email/render@2.0.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
+        specifier: ^6.12.0
+        version: 6.12.0(@react-email/render@2.0.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
@@ -5707,8 +5707,8 @@ packages:
   reselect@5.1.1:
     resolution: {integrity: sha512-K/BG6eIky/SBpzfHZv/dd+9JBFiS4SWV7FIujVyJRux6e45+73RaUHXLmIR1f7WOMaQ0U1km6qwklRQxpJJY0w==}
 
-  resend@6.10.0:
-    resolution: {integrity: sha512-i7CwZpYj4Oho1RxsTpLcCUkO08+HiL4NXrm6jLJ2WzJ89UGI8eROSieLONJA3hnUrf1OYnCyfq5F6POnHUMv1Q==}
+  resend@6.12.0:
+    resolution: {integrity: sha512-CaxEvX1z+/MGbgnhsM/bvmkbnZd1v1sEXELAjBNSDBQNMaB7MgqOyrBgI27CYikEgdaDnBrXghAXYWTBs/h5Bw==}
     engines: {node: '>=20'}
     peerDependencies:
       '@react-email/render': '*'
@@ -6039,8 +6039,8 @@ packages:
   svg-arc-to-cubic-bezier@3.2.0:
     resolution: {integrity: sha512-djbJ/vZKZO+gPoSDThGNpKDO+o+bAeA4XQKovvkNCqnIS2t+S4qnLAGQhyyrulhCFRl1WWzAp0wUDV8PpTVU3g==}
 
-  svix@1.88.0:
-    resolution: {integrity: sha512-vm/JrrUd3bVyBE+3L33TIyVSs8gS5fYx7lrISvKlDJXTYX1ACH4REX8P1tHxsSKoZi/rvifM1t0XRc5Vc45THw==}
+  svix@1.90.0:
+    resolution: {integrity: sha512-ljkZuyy2+IBEoESkIpn8sLM+sxJHQcPxlZFxU+nVDhltNfUMisMBzWX/UR8SjEnzoI28ZjCzMbmYAPwSTucoMw==}
 
   tagged-tag@1.0.0:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
@@ -12486,10 +12486,10 @@ snapshots:
 
   reselect@5.1.1: {}
 
-  resend@6.10.0(@react-email/render@2.0.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)):
+  resend@6.12.0(@react-email/render@2.0.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)):
     dependencies:
       postal-mime: 2.7.4
-      svix: 1.88.0
+      svix: 1.90.0
     optionalDependencies:
       '@react-email/render': 2.0.5(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
@@ -12944,7 +12944,7 @@ snapshots:
 
   svg-arc-to-cubic-bezier@3.2.0: {}
 
-  svix@1.88.0:
+  svix@1.90.0:
     dependencies:
       standardwebhooks: 1.0.0
       uuid: 10.0.0
