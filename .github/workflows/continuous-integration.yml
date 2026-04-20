@@ -168,8 +168,14 @@ jobs:
       - name: Seed database
         run: pnpm prisma db seed
 
+      - name: Build application
+        run: pnpm build
+
       - name: Run E2E tests
         run: pnpm test:e2e
+        env:
+          E2E_BASE_URL: http://localhost:8080
+          PORT: "8080"
 
       - name: Upload Playwright report
         if: failure()
