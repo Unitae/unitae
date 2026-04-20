@@ -1,13 +1,36 @@
-node_modules
+# Dependencies
+node_modules/
 
-/.cache
+# Build output
 /build
-.env
-/prisma/*.db
-**/*.DS_Store
-/content
+/.cache
 
+# Generated code
 .react-router/
 app/database/generated/
 app/paraglide/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Runtime data
+/content
+
+# Test output
 coverage/
+test-results/
+playwright-report/
+
+# OS files
+**/*.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Database
+/prisma/*.db
