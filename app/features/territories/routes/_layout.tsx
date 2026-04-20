@@ -1,7 +1,7 @@
 import { Outlet, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { permissionsContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/_layout'
 
@@ -9,19 +9,13 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesViewer,
-    Role.TerritoriesManager,
-    Role.SettingsUserManager,
-    Role.PublisherViewer,
-    Role.ProspectionViewer,
-  ])
-  const canViewTerritories = can(Role.TerritoriesViewer)
-  const canManageTerritories = can(Role.TerritoriesManager)
-  const canManageSettings = can(Role.SettingsUserManager)
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canViewProspection = can(Role.ProspectionViewer)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageSettings = permissions.has(Role.SettingsUserManager)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canViewProspection = permissions.has(Role.ProspectionViewer)
 
   if (!canViewTerritories && !canViewProspection) {
     throw redirect('/')
@@ -39,3 +33,5 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function BoardLayout() {
   return <Outlet />
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

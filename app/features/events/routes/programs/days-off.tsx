@@ -1,18 +1,17 @@
 import { CalendarOff } from 'lucide-react'
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters } from '~/features/events/server/event-filters.server'
 import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { paginationFromUrl } from '~/shared/libs/pagination.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
+import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
 import type { Route } from './+types/days-off'
 
@@ -20,13 +19,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_admin_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
-  const canViewPrograms = can(Role.ProgramViewer)
-  const canManagePrograms = can(Role.ProgramManager)
+export function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPrograms = permissions.has(Role.ProgramViewer)
+  const canManagePrograms = permissions.has(Role.ProgramManager)
 
   if (!canViewPrograms) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)
@@ -42,7 +39,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const selectors = computeFilters(url.searchParams)
   selectors.kind = { key: EventKind.Off } // Filter only for days off events
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     logger.info(selectors)
     const totalAttributions = await db.event.count({ where: { ...selectors, congregationId } })
     const pagination = paginationFromUrl(url, totalAttributions)

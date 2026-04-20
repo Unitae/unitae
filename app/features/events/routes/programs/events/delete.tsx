@@ -1,58 +1,60 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import { deleteEvent } from '~/features/events/server/programme-events.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import type { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     return { event }
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
-    await db.event.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: eventId, congregationId },
-      },
-    })
+    await deleteEvent(db, eventId, congregationId)
 
     logger.info(`Deleted event ${eventId}. User ID: ${currentUser.id}.`)
     session.flash('success', m.programs_delete_success({ name: event.name }))
 
-    return redirect('/congregation/programs', {
+    return redirect('/programs', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

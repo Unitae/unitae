@@ -1,34 +1,37 @@
 import { redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import type { Role } from '~/shared/types/role'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/remove-assignment'
 
 export function loader({ params }: Route.LoaderArgs) {
-  throw redirect(`/congregation/programs/events/${params.eventId}`)
+  throw redirect(`/programs/events/${params.eventId}`)
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const type = url.searchParams.get('type')
   const assignmentId = Number(url.searchParams.get('id'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     if (type === 'part') {
@@ -41,7 +44,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     session.flash('success', m.programs_remove_assignment_success())
 
-    return redirect(`/congregation/programs/events/${eventId}`, {
+    return redirect(`/programs/events/${eventId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

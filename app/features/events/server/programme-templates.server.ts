@@ -1,4 +1,4 @@
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
   return db.programmeTemplate.findMany({

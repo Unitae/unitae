@@ -1,5 +1,5 @@
-import { unscopedDb as db } from '~/shared/libs/db.server'
-import { redis } from '~/shared/libs/redis.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
+import { redis } from '~/shared/infra/redis.server'
 
 export async function loader() {
   try {

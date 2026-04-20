@@ -1,20 +1,21 @@
+import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { Form, redirect, useSearchParams } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { data, Form, redirect, useSearchParams } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import type { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/assign-service'
 
@@ -22,19 +23,22 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_assign_service_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const assignmentId = Number(url.searchParams.get('assignmentId'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     const assignment = event.serviceRoleAssignments.find(a => a.id === assignmentId)
@@ -48,21 +52,27 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
-  const form = await request.formData()
-  const assignmentId = Number(form.get('assignmentId'))
-  const rawAssigneeId = form.get('assigneeId')
-  const assigneeId = rawAssigneeId && rawAssigneeId !== 'none' ? Number(rawAssigneeId) : null
+  const eventId = requireParamId(params.eventId, '/programs')
+  const submission = parseWithZod(await request.formData(), { schema: assignServiceSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  return withScope(congregationId, async db => {
+  const { assignmentId, assigneeId } = submission.value
+
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
-      throw redirect('/congregation/programs')
+      throw redirect('/programs')
     }
 
     const result = await assignServiceRole(db, assignmentId, assigneeId, congregationId)
@@ -75,7 +85,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       logger.info(`Assigned service role. User ID: ${currentUser.id}. Event: ${eventId}.`)
     }
 
-    return redirect(`/congregation/programs/events/${eventId}`, {
+    return redirect(`/programs/events/${eventId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   })

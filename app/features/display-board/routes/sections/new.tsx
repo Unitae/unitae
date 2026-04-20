@@ -1,9 +1,12 @@
-import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createSectionSchema } from '~/features/display-board/schemas/board-section.schema'
+import { createBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -16,28 +19,37 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Création de section sur Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-  const canManageBoard = can(Role.BoardValidator)
-
-  if (!canManageBoard) {
+export function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
   return null
 }
 
-export default function NewSectionPage() {
+export default function NewSectionPage({ actionData }: Route.ComponentProps) {
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createSectionSchema })
+    },
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.board_sections_new_title()} subtitle={m.board_sections_new_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="name">{m.board_sections_new_name_label()}</Label>
-              <Input id="name" name="name" type="text" placeholder={m.board_sections_new_name_placeholder()} />
+              <Label htmlFor={fields.name.id}>{m.board_sections_new_name_label()}</Label>
+              <Input
+                {...getInputProps(fields.name, { type: 'text' })}
+                placeholder={m.board_sections_new_name_placeholder()}
+              />
+              {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
             <Button type="submit" className="w-fit">
               {m.board_sections_new_submit()}
@@ -49,23 +61,18 @@ export default function NewSectionPage() {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, congregationId } = await authenticateAndAuthorize(request)
-  const form = await request.formData()
-  const name = String(form.get('name'))
-
-  if (name.length < 1) {
-    session.flash('error', m.common_empty_fields_error())
-    throw redirect('/board/sections/new')
+export async function action({ request, context }: Route.ActionArgs) {
+  const session = await getSession(request.headers.get('Cookie'))
+  const submission = parseWithZod(await request.formData(), { schema: createSectionSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  return withScope(congregationId, async db => {
-    const section = await db.boardSection.create({
-      data: {
-        name: String(name),
-        congregationId,
-      },
-    })
+  const { name } = submission.value
+
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
+    const section = await createBoardSection(db, { name, congregationId })
 
     if (section == null) {
       session.flash('error', m.common_generic_error())

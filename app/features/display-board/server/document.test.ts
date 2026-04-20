@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('./document-storage', () => ({
+vi.mock('./document-storage.server', () => ({
   deleteBoardFile: vi.fn(),
   saveBoardFile: vi.fn(),
   getBoardFile: vi.fn(),
   getBoardFileBuffer: vi.fn(),
 }))
 
-const { deleteSectionWithFiles, deleteFile } = await import('./document')
-const { deleteBoardFile } = await import('./document-storage')
+const { deleteSectionWithFiles, deleteFile } = await import('./document.server')
+const { deleteBoardFile } = await import('./document-storage.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

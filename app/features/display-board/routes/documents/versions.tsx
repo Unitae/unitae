@@ -1,17 +1,18 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Download, History, RotateCcw } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { deleteFile, generateAndSaveThumbnail } from '~/features/display-board/server/document'
+import { data, Form, Link, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { restoreVersionSchema } from '~/features/display-board/schemas/board-document.schema'
+import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/versions'
 
@@ -19,16 +20,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_versions_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader, Role.BoardValidator])
-
-  if (!can(Role.BoardUploader)) {
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')
   }
 
   const documentId = requireParamId(params.documentId, '/board/documents')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -128,83 +129,34 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
-
-  if (!can(Role.BoardUploader)) {
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')
   }
 
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   const documentId = requireParamId(params.documentId, '/board/documents')
-  const form = await request.formData()
-  const versionId = Number(form.get('versionId'))
+  const submission = parseWithZod(await request.formData(), { schema: restoreVersionSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  return withScope(congregationId, async db => {
-    const version = await db.boardDocumentVersion.findUnique({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: versionId, congregationId },
-      },
-    })
+  const { versionId } = submission.value
 
-    if (version == null || version.documentId !== documentId) {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const result = await restoreDocumentVersion(db, documentId, versionId, congregationId, currentUser.id)
+
+    if (result == null) {
       session.flash('error', m.common_generic_error())
       return redirect(`/board/documents/${documentId}/versions`, {
         headers: { 'Set-Cookie': await commitSession(session) },
       })
     }
 
-    // Fetch current document to save as a new version before restoring
-    const currentDoc = await db.boardDocument.findUnique({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-      select: { uri: true, thumbnailUri: true },
-    })
-
-    if (currentDoc?.uri) {
-      const lastVersion = await db.boardDocumentVersion.findFirst({
-        where: { documentId },
-        orderBy: { versionNumber: 'desc' },
-        select: { versionNumber: true },
-      })
-
-      await db.boardDocumentVersion.create({
-        data: {
-          documentId,
-          uri: currentDoc.uri,
-          thumbnailUri: currentDoc.thumbnailUri,
-          versionNumber: (lastVersion?.versionNumber ?? 0) + 1,
-          uploadedById: currentUser.id,
-          congregationId,
-        },
-      })
-    }
-
-    // Restore: regenerate thumbnail from the version's file
-    const newThumbnailUri = await generateAndSaveThumbnail(congregationId, version.uri)
-
-    await db.boardDocument.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-      data: {
-        uri: version.uri,
-        thumbnailUri: newThumbnailUri,
-      },
-    })
-
-    // Clean up old thumbnail if it was replaced
-    if (currentDoc?.thumbnailUri) {
-      await deleteFile({ uri: currentDoc.thumbnailUri })
-    }
-
-    session.flash('success', m.board_versions_restore_success({ version: version.versionNumber }))
+    session.flash('success', m.board_versions_restore_success({ version: result.versionNumber }))
 
     return redirect(`/board/documents/${documentId}/versions`, {
       headers: { 'Set-Cookie': await commitSession(session) },

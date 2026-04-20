@@ -1,20 +1,28 @@
+import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
-import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { generateAndSaveThumbnail, saveFile } from '~/features/display-board/server/document'
+import { data, Form, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
+import { createBoardDocument } from '~/features/display-board/server/board-document.server'
+import { saveFile } from '~/features/display-board/server/document.server'
+import { emailQueue } from '~/features/display-board/server/email-queue.server'
 import {
   FileValidationError,
   MAX_FILE_SIZE_BYTES,
   validateBoardFile,
   validateVisibilityDates,
 } from '~/features/display-board/server/file-validation.server'
-import { sendNewDocumentNotificationEmail } from '~/features/display-board/server/notifications'
+import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
-import logger from '~/shared/libs/logger.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { LimitService } from '~/shared/domain/limits.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -27,13 +35,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Création de section sur Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
-  const canUploadDocument = can(Role.BoardUploader)
-  const canManageBoard = can(Role.BoardValidator)
+export function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Role.BoardUploader)
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -46,7 +52,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading creation form for document. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to upload new document to the board.`,
   )
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const sections = await db.boardSection.findMany({ where: { congregationId } })
 
     return { sections, rights: { canUploadDocument, canManageBoard } }
@@ -149,13 +156,13 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregation, congregationId, can } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
-  const canUploadDocument = can(Role.BoardUploader)
-  const canManageBoard = can(Role.BoardValidator)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
+  const session = await getSession(request.headers.get('Cookie'))
+  const canUploadDocument = permissions.has(Role.BoardUploader)
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -196,26 +203,21 @@ export async function action({ request }: Route.ActionArgs) {
     throw error
   }
   const file = uploadedFile ?? (form.get('document') as File | null)
-  const name = String(form.get('name'))
-  const sectionId = Number(form.get('sectionId'))
-  const visibleFrom = new Date(String(form.get('visible-from')))
-  const visibleUntil = new Date(String(form.get('visible-until')))
-  const isHighlighted = form.get('hightlighted') === 'on'
+  const submission = parseWithZod(form, { schema: createDocumentSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  if (name.length < 1) {
-    logger.warn(`Document creation failed. User ID: ${currentUser.id}. Name is empty.`, {
+  const { name, sectionId } = submission.value
+  const visibleFrom = new Date(submission.value['visible-from'])
+  const visibleUntil = new Date(submission.value['visible-until'])
+  const isHighlighted = submission.value.hightlighted === 'on'
+
+  if (file == null) {
+    logger.warn(`Document creation failed. User ID: ${currentUser.id}. File is empty.`, {
       currentUser,
       form: { name, sectionId, file },
     })
-    session.flash('error', m.common_empty_fields_error())
-    throw redirect('/board/documents/new')
-  }
-
-  if (file == null || name == null) {
-    logger.warn(
-      `Document creation failed. User ID: ${currentUser.id}. ${file == null ? 'File is empty' : 'File is not empty'}.`,
-      { currentUser, form: { name, sectionId, file } },
-    )
     session.flash('error', m.common_empty_fields_error())
     throw redirect('/board/documents/new')
   }
@@ -229,7 +231,9 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('boardDocuments')
 
@@ -252,33 +256,15 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const storageKey = await saveFile(congregationId, file)
-    const thumbnailUri = await generateAndSaveThumbnail(congregationId, storageKey)
 
-    const document = await db.boardDocument.create({
-      data: {
-        title: String(name),
-        type: 'pdf',
-        uri: storageKey,
-        thumbnailUri,
-        sectionId: sectionId,
-        order: 0,
-        congregationId,
-        ...(visibleFrom.getTime() > 0
-          ? {
-              visibleFrom,
-            }
-          : {}),
-        ...(visibleUntil.getTime() > 0
-          ? {
-              visibleUntil,
-            }
-          : {}),
-        ...(form.has('hightlighted')
-          ? {
-              isHighlighted: isHighlighted,
-            }
-          : {}),
-      },
+    const document = await createBoardDocument(db, {
+      title: String(name),
+      sectionId,
+      uri: storageKey,
+      congregationId,
+      visibleFrom: parsedFrom,
+      visibleUntil: parsedUntil,
+      ...(submission.value.hightlighted != null ? { isHighlighted } : {}),
     })
 
     if (document == null) {
@@ -301,8 +287,18 @@ export async function action({ request }: Route.ActionArgs) {
       document,
     })
 
+    await thumbnailQueue.add('generate-thumbnail', {
+      congregationId,
+      documentId: document.id,
+      pdfStorageKey: storageKey,
+    })
+
     if (!canManageBoard) {
-      sendNewDocumentNotificationEmail(db, congregation, { document })
+      await emailQueue.add('new-document-notification', {
+        type: 'new-document-notification',
+        congregationId,
+        documentId: document.id,
+      })
     }
 
     return redirect(`/board/documents/${document.id}/edit`, {

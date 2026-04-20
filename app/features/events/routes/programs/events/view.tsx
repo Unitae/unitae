@@ -1,18 +1,17 @@
 import { AlertTriangle, Clock, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
 
@@ -20,19 +19,19 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_view_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProgramViewer,
-    Role.ProgramManager,
-  ])
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramViewer)) throw redirect('/')
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/')
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const can = (role: Role) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
-    if (!event) throw redirect('/congregation/programs')
+    if (!event) throw redirect('/programs')
 
     const canEdit = await canEditEvent(db, can, currentUser.id, event.templateId, congregationId)
 

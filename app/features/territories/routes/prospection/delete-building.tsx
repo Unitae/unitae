@@ -1,25 +1,26 @@
 import { Form, redirect } from 'react-router'
 
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { deleteBuilding } from '~/features/territories/server/delete-building.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete-building'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProspectionManager])
-  const canManageProspection = can(Role.ProspectionManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageProspection) {
+  if (!permissions.has(Role.ProspectionManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const building = await db.building.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound key
@@ -63,21 +64,22 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
-    const building = await db.building.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: requireParamId(params.buildingId, '/territories/buildings'), congregationId },
-      },
-    })
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
+    const building = await deleteBuilding(
+      db,
+      requireParamId(params.buildingId, '/territories/buildings'),
+      congregationId,
+    )
 
     session.flash(
       'success',

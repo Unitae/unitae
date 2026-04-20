@@ -1,11 +1,10 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -17,8 +16,9 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session } = await authenticateAndAuthorize(request)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   logger.info(`Loading personal Days Off form. User ID: ${currentUser.id}.`)
 
   return {
@@ -72,15 +72,18 @@ export default function DaysOffPage() {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const startDate = new Date(String(formData.get('start_date')))
   const endDate = new Date(String(formData.get('end_date')))
 
   logger.info(`Creating new days off. User ID: ${currentUser.id}.`)
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
     const event = await createDayOff(db, currentUser.id, startDate, endDate, congregationId)
     if (event == null) {
       session.flash('error', m.days_off_new_invalid_dates())

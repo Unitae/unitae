@@ -12,3 +12,5 @@ export async function loader({ request }: Route.LoaderArgs) {
 export default function PlatformAdminLayout() {
   return <Outlet />
 }
+
+export { RouteErrorBoundary as ErrorBoundary } from '~/shared/ui/RouteErrorBoundary'

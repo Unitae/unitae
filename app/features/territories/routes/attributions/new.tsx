@@ -1,12 +1,20 @@
-import { Form, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting } from '~/features/settings/server/settings'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { aggregateEntrance } from '~/features/territories/server/buildings'
+import { createAttributionSchema } from '~/features/territories/schemas/attribution.schema'
+import { aggregateEntrance } from '~/features/territories/server/buildings.server'
+import { createAttribution } from '~/features/territories/server/create-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -20,11 +28,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
@@ -33,7 +40,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/territories/attributions/new/available-territories')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const territory = await db.territory.findUnique({
@@ -65,25 +74,32 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 }
 
-export default function CreateAttributionPage({ loaderData }: Route.ComponentProps) {
+export default function CreateAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createAttributionSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.attributions_new_title()} subtitle={m.attributions_new_subtitle()} />
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>{m.attributions_new_territory_label()}</Label>
-              <input type="hidden" name="territory" value={territory.id} />
+              <input type="hidden" name={fields.territory.name} value={territory.id} />
               <TerritoryCardLink territory={territory} entrances={territoryEntrances} />
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_publisher_label()}</Label>
+              <Label htmlFor={fields.publisher.id}>{m.attributions_new_publisher_label()}</Label>
               <select
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                name="publisher"
+                id={fields.publisher.id}
+                name={fields.publisher.name}
                 required
               >
                 <option disabled>{m.attributions_new_publisher_placeholder()}</option>
@@ -93,10 +109,16 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
                   </option>
                 ))}
               </select>
+              {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_type_label()}</Label>
-              <select className="rounded-md border border-input bg-background px-3 py-2 text-sm" name="type" required>
+              <Label htmlFor={fields.type.id}>{m.attributions_new_type_label()}</Label>
+              <select
+                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+                id={fields.type.id}
+                name={fields.type.name}
+                required
+              >
                 <option value={TerritoryAttributionKind.Default}>
                   {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                 </option>
@@ -105,21 +127,28 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
                 )}
                 <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
               </select>
+              {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.attributions_new_start_date_label()}</Label>
-              <Input name="start-date" type="date" defaultValue={new Date().toLocaleDateString('en-CA')} required />
+              <Label htmlFor={fields['start-date'].id}>{m.attributions_new_start_date_label()}</Label>
+              <Input
+                {...getInputProps(fields['start-date'], { type: 'date' })}
+                defaultValue={new Date().toLocaleDateString('en-CA')}
+              />
+              {fields['start-date'].errors && <p className="text-destructive text-sm">{fields['start-date'].errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>
+              <Label htmlFor={fields.notes.id}>
                 {m.attributions_new_notes_label()}{' '}
                 <span className="text-muted-foreground text-xs">{m.attributions_new_notes_visibility()}</span>
               </Label>
               <textarea
                 className="rounded-md border border-input bg-background px-3 py-2 text-sm"
                 rows={4}
-                name="notes"
+                id={fields.notes.id}
+                name={fields.notes.name}
               />
+              {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
 
             <Button type="submit" className="mt-2">
@@ -132,39 +161,29 @@ export default function CreateAttributionPage({ loaderData }: Route.ComponentPro
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const territoryId = Number(form.get('territory'))
-  const publisherId = Number(form.get('publisher'))
-  const startDateText = String(form.get('start-date'))
-  const notes = String(form.get('notes'))
-  const type = String(form.get('type'))
-
-  if (Number.isNaN(territoryId) || Number.isNaN(publisherId) || startDateText.length < 1) {
-    throw redirect('/territories/territory/new')
+  const submission = parseWithZod(await request.formData(), { schema: createAttributionSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  const lateDate = new Date(startDateText)
-  lateDate.setMonth(lateDate.getMonth() + 4)
+  const { territory: territoryId, publisher: publisherId, 'start-date': startDate, notes, type } = submission.value
+  const congregation = context.get(congregationContext)
 
-  return withScope(congregationId, async db => {
-    const attribution = await db.attribution.create({
-      data: {
-        publisherId: publisherId,
-        territoryId: territoryId,
-        notes,
-        type,
-        startDate: new Date(startDateText),
-        lateDate: lateDate,
-        congregationId: congregation.id,
-      },
+  return withScopeFromContext(context, async db => {
+    const attribution = await createAttribution(db, {
+      publisherId,
+      territoryId,
+      startDate,
+      notes,
+      type,
+      congregationId: congregation.id,
     })
 
     return redirect(`/territories/attributions/${attribution.id}/edit`)

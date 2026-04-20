@@ -1,14 +1,12 @@
-import { getBoardFileBuffer } from '~/features/display-board/server/document-storage'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { getBoardFileBuffer } from '~/features/display-board/server/document-storage.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/thumbnail'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { congregationId } = await authenticateAndAuthorize(request, [])
-
-  return withScope(congregationId, async db => {
+export function loader({ params, context }: Route.LoaderArgs) {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key

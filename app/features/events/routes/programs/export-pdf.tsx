@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -18,11 +17,12 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_export_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
-  if (!can(Role.ProgramViewer)) throw redirect('/congregation/programs')
+export function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramViewer)) throw redirect('/programs')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const templates = await getTemplates(db, congregationId)
     return { templates }
   })
@@ -41,7 +41,7 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
   const [startDate, setStartDate] = useState(today.toISOString().split('T')[0])
   const [endDate, setEndDate] = useState(twoMonthsLater.toISOString().split('T')[0])
 
-  const downloadUrl = `/congregation/programs/export-pdf/download?templateId=${selectedTemplate}&startDate=${startDate}&endDate=${endDate}&contentType=${contentType}`
+  const downloadUrl = `/programs/export-pdf/download?templateId=${selectedTemplate}&startDate=${startDate}&endDate=${endDate}&contentType=${contentType}`
 
   return (
     <div className="flex flex-col gap-6">

@@ -1,5 +1,5 @@
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 const PIONEER_TYPES = ['PionnierPermanant', 'PionnierSpecial', 'Missionnaire']
 

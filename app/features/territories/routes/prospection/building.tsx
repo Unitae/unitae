@@ -1,21 +1,22 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Search } from 'lucide-react'
-import { Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { data, Link, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { buildingNotesSchema } from '~/features/territories/schemas/building.schema'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/building'
 
@@ -23,17 +24,13 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: `${data.building.number} ${data.building.street}, ${data.building.zip} - Unitae` }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionViewer,
-    Role.ProspectionManager,
-    Role.TerritoriesViewer,
-    Role.TerritoriesManager,
-  ])
-  const canViewProspection = can(Role.ProspectionViewer)
-  const canManageProspection = can(Role.ProspectionManager)
-  const canViewTerritories = can(Role.TerritoriesViewer)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewProspection = permissions.has(Role.ProspectionViewer)
+  const canManageProspection = permissions.has(Role.ProspectionManager)
+  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   if (!canViewProspection) {
     logger.warn(
@@ -46,12 +43,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     `Loading building data for building nº${params.buildingId}. User ID: ${currentUser.id}. ${canManageProspection ? 'Has' : 'Does NOT have'} rights to modify prospection data.`,
   )
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
     if (!building) {
       throw redirect('../', { status: 404 })
     }
 
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = { success: session.get('success'), error: session.get('error') }
 
     return {
@@ -130,21 +128,25 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const notes = form.get('notes')
+  const submission = parseWithZod(await request.formData(), { schema: buildingNotesSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  return withScope(congregationId, async db => {
+  const { notes } = submission.value
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     try {
       await setBuildingNotes(db, requireParamId(params.buildingId, '/territories/buildings'), {
-        notes: String(notes),
+        notes,
       })
 
       session.flash('success', m.prospection_building_notes_updated_success())

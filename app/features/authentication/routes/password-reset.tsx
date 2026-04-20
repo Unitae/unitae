@@ -1,4 +1,7 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { Form, redirect } from 'react-router'
+import { resetPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import {
   consumePasswordResetToken,
   verifyPasswordResetToken,
@@ -6,7 +9,7 @@ import {
 import { resetUserPassword } from '~/features/authentication/server/reset-user-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
-import { getBrandingName, resolveCongregationFromRequest } from '~/shared/libs/congregation.server'
+import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -38,8 +41,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 }
 
-export default function PasswordResetPage({ loaderData }: Route.ComponentProps) {
+export default function PasswordResetPage({ loaderData, actionData }: Route.ComponentProps) {
   const { brandingName, ...user } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    defaultValue: { email: user.email },
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: resetPasswordSchema })
+    },
+  })
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -50,29 +61,30 @@ export default function PasswordResetPage({ loaderData }: Route.ComponentProps) 
           <p className="text-muted-foreground text-sm">{m.auth_password_reset_subtitle()}</p>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">{m.auth_password_reset_email_label()}</Label>
+              <Label htmlFor={fields.email.id}>{m.auth_password_reset_email_label()}</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
+                {...getInputProps(fields.email, { type: 'email' })}
                 autoComplete="username"
-                defaultValue={user.email}
-                required
                 readOnly
                 className="bg-muted"
               />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{m.auth_password_reset_new_password_label()}</Label>
-              <Input id="password" name="password" type="password" autoComplete="new-password" />
+              <Label htmlFor={fields.password.id}>{m.auth_password_reset_new_password_label()}</Label>
+              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="repeat-password">{m.auth_password_reset_confirm_password_label()}</Label>
-              <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" />
+              <Label htmlFor={fields.passwordConfirm.id}>{m.auth_password_reset_confirm_password_label()}</Label>
+              <Input {...getInputProps(fields.passwordConfirm, { type: 'password' })} autoComplete="new-password" />
+              {fields.passwordConfirm.errors && (
+                <p className="text-destructive text-sm">{fields.passwordConfirm.errors}</p>
+              )}
             </div>
 
             <Button type="submit" className="mt-4 w-full">
@@ -87,12 +99,9 @@ export default function PasswordResetPage({ loaderData }: Route.ComponentProps) 
 
 export async function action({ request, params }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
-  const username = form.get('email')
-  const password = form.get('password')
-  const repeatPassword = form.get('repeat-password')
+  const submission = parseWithZod(await request.formData(), { schema: resetPasswordSchema })
 
-  if (password !== repeatPassword) {
+  if (submission.status !== 'success') {
     session.flash('error', m.auth_password_reset_mismatch_error())
 
     throw redirect(`/password/${params.userHash}/reset`, {
@@ -100,9 +109,11 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
+  const { email: username, password } = submission.value
+
   const user = await verifyPasswordResetToken(params.userHash ?? '')
 
-  if (user == null || user.email !== String(username)) {
+  if (user == null || user.email !== username) {
     session.flash('error', m.auth_password_reset_invalid_token_error())
 
     throw redirect('/', {
@@ -110,7 +121,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  await resetUserPassword(user.id, String(password))
+  await resetUserPassword(user.id, password)
   await consumePasswordResetToken(params.userHash ?? '')
 
   session.flash('success', m.auth_password_reset_success_message())

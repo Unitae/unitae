@@ -1,38 +1,37 @@
+import { parseWithZod } from '@conform-to/zod'
 import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { data, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getGroup } from '~/features/publishers/server/groups'
+import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
+import { getGroup } from '~/features/publishers/server/groups.server'
+import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.PublisherViewer,
-    Role.PublisherManager,
-    Role.ActivityManager,
-  ])
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canManagePublisher = can(Role.PublisherManager)
-  const canManageActivity = can(Role.ActivityManager)
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManageActivity = permissions.has(Role.ActivityManager)
 
   if (!canViewPublishers) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
-    const group = await getGroup(db, requireParamId(params.groupId, '/congregation/publisher-groups'))
+  return withScopeFromContext(context, async db => {
+    const group = await getGroup(db, requireParamId(params.groupId, '/groups'))
     if (group == null) {
-      throw redirect('/congregation/publisher-groups/')
+      throw redirect('/groups/')
     }
 
     return {
@@ -78,7 +77,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           <p className="text-muted-foreground text-sm">
             {m.groups_view_responsible()} :{' '}
             <Link
-              to={`../../../publishers/${group.responsible.id}/view`}
+              to={`../../../publishers/${group.responsible.id}`}
               relative="path"
               className="font-medium text-primary hover:underline"
             >
@@ -89,7 +88,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             {m.groups_view_deputy()} :{' '}
             {group.deputy ? (
               <Link
-                to={`../../../publishers/${group.deputy.id}/view`}
+                to={`../../../publishers/${group.deputy.id}`}
                 relative="path"
                 className="font-medium text-primary hover:underline"
               >
@@ -138,12 +137,12 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             {group.members.map(member => (
               <TableRow key={member.email}>
                 <TableCell className="text-center max-sm:text-left">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}`} relative="path">
                     {member.firstname}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}`} relative="path">
                     {member.lastname?.toLocaleUpperCase()}
                   </Link>
                 </TableCell>
@@ -161,8 +160,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                         <Link
                           to={
                             member.previousActivity != null
-                              ? `/congregation/publishers/activity/${member.previousActivity?.id}/edit`
-                              : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
+                              ? `/publishers/activity/${member.previousActivity?.id}/edit`
+                              : `/publishers/activity/new?publisherId=${member.id}&month=${lastMonth.getMonth()}&year=${lastMonth.getFullYear()}`
                           }
                           title={m.groups_view_activity_edit_title()}
                         >
@@ -183,8 +182,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                         <Link
                           to={
                             member.currentActivity != null
-                              ? `/congregation/publishers/activity/${member.currentActivity?.id}/edit`
-                              : `/congregation/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
+                              ? `/publishers/activity/${member.currentActivity?.id}/edit`
+                              : `/publishers/activity/new?publisherId=${member.id}&month=${today.getMonth()}&year=${today.getFullYear()}`
                           }
                           title={m.groups_view_activity_edit_title()}
                         >
@@ -205,7 +204,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`../../../publishers/${member.id}/view`} relative="path">
+                      <Link to={`../../../publishers/${member.id}`} relative="path">
                         <Eye className="size-4" />
                       </Link>
                     </Button>
@@ -227,61 +226,43 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = can(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')
   }
 
-  const form = await request.formData()
-  const name = form.get('name')
-  const address = form.get('address')
-  const responsibleId = Number(form.get('responsible'))
-  const deputyRaw = form.get('deputy')
-  const deputyId = deputyRaw ? Number(deputyRaw) : null
+  const submission = parseWithZod(await request.formData(), { schema: updateGroupSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { name, address, responsible: responsibleId, deputy: deputyId } = submission.value
 
   const session = await getSession(request.headers.get('Cookie'))
-  if (name == null || address == null || Number.isNaN(responsibleId)) {
-    session.flash('error', m.groups_form_error_incomplete())
-    throw redirect(previousPage ?? '/congregation/publisher-groups', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
-  }
-
   if (deputyId != null && responsibleId === deputyId) {
     session.flash('error', m.groups_form_error_same_person())
-    throw redirect(previousPage ?? '/congregation/publisher-groups', {
+    throw redirect(previousPage ?? '/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },
     })
   }
 
-  return withScope(congregationId, async db => {
-    const membersToConnect = [{ id: responsibleId }]
-    if (deputyId != null) membersToConnect.push({ id: deputyId })
-
-    const group = await db.publisherGroup.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: requireParamId(params.groupId, '/congregation/publisher-groups'), congregationId },
-      },
-      data: {
-        name: String(name),
-        adress: String(address),
-        deputyId,
-        responsibleId,
-        members: { connect: membersToConnect },
-      },
+  return withScopeFromContext(context, async db => {
+    const group = await updateGroup(db, requireParamId(params.groupId, '/groups'), currentUser.congregationId, {
+      name,
+      address,
+      responsibleId,
+      deputyId: deputyId ?? null,
     })
 
     session.flash('success', m.groups_edit_success({ name: group.name }))
-    return redirect('/congregation/publisher-groups', {
+    return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

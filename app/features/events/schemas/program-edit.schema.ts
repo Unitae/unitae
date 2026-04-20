@@ -1,0 +1,38 @@
+import { z } from 'zod'
+
+export const updateEventSchema = z.object({
+  intent: z.literal('update-event'),
+  name: z.string().min(1),
+  date: z.string().min(1),
+  startTime: z.string().min(1),
+  endTime: z.string().min(1),
+})
+
+export const addPartSchema = z.object({
+  intent: z.literal('add-part'),
+  partName: z.string().min(1),
+  partSection: z.string().optional().default(''),
+  partTrack: z.string().optional().default(''),
+  partOrder: z.coerce.number().default(0),
+  partDuration: z.coerce.number().optional(),
+})
+
+export const deletePartSchema = z.object({
+  intent: z.literal('delete-part'),
+  partAssignmentId: z.coerce.number(),
+})
+
+export const addServiceSchema = z.object({
+  intent: z.literal('add-service'),
+  serviceName: z.string().min(1),
+})
+
+export const deleteServiceSchema = z.object({
+  intent: z.literal('delete-service'),
+  serviceAssignmentId: z.coerce.number(),
+})
+
+export const applyTemplateSchema = z.object({
+  intent: z.literal('apply-template'),
+  templateId: z.coerce.number(),
+})

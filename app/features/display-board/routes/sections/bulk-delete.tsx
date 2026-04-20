@@ -1,9 +1,8 @@
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { deleteSectionWithFiles } from '~/features/display-board/server/document'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { deleteSectionWithFiles } from '~/features/display-board/server/document.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/bulk-delete'
 
@@ -11,10 +10,9 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/board/sections')
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
@@ -24,7 +22,8 @@ export async function action({ request }: Route.ActionArgs) {
     return { ok: false }
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     for (const sectionId of ids) {
       await deleteSectionWithFiles(db, sectionId, congregationId)
     }

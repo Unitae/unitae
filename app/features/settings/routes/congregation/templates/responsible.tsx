@@ -1,21 +1,22 @@
-import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
   getTemplateById,
   removeTemplateResponsible,
   setTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
+import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/responsible'
 
@@ -23,19 +24,20 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_responsible_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
+  if (!permissions.has(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
-  return withScope(congregationId, async db => {
-    const template = await getTemplateById(db, templateId, congregationId)
+  return withScopeFromContext(context, async db => {
+    const template = await getTemplateById(db, templateId, currentUser.congregationId)
     if (!template) throw redirect('/settings/congregation/templates')
 
     const users = await db.user.findMany({
-      where: { congregationId, active: true },
+      where: { congregationId: currentUser.congregationId, active: true },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
 
@@ -47,25 +49,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramManager])
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
+  if (!permissions.has(Role.ProgramManager)) throw redirect('/settings/congregation/templates')
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
-  const form = await request.formData()
-  const rawUserId = form.get('userId')
-  const userId = rawUserId && rawUserId !== 'none' ? Number(rawUserId) : null
+  const submission = parseWithZod(await request.formData(), { schema: templateResponsibleSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  return withScope(congregationId, async db => {
+  const { userId } = submission.value
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     if (userId) {
-      await setTemplateResponsible(db, templateId, userId, congregationId)
+      await setTemplateResponsible(db, templateId, userId, currentUser.congregationId)
       session.flash('success', m.settings_template_responsible_assigned_success())
       logger.info(
         `Set template responsible. User ID: ${currentUser.id}. Template: ${templateId}. Responsible: ${userId}.`,
       )
     } else {
-      await removeTemplateResponsible(db, templateId, congregationId)
+      await removeTemplateResponsible(db, templateId, currentUser.congregationId)
       session.flash('success', m.settings_template_responsible_removed_success())
       logger.info(`Removed template responsible. User ID: ${currentUser.id}. Template: ${templateId}.`)
     }

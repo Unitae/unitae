@@ -1,14 +1,13 @@
 import { ArrowLeft, Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
+import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/viewer'
 
@@ -16,25 +15,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
+export function loader({ params, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
 
   const documentId = requireParamId(params.documentId, '/board')
 
-  return withScope(congregationId, async db => {
-    const document = await db.boardDocument.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-      data: {
-        viewedBy: { connect: { id: currentUser.id } },
-      },
-      select: { id: true, title: true },
-    })
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
+    const document = await markDocumentAsViewed(db, documentId, currentUser.id, congregationId)
 
     if (!document) {
       logger.warn(`Document ID: ${documentId} not found. User ID: ${currentUser.id}.`)
@@ -67,7 +55,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   }, [])
 
   return (
-    <div className="-m-4 md:-m-6 flex h-[calc(100vh-2rem)] flex-col md:h-[calc(100vh-3rem)]">
+    <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
       <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon" asChild>

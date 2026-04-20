@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import * as m from '~/paraglide/messages'
 
-import { getHostSettings } from '~/shared/libs/host-settings.server'
+import { getHostSettings } from '~/shared/domain/host-settings.server'
 
 import type { Route } from './+types/suspended'
 

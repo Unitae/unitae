@@ -1,6 +1,7 @@
-import { Form, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting, getSetting, setSetting } from '~/features/settings/server/settings'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,
@@ -8,10 +9,11 @@ import {
   parseZips,
   serializeTerritoryPolygon,
   serializeZips,
-} from '~/features/territories/server/settings'
+} from '~/features/territories/server/settings.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getBoolSetting, getSetting, setSetting } from '~/shared/domain/settings.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -27,20 +29,29 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_territories_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const territory = await getTerritoryPolygon(db)
     const zips = await getAllowedZips(db)
-    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, congregationId)
-    const prospectionValidity = await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)
-    const phoneTypeActivated = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
+    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, currentUser.congregationId)
+    const prospectionValidity = await getSetting(
+      db,
+      TerritorySettingKey.ProspectionValidity,
+      currentUser.congregationId,
+    )
+    const phoneTypeActivated = await getBoolSetting(
+      db,
+      TerritorySettingKey.TerritoryTypePhoneActive,
+      currentUser.congregationId,
+    )
 
     return {
       territory: serializeTerritoryPolygon(territory),
@@ -52,48 +63,59 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 }
 
-export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
+export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: territorySettingsSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.settings_territories_title()} subtitle={m.settings_territories_subtitle()} />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_territories_prospection_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="bano-url">{m.settings_territories_bano_url_label()}</Label>
+              <Label htmlFor={fields['bano-url'].id}>{m.settings_territories_bano_url_label()}</Label>
               <Input
-                id="bano-url"
-                name="bano-url"
-                type="text"
+                {...getInputProps(fields['bano-url'], { type: 'text' })}
+                key={fields['bano-url'].id}
                 placeholder={m.settings_territories_bano_url_placeholder()}
                 defaultValue={banoUrl}
               />
+              {fields['bano-url'].errors && <p className="text-destructive text-sm">{fields['bano-url'].errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="zips">{m.settings_territories_zips_label()}</Label>
+              <Label htmlFor={fields.zips.id}>{m.settings_territories_zips_label()}</Label>
               <Input
-                id="zips"
-                name="zips"
-                type="text"
+                {...getInputProps(fields.zips, { type: 'text' })}
+                key={fields.zips.id}
                 placeholder={m.settings_territories_zips_placeholder()}
                 defaultValue={zips}
               />
+              {fields.zips.errors && <p className="text-destructive text-sm">{fields.zips.errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="prospection-validity">{m.settings_territories_prospection_validity_label()}</Label>
+              <Label htmlFor={fields['prospection-validity'].id}>
+                {m.settings_territories_prospection_validity_label()}
+              </Label>
               <Input
-                id="prospection-validity"
-                name="prospection-validity"
-                type="number"
+                {...getInputProps(fields['prospection-validity'], { type: 'text' })}
+                key={fields['prospection-validity'].id}
                 placeholder={m.settings_territories_prospection_validity_placeholder()}
                 defaultValue={prospectionValidity}
               />
+              {fields['prospection-validity'].errors && (
+                <p className="text-destructive text-sm">{fields['prospection-validity'].errors}</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -104,14 +126,14 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="territory">{m.settings_territories_polygon_label()}</Label>
+              <Label htmlFor={fields.territory.id}>{m.settings_territories_polygon_label()}</Label>
               <Input
-                id="territory"
-                name="territory"
-                type="text"
+                {...getInputProps(fields.territory, { type: 'text' })}
+                key={fields.territory.id}
                 placeholder={m.settings_territories_polygon_placeholder()}
                 defaultValue={territory}
               />
+              {fields.territory.errors && <p className="text-destructive text-sm">{fields.territory.errors}</p>}
             </div>
 
             <Separator />
@@ -139,27 +161,33 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
   }
 
   const form = await request.formData()
-  const zips = parseZips(String(form.get('zips')))
-  const territory = parseTerritoryPolygon(String(form.get('territory')))
-  const banoUrl = String(form.get('bano-url'))
-  const prospectionValidity = String(form.get('prospection-validity'))
-  const phoneTypeActivated = String(Boolean(form.get('phone-territory-active')))
+  const submission = parseWithZod(form, { schema: territorySettingsSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  return withScope(congregationId, async db => {
-    await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), congregationId)
-    await setSetting(db, TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), congregationId)
-    await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, congregationId)
-    await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, congregationId)
-    await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, congregationId)
+  const zips = parseZips(submission.value.zips)
+  const territory = parseTerritoryPolygon(submission.value.territory)
+  const banoUrl = submission.value['bano-url']
+  const prospectionValidity = submission.value['prospection-validity']
+  const phoneTypeActivated = String(submission.value['phone-territory-active'])
+
+  return withScopeFromContext(context, async db => {
+    await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
 
     return redirect('/settings')
   })

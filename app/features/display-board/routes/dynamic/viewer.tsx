@@ -1,6 +1,5 @@
 import { ArrowLeft } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import {
   getDynamicDocumentData,
@@ -10,10 +9,9 @@ import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Button } from '~/shared/ui/button'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/viewer'
 
@@ -21,15 +19,13 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
+export function loader({ params, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const settings = await db.boardDynamicDocumentSettings.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -53,7 +49,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
   const { settings, data } = loaderData
 
   return (
-    <div className="-m-4 md:-m-6 flex h-[calc(100vh-2rem)] flex-col md:h-[calc(100vh-3rem)]">
+    <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
       <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon" asChild>

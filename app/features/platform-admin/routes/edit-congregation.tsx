@@ -1,8 +1,11 @@
-import { Form, redirect } from 'react-router'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { editCongregationSchema } from '~/features/platform-admin/schemas/congregation.schema'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import * as m from '~/paraglide/messages'
-import { unscopedDb } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -10,6 +13,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-congregation'
 
@@ -47,8 +51,22 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 }
 
-export default function EditCongregationPage({ loaderData }: Route.ComponentProps) {
+export default function EditCongregationPage({ loaderData, actionData }: Route.ComponentProps) {
   const { congregation } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    defaultValue: {
+      name: congregation.name,
+      slug: congregation.slug,
+      domain: congregation.domain ?? '',
+      displayName: congregation.displayName ?? '',
+      active: congregation.active ? 'on' : undefined,
+    },
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: editCongregationSchema })
+    },
+  })
 
   return (
     <div className="space-y-6">
@@ -71,38 +89,39 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
           <CardTitle>{m.platform_admin_edit_congregation_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
             <div className="space-y-2">
-              <Label htmlFor="name">{m.platform_admin_edit_congregation_name_label()}</Label>
-              <Input id="name" name="name" type="text" defaultValue={congregation.name} required />
+              <Label htmlFor={fields.name.id}>{m.platform_admin_edit_congregation_name_label()}</Label>
+              <Input {...getInputProps(fields.name, { type: 'text' })} />
+              {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="slug">{m.platform_admin_edit_congregation_slug_label()}</Label>
-              <Input id="slug" name="slug" type="text" defaultValue={congregation.slug} required />
+              <Label htmlFor={fields.slug.id}>{m.platform_admin_edit_congregation_slug_label()}</Label>
+              <Input {...getInputProps(fields.slug, { type: 'text' })} />
+              {fields.slug.errors && <p className="text-destructive text-sm">{fields.slug.errors}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="domain">{m.platform_admin_edit_congregation_domain_label()}</Label>
-              <Input id="domain" name="domain" type="text" defaultValue={congregation.domain ?? ''} />
+              <Label htmlFor={fields.domain.id}>{m.platform_admin_edit_congregation_domain_label()}</Label>
+              <Input {...getInputProps(fields.domain, { type: 'text' })} />
+              {fields.domain.errors && <p className="text-destructive text-sm">{fields.domain.errors}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="displayName">{m.platform_admin_edit_congregation_display_name_label()}</Label>
-              <Input id="displayName" name="displayName" type="text" defaultValue={congregation.displayName ?? ''} />
+              <Label htmlFor={fields.displayName.id}>{m.platform_admin_edit_congregation_display_name_label()}</Label>
+              <Input {...getInputProps(fields.displayName, { type: 'text' })} />
+              {fields.displayName.errors && <p className="text-destructive text-sm">{fields.displayName.errors}</p>}
             </div>
 
             <Separator />
 
             <div className="flex items-center gap-2">
               <input
-                id="active"
-                name="active"
-                type="checkbox"
-                defaultChecked={congregation.active}
+                {...getInputProps(fields.active, { type: 'checkbox' })}
                 className="size-4 rounded border-input accent-primary"
               />
-              <Label htmlFor="active">{m.platform_admin_edit_congregation_active_label()}</Label>
+              <Label htmlFor={fields.active.id}>{m.platform_admin_edit_congregation_active_label()}</Label>
             </div>
 
             <div className="pt-2">
@@ -116,20 +135,30 @@ export default function EditCongregationPage({ loaderData }: Route.ComponentProp
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
-  await verifyPlatformAdmin(request)
+  const admin = await verifyPlatformAdmin(request)
 
-  const form = await request.formData()
+  const submission = parseWithZod(await request.formData(), { schema: editCongregationSchema })
+
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
   const congregationId = requireParamId(params.congregationId, '/platform-admin/congregations')
+  const { name, slug, domain, displayName, active } = submission.value
 
   await unscopedDb.congregation.update({
     where: { id: congregationId },
-    data: {
-      name: String(form.get('name')),
-      slug: String(form.get('slug')),
-      domain: String(form.get('domain')) || null,
-      displayName: String(form.get('displayName')) || null,
-      active: form.get('active') === 'on',
-    },
+    data: { name, slug, domain, displayName, active },
+  })
+
+  audit({
+    action: AuditAction.PlatformCongregationUpdated,
+    congregationId: admin.congregationId,
+    actorId: admin.userId,
+    actorEmail: admin.email,
+    entityType: 'Congregation',
+    entityId: congregationId,
+    metadata: { name, slug, domain, displayName, active },
   })
 
   return redirect('/platform-admin/congregations')

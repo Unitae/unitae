@@ -2,8 +2,8 @@ import type { Building } from '~/database/generated/client'
 
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 
 export async function editBuilding(
   db: TransactionClient,

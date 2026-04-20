@@ -1,11 +1,10 @@
 import { FileText } from 'lucide-react'
-import { Role } from '~/features/authorization/model/roles.type'
 import { getContentVersion } from '~/features/display-board/server/dynamic-documents.server'
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
 import type { Route } from './+types/index'
@@ -25,15 +24,14 @@ const visibleNow = () => {
   }
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.BoardUploader,
-    Role.BoardValidator,
-  ])
-  const canUploadDocument = can(Role.BoardUploader)
-  const canManageBoard = can(Role.BoardValidator)
+export function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Role.BoardUploader)
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const congregationId = currentUser.congregationId
     const folders = await db.boardSection.findMany({
       where: { congregationId },
       include: {

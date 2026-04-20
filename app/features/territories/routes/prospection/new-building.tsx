@@ -1,10 +1,12 @@
-import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -17,45 +19,65 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_new_building_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
   return null
 }
 
-export default function CreateBuildingPage() {
+export default function CreateBuildingPage({ actionData }: Route.ComponentProps) {
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createBuildingSchema })
+    },
+  })
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.prospection_new_building_title()} subtitle={m.prospection_new_building_subtitle()} />
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <Label>{m.territories_form_number()}</Label>
-              <Input name="number" type="text" placeholder={m.prospection_new_building_number_placeholder()} required />
+              <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
+              <Input
+                {...getInputProps(fields.number, { type: 'text' })}
+                placeholder={m.prospection_new_building_number_placeholder()}
+              />
+              {fields.number.errors && <p className="text-destructive text-sm">{fields.number.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.prospection_new_building_street_label()}</Label>
-              <Input name="street" type="text" placeholder={m.prospection_new_building_street_placeholder()} required />
+              <Label htmlFor={fields.street.id}>{m.prospection_new_building_street_label()}</Label>
+              <Input
+                {...getInputProps(fields.street, { type: 'text' })}
+                placeholder={m.prospection_new_building_street_placeholder()}
+              />
+              {fields.street.errors && <p className="text-destructive text-sm">{fields.street.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
-              <Label>{m.prospection_new_building_zip_label()}</Label>
-              <Input name="zip" type="text" placeholder={m.prospection_new_building_zip_placeholder()} required />
+              <Label htmlFor={fields.zip.id}>{m.prospection_new_building_zip_label()}</Label>
+              <Input
+                {...getInputProps(fields.zip, { type: 'text' })}
+                placeholder={m.prospection_new_building_zip_placeholder()}
+              />
+              {fields.zip.errors && <p className="text-destructive text-sm">{fields.zip.errors}</p>}
             </div>
             <div className="flex gap-3">
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.prospection_table_latitude()}</Label>
-                <Input name="latitude" type="number" step={0.0000001} />
+                <Label htmlFor={fields.latitude.id}>{m.prospection_table_latitude()}</Label>
+                <Input {...getInputProps(fields.latitude, { type: 'number' })} step={0.0000001} />
+                {fields.latitude.errors && <p className="text-destructive text-sm">{fields.latitude.errors}</p>}
               </div>
               <div className="flex flex-1 flex-col gap-1.5">
-                <Label>{m.prospection_table_longitude()}</Label>
-                <Input name="longitude" type="number" step={0.0000001} />
+                <Label htmlFor={fields.longitude.id}>{m.prospection_table_longitude()}</Label>
+                <Input {...getInputProps(fields.longitude, { type: 'number' })} step={0.0000001} />
+                {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
               </div>
             </div>
             <Button type="submit" className="mt-2">
@@ -68,37 +90,28 @@ export default function CreateBuildingPage() {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesManager,
-  ])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const number = form.get('number')
-  const street = form.get('street')
-  const zip = form.get('zip')
-  const latitude = form.get('latitude')
-  const longitude = form.get('longitude')
-
-  if (!number || !street || !zip) {
-    throw redirect('/territories/buildings/new')
+  const submission = parseWithZod(await request.formData(), { schema: createBuildingSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  return withScope(congregationId, async db => {
+  const { number, street, zip, latitude, longitude } = submission.value
+  const congregation = context.get(congregationContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const building = await createBuilding(db, {
-      address: {
-        number: String(number),
-        street: String(street),
-        zip: String(zip),
-      },
+      address: { number, street, zip },
       coordinates: {
-        latitude: latitude ? Number.parseFloat(latitude.toString()) : undefined,
-        longitude: longitude ? Number.parseFloat(longitude.toString()) : undefined,
+        latitude: latitude ?? undefined,
+        longitude: longitude ?? undefined,
       },
       congregationId: congregation.id,
     })

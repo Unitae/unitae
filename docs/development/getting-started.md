@@ -23,7 +23,7 @@ pnpm install
 Start PostgreSQL and Redis with Docker Compose:
 
 ```bash
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker/docker-compose.dev.yml up -d
 ```
 
 This starts:
@@ -40,6 +40,15 @@ SESSION_SECRET="dev-secret-at-least-32-characters-long"
 RESEND_API_KEY="re_123"
 REDIS_HOST="localhost"
 REDIS_PORT="6379"
+```
+
+Optional variables:
+
+```ini
+CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations)
+DATABASE_POOL_MAX="10"                  # PostgreSQL connection pool size (default: 10)
+GOOGLE_MAPS_API_KEY=""                  # Enables maps on territory pages and PDF exports
+GOOGLE_MAPS_MAP_ID=""                   # Enables custom styled maps
 ```
 
 ### 4. Initialize the Database
@@ -60,13 +69,13 @@ Visit `http://localhost:5173`. The setup wizard will guide you through creating 
 
 ### 6. Start the Worker (Optional)
 
-In a separate terminal, start the background worker for building prospection sync:
+In a separate terminal, start the background worker:
 
 ```bash
 pnpm start:worker
 ```
 
-This is only needed if you are working on the territory sync feature.
+The worker processes three job queues: territory data sync, email notifications, and PDF thumbnail generation. It's needed if you're working on territory sync, document uploads, or board notifications.
 
 ## Commands
 
@@ -78,9 +87,12 @@ This is only needed if you are working on the territory sync feature.
 | `pnpm test:unit` | Run unit tests |
 | `pnpm test:unit:watch` | Run tests in watch mode |
 | `pnpm test:unit:coverage` | Run tests with coverage |
+| `pnpm test:integration` | Run integration tests (requires running PostgreSQL) |
+| `pnpm test:e2e` | Run E2E tests with Playwright (requires running app) |
+| `pnpm test:e2e:headed` | Run E2E tests with browser visible |
 | `pnpm test:lint` | Check linting only |
 | `pnpm test:typecheck` | Generate types + TypeScript check |
-| `pnpm start:worker` | BullMQ sync worker |
+| `pnpm start:worker` | Multi-queue background worker (sync, email, thumbnail) |
 | `pnpm start:emails` | Email template dev server |
 
 ## Before Submitting a PR
@@ -98,6 +110,4 @@ pnpm test:unit        # Run unit tests
 
 - [Coding Conventions](coding-conventions.md) — Patterns, philosophy, and rules
 - [Architecture](architecture.md) — System design, request flow, and data isolation
-- [Background Processing](background-processing.md) — BullMQ worker architecture
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — How to submit a pull request
-- [Feature Overview](../product/feature-overview.md) — Understand what you're building on
+- [Background Processing](background-processing.md) — BullMQ multi-queue worker architecture

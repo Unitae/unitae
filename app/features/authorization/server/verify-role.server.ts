@@ -1,7 +1,7 @@
+// Intentional cross-feature import: authorization depends on authentication for session management
 import { getSession } from '~/features/authentication/server/session.server'
-import type { Role } from '~/features/authorization/model/roles.type'
-
-import { unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
+import type { Role } from '~/shared/types/role'
 
 export async function verifyRole(request: Request, roleKey: Role) {
   const session = await getSession(request.headers.get('Cookie'))

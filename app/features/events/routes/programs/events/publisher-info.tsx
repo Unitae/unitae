@@ -1,23 +1,23 @@
-import { Role } from '~/features/authorization/model/roles.type'
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ProgramViewer, Role.ProgramManager])
-  if (!can(Role.ProgramViewer)) return Response.json(null, { status: 403 })
+export function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.ProgramViewer)) return Response.json(null, { status: 403 })
 
-  const eventId = requireParamId(params.eventId, '/congregation/programs')
+  const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const userId = Number(url.searchParams.get('userId'))
   const partName = url.searchParams.get('partName') ?? ''
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) return Response.json(null)
 

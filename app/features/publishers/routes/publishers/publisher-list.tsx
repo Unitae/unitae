@@ -1,14 +1,13 @@
-import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
-import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getPublishersWithGroup } from '~/features/publishers/server/publishers'
+import { BarChart3, Eye, Mail, Pencil, Search, Users } from 'lucide-react'
+import { Link, Form as RouterForm, redirect, useSearchParams } from 'react-router'
+import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
-
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { Input } from '~/shared/ui/input'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
@@ -18,15 +17,12 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_list_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.PublisherViewer,
-    Role.PublisherManager,
-    Role.ActivityViewer,
-  ])
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canManagePublisher = can(Role.PublisherManager)
-  const canViewActivities = can(Role.ActivityViewer)
+export function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canViewActivities = permissions.has(Role.ActivityViewer)
 
   if (!canViewPublishers) {
     logger.warn(
@@ -40,8 +36,11 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publishers. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
-  return withScope(congregationId, async db => {
-    const users = await getPublishersWithGroup(db, congregationId)
+  const url = new URL(request.url)
+  const search = url.searchParams.get('q') ?? undefined
+
+  return withScopeFromContext(context, async db => {
+    const users = await getPublishersWithGroup(db, currentUser.congregationId, { search })
 
     return {
       users: users.map(user => ({
@@ -61,6 +60,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
   const { users, canManagePublisher, canViewActivities } = loaderData
+  const [searchParams] = useSearchParams()
 
   if (users.length < 1) {
     return (
@@ -105,6 +105,22 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
+      <RouterForm method="get" className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            name="q"
+            type="search"
+            placeholder={m.publishers_search_placeholder()}
+            defaultValue={searchParams.get('q') ?? ''}
+            className="pl-9"
+          />
+        </div>
+        <Button type="submit" variant="secondary">
+          {m.publishers_search_button()}
+        </Button>
+      </RouterForm>
+
       <div className="overflow-hidden rounded-xl border">
         <Table>
           <TableHeader>
@@ -122,21 +138,18 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
             {users.map(user => (
               <TableRow key={user.email}>
                 <TableCell className="text-center max-sm:text-left">
-                  <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
+                  <Link to={`/publishers/${user.id}`} className="hover:text-primary">
                     {user.firstname}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link to={`/congregation/publishers/${user.id}/view`} className="hover:text-primary">
+                  <Link to={`/publishers/${user.id}`} className="hover:text-primary">
                     {user.lastname?.toLocaleUpperCase()}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center">
                   {user.publisherGroup != null && (
-                    <Link
-                      to={`/congregation/publisher-groups/${user.publisherGroup.id}/edit`}
-                      className="hover:text-primary"
-                    >
+                    <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
                       {user.publisherGroup.name}
                     </Link>
                   )}
@@ -151,7 +164,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`/congregation/publishers/${user.id}/view`}>
+                      <Link to={`/publishers/${user.id}`}>
                         <Eye className="size-4" />
                       </Link>
                     </Button>

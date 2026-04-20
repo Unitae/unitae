@@ -1,10 +1,12 @@
-import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createTemplateSchema } from '~/features/settings/schemas/template.schema'
+import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -18,31 +20,29 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.Admin])
-  if (!can(Role.Admin)) throw redirect('/')
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.Admin)) throw redirect('/')
   return {}
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, can, session, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
-  if (!can(Role.Admin)) throw redirect('/')
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  if (!permissions.has(Role.Admin)) throw redirect('/')
 
-  const form = await request.formData()
-  const name = String(form.get('name') ?? '').trim()
-  const key = String(form.get('key') ?? '').trim()
-  const rawWeekDay = form.get('weekDay')
-  const weekDay = rawWeekDay && rawWeekDay !== 'none' ? Number(rawWeekDay) : null
-
-  if (!name || !key) {
-    session.flash('error', m.settings_template_new_name_key_required_error())
-    return redirect('/settings/congregation/templates/new', {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+  const submission = parseWithZod(await request.formData(), { schema: createTemplateSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  return withScope(congregationId, async db => {
-    const existing = await db.programmeTemplate.findFirst({ where: { key, congregationId } })
+  const { name, key, weekDay } = submission.value
+  const session = await getSession(request.headers.get('Cookie'))
+
+  return withScopeFromContext(context, async db => {
+    const existing = await db.programmeTemplate.findFirst({
+      where: { key, congregationId: currentUser.congregationId },
+    })
     if (existing) {
       session.flash('error', m.settings_template_new_key_exists_error())
       return redirect('/settings/congregation/templates/new', {
@@ -50,14 +50,11 @@ export async function action({ request }: Route.ActionArgs) {
       })
     }
 
-    const template = await db.programmeTemplate.create({
-      data: {
-        name,
-        key,
-        weekDay,
-        isRecurring: weekDay != null,
-        congregationId,
-      },
+    const template = await createProgrammeTemplate(db, {
+      name,
+      key,
+      weekDay,
+      congregationId: currentUser.congregationId,
     })
 
     logger.info(`Created template "${name}" (${key}). User ID: ${currentUser.id}.`)

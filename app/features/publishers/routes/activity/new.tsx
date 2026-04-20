@@ -1,13 +1,16 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { Form, redirect, useSearchParams } from 'react-router'
-import { sanitizeUser } from '~/features/authentication/server/sanitize-user.server'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getPublishers } from '~/features/publishers/server/publishers'
+import { data, Form, redirect, useSearchParams } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
+import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
+import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -19,13 +22,18 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
+  const userWithRelations = currentUser as typeof currentUser & {
+    responsibleFor?: { id: number }
+    deputyFor?: { id: number }
+  }
   const canManageMyGroupActivity =
-    currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
-    currentUser.deputyFor?.id === currentUser.publisherGroupId
+    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
+    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -38,8 +46,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const month = Number(searchParams.get('month') ?? timeRange.getMonth())
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
-  return withScope(congregationId, async db => {
-    const publishers = await getPublishers(db, congregationId, { groupId: groupFilter })
+  return withScopeFromContext(context, async db => {
+    const publishers = await getPublishers(db, currentUser.congregationId, { groupId: groupFilter })
 
     const activity = await db.publisherActivity.findFirst({
       where: {
@@ -51,7 +59,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     if (activity != null) {
       // If the activity already exists, redirect to the edit page
-      throw redirect(`/congregation/publishers/activity/${activity.id}/edit`)
+      throw redirect(`/publishers/activity/${activity.id}/edit`)
     }
 
     let publisher = null
@@ -59,7 +67,10 @@ export async function loader({ request }: Route.LoaderArgs) {
       publisher = await db.user.findUnique({
         where: {
           // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-          id_congregationId: { id: Number(searchParams.get('publisherId')), congregationId },
+          id_congregationId: {
+            id: Number(searchParams.get('publisherId')),
+            congregationId: currentUser.congregationId,
+          },
         },
         include: {
           activities: true,
@@ -76,12 +87,19 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 }
 
-export default function NewActivity({ loaderData }: Route.ComponentProps) {
+export default function NewActivity({ loaderData, actionData }: Route.ComponentProps) {
   const { publishers, publisher, selectedMonth, previousPage } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const [pioneer, setPioneer] = useState<PublisherType | null>(
     publisher?.type === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
   )
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createActivitySchema })
+    },
+  })
 
   const unavailableMonths = publisher?.activities.filter(a => a.year === selectedMonth.year).map(a => a.month) ?? []
 
@@ -94,7 +112,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
           <CardTitle>{m.activity_new_report_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <input type="hidden" name="previousPage" value={previousPage ?? ''} />
 
             <div className="space-y-2">
@@ -237,8 +255,9 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
               ].includes(publisher?.type as PublisherType) ||
               [PublisherType.PionnierAuxiliaires].includes(pioneer as PublisherType) ? (
                 <div className="space-y-2">
-                  <Label htmlFor="hours">{m.activity_new_hours_label()}</Label>
-                  <Input id="hours" name="hours" type="number" required min={0} />
+                  <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
+                  <Input {...getInputProps(fields.hours, { type: 'number' })} key={fields.hours.id} min={0} required />
+                  {fields.hours.errors && <p className="text-destructive text-sm">{fields.hours.errors}</p>}
                 </div>
               ) : (
                 <div className="flex items-center gap-3 self-end">
@@ -249,18 +268,26 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="studies">{m.activity_new_studies_label()}</Label>
-                <Input id="studies" name="studies" type="number" defaultValue={0} min={0} required />
+                <Label htmlFor={fields.studies.id}>{m.activity_new_studies_label()}</Label>
+                <Input
+                  {...getInputProps(fields.studies, { type: 'number' })}
+                  key={fields.studies.id}
+                  defaultValue={0}
+                  min={0}
+                  required
+                />
+                {fields.studies.errors && <p className="text-destructive text-sm">{fields.studies.errors}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="observations">{m.activity_new_observations_label()}</Label>
+              <Label htmlFor={fields.observations.id}>{m.activity_new_observations_label()}</Label>
               <textarea
-                id="observations"
+                id={fields.observations.id}
                 className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs"
-                name="observations"
+                name={fields.observations.name}
               />
+              {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
             <Button type="submit" className="self-start">
@@ -273,40 +300,42 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [Role.PublisherManager])
-  const canManagePublisher = can(Role.PublisherManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
+  const userWithRelations = currentUser as typeof currentUser & {
+    responsibleFor?: { id: number }
+    deputyFor?: { id: number }
+  }
   const canManageMyGroupActivity =
-    currentUser.responsibleFor?.id === currentUser.publisherGroupId ||
-    currentUser.deputyFor?.id === currentUser.publisherGroupId
+    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
+    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const previousPage = String(form.get('previousPage'))
-  const publisherId = Number(form.get('publisher'))
-  const month = Number(form.get('month'))
-  const year = Number(form.get('year'))
+  const submission = parseWithZod(await request.formData(), { schema: createActivitySchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  return withScope(congregationId, async db => {
+  const { publisher: publisherId, month, year, hours, studies, observations, preached, previousPage } = submission.value
+
+  return withScopeFromContext(context, async db => {
     const publisher = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: publisherId, congregationId },
+        id_congregationId: { id: publisherId, congregationId: currentUser.congregationId },
       },
     })
 
-    const preached = form.get('preached') === 'on'
-    const hours = Number(form.get('hours'))
-    const studies = Number(form.get('studies'))
-    const observations = String(form.get('observations'))
-
+    const session = await getSession(request.headers.get('Cookie'))
     if (publisher == null) {
       session.flash('error', m.activity_form_error_incomplete())
-      throw redirect(previousPage ?? '/congregation/publishers/activity/new', {
+      throw redirect(previousPage || '/publishers/activity/new', {
         headers: {
           'Set-Cookie': await commitSession(session),
         },
@@ -315,24 +344,22 @@ export async function action({ request }: Route.ActionArgs) {
 
     const type =
       publisher.type === PublisherType.Normal
-        ? (form.get('type') as PublisherType)
+        ? (submission.value.type as PublisherType)
         : (publisher.type ?? PublisherType.Normal)
-    const activity = await db.publisherActivity.create({
-      data: {
-        publisherId: publisher.id,
-        month,
-        year,
-        type,
-        isPublisher: hours > 0 ? true : preached,
-        hours,
-        studies,
-        notes: observations,
-        congregationId,
-      },
+    const activity = await createPublisherActivity(db, {
+      publisherId: publisher.id,
+      month,
+      year,
+      type,
+      isPublisher: hours > 0 ? true : preached,
+      hours,
+      studies,
+      notes: observations,
+      congregationId: currentUser.congregationId,
     })
 
     session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))
-    return redirect(previousPage ?? `/congregation/publishers/activity?month=${activity.month}&year=${activity.year}`, {
+    return redirect(previousPage || `/publishers/activity?month=${activity.month}&year=${activity.year}`, {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

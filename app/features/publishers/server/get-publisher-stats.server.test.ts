@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     user: { count: vi.fn() },
     publisherActivity: { groupBy: vi.fn() },
@@ -9,7 +9,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 }))
 
 const { getPublisherStats } = await import('./get-publisher-stats.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

@@ -1,5 +1,5 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function getBuildingDetails(db: TransactionClient, buildingId: number): Promise<DetailedBuilding | null> {
   return await db.building.findUnique({

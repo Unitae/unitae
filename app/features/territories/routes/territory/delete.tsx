@@ -1,24 +1,25 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { deleteTerritory } from '~/features/territories/server/delete-territory.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const territory = await db.territory.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound key
@@ -60,21 +61,18 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
-    const territory = await db.territory.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: requireParamId(params.territoryId, '/territories'), congregationId },
-      },
-    })
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
+    const territory = await deleteTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId)
 
     session.flash('success', m.territories_delete_flash_success({ number: territory.number }))
 

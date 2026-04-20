@@ -4,11 +4,10 @@ import { CSS } from '@dnd-kit/utilities'
 import { FolderOpen, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { Input } from '~/shared/ui/input'
@@ -21,9 +20,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Liste des sections du Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-  const canManageBoard = can(Role.BoardValidator)
+export function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageBoard = permissions.has(Role.BoardValidator)
 
   if (!canManageBoard) {
     logger.warn(`Tried to load board sections. User ID: ${currentUser.id}. Does NOT have rights to manage board.`)
@@ -38,7 +38,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const searchQuery = url.searchParams.get('q') ?? ''
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const sections = await db.boardSection.findMany({
       where: {
         congregationId,

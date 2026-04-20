@@ -1,19 +1,18 @@
 import { CalendarCheck, Pencil, X } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getGroups } from '~/features/publishers/server/groups'
-import { getBoolSetting } from '~/features/settings/server/settings'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { computeFilters } from '~/features/territories/server/attribution-filters'
-import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions'
+import { computeFilters } from '~/features/territories/server/attribution-filters.server'
+import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
@@ -29,19 +28,14 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesViewer,
-    Role.PublisherManager,
-    Role.PublisherViewer,
-    Role.TerritoriesManager,
-    Role.ProspectionViewer,
-  ])
-  const canViewTerritories = can(Role.TerritoriesViewer)
-  const canManagePublisher = can(Role.PublisherManager)
-  const canViewPublisher = can(Role.PublisherViewer)
-  const canManageTerritories = can(Role.TerritoriesManager)
-  const canViewProspection = can(Role.ProspectionViewer)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canViewPublisher = permissions.has(Role.PublisherViewer)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canViewProspection = permissions.has(Role.ProspectionViewer)
 
   if (!canViewTerritories) {
     if (canViewProspection) {
@@ -59,7 +53,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading territory attributions. User ID: ${currentUser.id}. ${canManageTerritories ? 'Has' : 'Does NOT have'} rights to manage territories.`,
   )
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)
@@ -68,6 +64,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
     const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url, congregationId)
 
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = { success: session.get('success'), error: session.get('error') }
     const groups = await getGroups(db, congregationId)
     const theocraticYear = getCurrentTheocraticYear()
@@ -211,10 +208,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     </TableCell>
                     <TableCell className="text-center">
                       {canViewPublisher ? (
-                        <Link
-                          to={`/congregation/publishers/${attribution.publisherId}/view`}
-                          className="hover:text-primary"
-                        >
+                        <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
                           {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                         </Link>
                       ) : (

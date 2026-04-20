@@ -1,5 +1,5 @@
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import {
   RESTING_PERIOD_FOR_CAMPAIGN,
   RESTING_PERIOD_FOR_DOORS_TO_DOORS,

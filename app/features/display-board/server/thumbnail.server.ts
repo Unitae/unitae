@@ -3,8 +3,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { promisify } from 'node:util'
-import logger from '~/shared/libs/logger.server'
-import { getBoardFileBuffer } from './document-storage'
+import logger from '~/shared/infra/logger.server'
+import { getBoardFileBuffer } from './document-storage.server'
 
 const execFileAsync = promisify(execFile)
 

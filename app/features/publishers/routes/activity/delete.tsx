@@ -1,31 +1,32 @@
 import { Form, redirect } from 'react-router'
 
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { deletePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityManager])
-  const canManageActivity = can(Role.ActivityManager)
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageActivity = permissions.has(Role.ActivityManager)
 
   if (!canManageActivity) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
-          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-          congregationId,
+          id: requireParamId(params.activityId, '/publishers/activity'),
+          congregationId: currentUser.congregationId,
         },
       },
       include: {
@@ -34,7 +35,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     })
 
     if (activity == null) {
-      throw redirect('/congregation/publishers/activity')
+      throw redirect('/publishers/activity')
     }
 
     return { activity }
@@ -71,26 +72,23 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityManager])
-  const canManageActivity = can(Role.ActivityManager)
+export function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageActivity = permissions.has(Role.ActivityManager)
 
   if (!canManageActivity) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
-    const activity = await db.publisherActivity.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: {
-          id: requireParamId(params.activityId, '/congregation/publishers/activity'),
-          congregationId,
-        },
-      },
-      include: { publisher: true },
-    })
+  return withScopeFromContext(context, async db => {
+    const activity = await deletePublisherActivity(
+      db,
+      requireParamId(params.activityId, '/publishers/activity'),
+      currentUser.congregationId,
+    )
 
+    const session = await getSession(request.headers.get('Cookie'))
     session.flash(
       'success',
       m.activity_delete_success({
@@ -99,7 +97,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     )
 
     const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/congregation/publishers/activity', {
+    return redirect(previousPage ?? '/publishers/activity', {
       headers: {
         'Set-Cookie': await commitSession(session),
       },

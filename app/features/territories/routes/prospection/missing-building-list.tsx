@@ -1,11 +1,10 @@
 import { Eye, Search } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings'
+import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 
 import Pagination from '~/shared/ui/Pagination'
@@ -17,21 +16,19 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_missing_buildings_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionViewer,
-    Role.ProspectionManager,
-    Role.TerritoriesManager,
-  ])
-  const canViewProspection = can(Role.ProspectionViewer)
-  const canManageProspection = can(Role.ProspectionManager)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canViewProspection) {
+  if (!permissions.has(Role.ProspectionViewer)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const canManageProspection = permissions.has(Role.ProspectionManager)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canViewProspection = permissions.has(Role.ProspectionViewer)
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const staleDate = await getProspectionStaleDate(db)
 
     const selectors = { inOpenData: false, active: true }

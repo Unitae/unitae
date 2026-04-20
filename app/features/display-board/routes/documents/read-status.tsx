@@ -1,14 +1,13 @@
 import { CheckCircle, XCircle } from 'lucide-react'
 import { redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/read-status'
 
@@ -16,13 +15,15 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_read_status_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!can(Role.BoardValidator)) {
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
+  const { congregationId } = currentUser
   const documentId = requireParamId(params.documentId, '/board/documents')
 
   audit({
@@ -33,7 +34,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     entityId: documentId,
   })
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key

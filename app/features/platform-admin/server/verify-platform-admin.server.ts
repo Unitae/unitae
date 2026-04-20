@@ -1,6 +1,7 @@
 import { redirect } from 'react-router'
+// Intentional cross-feature import: platform-admin depends on authentication for session management
 import { getSession } from '~/features/authentication/server/session.server'
-import { unscopedDb } from '~/shared/libs/db.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 
 export async function verifyPlatformAdmin(request: Request) {
   const session = await getSession(request.headers.get('Cookie'))
@@ -16,5 +17,5 @@ export async function verifyPlatformAdmin(request: Request) {
     throw redirect('/')
   }
 
-  return { userId: user.id, email: user.email }
+  return { userId: user.id, email: user.email, congregationId: user.congregationId }
 }

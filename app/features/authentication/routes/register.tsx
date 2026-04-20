@@ -1,4 +1,7 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
+import { registerSchema } from '~/features/authentication/schemas/login.schema'
 import { registerCongregation } from '~/features/authentication/server/register-congregation.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
@@ -37,8 +40,15 @@ function slugify(text: string): string {
     .replace(/^-|-$/g, '')
 }
 
-export default function RegisterPage({ loaderData }: Route.ComponentProps) {
+export default function RegisterPage({ loaderData, actionData }: Route.ComponentProps) {
   const { error, success } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: registerSchema })
+    },
+  })
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -59,22 +69,22 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
               <AlertDescription>{success}</AlertDescription>
             </Alert>
           )}
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="congregation-name">{m.auth_register_congregation_name_label()}</Label>
+              <Label htmlFor={fields['congregation-name'].id}>{m.auth_register_congregation_name_label()}</Label>
               <Input
-                id="congregation-name"
-                name="congregation-name"
-                type="text"
+                {...getInputProps(fields['congregation-name'], { type: 'text' })}
                 placeholder={m.auth_register_congregation_name_placeholder()}
-                required
               />
+              {fields['congregation-name'].errors && (
+                <p className="text-destructive text-sm">{fields['congregation-name'].errors}</p>
+              )}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="locale">{m.auth_register_locale_label()}</Label>
-              <Select name="locale" defaultValue="fr">
-                <SelectTrigger id="locale">
+              <Label htmlFor={fields.locale.id}>{m.auth_register_locale_label()}</Label>
+              <Select name={fields.locale.name} defaultValue={fields.locale.initialValue ?? 'fr'}>
+                <SelectTrigger id={fields.locale.id}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -85,21 +95,27 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
                   ))}
                 </SelectContent>
               </Select>
+              {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email">{m.auth_register_admin_email_label()}</Label>
-              <Input id="email" name="email" type="email" autoComplete="email" required />
+              <Label htmlFor={fields.email.id}>{m.auth_register_admin_email_label()}</Label>
+              <Input {...getInputProps(fields.email, { type: 'email' })} autoComplete="email" />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="password">{m.auth_register_password_label()}</Label>
-              <Input id="password" name="password" type="password" autoComplete="new-password" required />
+              <Label htmlFor={fields.password.id}>{m.auth_register_password_label()}</Label>
+              <Input {...getInputProps(fields.password, { type: 'password' })} autoComplete="new-password" />
+              {fields.password.errors && <p className="text-destructive text-sm">{fields.password.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="repeat-password">{m.auth_register_confirm_password_label()}</Label>
-              <Input id="repeat-password" name="repeat-password" type="password" autoComplete="new-password" required />
+              <Label htmlFor={fields['repeat-password'].id}>{m.auth_register_confirm_password_label()}</Label>
+              <Input {...getInputProps(fields['repeat-password'], { type: 'password' })} autoComplete="new-password" />
+              {fields['repeat-password'].errors && (
+                <p className="text-destructive text-sm">{fields['repeat-password'].errors}</p>
+              )}
             </div>
 
             <Button type="submit" className="mt-4 w-full">
@@ -122,33 +138,17 @@ export default function RegisterPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const form = await request.formData()
+  const submission = parseWithZod(await request.formData(), { schema: registerSchema })
 
-  const congregationName = String(form.get('congregation-name')).trim()
-  const locale = String(form.get('locale') ?? 'fr') as (typeof locales)[number]
-  const email = String(form.get('email')).trim()
-  const password = String(form.get('password'))
-  const repeatPassword = String(form.get('repeat-password'))
-
-  if (congregationName.length < 2) {
-    session.flash('error', m.auth_register_congregation_name_min_error())
+  if (submission.status !== 'success') {
+    session.flash('error', m.auth_register_generic_error())
     return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
   }
 
-  if (!email.includes('@') || email.length < 5) {
-    session.flash('error', m.auth_register_email_invalid_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
-
-  if (password.length < 8) {
-    session.flash('error', m.auth_register_password_min_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
-
-  if (password !== repeatPassword) {
-    session.flash('error', m.auth_register_password_mismatch_error())
-    return redirect('/register', { headers: { 'Set-Cookie': await commitSession(session) } })
-  }
+  const congregationName = submission.value['congregation-name'].trim()
+  const locale = submission.value.locale as (typeof locales)[number]
+  const email = submission.value.email.trim()
+  const password = submission.value.password
 
   const slug = slugify(congregationName)
   if (slug.length < 2) {

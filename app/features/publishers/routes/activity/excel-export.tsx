@@ -1,11 +1,9 @@
 import { redirect } from 'react-router'
-
-import { Role } from '~/features/authorization/model/roles.type'
 import { generatePublishersYearlyActivityXlsx } from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/excel-export'
 
@@ -13,9 +11,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_excel_export_meta_title() }]
 }
 
-export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.ActivityViewer])
-  const canViewActivities = can(Role.ActivityViewer)
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewActivities = permissions.has(Role.ActivityViewer)
 
   if (!canViewActivities) {
     logger.warn(
@@ -28,8 +27,8 @@ export async function loader({ params, request }: Route.LoaderArgs) {
     currentUser,
   })
 
-  return withScope(congregationId, async db => {
-    const file = await generatePublishersYearlyActivityXlsx(db, congregationId, Number(params.year))
+  return withScopeFromContext(context, async db => {
+    const file = await generatePublishersYearlyActivityXlsx(db, currentUser.congregationId, Number(params.year))
 
     return new Response(file, {
       status: 200,

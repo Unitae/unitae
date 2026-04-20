@@ -1,8 +1,7 @@
 import { Info } from 'lucide-react'
 import { redirect } from 'react-router'
 import { Cell, Pie, PieChart } from 'recharts'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getGroups } from '~/features/publishers/server/groups'
+import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { countAvailableTerritories } from '~/features/territories/server/available-territories.server'
@@ -38,8 +37,8 @@ import StatsFilters from '~/features/territories/ui/StatsFilters'
 import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
@@ -50,15 +49,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.stats_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.TerritoriesManager])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
     const params = url.searchParams
 

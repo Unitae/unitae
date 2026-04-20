@@ -1,12 +1,19 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { ArrowRight } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting, setSetting } from '~/features/settings/server/settings'
+import { data, Form, Link, redirect } from 'react-router'
+import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
+import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { unscopedDb, withScope } from '~/shared/libs/db.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
-import { PublisherType } from '~/shared/types/publisher-type'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -19,19 +26,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_congregation_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
-  const canManageSettings = can(Role.Admin)
+export async function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
+  const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const auxiliaryPioneerProfileActivated = await getBoolSetting(
       db,
       CongregationSettingKey.AuxiliaryPioneerProfileActivated,
-      congregationId,
+      currentUser.congregationId,
     )
 
     return {
@@ -41,28 +50,35 @@ export async function loader({ request }: Route.LoaderArgs) {
   })
 }
 
-export default function BuildingSettingsPage({ loaderData }: Route.ComponentProps) {
+export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { auxiliaryPioneerProfileActivated, congregationDisplayName } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: congregationSettingsSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={m.settings_congregation_title()} subtitle={m.settings_congregation_subtitle()} />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_congregation_local_title()}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="displayName">{m.settings_congregation_display_name_label()}</Label>
+              <Label htmlFor={fields.displayName.id}>{m.settings_congregation_display_name_label()}</Label>
               <Input
-                id="displayName"
-                name="displayName"
-                type="text"
+                {...getInputProps(fields.displayName, { type: 'text' })}
+                key={fields.displayName.id}
                 placeholder={m.settings_congregation_display_name_placeholder()}
                 defaultValue={congregationDisplayName}
               />
+              {fields.displayName.errors && <p className="text-destructive text-sm">{fields.displayName.errors}</p>}
               <p className="text-muted-foreground text-xs">{m.settings_congregation_display_name_hint()}</p>
             </div>
           </CardContent>
@@ -111,43 +127,28 @@ export default function BuildingSettingsPage({ loaderData }: Route.ComponentProp
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { congregation, can, congregationId } = await authenticateAndAuthorize(request, [Role.Admin])
-  const canManageSettings = can(Role.Admin)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const congregation = context.get(congregationContext)
+  const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const displayName = form.get('displayName')
-  const auxiliaryPioneerProfileActivated = String(
-    Boolean(form.get(CongregationSettingKey.AuxiliaryPioneerProfileActivated)),
-  )
+  const submission = parseWithZod(await request.formData(), { schema: congregationSettingsSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-  await unscopedDb.congregation.update({
-    where: { id: congregation.id },
-    data: { displayName: displayName ? String(displayName) : null },
-  })
+  const { displayName, [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
+    submission.value
 
-  return withScope(congregationId, async db => {
-    await setSetting(
-      db,
-      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+  return withScopeFromContext(context, async db => {
+    await updateCongregationSettings(db, congregation.id, {
+      displayName: displayName || null,
       auxiliaryPioneerProfileActivated,
-      congregationId,
-    )
-    if (auxiliaryPioneerProfileActivated === 'false') {
-      await db.user.updateMany({
-        where: {
-          congregationId,
-          type: PublisherType.PionnierAuxiliaires,
-        },
-        data: {
-          type: PublisherType.Normal,
-        },
-      })
-    }
+    })
 
     return redirect('/settings')
   })

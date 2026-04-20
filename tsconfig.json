@@ -25,7 +25,7 @@
         "forceConsistentCasingInFileNames": true,
         "paths": {
             "~/*": ["./app/*"],
-            "emails/*": ["./emails/*"]
+            "emails/*": ["./app/emails/*"]
         },
 
         // Vite takes care of building everything, not tsc.

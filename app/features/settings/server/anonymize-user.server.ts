@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
  * Anonymise un utilisateur en remplacant toutes les donnees personnelles

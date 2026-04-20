@@ -1,21 +1,21 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
+export function loader({ params, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
   logger.info(`Trying to remove days off. User ID: ${currentUser.id}. Event: ${params.eventId}`)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const event = await db.event.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -59,10 +59,12 @@ export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, congregationId } = await authenticateAndAuthorize(request)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const event = await db.event.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key

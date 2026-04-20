@@ -1,10 +1,9 @@
 import { Eye, Pencil, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { Role } from '~/features/authorization/model/roles.type'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -17,13 +16,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_list_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.PublisherViewer,
-    Role.PublisherManager,
-  ])
-  const canViewPublishers = can(Role.PublisherViewer)
-  const canManagePublisher = can(Role.PublisherManager)
+export function loader({ context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canViewPublishers = permissions.has(Role.PublisherViewer)
+  const canManagePublisher = permissions.has(Role.PublisherManager)
 
   if (!canViewPublishers) {
     logger.warn(
@@ -37,9 +34,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     `Loading publisher groups. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage groups and publishers.`,
   )
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const groups = await db.publisherGroup.findMany({
-      where: { congregationId },
+      where: { congregationId: currentUser.congregationId },
       include: {
         responsible: true,
         deputy: true,
@@ -113,13 +110,13 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  <Link to={`/congregation/publishers/${group.responsibleId}/view`} className="hover:text-primary">
+                  <Link to={`/publishers/${group.responsibleId}`} className="hover:text-primary">
                     {group.responsible.firstname} {group.responsible.lastname?.toLocaleUpperCase()}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
                   {group.deputy ? (
-                    <Link to={`/congregation/publishers/${group.deputyId}/view`} className="hover:text-primary">
+                    <Link to={`/publishers/${group.deputyId}`} className="hover:text-primary">
                       {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
                     </Link>
                   ) : (

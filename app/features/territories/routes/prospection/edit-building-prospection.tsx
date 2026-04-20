@@ -1,12 +1,13 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
   EntranceKind,
   entranceKindLabels as getEntranceKindLabels,
 } from '~/features/territories/model/entrance-kind.type'
+import { buildingProspectionSchema } from '~/features/territories/schemas/building-prospection.schema'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
@@ -21,41 +22,45 @@ import {
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-building-prospection'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionManager,
-    Role.TerritoriesManager,
-  ])
-  const canManageProspection = can(Role.ProspectionManager)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!canManageProspection) {
+  if (!permissions.has(Role.ProspectionManager)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
     const buildings = await getBuildings(db, congregationId, building.zip, building.street)
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = {
       success: session.get('success'),
       error: session.get('error'),
@@ -232,32 +237,34 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.ProspectionManager,
-    Role.TerritoriesManager,
-  ])
-  const canManageProspection = can(Role.ProspectionManager)
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!canManageProspection) {
+  if (!permissions.has(Role.ProspectionManager)) {
     throw redirect('/')
   }
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
+  const congregation = context.get(congregationContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
     if (building == null) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
     const form = await request.formData()
+    const submission = parseWithZod(form, { schema: buildingProspectionSchema })
+    if (submission.status !== 'success') {
+      return data(submission.reply(), { status: 400 })
+    }
 
     // manage modification shared entrance
     if (canManageTerritories) {
       const currentEntranceIdsSerialized = serializeSharedEntranceFromBuilding(building)
-      const entranceIds = unserializeSharedEntranceFormValue(form.get('shared-entrance-buildings'), building.id)
+      const entranceIds = unserializeSharedEntranceFormValue(submission.value['shared-entrance-buildings'], building.id)
       const entranceIdsSerialized = entranceIds.join(',')
 
       if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
@@ -280,7 +287,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
     // manage changes in prospection data
     try {
-      await setBuildingProspectionData(db, building.id, form)
+      await setBuildingProspectionData(db, building.id, submission.value)
 
       session.flash('success', m.prospection_edit_prospection_success())
     } catch (e) {

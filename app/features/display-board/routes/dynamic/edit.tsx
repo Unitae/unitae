@@ -1,18 +1,21 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { data, Form, Link, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import { updateDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
+import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
@@ -20,16 +23,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_dynamic_edit_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const settings = await db.boardDynamicDocumentSettings.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -48,8 +51,14 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentProps) {
+export default function EditDynamicDocumentPage({ loaderData, actionData }: Route.ComponentProps) {
   const { settings, sections } = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: updateDynamicDocumentSchema })
+    },
+  })
 
   let formattedVisibleFrom = ''
   if (settings.visibleFrom !== null) {
@@ -81,17 +90,22 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>
-              <Input id="title" name="title" type="text" defaultValue={settings.title} autoComplete="off" />
+              <Label htmlFor={fields.title.id}>{m.board_documents_new_name_label()}</Label>
+              <Input
+                {...getInputProps(fields.title, { type: 'text' })}
+                defaultValue={settings.title}
+                autoComplete="off"
+              />
+              {fields.title.errors && <p className="text-destructive text-sm">{fields.title.errors}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label htmlFor="sectionId">{m.board_documents_new_section_label()}</Label>
+              <Label htmlFor={fields.sectionId.id}>{m.board_documents_new_section_label()}</Label>
               <select
-                id="sectionId"
-                name="sectionId"
+                id={fields.sectionId.id}
+                name={fields.sectionId.name}
                 defaultValue={settings.sectionId}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
@@ -101,24 +115,21 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
                   </option>
                 ))}
               </select>
+              {fields.sectionId.errors && <p className="text-destructive text-sm">{fields.sectionId.errors}</p>}
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
+                <Label htmlFor={fields['visible-from'].id}>{m.board_documents_new_visible_from_label()}</Label>
                 <Input
-                  id="visible-from"
-                  name="visible-from"
-                  type="datetime-local"
+                  {...getInputProps(fields['visible-from'], { type: 'datetime-local' })}
                   defaultValue={formattedVisibleFrom}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
+                <Label htmlFor={fields['visible-until'].id}>{m.board_documents_new_visible_until_label()}</Label>
                 <Input
-                  id="visible-until"
-                  name="visible-until"
-                  type="datetime-local"
+                  {...getInputProps(fields['visible-until'], { type: 'datetime-local' })}
                   defaultValue={formattedVisibleUntil}
                 />
               </div>
@@ -126,13 +137,13 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
 
             <div className="flex items-center gap-2">
               <input
-                id="hightlighted"
-                name="hightlighted"
+                id={fields.hightlighted.id}
+                name={fields.hightlighted.name}
                 type="checkbox"
                 defaultChecked={settings.isHighlighted}
                 className="size-4 rounded border border-input accent-primary"
               />
-              <Label htmlFor="hightlighted" className="cursor-pointer font-normal">
+              <Label htmlFor={fields.hightlighted.id} className="cursor-pointer font-normal">
                 {m.board_documents_new_highlight_label()}
               </Label>
             </div>
@@ -142,13 +153,13 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
                 <h3 className="font-semibold text-sm">{m.board_dynamic_display_options_title()}</h3>
                 <div className="flex items-center gap-2">
                   <input
-                    id="showServices"
-                    name="showServices"
+                    id={fields.showServices.id}
+                    name={fields.showServices.name}
                     type="checkbox"
                     defaultChecked={settings.showServices}
                     className="size-4 rounded border border-input accent-primary"
                   />
-                  <Label htmlFor="showServices" className="cursor-pointer font-normal">
+                  <Label htmlFor={fields.showServices.id} className="cursor-pointer font-normal">
                     {m.board_dynamic_show_services_label()}
                   </Label>
                 </div>
@@ -165,29 +176,25 @@ export default function EditDynamicDocumentPage({ loaderData }: Route.ComponentP
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardValidator])
-
-  if (!can(Role.BoardValidator)) {
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const title = String(form.get('title')).trim()
-  const sectionId = Number(form.get('sectionId'))
-  const visibleFrom = new Date(String(form.get('visible-from')))
-  const visibleUntil = new Date(String(form.get('visible-until')))
-  const isHighlighted = form.get('hightlighted') === 'on'
-  const showServices = form.get('showServices') === 'on'
+  const session = await getSession(request.headers.get('Cookie'))
+  const submission = parseWithZod(await request.formData(), { schema: updateDynamicDocumentSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { title, sectionId } = submission.value
+  const visibleFrom = new Date(submission.value['visible-from'])
+  const visibleUntil = new Date(submission.value['visible-until'])
+  const isHighlighted = submission.value.hightlighted === 'on'
+  const showServices = submission.value.showServices === 'on'
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
-
-  if (title.length < 1) {
-    session.flash('error', m.common_empty_fields_error())
-    return redirect(`/board/dynamic/${dynamicId}/edit`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
-  }
 
   const parsedFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
   const parsedUntil = visibleUntil.getTime() > 0 ? visibleUntil : null
@@ -198,20 +205,16 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  return withScope(congregationId, async db => {
-    const settings = await db.boardDynamicDocumentSettings.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: dynamicId, congregationId },
-      },
-      data: {
-        title,
-        sectionId,
-        visibleFrom: parsedFrom,
-        visibleUntil: parsedUntil,
-        isHighlighted,
-        showServices,
-      },
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
+    const settings = await updateDynamicDocument(db, dynamicId, congregationId, {
+      title,
+      sectionId,
+      visibleFrom: parsedFrom,
+      visibleUntil: parsedUntil,
+      isHighlighted,
+      showServices,
     })
 
     session.flash('success', m.board_dynamic_edit_success({ name: settings.title }))

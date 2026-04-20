@@ -1,14 +1,17 @@
-import DocumentsExpiring from 'emails/notifications/documents-expiring'
-import { Role } from '~/features/authorization/model/roles.type'
-import { unscopedDb } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { mailer } from '~/shared/libs/mailer.server'
+import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
+import { emailQueue } from './email-queue.server'
 
 /**
  * Verifie tous les documents dont la visibilite expire dans les 48 prochaines heures
  * et envoie une notification aux valideurs du tableau d'affichage.
  */
-export async function checkExpiringDocuments(): Promise<{ congregationsNotified: number; documentsFound: number }> {
+export async function checkExpiringDocuments(): Promise<{
+  congregationsNotified: number
+  documentsFound: number
+  jobsEnqueued: number
+}> {
   const now = new Date()
   const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000)
 
@@ -35,7 +38,7 @@ export async function checkExpiringDocuments(): Promise<{ congregationsNotified:
   })
 
   if (expiringDocuments.length === 0) {
-    return { congregationsNotified: 0, documentsFound: 0 }
+    return { congregationsNotified: 0, documentsFound: 0, jobsEnqueued: 0 }
   }
 
   // Group by congregation
@@ -54,6 +57,7 @@ export async function checkExpiringDocuments(): Promise<{ congregationsNotified:
   }
 
   let congregationsNotified = 0
+  let jobsEnqueued = 0
 
   for (const [congregationId, { docs, displayName, slug }] of byCongregation) {
     // Find BoardValidator users for this congregation
@@ -73,29 +77,29 @@ export async function checkExpiringDocuments(): Promise<{ congregationsNotified:
     const baseUrl = process.env.BASE_URL ?? `https://${slug}.unitae.app`
     const emailFrom = `${displayName} <noreply@unitae.app>`
 
-    for (const user of validators) {
-      try {
-        await mailer.emails.send({
-          to: user.email,
-          from: emailFrom,
-          subject: `${docs.length} document(s) arrive(nt) à expiration`,
-          react: (
-            <DocumentsExpiring
-              email={user.email}
-              firstname={user.firstname ?? undefined}
-              documents={docs}
-              baseUrl={baseUrl}
-              platformName={displayName}
-            />
-          ),
-        })
-      } catch (error) {
-        logger.error('Failed to send expiration notification email', { userId: user.email, congregationId, error })
-      }
+    const jobs = validators.map(user => ({
+      name: 'documents-expiring',
+      data: {
+        type: 'documents-expiring' as const,
+        congregationId,
+        documents: docs,
+        validatorEmail: user.email,
+        validatorFirstname: user.firstname ?? undefined,
+        emailFrom,
+        baseUrl,
+        displayName,
+      },
+    }))
+
+    try {
+      await emailQueue.addBulk(jobs)
+      jobsEnqueued += jobs.length
+    } catch (error) {
+      logger.error('Failed to enqueue expiration notification jobs', { congregationId, error })
     }
 
     congregationsNotified++
   }
 
-  return { congregationsNotified, documentsFound: expiringDocuments.length }
+  return { congregationsNotified, documentsFound: expiringDocuments.length, jobsEnqueued }
 }

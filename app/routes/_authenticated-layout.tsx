@@ -1,16 +1,17 @@
 import { useEffect } from 'react'
-import { data, redirect } from 'react-router'
+import { data } from 'react-router'
 import { toast } from 'sonner'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { hasDataProcessingConsent } from '~/features/settings/server/consent.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { requireAuth } from '~/shared/middleware/auth.server'
+import { Role } from '~/shared/types/role'
 import { AppLayout } from '~/shared/ui/AppLayout'
+import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 
 import type { Route } from './+types/_authenticated-layout'
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { session, congregation, currentUser, can } = await authenticateAndAuthorize(request, [
+export const middleware: Route.MiddlewareFunction[] = [
+  requireAuth([
     Role.BoardUploader,
     Role.BoardValidator,
     Role.PublisherViewer,
@@ -21,14 +22,16 @@ export async function loader({ request }: Route.LoaderArgs) {
     Role.SettingsUserManager,
     Role.ProgramViewer,
     Role.ActivityViewer,
-  ])
+  ]),
+]
 
-  // Verifier le consentement RGPD avant d'acceder a l'application
-  const hasConsent = await hasDataProcessingConsent(currentUser.id)
-  if (!hasConsent) {
-    throw redirect('/consent')
-  }
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
+  const permissions = context.get(permissionsContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
+  const can = (role: Role) => permissions.has(role)
   const messages = { success: session.get('success'), error: session.get('error') }
 
   return data(
@@ -72,3 +75,5 @@ export default function AuthenticatedLayout({ loaderData }: Route.ComponentProps
 
   return <AppLayout permissions={permissions} congregationName={congregationName} />
 }
+
+export { RouteErrorBoundary as ErrorBoundary }

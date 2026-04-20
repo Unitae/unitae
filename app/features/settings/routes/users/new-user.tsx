@@ -1,12 +1,17 @@
-import { Form, redirect } from 'react-router'
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { createUserSchema } from '~/features/settings/schemas/user.schema'
+import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
+import {
+  congregationContext,
+  permissionsContext,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -18,9 +23,9 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
-  const canManageUser = can(Role.SettingsUserManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const canManageUser = permissions.has(Role.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
@@ -29,8 +34,14 @@ export async function loader({ request }: Route.LoaderArgs) {
   return null
 }
 
-export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
+export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const _users = loaderData
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: createUserSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -38,18 +49,30 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstname">{m.settings_user_new_firstname_label()}</Label>
-              <Input id="firstname" name="firstname" type="text" placeholder={m.settings_user_new_firstname_label()} />
+              <Label htmlFor={fields.firstname.id}>{m.settings_user_new_firstname_label()}</Label>
+              <Input
+                {...getInputProps(fields.firstname, { type: 'text' })}
+                placeholder={m.settings_user_new_firstname_label()}
+              />
+              {fields.firstname.errors && <p className="text-destructive text-sm">{fields.firstname.errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lastname">{m.settings_user_new_lastname_label()}</Label>
-              <Input id="lastname" name="lastname" type="text" placeholder={m.settings_user_new_lastname_label()} />
+              <Label htmlFor={fields.lastname.id}>{m.settings_user_new_lastname_label()}</Label>
+              <Input
+                {...getInputProps(fields.lastname, { type: 'text' })}
+                placeholder={m.settings_user_new_lastname_label()}
+              />
+              {fields.lastname.errors && <p className="text-destructive text-sm">{fields.lastname.errors}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{m.settings_user_new_email_label()}</Label>
-              <Input id="email" name="email" type="email" placeholder={m.settings_user_new_email_label()} />
+              <Label htmlFor={fields.email.id}>{m.settings_user_new_email_label()}</Label>
+              <Input
+                {...getInputProps(fields.email, { type: 'email' })}
+                placeholder={m.settings_user_new_email_label()}
+              />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
             <Button type="submit" className="mt-2">
               {m.settings_user_new_submit()}
@@ -61,65 +84,49 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, congregation, congregationId } = await authenticateAndAuthorize(request)
-  const form = await request.formData()
-  const firstname = String(form.get('firstname'))
-  const lastname = String(form.get('lastname'))
-  const email = String(form.get('email'))
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const congregation = context.get(congregationContext)
+  const submission = parseWithZod(await request.formData(), { schema: createUserSchema })
 
-  if (firstname.length < 1 || lastname.length < 1 || email.length < 1) {
-    throw redirect('/settings/users/new')
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  return withScope(congregationId, async db => {
-    const existingUser = await db.user.findUnique({
-      where: {
-        email: String(email),
-      },
-    })
+  const { firstname, lastname, email } = submission.value
 
-    if (existingUser != null) {
-      throw redirect('/settings/users/new')
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
+    try {
+      const ResetPasswordRequired = (await import('emails/reset-password-required')).default
+      const result = await createUser(
+        db,
+        congregation,
+        currentUser.id,
+        { firstname, lastname, email, congregationId: currentUser.congregationId },
+        (_userId, token) => (
+          <ResetPasswordRequired
+            email={email}
+            firstname={firstname || undefined}
+            token={token}
+            baseUrl={congregation.baseUrl}
+            platformName={congregation.displayName}
+          />
+        ),
+      )
+
+      if (!result.emailSent) {
+        session.flash('error', m.auth_email_send_warning_user_created())
+      }
+    } catch (error) {
+      if (error instanceof UserAlreadyExistsError) {
+        throw redirect('/settings/users/new')
+      }
+      throw error
     }
 
-    const limits = new LimitService(db, congregation)
-    await limits.errorIfWouldGoOverLimit('users')
-
-    const user = await db.user.create({
-      data: {
-        firstname: String(firstname),
-        lastname: String(lastname),
-        email: String(email).toLocaleLowerCase(),
-        active: true,
-        password: 'password',
-        emailVerifiedAt: new Date(),
-        congregationId,
-      },
+    return redirect('/settings/users', {
+      headers: { 'Set-Cookie': await commitSession(session) },
     })
-
-    const token = await createPasswordResetToken(user.id)
-
-    const ResetPasswordRequired = (await import('emails/reset-password-required')).default
-    await sendResetUserPasswordEmail(
-      user.id,
-      <ResetPasswordRequired
-        email={user.email}
-        firstname={user.firstname || undefined}
-        token={token}
-        baseUrl={congregation.baseUrl}
-        platformName={congregation.displayName}
-      />,
-    )
-
-    audit({
-      action: AuditAction.UserCreated,
-      congregationId,
-      actorId: currentUser.id,
-      entityType: 'User',
-      entityId: user.id,
-    })
-
-    return redirect('/settings/users')
   })
 }

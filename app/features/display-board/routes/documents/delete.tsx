@@ -1,27 +1,25 @@
 import { Form, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { deleteFile } from '~/features/display-board/server/document'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { deleteBoardDocument } from '~/features/display-board/server/board-document.server'
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader])
-  const canUploadDocument = can(Role.BoardUploader)
-
-  if (!canUploadDocument) {
+export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
@@ -56,35 +54,23 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can, congregationId } = await authenticateAndAuthorize(request, [Role.BoardUploader])
-  const canUploadDocument = can(Role.BoardUploader)
-
-  if (!canUploadDocument) {
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  if (!permissions.has(Role.BoardUploader)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
+
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const documentId = requireParamId(params.documentId, '/board')
 
     // Delete version files before cascade removes the rows
     await deleteAllVersionFiles(db, documentId)
 
-    const document = await db.boardDocument.delete({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: documentId, congregationId },
-      },
-    })
-
-    try {
-      await deleteFile(document)
-      if (document.thumbnailUri) {
-        await deleteFile({ uri: document.thumbnailUri })
-      }
-    } catch (error) {
-      logger.error('Document removal failed. Unexpected error during deletion of the file on the disk', { error })
-    }
+    const document = await deleteBoardDocument(db, documentId, congregationId)
 
     session.flash('success', m.board_documents_delete_success({ name: document.title }))
     logger.info(`Document removed. User ID: ${currentUser.id}. Document ID: ${document.id}.`, {

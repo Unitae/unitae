@@ -1,5 +1,6 @@
+// Intentional cross-feature import: dashboard aggregates data from events for the overview
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000
 

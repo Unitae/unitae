@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { BuildingProspectionInput } from '~/features/territories/schemas/building-prospection.schema'
 
 const SENTINEL_ENTRANCE = { id: 42, kind: 'residential' }
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   db: {
     building: { update: vi.fn() },
     buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
@@ -12,7 +13,20 @@ vi.mock('~/shared/libs/db.server', () => ({
 }))
 
 const { setBuildingProspectionData } = await import('./set-building-prospection-data.server')
-const { db } = await import('~/shared/libs/db.server')
+const { db } = await import('~/shared/infra/db.server')
+
+const defaultInput: BuildingProspectionInput = {
+  'prospection-date': '',
+  'has-residential': '',
+  homes: '',
+  phones: '',
+  liberals: '',
+  access: '',
+  'residential-notes': '',
+  'shared-entrance-buildings': '',
+  shopkinds: [],
+  'commerce-notes': [],
+}
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -23,46 +37,43 @@ beforeEach(() => {
   vi.mocked(db.buildingEntrance.findMany).mockResolvedValue([] as never)
 })
 
-function makeFormData(entries: Record<string, string>) {
-  const fd = new FormData()
-  for (const [key, value] of Object.entries(entries)) {
-    fd.append(key, value)
-  }
-  return fd
-}
-
 describe('setBuildingProspectionData', () => {
   it('parse la date de prospection', async () => {
-    const formData = makeFormData({
+    const input: BuildingProspectionInput = {
+      ...defaultInput,
       'has-residential': 'on',
       'prospection-date': '2025-04-08',
-    })
+    }
 
-    await setBuildingProspectionData(db, 1, formData)
+    await setBuildingProspectionData(db, 1, input)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeInstanceOf(Date)
   })
 
   it('la date de prospection est null par défaut', async () => {
-    const formData = makeFormData({ 'has-residential': 'on' })
+    const input: BuildingProspectionInput = {
+      ...defaultInput,
+      'has-residential': 'on',
+    }
 
-    await setBuildingProspectionData(db, 1, formData)
+    await setBuildingProspectionData(db, 1, input)
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
     expect(callArgs.data.prospectionDate).toBeNull()
   })
 
   it("met à jour l'entrée résidentielle avec les données d'accès", async () => {
-    const formData = makeFormData({
+    const input: BuildingProspectionInput = {
+      ...defaultInput,
       'has-residential': 'on',
       access: '3',
       pmr: 'on',
       doors: 'on',
       mailboxes: 'on',
-    })
+    }
 
-    await setBuildingProspectionData(db, 1, formData)
+    await setBuildingProspectionData(db, 1, input)
 
     const callArgs = vi.mocked(db.buildingEntrance.update).mock.calls[0][0]
     expect(callArgs.data.access).toBe(3)
@@ -72,14 +83,15 @@ describe('setBuildingProspectionData', () => {
   })
 
   it('upsert les données résidentielles (homes, phones, liberals)', async () => {
-    const formData = makeFormData({
+    const input: BuildingProspectionInput = {
+      ...defaultInput,
       'has-residential': 'on',
       homes: '15',
       phones: '3',
       liberals: '2',
-    })
+    }
 
-    await setBuildingProspectionData(db, 1, formData)
+    await setBuildingProspectionData(db, 1, input)
 
     const callArgs = vi.mocked(db.buildingResidentialData.upsert).mock.calls[0][0]
     expect(callArgs.update.homes).toBe(15)
@@ -88,9 +100,12 @@ describe('setBuildingProspectionData', () => {
   })
 
   it('les données résidentielles sont null par défaut', async () => {
-    const formData = makeFormData({ 'has-residential': 'on' })
+    const input: BuildingProspectionInput = {
+      ...defaultInput,
+      'has-residential': 'on',
+    }
 
-    await setBuildingProspectionData(db, 1, formData)
+    await setBuildingProspectionData(db, 1, input)
 
     const callArgs = vi.mocked(db.buildingResidentialData.upsert).mock.calls[0][0]
     expect(callArgs.update.homes).toBeNull()
@@ -99,11 +114,12 @@ describe('setBuildingProspectionData', () => {
   })
 
   it('crée une entrée commerce pour chaque shopkinds soumis', async () => {
-    const formData = new FormData()
-    formData.append('shopkinds', 'alimentaire')
-    formData.append('shopkinds', 'coiffure-cosmetiques')
+    const input: BuildingProspectionInput = {
+      ...defaultInput,
+      shopkinds: ['alimentaire', 'coiffure-cosmetiques'],
+    }
 
-    await setBuildingProspectionData(db, 1, formData)
+    await setBuildingProspectionData(db, 1, input)
 
     expect(vi.mocked(db.buildingEntrance.create)).toHaveBeenCalledTimes(2)
   })

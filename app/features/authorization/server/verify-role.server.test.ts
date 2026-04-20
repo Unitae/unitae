@@ -4,7 +4,7 @@ vi.mock('~/features/authentication/server/session.server', () => ({
   getSession: vi.fn(),
 }))
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findUnique: vi.fn() },
     congregationUserRole: { findFirst: vi.fn() },
@@ -13,7 +13,7 @@ vi.mock('~/shared/libs/db.server', () => ({
 
 const { verifyRole } = await import('./verify-role.server')
 const { getSession } = await import('~/features/authentication/server/session.server')
-const { unscopedDb } = await import('~/shared/libs/db.server')
+const { unscopedDb } = await import('~/shared/infra/db.server')
 
 function makeRequest() {
   return new Request('http://localhost/', {

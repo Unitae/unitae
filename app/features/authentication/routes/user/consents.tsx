@@ -1,9 +1,10 @@
-import { Form, Link, redirect } from 'react-router'
-import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/features/settings/server/consent.server'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, Link, redirect } from 'react-router'
+import { consentSchema } from '~/features/authentication/schemas/login.schema'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -20,27 +21,32 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.user_consents_page_title()} - Unitae` }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
+export function loader({ context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const consents = await getActiveConsents(db, currentUser.id)
     return { consents }
   })
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
-  const form = await request.formData()
-  const purpose = String(form.get('purpose'))
+export async function action({ request, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const submission = parseWithZod(await request.formData(), { schema: consentSchema })
 
-  await withScope(congregationId, async db => {
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const { purpose } = submission.value
+
+  await withScopeFromContext(context, async db => {
     await withdrawConsent(db, currentUser.id, purpose as ConsentPurpose)
   })
 
   audit({
     action: AuditAction.ConsentWithdrawn,
-    congregationId,
+    congregationId: currentUser.congregationId,
     actorId: currentUser.id,
     metadata: { purpose },
   })

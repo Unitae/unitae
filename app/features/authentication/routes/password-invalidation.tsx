@@ -2,14 +2,14 @@ import ResetPasswordRequired from 'emails/reset-password-required'
 import { redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { resolveCongregation } from '~/shared/libs/congregation.server'
-import { unscopedDb as db } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
+import { Role } from '~/shared/types/role'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/password-invalidation'
 
 export const meta: Route.MetaFunction = () => {
@@ -20,11 +20,12 @@ export function loader() {
   throw redirect('/')
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { session, currentUser, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
-  const canManageUser = can(Role.SettingsUserManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const currentUser = context.get(userContext)
+  const permissions = context.get(permissionsContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  if (!canManageUser) throw redirect('/')
+  if (!permissions.has(Role.SettingsUserManager)) throw redirect('/')
 
   const user = await db.user.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },
@@ -34,7 +35,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  await sendResetUserPasswordEmail(
+  const sent = await sendResetUserPasswordEmail(
     user.id,
     <ResetPasswordRequired
       email={user.email}
@@ -44,6 +45,14 @@ export async function action({ request, params }: Route.ActionArgs) {
       platformName={congregation.displayName}
     />,
   )
+
+  if (!sent) {
+    session.flash('error', m.auth_email_send_error())
+    return redirect(`/settings/users/${user.id}/edit`, {
+      headers: { 'Set-Cookie': await commitSession(session) },
+    })
+  }
+
   audit({
     action: AuditAction.PasswordResetRequested,
     congregationId: user.congregationId,

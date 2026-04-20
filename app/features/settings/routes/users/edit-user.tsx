@@ -1,12 +1,13 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { editUserSchema } from '~/features/settings/schemas/user.schema'
+import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
-import { AuditAction, audit } from '~/shared/libs/audit.server'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
   AlertDialog,
@@ -26,6 +27,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
 
@@ -53,23 +55,24 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.SettingsUserManager,
-    Role.Admin,
-  ])
-  const canManageUser = can(Role.SettingsUserManager)
-  const isAdmin = can(Role.Admin)
+export async function loader({ request, params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageUser = permissions.has(Role.SettingsUserManager)
+  const isAdmin = permissions.has(Role.Admin)
 
   if (!canManageUser) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
     const user = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: requireParamId(params.userId, '/settings/users'), congregationId },
+        id_congregationId: {
+          id: requireParamId(params.userId, '/settings/users'),
+          congregationId: currentUser.congregationId,
+        },
       },
       include: {
         congregationRoles: { include: { role: true } },
@@ -80,6 +83,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
     const roleList = await db.userRole.findMany()
     const missEmail = user.email.includes('@placeholder.unitae.app')
+    const session = await getSession(request.headers.get('Cookie'))
 
     return data(
       {
@@ -105,8 +109,15 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   })
 }
 
-export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
+export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const { messages, roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: editUserSchema })
+    },
+  })
 
   const publisherNotUser = user.email == null
 
@@ -130,7 +141,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
           <>
             {user.isPublisher === true ? (
               <Button asChild variant="outline" size="icon" title={m.settings_user_edit_view_publisher_title()}>
-                <Link to={`/congregation/publishers/${user.id}/edit`}>
+                <Link to={`/publishers/${user.id}/edit`}>
                   <IdCard className="size-4" />
                 </Link>
               </Button>
@@ -171,39 +182,39 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
             <div className="flex gap-4 max-sm:flex-col">
               <div className="flex-1 space-y-2">
-                <Label htmlFor="firstname">{m.settings_user_edit_firstname_label()}</Label>
+                <Label htmlFor={fields.firstname.id}>{m.settings_user_edit_firstname_label()}</Label>
                 <Input
-                  id="firstname"
-                  name="firstname"
-                  type="text"
+                  {...getInputProps(fields.firstname, { type: 'text' })}
+                  key={fields.firstname.id}
                   placeholder={m.settings_user_edit_firstname_label()}
                   defaultValue={user.firstname ?? ''}
                 />
+                {fields.firstname.errors && <p className="text-destructive text-sm">{fields.firstname.errors}</p>}
               </div>
               <div className="flex-1 space-y-2">
-                <Label htmlFor="lastname">{m.settings_user_edit_lastname_label()}</Label>
+                <Label htmlFor={fields.lastname.id}>{m.settings_user_edit_lastname_label()}</Label>
                 <Input
-                  id="lastname"
-                  name="lastname"
-                  type="text"
+                  {...getInputProps(fields.lastname, { type: 'text' })}
+                  key={fields.lastname.id}
                   placeholder={m.settings_user_edit_lastname_label()}
                   defaultValue={user.lastname ?? ''}
                 />
+                {fields.lastname.errors && <p className="text-destructive text-sm">{fields.lastname.errors}</p>}
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">{m.settings_user_edit_email_label()}</Label>
+              <Label htmlFor={fields.email.id}>{m.settings_user_edit_email_label()}</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
+                {...getInputProps(fields.email, { type: 'email' })}
+                key={fields.email.id}
                 placeholder={m.settings_user_edit_email_label()}
                 defaultValue={user.email ?? ''}
                 required
               />
+              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -305,63 +316,31 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const { currentUser, congregationId, can } = await authenticateAndAuthorize(request, [Role.SettingsUserManager])
-  const canManageUser = can(Role.SettingsUserManager)
+export async function action({ request, params, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
+  const canManageUser = permissions.has(Role.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const firstname = form.get('firstname')
-  const lastname = form.get('lastname')
-  const email = form.get('email')
-  const active = form.get('active')
-  const roles = form.getAll('roles')
-
   const userId = requireParamId(params.userId, '/settings/users')
+  const submission = parseWithZod(await request.formData(), { schema: editUserSchema })
 
-  return withScope(congregationId, async db => {
-    await db.user.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: userId, congregationId },
-      },
-      data: {
-        firstname: String(firstname),
-        lastname: String(lastname),
-        email: String(email).toLocaleLowerCase(),
-        active: Boolean(active),
-      },
-    })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
 
-    // Update congregation-scoped roles: delete existing, create new
-    await db.congregationUserRole.deleteMany({
-      where: { userId, congregationId },
-    })
+  const { firstname, lastname, email, active, roles } = submission.value
 
-    const roleRecords = await db.userRole.findMany({
-      where: { key: { in: roles.map(String) } },
-    })
-
-    if (roleRecords.length > 0) {
-      await db.congregationUserRole.createMany({
-        data: roleRecords.map(role => ({
-          userId,
-          roleId: role.id,
-          congregationId,
-        })),
-      })
-    }
-
-    audit({
-      action: AuditAction.UserUpdated,
-      congregationId,
-      actorId: currentUser.id,
-      entityType: 'User',
-      entityId: userId,
-      metadata: { roles: roles.map(String) },
+  return withScopeFromContext(context, async db => {
+    await updateUser(db, userId, currentUser.congregationId, currentUser.id, {
+      firstname,
+      lastname,
+      email,
+      active,
+      roles,
     })
 
     return redirect('/settings/users')

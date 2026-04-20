@@ -1,5 +1,5 @@
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
 
 export type { TerritoryCountByType } from './territory-count-by-type.type'

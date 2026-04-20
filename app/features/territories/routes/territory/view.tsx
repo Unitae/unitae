@@ -1,27 +1,26 @@
 import { CalendarCheck, Download, ExternalLink, Pencil, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
-import { Role } from '~/features/authorization/model/roles.type'
-import { getBoolSetting } from '~/features/settings/server/settings'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { findTerritoryWithHistory } from '~/features/territories/server/attributions'
-import { aggregateEntrance } from '~/features/territories/server/buildings'
+import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
+import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { getOptionalEnv } from '~/shared/libs/env.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
+import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { getOptionalEnv } from '~/shared/utils/env.server'
+import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
 
@@ -29,21 +28,18 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const { can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesViewer,
-    Role.TerritoriesManager,
-    Role.PublisherViewer,
-  ])
-  const canViewTerritories = can(Role.TerritoriesViewer)
-  const canManageTerritories = can(Role.TerritoriesManager)
-  const canViewPublisher = can(Role.PublisherViewer)
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canViewTerritories) {
+  if (!permissions.has(Role.TerritoriesViewer)) {
     throw redirect('/')
   }
 
-  return withScope(congregationId, async db => {
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canViewPublisher = permissions.has(Role.PublisherViewer)
+  const { congregationId } = context.get(userContext)
+
+  return withScopeFromContext(context, async db => {
     const territory = await findTerritoryWithHistory(
       db,
       requireParamId(params.territoryId, '/territories'),
@@ -113,7 +109,7 @@ function CurrentAttributionSection({
       <div className="flex flex-col">
         <span className="font-medium">
           {canViewPublisher ? (
-            <Link to={`/congregation/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
+            <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
               {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
             </Link>
           ) : (
@@ -194,10 +190,7 @@ function AttributionHistoryTable({
               <TableRow key={attribution.id}>
                 <TableCell>
                   {canViewPublisher ? (
-                    <Link
-                      to={`/congregation/publishers/${attribution.publisherId}/view`}
-                      className="hover:text-primary"
-                    >
+                    <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
                       {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                     </Link>
                   ) : (

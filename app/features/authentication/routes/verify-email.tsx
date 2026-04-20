@@ -1,5 +1,5 @@
+import VerifyEmailTemplate from 'emails/verify-email'
 import { Form, Link, redirect } from 'react-router'
-import VerifyEmailTemplate from '~/../emails/verify-email'
 import {
   createEmailVerificationToken,
   getLatestVerificationToken,
@@ -7,8 +7,8 @@ import {
 import { sendVerificationEmail } from '~/features/authentication/server/send-verification-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
-import { resolveCongregation } from '~/shared/libs/congregation.server'
-import { unscopedDb as db } from '~/shared/libs/db.server'
+import { resolveCongregation } from '~/shared/domain/congregation.server'
+import { unscopedDb as db } from '~/shared/infra/db.server'
 
 import type { Route } from './+types/verify-email'
 
@@ -97,7 +97,7 @@ export async function action({ request }: Route.ActionArgs) {
   const token = await createEmailVerificationToken(userId)
   const congregation = await resolveCongregation(user.congregationId)
 
-  await sendVerificationEmail(
+  const sent = await sendVerificationEmail(
     userId,
     VerifyEmailTemplate({
       email: user.email,
@@ -108,7 +108,11 @@ export async function action({ request }: Route.ActionArgs) {
     }),
   )
 
-  session.flash('success', m.verify_email_resent())
+  if (sent) {
+    session.flash('success', m.verify_email_resent())
+  } else {
+    session.flash('success', m.auth_email_send_error())
+  }
   return redirect('/verify-email', {
     headers: { 'Set-Cookie': await commitSession(session) },
   })

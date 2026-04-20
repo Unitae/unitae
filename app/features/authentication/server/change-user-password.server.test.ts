@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findFirst: vi.fn(), update: vi.fn() },
   },
 }))
 
-vi.mock('~/shared/libs/crypto.server', () => ({
+vi.mock('~/shared/auth/crypto.server', () => ({
   compare: vi.fn(),
   hash: vi.fn(),
 }))
@@ -16,8 +16,8 @@ vi.mock('./reset-user-password.server', () => ({
 }))
 
 const { changeUserPassword } = await import('./change-user-password.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
-const { compare } = await import('~/shared/libs/crypto.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const { compare } = await import('~/shared/auth/crypto.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

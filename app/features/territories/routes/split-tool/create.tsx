@@ -1,12 +1,13 @@
-import { redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, redirect } from 'react-router'
 
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
+import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import { LimitService } from '~/shared/libs/limits.server'
+import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { LimitService } from '~/shared/domain/limits.server'
+import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/create'
 
@@ -14,60 +15,33 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const { session, congregation, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesManager,
-  ])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     throw redirect('/')
   }
 
-  const form = await request.formData()
-  const type = form.get('type')
-  const entrances = form.get('entranceIds')
-
-  if (type == null || entrances == null) {
-    throw redirect('/territories/buildings/split-territories')
+  const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
   }
 
-  return withScope(congregationId, async db => {
-    const count = await db.territory.count({
-      where: { type: String(type), congregationId },
-    })
+  const { type, entranceIds } = submission.value
+  const congregation = context.get(congregationContext)
 
-    let prefix = 'D'
-
-    if (type === TerritoryKind.Hotel) {
-      prefix = 'H'
-    } else if (type === TerritoryKind.Univ) {
-      prefix = 'U'
-    } else if (type === TerritoryKind.Commerces) {
-      prefix = 'C'
-    } else if (type === TerritoryKind.Phone) {
-      prefix = 'P'
-    }
-
-    const number = `${prefix}${String(count + 1).padStart(3, '0')}`
-
+  return withScopeFromContext(context, async db => {
+    const session = await getSession(request.headers.get('Cookie'))
     const limits = new LimitService(db, congregation)
     await limits.errorIfWouldGoOverLimit('territories')
 
-    await db.territory.create({
-      data: {
-        number: number,
-        type: String(type),
-        entrances: {
-          connect: String(entrances)
-            .split(',')
-            .map(el => ({ id: Number(el) })),
-        },
-        congregationId: congregation.id,
-      },
+    const territory = await createTerritoryFromSplit(db, {
+      type,
+      entranceIds: entranceIds.split(',').map(el => Number(el)),
+      congregationId: congregation.id,
     })
 
-    session.flash('success', m.split_tool_create_flash_success({ number }))
+    session.flash('success', m.split_tool_create_flash_success({ number: territory.number }))
 
     const previousPage = request.headers.get('referer')
     return redirect(previousPage ?? '/territories/buildings/split-territories', {

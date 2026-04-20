@@ -1,7 +1,7 @@
 import { Readable } from 'node:stream'
 import type { ReadableStream } from 'node:stream/web'
 import { parse } from 'csv'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function fetchOpenData(db: TransactionClient) {
   const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })

@@ -1,13 +1,11 @@
-import { EventKind } from '~/features/events/model/event-kind.type'
-import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
-import { ConsentPurpose, recordConsentUnscoped } from '~/features/settings/server/consent.server'
-import * as m from '~/paraglide/messages'
 import type { locales } from '~/paraglide/runtime'
-import { hash } from '~/shared/libs/crypto.server'
+import { hash } from '~/shared/auth/crypto.server'
+import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
+import { seedCongregationDefaults } from '~/shared/domain/setup.server'
 
 type Locale = (typeof locales)[number]
 
-import { unscopedDb as db, withScope } from '~/shared/libs/db.server'
+import { unscopedDb as db, withScope } from '~/shared/infra/db.server'
 
 export async function setupFirstUser(
   email: string,
@@ -49,16 +47,7 @@ export async function setupFirstUser(
   // Create default EventKind and programme templates inside a scoped
   // transaction so PostgreSQL RLS allows the inserts.
   await withScope(congregation.id, async scopedDb => {
-    await scopedDb.eventKind.create({
-      data: {
-        name: m.seed_event_kind_absence({}, { locale }),
-        key: EventKind.Off,
-        color: '#cfcfcf',
-        congregationId: congregation.id,
-      },
-    })
-
-    await seedDefaultTemplates(scopedDb, congregation.id, locale)
+    await seedCongregationDefaults(scopedDb, congregation.id, locale)
   })
 
   // Enregistrer le consentement RGPD initial

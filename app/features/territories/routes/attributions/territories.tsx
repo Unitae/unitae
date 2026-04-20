@@ -1,8 +1,8 @@
 import { ExternalLink, Send } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession } from '~/features/authentication/server/session.server'
-import { Role } from '~/features/authorization/model/roles.type'
+import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { Role } from '~/shared/types/role'
 
 function getTerritoryTypeLabel(type: string): string {
   const labels: Record<string, () => string> = {
@@ -42,15 +42,14 @@ function territoryContentLabel(type: string, entrances: { homes: number | null; 
     : m.territories_content_entrances_one({ count: String(count) })
 }
 
-import { getZips } from '~/features/territories/server/buildings'
-import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories'
-import { computeFilters } from '~/features/territories/server/territory-filters'
+import { getZips } from '~/features/territories/server/buildings.server'
+import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
+import { computeFilters } from '~/features/territories/server/territory-filters.server'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -63,13 +62,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_new_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, can, congregationId } = await authenticateAndAuthorize(request, [
-    Role.TerritoriesManager,
-  ])
-  const canManageTerritories = can(Role.TerritoriesManager)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
 
-  if (!canManageTerritories) {
+  if (!permissions.has(Role.TerritoriesManager)) {
     logger.warn(
       `Tried to load territories available for attribution. User ID: ${currentUser.id}. Does NOT have rights to manage territories.`,
     )
@@ -78,13 +75,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   logger.info(`Loading territories available for attribution. User ID: ${currentUser.id}.`)
 
-  return withScope(congregationId, async db => {
+  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const { congregationId } = currentUser
+
+  return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
     const selectors = await computeFilters(url.searchParams)
     selectors.attributions = { none: { endDate: null } }
 
     const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url, congregationId)
 
+    const session = await getSession(request.headers.get('Cookie'))
     const messages = { success: session.get('success'), error: session.get('error') }
     const zips = await getZips(db, congregationId)
 

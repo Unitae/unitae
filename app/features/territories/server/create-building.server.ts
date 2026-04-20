@@ -1,6 +1,6 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
-import type { TransactionClient } from '~/shared/libs/db.server'
-import { pointInPolygon } from '~/shared/libs/point-in-polygon.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
 
 export async function createBuilding(

@@ -1,10 +1,10 @@
 import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
+import { getSession } from '~/features/authentication/server/session.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -15,10 +15,12 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_meta_title() }]
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const { currentUser, session, congregationId } = await authenticateAndAuthorize(request)
+export async function loader({ request, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
+  const session = await getSession(request.headers.get('Cookie'))
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const events = await getNextDaysOffs(db, currentUser.id, congregationId)
 
     logger.info(`Loading personal Days Off list. User ID: ${currentUser.id}`)

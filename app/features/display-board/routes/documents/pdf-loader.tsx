@@ -1,20 +1,20 @@
 import { redirect } from 'react-router'
-import { getFileStream } from '~/features/display-board/server/document'
-import { authenticateAndAuthorize } from '~/shared/libs/auth.server'
-import { withScope } from '~/shared/libs/db.server'
-import logger from '~/shared/libs/logger.server'
-import { requireParamId } from '~/shared/libs/params.server'
+import { getFileStream } from '~/features/display-board/server/document.server'
+import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import logger from '~/shared/infra/logger.server'
+import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/pdf-loader'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ params, request }: Route.LoaderArgs) {
-  const { currentUser, congregationId } = await authenticateAndAuthorize(request)
+export function loader({ params, context }: Route.LoaderArgs) {
+  const currentUser = context.get(userContext)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 
-  return withScope(congregationId, async db => {
+  return withScopeFromContext(context, async db => {
+    const { congregationId } = currentUser
     const document = await db.boardDocument.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: prisma compound key

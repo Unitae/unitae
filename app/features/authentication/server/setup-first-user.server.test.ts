@@ -5,7 +5,7 @@ const scopedDb = {
   programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
 }
 
-vi.mock('~/shared/libs/db.server', () => ({
+vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { create: vi.fn() },
     user: { create: vi.fn() },
@@ -16,12 +16,12 @@ vi.mock('~/shared/libs/db.server', () => ({
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
 
-vi.mock('~/shared/libs/crypto.server', () => ({
+vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('hashed-password' as never),
 }))
 
 const { setupFirstUser } = await import('./setup-first-user.server')
-const { unscopedDb: db } = await import('~/shared/libs/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

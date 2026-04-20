@@ -1,6 +1,7 @@
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import * as m from '~/paraglide/messages'
-import { unscopedDb } from '~/shared/libs/db.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
 
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -13,7 +14,14 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await verifyPlatformAdmin(request)
+  const admin = await verifyPlatformAdmin(request)
+
+  audit({
+    action: AuditAction.PlatformUsersListed,
+    congregationId: admin.congregationId,
+    actorId: admin.userId,
+    actorEmail: admin.email,
+  })
 
   const users = await unscopedDb.user.findMany({
     include: {

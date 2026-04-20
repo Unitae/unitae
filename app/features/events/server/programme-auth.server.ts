@@ -1,6 +1,6 @@
-import { Role } from '~/features/authorization/model/roles.type'
 import { isTemplateResponsible } from '~/features/events/server/programme-templates.server'
-import type { TransactionClient } from '~/shared/libs/db.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { Role } from '~/shared/types/role'
 
 export async function canEditEvent(
   db: TransactionClient,

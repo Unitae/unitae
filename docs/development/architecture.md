@@ -1,4 +1,4 @@
-# Unitae — Architecture Schema
+# Architecture
 
 ## High-Level Architecture
 
@@ -44,28 +44,55 @@
 │  └─────────────────┘  └──────────────────┘              │
 │                                                         │
 │  Global: UserRole (14 role definitions)                 │
-│  Global: PasswordResetToken                             │
+│  Global: PasswordResetToken, EmailVerificationToken     │
+│  Global: AuditLog, DataDeletionRecord, ConsentRecord    │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## Request Flow
 
 1. **Reverse Proxy** (Traefik/Nginx) routes incoming requests to web pods
-2. **React Router** matches route, runs loader/action
-3. **`authenticateAndAuthorize(request, roles)`** authenticates user, checks roles, and returns a **scoped `db` client**
-4. **Scoped `db`** auto-injects `congregationId` into all queries (via closure, not AsyncLocalStorage)
-5. **Service layer** (`features/*/server/`) receives `db` as first parameter and handles business logic
-6. **Route component** renders with loader data
+2. **React Router** matches route, runs middleware then loader/action
+3. **`requireAuth(roles)`** middleware (from `app/shared/middleware/auth.server.ts`) authenticates user, resolves permissions, checks GDPR consent, and sets typed context
+4. **Loader/action** reads context via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
+5. **`withScopeFromContext(context, fn)`** opens a PostgreSQL transaction with `SET LOCAL` for Row-Level Security
+6. **Service functions** (`features/*/server/`) receive the scoped `TransactionClient` and handle business logic
+7. **Route component** renders with loader data
 
 ```
-Request → authenticateAndAuthorize(request, [Role.X, Role.Y])
-        → verifySession(request)     // authenticates user
-        → verifyRole(request, role)  // checks permissions (via Promise.all)
-        → createScopedDb(congregationId)  // scoped db from closure
-        → return { currentUser, congregation, session, can, db }
+Middleware → requireAuth([Role.X, Role.Y])
+           → verifySession(request)     // authenticates user, returns congregation
+           → verifyRole(request, role)  // checks permissions (via Promise.all)
+           → context.set(userContext, currentUser)
+           → context.set(congregationContext, congregation)
+           → context.set(permissionsContext, permissions)
+
+Route     → context.get(userContext)             // read current user
+          → withScopeFromContext(context, async db => { ... })
+          → db is a TransactionClient scoped by RLS
+          → service functions receive db as first parameter
 ```
 
-> **Why not AsyncLocalStorage?** The Prisma 7 pg adapter breaks ALS propagation after async queries. Using a closure-based scoped `db` client eliminates this issue entirely.
+## Data Isolation
+
+Tenant isolation uses **PostgreSQL Row-Level Security (RLS)** activated via `SET LOCAL` inside transactions.
+
+- **`db` and `unscopedDb`** are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
+- **`withScope(congregationId, fn)`** runs `fn` inside a `$transaction` that first executes `SET LOCAL app.congregation_id = '<id>'`. The `SET LOCAL` is automatically rolled back when the transaction ends, preventing context leakage through the connection pool
+- Without `SET LOCAL` (outside `withScope`), RLS policies permit all rows — this is the "unscoped" mode
+
+When to use each:
+
+| Context | Method | Example |
+|---------|--------|---------|
+| Authenticated routes | `withScope(congregationId, async db => { ... })` | Territory list, publisher creation |
+| Login, setup, health | `unscopedDb` directly | Password validation, health check |
+| Background workers | `withScope(congregationId, ...)` or `unscopedDb` | Sync jobs use `withScope`, email jobs use `unscopedDb` with explicit `where` |
+| Platform admin | `unscopedDb` | Cross-congregation queries |
+
+**Scoped models** (12): User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
+
+**Global models**: UserRole, Congregation, CongregationUserRole, PasswordResetToken, EmailVerificationToken, AuditLog, DataDeletionRecord, ConsentRecord
 
 ## Authentication & Role Flow
 
@@ -74,25 +101,27 @@ Login → validateCredentials(email, password)
       → set session cookie (userId)
       → redirect to /
 
-Protected Route → authenticateAndAuthorize(request, [roles])
-                → verifySession: fetch user (unscopedDb)
+Protected Route → requireAuth([roles]) middleware on layout route
+                → verifySession: fetch user (unscopedDb), check suspension/trial/email
                 → verifyRole: check CongregationUserRole (unscopedDb, via Promise.all)
-                → createScopedDb(congregationId)  // closure-based, no ALS
-                → return { currentUser, congregation, session, can, db }
+                → context.set(userContext, currentUser)
+                → context.set(congregationContext, congregation)
+                → context.set(permissionsContext, Set<Role>)
 
-Role Check → can(Role.TerritoriesViewer) → boolean
-           (resolved during authenticateAndAuthorize, no extra DB query)
+Role Check → context.get(permissionsContext).has(Role.TerritoriesViewer) → boolean
+           (resolved during requireAuth middleware, no extra DB query)
 ```
 
-## Data Isolation
+## Redis Architecture
 
-- **`db` from `authenticateAndAuthorize`** (scoped): Injects `congregationId` via closure — use in all authenticated routes and pass to service functions
-- **`unscopedDb`** (global): No injection — use for login, setup, health, password reset
-- **`createScopedDb(congregationId)`**: Creates a scoped client for non-route contexts (e.g., background workers)
-- **Scoped models** (12): User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
-- **Global models**: UserRole, Congregation, CongregationUserRole, PasswordResetToken
+Two Redis clients serve different purposes:
 
-> **Important**: Service functions must receive `db: ScopedDb` as their first parameter. Never import the global `db` in service functions — it relies on AsyncLocalStorage which is unreliable with the Prisma 7 pg adapter.
+| Client | Timeout | Purpose |
+|--------|---------|---------|
+| `redis` | 60s command, infinite retries | BullMQ queues (needs long timeouts for job processing) |
+| `redisRateLimit` | 2s command, 0 retries | Login/password-reset rate limiting (fails fast to avoid blocking login) |
+
+Both share the same host/port/password configuration.
 
 ## File Storage
 
@@ -103,64 +132,40 @@ Two storage drivers, selected automatically based on `S3_ENDPOINT`:
 | `S3_ENDPOINT` is set | S3 | S3-compatible bucket |
 | `S3_ENDPOINT` is absent | Local filesystem | `content/uploads/` (configurable via `LOCAL_STORAGE_PATH`) |
 
-Key structure (same for both drivers):
-
-```
-{root}/
-├── {congregationId}/
-│   └── board/
-│       ├── {uuid}.pdf
-│       └── {uuid}.pdf.meta    ← content-type sidecar (local driver only)
-```
-
-No S3 setup needed — document uploads work out of the box with local storage.
+Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
 ## Google Maps Integration
 
-Territory features use Google Maps for interactive maps (building entrance locations) and static map images in territory PDF cards.
-
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_MAPS_API_KEY` | No | Google Maps API key — enables map rendering on territory pages and static maps in PDF exports |
-| `GOOGLE_MAPS_MAP_ID` | No | Google Maps Map ID — enables custom styled maps (requires `GOOGLE_MAPS_API_KEY`) |
+| `GOOGLE_MAPS_API_KEY` | No | Enables map rendering on territory pages and static maps in PDF exports |
+| `GOOGLE_MAPS_MAP_ID` | No | Enables custom styled maps (requires API key) |
 
-When `GOOGLE_MAPS_API_KEY` is not set, map features are silently disabled: interactive maps are hidden and PDF territory cards skip the map page.
+When not set, map features are silently disabled.
 
-The API key must have the following Google APIs enabled:
-- **Maps JavaScript API** — for interactive maps on territory and split-tool pages
-- **Maps Static API** — for map images in territory PDF cards
+## Audit Logging
 
-## Background Job Flow
+Fire-and-forget audit logging via `audit()` from `app/shared/domain/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
 
-```
-User triggers sync → syncQueue.add({ userEmail, userName, congregationId })
-                   → Redis queue
-
-Worker picks up job → createScopedDb(congregationId)
-                    → resolveCongregation(congregationId)
-                    → importOpenData(db, congregationId, progressCallback)
-                    → sendMailAfterDataSync(email, name, congregation)
-                    → job complete
-```
+Actions tracked: user login/logout/creation/update/anonymization, role changes, data export, consent grant/withdrawal, password changes, board read status, platform admin operations.
 
 ## Testing
 
-Unit tests use **Vitest** with co-located test files (`*.server.test.ts` next to source):
-
 ```bash
-pnpm test:unit              # Run tests once
+pnpm test:unit              # Unit tests (Vitest, 441+ tests)
 pnpm test:unit:watch        # Watch mode
 pnpm test:unit:coverage     # With coverage report
+pnpm test:integration       # Integration tests (requires running PostgreSQL)
+pnpm test:e2e               # E2E tests (Playwright, requires running app)
+pnpm test:e2e:headed        # E2E tests with browser visible
 ```
-
-Testing conventions:
-- **Black-box testing**: assert on return values and thrown errors, not on mock call counts
-- **Mocking**: `vi.mock()` for `db.server`, `redis.server`, `crypto.server`
-- **Sentinel pattern**: for negative tests expecting `undefined`, use a sentinel initial value to prove the code path ran
 
 ## Security
 
-- **Session**: Cookie-based, `SESSION_SECRET` required, rate-limited login (5/15min)
-- **Passwords**: scrypt hashed, reset via time-limited tokens (24h)
-- **Roles**: Congregation-scoped via CongregationUserRole
+- **Session**: Cookie-based, `SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
+- **Passwords**: scrypt hashed with random salt, reset via 24h time-limited tokens
+- **Email verification**: Required before accessing the app, 24h token expiry
+- **Rate limiting**: Login (5/15min), password reset (3/15min) per email via Redis
+- **Roles**: 14 congregation-scoped roles via CongregationUserRole
 - **Files**: Congregation-scoped storage keys, UUID filenames
+- **RLS**: PostgreSQL Row-Level Security for tenant data isolation
