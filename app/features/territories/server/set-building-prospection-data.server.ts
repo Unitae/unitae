@@ -1,26 +1,27 @@
 import type { Building } from '~/database/generated/client'
+import type { BuildingProspectionInput } from '~/features/territories/schemas/building-prospection.schema'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function setBuildingProspectionData(
   db: TransactionClient,
   buildingId: number,
-  formData: FormData,
+  input: BuildingProspectionInput,
 ): Promise<Building> {
-  const homes = formData.get('homes') ? Number(formData.get('homes')) : null
-  const phones = formData.get('phones') ? Number(formData.get('phones')) : null
-  const liberals = formData.get('liberals') ? Number(formData.get('liberals')) : null
-  const accessType = formData.get('access') ? Number(formData.get('access')) : null
+  const homes = input.homes ? Number(input.homes) : null
+  const phones = input.phones ? Number(input.phones) : null
+  const liberals = input.liberals ? Number(input.liberals) : null
+  const accessType = input.access ? Number(input.access) : null
 
-  const prospectionDate = formData.get('prospection-date')
+  const prospectionDate = input['prospection-date']
 
   const building = await db.building.update({
     where: { id: buildingId },
-    data: { prospectionDate: prospectionDate ? new Date(prospectionDate.toString()) : null },
+    data: { prospectionDate: prospectionDate ? new Date(prospectionDate) : null },
     include: { entrances: { where: { kind: 'residential' }, take: 1 } },
   })
 
   const { congregationId } = building
-  const hasResidential = Boolean(formData.get('has-residential'))
+  const hasResidential = Boolean(input['has-residential'])
   const residentialEntrance = building.entrances[0]
 
   // Remove residential entrance if unchecked
@@ -50,10 +51,10 @@ export async function setBuildingProspectionData(
       data: {
         access: accessType,
         // biome-ignore lint/style/useNamingConvention: Name of the table in database
-        isPMR: Boolean(formData.get('pmr')),
-        isOpenEarly: Boolean(formData.get('doors')),
-        isMailboxOpen: Boolean(formData.get('mailboxes')),
-        notes: formData.get('residential-notes')?.toString() ?? '',
+        isPMR: Boolean(input.pmr),
+        isOpenEarly: Boolean(input.doors),
+        isMailboxOpen: Boolean(input.mailboxes),
+        notes: input['residential-notes'],
       },
     })
 
@@ -100,14 +101,14 @@ export async function setBuildingProspectionData(
   }
 
   // Manage commerce entrances (supports multiple)
-  const commerceShopKinds = formData.getAll('shopkinds').map(String).filter(Boolean)
-  const commerceNotes = formData.getAll('commerce-notes').map(String)
+  const commerceShopKinds = input.shopkinds.filter(Boolean)
+  const commerceNotes = input['commerce-notes']
   await syncCommerceEntrances(db, buildingId, congregationId, commerceShopKinds, commerceNotes)
 
   // Manage unique typed entrances (hotel, campus, laundromat)
-  await syncUniqueEntrance(db, buildingId, congregationId, 'hotel', Boolean(formData.get('hotel')))
-  await syncUniqueEntrance(db, buildingId, congregationId, 'campus', Boolean(formData.get('campus')))
-  await syncUniqueEntrance(db, buildingId, congregationId, 'laundromat', Boolean(formData.get('landromat')))
+  await syncUniqueEntrance(db, buildingId, congregationId, 'hotel', Boolean(input.hotel))
+  await syncUniqueEntrance(db, buildingId, congregationId, 'campus', Boolean(input.campus))
+  await syncUniqueEntrance(db, buildingId, congregationId, 'laundromat', Boolean(input.landromat))
 
   return building
 }

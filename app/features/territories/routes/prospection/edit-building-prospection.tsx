@@ -1,3 +1,4 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
@@ -9,6 +10,7 @@ import {
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { getBuildings } from '~/features/territories/server/get-buildings.server'
 import { serializeSharedEntranceFromBuilding } from '~/features/territories/server/serialize-shared-entrance-from-building.server'
+import { buildingProspectionSchema } from '~/features/territories/schemas/building-prospection.schema'
 import { setBuildingProspectionData } from '~/features/territories/server/set-building-prospection-data.server'
 import { unserializeSharedEntranceFormValue } from '~/features/territories/server/unserialize-shared-entrance-form-value.server'
 import { updateBuildingsInEntrance } from '~/features/territories/server/update-buildings-in-entrance.server'
@@ -254,11 +256,18 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
 
     const form = await request.formData()
+    const submission = parseWithZod(form, { schema: buildingProspectionSchema })
+    if (submission.status !== 'success') {
+      return data(submission.reply(), { status: 400 })
+    }
 
     // manage modification shared entrance
     if (canManageTerritories) {
       const currentEntranceIdsSerialized = serializeSharedEntranceFromBuilding(building)
-      const entranceIds = unserializeSharedEntranceFormValue(form.get('shared-entrance-buildings'), building.id)
+      const entranceIds = unserializeSharedEntranceFormValue(
+        submission.value['shared-entrance-buildings'],
+        building.id,
+      )
       const entranceIdsSerialized = entranceIds.join(',')
 
       if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
@@ -281,7 +290,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     // manage changes in prospection data
     try {
-      await setBuildingProspectionData(db, building.id, form)
+      await setBuildingProspectionData(db, building.id, submission.value)
 
       session.flash('success', m.prospection_edit_prospection_success())
     } catch (e) {

@@ -1,4 +1,6 @@
-import { Form, redirect } from 'react-router'
+import { parseWithZod } from '@conform-to/zod'
+import { data, Form, redirect } from 'react-router'
+import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 import {
   getAllowedZips,
@@ -157,11 +159,16 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const form = await request.formData()
-  const zips = parseZips(String(form.get('zips')))
-  const territory = parseTerritoryPolygon(String(form.get('territory')))
-  const banoUrl = String(form.get('bano-url'))
-  const prospectionValidity = String(form.get('prospection-validity'))
-  const phoneTypeActivated = String(Boolean(form.get('phone-territory-active')))
+  const submission = parseWithZod(form, { schema: territorySettingsSchema })
+  if (submission.status !== 'success') {
+    return data(submission.reply(), { status: 400 })
+  }
+
+  const zips = parseZips(submission.value.zips)
+  const territory = parseTerritoryPolygon(submission.value.territory)
+  const banoUrl = submission.value['bano-url']
+  const prospectionValidity = submission.value['prospection-validity']
+  const phoneTypeActivated = String(submission.value['phone-territory-active'])
 
   return withScopeFromContext(context, async db => {
     await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
