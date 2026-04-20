@@ -1,10 +1,10 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { PrismaClient } from '~/database/generated/client'
-import { EventKind } from '~/features/events/model/event-kind.type'
-import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
-import * as m from '~/paraglide/messages'
-import { Role } from '~/shared/types/role'
+import { PrismaClient } from './generated/client'
+import { EventKind } from '../features/events/model/event-kind.type'
+import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
+import * as m from '../paraglide/messages'
+import { Role } from '../shared/types/role'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
 const prisma = new PrismaClient({ adapter })
