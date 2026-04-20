@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_view_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 

@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_export_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.ProgramViewer)) throw redirect('/congregation/programs')
 

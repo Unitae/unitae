@@ -15,7 +15,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_read_dashboard_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')

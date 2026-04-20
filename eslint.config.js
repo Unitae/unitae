@@ -23,6 +23,7 @@ export default [
               disallow: ['features'],
               allow: [
                 // Allow importing from the same feature
+                // biome-ignore lint/suspicious/noTemplateCurlyInString: eslint-plugin-boundaries template syntax
                 ['features', { feature: '${from.feature}' }],
               ],
               importKind: 'value',
@@ -52,6 +53,7 @@ export default [
             {
               from: ['features'],
               disallow: ['features'],
+              // biome-ignore lint/suspicious/noTemplateCurlyInString: eslint-plugin-boundaries template syntax
               allow: [['features', { feature: '${from.feature}' }]],
               importKind: 'value',
             },

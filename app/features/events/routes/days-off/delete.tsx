@@ -10,7 +10,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/u
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/delete'
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   logger.info(`Trying to remove days off. User ID: ${currentUser.id}. Event: ${params.eventId}`)
 

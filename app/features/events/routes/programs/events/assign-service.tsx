@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_assign_service_meta_title() }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 

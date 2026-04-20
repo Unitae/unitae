@@ -17,7 +17,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-group'
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)

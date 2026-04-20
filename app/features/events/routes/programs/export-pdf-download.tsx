@@ -8,7 +8,7 @@ import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/export-pdf-download'
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.ProgramViewer)) throw redirect('/congregation/programs')
 

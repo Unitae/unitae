@@ -12,7 +12,7 @@ import type { EmailJobData } from './email-queue.server'
 
 const logger = createLogger('email-worker')
 
-export async function handleEmailWork(job: Job<EmailJobData>): Promise<void> {
+export function handleEmailWork(job: Job<EmailJobData>): Promise<void> {
   switch (job.data.type) {
     case 'new-document-notification':
       return handleNewDocumentNotification(job.data)

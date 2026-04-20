@@ -21,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_list_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewActivities = permissions.has(Role.ActivityViewer)

@@ -19,8 +19,8 @@ async function withScope<T>(
   })
 }
 
-let congregationAId: number
-let congregationBId: number
+let congregationIdA: number
+let congregationIdB: number
 const testSuffix = Date.now()
 
 beforeAll(async () => {
@@ -30,15 +30,15 @@ beforeAll(async () => {
   const congB = await testDb.congregation.create({
     data: { name: `Test B ${testSuffix}`, slug: `test-b-${testSuffix}`, active: true },
   })
-  congregationAId = congA.id
-  congregationBId = congB.id
+  congregationIdA = congA.id
+  congregationIdB = congB.id
 
   await testDb.user.create({
     data: {
       email: `user-a-${testSuffix}@test.com`,
       password: 'x',
       active: true,
-      congregationId: congregationAId,
+      congregationId: congregationIdA,
       firstname: 'User',
       lastname: 'A',
     },
@@ -48,7 +48,7 @@ beforeAll(async () => {
       email: `user-b-${testSuffix}@test.com`,
       password: 'x',
       active: true,
-      congregationId: congregationBId,
+      congregationId: congregationIdB,
       firstname: 'User',
       lastname: 'B',
     },
@@ -56,24 +56,24 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.user.deleteMany({ where: { congregationId: { in: [congregationAId, congregationBId] } } })
-  await testDb.congregation.deleteMany({ where: { id: { in: [congregationAId, congregationBId] } } })
+  await testDb.user.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
+  await testDb.congregation.deleteMany({ where: { id: { in: [congregationIdA, congregationIdB] } } })
   await testDb.$disconnect()
 })
 
 describe('RLS withScope isolation', () => {
   it('ne retourne que les utilisateurs de la congrégation A quand le scope est A', async () => {
-    const users = await withScope(congregationAId, async tx => {
-      return tx.user.findMany({ where: { congregationId: congregationAId } })
+    const users = await withScope(congregationIdA, async tx => {
+      return tx.user.findMany({ where: { congregationId: congregationIdA } })
     })
 
     expect(users.length).toBeGreaterThanOrEqual(1)
-    expect(users.every((u: { congregationId: number }) => u.congregationId === congregationAId)).toBe(true)
+    expect(users.every((u: { congregationId: number }) => u.congregationId === congregationIdA)).toBe(true)
   })
 
   it('empêche la congrégation A de voir les données de la congrégation B', async () => {
-    const users = await withScope(congregationAId, async tx => {
-      return tx.user.findMany({ where: { congregationId: congregationBId } })
+    const users = await withScope(congregationIdA, async tx => {
+      return tx.user.findMany({ where: { congregationId: congregationIdB } })
     })
 
     expect(users).toHaveLength(0)
@@ -81,7 +81,7 @@ describe('RLS withScope isolation', () => {
 
   it('sans scope (unscopedDb), retourne les utilisateurs de toutes les congrégations', async () => {
     const users = await testDb.user.findMany({
-      where: { congregationId: { in: [congregationAId, congregationBId] } },
+      where: { congregationId: { in: [congregationIdA, congregationIdB] } },
     })
 
     expect(users.length).toBeGreaterThanOrEqual(2)

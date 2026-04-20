@@ -5,7 +5,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.ProgramViewer)) return Response.json(null, { status: 403 })
 

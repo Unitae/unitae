@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Création de section sur Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.BoardValidator)) {
     throw redirect('/')
