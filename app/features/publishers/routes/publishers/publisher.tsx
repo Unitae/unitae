@@ -22,7 +22,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: `${data.publisher.firstname} ${data.publisher.lastname} - Unitae` }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewPublisher = permissions.has(Role.PublisherViewer)

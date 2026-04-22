@@ -7,7 +7,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: `Tableau d'affichage - Unitae` }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   const canUploadDocument = permissions.has(Role.BoardUploader)

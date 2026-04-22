@@ -17,7 +17,6 @@ import { getBoolSetting, getSetting, setSetting } from '~/shared/domain/settings
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'

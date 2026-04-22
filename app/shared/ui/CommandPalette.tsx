@@ -124,7 +124,8 @@ export function CommandPalette({ permissions, open, onOpenChange }: CommandPalet
     }
   }, [open])
 
-  // Keep selected index in bounds
+  // Keep selected index in bounds — intentionally depending on length, not the array reference
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when list size changes
   useEffect(() => {
     setSelectedIndex(0)
   }, [filtered.length])

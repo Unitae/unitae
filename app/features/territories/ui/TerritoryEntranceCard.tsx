@@ -1,4 +1,4 @@
-import { DoorOpen, MapPin, Phone, Store } from 'lucide-react'
+import { DoorOpen, Phone, Store } from 'lucide-react'
 import { formatAccessSequence } from '~/features/territories/model/access-format'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'

@@ -21,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Nouveau groupe — Unitae' }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)

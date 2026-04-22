@@ -21,12 +21,13 @@ export default function Pagination({
   const [preferredSize, setPreferredSize] = usePersistedState('unitae:pageSize', 25)
 
   // Apply persisted page size on mount if URL doesn't already have one
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally mount-only to avoid re-triggering on navigation
   useEffect(() => {
     if (!searchParams.has('pageSize') && preferredSize !== 25) {
       searchParams.set('pageSize', String(preferredSize))
       setSearchParams(searchParams, { replace: true })
     }
-  }, []) // Only on mount
+  }, [])
 
   const handlePageChange = (newPage: number) => {
     searchParams.set('page', String(newPage))
