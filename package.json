@@ -11,6 +11,7 @@
         "start": "react-router-serve ./build/server/index.js",
         "db:migrate": "pnpm prisma migrate deploy",
         "db:seed": "pnpm prisma db seed",
+        "db:seed:marketing": "pnpm tsx app/database/seed-marketing.ts",
         "start:dev": "react-router dev",
         "start:emails": "email dev",
         "start:worker": "pnpm tsx ./app/workers/worker.server.ts",
