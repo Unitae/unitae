@@ -7,6 +7,7 @@ import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
@@ -113,6 +114,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const { messages, roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
 
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -138,6 +140,8 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
       <PageHeader
         title={m.settings_user_edit_title()}
         subtitle={m.settings_user_edit_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_users(), to: '/settings/users' }, { label: m.settings_user_edit_title() }]}
+        backTo="/settings/users"
         actions={
           <>
             {user.isPublisher === true ? (

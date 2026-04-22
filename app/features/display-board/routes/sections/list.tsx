@@ -170,6 +170,7 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title="Sections"
         subtitle={m.board_sections_list_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_sections() }]}
         actions={
           <Button asChild>
             <Link to="./new">{m.board_sections_create_button()}</Link>

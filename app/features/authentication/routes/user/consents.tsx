@@ -59,7 +59,12 @@ export default function ConsentsPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.user_consents_page_title()} subtitle={m.user_consents_page_subtitle()} />
+      <PageHeader
+        title={m.user_consents_page_title()}
+        subtitle={m.user_consents_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_my_profile(), to: '/me/profile' }, { label: m.user_consents_page_title() }]}
+        backTo="/me/profile"
+      />
 
       <Card>
         <CardHeader>

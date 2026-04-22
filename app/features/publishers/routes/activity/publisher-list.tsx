@@ -99,7 +99,11 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   if (publishers.length < 1) {
     return (
       <div className="flex flex-col gap-6">
-        <PageHeader title={m.activity_list_title()} subtitle={m.activity_list_subtitle()} />
+        <PageHeader
+          title={m.activity_list_title()}
+          subtitle={m.activity_list_subtitle()}
+          breadcrumbs={[{ label: m.activity_list_title() }]}
+        />
 
         <EmptyState icon={Users} title={m.activity_empty_title()} description={m.activity_empty_description()} />
       </div>
@@ -111,6 +115,7 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.activity_list_title()}
         subtitle={m.activity_list_subtitle()}
+        breadcrumbs={[{ label: m.activity_list_title() }]}
         actions={
           <>
             <DropdownMenu>

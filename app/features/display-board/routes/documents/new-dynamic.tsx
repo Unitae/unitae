@@ -49,7 +49,12 @@ export default function NewDynamicDocumentPage({ loaderData }: Route.ComponentPr
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.board_new_dynamic_title()} subtitle={m.board_new_dynamic_subtitle()} />
+      <PageHeader
+        title={m.board_new_dynamic_title()}
+        subtitle={m.board_new_dynamic_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_documents(), to: '/board/documents' }, { label: m.board_new_dynamic_title() }]}
+        backTo="/board/documents"
+      />
 
       {!hasSection && (
         <Card>

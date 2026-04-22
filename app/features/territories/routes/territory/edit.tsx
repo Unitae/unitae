@@ -136,6 +136,12 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.territories_edit_title()}
         subtitle={m.territories_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_territories(), to: '/territories' },
+          { label: territory.number, to: `../view` },
+          { label: m.territories_edit_title() },
+        ]}
+        backTo="../view"
         actions={
           <>
             <TerritoryDownloadLink

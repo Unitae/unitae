@@ -117,6 +117,11 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={`${publisher.firstname} ${publisher.lastname}`}
         subtitle={m.publishers_view_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_publishers(), to: '/publishers' },
+          { label: `${publisher.firstname} ${publisher.lastname}` },
+        ]}
+        backTo="/publishers"
         actions={
           roles.canManagePublisher && (
             <>

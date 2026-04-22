@@ -80,6 +80,11 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
       <PageHeader
         title={m.board_dynamic_edit_title()}
         subtitle={m.board_dynamic_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.board_dynamic_edit_title() },
+        ]}
+        backTo="/board/documents"
         actions={
           <Button variant="destructive" size="icon" asChild>
             <Link to={`/board/dynamic/${settings.id}/delete`} title={m.board_dynamic_delete_tooltip()}>

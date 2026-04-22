@@ -85,6 +85,11 @@ export default function ReadStatusPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.board_read_status_title({ name: document.title })}
         subtitle={m.board_read_status_subtitle({ read: readCount, total: totalCount, percentage })}
+        breadcrumbs={[
+          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.board_read_status_title({ name: document.title }) },
+        ]}
+        backTo="/board/documents"
       />
 
       <div className="grid gap-6 md:grid-cols-2">

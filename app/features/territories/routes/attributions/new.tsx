@@ -14,6 +14,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -76,6 +77,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function CreateAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -85,7 +87,15 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.attributions_new_title()} subtitle={m.attributions_new_subtitle()} />
+      <PageHeader
+        title={m.attributions_new_title()}
+        subtitle={m.attributions_new_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.attributions_new_title() },
+        ]}
+        backTo="/territories/attributions"
+      />
       <Card>
         <CardContent className="pt-6">
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">

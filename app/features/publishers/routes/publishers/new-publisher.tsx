@@ -44,7 +44,12 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.publishers_new_title()} subtitle={m.publishers_new_subtitle()} />
+      <PageHeader
+        title={m.publishers_new_title()}
+        subtitle={m.publishers_new_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_new_title() }]}
+        backTo="/publishers"
+      />
 
       <Form method="post" className="flex flex-col gap-6">
         <PublisherPersonalInformationForm />

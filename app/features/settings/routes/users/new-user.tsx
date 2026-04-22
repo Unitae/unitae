@@ -11,6 +11,7 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -36,6 +37,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const _users = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -45,7 +47,12 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.settings_user_new_title()} subtitle={m.settings_user_new_subtitle()} />
+      <PageHeader
+        title={m.settings_user_new_title()}
+        subtitle={m.settings_user_new_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_users(), to: '/settings/users' }, { label: m.settings_user_new_title() }]}
+        backTo="/settings/users"
+      />
 
       <Card>
         <CardContent>

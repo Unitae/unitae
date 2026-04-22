@@ -69,7 +69,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function NewTemplatePage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.settings_template_new_title()} subtitle={m.settings_template_new_subtitle()} />
+      <PageHeader
+        title={m.settings_template_new_title()}
+        subtitle={m.settings_template_new_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_settings_assembly(), to: '/settings/congregation' },
+          { label: 'Modèles', to: '/settings/congregation/templates' },
+          { label: m.settings_template_new_title() },
+        ]}
+        backTo="/settings/congregation/templates"
+      />
 
       <Card className="max-w-lg">
         <CardHeader>

@@ -126,7 +126,12 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.programs_new_page_title()} subtitle={m.programs_new_page_subtitle()} />
+      <PageHeader
+        title={m.programs_new_page_title()}
+        subtitle={m.programs_new_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.programs_new_page_title() }]}
+        backTo="/programs"
+      />
 
       <Card className="max-w-lg">
         <CardHeader>

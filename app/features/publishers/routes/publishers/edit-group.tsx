@@ -7,6 +7,7 @@ import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -17,6 +18,10 @@ import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-group'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Modifier un groupe — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -56,6 +61,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditGroup({ loaderData, actionData }: Route.ComponentProps) {
   const { brothers, group } = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     defaultValue: {
@@ -74,6 +80,8 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
       <PageHeader
         title={m.groups_edit_title()}
         subtitle={m.groups_edit_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: m.groups_edit_title() }]}
+        backTo="/groups"
         actions={
           <Button asChild variant="destructive" size="icon" title={m.groups_edit_delete_title()}>
             <Link to={`/groups/${group.id}/delete`}>

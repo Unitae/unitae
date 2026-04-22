@@ -6,6 +6,7 @@ import { createSectionSchema } from '~/features/display-board/schemas/board-sect
 import { createBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -29,6 +30,7 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function NewSectionPage({ actionData }: Route.ComponentProps) {
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -38,7 +40,12 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.board_sections_new_title()} subtitle={m.board_sections_new_subtitle()} />
+      <PageHeader
+        title={m.board_sections_new_title()}
+        subtitle={m.board_sections_new_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_sections(), to: '/board/sections' }, { label: m.board_sections_new_title() }]}
+        backTo="/board/sections"
+      />
 
       <Card>
         <CardContent className="pt-6">

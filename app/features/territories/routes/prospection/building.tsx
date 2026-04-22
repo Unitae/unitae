@@ -74,6 +74,11 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={`${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_building_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: `${building.number} ${building.street}, ${building.zip}` },
+        ]}
+        backTo="/territories/buildings"
         actions={
           roles.canManageProspection && (
             <>

@@ -116,7 +116,15 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
     return (
       <div className="flex flex-col gap-5">
         <AlertMessages messages={messages} />
-        <PageHeader title={m.attributions_available_title()} subtitle={m.attributions_available_subtitle()} />
+        <PageHeader
+          title={m.attributions_available_title()}
+          subtitle={m.attributions_available_subtitle()}
+          breadcrumbs={[
+            { label: m.sidebar_attributions(), to: '/territories/attributions' },
+            { label: m.attributions_available_title() },
+          ]}
+          backTo="/territories/attributions"
+        />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
@@ -130,7 +138,15 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
   return (
     <div className="flex flex-col gap-5">
       <AlertMessages messages={messages} />
-      <PageHeader title={m.attributions_available_title()} subtitle={m.attributions_available_subtitle()} />
+      <PageHeader
+        title={m.attributions_available_title()}
+        subtitle={m.attributions_available_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.attributions_available_title() },
+        ]}
+        backTo="/territories/attributions"
+      />
       <TerritoryFilters zips={zips} showZip showAccess showSearch showType />
 
       <div className="flex grow flex-col gap-3">

@@ -1,14 +1,17 @@
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/delete'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Supprimer une absence — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
@@ -37,23 +40,13 @@ export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
   const { event } = loaderData
 
   return (
-    <div className="flex items-center justify-center p-7">
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>{m.days_off_delete_confirm_title()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            {m.days_off_delete_confirm_message({ date: event.startDate.toLocaleDateString() })}
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Form method="post">
-            <SubmitButton variant="destructive">{m.days_off_delete_submit()}</SubmitButton>
-          </Form>
-        </CardFooter>
-      </Card>
-    </div>
+    <DeleteConfirmation
+      title={m.days_off_delete_confirm_title()}
+      submitLabel={m.days_off_delete_submit()}
+      cancelTo="/me/days-off"
+    >
+      <p>{event.startDate.toLocaleDateString()}</p>
+    </DeleteConfirmation>
   )
 }
 

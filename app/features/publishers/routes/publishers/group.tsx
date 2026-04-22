@@ -17,6 +17,10 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
 
+export const meta: Route.MetaFunction = ({ data }) => {
+  return [{ title: data?.group ? `${data.group.name} — Unitae` : 'Groupe — Unitae' }]
+}
+
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
@@ -58,6 +62,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={group.name.toLocaleUpperCase()}
         subtitle={m.groups_view_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: group.name }]}
+        backTo="/groups"
         actions={
           roles.canManagePublisher && (
             <Button asChild variant="outline" size="icon" title={m.groups_view_edit_title()}>

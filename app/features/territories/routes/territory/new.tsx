@@ -18,6 +18,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -82,6 +83,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export default function NewTerritoryPage({ loaderData, actionData }: Route.ComponentProps) {
   const { entrances, zips, streets, phoneTypeActive, apiKey } = loaderData
   const [territoryEntrances, setTerritoryEntrances] = useState<typeof entrances>([])
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -91,7 +93,12 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.territories_new_title()} subtitle={m.territories_new_subtitle()} />
+      <PageHeader
+        title={m.territories_new_title()}
+        subtitle={m.territories_new_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_territories(), to: '/territories' }, { label: m.territories_new_title() }]}
+        backTo="/territories"
+      />
       <div className="flex gap-10 max-sm:flex-col">
         <Card className="flex-1">
           <CardContent className="pt-6">

@@ -70,6 +70,8 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.publishers_edit_title()}
         subtitle={m.publishers_edit_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_edit_title() }]}
+        backTo="/publishers"
         actions={
           user.isPublisher ? (
             <Form method="post" action={`/settings/users/${user.id}/unmake-publisher`}>

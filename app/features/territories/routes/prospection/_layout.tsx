@@ -142,6 +142,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.prospection_title()}
         subtitle={m.prospection_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_prospection() }]}
         actions={
           <>
             {canManageTerritories && (

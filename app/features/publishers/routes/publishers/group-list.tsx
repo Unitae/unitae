@@ -60,6 +60,7 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
         <PageHeader
           title={m.groups_list_title()}
           subtitle={m.groups_list_subtitle()}
+          breadcrumbs={[{ label: m.sidebar_publisher_groups() }]}
           actions={
             canManagePublisher && (
               <Button asChild>
@@ -78,6 +79,7 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.groups_list_title()}
         subtitle={m.groups_list_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publisher_groups() }]}
         actions={
           canManagePublisher && (
             <Button asChild>

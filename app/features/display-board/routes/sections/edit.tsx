@@ -7,6 +7,7 @@ import { updateSectionSchema } from '~/features/display-board/schemas/board-sect
 import { updateBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -45,6 +46,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditSectionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { section } = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -57,6 +59,8 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
       <PageHeader
         title={m.board_sections_edit_title()}
         subtitle={m.board_sections_edit_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_sections(), to: '/board/sections' }, { label: m.board_sections_edit_title() }]}
+        backTo="/board/sections"
         actions={
           <Button variant="destructive" size="icon" asChild>
             <Link to={`/board/sections/${section.id}/delete`} title={m.board_sections_delete_tooltip()}>

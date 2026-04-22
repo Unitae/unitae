@@ -42,7 +42,11 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.user_profile_page_title()} subtitle={m.user_profile_page_subtitle()} />
+      <PageHeader
+        title={m.user_profile_page_title()}
+        subtitle={m.user_profile_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_my_profile() }]}
+      />
 
       <Card>
         <CardHeader>

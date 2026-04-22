@@ -77,7 +77,11 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.audit_log_title()} subtitle={m.audit_log_subtitle()} />
+      <PageHeader
+        title={m.audit_log_title()}
+        subtitle={m.audit_log_subtitle()}
+        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_audit_log() }]}
+      />
 
       <RouterForm method="get" className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">

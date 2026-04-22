@@ -314,6 +314,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title="Documents"
         subtitle={m.board_documents_list_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_documents() }]}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" asChild>

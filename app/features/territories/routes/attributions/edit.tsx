@@ -12,6 +12,7 @@ import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -61,6 +62,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export default function EditAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, attribution, phoneTypeActive, entrances } = loaderData
   const [shouldShowEndDate, showEndDate] = useState(false)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -73,6 +75,11 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
       <PageHeader
         title={m.attributions_edit_title()}
         subtitle={m.attributions_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.attributions_edit_title() },
+        ]}
+        backTo="/territories/attributions"
         actions={
           attribution.endDate === null && (
             <>

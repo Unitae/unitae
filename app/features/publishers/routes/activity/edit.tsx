@@ -8,6 +8,7 @@ import { updateActivitySchema } from '~/features/publishers/schemas/activity.sch
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -71,6 +72,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
   const { activity } = loaderData
   const [type, setType] = useState<PublisherType>(activity.type as PublisherType)
 
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -90,6 +92,16 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
           name: `${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`,
         })}
         subtitle={m.activity_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.activity_list_title(), to: '/publishers/activity' },
+          {
+            label: m.activity_edit_title({
+              date: date.toLocaleDateString('fr', { month: 'long', year: 'numeric' }),
+              name: `${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`,
+            }),
+          },
+        ]}
+        backTo="/publishers/activity"
         actions={
           <Button asChild variant="destructive" size="icon" title={m.activity_edit_delete_title()}>
             <Link to={`/publishers/activity/${activity.id}/delete`}>

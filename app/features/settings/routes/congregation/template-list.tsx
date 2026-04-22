@@ -36,6 +36,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.settings_templates_title()}
         subtitle={m.settings_templates_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_settings_assembly(), to: '/settings/congregation' }, { label: 'Modèles' }]}
         actions={
           <Button asChild>
             <Link to="./new">

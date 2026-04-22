@@ -7,6 +7,7 @@ import { createGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { createPublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -15,6 +16,10 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new-group'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Nouveau groupe — Unitae' }]
+}
 
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -46,6 +51,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function NewGroup({ loaderData, actionData }: Route.ComponentProps) {
   const { brothers } = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -55,7 +61,12 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.groups_new_title()} subtitle={m.groups_new_subtitle()} />
+      <PageHeader
+        title={m.groups_new_title()}
+        subtitle={m.groups_new_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: m.groups_new_title() }]}
+        backTo="/groups"
+      />
 
       <Card>
         <CardHeader>

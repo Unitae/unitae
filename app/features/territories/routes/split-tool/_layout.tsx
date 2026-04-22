@@ -114,7 +114,15 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-7">
       <AlertMessages messages={messages} />
 
-      <PageHeader title={m.split_tool_title()} subtitle={m.split_tool_subtitle()} />
+      <PageHeader
+        title={m.split_tool_title()}
+        subtitle={m.split_tool_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.split_tool_title() },
+        ]}
+        backTo="/territories/buildings"
+      />
 
       <div className="flex flex-wrap justify-around gap-3 rounded-lg border bg-muted/50 p-2">
         <NavLink

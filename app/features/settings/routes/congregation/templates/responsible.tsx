@@ -92,6 +92,12 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.settings_template_responsible_title({ name: template.name })}
         subtitle={m.settings_template_responsible_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_settings_assembly(), to: '/settings/congregation' },
+          { label: 'Modèles', to: '/settings/congregation/templates' },
+          { label: template.name, to: `/settings/congregation/templates/${template.id}` },
+        ]}
+        backTo={`/settings/congregation/templates/${template.id}`}
       />
 
       <Card className="max-w-md">

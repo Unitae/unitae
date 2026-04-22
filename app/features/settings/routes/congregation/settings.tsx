@@ -63,7 +63,11 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.settings_congregation_title()} subtitle={m.settings_congregation_subtitle()} />
+      <PageHeader
+        title={m.settings_congregation_title()}
+        subtitle={m.settings_congregation_subtitle()}
+        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
+      />
 
       <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
         <Card>

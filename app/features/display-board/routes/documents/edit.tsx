@@ -73,6 +73,11 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.board_documents_edit_title()}
         subtitle={m.board_documents_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.board_documents_edit_title() },
+        ]}
+        backTo="/board/documents"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="icon" asChild>

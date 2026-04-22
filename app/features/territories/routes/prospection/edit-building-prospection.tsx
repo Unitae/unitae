@@ -136,6 +136,11 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={`Prospection du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_prospection_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.prospection_building_edit_prospection_title() },
+        ]}
+        backTo="/territories/buildings"
         actions={
           <>
             {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}

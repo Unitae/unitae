@@ -107,6 +107,8 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.programs_assign_part_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.programs_assign_part_page_title() }]}
+        backTo={`/programs/events/${event.id}`}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">

@@ -1,14 +1,17 @@
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteSectionWithFiles } from '~/features/display-board/server/document.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Card, CardContent } from '~/shared/ui/card'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Supprimer une section — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -37,18 +40,13 @@ export default function DeleteSectionPage({ loaderData }: Route.ComponentProps) 
   const { section } = loaderData
 
   return (
-    <Card className="mx-auto max-w-lg">
-      <CardContent className="flex flex-col items-center justify-center gap-6 pt-6">
-        <p className="text-center text-muted-foreground">
-          {m.board_sections_delete_confirmation({ name: section.name })}
-        </p>
-        <Form method="post">
-          <SubmitButton variant="destructive" title={m.board_sections_delete_tooltip()}>
-            {m.board_sections_delete_button()}
-          </SubmitButton>
-        </Form>
-      </CardContent>
-    </Card>
+    <DeleteConfirmation
+      title={m.board_sections_delete_confirmation({ name: section.name })}
+      submitLabel={m.board_sections_delete_button()}
+      cancelTo="/board/sections"
+    >
+      <p>{section.name}</p>
+    </DeleteConfirmation>
   )
 }
 

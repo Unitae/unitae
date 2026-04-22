@@ -53,6 +53,7 @@ export default function UsersPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.platform_admin_users_title()}
         subtitle={m.platform_admin_users_subtitle({ count: users.length })}
+        breadcrumbs={[{ label: m.sidebar_administration() }]}
       />
 
       <div className="overflow-hidden rounded-xl border">

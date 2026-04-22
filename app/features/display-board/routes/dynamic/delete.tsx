@@ -1,14 +1,17 @@
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteDynamicDocument } from '~/features/display-board/server/board-document.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Card, CardContent } from '~/shared/ui/card'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Supprimer un document — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -36,16 +39,13 @@ export default function DeleteDynamicDocumentPage({ loaderData }: Route.Componen
   const { settings } = loaderData
 
   return (
-    <Card className="mx-auto max-w-lg">
-      <CardContent className="flex flex-col items-center justify-center gap-6 pt-6">
-        <p className="text-center text-muted-foreground">
-          {m.board_dynamic_delete_confirmation({ name: settings.title })}
-        </p>
-        <Form method="post">
-          <SubmitButton variant="destructive">{m.board_dynamic_delete_button()}</SubmitButton>
-        </Form>
-      </CardContent>
-    </Card>
+    <DeleteConfirmation
+      title={m.board_dynamic_delete_confirmation({ name: settings.title })}
+      submitLabel={m.board_dynamic_delete_button()}
+      cancelTo="/board/documents"
+    >
+      <p>{settings.title}</p>
+    </DeleteConfirmation>
   )
 }
 

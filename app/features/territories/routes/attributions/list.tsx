@@ -112,6 +112,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
         <PageHeader
           title={m.attributions_title()}
           subtitle={m.attributions_subtitle()}
+          breadcrumbs={[{ label: m.sidebar_attributions() }]}
           actions={
             <>
               <S13ExportButton theocraticYear={theocraticYear} />
@@ -141,6 +142,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       <PageHeader
         title={m.attributions_title()}
         subtitle={m.attributions_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_attributions() }]}
         actions={
           <>
             <S13ExportButton theocraticYear={theocraticYear} />

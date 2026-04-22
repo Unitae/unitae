@@ -70,7 +70,11 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
 
   return (
     <div className="space-y-6">
-      <PageHeader title={congregation.name} />
+      <PageHeader
+        title={congregation.name}
+        breadcrumbs={[{ label: m.sidebar_administration(), to: '/platform-admin' }, { label: congregation.name }]}
+        backTo="/platform-admin"
+      />
 
       <div className="flex gap-3">
         <Badge variant="secondary">

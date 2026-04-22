@@ -68,6 +68,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         <PageHeader
           title={m.publishers_list_title()}
           subtitle={m.publishers_list_subtitle()}
+          breadcrumbs={[{ label: m.sidebar_publishers() }]}
           actions={
             canManagePublisher && (
               <Button asChild>
@@ -87,6 +88,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.publishers_list_title()}
         subtitle={m.publishers_list_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publishers() }]}
         actions={
           <>
             {canViewActivities && (

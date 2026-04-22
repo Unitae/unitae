@@ -125,6 +125,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
         <PageHeader
           title={m.territories_title()}
           subtitle={m.territories_subtitle()}
+          breadcrumbs={[{ label: m.sidebar_territories() }]}
           actions={
             canManageTerritories && (
               <Button asChild>
@@ -151,6 +152,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.territories_title()}
         subtitle={m.territories_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_territories() }]}
         actions={
           canManageTerritories && (
             <Button asChild>

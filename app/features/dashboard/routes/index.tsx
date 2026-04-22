@@ -16,6 +16,7 @@ import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { RelativeTime } from '~/shared/ui/RelativeTime'
 
 import type { Route } from './+types/index'
 
@@ -140,7 +141,7 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{t.territory.number}</span>
                   <span className="text-muted-foreground text-xs">
-                    {m.dashboard_territory_due_date({ date: formatDate(t.lateDate) })}
+                    <RelativeTime date={t.lateDate} />
                   </span>
                 </div>
                 <Badge variant={statusVariant[t.status]}>{statusLabel(t.status)}</Badge>
@@ -179,7 +180,9 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm">{a.name}</span>
-                  <span className="shrink-0 text-muted-foreground text-xs">{formatShortDate(a.eventDate)}</span>
+                  <span className="shrink-0 text-muted-foreground text-xs">
+                    <RelativeTime date={a.eventDate} />
+                  </span>
                 </div>
                 {a.topic && <span className="text-muted-foreground text-xs">{a.topic}</span>}
                 <span className="text-muted-foreground text-xs">{a.eventName}</span>
@@ -214,7 +217,9 @@ function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof get
                 {!doc.alreadyViewed && <span className="size-2.5 shrink-0 rounded-full bg-primary" />}
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate font-medium text-sm">{doc.title}</span>
-                  <span className="text-muted-foreground text-xs">{formatDate(doc.createdAt)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    <RelativeTime date={doc.createdAt} />
+                  </span>
                 </div>
               </Link>
             ))}

@@ -220,7 +220,16 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.programs_edit_page_title()} subtitle={event.name} />
+      <PageHeader
+        title={m.programs_edit_page_title()}
+        subtitle={event.name}
+        breadcrumbs={[
+          { label: m.sidebar_programs(), to: '/programs' },
+          { label: event.name, to: `/programs/events/${event.id}` },
+          { label: m.programs_edit_page_title() },
+        ]}
+        backTo={`/programs/events/${event.id}`}
+      />
 
       <Card className="max-w-lg">
         <CardHeader>

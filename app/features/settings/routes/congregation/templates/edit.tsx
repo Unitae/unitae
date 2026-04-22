@@ -165,6 +165,12 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.settings_template_edit_title({ name: template.name })}
         subtitle={m.settings_template_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_settings_assembly(), to: '/settings/congregation' },
+          { label: 'Modèles', to: '/settings/congregation/templates' },
+          { label: m.settings_template_edit_title({ name: template.name }) },
+        ]}
+        backTo="/settings/congregation/templates"
       />
 
       <Card>

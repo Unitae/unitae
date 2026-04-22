@@ -68,7 +68,15 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.board_documents_new_title()} subtitle={m.board_documents_new_subtitle()} />
+      <PageHeader
+        title={m.board_documents_new_title()}
+        subtitle={m.board_documents_new_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.board_documents_new_title() },
+        ]}
+        backTo="/board/documents"
+      />
 
       <Card>
         <CardContent className="pt-6">

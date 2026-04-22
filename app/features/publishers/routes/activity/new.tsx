@@ -9,6 +9,7 @@ import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -94,6 +95,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
     publisher?.type === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
   )
 
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -105,7 +107,15 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.activity_new_title()} subtitle={m.activity_new_subtitle()} />
+      <PageHeader
+        title={m.activity_new_title()}
+        subtitle={m.activity_new_subtitle()}
+        breadcrumbs={[
+          { label: m.activity_list_title(), to: '/publishers/activity' },
+          { label: m.activity_new_title() },
+        ]}
+        backTo="/publishers/activity"
+      />
 
       <Card>
         <CardHeader>

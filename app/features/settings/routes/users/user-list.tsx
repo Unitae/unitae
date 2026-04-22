@@ -77,6 +77,7 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.settings_users_title()}
         subtitle={m.settings_users_subtitle()}
+        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_users() }]}
         actions={
           <Button asChild>
             <Link to="./new">{m.settings_users_new_button()}</Link>

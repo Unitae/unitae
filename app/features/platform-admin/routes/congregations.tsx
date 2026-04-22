@@ -49,6 +49,7 @@ export default function CongregationsPage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.platform_admin_congregations_title()}
         subtitle={m.platform_admin_congregations_subtitle({ count: congregations.length })}
+        breadcrumbs={[{ label: m.sidebar_administration() }]}
       />
 
       <div className="overflow-hidden rounded-xl border">

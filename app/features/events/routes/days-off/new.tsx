@@ -35,7 +35,12 @@ export default function DaysOffPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.days_off_new_page_title()} subtitle={m.days_off_new_page_subtitle()} />
+      <PageHeader
+        title={m.days_off_new_page_title()}
+        subtitle={m.days_off_new_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_my_absences(), to: '/me/days-off' }, { label: m.days_off_new_page_title() }]}
+        backTo="/me/days-off"
+      />
 
       <Card>
         <CardContent className="pt-6">

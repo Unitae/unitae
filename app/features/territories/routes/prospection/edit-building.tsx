@@ -8,6 +8,7 @@ import { editBuilding } from '~/features/territories/server/edit-building.server
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { AlertMessages } from '~/shared/ui/AlertMessages'
@@ -61,6 +62,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
 export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
   const { building, messages } = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -75,6 +77,11 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
       <PageHeader
         title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_building_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.prospection_building_edit_title() },
+        ]}
+        backTo="/territories/buildings"
         actions={
           <Button variant="destructive" size="icon" asChild>
             <Link to={`/territories/building/${building.id}/delete`} title={m.prospection_edit_building_delete_title()}>

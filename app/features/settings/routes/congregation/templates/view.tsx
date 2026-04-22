@@ -80,6 +80,8 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={template.name}
         subtitle={template.description || m.settings_template_view_default_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_settings_assembly(), to: '/settings/congregation' }, { label: template.name }]}
+        backTo="/settings/congregation/templates"
         actions={
           canEdit && (
             <div className="flex gap-2">
