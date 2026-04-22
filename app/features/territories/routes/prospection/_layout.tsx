@@ -1,6 +1,5 @@
 import { Map as MapIcon, RefreshCw } from 'lucide-react'
-import { data, Form, Link, NavLink, Outlet, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { Form, Link, NavLink, Outlet, redirect } from 'react-router'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -9,7 +8,6 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { getSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
@@ -19,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canViewProspection = permissions.has(Role.ProspectionViewer)
   const canManageProspection = permissions.has(Role.ProspectionManager)
@@ -32,7 +30,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { congregationId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
     const prospectionValidity = Number(
       (await getSetting(db, TerritorySettingKey.ProspectionValidity, congregationId)) ?? '0',
     )
@@ -105,40 +102,30 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       },
     })
     const banoUrl = await db.setting.findFirst({ where: { key: 'bano-url' } })
-    const messages = { success: session.get('success'), error: session.get('error') }
     const zips = await getZips(db, congregationId)
 
-    return data(
-      {
-        zips,
-        messages,
-        openDataAvailable: banoUrl?.value != null && banoUrl.value !== '',
-        staleDate,
-        canManageTerritories,
-        canManageProspection,
-        stats: {
-          total: totalBuildings,
-          active: totalActiveBuildings,
-          removed: totalRemovedBuildings,
-          stale: totalStaleBuildings,
-          created: totalCreatedBuildings,
-        },
+    return {
+      zips,
+      openDataAvailable: banoUrl?.value != null && banoUrl.value !== '',
+      staleDate,
+      canManageTerritories,
+      canManageProspection,
+      stats: {
+        total: totalBuildings,
+        active: totalActiveBuildings,
+        removed: totalRemovedBuildings,
+        stale: totalStaleBuildings,
+        created: totalCreatedBuildings,
       },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    }
   })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
-  const { messages, openDataAvailable, stats, staleDate, canManageTerritories, zips, canManageProspection } = loaderData
+  const { openDataAvailable, stats, staleDate, canManageTerritories, zips, canManageProspection } = loaderData
 
   return (
     <div className="flex flex-col gap-7">
-      <AlertMessages messages={messages} />
       <PageHeader
         title={m.prospection_title()}
         subtitle={m.prospection_subtitle()}

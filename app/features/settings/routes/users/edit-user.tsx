@@ -2,7 +2,6 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
@@ -57,7 +56,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageUser = permissions.has(Role.SettingsUserManager)
@@ -85,34 +84,25 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
     const roleList = await db.userRole.findMany()
     const missEmail = user.email.includes('@placeholder.unitae.app')
-    const session = await getSession(request.headers.get('Cookie'))
 
-    return data(
-      {
-        email: missEmail ? null : user.email,
-        id: user.id,
-        active: user.active,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        roles: user.congregationRoles.map(cr => cr.role),
-        messages: { success: session.get('success'), error: session.get('error') },
-        roleList,
-        isPublisher: user.isPublisher,
-        isAdmin,
-        anonymizedAt: user.anonymizedAt,
-        canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
-      },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    return {
+      email: missEmail ? null : user.email,
+      id: user.id,
+      active: user.active,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      roles: user.congregationRoles.map(cr => cr.role),
+      roleList,
+      isPublisher: user.isPublisher,
+      isAdmin,
+      anonymizedAt: user.anonymizedAt,
+      canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
+    }
   })
 }
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
-  const { messages, roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
+  const { roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
 
   useFocusError(actionData)
   const [form, fields] = useForm({
@@ -126,17 +116,6 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
   return (
     <div className="flex flex-col gap-6">
-      {messages.error && (
-        <Alert variant="destructive">
-          <AlertDescription>{messages.error}</AlertDescription>
-        </Alert>
-      )}
-      {messages.success && (
-        <Alert>
-          <AlertDescription>{messages.success}</AlertDescription>
-        </Alert>
-      )}
-
       <PageHeader
         title={m.settings_user_edit_title()}
         subtitle={m.settings_user_edit_subtitle()}

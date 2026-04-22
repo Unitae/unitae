@@ -1237,6 +1237,7 @@
     "prospection_edit_building_submit": "Modifier le batiment",
     "prospection_edit_building_success": "Le batiment a été correctement modifié",
     "prospection_edit_building_error": "Erreur lors de l'enregistrement du batiment",
+    "prospection_edit_building_duplicate_error": "Un bâtiment avec cette adresse existe déjà.",
     "prospection_edit_prospection_subtitle": "Modifier les informations de prospection du batiment. Ces informations seront utilisées pour organiser le territoire.",
     "prospection_edit_prospection_date_label": "Date de prospection",
     "prospection_edit_prospection_shared_modified_warning": "Les batiments partageant cet accès ont été modifiés. Sauvegardez avant de continuer",

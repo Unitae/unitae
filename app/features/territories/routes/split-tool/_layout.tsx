@@ -1,5 +1,4 @@
-import { data, NavLink, Outlet, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { NavLink, Outlet, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -8,7 +7,6 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/_layout'
@@ -17,7 +15,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   if (!permissions.has(Role.TerritoriesManager)) {
@@ -27,7 +25,6 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { congregationId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
     // biome-ignore lint/style/useNamingConvention: prisma keywords
     const prospectedBuilding = { active: true, congregationId, NOT: { prospectionDate: null } } as const
@@ -82,38 +79,27 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       },
     })
 
-    const messages = { success: session.get('success'), error: session.get('error') }
     const zips = await getZips(db, congregationId)
 
-    return data(
-      {
-        messages,
-        zips,
-        stats: {
-          classical: totalBuildingsForDoors,
-          hotel: totalBuildingsForHotel,
-          campus: totalBuildingsForCampus,
-          phones: totalBuildingsForPhone,
-          commerce: totalBuildingsForCommerce,
-        },
-        phoneTypeActive,
+    return {
+      zips,
+      stats: {
+        classical: totalBuildingsForDoors,
+        hotel: totalBuildingsForHotel,
+        campus: totalBuildingsForCampus,
+        phones: totalBuildingsForPhone,
+        commerce: totalBuildingsForCommerce,
       },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+      phoneTypeActive,
+    }
   })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
-  const { messages, stats, phoneTypeActive, zips } = loaderData
+  const { stats, phoneTypeActive, zips } = loaderData
 
   return (
     <div className="flex flex-col gap-7">
-      <AlertMessages messages={messages} />
-
       <PageHeader
         title={m.split_tool_title()}
         subtitle={m.split_tool_subtitle()}

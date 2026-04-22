@@ -2,6 +2,7 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
+import { Prisma } from '~/database/generated/client'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
@@ -11,7 +12,6 @@ import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-co
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -30,7 +30,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
   ]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   if (!permissions.has(Role.TerritoriesManager)) {
@@ -43,25 +43,12 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = {
-      success: session.get('success'),
-      error: session.get('error'),
-    }
-
-    return data(
-      { building, messages },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    return { building }
   })
 }
 
 export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { building, messages } = loaderData
+  const { building } = loaderData
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -72,8 +59,6 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 
   return (
     <div className="flex flex-col gap-6">
-      <AlertMessages messages={messages} />
-
       <PageHeader
         title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_building_subtitle()}
@@ -178,8 +163,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
       session.flash('success', m.prospection_edit_building_success())
     } catch (e) {
-      logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-      session.flash('error', m.prospection_edit_building_error())
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        session.flash('error', m.prospection_edit_building_duplicate_error())
+      } else {
+        logger.error('Error updating building', { error: e, buildingId: params.buildingId })
+        session.flash('error', m.prospection_edit_building_error())
+      }
     }
 
     const previousPage = request.headers.get('referer')

@@ -1,6 +1,5 @@
 import { ExternalLink, Send } from 'lucide-react'
-import { data, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { Link, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { Role } from '~/shared/types/role'
 
@@ -50,7 +49,6 @@ import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
@@ -85,37 +83,26 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
     const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url, congregationId)
 
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = { success: session.get('success'), error: session.get('error') }
     const zips = await getZips(db, congregationId)
 
-    return data(
-      {
-        messages,
-        zips,
-        stats: {
-          total: pagination.total,
-        },
-        territories,
-        pagination,
-        canManageTerritories,
+    return {
+      zips,
+      stats: {
+        total: pagination.total,
       },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+      territories,
+      pagination,
+      canManageTerritories,
+    }
   })
 }
 
 export default function TerritorySelectorPage({ loaderData }: Route.ComponentProps) {
-  const { messages, pagination, territories, zips } = loaderData
+  const { pagination, territories, zips } = loaderData
 
   if (territories.length < 1) {
     return (
       <div className="flex flex-col gap-5">
-        <AlertMessages messages={messages} />
         <PageHeader
           title={m.attributions_available_title()}
           subtitle={m.attributions_available_subtitle()}
@@ -137,7 +124,6 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
 
   return (
     <div className="flex flex-col gap-5">
-      <AlertMessages messages={messages} />
       <PageHeader
         title={m.attributions_available_title()}
         subtitle={m.attributions_available_subtitle()}

@@ -1,6 +1,5 @@
 import { CalendarCheck, Pencil, X } from 'lucide-react'
-import { data, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { Link, redirect } from 'react-router'
 import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters.server'
@@ -14,7 +13,6 @@ import { getBoolSetting } from '~/shared/domain/settings.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -64,51 +62,32 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
     const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url, congregationId)
 
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = { success: session.get('success'), error: session.get('error') }
     const groups = await getGroups(db, congregationId)
     const theocraticYear = getCurrentTheocraticYear()
 
-    return data(
-      {
-        messages,
-        stats: {
-          total: pagination.total,
-        },
-        attributions,
-        pagination,
-        canManageTerritories,
-        canManagePublisher,
-        canViewPublisher,
-        groups,
-        phoneTypeActive,
-        theocraticYear,
+    return {
+      stats: {
+        total: pagination.total,
       },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+      attributions,
+      pagination,
+      canManageTerritories,
+      canManagePublisher,
+      canViewPublisher,
+      groups,
+      phoneTypeActive,
+      theocraticYear,
+    }
   })
 }
 
 export default function AttributionListPage({ loaderData }: Route.ComponentProps) {
-  const {
-    messages,
-    pagination,
-    attributions,
-    canManageTerritories,
-    theocraticYear,
-    groups,
-    phoneTypeActive,
-    canViewPublisher,
-  } = loaderData
+  const { pagination, attributions, canManageTerritories, theocraticYear, groups, phoneTypeActive, canViewPublisher } =
+    loaderData
 
   if (attributions.length < 1) {
     return (
       <div className="flex flex-col gap-5">
-        <AlertMessages messages={messages} />
         <PageHeader
           title={m.attributions_title()}
           subtitle={m.attributions_subtitle()}
@@ -138,7 +117,6 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
 
   return (
     <div className="flex flex-col gap-5">
-      <AlertMessages messages={messages} />
       <PageHeader
         title={m.attributions_title()}
         subtitle={m.attributions_subtitle()}

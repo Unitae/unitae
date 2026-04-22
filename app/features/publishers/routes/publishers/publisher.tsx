@@ -1,6 +1,5 @@
 import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { getSession } from '~/features/authentication/server/session.server'
 import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
@@ -23,7 +22,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: `${data.publisher.firstname} ${data.publisher.lastname} - Unitae` }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewPublisher = permissions.has(Role.PublisherViewer)
@@ -87,15 +86,11 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/publishers')
     }
 
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = { success: session.get('success'), error: session.get('error') }
-
     const attributions = await findActiveAttributionsForPublisher(db, publisher.id, currentUser.congregationId)
 
     return {
       publisher: sanitizeUser(publisher),
       attributions,
-      messages,
       roles: {
         canViewPublisher,
         canManagePublisher,

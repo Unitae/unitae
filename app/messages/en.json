@@ -1237,6 +1237,7 @@
     "prospection_edit_building_submit": "Update building",
     "prospection_edit_building_success": "Building has been successfully updated",
     "prospection_edit_building_error": "Error saving building",
+    "prospection_edit_building_duplicate_error": "A building with this address already exists.",
     "prospection_edit_prospection_subtitle": "Edit building prospecting information. This information will be used to organize the territory.",
     "prospection_edit_prospection_date_label": "Prospecting date",
     "prospection_edit_prospection_shared_modified_warning": "Buildings sharing this entrance have been modified. Save before continuing",

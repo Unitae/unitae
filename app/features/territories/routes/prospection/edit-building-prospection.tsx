@@ -30,7 +30,6 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -44,7 +43,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
@@ -61,20 +60,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     }
 
     const buildings = await getBuildings(db, congregationId, building.zip, building.street)
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = {
-      success: session.get('success'),
-      error: session.get('error'),
-    }
 
-    return data(
-      { building, buildings, messages, roles: { canManageTerritories } },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    return { building, buildings, roles: { canManageTerritories } }
   })
 }
 
@@ -100,7 +87,7 @@ function makeUid() {
 }
 
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
-  const { building, messages, buildings, roles } = loaderData
+  const { building, buildings, roles } = loaderData
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
   const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
@@ -132,7 +119,6 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <AlertMessages messages={messages} />
       <PageHeader
         title={`Prospection du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_prospection_subtitle()}

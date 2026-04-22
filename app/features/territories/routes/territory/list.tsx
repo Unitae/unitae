@@ -1,6 +1,5 @@
 import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
-import { data, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { Link, redirect } from 'react-router'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
@@ -13,7 +12,6 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -71,44 +69,30 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const { congregationId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     const url = new URL(request.url)
     const selectors = await computeFilters(url.searchParams)
     const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId)
 
-    const messages = {
-      success: session.get('success'),
-      error: session.get('error'),
-    }
     const zips = await getZips(db, congregationId)
 
-    return data(
-      {
-        messages,
-        zips,
-        stats: {
-          total: pagination.total,
-        },
-        territories,
-        pagination,
-        googleMaps: { mapId, apiKey },
-        canManageTerritories,
-        phoneTypeActive,
+    return {
+      zips,
+      stats: {
+        total: pagination.total,
       },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+      territories,
+      pagination,
+      googleMaps: { mapId, apiKey },
+      canManageTerritories,
+      phoneTypeActive,
+    }
   })
 }
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
   const {
-    messages,
     pagination,
     territories,
     canManageTerritories,
@@ -120,8 +104,6 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
   if (territories.length < 1) {
     return (
       <div className="flex flex-col gap-5">
-        <AlertMessages messages={messages} />
-
         <PageHeader
           title={m.territories_title()}
           subtitle={m.territories_subtitle()}
@@ -148,7 +130,6 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
   return (
     <div className="flex flex-col gap-5">
-      <AlertMessages messages={messages} />
       <PageHeader
         title={m.territories_title()}
         subtitle={m.territories_subtitle()}
