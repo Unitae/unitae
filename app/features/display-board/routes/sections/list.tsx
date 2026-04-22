@@ -1,17 +1,17 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { FolderOpen, GripVertical, Pencil, Search, Trash2 } from 'lucide-react'
+import { FolderOpen, GripVertical, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
+import { Link, redirect, useFetcher, useRevalidator } from 'react-router'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
-import { Input } from '~/shared/ui/input'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/list'
@@ -118,7 +118,6 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
   const fetcher = useFetcher()
   const bulkFetcher = useFetcher()
   const revalidator = useRevalidator()
-  const [searchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   function toggleSelection(id: number) {
@@ -178,21 +177,7 @@ export default function SectionListPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <RouterForm method="get" className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            name="q"
-            type="search"
-            placeholder={m.board_sections_search_placeholder()}
-            defaultValue={searchParams.get('q') ?? ''}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" variant="secondary">
-          {m.board_documents_search_button()}
-        </Button>
-      </RouterForm>
+      <SearchInput placeholder={m.board_sections_search_placeholder()} />
 
       {sections.length === 0 ? (
         <EmptyState

@@ -1,4 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
@@ -19,6 +20,7 @@ import {
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -28,6 +30,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -160,8 +163,12 @@ async function handleServiceRoleIntent(
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
   const { template } = loaderData
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_template_edit_title({ name: template.name })}
         subtitle={m.settings_template_edit_subtitle()}
@@ -178,7 +185,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.settings_template_edit_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <input type="hidden" name="intent" value="update-template" />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.settings_template_edit_name_label()}</Label>

@@ -1,5 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
@@ -13,6 +14,7 @@ import {
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting, getSetting, setSetting } from '~/shared/domain/settings.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -23,6 +25,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/settings'
 
@@ -74,15 +77,19 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
     },
   })
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_territories_title()}
         subtitle={m.settings_territories_subtitle()}
         breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_territories() }]}
       />
 
-      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_territories_prospection_title()}</CardTitle>

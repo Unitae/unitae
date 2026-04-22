@@ -1,6 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { Prisma } from '~/database/generated/client'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -10,6 +11,7 @@ import { getBuildingDetails } from '~/features/territories/server/get-building-d
 import * as m from '~/paraglide/messages'
 import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -18,6 +20,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-building'
@@ -49,6 +52,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
   const { building } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -59,6 +64,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_building_subtitle()}
@@ -78,7 +84,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <h2 className="font-semibold text-lg">{m.prospection_building_identification()}</h2>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>

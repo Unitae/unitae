@@ -1,12 +1,14 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
@@ -28,6 +30,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
@@ -104,6 +107,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const { roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -116,6 +121,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_user_edit_title()}
         subtitle={m.settings_user_edit_subtitle()}
@@ -166,7 +172,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
       <Card>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex gap-4 max-sm:flex-col">
               <div className="flex-1 space-y-2">
                 <Label htmlFor={fields.firstname.id}>{m.settings_user_edit_firstname_label()}</Label>

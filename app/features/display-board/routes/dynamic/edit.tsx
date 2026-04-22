@@ -1,6 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
@@ -9,6 +10,7 @@ import { updateDynamicDocument } from '~/features/display-board/server/board-doc
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -16,6 +18,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -61,6 +64,9 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
     },
   })
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   let formattedVisibleFrom = ''
   if (settings.visibleFrom !== null) {
     const visibleFrom = new Date(settings.visibleFrom)
@@ -77,6 +83,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_dynamic_edit_title()}
         subtitle={m.board_dynamic_edit_subtitle()}
@@ -96,7 +103,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.title.id}>{m.board_documents_new_name_label()}</Label>
               <Input

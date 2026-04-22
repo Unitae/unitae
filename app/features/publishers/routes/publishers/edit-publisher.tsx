@@ -1,5 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Archive, IdCard } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
@@ -10,11 +11,13 @@ import PublisherPersonalInformationForm from '~/features/publishers/ui/Publisher
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-publisher'
 
@@ -64,9 +67,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
   const { user, groups, hideAuxiliaryPioneer } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.publishers_edit_title()}
         subtitle={m.publishers_edit_subtitle()}
@@ -89,7 +95,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
         <PublisherPersonalInformationForm user={user} />
         <PublisherNominationForm user={user} />
         <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />

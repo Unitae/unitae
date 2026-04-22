@@ -1,6 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { ArrowRight } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
@@ -12,6 +13,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -21,6 +23,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/settings'
 
 export const meta: Route.MetaFunction = () => {
@@ -53,6 +56,8 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { auxiliaryPioneerProfileActivated, congregationDisplayName } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -63,13 +68,14 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_congregation_title()}
         subtitle={m.settings_congregation_subtitle()}
         breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
       />
 
-      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6">
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_congregation_local_title()}</CardTitle>

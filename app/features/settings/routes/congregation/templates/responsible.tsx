@@ -1,4 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
@@ -9,6 +10,7 @@ import {
 import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -17,6 +19,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/responsible'
@@ -87,8 +90,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
   const { template, users, currentResponsibleId } = loaderData
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_template_responsible_title({ name: template.name })}
         subtitle={m.settings_template_responsible_subtitle()}
@@ -105,7 +112,7 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.settings_template_responsible_choose_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="userId">{m.settings_template_responsible_label()}</Label>
               <Select name="userId" defaultValue={currentResponsibleId?.toString() ?? 'none'}>

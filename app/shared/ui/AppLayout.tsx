@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router'
 import { AppSidebar, type AppSidebarPermissions } from '~/shared/ui/AppSidebar'
 import { NavigationProgress } from '~/shared/ui/NavigationProgress'
+import { OfflineBanner } from '~/shared/ui/OfflineBanner'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '~/shared/ui/sidebar'
 import { Toaster } from '~/shared/ui/sonner'
 
@@ -15,6 +16,7 @@ export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
       <AppSidebar permissions={permissions} congregationName={congregationName} />
       <SidebarInset>
         <NavigationProgress />
+        <OfflineBanner />
         <div className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </div>

@@ -1,6 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 import * as m from '~/paraglide/messages'
+import { usePersistedState } from '~/shared/hooks/use-persisted-state'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
@@ -16,11 +18,22 @@ export default function Pagination({
   total: number
 }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [preferredSize, setPreferredSize] = usePersistedState('unitae:pageSize', 25)
+
+  // Apply persisted page size on mount if URL doesn't already have one
+  useEffect(() => {
+    if (!searchParams.has('pageSize') && preferredSize !== 25) {
+      searchParams.set('pageSize', String(preferredSize))
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, []) // Only on mount
+
   const handlePageChange = (newPage: number) => {
     searchParams.set('page', String(newPage))
     setSearchParams(searchParams)
   }
   const handlePageSizeChange = (newSize: string) => {
+    setPreferredSize(Number(newSize))
     searchParams.set('pageSize', newSize)
     setSearchParams(searchParams)
   }

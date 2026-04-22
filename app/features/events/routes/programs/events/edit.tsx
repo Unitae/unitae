@@ -1,4 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
@@ -22,6 +23,7 @@ import {
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -30,6 +32,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -218,8 +221,12 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
   const { event, templates } = loaderData
   const hasParts = event.partAssignments.length > 0 || event.serviceRoleAssignments.length > 0
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_edit_page_title()}
         subtitle={event.name}
@@ -236,7 +243,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.programs_edit_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <input type="hidden" name="intent" value="update-event" />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.common_name()}</Label>

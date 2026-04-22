@@ -14,7 +14,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ actions, title, subtitle, breadcrumbs, backTo }: PageHeaderProps) {
   return (
-    <div className="mb-6 flex flex-col gap-1">
+    <div className="mb-6 flex animate-fade-in-up flex-col gap-1">
       {breadcrumbs && breadcrumbs.length > 1 && <PageBreadcrumb items={breadcrumbs} />}
       <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
         <div className="flex items-center gap-3">

@@ -28,6 +28,7 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -36,6 +37,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-building-prospection'
 
@@ -88,6 +90,8 @@ function makeUid() {
 
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, buildings, roles } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
   const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
@@ -119,6 +123,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={`Prospection du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_prospection_subtitle()}
@@ -140,7 +145,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </>
         }
       />
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-1.5">

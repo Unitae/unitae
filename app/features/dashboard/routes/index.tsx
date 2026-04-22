@@ -74,13 +74,6 @@ function formatDate(date: Date | string): string {
   })
 }
 
-function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const { currentUser, territories, recentDocuments, absences, assignments } = loaderData
 
@@ -93,7 +86,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="animate-fade-in-up">
         <h1 className="font-display font-semibold text-2xl tracking-tight">
           {m.dashboard_greeting({ name: currentUser.firstname ?? '' })}
         </h1>
@@ -101,10 +94,18 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <TerritoriesCard territories={territories} />
-        <AssignmentsCard assignments={assignments} />
-        <DocumentsCard documents={recentDocuments} />
-        <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
+        <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <TerritoriesCard territories={territories} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <AssignmentsCard assignments={assignments} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <DocumentsCard documents={recentDocuments} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
+        </div>
       </div>
     </div>
   )
