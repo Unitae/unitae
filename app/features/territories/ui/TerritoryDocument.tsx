@@ -1,5 +1,5 @@
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import type { BuildingAccess } from '~/database/generated/client'
+import { formatAccessSequence } from '~/features/territories/model/access-format'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -212,30 +212,6 @@ function TypeInformations({ type }: { type: TerritoryKind }) {
       {type === TerritoryKind.Hotel && m.territories_type_hotel_singular()}
     </Text>
   )
-}
-
-function formatAccessLabel(accessType: number): string {
-  if (accessType === TerritoryAccess.Intercom) return m.territory_doc_access_intercom()
-  if (accessType === TerritoryAccess.Code) return m.territory_doc_access_digicode()
-  if (accessType === TerritoryAccess.Doorbell) return m.territory_doc_access_doorbell()
-  return ''
-}
-
-function formatAccessSequence(entrance: Entrance): string {
-  const accesses: BuildingAccess[] = entrance.accesses ?? []
-  if (accesses.length > 0) {
-    return accesses
-      .map(a => formatAccessLabel(a.type))
-      .filter(Boolean)
-      .join(' → ')
-  }
-
-  // Fallback to old single access field
-  if (entrance.access != null) {
-    return formatAccessLabel(entrance.access)
-  }
-
-  return ''
 }
 
 function EntranceInformations({ entrance, canShowPhone }: { entrance: Entrance; canShowPhone: boolean }) {

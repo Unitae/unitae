@@ -135,7 +135,7 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
             {territories.map(t => (
               <Link
                 key={t.id}
-                to={`/territories/mine/${t.territory.id}`}
+                to={`/me/territories/${t.territory.id}`}
                 className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
               >
                 <div className="flex flex-col">
@@ -152,7 +152,7 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
       </CardContent>
       <CardFooter>
         <Button variant="link" asChild className="px-0">
-          <Link to="/territories/mine">{m.dashboard_view_all()}</Link>
+          <Link to="/me/territories">{m.dashboard_view_all()}</Link>
         </Button>
       </CardFooter>
     </Card>
