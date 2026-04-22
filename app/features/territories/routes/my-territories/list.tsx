@@ -1,6 +1,7 @@
 import { ChevronRight, Download, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
 
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
   getUserTerritoriesWithDetails,
@@ -122,12 +123,12 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
 
                 <div className="border-t px-4 py-2.5">
                   <TerritoryDownloadLink
-                    territory={t.territory as never}
+                    territory={t.territory}
                     entrances={[]}
                     googleMapKey={googleMaps.apiKey}
                     googleMapId={googleMaps.mapId}
                     showPhone={phoneTypeActive}
-                    attributionType={t.type as never}
+                    attributionType={t.type as TerritoryAttributionKind}
                   >
                     <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
                       <Download className="size-3.5" />

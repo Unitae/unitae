@@ -56,10 +56,10 @@ export function loader({ context }: Route.LoaderArgs) {
         safeQuery('onboarding-territories', currentUser.id, () => db.territory.count()),
         safeQuery('onboarding-documents', currentUser.id, () => db.boardDocument.count()),
       ])
-      onboarding = {
-        publisherCount: publisherCount ?? 0,
-        territoryCount: territoryCount ?? 0,
-        documentCount: documentCount ?? 0,
+      // Only show onboarding if all counts loaded successfully — avoid showing
+      // misleading "incomplete setup" when the database query failed
+      if (publisherCount != null && territoryCount != null && documentCount != null) {
+        onboarding = { publisherCount, territoryCount, documentCount }
       }
     }
 

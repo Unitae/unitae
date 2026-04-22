@@ -4,7 +4,7 @@ const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000
 
 export type TerritoryStatus = 'on-time' | 'due-soon' | 'overdue'
 
-function computeStatus(lateDate: Date): TerritoryStatus {
+export function computeStatus(lateDate: Date): TerritoryStatus {
   const now = new Date()
   if (lateDate < now) return 'overdue'
   if (lateDate.getTime() - now.getTime() <= TWO_WEEKS_MS) return 'due-soon'
@@ -61,11 +61,16 @@ export async function getUserTerritoryDetail(db: TransactionClient, userId: numb
       lateDate: true,
       type: true,
       territory: {
-        include: {
+        select: {
+          id: true,
+          number: true,
+          type: true,
+          notes: true,
+          congregationId: true,
           entrances: {
             include: {
-              buildings: { where: { active: true } },
               accesses: { orderBy: { position: 'asc' } },
+              buildings: { where: { active: true } },
             },
           },
         },

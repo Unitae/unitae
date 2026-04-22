@@ -1,7 +1,6 @@
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import { Download } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { Territory } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { Entrance } from '~/shared/types/entrance'
@@ -18,7 +17,7 @@ export function TerritoryDownloadLink({
   restitutionDate,
   attributionType = TerritoryAttributionKind.Default,
 }: {
-  territory: Territory
+  territory: { number: string; type: string }
   entrances: Entrance[]
   children?: React.ReactNode
   googleMapId: string | undefined

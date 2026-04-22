@@ -6,9 +6,13 @@ import {
 import { Download, MapPin } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { redirect } from 'react-router'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
-import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
-import { getUserTerritoryDetail, type TerritoryStatus } from '~/features/territories/server/my-territories.server'
+import {
+  computeStatus,
+  getUserTerritoryDetail,
+  type TerritoryStatus,
+} from '~/features/territories/server/my-territories.server'
 import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
 import * as m from '~/paraglide/messages'
@@ -32,15 +36,6 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: m.my_territories_view_meta_title({ number: data.territory.number }) }]
 }
 
-const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000
-
-function computeStatus(lateDate: Date): TerritoryStatus {
-  const now = new Date()
-  if (lateDate < now) return 'overdue'
-  if (lateDate.getTime() - now.getTime() <= TWO_WEEKS_MS) return 'due-soon'
-  return 'on-time'
-}
-
 export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   const territoryId = requireParamId(params.territoryId, '/me/territories')
@@ -62,7 +57,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       territory: attribution.territory,
-      entrances: attribution.territory.entrances.map(aggregateEntrance),
+      entrances: attribution.territory.entrances.filter(e => e.buildings.length > 0).map(aggregateEntrance),
       attribution: {
         startDate: attribution.startDate,
         lateDate: attribution.lateDate,
@@ -89,7 +84,6 @@ function statusLabel(status: TerritoryStatus): string {
 
 export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
   const { territory, entrances, attribution, phoneTypeActive, googleMaps } = loaderData
-  const quantity = computeTerritoryQuantity(territory.type, entrances)
 
   return (
     <div className="flex flex-col gap-6">
@@ -167,12 +161,12 @@ function PdfDownloadButton({
 
   return (
     <TerritoryDownloadLink
-      territory={territory as never}
+      territory={territory}
       entrances={entrances}
       googleMapKey={googleMaps.apiKey}
       googleMapId={googleMaps.mapId}
       showPhone={phoneTypeActive}
-      attributionType={attributionType as never}
+      attributionType={attributionType as TerritoryAttributionKind}
     >
       <Button variant="outline" size="sm" className="gap-1.5">
         <Download className="size-3.5" />

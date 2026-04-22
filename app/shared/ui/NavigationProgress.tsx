@@ -7,22 +7,24 @@ export function NavigationProgress() {
   const [show, setShow] = useState(false)
   const [completing, setCompleting] = useState(false)
   const delayRef = useRef<ReturnType<typeof setTimeout>>(null)
+  const hideRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   useEffect(() => {
     if (isNavigating) {
       setCompleting(false)
+      if (hideRef.current) clearTimeout(hideRef.current)
       delayRef.current = setTimeout(() => setShow(true), 300)
     } else if (show) {
       setCompleting(true)
-      const hide = setTimeout(() => {
+      hideRef.current = setTimeout(() => {
         setShow(false)
         setCompleting(false)
       }, 300)
-      return () => clearTimeout(hide)
     }
 
     return () => {
       if (delayRef.current) clearTimeout(delayRef.current)
+      if (hideRef.current) clearTimeout(hideRef.current)
     }
   }, [isNavigating, show])
 

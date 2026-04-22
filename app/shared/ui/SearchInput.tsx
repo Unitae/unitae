@@ -44,9 +44,11 @@ export function SearchInput({ paramName = 'q', placeholder, delay = 300 }: Searc
   }, [debounced, paramName, setSearchParams])
 
   // Sync external URL changes (e.g., browser back)
+  const valueRef = useRef(value)
+  valueRef.current = value
   useEffect(() => {
     const urlValue = searchParams.get(paramName) ?? ''
-    if (urlValue !== value && urlValue !== debounced) {
+    if (urlValue !== valueRef.current) {
       setValue(urlValue)
     }
   }, [searchParams, paramName])
