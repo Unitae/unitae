@@ -876,7 +876,7 @@ async function main() {
 
   // ── Attributions (active + historical) ────────────────────────────────
   let attrCount = 0
-  const publishers = createdUsers.filter(u => u.isPublisher !== false)
+  const publishers = createdUsers
 
   // Active attributions for ~60% of territories
   for (let i = 0; i < Math.floor(createdTerritories.length * 0.6); i++) {
