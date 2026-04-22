@@ -7,11 +7,11 @@ import { createBoardSection } from '~/features/display-board/server/board-sectio
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new'
 
@@ -51,9 +51,7 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
               />
               {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
-            <Button type="submit" className="w-fit">
-              {m.board_sections_new_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.board_sections_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

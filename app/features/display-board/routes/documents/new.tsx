@@ -23,11 +23,11 @@ import {
 import { LimitService } from '~/shared/domain/limits.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new'
 
@@ -146,9 +146,7 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-fit">
-              {m.board_documents_new_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.board_documents_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

@@ -5,8 +5,8 @@ import { deleteBuilding } from '~/features/territories/server/delete-building.se
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete-building'
@@ -54,9 +54,7 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
-            <Button type="submit" variant="destructive">
-              {m.prospection_delete_building_submit()}
-            </Button>
+            <SubmitButton variant="destructive">{m.prospection_delete_building_submit()}</SubmitButton>
           </Form>
         </CardFooter>
       </Card>

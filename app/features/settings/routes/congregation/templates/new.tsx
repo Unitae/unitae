@@ -7,11 +7,11 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 import type { Route } from './+types/new'
@@ -104,9 +104,7 @@ export default function NewTemplatePage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-fit">
-              {m.settings_template_new_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.settings_template_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

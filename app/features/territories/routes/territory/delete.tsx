@@ -4,8 +4,8 @@ import { deleteTerritory } from '~/features/territories/server/delete-territory.
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
@@ -51,9 +51,9 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
-            <Button type="submit" variant="destructive">
+            <SubmitButton variant="destructive">
               {m.territories_delete_submit({ number: territory.number })}
-            </Button>
+            </SubmitButton>
           </Form>
         </CardFooter>
       </Card>

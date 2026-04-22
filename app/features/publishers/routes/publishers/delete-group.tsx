@@ -5,8 +5,8 @@ import { deletePublisherGroup } from '~/features/publishers/server/publisher-gro
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete-group'
@@ -50,9 +50,9 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
-            <Button type="submit" variant="destructive" title={m.groups_delete_title()}>
+            <SubmitButton variant="destructive" title={m.groups_delete_title()}>
               {m.groups_delete_button({ name: group.name })}
-            </Button>
+            </SubmitButton>
           </Form>
         </CardFooter>
       </Card>

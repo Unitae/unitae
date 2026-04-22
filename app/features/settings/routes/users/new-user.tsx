@@ -12,11 +12,11 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import type { Route } from './+types/new-user'
 
 export const meta: Route.MetaFunction = () => {
@@ -74,9 +74,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
               />
               {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
-            <Button type="submit" className="mt-2">
-              {m.settings_user_new_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.settings_user_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

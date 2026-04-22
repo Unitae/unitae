@@ -25,6 +25,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/new'
@@ -166,9 +167,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
                 selection={territoryEntrances}
                 onSelectionChange={selection => setTerritoryEntrances(selection)}
               />
-              <Button type="submit" className="mt-2">
-                {m.territories_form_create_submit()}
-              </Button>
+              <SubmitButton className="mt-2">{m.territories_form_create_submit()}</SubmitButton>
             </Form>
           </CardContent>
         </Card>

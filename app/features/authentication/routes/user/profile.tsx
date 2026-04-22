@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import type { Route } from './+types/profile'
 
 export const meta: Route.MetaFunction = () => {
@@ -129,9 +130,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               <Label htmlFor="new_password">{m.user_profile_new_password_label()}</Label>
               <Input id="new_password" name="new_password" type="password" autoComplete="new-password" />
             </div>
-            <Button type="submit" className="w-fit">
-              {m.user_profile_change_password_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.user_profile_change_password_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

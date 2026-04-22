@@ -16,11 +16,11 @@ import {
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new'
 
@@ -151,9 +151,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
               {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
 
-            <Button type="submit" className="mt-2">
-              {m.attributions_new_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.attributions_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

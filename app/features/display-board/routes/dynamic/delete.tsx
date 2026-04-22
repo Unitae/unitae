@@ -4,8 +4,8 @@ import { deleteDynamicDocument } from '~/features/display-board/server/board-doc
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
@@ -42,9 +42,7 @@ export default function DeleteDynamicDocumentPage({ loaderData }: Route.Componen
           {m.board_dynamic_delete_confirmation({ name: settings.title })}
         </p>
         <Form method="post">
-          <Button type="submit" variant="destructive">
-            {m.board_dynamic_delete_button()}
-          </Button>
+          <SubmitButton variant="destructive">{m.board_dynamic_delete_button()}</SubmitButton>
         </Form>
       </CardContent>
     </Card>

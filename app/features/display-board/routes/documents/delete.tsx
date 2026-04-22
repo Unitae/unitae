@@ -6,8 +6,8 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
@@ -45,9 +45,9 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
           {m.board_documents_delete_confirmation({ name: document.title })}
         </p>
         <Form method="post">
-          <Button type="submit" variant="destructive" title={m.board_documents_delete_tooltip()}>
+          <SubmitButton variant="destructive" title={m.board_documents_delete_tooltip()}>
             {m.board_documents_delete_button()}
-          </Button>
+          </SubmitButton>
         </Form>
       </CardContent>
     </Card>

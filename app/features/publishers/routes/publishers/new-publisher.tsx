@@ -14,8 +14,8 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new-publisher'
 
@@ -51,9 +51,9 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
         <PublisherNominationForm />
         <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
-        <Button type="submit" size="lg" className="self-start">
+        <SubmitButton size="lg" className="self-start">
           {m.publishers_new_submit()}
-        </Button>
+        </SubmitButton>
       </Form>
     </div>
   )

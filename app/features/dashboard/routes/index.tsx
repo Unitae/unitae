@@ -132,7 +132,11 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
         ) : (
           <div className="flex flex-col gap-2">
             {territories.map(t => (
-              <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+              <Link
+                key={t.id}
+                to={`/territories/mine/${t.territory.id}`}
+                className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
+              >
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{t.territory.number}</span>
                   <span className="text-muted-foreground text-xs">
@@ -140,11 +144,16 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
                   </span>
                 </div>
                 <Badge variant={statusVariant[t.status]}>{statusLabel(t.status)}</Badge>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </CardContent>
+      <CardFooter>
+        <Button variant="link" asChild className="px-0">
+          <Link to="/territories/mine">{m.dashboard_view_all()}</Link>
+        </Button>
+      </CardFooter>
     </Card>
   )
 }
@@ -163,14 +172,18 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
         ) : (
           <div className="flex flex-col gap-2">
             {assignments.map(a => (
-              <div key={`${a.kind}-${a.id}`} className="flex flex-col gap-0.5 rounded-lg border px-3 py-2">
+              <Link
+                key={`${a.kind}-${a.id}`}
+                to={`/programs/events/${a.eventId}`}
+                className="flex flex-col gap-0.5 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm">{a.name}</span>
                   <span className="shrink-0 text-muted-foreground text-xs">{formatShortDate(a.eventDate)}</span>
                 </div>
                 {a.topic && <span className="text-muted-foreground text-xs">{a.topic}</span>}
                 <span className="text-muted-foreground text-xs">{a.eventName}</span>
-              </div>
+              </Link>
             ))}
           </div>
         )}

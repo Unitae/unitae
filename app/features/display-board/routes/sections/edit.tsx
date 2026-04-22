@@ -13,6 +13,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -77,9 +78,7 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
               />
               {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
-            <Button type="submit" className="w-fit">
-              {m.board_sections_edit_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.board_sections_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

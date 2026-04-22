@@ -6,8 +6,8 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
@@ -79,9 +79,7 @@ export default function DeleteEventPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
         <CardFooter>
           <Form method="post">
-            <Button type="submit" variant="destructive">
-              {m.programs_delete_submit()}
-            </Button>
+            <SubmitButton variant="destructive">{m.programs_delete_submit()}</SubmitButton>
           </Form>
         </CardFooter>
       </Card>

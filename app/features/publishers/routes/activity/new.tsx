@@ -11,11 +11,11 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -290,9 +290,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
-            <Button type="submit" className="self-start">
-              {m.activity_new_submit()}
-            </Button>
+            <SubmitButton className="self-start">{m.activity_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

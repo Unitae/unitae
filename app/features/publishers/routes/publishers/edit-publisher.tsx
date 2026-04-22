@@ -14,6 +14,7 @@ import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-publisher'
 
@@ -91,9 +92,9 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         <PublisherNominationForm user={user} />
         <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
-        <Button type="submit" size="lg" className="self-start">
+        <SubmitButton size="lg" className="self-start">
           {m.publishers_edit_submit()}
-        </Button>
+        </SubmitButton>
       </Form>
     </div>
   )

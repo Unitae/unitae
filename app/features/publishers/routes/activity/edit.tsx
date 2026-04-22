@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -180,9 +181,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
               {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
-            <Button type="submit" className="self-start">
-              {m.activity_new_submit()}
-            </Button>
+            <SubmitButton className="self-start">{m.activity_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

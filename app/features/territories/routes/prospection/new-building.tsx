@@ -7,11 +7,11 @@ import { createBuilding } from '~/features/territories/server/create-building.se
 import * as m from '~/paraglide/messages'
 import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new-building'
 
@@ -80,9 +80,7 @@ export default function CreateBuildingPage({ actionData }: Route.ComponentProps)
                 {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
               </div>
             </div>
-            <Button type="submit" className="mt-2">
-              {m.prospection_new_building_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.prospection_new_building_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

@@ -21,6 +21,7 @@ import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
 
 import type { Route } from './+types/settings'
@@ -155,7 +156,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
           </CardContent>
         </Card>
 
-        <Button type="submit">{m.common_save()}</Button>
+        <SubmitButton>{m.common_save()}</SubmitButton>
       </Form>
     </div>
   )

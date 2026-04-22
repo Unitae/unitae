@@ -19,6 +19,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -197,9 +198,9 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
                 {m.attributions_edit_return_submit()}
               </Button>
             ) : (
-              <Button type="submit" disabled={attribution.endDate !== null} className="mt-2">
+              <SubmitButton disabled={attribution.endDate !== null} className="mt-2">
                 {m.attributions_edit_save_submit()}
-              </Button>
+              </SubmitButton>
             )}
           </Form>
         </CardContent>

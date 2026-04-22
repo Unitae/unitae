@@ -26,6 +26,7 @@ import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -260,9 +261,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                 ))
               )}
             </div>
-            <Button type="submit" className="mt-2">
-              {m.settings_user_edit_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.settings_user_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

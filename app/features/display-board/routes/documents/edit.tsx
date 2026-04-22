@@ -16,6 +16,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -169,9 +170,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-fit">
-              {m.board_documents_edit_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.board_documents_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

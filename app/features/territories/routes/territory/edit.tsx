@@ -25,6 +25,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -299,9 +300,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               />
             </div>
 
-            <Button type="submit" className="mt-2">
-              {m.territories_edit_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.territories_edit_submit()}</SubmitButton>
           </Form>
         </div>
         <BuildingEntranceMap apiKey={apiKey} entrances={territoryEntrances} />

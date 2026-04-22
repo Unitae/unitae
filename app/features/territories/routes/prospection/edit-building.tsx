@@ -16,6 +16,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-building'
@@ -135,9 +136,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
               </div>
             </div>
 
-            <Button type="submit" className="mt-2">
-              {m.prospection_edit_building_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.prospection_edit_building_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

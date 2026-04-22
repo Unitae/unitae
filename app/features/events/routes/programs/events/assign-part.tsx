@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -156,9 +157,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
                 </Select>
               </div>
 
-              <Button type="submit" className="w-fit">
-                {m.common_save()}
-              </Button>
+              <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
             </Form>
           </CardContent>
         </Card>

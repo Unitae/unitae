@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-group'
@@ -142,9 +143,7 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
               </div>
             </div>
 
-            <Button type="submit" className="self-start">
-              {m.common_save()}
-            </Button>
+            <SubmitButton className="self-start">{m.common_save()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

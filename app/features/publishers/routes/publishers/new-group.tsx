@@ -8,11 +8,11 @@ import { createPublisherGroup } from '~/features/publishers/server/publisher-gro
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new-group'
 
@@ -115,9 +115,7 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
               </div>
             </div>
 
-            <Button type="submit" className="self-start">
-              {m.groups_new_submit()}
-            </Button>
+            <SubmitButton className="self-start">{m.groups_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

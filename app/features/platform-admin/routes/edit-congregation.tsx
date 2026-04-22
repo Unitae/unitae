@@ -7,11 +7,11 @@ import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -125,7 +125,7 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
             </div>
 
             <div className="pt-2">
-              <Button type="submit">{m.common_save()}</Button>
+              <SubmitButton>{m.common_save()}</SubmitButton>
             </div>
           </Form>
         </CardContent>

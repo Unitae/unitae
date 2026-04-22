@@ -5,8 +5,8 @@ import { deleteAttribution } from '~/features/territories/server/delete-attribut
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
@@ -53,9 +53,9 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
         </CardContent>
         <CardFooter className="justify-center">
           <Form method="post">
-            <Button type="submit" variant="destructive">
+            <SubmitButton variant="destructive">
               {m.attributions_delete_submit({ number: String(attribution.territory.number) })}
-            </Button>
+            </SubmitButton>
           </Form>
         </CardFooter>
       </Card>
