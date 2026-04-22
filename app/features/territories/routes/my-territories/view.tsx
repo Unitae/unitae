@@ -148,7 +148,7 @@ function PdfDownloadButton({
   phoneTypeActive,
   attributionType,
 }: {
-  territory: { number: string; type: string; id: number; notes: string; congregationId: number }
+  territory: { number: string; type: string }
   entrances: ReturnType<typeof aggregateEntrance>[]
   googleMaps: { apiKey: string | undefined; mapId: string | undefined }
   phoneTypeActive: boolean | undefined

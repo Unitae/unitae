@@ -2,6 +2,7 @@ import { Loader2, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigation, useSearchParams } from 'react-router'
 
+import * as m from '~/paraglide/messages'
 import { useDebouncedValue } from '~/shared/hooks/use-debounced-value'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
@@ -74,7 +75,7 @@ export function SearchInput({ paramName = 'q', placeholder, delay = 300 }: Searc
             onClick={() => setValue('')}
           >
             <X className="size-3.5" />
-            <span className="sr-only">Effacer</span>
+            <span className="sr-only">{m.common_clear()}</span>
           </Button>
         )
       )}

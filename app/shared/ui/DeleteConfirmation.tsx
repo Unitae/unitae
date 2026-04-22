@@ -1,4 +1,5 @@
 import { AlertTriangle } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { Form, Link } from 'react-router'
 
 import * as m from '~/paraglide/messages'
@@ -16,6 +17,12 @@ interface DeleteConfirmationProps {
 }
 
 export function DeleteConfirmation({ title, submitLabel, cancelTo, impact, children }: DeleteConfirmationProps) {
+  const cancelRef = useRef<HTMLAnchorElement>(null)
+
+  useEffect(() => {
+    cancelRef.current?.focus()
+  }, [])
+
   return (
     <div className="flex items-center justify-center p-7">
       <Card className="max-w-lg">
@@ -36,8 +43,10 @@ export function DeleteConfirmation({ title, submitLabel, cancelTo, impact, child
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <div className="flex w-full justify-center gap-3">
-            <Button variant="outline" asChild autoFocus>
-              <Link to={cancelTo}>{m.common_cancel()}</Link>
+            <Button variant="outline" asChild>
+              <Link ref={cancelRef} to={cancelTo}>
+                {m.common_cancel()}
+              </Link>
             </Button>
             <Form method="post">
               <SubmitButton variant="destructive">{submitLabel}</SubmitButton>

@@ -66,7 +66,6 @@ export async function getUserTerritoryDetail(db: TransactionClient, userId: numb
           number: true,
           type: true,
           notes: true,
-          congregationId: true,
           entrances: {
             include: {
               accesses: { orderBy: { position: 'asc' } },

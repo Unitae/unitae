@@ -1,20 +1,23 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 /**
  * Like useState but persists the value in localStorage.
- * Reads from localStorage on first render, writes on every update.
+ * Initializes with defaultValue (SSR-safe), syncs from localStorage after mount.
  */
 export function usePersistedState<T>(key: string, defaultValue: T): [T, (value: T) => void] {
-  const [state, setState] = useState<T>(() => {
-    if (typeof window === 'undefined') return defaultValue
+  const [state, setState] = useState<T>(defaultValue)
 
+  // Sync from localStorage after mount to avoid hydration mismatch
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(key)
-      return stored != null ? (JSON.parse(stored) as T) : defaultValue
+      if (stored != null) {
+        setState(JSON.parse(stored) as T)
+      }
     } catch {
-      return defaultValue
+      // localStorage unavailable or corrupted — keep defaultValue
     }
-  })
+  }, [key])
 
   const setPersistedState = useCallback(
     (value: T) => {
@@ -22,7 +25,7 @@ export function usePersistedState<T>(key: string, defaultValue: T): [T, (value: 
       try {
         localStorage.setItem(key, JSON.stringify(value))
       } catch {
-        // localStorage full or unavailable — ignore silently
+        // localStorage full or unavailable
       }
     },
     [key],

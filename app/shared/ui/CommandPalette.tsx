@@ -210,13 +210,16 @@ export function CommandPalette({ permissions, open, onOpenChange }: CommandPalet
 
           <div className="flex items-center gap-3 border-t px-3 py-2 text-muted-foreground text-xs">
             <span>
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">↑↓</kbd> naviguer
+              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">↑↓</kbd>{' '}
+              {m.command_palette_hint_navigate()}
             </span>
             <span>
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">↵</kbd> ouvrir
+              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">↵</kbd>{' '}
+              {m.command_palette_hint_open()}
             </span>
             <span>
-              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">esc</kbd> fermer
+              <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">esc</kbd>{' '}
+              {m.command_palette_hint_close()}
             </span>
           </div>
         </DialogContent>

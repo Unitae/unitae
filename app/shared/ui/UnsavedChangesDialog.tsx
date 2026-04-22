@@ -23,8 +23,20 @@ export function UnsavedChangesDialog({ blocker }: { blocker: Blocker }) {
           <AlertDialogDescription>{m.common_unsaved_changes_description()}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => blocker.reset()}>{m.common_unsaved_changes_stay()}</AlertDialogCancel>
-          <AlertDialogAction onClick={() => blocker.proceed()}>{m.common_unsaved_changes_leave()}</AlertDialogAction>
+          <AlertDialogCancel
+            onClick={() => {
+              if (blocker.state === 'blocked') blocker.reset()
+            }}
+          >
+            {m.common_unsaved_changes_stay()}
+          </AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => {
+              if (blocker.state === 'blocked') blocker.proceed()
+            }}
+          >
+            {m.common_unsaved_changes_leave()}
+          </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
