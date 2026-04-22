@@ -5,11 +5,11 @@ import { createDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -35,7 +35,12 @@ export default function DaysOffPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.days_off_new_page_title()} subtitle={m.days_off_new_page_subtitle()} />
+      <PageHeader
+        title={m.days_off_new_page_title()}
+        subtitle={m.days_off_new_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_my_absences(), to: '/me/days-off' }, { label: m.days_off_new_page_title() }]}
+        backTo="/me/days-off"
+      />
 
       <Card>
         <CardContent className="pt-6">
@@ -62,9 +67,7 @@ export default function DaysOffPage() {
                 required
               />
             </div>
-            <Button type="submit" className="w-fit">
-              {m.common_save()}
-            </Button>
+            <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

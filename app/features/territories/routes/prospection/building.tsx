@@ -12,7 +12,6 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -24,7 +23,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
   return [{ title: `${data.building.number} ${data.building.street}, ${data.building.zip} - Unitae` }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewProspection = permissions.has(Role.ProspectionViewer)
@@ -49,12 +48,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('../', { status: 404 })
     }
 
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = { success: session.get('success'), error: session.get('error') }
-
     return {
       building,
-      messages,
       roles: {
         canViewProspection,
         canManageProspection,
@@ -66,14 +61,18 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 }
 
 export default function BuildingPage({ loaderData }: Route.ComponentProps) {
-  const { building, messages, roles } = loaderData
+  const { building, roles } = loaderData
 
   return (
     <div className="flex flex-col gap-5">
-      <AlertMessages messages={messages} />
       <PageHeader
         title={`${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_building_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: `${building.number} ${building.street}, ${building.zip}` },
+        ]}
+        backTo="/territories/buildings"
         actions={
           roles.canManageProspection && (
             <>

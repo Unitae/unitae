@@ -138,7 +138,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         assistantId: true,
         event: {
           select: {
-            id: true,
             name: true,
             startDate: true,
           },
@@ -157,7 +156,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         name: true,
         event: {
           select: {
-            id: true,
             name: true,
             startDate: true,
           },

@@ -1,12 +1,14 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
@@ -26,7 +28,9 @@ import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
@@ -55,7 +59,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageUser = permissions.has(Role.SettingsUserManager)
@@ -83,35 +87,29 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
 
     const roleList = await db.userRole.findMany()
     const missEmail = user.email.includes('@placeholder.unitae.app')
-    const session = await getSession(request.headers.get('Cookie'))
 
-    return data(
-      {
-        email: missEmail ? null : user.email,
-        id: user.id,
-        active: user.active,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        roles: user.congregationRoles.map(cr => cr.role),
-        messages: { success: session.get('success'), error: session.get('error') },
-        roleList,
-        isPublisher: user.isPublisher,
-        isAdmin,
-        anonymizedAt: user.anonymizedAt,
-        canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
-      },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    return {
+      email: missEmail ? null : user.email,
+      id: user.id,
+      active: user.active,
+      firstname: user.firstname,
+      lastname: user.lastname,
+      roles: user.congregationRoles.map(cr => cr.role),
+      roleList,
+      isPublisher: user.isPublisher,
+      isAdmin,
+      anonymizedAt: user.anonymizedAt,
+      canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
+    }
   })
 }
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
-  const { messages, roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
+  const { roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -123,20 +121,12 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
   return (
     <div className="flex flex-col gap-6">
-      {messages.error && (
-        <Alert variant="destructive">
-          <AlertDescription>{messages.error}</AlertDescription>
-        </Alert>
-      )}
-      {messages.success && (
-        <Alert>
-          <AlertDescription>{messages.success}</AlertDescription>
-        </Alert>
-      )}
-
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_user_edit_title()}
         subtitle={m.settings_user_edit_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_users(), to: '/settings/users' }, { label: m.settings_user_edit_title() }]}
+        backTo="/settings/users"
         actions={
           <>
             {user.isPublisher === true ? (
@@ -182,7 +172,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
       <Card>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex gap-4 max-sm:flex-col">
               <div className="flex-1 space-y-2">
                 <Label htmlFor={fields.firstname.id}>{m.settings_user_edit_firstname_label()}</Label>
@@ -260,9 +250,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                 ))
               )}
             </div>
-            <Button type="submit" className="mt-2">
-              {m.settings_user_edit_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.settings_user_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

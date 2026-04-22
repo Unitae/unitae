@@ -12,6 +12,8 @@ import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -19,6 +21,8 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -59,7 +63,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, attribution, phoneTypeActive, entrances } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
   const [shouldShowEndDate, showEndDate] = useState(false)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -69,9 +76,15 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.attributions_edit_title()}
         subtitle={m.attributions_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.attributions_edit_title() },
+        ]}
+        backTo="/territories/attributions"
         actions={
           attribution.endDate === null && (
             <>
@@ -95,7 +108,7 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
       />
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex flex-col gap-1.5">
               <Label>{m.attributions_new_territory_label()}</Label>
               <input type="hidden" name="territory" value={attribution.territory.id} />
@@ -197,9 +210,9 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
                 {m.attributions_edit_return_submit()}
               </Button>
             ) : (
-              <Button type="submit" disabled={attribution.endDate !== null} className="mt-2">
+              <SubmitButton disabled={attribution.endDate !== null} className="mt-2">
                 {m.attributions_edit_save_submit()}
-              </Button>
+              </SubmitButton>
             )}
           </Form>
         </CardContent>

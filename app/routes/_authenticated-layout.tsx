@@ -12,16 +12,20 @@ import type { Route } from './+types/_authenticated-layout'
 
 export const middleware: Route.MiddlewareFunction[] = [
   requireAuth([
+    Role.Admin,
     Role.BoardUploader,
     Role.BoardValidator,
     Role.PublisherViewer,
+    Role.PublisherManager,
     Role.TerritoriesViewer,
-    Role.ProspectionViewer,
     Role.TerritoriesManager,
-    Role.Admin,
+    Role.ProspectionViewer,
+    Role.ProspectionManager,
     Role.SettingsUserManager,
     Role.ProgramViewer,
+    Role.ProgramManager,
     Role.ActivityViewer,
+    Role.ActivityManager,
   ]),
 ]
 

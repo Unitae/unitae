@@ -1,18 +1,21 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { editCongregationSchema } from '~/features/platform-admin/schemas/congregation.schema'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Separator } from '~/shared/ui/separator'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-congregation'
@@ -68,9 +71,17 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
     },
   })
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   return (
     <div className="space-y-6">
-      <PageHeader title={congregation.name} />
+      <UnsavedChangesDialog blocker={blocker} />
+      <PageHeader
+        title={congregation.name}
+        breadcrumbs={[{ label: m.sidebar_administration(), to: '/platform-admin' }, { label: congregation.name }]}
+        backTo="/platform-admin"
+      />
 
       <div className="flex gap-3">
         <Badge variant="secondary">
@@ -89,7 +100,7 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
           <CardTitle>{m.platform_admin_edit_congregation_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)} onChange={() => setIsDirty(true)}>
             <div className="space-y-2">
               <Label htmlFor={fields.name.id}>{m.platform_admin_edit_congregation_name_label()}</Label>
               <Input {...getInputProps(fields.name, { type: 'text' })} />
@@ -125,7 +136,7 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
             </div>
 
             <div className="pt-2">
-              <Button type="submit">{m.common_save()}</Button>
+              <SubmitButton>{m.common_save()}</SubmitButton>
             </div>
           </Form>
         </CardContent>

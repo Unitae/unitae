@@ -54,6 +54,8 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
           month: 'long',
           year: 'numeric',
         })}
+        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
+        backTo="/programs"
         actions={
           canEdit && (
             <div className="flex gap-2">

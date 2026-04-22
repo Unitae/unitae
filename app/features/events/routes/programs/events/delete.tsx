@@ -1,4 +1,4 @@
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { deleteEvent } from '~/features/events/server/programme-events.server'
@@ -6,11 +6,14 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Supprimer un programme — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -64,27 +67,10 @@ export default function DeleteEventPage({ loaderData }: Route.ComponentProps) {
   const { event } = loaderData
 
   return (
-    <div className="flex items-center justify-center p-7">
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle>{m.programs_delete_title()}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-sm">
-            {m.programs_delete_confirm_message({
-              name: event.name,
-              date: new Date(event.startDate).toLocaleDateString('fr-FR'),
-            })}
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Form method="post">
-            <Button type="submit" variant="destructive">
-              {m.programs_delete_submit()}
-            </Button>
-          </Form>
-        </CardFooter>
-      </Card>
-    </div>
+    <DeleteConfirmation title={m.programs_delete_title()} submitLabel={m.programs_delete_submit()} cancelTo="/programs">
+      <p>
+        {event.name} — {new Date(event.startDate).toLocaleDateString('fr-FR')}
+      </p>
+    </DeleteConfirmation>
   )
 }

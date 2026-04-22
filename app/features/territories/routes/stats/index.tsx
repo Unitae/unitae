@@ -241,6 +241,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
       <PageHeader
         title={m.stats_title()}
         subtitle={m.stats_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_statistics() }]}
         actions={<S13ExportButton theocraticYear={theocraticYear} />}
       />
 

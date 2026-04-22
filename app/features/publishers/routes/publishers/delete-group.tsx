@@ -1,15 +1,18 @@
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deletePublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardFooter } from '~/shared/ui/card'
+import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete-group'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Supprimer un groupe — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -43,20 +46,13 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
   const { group } = loaderData
 
   return (
-    <div className="flex items-center justify-center p-7">
-      <Card className="max-w-md">
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">{m.groups_delete_confirmation({ name: group.name })}</p>
-        </CardContent>
-        <CardFooter className="justify-center">
-          <Form method="post">
-            <Button type="submit" variant="destructive" title={m.groups_delete_title()}>
-              {m.groups_delete_button({ name: group.name })}
-            </Button>
-          </Form>
-        </CardFooter>
-      </Card>
-    </div>
+    <DeleteConfirmation
+      title={m.groups_delete_confirmation({ name: group.name })}
+      submitLabel={m.groups_delete_button({ name: group.name })}
+      cancelTo="/groups"
+    >
+      <p>{group.name}</p>
+    </DeleteConfirmation>
   )
 }
 

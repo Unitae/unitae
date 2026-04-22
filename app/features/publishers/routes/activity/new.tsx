@@ -9,13 +9,14 @@ import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -94,6 +95,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
     publisher?.type === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
   )
 
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -105,7 +107,15 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.activity_new_title()} subtitle={m.activity_new_subtitle()} />
+      <PageHeader
+        title={m.activity_new_title()}
+        subtitle={m.activity_new_subtitle()}
+        breadcrumbs={[
+          { label: m.activity_list_title(), to: '/publishers/activity' },
+          { label: m.activity_new_title() },
+        ]}
+        backTo="/publishers/activity"
+      />
 
       <Card>
         <CardHeader>
@@ -290,9 +300,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
-            <Button type="submit" className="self-start">
-              {m.activity_new_submit()}
-            </Button>
+            <SubmitButton className="self-start">{m.activity_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

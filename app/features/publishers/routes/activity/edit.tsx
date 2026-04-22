@@ -8,6 +8,8 @@ import { updateActivitySchema } from '~/features/publishers/schemas/activity.sch
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -15,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -70,6 +74,9 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
   const { activity } = loaderData
   const [type, setType] = useState<PublisherType>(activity.type as PublisherType)
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -83,12 +90,23 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.activity_edit_title({
           date: date.toLocaleDateString('fr', { month: 'long', year: 'numeric' }),
           name: `${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`,
         })}
         subtitle={m.activity_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.activity_list_title(), to: '/publishers/activity' },
+          {
+            label: m.activity_edit_title({
+              date: date.toLocaleDateString('fr', { month: 'long', year: 'numeric' }),
+              name: `${activity.publisher?.firstname} ${activity.publisher?.lastname?.toLocaleUpperCase()}`,
+            }),
+          },
+        ]}
+        backTo="/publishers/activity"
         actions={
           <Button asChild variant="destructive" size="icon" title={m.activity_edit_delete_title()}>
             <Link to={`/publishers/activity/${activity.id}/delete`}>
@@ -103,7 +121,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
           <CardTitle>{m.activity_edit_report_details()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="space-y-2">
               <Label htmlFor="type">{m.activity_edit_pioneer_label()}</Label>
               <select
@@ -180,9 +198,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
               {fields.observations.errors && <p className="text-destructive text-sm">{fields.observations.errors}</p>}
             </div>
 
-            <Button type="submit" className="self-start">
-              {m.activity_new_submit()}
-            </Button>
+            <SubmitButton className="self-start">{m.activity_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

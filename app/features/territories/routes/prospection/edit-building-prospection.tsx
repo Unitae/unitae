@@ -28,14 +28,16 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/edit-building-prospection'
 
@@ -43,7 +45,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
@@ -60,20 +62,8 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
     }
 
     const buildings = await getBuildings(db, congregationId, building.zip, building.street)
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = {
-      success: session.get('success'),
-      error: session.get('error'),
-    }
 
-    return data(
-      { building, buildings, messages, roles: { canManageTerritories } },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    return { building, buildings, roles: { canManageTerritories } }
   })
 }
 
@@ -99,7 +89,9 @@ function makeUid() {
 }
 
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
-  const { building, messages, buildings, roles } = loaderData
+  const { building, buildings, roles } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
   const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
@@ -131,10 +123,15 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <AlertMessages messages={messages} />
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={`Prospection du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_prospection_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.prospection_building_edit_prospection_title() },
+        ]}
+        backTo="/territories/buildings"
         actions={
           <>
             {roles.canManageTerritories && <ArchiveBuildingToggleButton building={building} />}
@@ -148,7 +145,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </>
         }
       />
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-1.5">
@@ -229,9 +226,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </div>
         )}
 
-        <Button type="submit" className="mt-2">
-          {m.prospection_edit_prospection_submit()}
-        </Button>
+        <SubmitButton className="mt-2">{m.prospection_edit_prospection_submit()}</SubmitButton>
       </Form>
     </div>
   )

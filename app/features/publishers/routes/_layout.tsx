@@ -1,5 +1,4 @@
-import { data, Outlet, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { Outlet, redirect } from 'react-router'
 import * as m from '~/paraglide/messages'
 import { permissionsContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
@@ -10,7 +9,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_layout_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canViewTerritories = permissions.has(Role.TerritoriesViewer)
   const canManageSettings = permissions.has(Role.SettingsUserManager)
@@ -22,16 +21,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const session = await getSession(request.headers.get('Cookie'))
-  const messages = { success: session.get('success'), error: session.get('error') }
-  return data(
-    { canManageSettings, canViewTerritories, canViewPublishers, messages, canViewPrograms, canViewProspection },
-    {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    },
-  )
+  return { canManageSettings, canViewTerritories, canViewPublishers, canViewPrograms, canViewProspection }
 }
 
 export default function CongregationLayout() {

@@ -1,21 +1,26 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
+import { Prisma } from '~/database/generated/client'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { AlertMessages } from '~/shared/ui/AlertMessages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-building'
@@ -28,7 +33,7 @@ export const meta: Route.MetaFunction = ({ data }) => {
   ]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   if (!permissions.has(Role.TerritoriesManager)) {
@@ -41,25 +46,15 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/territories/buildings', { status: 404 })
     }
 
-    const session = await getSession(request.headers.get('Cookie'))
-    const messages = {
-      success: session.get('success'),
-      error: session.get('error'),
-    }
-
-    return data(
-      { building, messages },
-      {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      },
-    )
+    return { building }
   })
 }
 
 export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { building, messages } = loaderData
+  const { building } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -69,11 +64,15 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 
   return (
     <div className="flex flex-col gap-6">
-      <AlertMessages messages={messages} />
-
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={`Modification du ${building.number} ${building.street}, ${building.zip}`}
         subtitle={m.prospection_edit_building_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.prospection_building_edit_title() },
+        ]}
+        backTo="/territories/buildings"
         actions={
           <Button variant="destructive" size="icon" asChild>
             <Link to={`/territories/building/${building.id}/delete`} title={m.prospection_edit_building_delete_title()}>
@@ -85,7 +84,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <h2 className="font-semibold text-lg">{m.prospection_building_identification()}</h2>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
@@ -135,9 +134,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
               </div>
             </div>
 
-            <Button type="submit" className="mt-2">
-              {m.prospection_edit_building_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.prospection_edit_building_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>
@@ -172,8 +169,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
       session.flash('success', m.prospection_edit_building_success())
     } catch (e) {
-      logger.error('Error updating building', { error: e, buildingId: params.buildingId })
-      session.flash('error', m.prospection_edit_building_error())
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        session.flash('error', m.prospection_edit_building_duplicate_error())
+      } else {
+        logger.error('Error updating building', { error: e, buildingId: params.buildingId })
+        session.flash('error', m.prospection_edit_building_error())
+      }
     }
 
     const previousPage = request.headers.get('referer')

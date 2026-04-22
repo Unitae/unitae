@@ -14,13 +14,14 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new'
 
@@ -76,6 +77,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function CreateAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -85,7 +87,15 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.attributions_new_title()} subtitle={m.attributions_new_subtitle()} />
+      <PageHeader
+        title={m.attributions_new_title()}
+        subtitle={m.attributions_new_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_attributions(), to: '/territories/attributions' },
+          { label: m.attributions_new_title() },
+        ]}
+        backTo="/territories/attributions"
+      />
       <Card>
         <CardContent className="pt-6">
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
@@ -151,9 +161,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
               {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
             </div>
 
-            <Button type="submit" className="mt-2">
-              {m.attributions_new_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.attributions_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

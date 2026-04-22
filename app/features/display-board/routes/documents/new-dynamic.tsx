@@ -9,10 +9,10 @@ import { listAvailableDynamicTypes } from '~/features/display-board/server/dynam
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new-dynamic'
 
@@ -49,7 +49,12 @@ export default function NewDynamicDocumentPage({ loaderData }: Route.ComponentPr
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.board_new_dynamic_title()} subtitle={m.board_new_dynamic_subtitle()} />
+      <PageHeader
+        title={m.board_new_dynamic_title()}
+        subtitle={m.board_new_dynamic_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_documents(), to: '/board/documents' }, { label: m.board_new_dynamic_title() }]}
+        backTo="/board/documents"
+      />
 
       {!hasSection && (
         <Card>
@@ -89,9 +94,9 @@ function AvailableCard({ item, disabled }: { item: AvailableDynamicType; disable
           <input type="hidden" name="dynamicType" value={item.dynamicType} />
           <input type="hidden" name="dynamicRef" value={item.dynamicRef ?? ''} />
           <input type="hidden" name="title" value={item.defaultTitle} />
-          <Button type="submit" size="sm" disabled={item.alreadyAdded || disabled}>
+          <SubmitButton size="sm" disabled={item.alreadyAdded || disabled}>
             {m.board_new_dynamic_add_button()}
-          </Button>
+          </SubmitButton>
         </Form>
       </CardContent>
     </Card>

@@ -18,11 +18,11 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 import type { Route } from './+types/new'
@@ -126,7 +126,12 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.programs_new_page_title()} subtitle={m.programs_new_page_subtitle()} />
+      <PageHeader
+        title={m.programs_new_page_title()}
+        subtitle={m.programs_new_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.programs_new_page_title() }]}
+        backTo="/programs"
+      />
 
       <Card className="max-w-lg">
         <CardHeader>
@@ -193,11 +198,11 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
             )}
 
             {showForm && (
-              <Button type="submit" className="w-fit">
+              <SubmitButton className="w-fit">
                 {isNoTemplate && m.programs_new_create_event()}
                 {selectedTemplate && isRecurring && m.programs_new_generate_events()}
                 {selectedTemplate && !isRecurring && m.programs_new_create_event()}
-              </Button>
+              </SubmitButton>
             )}
           </Form>
         </CardContent>

@@ -41,6 +41,7 @@ export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.days_off_page_title()}
         subtitle={m.days_off_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_my_absences() }]}
         actions={
           <Button asChild>
             <Link to="./new">{m.days_off_new_button()}</Link>

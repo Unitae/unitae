@@ -14,9 +14,38 @@ Unitae supports several territory types to match different kinds of field minist
 
 Each territory has a number, a type, and optional notes.
 
-## Territory View
+## Personal Territory View
 
-Each territory has a read-only detail page showing:
+Every authenticated member can view their own assigned territories at `/me/territories` — no special role is required. This is the primary (and often only) territory interaction for regular publishers.
+
+### Territory List
+
+The personal list shows all territories currently attributed to the member as a card grid:
+
+- **Territory number** and **type badge** (color-coded)
+- **Quantity label** — e.g., *42 foyers*, *12 téléphones*, *8 commerces*
+- **Status badge** — On time / due soon / overdue
+- **Due date** — Displayed as relative time
+- **PDF download** — Download the territory card directly from the list
+
+### Territory Detail
+
+Clicking a territory opens a detail page with two tabs:
+
+- **Territoire** — HTML entrance cards adapted by territory type:
+  - *Porte à porte / Université*: address, access sequence (interphone → digicode → sonnette), home count, open-morning/mailbox flags, notes
+  - *Téléphone*: address, phone count, notes
+  - *Commerces*: address, shop kind label, notes
+  - PDF download button for offline use
+- **Carte** — Full-width interactive Google Map with building markers (when configured). Shows a consent banner before loading the map. If no API key is configured, a message indicates the map is unavailable.
+
+Attribution info (start date, return date with relative time, status) is shown above the tabs.
+
+The personal territory view is security-scoped: the server only returns territory data if the current user has an active attribution for it.
+
+## Admin Territory View
+
+The admin territory detail page shows comprehensive information for users with the `TerritoriesViewer` role:
 
 - **Territory info** — Number, type, household/phone count, and notes
 - **Type-specific details** — Commerce territories list each entrance with its shop type; other types show entrances with household counts
@@ -24,7 +53,7 @@ Each territory has a read-only detail page showing:
 - **Attribution history** — A table of all past attributions with publisher name, start/end dates, duration, and type
 - **Map** — Building locations displayed on a map (when Google Maps is configured)
 
-The territory view is accessible to users with the `TerritoriesViewer` role. Editing and attribution management actions are only shown to `TerritoriesManager` users.
+Editing and attribution management actions are only shown to `TerritoriesManager` users.
 
 ## Attributions
 

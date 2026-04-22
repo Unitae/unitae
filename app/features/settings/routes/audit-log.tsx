@@ -2,11 +2,11 @@ import { Form as RouterForm, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/paraglide/messages'
 import { userContext } from '~/shared/auth/route-context.server'
-import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
@@ -77,7 +77,11 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.audit_log_title()} subtitle={m.audit_log_subtitle()} />
+      <PageHeader
+        title={m.audit_log_title()}
+        subtitle={m.audit_log_subtitle()}
+        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_audit_log() }]}
+      />
 
       <RouterForm method="get" className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
@@ -108,9 +112,7 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
           <Label htmlFor="dateTo">{m.audit_log_filter_to()}</Label>
           <Input id="dateTo" name="dateTo" type="date" defaultValue={searchParams.get('dateTo') ?? ''} />
         </div>
-        <Button type="submit" variant="secondary">
-          {m.audit_log_filter_apply()}
-        </Button>
+        <SubmitButton variant="secondary">{m.audit_log_filter_apply()}</SubmitButton>
       </RouterForm>
 
       <div className="overflow-hidden rounded-xl border">

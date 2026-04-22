@@ -19,12 +19,15 @@ import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownlo
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -126,15 +129,24 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     phoneTypeActive,
   } = loaderData
   const [territoryEntrances, setTerritoryEntrances] = useState(savedTerritoryEntrances)
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
 
   const attribution = [...territory.attributions].shift()
   const quantity = computeTerritoryQuantity(territory.type, territoryEntrances)
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.territories_edit_title()}
         subtitle={m.territories_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_territories(), to: '/territories' },
+          { label: territory.number, to: `../view` },
+          { label: m.territories_edit_title() },
+        ]}
+        backTo="../view"
         actions={
           <>
             <TerritoryDownloadLink
@@ -192,7 +204,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             </CardContent>
           </Card>
 
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <h2 className="font-semibold text-lg">{m.territories_edit_current_attribution()}</h2>
             {attribution != null ? (
               <div className="flex items-center justify-between gap-3 rounded-md border p-3">
@@ -299,9 +311,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               />
             </div>
 
-            <Button type="submit" className="mt-2">
-              {m.territories_edit_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.territories_edit_submit()}</SubmitButton>
           </Form>
         </div>
         <BuildingEntranceMap apiKey={apiKey} entrances={territoryEntrances} />

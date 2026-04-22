@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { BarChart3, Eye, FileText, GripVertical, Pencil, Search, Sparkles, Trash2 } from 'lucide-react'
+import { BarChart3, Eye, FileText, GripVertical, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
@@ -11,8 +11,8 @@ import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
-import { Input } from '~/shared/ui/input'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/list'
@@ -314,6 +314,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title="Documents"
         subtitle={m.board_documents_list_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_documents() }]}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" asChild>
@@ -329,33 +330,25 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
-      <RouterForm method="get" className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            name="q"
-            type="search"
-            placeholder={m.board_documents_search_placeholder()}
-            defaultValue={searchParams.get('q') ?? ''}
-            className="pl-9"
-          />
-        </div>
-        <select
-          name="sectionId"
-          defaultValue={searchParams.get('sectionId') ?? ''}
-          className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:w-48"
-        >
-          <option value="">{m.board_documents_filter_all_sections()}</option>
-          {sections.map(section => (
-            <option key={section.id} value={section.id}>
-              {section.name}
-            </option>
-          ))}
-        </select>
-        <Button type="submit" variant="secondary">
-          {m.board_documents_search_button()}
-        </Button>
-      </RouterForm>
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <SearchInput placeholder={m.board_documents_search_placeholder()} />
+        <RouterForm method="get" className="flex gap-3">
+          <input type="hidden" name="q" value={searchParams.get('q') ?? ''} />
+          <select
+            name="sectionId"
+            defaultValue={searchParams.get('sectionId') ?? ''}
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:w-48"
+            onChange={e => e.currentTarget.form?.requestSubmit()}
+          >
+            <option value="">{m.board_documents_filter_all_sections()}</option>
+            {sections.map(section => (
+              <option key={section.id} value={section.id}>
+                {section.name}
+              </option>
+            ))}
+          </select>
+        </RouterForm>
+      </div>
 
       {items.length === 0 ? (
         <EmptyState

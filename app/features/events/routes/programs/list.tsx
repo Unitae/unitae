@@ -59,6 +59,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.programs_page_title()}
         subtitle={m.programs_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_programs() }]}
         actions={
           <div className="flex gap-2">
             {roles.canManagePrograms && (

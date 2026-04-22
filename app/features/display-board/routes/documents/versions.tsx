@@ -70,6 +70,11 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.board_versions_title({ name: document.title })}
         subtitle={m.board_versions_subtitle({ count: versions.length })}
+        breadcrumbs={[
+          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.board_versions_title({ name: document.title }) },
+        ]}
+        backTo="/board/documents"
         actions={
           <Button variant="outline" asChild>
             <Link to={`/board/documents/${document.id}/edit`}>{m.board_versions_back_to_edit()}</Link>

@@ -1,4 +1,4 @@
-import { Form, redirect } from 'react-router'
+import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteBoardDocument } from '~/features/display-board/server/board-document.server'
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
@@ -6,11 +6,14 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
+import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
+
+export const meta: Route.MetaFunction = () => {
+  return [{ title: 'Supprimer un document — Unitae' }]
+}
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -39,18 +42,13 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
   const { document } = loaderData
 
   return (
-    <Card className="mx-auto max-w-lg">
-      <CardContent className="flex flex-col items-center justify-center gap-6 pt-6">
-        <p className="text-center text-muted-foreground">
-          {m.board_documents_delete_confirmation({ name: document.title })}
-        </p>
-        <Form method="post">
-          <Button type="submit" variant="destructive" title={m.board_documents_delete_tooltip()}>
-            {m.board_documents_delete_button()}
-          </Button>
-        </Form>
-      </CardContent>
-    </Card>
+    <DeleteConfirmation
+      title={m.board_documents_delete_confirmation({ name: document.title })}
+      submitLabel={m.board_documents_delete_button()}
+      cancelTo="/board/documents"
+    >
+      <p>{document.title}</p>
+    </DeleteConfirmation>
   )
 }
 

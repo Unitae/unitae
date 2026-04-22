@@ -1,18 +1,21 @@
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createTemplateSchema } from '~/features/settings/schemas/template.schema'
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
 
@@ -67,16 +70,29 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function NewTemplatePage() {
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.settings_template_new_title()} subtitle={m.settings_template_new_subtitle()} />
+      <UnsavedChangesDialog blocker={blocker} />
+      <PageHeader
+        title={m.settings_template_new_title()}
+        subtitle={m.settings_template_new_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_settings_assembly(), to: '/settings/congregation' },
+          { label: 'Modèles', to: '/settings/congregation/templates' },
+          { label: m.settings_template_new_title() },
+        ]}
+        backTo="/settings/congregation/templates"
+      />
 
       <Card className="max-w-lg">
         <CardHeader>
           <CardTitle className="text-base">{m.settings_template_new_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.settings_template_new_name_label()}</Label>
               <Input id="name" name="name" placeholder={m.settings_template_new_name_placeholder()} required />
@@ -104,9 +120,7 @@ export default function NewTemplatePage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-fit">
-              {m.settings_template_new_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.settings_template_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

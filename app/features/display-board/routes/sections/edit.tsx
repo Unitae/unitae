@@ -1,18 +1,23 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { updateBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -44,6 +49,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditSectionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { section } = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -53,9 +61,12 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_sections_edit_title()}
         subtitle={m.board_sections_edit_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_sections(), to: '/board/sections' }, { label: m.board_sections_edit_title() }]}
+        backTo="/board/sections"
         actions={
           <Button variant="destructive" size="icon" asChild>
             <Link to={`/board/sections/${section.id}/delete`} title={m.board_sections_delete_tooltip()}>
@@ -67,7 +78,7 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.name.id}>{m.board_sections_edit_name_label()}</Label>
               <Input
@@ -77,9 +88,7 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
               />
               {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
-            <Button type="submit" className="w-fit">
-              {m.board_sections_edit_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.board_sections_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

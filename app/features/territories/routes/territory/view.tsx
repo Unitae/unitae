@@ -237,6 +237,8 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.territories_view_title({ number: String(territory.number) })}
         subtitle={m.territories_view_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_territories(), to: '/territories' }, { label: territory.number }]}
+        backTo="/territories"
         actions={
           <>
             <TerritoryDownloadLink

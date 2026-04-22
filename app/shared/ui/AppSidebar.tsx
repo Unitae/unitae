@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   LogOut,
   Map as MapIcon,
+  MapPin,
   PieChart,
   User,
   UserRoundCog,
@@ -185,6 +186,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
       <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
           <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
+          <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
           <SidebarMenuItem>
             <div className="flex items-center justify-between">

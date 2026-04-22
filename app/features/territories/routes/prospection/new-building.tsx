@@ -6,12 +6,13 @@ import { createBuildingSchema } from '~/features/territories/schemas/building.sc
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
 import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 import type { Route } from './+types/new-building'
 
@@ -30,6 +31,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function CreateBuildingPage({ actionData }: Route.ComponentProps) {
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -39,7 +41,15 @@ export default function CreateBuildingPage({ actionData }: Route.ComponentProps)
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.prospection_new_building_title()} subtitle={m.prospection_new_building_subtitle()} />
+      <PageHeader
+        title={m.prospection_new_building_title()}
+        subtitle={m.prospection_new_building_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_prospection(), to: '/territories/buildings' },
+          { label: m.prospection_new_building_title() },
+        ]}
+        backTo="/territories/buildings"
+      />
 
       <Card>
         <CardContent className="pt-6">
@@ -80,9 +90,7 @@ export default function CreateBuildingPage({ actionData }: Route.ComponentProps)
                 {fields.longitude.errors && <p className="text-destructive text-sm">{fields.longitude.errors}</p>}
               </div>
             </div>
-            <Button type="submit" className="mt-2">
-              {m.prospection_new_building_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.prospection_new_building_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

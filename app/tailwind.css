@@ -83,6 +83,40 @@
   --color-sidebar-ring: oklch(0.648 0.116 184.117);
 }
 
+@keyframes navigation-progress {
+  0% {
+    width: 0%;
+  }
+  20% {
+    width: 30%;
+  }
+  50% {
+    width: 60%;
+  }
+  100% {
+    width: 80%;
+  }
+}
+
+@utility animate-navigation-progress {
+  animation: navigation-progress 2s ease-in-out infinite;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-fade-in-up {
+  animation: fade-in-up 0.3s ease-out both;
+}
+
 @layer base {
   *,
   ::after,

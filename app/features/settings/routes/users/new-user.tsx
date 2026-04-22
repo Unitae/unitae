@@ -1,5 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
@@ -11,12 +12,15 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/new-user'
 
 export const meta: Route.MetaFunction = () => {
@@ -36,6 +40,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const _users = loaderData
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+  useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -45,11 +52,17 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.settings_user_new_title()} subtitle={m.settings_user_new_subtitle()} />
+      <UnsavedChangesDialog blocker={blocker} />
+      <PageHeader
+        title={m.settings_user_new_title()}
+        subtitle={m.settings_user_new_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_users(), to: '/settings/users' }, { label: m.settings_user_new_title() }]}
+        backTo="/settings/users"
+      />
 
       <Card>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
             <div className="space-y-2">
               <Label htmlFor={fields.firstname.id}>{m.settings_user_new_firstname_label()}</Label>
               <Input
@@ -74,9 +87,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
               />
               {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
             </div>
-            <Button type="submit" className="mt-2">
-              {m.settings_user_new_submit()}
-            </Button>
+            <SubmitButton className="mt-2">{m.settings_user_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

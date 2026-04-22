@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { History, Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
@@ -9,6 +10,7 @@ import { replaceDocumentFile } from '~/features/display-board/server/document.se
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -16,6 +18,8 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -53,6 +57,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
   const { document, sections, rights } = loaderData
 
+  const [isDirty, setIsDirty] = useState(false)
+  const blocker = useUnsavedChanges(isDirty)
+
   let formattedVisibleFrom = ''
   if (document.visibleFrom !== null) {
     const visibleFrom = new Date(document.visibleFrom)
@@ -69,9 +76,15 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_documents_edit_title()}
         subtitle={m.board_documents_edit_subtitle()}
+        breadcrumbs={[
+          { label: m.sidebar_documents(), to: '/board/documents' },
+          { label: m.board_documents_edit_title() },
+        ]}
+        backTo="/board/documents"
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="icon" asChild>
@@ -90,7 +103,12 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data">
+          <Form
+            method="post"
+            className="flex flex-col gap-4"
+            encType="multipart/form-data"
+            onChange={() => setIsDirty(true)}
+          >
             <div className="flex flex-col gap-2">
               <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>
               <Input
@@ -169,9 +187,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
               </div>
             )}
 
-            <Button type="submit" className="w-fit">
-              {m.board_documents_edit_submit()}
-            </Button>
+            <SubmitButton className="w-fit">{m.board_documents_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
       </Card>

@@ -8,14 +8,17 @@ import {
   getUserTerritories,
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
+import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import * as m from '~/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { RelativeTime } from '~/shared/ui/RelativeTime'
 
 import type { Route } from './+types/index'
 
@@ -34,6 +37,8 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 
 export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
+  const permissions = context.get(permissionsContext)
+  const isAdmin = permissions.has(Role.Admin)
 
   return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, absences, assignments] = await Promise.all([
@@ -43,12 +48,28 @@ export function loader({ context }: Route.LoaderArgs) {
       safeQuery('assignments', currentUser.id, () => getUpcomingAssignments(db, currentUser.id)),
     ])
 
+    // Onboarding: count entities for admin checklist
+    let onboarding = null
+    if (isAdmin) {
+      const [publisherCount, territoryCount, documentCount] = await Promise.all([
+        safeQuery('onboarding-publishers', currentUser.id, () => db.user.count({ where: { isPublisher: true } })),
+        safeQuery('onboarding-territories', currentUser.id, () => db.territory.count()),
+        safeQuery('onboarding-documents', currentUser.id, () => db.boardDocument.count()),
+      ])
+      // Only show onboarding if all counts loaded successfully — avoid showing
+      // misleading "incomplete setup" when the database query failed
+      if (publisherCount != null && territoryCount != null && documentCount != null) {
+        onboarding = { publisherCount, territoryCount, documentCount }
+      }
+    }
+
     return {
       currentUser: { firstname: currentUser.firstname },
       territories,
       recentDocuments,
       absences,
       assignments,
+      onboarding,
     }
   })
 }
@@ -73,15 +94,8 @@ function formatDate(date: Date | string): string {
   })
 }
 
-function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('fr-FR', {
-    day: 'numeric',
-    month: 'short',
-  })
-}
-
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { currentUser, territories, recentDocuments, absences, assignments } = loaderData
+  const { currentUser, territories, recentDocuments, absences, assignments, onboarding } = loaderData
 
   const today = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -92,18 +106,34 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
+      <div className="animate-fade-in-up">
         <h1 className="font-display font-semibold text-2xl tracking-tight">
           {m.dashboard_greeting({ name: currentUser.firstname ?? '' })}
         </h1>
         <p className="text-muted-foreground text-sm">{today}</p>
       </div>
 
+      {onboarding && (
+        <OnboardingChecklist
+          publisherCount={onboarding.publisherCount}
+          territoryCount={onboarding.territoryCount}
+          documentCount={onboarding.documentCount}
+        />
+      )}
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <TerritoriesCard territories={territories} />
-        <AssignmentsCard assignments={assignments} />
-        <DocumentsCard documents={recentDocuments} />
-        <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
+        <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
+          <TerritoriesCard territories={territories} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+          <AssignmentsCard assignments={assignments} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+          <DocumentsCard documents={recentDocuments} />
+        </div>
+        <div className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+          <AbsencesCard absences={absences?.upcoming ?? null} shouldNudge={absences?.shouldNudge ?? false} />
+        </div>
       </div>
     </div>
   )
@@ -128,23 +158,36 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
         {territories == null ? (
           <WidgetError />
         ) : territories.length === 0 ? (
-          <EmptyState icon={MapPin} title={m.dashboard_no_territories()} />
+          <EmptyState
+            icon={MapPin}
+            title={m.dashboard_no_territories()}
+            description={m.dashboard_empty_territories_guidance()}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {territories.map(t => (
-              <div key={t.id} className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2">
+              <Link
+                key={t.id}
+                to={`/me/territories/${t.territory.id}`}
+                className="flex items-center justify-between gap-2 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
+              >
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{t.territory.number}</span>
                   <span className="text-muted-foreground text-xs">
-                    {m.dashboard_territory_due_date({ date: formatDate(t.lateDate) })}
+                    <RelativeTime date={t.lateDate} />
                   </span>
                 </div>
                 <Badge variant={statusVariant[t.status]}>{statusLabel(t.status)}</Badge>
-              </div>
+              </Link>
             ))}
           </div>
         )}
       </CardContent>
+      <CardFooter>
+        <Button variant="link" asChild className="px-0">
+          <Link to="/me/territories">{m.dashboard_view_all()}</Link>
+        </Button>
+      </CardFooter>
     </Card>
   )
 }
@@ -159,14 +202,20 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
         {assignments == null ? (
           <WidgetError />
         ) : assignments.length === 0 ? (
-          <EmptyState icon={Mic} title={m.dashboard_no_assignments()} />
+          <EmptyState
+            icon={Mic}
+            title={m.dashboard_no_assignments()}
+            description={m.dashboard_empty_assignments_guidance()}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {assignments.map(a => (
               <div key={`${a.kind}-${a.id}`} className="flex flex-col gap-0.5 rounded-lg border px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm">{a.name}</span>
-                  <span className="shrink-0 text-muted-foreground text-xs">{formatShortDate(a.eventDate)}</span>
+                  <span className="shrink-0 text-muted-foreground text-xs">
+                    <RelativeTime date={a.eventDate} />
+                  </span>
                 </div>
                 {a.topic && <span className="text-muted-foreground text-xs">{a.topic}</span>}
                 <span className="text-muted-foreground text-xs">{a.eventName}</span>
@@ -201,7 +250,9 @@ function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof get
                 {!doc.alreadyViewed && <span className="size-2.5 shrink-0 rounded-full bg-primary" />}
                 <div className="flex min-w-0 flex-1 flex-col">
                   <span className="truncate font-medium text-sm">{doc.title}</span>
-                  <span className="text-muted-foreground text-xs">{formatDate(doc.createdAt)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    <RelativeTime date={doc.createdAt} />
+                  </span>
                 </div>
               </Link>
             ))}
@@ -241,7 +292,17 @@ function AbsencesCard({
               </Alert>
             )}
             {absences.length === 0
-              ? !shouldNudge && <EmptyState icon={CalendarOff} title={m.dashboard_no_absences()} />
+              ? !shouldNudge && (
+                  <EmptyState
+                    icon={CalendarOff}
+                    title={m.dashboard_no_absences()}
+                    action={
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/me/days-off/new">{m.dashboard_plan_absence()}</Link>
+                      </Button>
+                    }
+                  />
+                )
               : absences.map(a => (
                   <div key={a.id} className="flex items-center gap-2 rounded-lg border px-3 py-2">
                     <CalendarOff className="size-4 shrink-0 text-muted-foreground" />

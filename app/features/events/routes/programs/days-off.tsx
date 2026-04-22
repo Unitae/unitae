@@ -67,7 +67,11 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={m.days_off_admin_page_title()} subtitle={m.days_off_admin_page_subtitle()} />
+      <PageHeader
+        title={m.days_off_admin_page_title()}
+        subtitle={m.days_off_admin_page_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_absences() }]}
+      />
 
       <EventFilters />
 

@@ -1,5 +1,5 @@
-import { BarChart3, Eye, Mail, Pencil, Search, Users } from 'lucide-react'
-import { Link, Form as RouterForm, redirect, useSearchParams } from 'react-router'
+import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
+import { Link, redirect } from 'react-router'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -7,8 +7,8 @@ import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
-import { Input } from '~/shared/ui/input'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/publisher-list'
@@ -60,7 +60,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
   const { users, canManagePublisher, canViewActivities } = loaderData
-  const [searchParams] = useSearchParams()
 
   if (users.length < 1) {
     return (
@@ -68,6 +67,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         <PageHeader
           title={m.publishers_list_title()}
           subtitle={m.publishers_list_subtitle()}
+          breadcrumbs={[{ label: m.sidebar_publishers() }]}
           actions={
             canManagePublisher && (
               <Button asChild>
@@ -87,6 +87,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.publishers_list_title()}
         subtitle={m.publishers_list_subtitle()}
+        breadcrumbs={[{ label: m.sidebar_publishers() }]}
         actions={
           <>
             {canViewActivities && (
@@ -105,21 +106,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <RouterForm method="get" className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            name="q"
-            type="search"
-            placeholder={m.publishers_search_placeholder()}
-            defaultValue={searchParams.get('q') ?? ''}
-            className="pl-9"
-          />
-        </div>
-        <Button type="submit" variant="secondary">
-          {m.publishers_search_button()}
-        </Button>
-      </RouterForm>
+      <SearchInput placeholder={m.publishers_search_placeholder()} />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>

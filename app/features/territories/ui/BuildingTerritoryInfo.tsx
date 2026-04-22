@@ -1,9 +1,9 @@
 import { Form } from 'react-router'
 import type { Building } from '~/database/generated/client'
 import * as m from '~/paraglide/messages'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 
 export default function BuildingTerritoryInfo({ building }: { building: Building }) {
   return (
@@ -23,9 +23,7 @@ export default function BuildingTerritoryInfo({ building }: { building: Building
             </textarea>
           </div>
           <p className="text-muted-foreground text-sm italic">{m.prospection_territory_notes_hint()}</p>
-          <Button type="submit" className="self-start">
-            {m.prospection_territory_notes_submit()}
-          </Button>
+          <SubmitButton className="self-start">{m.prospection_territory_notes_submit()}</SubmitButton>
         </Form>
       </CardContent>
     </Card>

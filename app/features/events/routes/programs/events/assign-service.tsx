@@ -10,10 +10,10 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -101,6 +101,11 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
       <PageHeader
         title={m.programs_assign_service_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        breadcrumbs={[
+          { label: m.sidebar_programs(), to: '/programs' },
+          { label: m.programs_assign_service_page_title() },
+        ]}
+        backTo={`/programs/events/${event.id}`}
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -129,9 +134,7 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
                 </Select>
               </div>
 
-              <Button type="submit" className="w-fit">
-                {m.common_save()}
-              </Button>
+              <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
             </Form>
           </CardContent>
         </Card>
