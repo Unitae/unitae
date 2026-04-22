@@ -5,10 +5,11 @@
 The dashboard is the personal homepage every member sees after logging in. It brings together the most important information at a glance.
 
 - **Greeting** — Personalized welcome with the member's name and current date
-- **Mes territoires** — Currently assigned territories with color-coded due-date status (on time, due soon, overdue)
-- **Prochaines interventions** — Upcoming programme assignments (speaking parts, reading, service roles)
+- **Mes territoires** — Currently assigned territories with color-coded due-date status (on time, due soon, overdue). Clickable — links to personal territory view
+- **Prochaines interventions** — Upcoming programme assignments (speaking parts, reading, service roles). Clickable — links to event detail
 - **Derniers documents** — Most recent display board documents with unread indicators
-- **Mes absences** — Upcoming days off with a nudge when nothing is planned
+- **Mes absences** — Upcoming days off with a nudge when nothing is planned, and a quick action to plan an absence
+- **Admin onboarding checklist** — Getting started card for administrators with setup progress tracking
 - **Error resilience** — Each widget loads independently; a failure in one does not affect the others
 
 See [Dashboard](dashboard.md) for details.
@@ -32,6 +33,7 @@ See [Display Board](display-board.md) for details.
 
 Manage the congregation's geographic territories and track assignments to publishers.
 
+- **Personal territory view** — Every member can view their assigned territories at `/me/territories` with HTML entrance cards, PDF download, and interactive map — no special role required
 - **Territory types** — Porte à Porte, Université, Commerces, Téléphone, Hôtels
 - **Attributions** — Assign territories to publishers with start, end, and late dates
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
@@ -91,6 +93,23 @@ Unitae manages religious affiliation data, which is special category data under 
 - **Log PII redaction** — Email addresses and personal data fields are automatically hashed in application logs (SHA-256)
 - **Data retention** — Automated cleanup of expired password reset tokens and old withdrawn consent records via `/cron/retention` endpoint
 - **Deletion ledger** — All anonymization operations are recorded for backup reconciliation
+
+## User Experience
+
+Unitae includes several features to make the app feel responsive and polished:
+
+- **Command palette** — Press `Cmd+K` (Mac) or `Ctrl+K` to search and navigate to any page instantly. Permission-aware — only shows pages the user can access
+- **Navigation progress bar** — Thin animated bar at the top of the screen during page transitions
+- **Breadcrumbs** — Hierarchical navigation on all nested pages with back buttons
+- **Submit feedback** — All form submit buttons show a spinner and disable during submission to prevent double-clicks
+- **Unsaved changes warning** — Edit forms warn before navigating away with unsaved modifications
+- **Debounced search** — Live search-as-you-type with clear button on list pages (publishers, board sections, documents)
+- **Offline indicator** — Banner appears when the network connection drops
+- **Relative time** — Dates shown as *il y a 3 jours* or *dans 2 semaines* with absolute date on hover
+- **Sticky table headers** — Column headers stay visible when scrolling long tables
+- **Persisted page size** — Table pagination remembers the preferred number of rows per page
+- **Entrance animations** — Subtle fade-in animations on page headers and dashboard cards
+- **Error boundaries** — Status-specific error pages (404, 403, 500) with retry button
 
 ## Coming Soon
 

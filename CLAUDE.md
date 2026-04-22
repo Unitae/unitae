@@ -112,7 +112,7 @@ Each feature owns all its code through consistent segments:
 
 **Middleware pattern** (`app/shared/middleware/auth.server.ts`):
 - Authenticated layout routes export `middleware = [requireAuth([...roles])]`
-- `requireAuth()` verifies the session, resolves role permissions, checks GDPR consent, and sets typed context
+- `requireAuth()` verifies the session, resolves role permissions, checks GDPR consent, and sets typed context. **Only roles explicitly listed are resolved** — omitting a role means `permissions.has(Role.X)` is always `false`, silently hiding features. All 14 roles must be listed in `_authenticated-layout.tsx`.
 - Loaders/actions read auth state via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
 - `withScopeFromContext(context, async db => {...})` reads `congregationId` from context and runs the callback inside `withScope`
 
@@ -303,6 +303,10 @@ Uses Biome for formatting with these key rules:
 
 ### Gotchas & Patterns
 
+- **Flash messages are global**: The authenticated layout reads `session.flash()` and displays toasts via Sonner. Individual route loaders must NOT also read flash messages — both loaders parse the same cookie independently, causing duplicate display (toast + inline alert). Use the global toast only.
+- **Personal routes convention**: User-specific pages live under `/me/*` (profile, territories, days-off, consents). The `/me` prefix uses `features/authentication/routes/user/_layout.tsx` as layout. New personal features should follow this pattern.
+- **Shared UI components**: `SubmitButton` (auto-disables during submission), `SearchInput` (debounced live search), `DeleteConfirmation` (entity details + cancel + impact), `PageBreadcrumb` (breadcrumb convenience wrapper), `RelativeTime` (Intl.RelativeTimeFormat), `UnsavedChangesDialog` (useBlocker-based), `OfflineBanner`, `CommandPalette` (Cmd+K). `PageHeader` supports `breadcrumbs` and `backTo` props.
+- **Shared hooks**: `useFocusError(actionData)` auto-focuses first invalid field, `useDebouncedValue(value, delay)`, `useUnsavedChanges(isDirty)` returns blocker for dialog, `useOnlineStatus()`, `usePersistedState(key, default)` wraps localStorage.
 - **Prisma 7**: No `url` in schema — use `prisma.config.ts` with `import 'dotenv/config'` for env loading
 - **Prisma generate**: Run `pnpm prisma generate` after schema changes — generated client is in `app/database/generated/` (gitignored)
 - **Custom migrations**: Use `pnpm prisma migrate diff --from-config-datasource --to-schema app/database/schema.prisma --script` to generate SQL, create migration dir manually with `mkdir -p app/database/migrations/{timestamp}_{name}`
@@ -313,6 +317,7 @@ Uses Biome for formatting with these key rules:
 - **Non-interactive Prisma CLI**: `prisma migrate dev` fails in non-interactive shells — use `migrate diff` + manual migration + `migrate deploy`
 - **`LimitService` pattern**: Always get congregation from context first, then `new LimitService(db, congregation)`, then `await limits.errorIfWouldGoOverLimit('name')` before `db.*.create()` calls
 - **`.server.ts` suffix exceptions**: Files in `features/*/server/` that are pure functions used in client route components (e.g., `compute-territory-quantity.ts`) must NOT have the `.server.ts` suffix — React Router's bundler will reject them with "Server-only module referenced by client"
+- **Shared model files for client+server**: Files in `features/*/model/` (e.g., `access-format.ts`, `territory-kind.type.ts`) are importable from both server and client code. Never add `.server.ts` suffix to these.
 - **Zod version**: Must use Zod v3 (`zod@^3.25`), not v4 — `@conform-to/zod` v1.x imports `ZodEffects`/`ZodBranded` which were removed in Zod v4. Import as `from 'zod'` (not `from 'zod/v4'`)
 - **Middleware context types**: The `context.set()` in middleware requires `RouterContext` type constraint: `context: { set<C extends RouterContext>(context: C, value: ...): void }`. Don't use plain object types.
 - **File upload + Zod**: Routes with file uploads (e.g., `documents/new.tsx`) use `parseFormData` from `@mjackson/form-data-parser` first, then `parseWithZod` on the resulting FormData for text fields. Don't try to validate files through Zod.
