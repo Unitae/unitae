@@ -138,7 +138,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         assistantId: true,
         event: {
           select: {
-            id: true,
             name: true,
             startDate: true,
           },
@@ -157,7 +156,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         name: true,
         event: {
           select: {
-            id: true,
             name: true,
             startDate: true,
           },
@@ -174,7 +172,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
     name: string
     topic?: string | null
     role: 'speaker' | 'assistant' | 'service'
-    eventId: number
     eventName: string
     eventDate: Date
   }
@@ -187,7 +184,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         name: a.name,
         topic: a.topic,
         role: a.assigneeId === userId ? 'speaker' : 'assistant',
-        eventId: a.event.id,
         eventName: a.event.name,
         eventDate: a.event.startDate,
       }),
@@ -198,7 +194,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         id: a.id,
         name: a.name,
         role: 'service',
-        eventId: a.event.id,
         eventName: a.event.name,
         eventDate: a.event.startDate,
       }),

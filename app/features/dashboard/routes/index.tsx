@@ -210,11 +210,7 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
         ) : (
           <div className="flex flex-col gap-2">
             {assignments.map(a => (
-              <Link
-                key={`${a.kind}-${a.id}`}
-                to={`/programs/events/${a.eventId}`}
-                className="flex flex-col gap-0.5 rounded-lg border px-3 py-2 transition-colors hover:bg-muted/50"
-              >
+              <div key={`${a.kind}-${a.id}`} className="flex flex-col gap-0.5 rounded-lg border px-3 py-2">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium text-sm">{a.name}</span>
                   <span className="shrink-0 text-muted-foreground text-xs">
@@ -223,7 +219,7 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
                 </div>
                 {a.topic && <span className="text-muted-foreground text-xs">{a.topic}</span>}
                 <span className="text-muted-foreground text-xs">{a.eventName}</span>
-              </Link>
+              </div>
             ))}
           </div>
         )}
