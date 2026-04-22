@@ -8,9 +8,11 @@ import {
   getUserTerritories,
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
+import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import * as m from '~/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -35,6 +37,8 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 
 export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
+  const permissions = context.get(permissionsContext)
+  const isAdmin = permissions.has(Role.Admin)
 
   return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, absences, assignments] = await Promise.all([
@@ -44,12 +48,28 @@ export function loader({ context }: Route.LoaderArgs) {
       safeQuery('assignments', currentUser.id, () => getUpcomingAssignments(db, currentUser.id)),
     ])
 
+    // Onboarding: count entities for admin checklist
+    let onboarding = null
+    if (isAdmin) {
+      const [publisherCount, territoryCount, documentCount] = await Promise.all([
+        safeQuery('onboarding-publishers', currentUser.id, () => db.user.count({ where: { isPublisher: true } })),
+        safeQuery('onboarding-territories', currentUser.id, () => db.territory.count()),
+        safeQuery('onboarding-documents', currentUser.id, () => db.boardDocument.count()),
+      ])
+      onboarding = {
+        publisherCount: publisherCount ?? 0,
+        territoryCount: territoryCount ?? 0,
+        documentCount: documentCount ?? 0,
+      }
+    }
+
     return {
       currentUser: { firstname: currentUser.firstname },
       territories,
       recentDocuments,
       absences,
       assignments,
+      onboarding,
     }
   })
 }
@@ -75,7 +95,7 @@ function formatDate(date: Date | string): string {
 }
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
-  const { currentUser, territories, recentDocuments, absences, assignments } = loaderData
+  const { currentUser, territories, recentDocuments, absences, assignments, onboarding } = loaderData
 
   const today = new Date().toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -92,6 +112,14 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
         </h1>
         <p className="text-muted-foreground text-sm">{today}</p>
       </div>
+
+      {onboarding && (
+        <OnboardingChecklist
+          publisherCount={onboarding.publisherCount}
+          territoryCount={onboarding.territoryCount}
+          documentCount={onboarding.documentCount}
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <div className="animate-fade-in-up" style={{ animationDelay: '50ms' }}>
@@ -130,7 +158,11 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
         {territories == null ? (
           <WidgetError />
         ) : territories.length === 0 ? (
-          <EmptyState icon={MapPin} title={m.dashboard_no_territories()} />
+          <EmptyState
+            icon={MapPin}
+            title={m.dashboard_no_territories()}
+            description={m.dashboard_empty_territories_guidance()}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {territories.map(t => (
@@ -170,7 +202,11 @@ function AssignmentsCard({ assignments }: { assignments: Awaited<ReturnType<type
         {assignments == null ? (
           <WidgetError />
         ) : assignments.length === 0 ? (
-          <EmptyState icon={Mic} title={m.dashboard_no_assignments()} />
+          <EmptyState
+            icon={Mic}
+            title={m.dashboard_no_assignments()}
+            description={m.dashboard_empty_assignments_guidance()}
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {assignments.map(a => (
@@ -260,7 +296,17 @@ function AbsencesCard({
               </Alert>
             )}
             {absences.length === 0
-              ? !shouldNudge && <EmptyState icon={CalendarOff} title={m.dashboard_no_absences()} />
+              ? !shouldNudge && (
+                  <EmptyState
+                    icon={CalendarOff}
+                    title={m.dashboard_no_absences()}
+                    action={
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/me/days-off/new">{m.dashboard_plan_absence()}</Link>
+                      </Button>
+                    }
+                  />
+                )
               : absences.map(a => (
                   <div key={a.id} className="flex items-center gap-2 rounded-lg border px-3 py-2">
                     <CalendarOff className="size-4 shrink-0 text-muted-foreground" />
