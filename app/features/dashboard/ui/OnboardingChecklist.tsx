@@ -1,5 +1,4 @@
 import { CheckCircle2, Circle, FileText, MapPin, Users, X } from 'lucide-react'
-import { useState } from 'react'
 import { Link } from 'react-router'
 
 import * as m from '~/paraglide/messages'

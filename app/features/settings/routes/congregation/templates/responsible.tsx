@@ -13,7 +13,6 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
