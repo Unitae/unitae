@@ -48,7 +48,7 @@
         "dotenv": "^17.4.2",
         "exceljs": "^4.4.0",
         "ioredis": "^5.10.1",
-        "isbot": "^5.1.37",
+        "isbot": "^5.1.39",
         "jszip": "^3.10.1",
         "lucide-react": "^1.8.0",
         "p-limit": "^7.3.0",
