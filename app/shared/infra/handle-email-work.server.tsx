@@ -18,6 +18,10 @@ export function handleEmailWork(job: Job<EmailJobData>): Promise<void> {
       return handleNewDocumentNotification(job.data)
     case 'documents-expiring':
       return handleDocumentsExpiring(job.data)
+    case 'notification-digest':
+      return handleNotificationDigest(job.data)
+    case 'notification-instant':
+      return handleNotificationInstant(job.data)
   }
 }
 
@@ -66,6 +70,16 @@ async function handleNewDocumentNotification(data: Extract<EmailJobData, { type:
       }
     }
   })
+}
+
+async function handleNotificationDigest(data: Extract<EmailJobData, { type: 'notification-digest' }>) {
+  const { handleDigestEmail } = await import('~/features/notifications/server/handle-notification-email.server')
+  return handleDigestEmail(data)
+}
+
+async function handleNotificationInstant(data: Extract<EmailJobData, { type: 'notification-instant' }>) {
+  const { handleInstantEmail } = await import('~/features/notifications/server/handle-notification-email.server')
+  return handleInstantEmail(data)
 }
 
 async function handleDocumentsExpiring(data: Extract<EmailJobData, { type: 'documents-expiring' }>) {

@@ -1,7 +1,7 @@
 import { unscopedDb } from '~/shared/infra/db.server'
+import { emailQueue } from '~/shared/infra/email-queue.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { emailQueue } from './email-queue.server'
 
 /**
  * Verifie tous les documents dont la visibilite expire dans les 48 prochaines heures

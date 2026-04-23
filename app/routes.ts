@@ -14,12 +14,14 @@ export default [
   route('consent', 'routes/consent.tsx'),
   route('cron/retention', 'routes/cron.retention.tsx'),
   route('cron/board-expirations', 'routes/cron.board-expirations.tsx'),
+  route('cron/process-notifications', 'routes/cron.process-notifications.tsx'),
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
       route('profile', 'features/authentication/routes/user/profile.tsx'),
       route('consents', 'features/authentication/routes/user/consents.tsx'),
+      route('notifications', 'features/notifications/routes/preferences.tsx'),
       route('territories', 'features/territories/routes/my-territories/list.tsx'),
       route('territories/:territoryId', 'features/territories/routes/my-territories/view.tsx'),
       ...daysOffRoutes,

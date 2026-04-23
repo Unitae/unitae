@@ -27,3 +27,18 @@ export type EmailJobData =
       baseUrl: string
       displayName: string
     }
+  | {
+      type: 'notification-digest'
+      congregationId: number
+      recipientId: number
+      events: Array<{ type: string; entityType: string; entityId: number; payload: string }>
+      notificationEventIds: number[]
+    }
+  | {
+      type: 'notification-instant'
+      congregationId: number
+      notificationType: string
+      recipientId: number | null
+      recipientRole: string | null
+      payload: string
+    }

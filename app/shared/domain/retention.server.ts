@@ -1,3 +1,4 @@
+import { cleanupNotificationEvents } from '~/features/notifications/server/cleanup.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
@@ -88,10 +89,16 @@ export async function cleanupExpiredDocumentViewTracking(): Promise<number> {
 /**
  * Execute toutes les taches de nettoyage de retention des donnees.
  */
-export async function runRetentionCleanup(): Promise<{ tokens: number; consents: number; viewTracking: number }> {
+export async function runRetentionCleanup(): Promise<{
+  tokens: number
+  consents: number
+  viewTracking: number
+  notifications: number
+}> {
   const tokens = await cleanupExpiredPasswordResetTokens()
   const consents = await cleanupOldWithdrawnConsents()
   const viewTracking = await cleanupExpiredDocumentViewTracking()
+  const notifications = await cleanupNotificationEvents()
 
-  return { tokens, consents, viewTracking }
+  return { tokens, consents, viewTracking, notifications }
 }
