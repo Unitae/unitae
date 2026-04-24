@@ -11,7 +11,7 @@ const testDb = new PrismaClient({ adapter })
 
 type Tx = Parameters<Parameters<typeof testDb.$transaction>[0]>[0]
 
-async function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
+function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return testDb.$transaction(async tx => {
     await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
     return fn(tx)
@@ -22,7 +22,6 @@ const ts = Date.now()
 let congregationId: number
 let aliceId: number
 let bobId: number
-let futureEventId: number
 let pastEventId: number
 
 beforeAll(async () => {
@@ -135,7 +134,6 @@ beforeAll(async () => {
         congregationId,
       },
     })
-    futureEventId = futureEvent.id
 
     await tx.programmePartAssignment.create({
       data: {
@@ -210,35 +208,27 @@ const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextM
 
 describe('getUserTerritories (integration)', () => {
   it('returns only active attributions for the user', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getUserTerritories(tx, aliceId)
-    })
+    const result = await withScope(congregationId, tx => getUserTerritories(tx, aliceId))
     // Only the attribution without endDate should appear
     expect(result).toHaveLength(1)
     expect(result[0].status).toBe('overdue')
   })
 
   it('returns empty array for user with no attributions', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getUserTerritories(tx, bobId)
-    })
+    const result = await withScope(congregationId, tx => getUserTerritories(tx, bobId))
     expect(result).toEqual([])
   })
 })
 
 describe('getUnreadDocumentCount (integration)', () => {
   it('counts only unread visible documents for the user', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getUnreadDocumentCount(tx, aliceId, congregationId)
-    })
+    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, aliceId, congregationId))
     // 1 unread PDF (the other was marked as read)
     expect(result).toBe(1)
   })
 
   it('counts all documents as unread for a user who read nothing', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getUnreadDocumentCount(tx, bobId, congregationId)
-    })
+    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, bobId, congregationId))
     // Bob has read nothing — both PDFs are unread
     expect(result).toBe(2)
   })
@@ -246,9 +236,7 @@ describe('getUnreadDocumentCount (integration)', () => {
 
 describe('getRecentDocuments (integration)', () => {
   it('returns documents with correct alreadyViewed flag', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getRecentDocuments(tx, aliceId, congregationId)
-    })
+    const result = await withScope(congregationId, tx => getRecentDocuments(tx, aliceId, congregationId))
     expect(result.length).toBeGreaterThanOrEqual(1)
     const readDoc = result.find(d => d.title.includes('Read PDF'))
     const unreadDoc = result.find(d => d.title.includes('Unread PDF'))
@@ -259,37 +247,29 @@ describe('getRecentDocuments (integration)', () => {
 
 describe('getNextMeeting (integration)', () => {
   it('returns the next future event with programme data', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getNextMeeting(tx, aliceId)
-    })
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
     expect(result).not.toBeNull()
-    expect(result!.name).toContain('Future Meeting')
-    expect(result!.partAssignments.length).toBeGreaterThanOrEqual(2)
-    expect(result!.serviceRoleAssignments.length).toBeGreaterThanOrEqual(1)
+    expect(result?.name).toContain('Future Meeting')
+    expect(result?.partAssignments.length).toBeGreaterThanOrEqual(2)
+    expect(result?.serviceRoleAssignments.length).toBeGreaterThanOrEqual(1)
   })
 
   it('identifies parts assigned to the user (as assignee)', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getNextMeeting(tx, aliceId)
-    })
-    expect(result!.userPartIds).toHaveLength(1)
-    const userPart = result!.partAssignments.find(p => result!.userPartIds.includes(p.id))
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+    expect(result?.userPartIds).toHaveLength(1)
+    const userPart = result?.partAssignments.find(p => result.userPartIds.includes(p.id))
     expect(userPart?.name).toBe('Talk')
   })
 
   it('identifies parts assigned to the user (as assistant)', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getNextMeeting(tx, bobId)
-    })
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, bobId))
     // Bob is assistant on Talk and assignee on Reading
-    expect(result!.userPartIds).toHaveLength(2)
-    expect(result!.userServiceRoleIds).toHaveLength(1)
+    expect(result?.userPartIds).toHaveLength(2)
+    expect(result?.userServiceRoleIds).toHaveLength(1)
   })
 
   it('does not return past events', async () => {
-    const result = await withScope(congregationId, async tx => {
-      return getNextMeeting(tx, aliceId)
-    })
-    expect(result!.id).not.toBe(pastEventId)
+    const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+    expect(result?.id).not.toBe(pastEventId)
   })
 })

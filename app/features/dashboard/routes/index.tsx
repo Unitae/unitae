@@ -129,9 +129,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8">
       {/* Hero greeting */}
-      <div className="animate-fade-in-up flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+      <div className="flex animate-fade-in-up flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="font-display text-muted-foreground text-lg tracking-tight sm:text-xl">
+          <p className="font-display text-lg text-muted-foreground tracking-tight sm:text-xl">
             {m.dashboard_greeting_hello()}
           </p>
           <h1 className="font-display font-semibold text-4xl tracking-tight md:text-5xl">

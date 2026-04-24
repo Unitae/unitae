@@ -164,8 +164,8 @@ describe('getNextMeeting', () => {
 
     const result = await getNextMeeting(db, 42)
     expect(result).not.toBeNull()
-    expect(result!.userPartIds).toEqual([10])
-    expect(result!.userServiceRoleIds).toEqual([20])
+    expect(result?.userPartIds).toEqual([10])
+    expect(result?.userServiceRoleIds).toEqual([20])
   })
 
   it('identifies user as assistant', async () => {
@@ -190,7 +190,7 @@ describe('getNextMeeting', () => {
     } as never)
 
     const result = await getNextMeeting(db, 42)
-    expect(result!.userPartIds).toEqual([10])
+    expect(result?.userPartIds).toEqual([10])
   })
 
   it('returns empty arrays when user has no assignments', async () => {
@@ -215,8 +215,8 @@ describe('getNextMeeting', () => {
     } as never)
 
     const result = await getNextMeeting(db, 42)
-    expect(result!.userPartIds).toEqual([])
-    expect(result!.userServiceRoleIds).toEqual([])
+    expect(result?.userPartIds).toEqual([])
+    expect(result?.userServiceRoleIds).toEqual([])
   })
 })
 
