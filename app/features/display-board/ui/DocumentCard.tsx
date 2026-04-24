@@ -1,5 +1,9 @@
 import { Calendar, FileText, Star, Users } from 'lucide-react'
 import { Link } from 'react-router'
+import * as m from '~/paraglide/messages'
+import { Badge } from '~/shared/ui/badge'
+import { RelativeTime } from '~/shared/ui/RelativeTime'
+import { cn } from '~/shared/utils/utils'
 
 interface PdfDocumentCardItem {
   kind: 'pdf'
@@ -7,6 +11,8 @@ interface PdfDocumentCardItem {
   title: string
   createdAt: Date
   thumbnailUri: string | null
+  hasUpdate?: boolean
+  alreadyViewed?: boolean
 }
 
 interface DynamicDocumentCardItem {
@@ -15,6 +21,8 @@ interface DynamicDocumentCardItem {
   title: string
   createdAt: Date
   dynamicType: string
+  preview?: string | null
+  alreadyViewed?: boolean
 }
 
 export type DocumentCardItem = PdfDocumentCardItem | DynamicDocumentCardItem
@@ -26,26 +34,96 @@ function getDynamicIcon(dynamicType: string) {
   return FileText
 }
 
-export function DocumentCard({ file, alreadyViewed = false }: { file: DocumentCardItem; alreadyViewed?: boolean }) {
+function getDynamicPreviewBg(dynamicType: string) {
+  if (dynamicType === 'publisher-groups') return 'bg-blue-50 dark:bg-blue-950/30'
+  if (dynamicType === 'pioneers') return 'bg-amber-50 dark:bg-amber-950/30'
+  if (dynamicType === 'programme') return 'bg-teal-50 dark:bg-teal-950/30'
+  return 'bg-muted'
+}
+
+function getDynamicIconColor(dynamicType: string) {
+  if (dynamicType === 'publisher-groups') return 'text-blue-500'
+  if (dynamicType === 'pioneers') return 'text-amber-500'
+  if (dynamicType === 'programme') return 'text-teal-500'
+  return 'text-muted-foreground'
+}
+
+function isNewDocument(createdAt: Date | string): boolean {
+  const target = createdAt instanceof Date ? createdAt : new Date(createdAt)
+  return Date.now() - target.getTime() < 48 * 60 * 60 * 1000
+}
+
+interface DocumentCardProps {
+  file: DocumentCardItem
+  alreadyViewed?: boolean
+  variant?: 'default' | 'highlighted'
+}
+
+export function DocumentCard({ file, alreadyViewed = false, variant = 'default' }: DocumentCardProps) {
   const href = file.kind === 'pdf' ? `./documents/${file.id}/viewer` : `./dynamic/${file.id}/viewer`
+  const isNew = isNewDocument(file.createdAt)
+  const hasUpdate = file.kind === 'pdf' && !!file.hasUpdate && alreadyViewed
+  const isHighlighted = variant === 'highlighted'
 
   return (
-    <Link to={href} className="group">
-      <div className="relative w-44 rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-primary max-sm:w-full max-sm:flex-row max-sm:items-center">
-        <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-xl bg-muted max-sm:aspect-square max-sm:w-16 max-sm:shrink-0 max-sm:rounded-l-xl max-sm:rounded-tr-none">
-          {!alreadyViewed && (
-            <div className="absolute top-2 right-2 z-10 size-3.5 rounded-full border-2 border-white bg-destructive shadow-sm" />
+    <Link to={href} className="group shrink-0 snap-start">
+      <div
+        className={cn(
+          'relative rounded-xl border bg-card shadow-sm transition-colors hover:border-primary',
+          isHighlighted ? 'w-56' : 'w-52',
+          !alreadyViewed && 'border-l-[3px] border-l-primary',
+          isHighlighted && 'ring-1 ring-primary/20',
+          'max-sm:flex max-sm:w-full max-sm:flex-row max-sm:items-center',
+          alreadyViewed && 'border-border',
+        )}
+      >
+        <div
+          className={cn(
+            'relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-t-xl',
+            'max-sm:aspect-auto max-sm:size-14 max-sm:shrink-0 max-sm:rounded-l-xl max-sm:rounded-tr-none',
+            file.kind === 'dynamic' ? getDynamicPreviewBg(file.dynamicType) : 'bg-muted',
           )}
+        >
+          <FreshnessBadge isNew={isNew} hasUpdate={hasUpdate} />
           <CardPreview file={file} />
         </div>
 
-        <div className="flex flex-col gap-1 p-3 max-sm:flex-1 max-sm:py-2">
+        <div className="flex flex-col gap-1 p-3 max-sm:min-w-0 max-sm:flex-1 max-sm:px-3 max-sm:py-2">
           <span className="line-clamp-2 font-medium text-foreground text-sm">{file.title}</span>
-          <span className="text-muted-foreground text-xs">{new Date(file.createdAt).toLocaleDateString('fr-FR')}</span>
+          <span className="text-muted-foreground text-xs">
+            <RelativeTime date={file.createdAt} />
+          </span>
+          {file.kind === 'dynamic' && file.preview && (
+            <span className="text-muted-foreground text-xs">{file.preview}</span>
+          )}
         </div>
       </div>
     </Link>
   )
+}
+
+function FreshnessBadge({ isNew, hasUpdate }: { isNew: boolean; hasUpdate: boolean }) {
+  if (hasUpdate) {
+    return (
+      <div className="absolute top-2 left-2 z-10 max-sm:hidden">
+        <Badge variant="info" className="text-xs">
+          {m.board_badge_updated()}
+        </Badge>
+      </div>
+    )
+  }
+
+  if (isNew) {
+    return (
+      <div className="absolute top-2 left-2 z-10 max-sm:hidden">
+        <Badge variant="default" className="text-xs">
+          {m.board_badge_new()}
+        </Badge>
+      </div>
+    )
+  }
+
+  return null
 }
 
 function CardPreview({ file }: { file: DocumentCardItem }) {
@@ -64,5 +142,5 @@ function CardPreview({ file }: { file: DocumentCardItem }) {
   }
 
   const Icon = getDynamicIcon(file.dynamicType)
-  return <Icon className="size-12 text-muted-foreground max-sm:size-8" />
+  return <Icon className={cn('size-12 max-sm:size-8', getDynamicIconColor(file.dynamicType))} />
 }

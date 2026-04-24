@@ -1,4 +1,5 @@
 import {
+  Bell,
   Building2,
   CalendarCheck,
   CalendarDays,
@@ -12,7 +13,6 @@ import {
   Map as MapIcon,
   MapPin,
   PieChart,
-  Bell,
   User,
   UserRoundCog,
   Users,
