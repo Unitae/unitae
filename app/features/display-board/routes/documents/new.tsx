@@ -5,7 +5,6 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createBoardDocument } from '~/features/display-board/server/board-document.server'
 import { saveFile } from '~/features/display-board/server/document.server'
-import { emailQueue } from '~/features/display-board/server/email-queue.server'
 import {
   FileValidationError,
   MAX_FILE_SIZE_BYTES,
@@ -13,6 +12,7 @@ import {
   validateVisibilityDates,
 } from '~/features/display-board/server/file-validation.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
+import { notify } from '~/features/notifications/server/notify.server'
 import * as m from '~/paraglide/messages'
 import {
   congregationContext,
@@ -300,10 +300,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     })
 
     if (!canManageBoard) {
-      await emailQueue.add('new-document-notification', {
-        type: 'new-document-notification',
+      await notify(db, {
+        type: 'board.document.created',
+        entityType: 'BoardDocument',
+        entityId: document.id,
         congregationId,
-        documentId: document.id,
+        actorId: currentUser.id,
+        payload: { title: document.title, documentId: document.id },
       })
     }
 

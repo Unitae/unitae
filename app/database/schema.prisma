@@ -63,6 +63,9 @@ model Congregation {
   programmeServiceRoleAssignments ProgrammeServiceRoleAssignment[]
   programmeTemplateResponsibles   ProgrammeTemplateResponsible[]
 
+  notificationEvents      NotificationEvent[]
+  notificationPreferences NotificationPreference[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -110,7 +113,8 @@ model User {
   dynamicDocumentViews      BoardDynamicDocumentView[]
   passwordResetTokens        PasswordResetToken[]
   emailVerificationTokens    EmailVerificationToken[]
-  consentRecords      ConsentRecord[]
+  consentRecords          ConsentRecord[]
+  notificationPreferences NotificationPreference[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -642,5 +646,48 @@ model ConsentRecord {
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
+  @@unique([id, congregationId])
+}
+
+model NotificationEvent {
+  id            Int       @id @default(autoincrement())
+  type          String
+  status        String    @default("pending")
+  entityType    String
+  entityId      Int
+  recipientId   Int?
+  recipientRole String?
+  actorId       Int?
+  payload       String    @default("{}")
+  debounceKey   String
+  debounceUntil DateTime?
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@index([status, debounceUntil])
+  @@index([debounceKey, status])
+  @@index([congregationId, status])
+  @@unique([id, congregationId])
+}
+
+model NotificationPreference {
+  id               Int     @id @default(autoincrement())
+  notificationType String
+  enabled          Boolean @default(true)
+
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([userId, notificationType, congregationId])
   @@unique([id, congregationId])
 }
