@@ -109,6 +109,36 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
   return documents.slice(0, 5)
 }
 
+export async function getUnreadDocumentCount(db: TransactionClient, userId: number, congregationId: number) {
+  const now = new Date()
+  const visibleNow = {
+    // biome-ignore lint/style/useNamingConvention: prisma ORM
+    OR: [
+      { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
+      { visibleFrom: { lte: now }, visibleUntil: null },
+    ],
+  }
+
+  const [unreadPdfCount, unreadDynamicCount] = await Promise.all([
+    db.boardDocument.count({
+      where: {
+        congregationId,
+        ...visibleNow,
+        viewedBy: { none: { id: userId } },
+      },
+    }),
+    db.boardDynamicDocumentSettings.count({
+      where: {
+        congregationId,
+        ...visibleNow,
+        views: { none: { userId } },
+      },
+    }),
+  ])
+
+  return unreadPdfCount + unreadDynamicCount
+}
+
 export async function getUpcomingAbsences(db: TransactionClient, userId: number, congregationId: number) {
   const absences = await getNextDaysOffs(db, userId, congregationId)
   const upcoming = absences.slice(0, 3)
@@ -202,4 +232,52 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
 
   assignments.sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
   return assignments.slice(0, 5)
+}
+
+export async function getNextMeeting(db: TransactionClient, userId: number) {
+  const now = new Date()
+
+  const event = await db.event.findFirst({
+    where: { startDate: { gte: now } },
+    select: {
+      id: true,
+      name: true,
+      startDate: true,
+      endDate: true,
+      kind: { select: { name: true, color: true } },
+      partAssignments: {
+        select: {
+          id: true,
+          name: true,
+          section: true,
+          topic: true,
+          order: true,
+          assignee: { select: { id: true, firstname: true, lastname: true } },
+          assistant: { select: { id: true, firstname: true, lastname: true } },
+        },
+        orderBy: { order: 'asc' },
+      },
+      serviceRoleAssignments: {
+        select: {
+          id: true,
+          name: true,
+          assignee: { select: { id: true, firstname: true, lastname: true } },
+        },
+      },
+    },
+    orderBy: { startDate: 'asc' },
+  })
+
+  if (!event) return null
+
+  const userPartIds = new Set(
+    event.partAssignments.filter(p => p.assignee?.id === userId || p.assistant?.id === userId).map(p => p.id),
+  )
+  const userServiceRoleIds = new Set(event.serviceRoleAssignments.filter(r => r.assignee?.id === userId).map(r => r.id))
+
+  return {
+    ...event,
+    userPartIds: [...userPartIds],
+    userServiceRoleIds: [...userServiceRoleIds],
+  }
 }
