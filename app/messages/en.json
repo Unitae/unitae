@@ -363,6 +363,7 @@
     "board_manage_sections": "Manage sections",
     "board_manage_documents": "Manage documents",
     "board_badge_new": "New",
+    "board_badge_unread": "Unread",
     "board_badge_updated": "Updated",
     "board_section_new_count": "{count} new",
     "board_section_empty": "No documents in this section",

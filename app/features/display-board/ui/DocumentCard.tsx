@@ -84,10 +84,7 @@ export function DocumentCard({ file, alreadyViewed = false, variant = 'default' 
             file.kind === 'dynamic' ? getDynamicPreviewBg(file.dynamicType) : 'bg-muted',
           )}
         >
-          {!alreadyViewed && (
-            <div className="absolute top-2 right-2 z-10 size-2.5 rounded-full bg-primary ring-2 ring-white shadow-sm" />
-          )}
-          <FreshnessBadge isNew={isNew} hasUpdate={hasUpdate} />
+          <StatusBadge isNew={isNew} hasUpdate={hasUpdate} alreadyViewed={alreadyViewed} />
           <CardPreview file={file} />
         </div>
 
@@ -107,28 +104,34 @@ export function DocumentCard({ file, alreadyViewed = false, variant = 'default' 
   )
 }
 
-function FreshnessBadge({ isNew, hasUpdate }: { isNew: boolean; hasUpdate: boolean }) {
+function StatusBadge({
+  isNew,
+  hasUpdate,
+  alreadyViewed,
+}: { isNew: boolean; hasUpdate: boolean; alreadyViewed: boolean }) {
+  let label: string | null = null
+  let badgeClass = ''
+
   if (hasUpdate) {
-    return (
-      <div className="absolute top-2 left-2 z-10 max-sm:hidden">
-        <Badge variant="info" className="text-xs">
-          {m.board_badge_updated()}
-        </Badge>
-      </div>
-    )
+    label = m.board_badge_updated()
+    badgeClass = 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+  } else if (isNew && !alreadyViewed) {
+    label = m.board_badge_new()
+    badgeClass = 'bg-primary text-primary-foreground'
+  } else if (!alreadyViewed) {
+    label = m.board_badge_unread()
+    badgeClass = 'border-primary bg-secondary text-primary dark:bg-secondary'
   }
 
-  if (isNew) {
-    return (
-      <div className="absolute top-2 left-2 z-10 max-sm:hidden">
-        <Badge variant="default" className="text-xs">
-          {m.board_badge_new()}
-        </Badge>
-      </div>
-    )
-  }
+  if (!label) return null
 
-  return null
+  return (
+    <div className="absolute top-2 left-2 z-10 max-sm:hidden">
+      <Badge variant="outline" className={cn('text-xs', badgeClass)}>
+        {label}
+      </Badge>
+    </div>
+  )
 }
 
 function CardPreview({ file }: { file: DocumentCardItem }) {
