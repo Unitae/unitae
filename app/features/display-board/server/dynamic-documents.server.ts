@@ -147,6 +147,50 @@ function maxDate(...dates: (Date | null | undefined)[]): Date | null {
 }
 
 /**
+ * Returns a short preview string for a dynamic document card.
+ * Lightweight queries (count / findFirst) for display on the board index.
+ */
+export async function getDynamicPreview(
+  db: TransactionClient,
+  dynamicType: string,
+  dynamicRef: string | null,
+  congregationId: number,
+): Promise<string | null> {
+  if (dynamicType === DynamicType.PublisherGroups) {
+    const count = await db.publisherGroup.count({ where: { congregationId } })
+    return count > 0 ? `${count} groupes` : null
+  }
+
+  if (dynamicType === DynamicType.Pioneers) {
+    const count = await db.user.count({
+      where: { congregationId, type: { in: PIONEER_TYPES }, active: true },
+    })
+    return count > 0 ? `${count} pionniers` : null
+  }
+
+  if (dynamicType === DynamicType.Programme && dynamicRef) {
+    const nextEvent = await db.event.findFirst({
+      where: {
+        congregationId,
+        template: { key: dynamicRef },
+        startDate: { gte: new Date() },
+      },
+      orderBy: { startDate: 'asc' },
+      select: { startDate: true },
+    })
+
+    if (nextEvent) {
+      const formatted = nextEvent.startDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+      return `Prochain : ${formatted}`
+    }
+
+    return null
+  }
+
+  return null
+}
+
+/**
  * Marque un document dynamique comme vu par l'utilisateur en mettant à jour
  * le timestamp `viewedAt`. Réinitialise ainsi l'indicateur non-lu pour cet utilisateur.
  */

@@ -1,16 +1,4 @@
-import {
-  Body,
-  Container,
-  Head,
-  Heading,
-  Hr,
-  Html,
-  Link,
-  Preview,
-  Section,
-  Tailwind,
-  Text,
-} from 'react-email'
+import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Tailwind, Text } from 'react-email'
 import * as m from '~/paraglide/messages'
 
 export default function NewDocumentInBoard({

@@ -1,11 +1,17 @@
-import { FileText } from 'lucide-react'
-import { getContentVersion } from '~/features/display-board/server/dynamic-documents.server'
+import { FileText, FolderOpen, Megaphone } from 'lucide-react'
+import { Link } from 'react-router'
+import { getContentVersion, getDynamicPreview } from '~/features/display-board/server/dynamic-documents.server'
+import { BoardSection } from '~/features/display-board/ui/BoardSection'
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { usePersistedState } from '~/shared/hooks/use-persisted-state'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
+import { Badge } from '~/shared/ui/badge'
+import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { PageHeader } from '~/shared/ui/PageHeader'
 
 import type { Route } from './+types/index'
 
@@ -45,6 +51,7 @@ export function loader({ context }: Route.LoaderArgs) {
             viewedBy: {
               where: { id: { equals: currentUser.id } },
             },
+            _count: { select: { versions: true } },
           },
         },
       },
@@ -75,6 +82,7 @@ export function loader({ context }: Route.LoaderArgs) {
         viewedBy: {
           where: { id: { equals: currentUser.id } },
         },
+        _count: { select: { versions: true } },
       },
     })
 
@@ -92,14 +100,23 @@ export function loader({ context }: Route.LoaderArgs) {
       orderBy: { order: 'asc' },
     })
 
-    // Build dynamic doc card items with unread computation
+    // Build dynamic doc card items with unread computation and previews
     const allDynamicDocs = [...dynamicDocuments, ...highlightedDynamicDocuments]
-    const contentVersions = new Map<number, Date | null>()
-    for (const d of allDynamicDocs) {
-      if (!contentVersions.has(d.id)) {
-        contentVersions.set(d.id, await getContentVersion(db, d.dynamicType, d.dynamicRef, congregationId))
-      }
-    }
+    const uniqueDynamicDocs = allDynamicDocs.filter((d, i, arr) => arr.findIndex(x => x.id === d.id) === i)
+    const [contentVersionEntries, previewEntries] = await Promise.all([
+      Promise.all(
+        uniqueDynamicDocs.map(
+          async d => [d.id, await getContentVersion(db, d.dynamicType, d.dynamicRef, congregationId)] as const,
+        ),
+      ),
+      Promise.all(
+        uniqueDynamicDocs.map(
+          async d => [d.id, await getDynamicPreview(db, d.dynamicType, d.dynamicRef, congregationId)] as const,
+        ),
+      ),
+    ])
+    const contentVersions = new Map(contentVersionEntries)
+    const dynamicPreviews = new Map(previewEntries)
 
     const buildDynamicCard = (d: (typeof dynamicDocuments)[number]): DocumentCardItem => ({
       kind: 'dynamic',
@@ -107,6 +124,7 @@ export function loader({ context }: Route.LoaderArgs) {
       title: d.title,
       createdAt: d.createdAt,
       dynamicType: d.dynamicType,
+      preview: dynamicPreviews.get(d.id) ?? null,
     })
 
     const isDynamicAlreadyViewed = (d: (typeof dynamicDocuments)[number]): boolean => {
@@ -131,6 +149,7 @@ export function loader({ context }: Route.LoaderArgs) {
           thumbnailUri: d.thumbnailUri,
           order: d.order,
           alreadyViewed: d.viewedBy.length > 0,
+          hasUpdate: d._count.versions > 0,
         }))
         const dynItems = dynamicDocuments
           .filter(d => d.sectionId === folder.id)
@@ -155,6 +174,7 @@ export function loader({ context }: Route.LoaderArgs) {
           createdAt: d.createdAt,
           thumbnailUri: d.thumbnailUri,
           alreadyViewed: d.viewedBy.length > 0,
+          hasUpdate: d._count.versions > 0,
         })),
         ...highlightedDynamicDocuments.map(d => ({
           ...buildDynamicCard(d),
@@ -168,34 +188,97 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function BoardLayout({ loaderData }: Route.ComponentProps) {
-  const { folders, highlighted } = loaderData
-  const nonEmptyFolders = folders.filter(folder => folder.items.length > 0)
+  const { folders, highlighted, canManageBoard } = loaderData
+  const [collapsed, setCollapsed] = usePersistedState<Record<number, boolean>>('board-collapsed', {})
 
-  if (nonEmptyFolders.length < 1 && highlighted.length === 0) {
+  const visibleFolders = canManageBoard ? folders : folders.filter(f => f.items.length > 0)
+
+  const toggleCollapse = (folderId: number) => {
+    setCollapsed({ ...collapsed, [folderId]: !collapsed[folderId] })
+  }
+
+  if (visibleFolders.length === 0 && highlighted.length === 0) {
     return (
       <div className="flex flex-col gap-6">
-        <EmptyState icon={FileText} title={m.board_empty_title()} description={m.board_empty_description()} />
+        {canManageBoard ? (
+          <EmptyState
+            icon={FileText}
+            title={m.board_empty_manager_title()}
+            description={m.board_empty_manager_description()}
+            action={
+              <Button asChild>
+                <Link to="./sections">{m.board_empty_manager_action()}</Link>
+              </Button>
+            }
+          />
+        ) : (
+          <EmptyState icon={FileText} title={m.board_empty_title()} description={m.board_empty_description()} />
+        )}
       </div>
     )
   }
 
   return (
     <div className="flex flex-col gap-6">
+      <PageHeader
+        title={m.board_page_title()}
+        actions={
+          canManageBoard ? (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="./sections">
+                  <FolderOpen className="size-4" />
+                  {m.board_manage_sections()}
+                </Link>
+              </Button>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="./documents">
+                  <FileText className="size-4" />
+                  {m.board_manage_documents()}
+                </Link>
+              </Button>
+            </>
+          ) : undefined
+        }
+      />
+
       {highlighted.length > 0 && (
-        <div className="flex flex-wrap gap-3 max-sm:flex-col">
-          {highlighted.map(file => (
-            <DocumentCard key={`${file.kind}-${file.id}`} file={file} alreadyViewed={file.alreadyViewed} />
-          ))}
-        </div>
-      )}
-      {nonEmptyFolders.map(folder => (
-        <div key={folder.id}>
-          <h2 className="mb-3 font-bold font-display text-xl tracking-tight">{folder.name}</h2>
-          <div className="flex flex-wrap gap-3 max-sm:flex-col">
-            {folder.items.map(file => (
-              <DocumentCard key={`${file.kind}-${file.id}`} file={file} alreadyViewed={file.alreadyViewed} />
+        <section
+          className="animate-fade-in-up rounded-xl border border-primary/20 bg-primary/5 p-4"
+          style={{ animationDelay: '100ms' }}
+        >
+          <div className="mb-3 flex items-center gap-2">
+            <Megaphone className="size-5 text-primary" />
+            <h2 className="font-bold font-display text-lg tracking-tight">{m.board_highlighted_heading()}</h2>
+            <Badge variant="outline" className="text-xs">
+              {highlighted.length}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3 max-sm:grid-cols-1">
+            {highlighted.map(file => (
+              <DocumentCard
+                key={`${file.kind}-${file.id}`}
+                file={file}
+                alreadyViewed={file.alreadyViewed}
+              />
             ))}
           </div>
+        </section>
+      )}
+
+      {visibleFolders.map((folder, index) => (
+        <div
+          key={folder.id}
+          className="animate-fade-in-up"
+          style={{ animationDelay: `${(index + (highlighted.length > 0 ? 2 : 1)) * 100}ms` }}
+        >
+          <BoardSection
+            name={folder.name}
+            items={folder.items}
+            isCollapsed={collapsed[folder.id] ?? false}
+            onToggleCollapse={() => toggleCollapse(folder.id)}
+            canManageBoard={canManageBoard}
+          />
         </div>
       ))}
     </div>

@@ -2,6 +2,47 @@
 
 The display board (*Tableau d'affichage*) is a digital notice board for sharing documents with congregation members. Think of it as the digital equivalent of the physical bulletin board in the Kingdom Hall.
 
+## Board View
+
+The main board page (`/board`) shows all visible documents organized by section. A page header displays the title and, for board validators, quick-access buttons to the section and document management pages.
+
+### Highlighted Section
+
+Documents marked as highlighted appear in a distinct **"À la une"** section at the top of the board. This section has a tinted primary background (`bg-primary/5`) with a megaphone icon and a count badge, making featured content immediately visible.
+
+### Collapsible Sections
+
+Each section can be **collapsed or expanded** by clicking its heading. Collapse state is persisted in the browser's localStorage, so sections stay collapsed across page reloads. Each section heading shows:
+
+- **Document count** — An outline badge with the total number of documents
+- **Unread count** — A blue info badge showing how many new/unread documents are in the section (only visible when > 0)
+
+### Status Badges
+
+Document cards display a **status badge** on the thumbnail area to communicate freshness. Only one badge is shown at a time, with this priority:
+
+| Priority | Badge | Style | Condition |
+|----------|-------|-------|-----------|
+| 1 | "Mis à jour" | Blue (info) | PDF has been replaced (version > 0) and user already viewed a previous version |
+| 2 | "Nouveau" | Solid teal (primary) | Document was created within the last 48 hours and user has not viewed it |
+| 3 | "Non lu" | Outlined teal (primary border on secondary bg) | Document has not been viewed by the user |
+
+### Document Cards
+
+Each document appears as a card with:
+
+- **Thumbnail** — PDF preview image (generated via background job) or a colored icon for dynamic documents
+- **Title** — Semibold for unread documents, medium weight for read ones
+- **Relative date** — "il y a 2 jours" for recent, absolute date for older documents
+- **Preview text** — Dynamic documents show a short summary (e.g., "5 groupes", "3 pionniers", "Prochain : 28 avr.")
+
+Dynamic document cards use **colored backgrounds per type**: blue for publisher groups, amber for pioneers, teal for programmes.
+
+### Empty States
+
+- **Regular users** see a generic message when no documents are visible
+- **Board validators** see a guided setup prompt with a CTA button to create the first section. Empty sections are also shown (with a placeholder message) so validators can see the board structure
+
 ## Sections
 
 Documents are organized into **sections** — named folders that group related documents together. For example, you might have sections for "Lettres de la filiale", "Programmes", or "Annonces".
@@ -47,7 +88,7 @@ Documents outside their visibility window are not shown on the board. This lets 
 
 ### Highlighting
 
-Important documents can be featured on the board using the *Mettre en avant le document sur le tableau d'affichage* option. Featured documents are pinned to the top, making them immediately visible to all members.
+Important documents can be featured on the board using the *Mettre en avant le document sur le tableau d'affichage* option. Featured documents appear in the "À la une" section at the top of the board with a distinct visual container.
 
 **Required role**: `BoardValidator` or `Admin`
 
@@ -74,7 +115,7 @@ Available types (appear only when the related feature has data):
 - **Pionniers** — List of publishers registered as regular pioneers, special pioneers, or missionaries
 - **Programmes** — One entry per programme template (e.g., "Réunion de semaine"). Shows all events from the start of the current month with their assigned parts, grouped by section. An optional "Afficher les services" toggle adds service role assignments.
 
-Dynamic documents support the same visibility, highlighting, ordering, and section placement controls as PDF documents. They appear alongside PDFs in the same sections on the board.
+Dynamic documents support the same visibility, highlighting, ordering, and section placement controls as PDF documents. They appear alongside PDFs in the same sections on the board. On the board view, each dynamic document card shows a **preview summary** (group count, pioneer count, or next event date) to provide context at a glance.
 
 ### Unread Detection
 
@@ -87,7 +128,7 @@ For PDFs, the unread badge disappears once a member opens the document. For dyna
 | Role | Can do |
 |------|--------|
 | `BoardUploader` | Upload documents to the board |
-| `BoardValidator` | Upload, edit, delete documents. Manage sections. Set visibility and highlighting |
+| `BoardValidator` | Upload, edit, delete documents. Manage sections. Set visibility and highlighting. Quick-access buttons on the board view |
 | `Admin` | Everything |
 | Any authenticated user | View the board, its visible documents, and dynamic documents |
 
@@ -96,4 +137,5 @@ See [Roles and Permissions](roles-and-permissions.md) for the full list of roles
 ## Related
 
 - [Feature Overview](feature-overview.md) — See all features at a glance
+- [Dashboard](dashboard.md) — The homepage that links to unread board documents
 - [Security](security.md) — How data isolation protects your documents
