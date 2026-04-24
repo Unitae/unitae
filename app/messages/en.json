@@ -185,6 +185,8 @@
     "user_profile_manage_consents_title": "Manage my consents",
     "user_profile_manage_consents_description": "View and withdraw your data processing consents.",
     "user_profile_manage_button": "Manage",
+    "user_profile_notifications_title": "Notification preferences",
+    "user_profile_notifications_description": "Choose which email notifications you want to receive.",
     "user_profile_erasure_right_title": "Right to erasure",
     "user_profile_erasure_right_description": "In accordance with Article 17 of the GDPR, you may request the erasure of your personal data. To exercise this right, contact your local congregation's administrator.",
     "user_profile_privacy_policy_link": "Privacy policy",

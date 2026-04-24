@@ -12,6 +12,7 @@ import {
   Map as MapIcon,
   MapPin,
   PieChart,
+  Bell,
   User,
   UserRoundCog,
   Users,
@@ -188,6 +189,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
           <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
           <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
+          <SidebarNavItem to="/me/notifications" icon={Bell} label={m.notification_preferences_page_title()} />
           <SidebarMenuItem>
             <div className="flex items-center justify-between">
               <Form action="/logout" method="post">
