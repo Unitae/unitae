@@ -19,11 +19,12 @@ See [Dashboard](dashboard.md) for details.
 
 The display board is a digital notice board where congregation administrators can share PDF documents and live data views with all members.
 
-- **Sections** — Organize documents into named sections with custom ordering
+- **Collapsible sections** — Organize documents into named sections with custom ordering; sections collapse/expand with persisted state
 - **Visibility scheduling** — Set *Visible à partir du* and *Visible jusqu'au* dates to control when documents appear
-- **Highlighting** — Pin important documents to the top of the board
+- **Highlighting** — Pin important documents to a distinct "À la une" section at the top of the board
+- **Status badges** — Nouveau, Non lu, and Mis à jour badges on document thumbnails to communicate freshness at a glance
 - **View tracking** — See which members have viewed each document
-- **Dynamic documents** — Live views of publisher groups, pioneer lists, and meeting programmes alongside uploaded PDFs
+- **Dynamic documents** — Live views of publisher groups, pioneer lists, and meeting programmes alongside uploaded PDFs, with preview summaries on cards
 - **In-app PDF viewer** — Embedded viewer with native rendering on desktop and PDF.js fallback on Android
 - **File replacement & versioning** — Replace a document's PDF while preserving previous versions
 - **Thumbnails** — Auto-generated first-page preview thumbnails for PDF documents
