@@ -69,11 +69,12 @@ export function DocumentCard({ file, alreadyViewed = false, variant = 'default' 
     <Link to={href} className="group block h-full shrink-0 snap-start">
       <div
         className={cn(
-          'relative flex h-full flex-col rounded-xl border bg-card shadow-sm transition-colors hover:border-primary',
-          !alreadyViewed && 'border-l-[3px] border-l-primary',
+          'relative flex h-full flex-col rounded-xl border bg-card transition-all',
+          alreadyViewed
+            ? 'border-border shadow-none hover:border-primary hover:shadow-sm'
+            : 'border-primary/30 shadow-md hover:border-primary hover:shadow-lg',
           isHighlighted && 'ring-1 ring-primary/20',
           'max-sm:w-full max-sm:flex-row max-sm:items-center',
-          alreadyViewed && 'border-border',
         )}
       >
         <div
@@ -83,12 +84,17 @@ export function DocumentCard({ file, alreadyViewed = false, variant = 'default' 
             file.kind === 'dynamic' ? getDynamicPreviewBg(file.dynamicType) : 'bg-muted',
           )}
         >
+          {!alreadyViewed && (
+            <div className="absolute top-2 right-2 z-10 size-2.5 rounded-full bg-primary ring-2 ring-white shadow-sm" />
+          )}
           <FreshnessBadge isNew={isNew} hasUpdate={hasUpdate} />
           <CardPreview file={file} />
         </div>
 
         <div className="flex flex-col gap-1 p-3 max-sm:min-w-0 max-sm:flex-1 max-sm:px-3 max-sm:py-2">
-          <span className="line-clamp-2 font-medium text-foreground text-sm">{file.title}</span>
+          <span className={cn('line-clamp-2 text-sm', alreadyViewed ? 'font-medium' : 'font-semibold')}>
+            {file.title}
+          </span>
           <span className="text-muted-foreground text-xs">
             <RelativeTime date={file.createdAt} />
           </span>
