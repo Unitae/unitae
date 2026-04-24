@@ -256,7 +256,7 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
               {highlighted.length}
             </Badge>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 snap-x max-sm:flex-col max-sm:overflow-x-visible">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3 max-sm:grid-cols-1">
             {highlighted.map(file => (
               <DocumentCard
                 key={`${file.kind}-${file.id}`}

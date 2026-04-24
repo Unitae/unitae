@@ -66,14 +66,13 @@ export function DocumentCard({ file, alreadyViewed = false, variant = 'default' 
   const isHighlighted = variant === 'highlighted'
 
   return (
-    <Link to={href} className="group shrink-0 snap-start">
+    <Link to={href} className="group block h-full shrink-0 snap-start">
       <div
         className={cn(
-          'relative rounded-xl border bg-card shadow-sm transition-colors hover:border-primary',
-          isHighlighted ? 'w-56' : 'w-52',
+          'relative flex h-full flex-col rounded-xl border bg-card shadow-sm transition-colors hover:border-primary',
           !alreadyViewed && 'border-l-[3px] border-l-primary',
           isHighlighted && 'ring-1 ring-primary/20',
-          'max-sm:flex max-sm:w-full max-sm:flex-row max-sm:items-center',
+          'max-sm:w-full max-sm:flex-row max-sm:items-center',
           alreadyViewed && 'border-border',
         )}
       >
