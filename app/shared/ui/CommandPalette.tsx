@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   MapPin,
   PieChart,
+  Bell,
   Search,
   User,
   UserRoundCog,
@@ -91,6 +92,7 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
 
   items.push({ id: 'profile', label: m.sidebar_my_profile(), icon: User, to: '/me/profile' })
   items.push({ id: 'my-absences', label: m.sidebar_my_absences(), icon: CalendarOff, to: '/me/days-off' })
+  items.push({ id: 'notifications', label: m.notification_preferences_page_title(), icon: Bell, to: '/me/notifications' })
 
   return items
 }

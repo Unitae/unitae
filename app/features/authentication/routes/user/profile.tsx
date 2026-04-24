@@ -102,6 +102,16 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
             </Button>
           </div>
 
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium text-sm">{m.user_profile_notifications_title()}</p>
+              <p className="text-muted-foreground text-xs">{m.user_profile_notifications_description()}</p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/me/notifications">{m.user_profile_manage_button()}</Link>
+            </Button>
+          </div>
+
           <div className="border-t pt-4">
             <p className="font-medium text-sm">{m.user_profile_erasure_right_title()}</p>
             <p className="mt-1 text-muted-foreground text-xs">{m.user_profile_erasure_right_description()}</p>

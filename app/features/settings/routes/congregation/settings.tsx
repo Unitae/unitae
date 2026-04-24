@@ -134,6 +134,30 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
 
         <SubmitButton>{m.common_save()}</SubmitButton>
       </Form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{m.data_transfer_title()}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
+            <span className="text-sm">{m.data_transfer_export_link()}</span>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="./export" className="flex items-center gap-2">
+                {m.data_transfer_export_link()} <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+          <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
+            <span className="text-sm">{m.data_transfer_import_link()}</span>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="./import" className="flex items-center gap-2">
+                {m.data_transfer_import_link()} <ArrowRight className="size-4" />
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

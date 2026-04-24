@@ -3,6 +3,7 @@ import '~/shared/utils/worker-locale.server'
 import http from 'node:http'
 import { Worker } from 'bullmq'
 import { handleThumbnailWork } from '~/features/display-board/server/handle-thumbnail-work.server'
+import { handleDataTransferWork } from '~/features/settings/server/handle-data-transfer-work.server'
 import { handleSyncWork } from '~/features/territories/server/handle-sync-work.server'
 import { handleEmailWork } from '~/shared/infra/handle-email-work.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -58,8 +59,15 @@ const thumbnailWorker = new Worker(QUEUE_NAMES.thumbnail, handleThumbnailWork, {
   removeOnFail: { count: 20 },
 })
 
-const workers = [syncWorker, emailWorker, thumbnailWorker]
-const workerNames = [QUEUE_NAMES.sync, QUEUE_NAMES.email, QUEUE_NAMES.thumbnail]
+const dataTransferWorker = new Worker(QUEUE_NAMES.dataTransfer, handleDataTransferWork, {
+  connection: redis,
+  concurrency: 1,
+  removeOnComplete: { count: 10 },
+  removeOnFail: { count: 10 },
+})
+
+const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker]
+const workerNames = [QUEUE_NAMES.sync, QUEUE_NAMES.email, QUEUE_NAMES.thumbnail, QUEUE_NAMES.dataTransfer]
 
 for (let i = 0; i < workers.length; i++) {
   setupWorkerEvents(workers[i], workerNames[i])
