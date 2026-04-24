@@ -56,24 +56,18 @@ function isNewDocument(createdAt: Date | string): boolean {
 interface DocumentCardProps {
   file: DocumentCardItem
   alreadyViewed?: boolean
-  variant?: 'default' | 'highlighted'
 }
 
-export function DocumentCard({ file, alreadyViewed = false, variant = 'default' }: DocumentCardProps) {
+export function DocumentCard({ file, alreadyViewed = false }: DocumentCardProps) {
   const href = file.kind === 'pdf' ? `./documents/${file.id}/viewer` : `./dynamic/${file.id}/viewer`
   const isNew = isNewDocument(file.createdAt)
   const hasUpdate = file.kind === 'pdf' && !!file.hasUpdate && alreadyViewed
-  const isHighlighted = variant === 'highlighted'
 
   return (
     <Link to={href} className="group block h-full shrink-0 snap-start">
       <div
         className={cn(
-          'relative flex h-full flex-col rounded-xl border bg-card transition-all',
-          alreadyViewed
-            ? 'border-border shadow-none hover:border-primary hover:shadow-sm'
-            : 'border-primary/30 shadow-md hover:border-primary hover:shadow-lg',
-          isHighlighted && 'ring-1 ring-primary/20',
+          'relative flex h-full flex-col rounded-xl border border-border bg-card shadow-sm transition-colors hover:border-primary',
           'max-sm:w-full max-sm:flex-row max-sm:items-center',
         )}
       >

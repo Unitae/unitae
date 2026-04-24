@@ -261,7 +261,6 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
               <DocumentCard
                 key={`${file.kind}-${file.id}`}
                 file={file}
-                variant="highlighted"
                 alreadyViewed={file.alreadyViewed}
               />
             ))}

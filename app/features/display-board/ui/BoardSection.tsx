@@ -43,7 +43,7 @@ export function BoardSection({ name, items, isCollapsed, onToggleCollapse, canMa
           isCollapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
         )}
       >
-        <div className="-mx-4 overflow-hidden px-4 pb-2">
+        <div className="-mx-2 overflow-hidden px-2 pb-1">
           {items.length > 0 ? (
             <div className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3 max-sm:grid-cols-1">
               {items.map(file => (
