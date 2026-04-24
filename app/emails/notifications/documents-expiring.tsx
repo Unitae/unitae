@@ -10,7 +10,7 @@ import {
   Section,
   Tailwind,
   Text,
-} from '@react-email/components'
+} from 'react-email'
 import * as m from '~/paraglide/messages'
 
 export default function DocumentsExpiring({
