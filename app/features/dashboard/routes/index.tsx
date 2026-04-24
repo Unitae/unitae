@@ -349,7 +349,7 @@ function TerritoriesCard({ territories }: { territories: Awaited<ReturnType<type
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto">
         <Button variant="link" asChild className="px-0">
           <Link to="/me/territories">{m.dashboard_view_all()}</Link>
         </Button>
@@ -467,7 +467,7 @@ function DocumentsCard({ documents }: { documents: Awaited<ReturnType<typeof get
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="mt-auto">
         <Button variant="link" asChild className="px-0">
           <Link to="/board">{m.dashboard_view_all()}</Link>
         </Button>
@@ -534,11 +534,13 @@ function AbsencesCard({
           </>
         )}
       </CardContent>
-      <CardFooter>
-        <Button variant="link" asChild className="px-0">
-          <Link to="/me/days-off">{m.dashboard_view_all()}</Link>
-        </Button>
-      </CardFooter>
+      {absences != null && absences.length > 0 && (
+        <CardFooter className="mt-auto">
+          <Button variant="link" asChild className="px-0">
+            <Link to="/me/days-off">{m.dashboard_view_all()}</Link>
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   )
 }
