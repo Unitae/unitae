@@ -280,7 +280,9 @@ afterAll(async () => {
 
 // --- Export helper (inlined to avoid importing modules with redis/bullmq side effects) ---
 
-async function exportToZip(congregationId: number): Promise<{ zip: JsZip; buffer: Buffer; entityCounts: Record<string, number> }> {
+async function exportToZip(
+  congregationId: number,
+): Promise<{ zip: JsZip; buffer: Buffer; entityCounts: Record<string, number> }> {
   // Dynamically import to isolate side effects
   const { buildExportSteps } = await import('./export-congregation.server')
 

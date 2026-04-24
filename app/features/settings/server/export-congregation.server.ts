@@ -220,6 +220,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             phones: true,
             liberals: true,
             access: true,
+            // biome-ignore lint/style/useNamingConvention: Prisma field name
             isPMR: true,
             isOpenEarly: true,
             isMailboxOpen: true,

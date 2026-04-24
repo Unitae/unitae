@@ -656,6 +656,7 @@ export async function importBuildingEntrances(
     phones: number | null
     liberals: number | null
     access: number | null
+    // biome-ignore lint/style/useNamingConvention: Prisma field name
     isPMR: boolean | null
     isOpenEarly: boolean | null
     isMailboxOpen: boolean | null
@@ -671,6 +672,7 @@ export async function importBuildingEntrances(
         phones: record.phones,
         liberals: record.liberals,
         access: record.access,
+        // biome-ignore lint/style/useNamingConvention: Prisma field name
         isPMR: record.isPMR,
         isOpenEarly: record.isOpenEarly,
         isMailboxOpen: record.isMailboxOpen,
@@ -738,7 +740,11 @@ export async function importBuildingResidentialData(
   }
 }
 
-export async function importTerritoryEntranceLinks(zip: JsZip, db: TransactionClient, idMap: EntityIdMap): Promise<void> {
+export async function importTerritoryEntranceLinks(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+): Promise<void> {
   const records = await readNdjsonFile<{ territoryId: number; entranceId: number }>(zip, 'territory-entrance-links')
   for (const record of records) {
     const territoryId = idMap.getOptional('territories', record.territoryId)
@@ -752,7 +758,11 @@ export async function importTerritoryEntranceLinks(zip: JsZip, db: TransactionCl
   }
 }
 
-export async function importBuildingEntranceLinks(zip: JsZip, db: TransactionClient, idMap: EntityIdMap): Promise<void> {
+export async function importBuildingEntranceLinks(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+): Promise<void> {
   const records = await readNdjsonFile<{ buildingId: number; entranceId: number }>(zip, 'building-entrance-links')
   for (const record of records) {
     const buildingId = idMap.getOptional('buildings', record.buildingId)
@@ -1305,7 +1315,11 @@ export async function importAuditLogs(
   }
 }
 
-export async function importDataDeletionRecords(zip: JsZip, db: TransactionClient, congregationId: number): Promise<void> {
+export async function importDataDeletionRecords(
+  zip: JsZip,
+  db: TransactionClient,
+  congregationId: number,
+): Promise<void> {
   const records = await readNdjsonFile<{
     id: number
     entityType: string
