@@ -209,31 +209,34 @@ describe('markDynamicDocumentViewed (integration)', () => {
     const settings = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentSettings.findFirst({ where: { congregationId } }),
     )
+    expect(settings).not.toBeNull()
+    const settingsId = settings?.id ?? 0
 
     // First view
     await withScope(congregationId, tx =>
-      markDynamicDocumentViewed(tx, settings!.id, aliceId),
+      markDynamicDocumentViewed(tx, settingsId, aliceId),
     )
 
     const view = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
-        where: { settingsId: settings!.id, userId: aliceId },
+        where: { settingsId, userId: aliceId },
       }),
     )
     expect(view).not.toBeNull()
-    const firstViewedAt = view!.viewedAt
+    const firstViewedAt = view?.viewedAt ?? new Date(0)
 
     // Second view (upsert should update timestamp)
     await new Promise(r => setTimeout(r, 50))
     await withScope(congregationId, tx =>
-      markDynamicDocumentViewed(tx, settings!.id, aliceId),
+      markDynamicDocumentViewed(tx, settingsId, aliceId),
     )
 
     const updatedView = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
-        where: { settingsId: settings!.id, userId: aliceId },
+        where: { settingsId, userId: aliceId },
       }),
     )
-    expect(updatedView!.viewedAt.getTime()).toBeGreaterThanOrEqual(firstViewedAt.getTime())
+    expect(updatedView).not.toBeNull()
+    expect(updatedView?.viewedAt.getTime()).toBeGreaterThanOrEqual(firstViewedAt.getTime())
   })
 })

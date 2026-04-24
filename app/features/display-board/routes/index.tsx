@@ -51,7 +51,6 @@ export function loader({ context }: Route.LoaderArgs) {
             viewedBy: {
               where: { id: { equals: currentUser.id } },
             },
-            // biome-ignore lint/style/useNamingConvention: prisma ORM
             _count: { select: { versions: true } },
           },
         },
@@ -83,7 +82,6 @@ export function loader({ context }: Route.LoaderArgs) {
         viewedBy: {
           where: { id: { equals: currentUser.id } },
         },
-        // biome-ignore lint/style/useNamingConvention: prisma ORM
         _count: { select: { versions: true } },
       },
     })
