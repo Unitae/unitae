@@ -77,6 +77,12 @@ export default [
       route('territories', 'features/settings/routes/territories/settings.tsx'),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
+      route('congregation/export', 'features/settings/routes/congregation/export.tsx'),
+      route('congregation/export/:jobId/status', 'features/settings/routes/congregation/export-status.tsx'),
+      route('congregation/export/:jobId/download', 'features/settings/routes/congregation/export-download.tsx'),
+      route('congregation/import', 'features/settings/routes/congregation/import.tsx'),
+      route('congregation/import/confirm', 'features/settings/routes/congregation/import-confirm.tsx'),
+      route('congregation/import/:jobId/status', 'features/settings/routes/congregation/import-status.tsx'),
       ...prefix('congregation/templates', [
         index('features/settings/routes/congregation/template-list.tsx'),
         route('new', 'features/settings/routes/congregation/templates/new.tsx'),

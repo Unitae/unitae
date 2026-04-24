@@ -41,6 +41,12 @@ export const AuditAction = {
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   BoardReadStatusViewed: 'board.read_status.viewed',
 
+  // Data transfer
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  CongregationExported: 'congregation.exported',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  CongregationImported: 'congregation.imported',
+
   // Platform admin
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   PlatformCongregationUpdated: 'platform.congregation.updated',
