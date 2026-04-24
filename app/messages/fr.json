@@ -1679,6 +1679,8 @@
     "dashboard_urgent_territory_overdue": "Territoire {number} — en retard",
     "dashboard_urgent_territory_due_soon": "Territoire {number} — échéance proche",
     "dashboard_urgent_assignment_soon": "{name} — {eventName}",
+    "dashboard_urgent_service_role_soon": "{name} — {eventName}",
+    "dashboard_urgent_dayoff_conflict": "Absence en conflit avec {eventName}",
     "dashboard_urgent_unread_documents": "{count} documents non lus",
     "dashboard_quick_action_plan_absence": "Saisir une absence",
     "dashboard_quick_action_assign_territory": "Attribuer un territoire",

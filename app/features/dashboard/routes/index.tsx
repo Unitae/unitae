@@ -123,7 +123,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   })
 
   // Build urgent items from across features
-  const urgentItems = buildUrgentItems(territories, unreadDocumentCount, nextMeeting)
+  const urgentItems = buildUrgentItems(territories, unreadDocumentCount, nextMeeting, absences?.upcoming ?? null)
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8">
@@ -229,7 +229,7 @@ function urgentTerritoriesItems(territories: Awaited<ReturnType<typeof getUserTe
         borderClass: 'border-l-destructive bg-destructive/5',
         iconClass: 'text-destructive',
         relativeDate: t.lateDate,
-        priority: 0,
+        priority: 1,
       }
     }
     if (t.status === 'due-soon') {
@@ -241,30 +241,83 @@ function urgentTerritoriesItems(territories: Awaited<ReturnType<typeof getUserTe
         borderClass: 'border-l-amber-500 bg-amber-500/5',
         iconClass: 'text-amber-600 dark:text-amber-400',
         relativeDate: t.lateDate,
-        priority: 1,
+        priority: 4,
       }
     }
     return []
   })
 }
 
-function urgentAssignmentItem(nextMeeting: Awaited<ReturnType<typeof getNextMeeting>> | null): UrgentItem[] {
+type NextMeeting = Awaited<ReturnType<typeof getNextMeeting>>
+
+function urgentPartAssignmentItems(nextMeeting: NextMeeting): UrgentItem[] {
   if (!nextMeeting || nextMeeting.userPartIds.length === 0) return []
   const threeDaysMs = 3 * 24 * 60 * 60 * 1000
-  const meetingTime = new Date(nextMeeting.startDate).getTime()
-  if (meetingTime - Date.now() > threeDaysMs) return []
+  if (new Date(nextMeeting.startDate).getTime() - Date.now() > threeDaysMs) return []
 
   const userPart = nextMeeting.partAssignments.find(p => nextMeeting.userPartIds.includes(p.id))
   if (!userPart) return []
 
   return [
     {
-      key: `assignment-${userPart.id}`,
+      key: `part-${userPart.id}`,
       label: m.dashboard_urgent_assignment_soon({ name: userPart.name, eventName: nextMeeting.name }),
-      to: `/events/${nextMeeting.id}`,
+      to: '/board',
       icon: Mic,
       borderClass: 'border-l-primary bg-primary/5',
       iconClass: 'text-primary',
+      relativeDate: nextMeeting.startDate,
+      priority: 0,
+    },
+  ]
+}
+
+function urgentServiceRoleItems(nextMeeting: NextMeeting): UrgentItem[] {
+  if (!nextMeeting || nextMeeting.userServiceRoleIds.length === 0) return []
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000
+  if (new Date(nextMeeting.startDate).getTime() - Date.now() > threeDaysMs) return []
+
+  const userRole = nextMeeting.serviceRoleAssignments.find(r => nextMeeting.userServiceRoleIds.includes(r.id))
+  if (!userRole) return []
+
+  return [
+    {
+      key: `service-role-${userRole.id}`,
+      label: m.dashboard_urgent_service_role_soon({ name: userRole.name, eventName: nextMeeting.name }),
+      to: '/board',
+      icon: Mic,
+      borderClass: 'border-l-primary bg-primary/5',
+      iconClass: 'text-primary',
+      relativeDate: nextMeeting.startDate,
+      priority: 3,
+    },
+  ]
+}
+
+type UpcomingAbsences = Awaited<ReturnType<typeof getUpcomingAbsences>>['upcoming'] | null
+
+function urgentDayoffConflictItems(nextMeeting: NextMeeting, absences: UpcomingAbsences): UrgentItem[] {
+  if (!nextMeeting || !absences || absences.length === 0) return []
+  const hasUserAssignment = nextMeeting.userPartIds.length > 0 || nextMeeting.userServiceRoleIds.length > 0
+  if (!hasUserAssignment) return []
+
+  const meetingStart = new Date(nextMeeting.startDate).getTime()
+  const meetingEnd = new Date(nextMeeting.endDate).getTime()
+  const conflicting = absences.find(a => {
+    const absStart = new Date(a.startDate).getTime()
+    const absEnd = new Date(a.endDate).getTime()
+    return absStart <= meetingEnd && absEnd >= meetingStart
+  })
+  if (!conflicting) return []
+
+  return [
+    {
+      key: `dayoff-conflict-${conflicting.id}`,
+      label: m.dashboard_urgent_dayoff_conflict({ eventName: nextMeeting.name }),
+      to: '/me/days-off',
+      icon: CalendarOff,
+      borderClass: 'border-l-amber-500 bg-amber-500/5',
+      iconClass: 'text-amber-600 dark:text-amber-400',
       relativeDate: nextMeeting.startDate,
       priority: 2,
     },
@@ -282,7 +335,7 @@ function urgentDocumentsItem(unreadCount: number | null): UrgentItem[] {
       icon: FileText,
       borderClass: 'border-l-primary bg-primary/5',
       iconClass: 'text-primary',
-      priority: 3,
+      priority: 5,
     },
   ]
 }
@@ -290,11 +343,14 @@ function urgentDocumentsItem(unreadCount: number | null): UrgentItem[] {
 function buildUrgentItems(
   territories: Awaited<ReturnType<typeof getUserTerritories>> | null,
   unreadDocumentCount: number | null,
-  nextMeeting: Awaited<ReturnType<typeof getNextMeeting>> | null,
+  nextMeeting: NextMeeting,
+  absences: UpcomingAbsences,
 ): UrgentItem[] {
   const items = [
     ...urgentTerritoriesItems(territories),
-    ...urgentAssignmentItem(nextMeeting),
+    ...urgentPartAssignmentItems(nextMeeting),
+    ...urgentServiceRoleItems(nextMeeting),
+    ...urgentDayoffConflictItems(nextMeeting, absences),
     ...urgentDocumentsItem(unreadDocumentCount),
   ]
   items.sort((a, b) => a.priority - b.priority)

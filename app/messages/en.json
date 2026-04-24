@@ -1679,6 +1679,8 @@
     "dashboard_urgent_territory_overdue": "Territory {number} — overdue",
     "dashboard_urgent_territory_due_soon": "Territory {number} — due soon",
     "dashboard_urgent_assignment_soon": "{name} — {eventName}",
+    "dashboard_urgent_service_role_soon": "{name} — {eventName}",
+    "dashboard_urgent_dayoff_conflict": "Absence conflicts with {eventName}",
     "dashboard_urgent_unread_documents": "{count} unread documents",
     "dashboard_quick_action_plan_absence": "Plan an absence",
     "dashboard_quick_action_assign_territory": "Assign territory",
