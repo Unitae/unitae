@@ -2,13 +2,14 @@
 
 ## Dashboard
 
-The dashboard is the personal homepage every member sees after logging in. It brings together the most important information at a glance.
+The dashboard is the personal homepage every member sees after logging in. It is organized around intent: *who am I*, *what needs my attention*, and *what's the general state of things*.
 
-- **Greeting** — Personalized welcome with the member's name and current date
+- **Hero greeting** — Large personalized welcome with the member's name and current date, plus quick action buttons (plan absence, assign territory for managers)
+- **Urgent strip** — Conditional section surfacing up to 3 time-sensitive items: imminent assignments, overdue/due-soon territories, day-off conflicts, and unread documents — sorted by priority, hidden when nothing is urgent
 - **Mes territoires** — Currently assigned territories with color-coded due-date status (on time, due soon, overdue). Clickable — links to personal territory view
-- **Prochaines interventions** — Upcoming programme assignments (speaking parts, reading, service roles). Clickable — links to event detail
+- **Prochaine réunion** — Next scheduled meeting with the member's highlighted programme parts and service roles
 - **Derniers documents** — Most recent display board documents with unread indicators
-- **Mes absences** — Upcoming days off with a nudge when nothing is planned, and a quick action to plan an absence
+- **Mes absences** — Upcoming days off with a nudge when nothing is planned, a quick `+` button, and clickable rows
 - **Admin onboarding checklist** — Getting started card for administrators with setup progress tracking
 - **Error resilience** — Each widget loads independently; a failure in one does not affect the others
 
