@@ -4,7 +4,7 @@ import { Link } from 'react-router'
 import * as m from '~/paraglide/messages'
 import { usePersistedState } from '~/shared/hooks/use-persisted-state'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 interface OnboardingChecklistProps {
   publisherCount: number
@@ -43,15 +43,17 @@ export function OnboardingChecklist({ publisherCount, territoryCount, documentCo
 
   return (
     <Card className="animate-fade-in-up border-primary/20 bg-primary/5">
-      <CardHeader className="flex-row items-start justify-between gap-2">
+      <CardHeader>
         <div>
           <CardTitle className="text-base">{m.onboarding_title()}</CardTitle>
           <p className="mt-0.5 text-muted-foreground text-sm">{m.onboarding_description()}</p>
         </div>
-        <Button variant="ghost" size="icon-xs" onClick={() => setDismissed(true)} className="shrink-0">
-          <X className="size-3.5" />
-          <span className="sr-only">{m.onboarding_dismiss()}</span>
-        </Button>
+        <CardAction>
+          <Button variant="ghost" size="icon-xs" onClick={() => setDismissed(true)}>
+            <X className="size-3.5" />
+            <span className="sr-only">{m.onboarding_dismiss()}</span>
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-2">
