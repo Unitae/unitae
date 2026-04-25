@@ -256,11 +256,7 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
           </div>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(14rem,1fr))] gap-3 max-sm:grid-cols-1">
             {highlighted.map(file => (
-              <DocumentCard
-                key={`${file.kind}-${file.id}`}
-                file={file}
-                alreadyViewed={file.alreadyViewed}
-              />
+              <DocumentCard key={`${file.kind}-${file.id}`} file={file} alreadyViewed={file.alreadyViewed} />
             ))}
           </div>
         </section>

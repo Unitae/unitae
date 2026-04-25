@@ -1,7 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { data, Form, redirect } from 'react-router'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createBoardDocument } from '~/features/display-board/server/board-document.server'
@@ -22,6 +21,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'

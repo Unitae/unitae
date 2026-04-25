@@ -358,7 +358,7 @@ describe('Export/Import round-trip', () => {
 
     const manifestFile = zip.file('manifest.json')
     expect(manifestFile).not.toBeNull()
-    const manifest: ManifestJson = JSON.parse(await manifestFile!.async('string'))
+    const manifest: ManifestJson = JSON.parse(await manifestFile?.async('string'))
     expect(manifest.version).toBe('1.0')
     expect(manifest.sourceApp).toBe('unitae')
 
@@ -380,7 +380,7 @@ describe('Export/Import round-trip', () => {
 
   it('exported users do not contain passwords or sensitive fields', async () => {
     const { zip } = await exportToZip(sourceId)
-    const content = await zip.file('data/users.ndjson')!.async('string')
+    const content = await zip.file('data/users.ndjson')?.async('string')
     const users = content
       .split('\n')
       .filter(l => l.trim())
@@ -395,7 +395,7 @@ describe('Export/Import round-trip', () => {
 
   it('exported roles use key instead of numeric roleId', async () => {
     const { zip } = await exportToZip(sourceId)
-    const content = await zip.file('data/congregation-user-roles.ndjson')!.async('string')
+    const content = await zip.file('data/congregation-user-roles.ndjson')?.async('string')
     const roles = content
       .split('\n')
       .filter(l => l.trim())

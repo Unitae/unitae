@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 let capturedBlockerFn: (args: { currentLocation: { pathname: string }; nextLocation: { pathname: string } }) => boolean
-let capturedEffects: Array<() => void | (() => void)>
-let capturedDeps: Array<unknown[]>
+let capturedEffects: Array<() => undefined | (() => void)>
+let capturedDeps: unknown[][]
 let setIsDirty: ReturnType<typeof vi.fn>
 let navigationState: { state: string }
 
@@ -17,7 +17,7 @@ vi.mock('react', () => {
       stateValue = initial
       return [stateValue, mockSetState]
     }),
-    useEffect: vi.fn((effect: () => void | (() => void), deps: unknown[]) => {
+    useEffect: vi.fn((effect: () => undefined | (() => void), deps: unknown[]) => {
       capturedEffects.push(effect)
       capturedDeps.push(deps)
     }),
@@ -45,10 +45,11 @@ function simulateHook(dirty: boolean, navState = 'idle') {
   capturedDeps = []
   navigationState = { state: navState }
 
-  setIsDirty = vi.fn((val: boolean | ((prev: boolean) => boolean)) => {})
+  setIsDirty = vi.fn((_val: boolean | ((prev: boolean) => boolean)) => {})
 
   vi.mocked(useState).mockReturnValue([dirty, setIsDirty] as never)
 
+  // biome-ignore lint/correctness/useHookAtTopLevel: test helper — all React hooks are mocked
   return useUnsavedChanges()
 }
 

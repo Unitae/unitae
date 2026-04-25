@@ -101,12 +101,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent className="pt-6">
-          <Form
-            method="post"
-            className="flex flex-col gap-4"
-            encType="multipart/form-data"
-            onChange={markDirty}
-          >
+          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>
               <Input

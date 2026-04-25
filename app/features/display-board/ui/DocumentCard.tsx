@@ -102,7 +102,11 @@ function StatusBadge({
   isNew,
   hasUpdate,
   alreadyViewed,
-}: { isNew: boolean; hasUpdate: boolean; alreadyViewed: boolean }) {
+}: {
+  isNew: boolean
+  hasUpdate: boolean
+  alreadyViewed: boolean
+}) {
   let label: string | null = null
   let badgeClass = ''
 

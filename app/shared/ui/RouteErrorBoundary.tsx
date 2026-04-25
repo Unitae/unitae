@@ -44,7 +44,7 @@ export function RouteErrorBoundary() {
               <Icon className="size-6 text-muted-foreground" />
             </div>
             <div className="flex items-baseline gap-2">
-              <span className="font-display text-4xl font-bold text-muted-foreground/50">{error.status}</span>
+              <span className="font-bold font-display text-4xl text-muted-foreground/50">{error.status}</span>
             </div>
             <CardTitle>{title}</CardTitle>
           </CardHeader>

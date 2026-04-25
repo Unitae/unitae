@@ -126,9 +126,7 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-const { getDynamicPreview, getContentVersion, markDynamicDocumentViewed } = await import(
-  './dynamic-documents.server'
-)
+const { getDynamicPreview, getContentVersion, markDynamicDocumentViewed } = await import('./dynamic-documents.server')
 
 // --- getDynamicPreview ---
 
@@ -142,9 +140,7 @@ describe('getDynamicPreview (integration)', () => {
   })
 
   it('returns pioneer count for pioneers', async () => {
-    const result = await withScope(congregationId, tx =>
-      getDynamicPreview(tx, 'pioneers', null, congregationId),
-    )
+    const result = await withScope(congregationId, tx => getDynamicPreview(tx, 'pioneers', null, congregationId))
 
     expect(result).toBe('1 pionniers')
   })
@@ -178,9 +174,7 @@ describe('getContentVersion (integration)', () => {
   })
 
   it('returns a date for pioneers when pioneers exist', async () => {
-    const result = await withScope(congregationId, tx =>
-      getContentVersion(tx, 'pioneers', null, congregationId),
-    )
+    const result = await withScope(congregationId, tx => getContentVersion(tx, 'pioneers', null, congregationId))
 
     expect(result).toBeInstanceOf(Date)
   })
@@ -194,9 +188,7 @@ describe('getContentVersion (integration)', () => {
   })
 
   it('returns null for unknown type', async () => {
-    const result = await withScope(congregationId, tx =>
-      getContentVersion(tx, 'unknown', null, congregationId),
-    )
+    const result = await withScope(congregationId, tx => getContentVersion(tx, 'unknown', null, congregationId))
 
     expect(result).toBeNull()
   })
@@ -213,9 +205,7 @@ describe('markDynamicDocumentViewed (integration)', () => {
     const settingsId = settings?.id ?? 0
 
     // First view
-    await withScope(congregationId, tx =>
-      markDynamicDocumentViewed(tx, settingsId, aliceId),
-    )
+    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceId))
 
     const view = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
@@ -227,9 +217,7 @@ describe('markDynamicDocumentViewed (integration)', () => {
 
     // Second view (upsert should update timestamp)
     await new Promise(r => setTimeout(r, 50))
-    await withScope(congregationId, tx =>
-      markDynamicDocumentViewed(tx, settingsId, aliceId),
-    )
+    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceId))
 
     const updatedView = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
