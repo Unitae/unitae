@@ -293,6 +293,7 @@ Uses Biome for formatting with these key rules:
 - **E2E tests**: Playwright tests in `tests/e2e/*.spec.ts`, run via `pnpm test:e2e`
 - **Boundary checks**: `eslint-plugin-boundaries` enforces cross-feature import rules via `pnpm test:boundaries`
 - **Test style**: Black-box testing — assert on observable outcomes, no spy assertions
+- **Testing client hooks**: Vitest runs in `environment: 'node'` (no DOM). Mock `react` and `react-router` entirely. Shim `globalThis.window` for browser APIs (`addEventListener`). Suppress `biome-ignore lint/correctness/useHookAtTopLevel` in test helpers that call hooks.
 - **Config**: `vitest.config.ts` at project root (separate from `vite.config.ts` to avoid reactRouter plugin issues); `app/tests/vitest.config.integration.ts` for integration tests; `app/tests/playwright.config.ts` for E2E tests
 - **Mocking**: `vi.mock()` for `db.server`, `redis.server`, `crypto.server` — mock return values, assert on results
 - TypeScript strict mode enabled
@@ -321,6 +322,7 @@ Uses Biome for formatting with these key rules:
 - **Zod version**: Must use Zod v3 (`zod@^3.25`), not v4 — `@conform-to/zod` v1.x imports `ZodEffects`/`ZodBranded` which were removed in Zod v4. Import as `from 'zod'` (not `from 'zod/v4'`)
 - **Middleware context types**: The `context.set()` in middleware requires `RouterContext` type constraint: `context: { set<C extends RouterContext>(context: C, value: ...): void }`. Don't use plain object types.
 - **File upload + Zod**: Routes with file uploads (e.g., `documents/new.tsx`) use `parseFormData` from `@mjackson/form-data-parser` first, then `parseWithZod` on the resulting FormData for text fields. Don't try to validate files through Zod.
+- **`useBlocker` timing**: `useBlocker` fires synchronously *before* `navigation.state` updates — checking `useNavigation().state` in a boolean passed to `useBlocker` cannot detect in-flight form submissions. Use a `BlockerFunction` with pathname comparison instead.
 - **Batch import path updates**: Use `find app workers -name '*.ts' -o -name '*.tsx' | xargs perl -pi -e 's|old-path|new-path|g'` — also update `vi.mock()` strings and dynamic `import()` calls in test files
 - **Multi-queue worker**: `app/workers/worker.server.ts` runs 3 queues (sync concurrency 1, email concurrency 5, thumbnail concurrency 2). Queue names in `app/shared/infra/queues.server.ts`. Worker locale via `app/shared/utils/worker-locale.server.ts` + `runWithLocale()`.
 - **Two Redis clients**: `redis` (60s timeout, for BullMQ) and `redisRateLimit` (2s timeout, for auth rate limiting) in `app/shared/infra/redis.server.ts`
