@@ -3,6 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
@@ -27,6 +28,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/new'
@@ -83,6 +85,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 export default function NewTerritoryPage({ loaderData, actionData }: Route.ComponentProps) {
   const { entrances, zips, streets, phoneTypeActive, apiKey } = loaderData
   const [territoryEntrances, setTerritoryEntrances] = useState<typeof entrances>([])
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -93,6 +96,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.territories_new_title()}
         subtitle={m.territories_new_subtitle()}
@@ -102,7 +106,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
       <div className="flex gap-10 max-sm:flex-col">
         <Card className="flex-1">
           <CardContent className="pt-6">
-            <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+            <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>
                 <Input

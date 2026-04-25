@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { data, Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createBoardDocument } from '~/features/display-board/server/board-document.server'
@@ -28,6 +29,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
 
@@ -62,12 +64,14 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
   const { sections, rights } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
   const currentDate = new Date()
   currentDate.setMinutes(currentDate.getMinutes() - currentDate.getTimezoneOffset())
   const formattedDate = currentDate.toISOString().slice(0, 16)
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_documents_new_title()}
         subtitle={m.board_documents_new_subtitle()}
@@ -80,7 +84,7 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data">
+          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.board_documents_new_name_label()}</Label>
               <Input

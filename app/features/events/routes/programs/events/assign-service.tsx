@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
@@ -14,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -95,9 +97,11 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
   const { event, assignment, users } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_assign_service_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
@@ -114,7 +118,7 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
             <CardTitle className="text-base">{assignment?.name ?? m.programs_assign_service_default()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form method="post" className="flex flex-col gap-4">
+            <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
               <div className="flex flex-col gap-2">

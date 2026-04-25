@@ -1,6 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { createAttributionSchema } from '~/features/territories/schemas/attribution.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
@@ -22,6 +23,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
 
@@ -77,6 +79,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function CreateAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, territory, phoneTypeActive, territoryEntrances } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -87,6 +90,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.attributions_new_title()}
         subtitle={m.attributions_new_subtitle()}
@@ -98,7 +102,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
       />
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-1.5">
               <Label>{m.attributions_new_territory_label()}</Label>
               <input type="hidden" name={fields.territory.name} value={territory.id} />

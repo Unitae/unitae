@@ -1,5 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createPublisherSchema } from '~/features/publishers/schemas/publisher.schema'
 import { createPublisher } from '~/features/publishers/server/create-publisher.server'
@@ -16,6 +17,7 @@ import {
 import { Role } from '~/shared/types/role'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new-publisher'
 
@@ -41,9 +43,11 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function NewPublisher({ loaderData }: Route.ComponentProps) {
   const { groups, hideAuxiliaryPioneer } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.publishers_new_title()}
         subtitle={m.publishers_new_subtitle()}
@@ -51,7 +55,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
         backTo="/publishers"
       />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm />
         <PublisherNominationForm />
         <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />

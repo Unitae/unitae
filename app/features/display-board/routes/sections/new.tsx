@@ -1,6 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { createBoardSection } from '~/features/display-board/server/board-section.server'
@@ -13,6 +14,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
 
@@ -30,6 +32,7 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function NewSectionPage({ actionData }: Route.ComponentProps) {
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -40,6 +43,7 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_sections_new_title()}
         subtitle={m.board_sections_new_subtitle()}
@@ -49,7 +53,7 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.name.id}>{m.board_sections_new_name_label()}</Label>
               <Input

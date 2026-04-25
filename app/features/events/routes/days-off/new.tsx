@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/paraglide/messages'
@@ -10,6 +11,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -29,12 +31,14 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function DaysOffPage() {
   const [startDate, setStartDate] = useState('')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const minimumEndDate = new Date(startDate.length > 0 ? startDate : new Date().toISOString().split('T')[0])
   minimumEndDate.setDate(minimumEndDate.getDate() + 1)
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.days_off_new_page_title()}
         subtitle={m.days_off_new_page_subtitle()}
@@ -44,7 +48,7 @@ export default function DaysOffPage() {
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="start_date">{m.days_off_new_start_date()}</Label>
               <Input

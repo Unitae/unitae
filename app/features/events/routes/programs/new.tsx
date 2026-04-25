@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { dayLabel } from '~/features/events/model/day-label'
 import {
@@ -23,6 +24,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 import type { Route } from './+types/new'
@@ -118,6 +120,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function NewEventPage({ loaderData }: Route.ComponentProps) {
   const { templates } = loaderData
   const [selectedValue, setSelectedValue] = useState<string>('')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const isNoTemplate = selectedValue === NO_TEMPLATE
   const selectedTemplate = !isNoTemplate ? templates.find(t => t.id === Number(selectedValue)) : null
@@ -126,6 +129,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_new_page_title()}
         subtitle={m.programs_new_page_subtitle()}
@@ -138,7 +142,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.programs_new_config_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
               {templates.length === 0 && (

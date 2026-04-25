@@ -1,6 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createGroupSchema } from '~/features/publishers/schemas/group.schema'
@@ -14,6 +15,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new-group'
 
@@ -51,6 +53,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function NewGroup({ loaderData, actionData }: Route.ComponentProps) {
   const { brothers } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -61,6 +64,7 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.groups_new_title()}
         subtitle={m.groups_new_subtitle()}
@@ -73,7 +77,7 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
           <CardTitle>{m.groups_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor={fields.name.id}>{m.groups_form_name()}</Label>

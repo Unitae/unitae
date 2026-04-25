@@ -1,6 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
@@ -15,6 +16,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -97,12 +99,14 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? 'none')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const activeSelection =
     selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_assign_part_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
@@ -116,7 +120,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
             <CardTitle className="text-base">{assignment?.name ?? m.programs_assign_part_default()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form method="post" className="flex flex-col gap-4">
+            <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
               <div className="flex flex-col gap-2">
