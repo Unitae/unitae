@@ -136,6 +136,7 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://unitae:unitae@localhost:5432/unitae_test
+      DATABASE_APP_URL: postgresql://unitae_app:unitae_app@localhost:5432/unitae_test
       SESSION_SECRET: ci-test-secret-at-least-32-characters-long
       RESEND_API_KEY: re_test
       REDIS_HOST: localhost
@@ -161,6 +162,11 @@ jobs:
 
       - name: Generate Prisma client and Paraglide messages
         run: pnpm prisma generate && pnpm react-router typegen
+
+      - name: Create non-superuser app role for RLS
+        run: |
+          psql "$DATABASE_URL" -c "CREATE ROLE unitae_app LOGIN PASSWORD 'unitae_app' NOSUPERUSER;"
+          psql "$DATABASE_URL" -c "GRANT unitae_app TO unitae;"
 
       - name: Apply database migrations
         run: pnpm prisma migrate deploy

@@ -38,8 +38,9 @@ Set up a development environment and understand the codebase.
 1. [Development Setup](development/getting-started.md) — Clone, install, and run locally
 2. [Coding Conventions](development/coding-conventions.md) — Patterns, philosophy, and rules
 3. [Architecture](development/architecture.md) — System design, request flow, and data isolation
-4. [Background Processing](development/background-processing.md) — BullMQ worker architecture
-5. [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
+4. [Row-Level Security](development/row-level-security.md) — How RLS enforces tenant isolation
+5. [Background Processing](development/background-processing.md) — BullMQ worker architecture
+6. [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
 
 ### Reference
 

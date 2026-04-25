@@ -48,6 +48,7 @@ docker compose -f docker/docker-compose.dev.yml up -d  # Start PostgreSQL + Redi
 ```
 ```ini
 DATABASE_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
+DATABASE_APP_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"  # Optional — non-superuser for RLS enforcement
 RESEND_API_KEY="re_123"
 SESSION_SECRET="your-secret-key"
 REDIS_HOST="localhost"
