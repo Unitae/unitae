@@ -493,7 +493,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
 }
 
 async function exportFiles(zip: JsZip, db: TransactionClient, congregationId: number): Promise<void> {
-  const filesDir = zip.folder('files')?.folder('board')!
+  const filesDir = zip.folder('files')!.folder('board')!
 
   const documents = await db.boardDocument.findMany({
     select: { uri: true, thumbnailUri: true },
