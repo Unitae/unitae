@@ -9,7 +9,7 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
-import { Card, CardContent } from '~/shared/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
@@ -154,7 +154,6 @@ function groupEventsByWeek(events: EventWithCreatedBy[]): Map<string, EventWithC
     const startMonday = getMonday(new Date(event.startDate))
     const endMonday = getMonday(new Date(event.endDate))
 
-    // Place the event in every week it overlaps
     const current = new Date(startMonday)
     while (current <= endMonday) {
       const key = current.toISOString().split('T')[0]
@@ -223,7 +222,7 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
           />
         )
       ) : (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <p className="text-muted-foreground text-sm">
             {totalConflicts > 0
               ? m.days_off_admin_summary_conflicts({
@@ -233,7 +232,7 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
               : m.days_off_admin_summary({ count: String(events.length) })}
           </p>
 
-          {[...weekGroups.entries()].map(([mondayKey, weekEvents]) => {
+          {[...weekGroups.entries()].map(([mondayKey, weekEvents], index) => {
             const monday = new Date(mondayKey)
             const formattedDate = monday.toLocaleDateString('fr-FR', {
               day: 'numeric',
@@ -241,27 +240,34 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
               year: 'numeric',
             })
             const isCollapsed = collapsed[mondayKey] ?? false
+            const weekHasConflicts = weekEvents.some(e => {
+              const allConflicts = conflictsByDayOff[e.id] ?? []
+              return getConflictsForWeek(allConflicts, mondayKey).length > 0
+            })
 
             return (
-              <section key={mondayKey}>
-                <button
-                  type="button"
-                  onClick={() => toggleCollapse(mondayKey)}
-                  className="flex w-full cursor-pointer items-center gap-2 text-left"
-                >
-                  <ChevronRight
-                    className={cn(
-                      'size-4 text-muted-foreground transition-transform duration-200',
-                      !isCollapsed && 'rotate-90',
-                    )}
-                  />
-                  <span className="font-semibold text-muted-foreground text-xs uppercase tracking-wider">
-                    {m.days_off_admin_week_of({ date: formattedDate })}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {weekEvents.length}
-                  </Badge>
-                </button>
+              <Card key={mondayKey} className="animate-fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
+                <CardHeader className="pb-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapse(mondayKey)}
+                    className="flex w-full cursor-pointer items-center gap-2 text-left"
+                  >
+                    <ChevronRight
+                      className={cn(
+                        'size-5 text-muted-foreground transition-transform duration-200',
+                        !isCollapsed && 'rotate-90',
+                      )}
+                    />
+                    <CardTitle className="flex-1">{m.days_off_admin_week_of({ date: formattedDate })}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      {weekHasConflicts && <AlertTriangle className="size-4 text-destructive" />}
+                      <Badge variant="outline" className="text-xs">
+                        {weekEvents.length}
+                      </Badge>
+                    </div>
+                  </button>
+                </CardHeader>
 
                 <div
                   className={cn(
@@ -270,79 +276,93 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
                   )}
                 >
                   <div className="overflow-hidden">
-                    <div className="flex flex-col gap-2 pt-3">
-                      {weekEvents.map(event => {
-                        const startDate = new Date(event.startDate)
-                        const endDate = new Date(event.endDate)
-                        const durationDays = computeDurationDays(startDate, endDate)
-                        const eventStartMonday = getMonday(startDate).toISOString().split('T')[0]
-                        const isContinuation = eventStartMonday !== mondayKey
-                        const allConflicts = conflictsByDayOff[event.id] ?? []
-                        const weekConflicts = getConflictsForWeek(allConflicts, mondayKey)
+                    <CardContent className="pt-3 pb-2">
+                      <div className="flex flex-col gap-1">
+                        {weekEvents.map(event => {
+                          const startDate = new Date(event.startDate)
+                          const endDate = new Date(event.endDate)
+                          const durationDays = computeDurationDays(startDate, endDate)
+                          const eventStartMonday = getMonday(startDate).toISOString().split('T')[0]
+                          const isContinuation = eventStartMonday !== mondayKey
+                          const allConflicts = conflictsByDayOff[event.id] ?? []
+                          const weekConflicts = getConflictsForWeek(allConflicts, mondayKey)
+                          const hasConflicts = weekConflicts.length > 0
 
-                        return (
-                          <Card key={event.id} className={cn(isContinuation && 'border-l-2 border-dashed')}>
-                            <CardContent className="flex items-center justify-between gap-3 py-3 max-sm:flex-col max-sm:items-start">
-                              <div className="flex flex-col gap-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {isContinuation && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {m.days_off_admin_continues()}
-                                    </Badge>
-                                  )}
-                                  <span className="font-medium text-sm">
-                                    {m.days_off_admin_absence_of({
-                                      firstname: event.createdBy.firstname ?? '',
-                                      lastname: event.createdBy.lastname?.toLocaleUpperCase() ?? '',
-                                    })}
+                          return (
+                            <div key={event.id}>
+                              <div
+                                className={cn(
+                                  'rounded-lg px-3 py-2.5',
+                                  hasConflicts
+                                    ? 'border-l-4 border-l-destructive bg-destructive/5'
+                                    : isContinuation
+                                      ? 'border-l-4 border-l-muted-foreground/20'
+                                      : '',
+                                )}
+                              >
+                                <div className="flex items-center justify-between gap-3 max-sm:flex-col max-sm:items-start">
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-medium text-sm">
+                                        {m.days_off_admin_absence_of({
+                                          firstname: event.createdBy.firstname ?? '',
+                                          lastname: event.createdBy.lastname?.toLocaleUpperCase() ?? '',
+                                        })}
+                                      </span>
+                                      {isContinuation && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {m.days_off_admin_continues()}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <span className="text-muted-foreground text-xs">
+                                      {m.days_off_date_range({
+                                        startDate: startDate.toLocaleDateString('fr-FR', {
+                                          weekday: 'short',
+                                          day: 'numeric',
+                                          month: 'long',
+                                        }),
+                                        endDate: endDate.toLocaleDateString('fr-FR', {
+                                          weekday: 'short',
+                                          day: 'numeric',
+                                          month: 'long',
+                                        }),
+                                      })}{' '}
+                                      {m.days_off_admin_duration({ count: String(durationDays) })}
+                                    </span>
+                                  </div>
+                                  <span className="shrink-0 text-muted-foreground text-xs">
+                                    {m.days_off_admin_created_at_label()} <RelativeTime date={event.createdAt} />
                                   </span>
-                                  {weekConflicts.length > 0 && (
+                                </div>
+
+                                {hasConflicts && (
+                                  <div className="mt-2 flex flex-wrap items-center gap-2">
                                     <Badge variant="destructive" className="gap-1 text-xs">
                                       <AlertTriangle className="size-3" />
                                       {m.days_off_admin_conflicts({ count: String(weekConflicts.length) })}
                                     </Badge>
-                                  )}
-                                </div>
-                                <span className="text-muted-foreground text-xs">
-                                  {m.days_off_admin_created_at_label()} <RelativeTime date={event.createdAt} />
-                                </span>
-                                {weekConflicts.length > 0 && (
-                                  <div className="mt-1 flex flex-wrap gap-1.5">
                                     {weekConflicts.map(conflict => (
                                       <Link
                                         key={conflict.eventId}
                                         to={`/programs/events/${conflict.eventId}`}
-                                        className="text-destructive text-xs underline-offset-2 hover:underline"
+                                        className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-0.5 text-xs transition-colors hover:bg-muted/80"
                                       >
                                         {conflict.eventName}
+                                        <ChevronRight className="size-3" />
                                       </Link>
                                     ))}
                                   </div>
                                 )}
                               </div>
-                              <span className="shrink-0 text-muted-foreground text-sm">
-                                {m.days_off_date_range({
-                                  startDate: startDate.toLocaleDateString('fr-FR', {
-                                    weekday: 'short',
-                                    day: 'numeric',
-                                    month: 'long',
-                                  }),
-                                  endDate: endDate.toLocaleDateString('fr-FR', {
-                                    weekday: 'short',
-                                    day: 'numeric',
-                                    month: 'long',
-                                  }),
-                                })}{' '}
-                                {m.days_off_admin_duration({ count: String(durationDays) })}
-                              </span>
-                            </CardContent>
-                          </Card>
-                        )
-                      })}
-                    </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </CardContent>
                   </div>
                 </div>
-              </section>
+              </Card>
             )
           })}
         </div>
