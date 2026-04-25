@@ -123,14 +123,22 @@ function groupEventsByWeek(events: EventWithCreatedBy[]): Map<string, EventWithC
   const groups = new Map<string, EventWithCreatedBy[]>()
 
   for (const event of events) {
-    const monday = getMonday(new Date(event.startDate))
-    const key = monday.toISOString().split('T')[0]
+    const startMonday = getMonday(new Date(event.startDate))
+    const endMonday = getMonday(new Date(event.endDate))
 
-    const group = groups.get(key)
-    if (group) {
-      group.push(event)
-    } else {
-      groups.set(key, [event])
+    // Place the event in every week it overlaps
+    const current = new Date(startMonday)
+    while (current <= endMonday) {
+      const key = current.toISOString().split('T')[0]
+
+      const group = groups.get(key)
+      if (group) {
+        group.push(event)
+      } else {
+        groups.set(key, [event])
+      }
+
+      current.setDate(current.getDate() + 7)
     }
   }
 
