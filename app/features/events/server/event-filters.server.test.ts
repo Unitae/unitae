@@ -1,39 +1,98 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { computeFilters } from './event-filters.server'
+import { computeFilters, getDefaultDateRange } from './event-filters.server'
 
-describe('computeFilters', () => {
+describe('getDefaultDateRange', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date(2025, 3, 8, 12, 0, 0))
+    vi.setSystemTime(new Date(2025, 3, 8, 12, 0, 0)) // 8 April 2025
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('retourne un filtre sur la date courante par défaut', () => {
+  it('returns today as the from date', () => {
+    const { from } = getDefaultDateRange()
+
+    expect(from).toEqual(new Date(2025, 3, 8))
+  })
+
+  it('returns the last day of next month as the to date', () => {
+    const { to } = getDefaultDateRange()
+
+    expect(to).toEqual(new Date(2025, 4, 31)) // 31 May 2025
+  })
+})
+
+describe('computeFilters', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2025, 3, 8, 12, 0, 0)) // 8 April 2025
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('uses defaults when no params are provided', () => {
     const params = new URLSearchParams()
     const result = computeFilters(params)
 
-    expect(result.startDate).toEqual({ lte: expect.any(Date) })
-    expect(result.endDate).toEqual({ gte: expect.any(Date) })
+    expect(result.startDate).toEqual({ lte: new Date(2025, 4, 31) })
+    expect(result.endDate).toEqual({ gte: new Date(2025, 3, 8) })
+    expect(result.createdById).toBeUndefined()
   })
 
-  it('utilise la date fournie dans les paramètres', () => {
-    const params = new URLSearchParams({ date: '2025-06-15' })
+  it('uses explicit from and to params', () => {
+    const params = new URLSearchParams({ from: '2025-06-01', to: '2025-06-30' })
     const result = computeFilters(params)
 
-    const expectedDate = new Date('2025-06-15')
-    expect(result.startDate).toEqual({ lte: expectedDate })
-    expect(result.endDate).toEqual({ gte: expectedDate })
+    expect(result.startDate).toEqual({ lte: new Date('2025-06-30') })
+    expect(result.endDate).toEqual({ gte: new Date('2025-06-01') })
   })
 
-  it('retourne le filtre par défaut quand date=none', () => {
-    const params = new URLSearchParams({ date: 'none' })
+  it('defaults to when only from is provided', () => {
+    const params = new URLSearchParams({ from: '2025-06-01' })
     const result = computeFilters(params)
 
-    // Doit utiliser la date courante, pas "none"
-    expect(result.startDate).toEqual({ lte: expect.any(Date) })
-    expect(result.endDate).toEqual({ gte: expect.any(Date) })
+    expect(result.startDate).toEqual({ lte: new Date(2025, 4, 31) })
+    expect(result.endDate).toEqual({ gte: new Date('2025-06-01') })
+  })
+
+  it('defaults from when only to is provided', () => {
+    const params = new URLSearchParams({ to: '2025-06-30' })
+    const result = computeFilters(params)
+
+    expect(result.startDate).toEqual({ lte: new Date('2025-06-30') })
+    expect(result.endDate).toEqual({ gte: new Date(2025, 3, 8) })
+  })
+
+  it('uses defaults when from is none', () => {
+    const params = new URLSearchParams({ from: 'none', to: 'none' })
+    const result = computeFilters(params)
+
+    expect(result.startDate).toEqual({ lte: new Date(2025, 4, 31) })
+    expect(result.endDate).toEqual({ gte: new Date(2025, 3, 8) })
+  })
+
+  it('filters by publisher when param is provided', () => {
+    const params = new URLSearchParams({ publisher: '42' })
+    const result = computeFilters(params)
+
+    expect(result.createdById).toBe(42)
+  })
+
+  it('does not filter by publisher when param is none', () => {
+    const params = new URLSearchParams({ publisher: 'none' })
+    const result = computeFilters(params)
+
+    expect(result.createdById).toBeUndefined()
+  })
+
+  it('does not filter by publisher when param is absent', () => {
+    const params = new URLSearchParams()
+    const result = computeFilters(params)
+
+    expect(result.createdById).toBeUndefined()
   })
 })
