@@ -23,7 +23,8 @@ Complete reference for all configuration variables used by Unitae.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | PostgreSQL connection string (required) |
+| `DATABASE_URL` | — | PostgreSQL connection string (required). Used for migrations and seed |
+| `DATABASE_APP_URL` | — | Non-superuser connection string for the runtime. Enables RLS enforcement. Falls back to `DATABASE_URL` if not set. See [Row-Level Security](../development/row-level-security.md) |
 
 The database connection is configured in `prisma.config.ts`, not in `schema.prisma`.
 

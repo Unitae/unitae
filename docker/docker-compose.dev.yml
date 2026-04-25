@@ -10,6 +10,7 @@ services:
       POSTGRES_DB: unitae_dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U unitae -d unitae_dev']
       interval: 5s
