@@ -15,6 +15,7 @@ export function computeFilters(params: URLSearchParams): Prisma.EventWhereInput 
   let filters: Prisma.EventWhereInput = {}
 
   filters = applyDateRangeFilter(filters, params)
+  filters = applyPublisherFilter(filters, params)
 
   return filters
 }
@@ -33,4 +34,17 @@ function applyDateRangeFilter(filters: Prisma.EventWhereInput, params: URLSearch
     startDate: { lte: to },
     endDate: { gte: from },
   }
+}
+
+function applyPublisherFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
+  const publisher = params.get('publisher')
+
+  if (publisher && publisher !== 'none') {
+    return {
+      ...filters,
+      createdById: Number(publisher),
+    }
+  }
+
+  return filters
 }

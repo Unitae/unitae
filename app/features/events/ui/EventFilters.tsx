@@ -8,9 +8,10 @@ import { Label } from '~/shared/ui/label'
 interface EventFiltersProps {
   action?: string
   defaults: { from: string; to: string }
+  publishers?: Array<{ id: number; firstname: string | null; lastname: string | null }>
 }
 
-export default function EventFilters({ action, defaults }: EventFiltersProps) {
+export default function EventFilters({ action, defaults, publishers }: EventFiltersProps) {
   const [params] = useSearchParams()
 
   return (
@@ -41,6 +42,20 @@ export default function EventFilters({ action, defaults }: EventFiltersProps) {
             defaultValue={params.get('to') ?? defaults.to}
           />
         </div>
+        {publishers && (
+          <select
+            className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+            name="publisher"
+            defaultValue={params.get('publisher') ?? undefined}
+          >
+            <option value="none">{m.events_filters_publisher_all()}</option>
+            {publishers.map(p => (
+              <option value={p.id} key={p.id}>
+                {p.lastname?.toLocaleUpperCase() ?? ''} {p.firstname ?? ''}
+              </option>
+            ))}
+          </select>
+        )}
         <Button type="submit" variant="outline" size="sm">
           <SlidersHorizontal className="size-4" />
           {m.events_filters_submit()}

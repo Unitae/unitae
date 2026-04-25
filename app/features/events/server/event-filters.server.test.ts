@@ -40,6 +40,7 @@ describe('computeFilters', () => {
 
     expect(result.startDate).toEqual({ lte: new Date(2025, 4, 31) })
     expect(result.endDate).toEqual({ gte: new Date(2025, 3, 8) })
+    expect(result.createdById).toBeUndefined()
   })
 
   it('uses explicit from and to params', () => {
@@ -72,5 +73,26 @@ describe('computeFilters', () => {
 
     expect(result.startDate).toEqual({ lte: new Date(2025, 4, 31) })
     expect(result.endDate).toEqual({ gte: new Date(2025, 3, 8) })
+  })
+
+  it('filters by publisher when param is provided', () => {
+    const params = new URLSearchParams({ publisher: '42' })
+    const result = computeFilters(params)
+
+    expect(result.createdById).toBe(42)
+  })
+
+  it('does not filter by publisher when param is none', () => {
+    const params = new URLSearchParams({ publisher: 'none' })
+    const result = computeFilters(params)
+
+    expect(result.createdById).toBeUndefined()
+  })
+
+  it('does not filter by publisher when param is absent', () => {
+    const params = new URLSearchParams()
+    const result = computeFilters(params)
+
+    expect(result.createdById).toBeUndefined()
   })
 })

@@ -110,9 +110,6 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                 {permissions.canViewPrograms && (
                   <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                 )}
-                {permissions.canViewPrograms && (
-                  <SidebarNavItem to="/programs/days-off" icon={CalendarOff} label={m.sidebar_absences()} />
-                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
