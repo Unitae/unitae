@@ -39,9 +39,8 @@ services:
         condition: service_healthy
 
   worker:
-    image: ${UNITAE_IMAGE:-ghcr.io/unitae/unitae:latest}
+    image: ${UNITAE_WORKER_IMAGE:-ghcr.io/unitae/unitae/worker:latest}
     restart: unless-stopped
-    command: pnpm start:worker
     env_file: .env
     depends_on:
       postgres:
