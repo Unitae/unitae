@@ -16,6 +16,7 @@ import {
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -24,6 +25,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
 
@@ -118,6 +120,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 export default function NewEventPage({ loaderData }: Route.ComponentProps) {
   const { templates } = loaderData
   const [selectedValue, setSelectedValue] = useState<string>('')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const isNoTemplate = selectedValue === NO_TEMPLATE
   const selectedTemplate = !isNoTemplate ? templates.find(t => t.id === Number(selectedValue)) : null
@@ -126,6 +129,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_new_page_title()}
         subtitle={m.programs_new_page_subtitle()}
@@ -138,7 +142,7 @@ export default function NewEventPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.programs_new_config_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
               {templates.length === 0 && (

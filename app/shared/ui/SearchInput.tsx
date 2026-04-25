@@ -62,7 +62,7 @@ export function SearchInput({ paramName = 'q', placeholder, delay = 300 }: Searc
         value={value}
         onChange={e => setValue(e.target.value)}
         placeholder={placeholder}
-        className="pl-9 pr-9"
+        className="pr-9 pl-9"
       />
       {isSearching ? (
         <Loader2 className="absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />

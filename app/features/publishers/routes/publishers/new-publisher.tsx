@@ -13,9 +13,11 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new-publisher'
 
@@ -41,9 +43,11 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function NewPublisher({ loaderData }: Route.ComponentProps) {
   const { groups, hideAuxiliaryPioneer } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.publishers_new_title()}
         subtitle={m.publishers_new_subtitle()}
@@ -51,7 +55,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
         backTo="/publishers"
       />
 
-      <Form method="post" className="flex flex-col gap-6">
+      <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <PublisherPersonalInformationForm />
         <PublisherNominationForm />
         <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />

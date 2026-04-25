@@ -8,6 +8,7 @@ import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -16,6 +17,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/assign-part'
@@ -97,12 +99,14 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? 'none')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const activeSelection =
     selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_assign_part_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
@@ -116,7 +120,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
             <CardTitle className="text-base">{assignment?.name ?? m.programs_assign_part_default()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form method="post" className="flex flex-col gap-4">
+            <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
               <div className="flex flex-col gap-2">

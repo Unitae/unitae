@@ -1,5 +1,4 @@
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
@@ -89,8 +88,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
   const { template, users, currentResponsibleId } = loaderData
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
@@ -111,7 +109,7 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.settings_template_responsible_choose_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="userId">{m.settings_template_responsible_label()}</Label>
               <Select name="userId" defaultValue={currentResponsibleId?.toString() ?? 'none'}>

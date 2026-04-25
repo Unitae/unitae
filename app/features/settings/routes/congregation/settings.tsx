@@ -1,7 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { ArrowRight } from 'lucide-react'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
@@ -56,8 +55,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 
 export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { auxiliaryPioneerProfileActivated, congregationDisplayName } = loaderData
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -75,7 +73,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
         breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
       />
 
-      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_congregation_local_title()}</CardTitle>

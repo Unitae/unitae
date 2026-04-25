@@ -1,7 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
@@ -64,8 +63,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
     },
   })
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   let formattedVisibleFrom = ''
   if (settings.visibleFrom !== null) {
@@ -103,7 +101,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.title.id}>{m.board_documents_new_name_label()}</Label>
               <Input

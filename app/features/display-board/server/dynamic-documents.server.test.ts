@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getDynamicPreview, getContentVersion, markDynamicDocumentViewed } from './dynamic-documents.server'
+import { getContentVersion, getDynamicPreview, markDynamicDocumentViewed } from './dynamic-documents.server'
 
 const mockDb = {
   publisherGroup: {
@@ -53,7 +53,11 @@ describe('getDynamicPreview', () => {
 
     expect(result).toBe('3 pionniers')
     expect(mockDb.user.count).toHaveBeenCalledWith({
-      where: { congregationId: 10, type: { in: ['PionnierPermanant', 'PionnierSpecial', 'Missionnaire'] }, active: true },
+      where: {
+        congregationId: 10,
+        type: { in: ['PionnierPermanant', 'PionnierSpecial', 'Missionnaire'] },
+        active: true,
+      },
     })
   })
 

@@ -74,8 +74,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
   const { activity } = loaderData
   const [type, setType] = useState<PublisherType>(activity.type as PublisherType)
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -121,7 +120,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
           <CardTitle>{m.activity_edit_report_details()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="space-y-2">
               <Label htmlFor="type">{m.activity_edit_pioneer_label()}</Label>
               <select

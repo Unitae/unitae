@@ -1,12 +1,24 @@
-import { useEffect } from 'react'
-import { useBlocker } from 'react-router'
+import { useCallback, useEffect, useState } from 'react'
+import { useBlocker, useNavigation } from 'react-router'
 
 /**
  * Blocks navigation and tab close when the form has unsaved changes.
- * Returns the blocker state for rendering a confirmation dialog.
+ * Returns the blocker state and a markDirty callback for form onChange.
+ * Automatically resets dirty state when a form submission starts.
  */
-export function useUnsavedChanges(isDirty: boolean) {
-  const blocker = useBlocker(isDirty)
+export function useUnsavedChanges() {
+  const [isDirty, setIsDirty] = useState(false)
+  const navigation = useNavigation()
+
+  useEffect(() => {
+    if (navigation.state === 'submitting') {
+      setIsDirty(false)
+    }
+  }, [navigation.state])
+
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) => isDirty && currentLocation.pathname !== nextLocation.pathname,
+  )
 
   // Warn on tab close / browser back
   useEffect(() => {
@@ -20,5 +32,7 @@ export function useUnsavedChanges(isDirty: boolean) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [isDirty])
 
-  return blocker
+  const markDirty = useCallback(() => setIsDirty(true), [])
+
+  return { blocker, markDirty }
 }

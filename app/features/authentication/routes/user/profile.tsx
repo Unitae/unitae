@@ -4,6 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import * as m from '~/paraglide/messages'
 import { congregationContext, userContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
@@ -12,6 +13,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/profile'
 
 export const meta: Route.MetaFunction = () => {
@@ -39,9 +41,11 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function ProfilePage({ loaderData }: Route.ComponentProps) {
   const { user, error, congregationName } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.user_profile_page_title()}
         subtitle={m.user_profile_page_subtitle()}
@@ -135,7 +139,7 @@ export default function ProfilePage({ loaderData }: Route.ComponentProps) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <Form method="post" className="flex flex-col gap-4">
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="password">{m.user_profile_current_password_label()}</Label>
               <Input id="password" name="password" type="password" autoComplete="current-password" />

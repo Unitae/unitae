@@ -10,6 +10,7 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -17,6 +18,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/new'
 
 export const meta: Route.MetaFunction = () => {
@@ -94,6 +96,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
   const [pioneer, setPioneer] = useState<PublisherType | null>(
     publisher?.type === PublisherType.PionnierAuxiliaires ? PublisherType.PionnierAuxiliaires : null,
   )
+  const { blocker, markDirty } = useUnsavedChanges()
 
   useFocusError(actionData)
   const [form, fields] = useForm({
@@ -107,6 +110,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.activity_new_title()}
         subtitle={m.activity_new_subtitle()}
@@ -122,7 +126,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
           <CardTitle>{m.activity_new_report_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4">
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <input type="hidden" name="previousPage" value={previousPage ?? ''} />
 
             <div className="space-y-2">

@@ -8,6 +8,7 @@ import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -15,6 +16,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/assign-service'
@@ -95,9 +97,11 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
   const { event, assignment, users } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_assign_service_page_title()}
         subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
@@ -114,7 +118,7 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
             <CardTitle className="text-base">{assignment?.name ?? m.programs_assign_service_default()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <Form method="post" className="flex flex-col gap-4">
+            <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
               <div className="flex flex-col gap-2">

@@ -21,6 +21,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -28,6 +29,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
 
@@ -62,12 +64,14 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
   const { sections, rights } = loaderData
+  const { blocker, markDirty } = useUnsavedChanges()
   const currentDate = new Date()
   currentDate.setMinutes(currentDate.getMinutes() - currentDate.getTimezoneOffset())
   const formattedDate = currentDate.toISOString().slice(0, 16)
 
   return (
     <div className="flex flex-col gap-6">
+      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.board_documents_new_title()}
         subtitle={m.board_documents_new_subtitle()}
@@ -80,7 +84,7 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data">
+          <Form method="post" className="flex flex-col gap-4" encType="multipart/form-data" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.board_documents_new_name_label()}</Label>
               <Input

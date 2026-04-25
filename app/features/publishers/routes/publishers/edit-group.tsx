@@ -1,7 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
@@ -64,8 +63,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditGroup({ loaderData, actionData }: Route.ComponentProps) {
   const { brothers, group } = loaderData
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -102,7 +100,7 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
           <CardTitle>{m.groups_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
                 <Label htmlFor={fields.name.id}>{m.groups_form_name()}</Label>

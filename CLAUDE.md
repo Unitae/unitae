@@ -293,6 +293,7 @@ Uses Biome for formatting with these key rules:
 - **E2E tests**: Playwright tests in `tests/e2e/*.spec.ts`, run via `pnpm test:e2e`
 - **Boundary checks**: `eslint-plugin-boundaries` enforces cross-feature import rules via `pnpm test:boundaries`
 - **Test style**: Black-box testing — assert on observable outcomes, no spy assertions
+- **Testing client hooks**: Vitest runs in `environment: 'node'` (no DOM). Mock `react` and `react-router` entirely. Shim `globalThis.window` for browser APIs (`addEventListener`). Suppress `biome-ignore lint/correctness/useHookAtTopLevel` in test helpers that call hooks.
 - **Config**: `vitest.config.ts` at project root (separate from `vite.config.ts` to avoid reactRouter plugin issues); `app/tests/vitest.config.integration.ts` for integration tests; `app/tests/playwright.config.ts` for E2E tests
 - **Mocking**: `vi.mock()` for `db.server`, `redis.server`, `crypto.server` — mock return values, assert on results
 - TypeScript strict mode enabled
@@ -305,8 +306,8 @@ Uses Biome for formatting with these key rules:
 
 - **Flash messages are global**: The authenticated layout reads `session.flash()` and displays toasts via Sonner. Individual route loaders must NOT also read flash messages — both loaders parse the same cookie independently, causing duplicate display (toast + inline alert). Use the global toast only.
 - **Personal routes convention**: User-specific pages live under `/me/*` (profile, territories, days-off, consents). The `/me` prefix uses `features/authentication/routes/user/_layout.tsx` as layout. New personal features should follow this pattern.
-- **Shared UI components**: `SubmitButton` (auto-disables during submission), `SearchInput` (debounced live search), `DeleteConfirmation` (entity details + cancel + impact), `PageBreadcrumb` (breadcrumb convenience wrapper), `RelativeTime` (Intl.RelativeTimeFormat), `UnsavedChangesDialog` (useBlocker-based), `OfflineBanner`, `CommandPalette` (Cmd+K). `PageHeader` supports `breadcrumbs` and `backTo` props.
-- **Shared hooks**: `useFocusError(actionData)` auto-focuses first invalid field, `useDebouncedValue(value, delay)`, `useUnsavedChanges(isDirty)` returns blocker for dialog, `useOnlineStatus()`, `usePersistedState(key, default)` wraps localStorage.
+- **Shared UI components**: `SubmitButton` (auto-disables during submission), `SearchInput` (debounced live search), `DeleteConfirmation` (entity details + cancel + impact), `PageBreadcrumb` (breadcrumb convenience wrapper), `RelativeTime` (Intl.RelativeTimeFormat), `UnsavedChangesDialog` (renders alert dialog from blocker state), `OfflineBanner`, `CommandPalette` (Cmd+K). `PageHeader` supports `breadcrumbs` and `backTo` props.
+- **Shared hooks**: `useFocusError(actionData)` auto-focuses first invalid field, `useDebouncedValue(value, delay)`, `useUnsavedChanges()` returns `{ blocker, markDirty }` — manages dirty state internally, resets on form submission, blocks only cross-pathname navigations, `useOnlineStatus()`, `usePersistedState(key, default)` wraps localStorage.
 - **Prisma 7**: No `url` in schema — use `prisma.config.ts` with `import 'dotenv/config'` for env loading
 - **Prisma generate**: Run `pnpm prisma generate` after schema changes — generated client is in `app/database/generated/` (gitignored)
 - **Custom migrations**: Use `pnpm prisma migrate diff --from-config-datasource --to-schema app/database/schema.prisma --script` to generate SQL, create migration dir manually with `mkdir -p app/database/migrations/{timestamp}_{name}`
@@ -321,6 +322,7 @@ Uses Biome for formatting with these key rules:
 - **Zod version**: Must use Zod v3 (`zod@^3.25`), not v4 — `@conform-to/zod` v1.x imports `ZodEffects`/`ZodBranded` which were removed in Zod v4. Import as `from 'zod'` (not `from 'zod/v4'`)
 - **Middleware context types**: The `context.set()` in middleware requires `RouterContext` type constraint: `context: { set<C extends RouterContext>(context: C, value: ...): void }`. Don't use plain object types.
 - **File upload + Zod**: Routes with file uploads (e.g., `documents/new.tsx`) use `parseFormData` from `@mjackson/form-data-parser` first, then `parseWithZod` on the resulting FormData for text fields. Don't try to validate files through Zod.
+- **`useBlocker` timing**: `useBlocker` fires synchronously *before* `navigation.state` updates — checking `useNavigation().state` in a boolean passed to `useBlocker` cannot detect in-flight form submissions. Use a `BlockerFunction` with pathname comparison instead.
 - **Batch import path updates**: Use `find app workers -name '*.ts' -o -name '*.tsx' | xargs perl -pi -e 's|old-path|new-path|g'` — also update `vi.mock()` strings and dynamic `import()` calls in test files
 - **Multi-queue worker**: `app/workers/worker.server.ts` runs 3 queues (sync concurrency 1, email concurrency 5, thumbnail concurrency 2). Queue names in `app/shared/infra/queues.server.ts`. Worker locale via `app/shared/utils/worker-locale.server.ts` + `runWithLocale()`.
 - **Two Redis clients**: `redis` (60s timeout, for BullMQ) and `redisRateLimit` (2s timeout, for auth rate limiting) in `app/shared/infra/redis.server.ts`
