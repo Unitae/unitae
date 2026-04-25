@@ -1,37 +1,36 @@
 import type { Prisma } from '~/database/generated/client'
 
+export function getDefaultDateRange(): { from: Date; to: Date } {
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+  const nextMonth = now.getMonth() + 2
+  const nextMonthYear = now.getFullYear() + Math.floor(nextMonth / 12)
+  const to = new Date(nextMonthYear, nextMonth % 12, 0) // Last day of next month
+
+  return { from, to }
+}
+
 export function computeFilters(params: URLSearchParams): Prisma.EventWhereInput {
   let filters: Prisma.EventWhereInput = {}
 
-  filters = applyDateFilter(filters, params)
+  filters = applyDateRangeFilter(filters, params)
 
   return filters
 }
 
-function applyDateFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
-  if (params.has('date') && params.get('date') !== 'none') {
-    const date = new Date(String(params.get('date')))
+function applyDateRangeFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
+  const fromParam = params.get('from')
+  const toParam = params.get('to')
 
-    return {
-      ...filters,
+  const defaults = getDefaultDateRange()
 
-      startDate: {
-        lte: date,
-      },
-      endDate: {
-        gte: date,
-      },
-    }
-  }
+  const from = fromParam && fromParam !== 'none' ? new Date(fromParam) : defaults.from
+  const to = toParam && toParam !== 'none' ? new Date(toParam) : defaults.to
 
   return {
     ...filters,
-
-    startDate: {
-      lte: new Date(),
-    },
-    endDate: {
-      gte: new Date(),
-    },
+    startDate: { lte: to },
+    endDate: { gte: from },
   }
 }
