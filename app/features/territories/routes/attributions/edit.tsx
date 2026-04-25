@@ -63,8 +63,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditAttributionPage({ loaderData, actionData }: Route.ComponentProps) {
   const { users, attribution, phoneTypeActive, entrances } = loaderData
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
   const [shouldShowEndDate, showEndDate] = useState(false)
   useFocusError(actionData)
   const [form, fields] = useForm({
@@ -108,7 +107,7 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
       />
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-1.5">
               <Label>{m.attributions_new_territory_label()}</Label>
               <input type="hidden" name="territory" value={attribution.territory.id} />

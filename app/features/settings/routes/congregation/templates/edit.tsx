@@ -1,5 +1,4 @@
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
@@ -163,8 +162,7 @@ async function handleServiceRoleIntent(
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
   const { template } = loaderData
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
@@ -185,7 +183,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.settings_template_edit_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <input type="hidden" name="intent" value="update-template" />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.settings_template_edit_name_label()}</Label>

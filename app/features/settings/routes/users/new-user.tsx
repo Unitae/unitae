@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
@@ -40,8 +39,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const _users = loaderData
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -62,7 +60,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
       <Card>
         <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="space-y-2">
               <Label htmlFor={fields.firstname.id}>{m.settings_user_new_firstname_label()}</Label>
               <Input

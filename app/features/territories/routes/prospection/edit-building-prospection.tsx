@@ -90,8 +90,7 @@ function makeUid() {
 
 export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { building, buildings, roles } = loaderData
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
   const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
@@ -145,7 +144,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
           </>
         }
       />
-      <Form method="post" className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
+      <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
         <Card>
           <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-1.5">

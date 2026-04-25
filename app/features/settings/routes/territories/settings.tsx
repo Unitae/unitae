@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
@@ -76,8 +75,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
     },
   })
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
@@ -88,7 +86,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
         breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_territories() }]}
       />
 
-      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={() => setIsDirty(true)}>
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_territories_prospection_title()}</CardTitle>

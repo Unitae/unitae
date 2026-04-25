@@ -1,6 +1,5 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { editCongregationSchema } from '~/features/platform-admin/schemas/congregation.schema'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
@@ -71,8 +70,7 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
     },
   })
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="space-y-6">
@@ -100,7 +98,7 @@ export default function EditCongregationPage({ loaderData, actionData }: Route.C
           <CardTitle>{m.platform_admin_edit_congregation_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)} onChange={() => setIsDirty(true)}>
+          <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)} onChange={markDirty}>
             <div className="space-y-2">
               <Label htmlFor={fields.name.id}>{m.platform_admin_edit_congregation_name_label()}</Label>
               <Input {...getInputProps(fields.name, { type: 'text' })} />

@@ -1,5 +1,4 @@
 import { parseWithZod } from '@conform-to/zod'
-import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
@@ -221,8 +220,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
   const { event, templates } = loaderData
   const hasParts = event.partAssignments.length > 0 || event.serviceRoleAssignments.length > 0
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   return (
     <div className="flex flex-col gap-6">
@@ -243,7 +241,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.programs_edit_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <input type="hidden" name="intent" value="update-event" />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.common_name()}</Label>

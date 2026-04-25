@@ -1,7 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { Prisma } from '~/database/generated/client'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -52,8 +51,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditBuildingPage({ loaderData, actionData }: Route.ComponentProps) {
   const { building } = loaderData
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -84,7 +82,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 
       <Card>
         <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <h2 className="font-semibold text-lg">{m.prospection_building_identification()}</h2>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields.number.id}>{m.territories_form_number()}</Label>

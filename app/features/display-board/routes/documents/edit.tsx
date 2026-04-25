@@ -1,7 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { History, Trash2 } from 'lucide-react'
-import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
@@ -57,8 +56,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
   const { document, sections, rights } = loaderData
 
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   let formattedVisibleFrom = ''
   if (document.visibleFrom !== null) {
@@ -107,7 +105,7 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
             method="post"
             className="flex flex-col gap-4"
             encType="multipart/form-data"
-            onChange={() => setIsDirty(true)}
+            onChange={markDirty}
           >
             <div className="flex flex-col gap-2">
               <Label htmlFor="title">{m.board_documents_new_name_label()}</Label>

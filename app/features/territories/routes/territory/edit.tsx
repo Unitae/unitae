@@ -129,8 +129,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     phoneTypeActive,
   } = loaderData
   const [territoryEntrances, setTerritoryEntrances] = useState(savedTerritoryEntrances)
-  const [isDirty, setIsDirty] = useState(false)
-  const blocker = useUnsavedChanges(isDirty)
+  const { blocker, markDirty } = useUnsavedChanges()
 
   const attribution = [...territory.attributions].shift()
   const quantity = computeTerritoryQuantity(territory.type, territoryEntrances)
@@ -204,7 +203,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             </CardContent>
           </Card>
 
-          <Form method="post" className="flex flex-col gap-4" onChange={() => setIsDirty(true)}>
+          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <h2 className="font-semibold text-lg">{m.territories_edit_current_attribution()}</h2>
             {attribution != null ? (
               <div className="flex items-center justify-between gap-3 rounded-md border p-3">
