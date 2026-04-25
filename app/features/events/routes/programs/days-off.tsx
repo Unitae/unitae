@@ -3,6 +3,13 @@ import { useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
+import {
+  type ConflictingEvent,
+  computeDurationDays,
+  getConflictsForWeek,
+  getMonday,
+  groupEventsByWeek,
+} from '~/features/events/ui/days-off-helpers'
 import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -19,12 +26,6 @@ import type { Route } from './+types/days-off'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.days_off_admin_meta_title() }]
-}
-
-interface ConflictingEvent {
-  eventId: number
-  eventName: string
-  eventDate: string
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -133,57 +134,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
       defaults: { from: defaultFrom, to: defaultTo },
       roles: { canManagePrograms },
     }
-  })
-}
-
-function getMonday(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = day === 0 ? 6 : day - 1
-  d.setDate(d.getDate() - diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-type EventWithCreatedBy = Route.ComponentProps['loaderData']['events'][number]
-
-function groupEventsByWeek(events: EventWithCreatedBy[]): Map<string, EventWithCreatedBy[]> {
-  const groups = new Map<string, EventWithCreatedBy[]>()
-
-  for (const event of events) {
-    const startMonday = getMonday(new Date(event.startDate))
-    const endMonday = getMonday(new Date(event.endDate))
-
-    const current = new Date(startMonday)
-    while (current <= endMonday) {
-      const key = current.toISOString().split('T')[0]
-
-      const group = groups.get(key)
-      if (group) {
-        group.push(event)
-      } else {
-        groups.set(key, [event])
-      }
-
-      current.setDate(current.getDate() + 7)
-    }
-  }
-
-  return groups
-}
-
-function computeDurationDays(startDate: Date, endDate: Date): number {
-  return Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-}
-
-function getConflictsForWeek(conflicts: ConflictingEvent[], mondayKey: string): ConflictingEvent[] {
-  const monday = new Date(mondayKey)
-  const sunday = new Date(monday)
-  sunday.setDate(sunday.getDate() + 7)
-
-  return conflicts.filter(c => {
-    const date = new Date(c.eventDate)
-    return date >= monday && date < sunday
   })
 }
 
