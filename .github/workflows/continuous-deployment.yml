@@ -58,6 +58,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push worker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: worker
+          push: true
+          tags: ghcr.io/unitae/unitae/worker:latest
+          cache-from: type=gha
+
       - name: Build and push migrate image
         uses: docker/build-push-action@v6
         with:
