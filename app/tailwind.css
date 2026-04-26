@@ -56,6 +56,11 @@
     0.869 0.005 56.366
   ); /* stone-300 — distinct from accent */
   --color-sidebar-ring: oklch(0.523 0.105 184.704);
+
+  /* Programme section colors (JW workbook) */
+  --color-section-treasures: #5b6770;
+  --color-section-ministry: #c18626;
+  --color-section-living: #942926;
 }
 
 .dark {
@@ -87,6 +92,11 @@
   --color-sidebar-accent-foreground: oklch(0.985 0.001 106.423);
   --color-sidebar-border: oklch(0.374 0.01 67.558);
   --color-sidebar-ring: oklch(0.648 0.116 184.117);
+
+  /* Programme section colors (JW workbook) — brighter for dark bg */
+  --color-section-treasures: #8a9aa6;
+  --color-section-ministry: #e5a83a;
+  --color-section-living: #e05550;
 }
 
 @keyframes navigation-progress {
