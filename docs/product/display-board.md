@@ -113,7 +113,7 @@ Available types (appear only when the related feature has data):
 
 - **Groupes de prédication** — Live list of publisher groups with responsible, deputy, and members
 - **Pionniers** — List of publishers registered as regular pioneers, special pioneers, or missionaries
-- **Programmes** — One entry per programme template (e.g., "Réunion de semaine"). Shows all events from the start of the current month with their assigned parts, grouped by section. An optional "Afficher les services" toggle adds service role assignments.
+- **Programmes** — Configurable live schedule documents. Each programme document stores a `dynamicConfig` JSON with per-template parts/services selection and a groupBy preference (date or template). Multiple programme documents can be created with different configurations. The view shows events from the start of the current month with a clean layout: colored section bars, dot leaders between part names and assignees, and per-template content filtering. Legacy documents without `dynamicConfig` fall back to a single template via `dynamicRef` and a `showServices` flag.
 
 Dynamic documents support the same visibility, highlighting, ordering, and section placement controls as PDF documents. They appear alongside PDFs in the same sections on the board. On the board view, each dynamic document card shows a **preview summary** (group count, pioneer count, or next event date) to provide context at a glance.
 

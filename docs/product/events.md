@@ -51,7 +51,7 @@ Parts and service roles are stored inline on each event (with name, section, ord
 
 ## PDF Export
 
-Events can be exported to PDF from the programme list. The export supports filtering by template and date range. Parallel parts (sharing the same order) are rendered with their track label appended to the part name.
+Events can be exported to PDF from the programme list. The export form provides per-template content selection: each template row has checkboxes for parts and services, allowing mixed exports (e.g., midweek parts + weekend services only). Additional options include an editable document title, a date range filter, and grouping by date (chronological) or by template type. The PDF uses a workbook-inspired single-column layout with colored section bars, dot leaders between part names and assignees, and topic replacing part name when available. Parallel parts (same order, different tracks) render as sub-rows with track labels. A legacy URL format (`?templateId=...&contentType=...`) is preserved for backwards compatibility.
 
 ## Assignments
 
