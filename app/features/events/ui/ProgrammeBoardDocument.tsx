@@ -200,7 +200,11 @@ const styles = StyleSheet.create({
   servicesDivider: {
     borderTop: '0.75 solid #e2e8f0',
     marginTop: 6,
+    marginLeft: 12,
     paddingTop: 5,
+  },
+  servicesNoDivider: {
+    marginLeft: 12,
   },
   servicesTitle: {
     fontSize: 7.5,
@@ -348,7 +352,7 @@ function EventCard({
         ))}
 
       {showServices && event.serviceRoleAssignments.length > 0 && (
-        <View style={styles.servicesDivider}>
+        <View style={showParts ? styles.servicesDivider : styles.servicesNoDivider}>
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
             {event.serviceRoleAssignments.map((role, roleIdx) => {
