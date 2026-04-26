@@ -52,24 +52,24 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 function translateAction(action: string): string {
-  const translations: Record<string, () => string> = {
-    'user.login': () => m.audit_log_action_user_login(),
-    'user.login.failed': () => m.audit_log_action_user_login_failed(),
-    'user.logout': () => m.audit_log_action_user_logout(),
-    'user.created': () => m.audit_log_action_user_created(),
-    'user.updated': () => m.audit_log_action_user_updated(),
-    'user.anonymized': () => m.audit_log_action_user_anonymized(),
-    'user.roles.changed': () => m.audit_log_action_user_roles_changed(),
-    'user.data.exported': () => m.audit_log_action_user_data_exported(),
-    'consent.granted': () => m.audit_log_action_consent_granted(),
-    'consent.withdrawn': () => m.audit_log_action_consent_withdrawn(),
-    'password.changed': () => m.audit_log_action_password_changed(),
-    'password.reset.requested': () => m.audit_log_action_password_reset_requested(),
-    'board.read_status.viewed': () => m.audit_log_action_board_read_status_viewed(),
-    'platform.congregation.updated': () => m.audit_log_action_platform_congregation_updated(),
-    'platform.users.listed': () => m.audit_log_action_platform_users_listed(),
+  const translations: Record<string, string> = {
+    'user.login': m.audit_log_action_user_login(),
+    'user.login.failed': m.audit_log_action_user_login_failed(),
+    'user.logout': m.audit_log_action_user_logout(),
+    'user.created': m.audit_log_action_user_created(),
+    'user.updated': m.audit_log_action_user_updated(),
+    'user.anonymized': m.audit_log_action_user_anonymized(),
+    'user.roles.changed': m.audit_log_action_user_roles_changed(),
+    'user.data.exported': m.audit_log_action_user_data_exported(),
+    'consent.granted': m.audit_log_action_consent_granted(),
+    'consent.withdrawn': m.audit_log_action_consent_withdrawn(),
+    'password.changed': m.audit_log_action_password_changed(),
+    'password.reset.requested': m.audit_log_action_password_reset_requested(),
+    'board.read_status.viewed': m.audit_log_action_board_read_status_viewed(),
+    'platform.congregation.updated': m.audit_log_action_platform_congregation_updated(),
+    'platform.users.listed': m.audit_log_action_platform_users_listed(),
   }
-  return translations[action]?.() ?? action
+  return translations[action] ?? action
 }
 
 export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
@@ -95,13 +95,17 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
               <SelectItem value="">{m.audit_log_filter_all_actions()}</SelectItem>
               <SelectItem value="user.login">{m.audit_log_action_user_login()}</SelectItem>
               <SelectItem value="user.login.failed">{m.audit_log_action_user_login_failed()}</SelectItem>
+              <SelectItem value="user.logout">{m.audit_log_action_user_logout()}</SelectItem>
               <SelectItem value="user.created">{m.audit_log_action_user_created()}</SelectItem>
               <SelectItem value="user.updated">{m.audit_log_action_user_updated()}</SelectItem>
               <SelectItem value="user.anonymized">{m.audit_log_action_user_anonymized()}</SelectItem>
+              <SelectItem value="user.roles.changed">{m.audit_log_action_user_roles_changed()}</SelectItem>
+              <SelectItem value="user.data.exported">{m.audit_log_action_user_data_exported()}</SelectItem>
               <SelectItem value="password.changed">{m.audit_log_action_password_changed()}</SelectItem>
               <SelectItem value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</SelectItem>
               <SelectItem value="consent.granted">{m.audit_log_action_consent_granted()}</SelectItem>
               <SelectItem value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</SelectItem>
+              <SelectItem value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</SelectItem>
             </SelectContent>
           </Select>
         </div>

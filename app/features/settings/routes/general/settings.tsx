@@ -30,15 +30,15 @@ export async function loader({ context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const fullCongregation = await unscopedDb.congregation.findUnique({
+  const fullCongregation = await unscopedDb.congregation.findUniqueOrThrow({
     where: { id: congregation.id },
     select: { displayName: true, locale: true, domain: true },
   })
 
   return {
-    displayName: fullCongregation?.displayName ?? '',
-    locale: fullCongregation?.locale ?? 'fr',
-    domain: fullCongregation?.domain ?? '',
+    displayName: fullCongregation.displayName ?? '',
+    locale: fullCongregation.locale ?? 'fr',
+    domain: fullCongregation.domain ?? '',
     showDomain: process.env.MULTI_TENANT === 'true',
   }
 }
@@ -139,13 +139,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { displayName, locale, domain } = submission.value
-
-  await updateGeneralSettings(congregation.id, {
-    displayName: displayName || null,
-    locale,
-    domain,
-  })
+  await updateGeneralSettings(congregation.id, submission.value)
 
   return redirect('/settings/general')
 }

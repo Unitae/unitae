@@ -72,7 +72,7 @@ export async function loader({ context }: Route.LoaderArgs) {
   })
 }
 
-export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
+export default function TerritorySettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated, attributionDuration } = loaderData
 
   const [form, fields] = useForm({
@@ -240,6 +240,6 @@ export async function action({ request, context }: Route.ActionArgs) {
       currentUser.congregationId,
     )
 
-    return redirect('/settings')
+    return redirect('/settings/territories')
   })
 }

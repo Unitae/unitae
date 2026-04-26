@@ -19,7 +19,8 @@ export async function createAttribution(db: TransactionClient, params: CreateAtt
     TerritorySettingKey.AttributionDefaultDurationMonths,
     params.congregationId,
   )
-  const durationMonths = durationSetting ? Number(durationSetting) : DEFAULT_ATTRIBUTION_DURATION_MONTHS
+  const parsed = durationSetting ? Number(durationSetting) : Number.NaN
+  const durationMonths = Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_ATTRIBUTION_DURATION_MONTHS
 
   const lateDate = new Date(params.startDate)
   lateDate.setMonth(lateDate.getMonth() + durationMonths)

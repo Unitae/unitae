@@ -85,7 +85,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
-export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
+export default function UserListPage({ loaderData }: Route.ComponentProps) {
   const { users, roles } = loaderData
 
   return (

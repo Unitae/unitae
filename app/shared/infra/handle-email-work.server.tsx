@@ -83,7 +83,7 @@ async function handleNotificationInstant(data: Extract<EmailJobData, { type: 'no
 }
 
 async function handleDocumentsExpiring(data: Extract<EmailJobData, { type: 'documents-expiring' }>) {
-  await runWithLocale(data.locale ?? 'fr', async () => {
+  await runWithLocale(data.locale, async () => {
     try {
       await mailer.emails.send({
         to: data.validatorEmail,

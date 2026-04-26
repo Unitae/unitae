@@ -1,19 +1,13 @@
+import type { GeneralSettingsInput } from '~/features/settings/schemas/general-settings.schema'
 import { unscopedDb } from '~/shared/infra/db.server'
 
-export async function updateGeneralSettings(
-  congregationId: number,
-  data: {
-    displayName: string | null
-    locale: string
-    domain: string | null
-  },
-) {
+export async function updateGeneralSettings(congregationId: number, input: GeneralSettingsInput): Promise<void> {
   await unscopedDb.congregation.update({
     where: { id: congregationId },
     data: {
-      displayName: data.displayName || null,
-      locale: data.locale,
-      domain: data.domain,
+      displayName: input.displayName || null,
+      locale: input.locale,
+      domain: input.domain,
     },
   })
 }

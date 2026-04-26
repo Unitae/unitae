@@ -44,6 +44,7 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     emailFrom: congregation.emailFromAddress
       ? `${congregation.emailFromName ?? congregation.name} <${congregation.emailFromAddress}>`
       : DEFAULT_EMAIL_FROM,
+    // Priority: custom domain > explicit baseUrl > slug-derived URL
     baseUrl: congregation.domain
       ? `https://${congregation.domain}`
       : (congregation.baseUrl ?? `https://${congregation.slug}.${appBaseUrl.replace('https://', '')}`),
