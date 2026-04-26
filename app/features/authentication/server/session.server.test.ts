@@ -24,6 +24,24 @@ vi.mock('react-router', () => ({
   },
 }))
 
+vi.mock('~/shared/infra/logger.server', () => ({
+  default: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}))
+
+vi.mock('~/database/generated/client', () => ({
+  // biome-ignore lint/style/useNamingConvention: Prisma export name
+  Prisma: {
+    // biome-ignore lint/style/useNamingConvention: Prisma class name
+    PrismaClientKnownRequestError: class PrismaClientKnownRequestError extends Error {
+      code: string
+      constructor(message: string, { code }: { code: string }) {
+        super(message)
+        this.code = code
+      }
+    },
+  },
+}))
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findUnique: vi.fn() },
@@ -160,6 +178,20 @@ describe('verifySession', () => {
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/trial-expired')
+  })
+
+  it('redirige vers /login si findUnique échoue avec P2007', async () => {
+    const { Prisma } = await import('~/database/generated/client')
+    mockSession.get.mockReturnValue('42')
+    vi.mocked(db.user.findUnique).mockRejectedValue(
+      new (Prisma.PrismaClientKnownRequestError as unknown as new (m: string, o: { code: string }) => Error)(
+        'Type mismatch',
+        { code: 'P2007' },
+      ),
+    )
+
+    const response = await getRedirectResponse(() => verifySession(makeRequest()))
+    expect(response.headers.get('Location')).toBe('/login')
   })
 
   it("redirige vers /verify-email si l'email n'est pas vérifié", async () => {
