@@ -90,7 +90,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
       <PageHeader
         title={m.settings_territories_title()}
         subtitle={m.settings_territories_subtitle()}
-        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_territories() }]}
+        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_territories() }]}
       />
 
       <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>

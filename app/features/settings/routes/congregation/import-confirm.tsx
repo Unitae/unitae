@@ -90,8 +90,8 @@ export default function ImportConfirmPage() {
         title={m.import_confirm_title()}
         subtitle={m.import_confirm_subtitle()}
         breadcrumbs={[
-          { label: 'Réglages', to: '/settings' },
-          { label: m.settings_congregation_title(), to: '/settings/congregation' },
+          { label: m.sidebar_settings(), to: '/settings' },
+          { label: m.settings_data_title(), to: '/settings/data' },
           { label: m.import_title(), to: '/settings/data/import' },
           { label: m.import_confirm_title() },
         ]}
