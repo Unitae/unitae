@@ -20,9 +20,10 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const userId = Number(session.get('userId'))
+  const rawUserId = session.get('userId')
+  const userId = Number(rawUserId)
 
-  if (Number.isNaN(userId)) {
+  if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
     throw redirect('/login')
   }
 
@@ -71,9 +72,10 @@ export default function VerifyEmailPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const userId = Number(session.get('userId'))
+  const rawUserId = session.get('userId')
+  const userId = Number(rawUserId)
 
-  if (Number.isNaN(userId)) {
+  if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
     throw redirect('/login')
   }
 

@@ -24,6 +24,10 @@ vi.mock('react-router', () => ({
   },
 }))
 
+vi.mock('~/shared/infra/logger.server', () => ({
+  default: { warn: vi.fn(), error: vi.fn(), info: vi.fn() },
+}))
+
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findUnique: vi.fn() },
@@ -160,6 +164,15 @@ describe('verifySession', () => {
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/trial-expired')
+  })
+
+  it('redirige vers /login si findUnique échoue avec P2007', async () => {
+    mockSession.get.mockReturnValue('42')
+    const p2007Error = Object.assign(new Error('Type mismatch'), { code: 'P2007' })
+    vi.mocked(db.user.findUnique).mockRejectedValue(p2007Error)
+
+    const response = await getRedirectResponse(() => verifySession(makeRequest()))
+    expect(response.headers.get('Location')).toBe('/login')
   })
 
   it("redirige vers /verify-email si l'email n'est pas vérifié", async () => {

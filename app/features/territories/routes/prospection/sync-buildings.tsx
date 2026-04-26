@@ -28,10 +28,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
+    const rawUserId = session.get('userId')
+    const sessionUserId = Number(rawUserId)
+    if (!rawUserId || Number.isNaN(sessionUserId) || sessionUserId <= 0) {
+      throw redirect('/')
+    }
+
     const user = await db.user.findUnique({
       where: {
         // biome-ignore lint/style/useNamingConvention: Prisma compound key
-        id_congregationId: { id: Number(session.get('userId')) ?? 0, congregationId },
+        id_congregationId: { id: sessionUserId, congregationId },
       },
     })
 

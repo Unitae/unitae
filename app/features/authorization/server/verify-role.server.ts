@@ -5,8 +5,9 @@ import type { Role } from '~/shared/types/role'
 
 export async function verifyRole(request: Request, roleKey: Role) {
   const session = await getSession(request.headers.get('Cookie'))
-  const userId = Number(session.get('userId'))
-  if (Number.isNaN(userId)) {
+  const rawUserId = session.get('userId')
+  const userId = Number(rawUserId)
+  if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
     return false
   }
 
