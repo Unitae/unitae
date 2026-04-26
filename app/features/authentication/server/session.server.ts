@@ -1,5 +1,4 @@
 import { type Session, createCookieSessionStorage, redirect } from 'react-router'
-import { Prisma } from '~/database/generated/client'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
@@ -56,7 +55,7 @@ async function findUserFromSession(session: Session<SessionData, SessionFlashDat
     if (user == null || !user.active) return redirectToLogin(session)
     return user
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2007') {
+    if (error instanceof Error && 'code' in error && (error as Error & { code: string }).code === 'P2007') {
       logger.warn(`Session verification failed: adapter sent invalid value for userId ${userId} (P2007)`)
       return redirectToLogin(session)
     }
