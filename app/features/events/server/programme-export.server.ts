@@ -1,0 +1,57 @@
+import { z } from 'zod'
+import { ValidationError } from '~/shared/errors/app-error.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+
+export interface TemplateExportConfig {
+  templateId: number
+  parts: boolean
+  services: boolean
+}
+
+const templateExportConfigSchema = z.array(
+  z.object({
+    templateId: z.number().int().positive(),
+    parts: z.boolean(),
+    services: z.boolean(),
+  }),
+)
+
+/**
+ * Decodes and validates the Base64-encoded export configuration from URL params.
+ * Throws ValidationError if the payload is malformed.
+ */
+export function parseExportConfigs(raw: string): TemplateExportConfig[] {
+  try {
+    const json = JSON.parse(atob(raw))
+    return templateExportConfigSchema.parse(json)
+  } catch {
+    throw new ValidationError('configs', 'Invalid export configuration')
+  }
+}
+
+/**
+ * Fetches events with their part and service role assignments for PDF export.
+ * Events are ordered by startDate ascending.
+ */
+export async function getEventsForExport(db: TransactionClient, templateIds: number[], startDate: Date, endDate: Date) {
+  return db.event.findMany({
+    where: {
+      templateId: { in: templateIds },
+      startDate: { gte: startDate, lte: endDate },
+    },
+    include: {
+      template: true,
+      partAssignments: {
+        include: { assignee: true, assistant: true },
+        orderBy: { order: 'asc' },
+      },
+      serviceRoleAssignments: {
+        include: { assignee: true },
+        orderBy: { name: 'asc' },
+      },
+    },
+    orderBy: { startDate: 'asc' },
+  })
+}
+
+export type ExportEvent = Awaited<ReturnType<typeof getEventsForExport>>[number]

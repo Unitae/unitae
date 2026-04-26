@@ -6,6 +6,7 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -28,11 +29,19 @@ export function loader({ context }: Route.LoaderArgs) {
   })
 }
 
+interface TemplateConfig {
+  selected: boolean
+  parts: boolean
+  services: boolean
+}
+
 export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
   const { templates } = loaderData
 
-  const [selectedTemplate, setSelectedTemplate] = useState('all')
-  const [contentType, setContentType] = useState('both')
+  const [configs, setConfigs] = useState<Record<number, TemplateConfig>>(
+    Object.fromEntries(templates.map(t => [t.id, { selected: true, parts: true, services: true }])),
+  )
+  const [groupBy, setGroupBy] = useState<'date' | 'template'>('date')
 
   const today = new Date()
   const twoMonthsLater = new Date()
@@ -41,7 +50,20 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
   const [startDate, setStartDate] = useState(today.toISOString().split('T')[0])
   const [endDate, setEndDate] = useState(twoMonthsLater.toISOString().split('T')[0])
 
-  const downloadUrl = `/programs/export-pdf/download?templateId=${selectedTemplate}&startDate=${startDate}&endDate=${endDate}&contentType=${contentType}`
+  function updateConfig(templateId: number, patch: Partial<TemplateConfig>) {
+    setConfigs(prev => ({
+      ...prev,
+      [templateId]: { ...prev[templateId], ...patch },
+    }))
+  }
+
+  const selectedConfigs = Object.entries(configs)
+    .filter(([_, c]) => c.selected && (c.parts || c.services))
+    .map(([id, c]) => ({ templateId: Number(id), parts: c.parts, services: c.services }))
+
+  const hasSelection = selectedConfigs.length > 0
+  const encoded = hasSelection ? btoa(JSON.stringify(selectedConfigs)) : ''
+  const downloadUrl = `/programs/export-pdf/download?configs=${encodeURIComponent(encoded)}&startDate=${startDate}&endDate=${endDate}&groupBy=${groupBy}`
 
   return (
     <div className="flex flex-col gap-6">
@@ -52,29 +74,13 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
         backTo="/programs"
       />
 
-      <Card className="max-w-lg">
+      <Card className="max-w-xl">
         <CardHeader>
           <CardTitle className="text-base">{m.programs_export_options_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="templateId">{m.programs_export_meeting_type_label()}</Label>
-              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                <SelectTrigger>
-                  <SelectValue placeholder={m.programs_export_all_types()} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{m.programs_export_all_types()}</SelectItem>
-                  {templates.map(template => (
-                    <SelectItem key={template.id} value={template.id.toString()}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+          <div className="flex flex-col gap-5">
+            {/* Date range */}
             <div className="flex gap-4">
               <div className="flex flex-1 flex-col gap-2">
                 <Label htmlFor="startDate">{m.programs_export_from_label()}</Label>
@@ -92,25 +98,74 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
               </div>
             </div>
 
+            {/* Per-template content selection */}
             <div className="flex flex-col gap-2">
-              <Label htmlFor="contentType">{m.programs_export_content_label()}</Label>
-              <Select value={contentType} onValueChange={setContentType}>
+              <Label>{m.programs_export_templates_label()}</Label>
+              <div className="rounded-md border">
+                {/* Header row */}
+                <div className="flex items-center gap-3 border-b bg-muted/50 px-3 py-2 text-muted-foreground text-xs font-medium">
+                  <div className="w-5" />
+                  <div className="flex-1">{m.programs_export_meeting_type_label()}</div>
+                  <div className="w-20 text-center">{m.programs_export_col_parts()}</div>
+                  <div className="w-20 text-center">{m.programs_export_col_services()}</div>
+                </div>
+                {/* Template rows */}
+                {templates.map(template => {
+                  const config = configs[template.id]
+                  return (
+                    <div key={template.id} className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0">
+                      <Checkbox
+                        checked={config.selected}
+                        onCheckedChange={checked => updateConfig(template.id, { selected: checked === true })}
+                      />
+                      <div className="flex-1 text-sm">{template.name}</div>
+                      <div className="flex w-20 justify-center">
+                        <Checkbox
+                          checked={config.parts}
+                          disabled={!config.selected}
+                          onCheckedChange={checked => updateConfig(template.id, { parts: checked === true })}
+                        />
+                      </div>
+                      <div className="flex w-20 justify-center">
+                        <Checkbox
+                          checked={config.services}
+                          disabled={!config.selected}
+                          onCheckedChange={checked => updateConfig(template.id, { services: checked === true })}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              {!hasSelection && <p className="text-destructive text-xs">{m.programs_export_no_selection()}</p>}
+            </div>
+
+            {/* Grouping option */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="groupBy">{m.programs_export_group_by_label()}</Label>
+              <Select value={groupBy} onValueChange={v => setGroupBy(v as 'date' | 'template')}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="both">{m.programs_export_content_both()}</SelectItem>
-                  <SelectItem value="parts">{m.programs_export_content_parts_only()}</SelectItem>
-                  <SelectItem value="services">{m.programs_export_content_services_only()}</SelectItem>
+                  <SelectItem value="date">{m.programs_export_group_by_date()}</SelectItem>
+                  <SelectItem value="template">{m.programs_export_group_by_template()}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <Button asChild className="w-fit">
-              <a href={downloadUrl} target="_blank" rel="noreferrer">
+            {/* Download button */}
+            {hasSelection ? (
+              <Button asChild className="w-fit">
+                <a href={downloadUrl} target="_blank" rel="noreferrer">
+                  {m.programs_export_download_button()}
+                </a>
+              </Button>
+            ) : (
+              <Button disabled className="w-fit">
                 {m.programs_export_download_button()}
-              </a>
-            </Button>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
