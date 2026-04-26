@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   CalendarDays,
   CalendarOff,
+  ChevronDown,
   ClipboardList,
   FileText,
   FolderOpen,
@@ -14,6 +15,7 @@ import {
   Map as MapIcon,
   MapPin,
   PieChart,
+  Search,
   Settings,
   User,
   UserCog,
@@ -24,6 +26,7 @@ import {
 import { Form, NavLink } from 'react-router'
 
 import * as m from '~/paraglide/messages'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
@@ -57,10 +60,11 @@ export interface AppSidebarPermissions {
 interface AppSidebarProps {
   permissions: AppSidebarPermissions
   congregationName?: string
+  onSearchClick?: () => void
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
-export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
+export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
   const showDocuments = permissions.canManageBoard
   const showAssemblee = permissions.canViewPublishers || permissions.canViewPrograms
   const showTerritories =
@@ -76,6 +80,15 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
           </span>
           <ThemeToggle />
         </div>
+        <button
+          type="button"
+          onClick={onSearchClick}
+          className="mx-2 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar px-2 py-1.5 text-muted-foreground text-sm hover:bg-sidebar-accent"
+        >
+          <Search className="size-4 shrink-0" />
+          <span className="flex-1 text-left">{m.command_palette_placeholder()}</span>
+          <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
+        </button>
       </SidebarHeader>
 
       <SidebarContent>
@@ -89,103 +102,148 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
         </SidebarGroup>
 
         {showDocuments && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{m.sidebar_documents()}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
-                <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger>
+                  {m.sidebar_documents()}
+                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
+                    <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
 
         {showAssemblee && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{m.sidebar_assembly()}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {permissions.canViewPublishers && (
-                  <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} />
-                )}
-                {permissions.canViewPublishers && (
-                  <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
-                )}
-                {permissions.canViewPrograms && (
-                  <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger>
+                  {m.sidebar_assembly()}
+                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {permissions.canViewPublishers && (
+                      <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} />
+                    )}
+                    {permissions.canViewPublishers && (
+                      <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
+                    )}
+                    {permissions.canViewPrograms && (
+                      <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
 
         {showTerritories && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{m.sidebar_territories()}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {permissions.canViewTerritories && (
-                  <SidebarNavItem
-                    to="/territories/attributions"
-                    icon={CalendarCheck}
-                    label={m.sidebar_attributions()}
-                  />
-                )}
-                {permissions.canViewTerritories && (
-                  <SidebarNavItem to="/territories" icon={MapIcon} label={m.sidebar_territories()} end />
-                )}
-                {permissions.canViewProspection && (
-                  <SidebarNavItem to="/territories/buildings" icon={Building2} label={m.sidebar_prospection()} />
-                )}
-                {permissions.canManageTerritories && (
-                  <SidebarNavItem to="/territories/stats" icon={PieChart} label={m.sidebar_statistics()} />
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger>
+                  {m.sidebar_territories()}
+                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {permissions.canViewTerritories && (
+                      <SidebarNavItem
+                        to="/territories/attributions"
+                        icon={CalendarCheck}
+                        label={m.sidebar_attributions()}
+                      />
+                    )}
+                    {permissions.canViewTerritories && (
+                      <SidebarNavItem to="/territories" icon={MapIcon} label={m.sidebar_territories()} end />
+                    )}
+                    {permissions.canViewProspection && (
+                      <SidebarNavItem to="/territories/buildings" icon={Building2} label={m.sidebar_prospection()} />
+                    )}
+                    {permissions.canManageTerritories && (
+                      <SidebarNavItem to="/territories/stats" icon={PieChart} label={m.sidebar_statistics()} />
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
 
         {showReglages && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{m.sidebar_settings()}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {permissions.canManageSettings && (
-                  <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
-                )}
-                {permissions.canManageUsers && (
-                  <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
-                )}
-                {permissions.canManageSettings && (
-                  <>
-                    <SidebarNavItem
-                      to="/settings/congregation"
-                      icon={Building2}
-                      label={m.sidebar_settings_assembly()}
-                    />
-                    <SidebarNavItem
-                      to="/settings/territories"
-                      icon={MapIcon}
-                      label={m.sidebar_settings_territories()}
-                    />
-                    <SidebarNavItem to="/settings/data" icon={HardDrive} label={m.sidebar_settings_data()} />
-                    <SidebarNavItem to="/settings/audit-log" icon={ClipboardList} label={m.sidebar_audit_log()} />
-                  </>
-                )}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger>
+                  {m.sidebar_settings()}
+                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {permissions.canManageSettings && (
+                      <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
+                    )}
+                    {permissions.canManageUsers && (
+                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
+                    )}
+                    {permissions.canManageSettings && (
+                      <>
+                        <SidebarNavItem
+                          to="/settings/congregation"
+                          icon={Building2}
+                          label={m.sidebar_settings_assembly()}
+                        />
+                        <SidebarNavItem
+                          to="/settings/territories"
+                          icon={MapIcon}
+                          label={m.sidebar_settings_territories()}
+                        />
+                        <SidebarNavItem to="/settings/data" icon={HardDrive} label={m.sidebar_settings_data()} />
+                        <SidebarNavItem to="/settings/audit-log" icon={ClipboardList} label={m.sidebar_audit_log()} />
+                      </>
+                    )}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
 
         {permissions.isPlatformAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>{m.sidebar_platform()}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarNavItem to="/platform-admin" icon={UserRoundCog} label={m.sidebar_administration()} />
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          <Collapsible defaultOpen className="group/collapsible">
+            <SidebarGroup>
+              <SidebarGroupLabel asChild>
+                <CollapsibleTrigger>
+                  {m.sidebar_platform()}
+                  <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                </CollapsibleTrigger>
+              </SidebarGroupLabel>
+              <CollapsibleContent>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    <SidebarNavItem to="/platform-admin" icon={UserRoundCog} label={m.sidebar_administration()} />
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </CollapsibleContent>
+            </SidebarGroup>
+          </Collapsible>
         )}
       </SidebarContent>
 
