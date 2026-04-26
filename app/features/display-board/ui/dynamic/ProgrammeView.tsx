@@ -168,12 +168,11 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
   const displayName = part.topic !== '' ? part.topic : part.name
 
   return (
-    <div
+    <li
       className={cn(
         'grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5',
         dimmed && 'opacity-30 transition-opacity',
       )}
-      role="listitem"
     >
       <span className="min-w-0 truncate font-semibold text-foreground text-sm">
         {displayName}
@@ -193,7 +192,7 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
       ) : (
         <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
       )}
-    </div>
+    </li>
   )
 }
 
@@ -218,13 +217,12 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
         const dimmed = hasQuery && !highlighted
 
         return (
-          <div
+          <li
             key={part.id}
             className={cn(
               'ml-3 grid grid-cols-[1fr_auto] items-baseline gap-x-4 py-0.5',
               dimmed && 'opacity-30 transition-opacity',
             )}
-            role="listitem"
           >
             <span className="shrink-0 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
               {trackName}
@@ -241,7 +239,7 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
             ) : (
               <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
             )}
-          </div>
+          </li>
         )
       })}
     </div>
@@ -507,12 +505,11 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                   const icon = sectionIcon(section)
 
                   return (
-                    <div
+                    <ul
                       key={`${section}-${slots[0]?.parts[0]?.id ?? 0}`}
-                      className="mt-2 border-l-4 pl-3"
+                      className="mt-2 list-none border-l-4 pl-3"
                       style={{ borderColor: color }}
                       aria-label={section || undefined}
-                      role="list"
                     >
                       {section && <SectionHeader section={section} icon={icon} />}
                       {slots.map(slot => {
@@ -526,7 +523,7 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                         }
                         return <MultiTrackPart key={`slot-${slot.parts[0].id}`} parts={slot.parts} query={query} />
                       })}
-                    </div>
+                    </ul>
                   )
                 })}
 
