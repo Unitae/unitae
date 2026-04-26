@@ -39,8 +39,8 @@ export default function ImportPage() {
         title={m.import_title()}
         subtitle={m.import_subtitle()}
         breadcrumbs={[
-          { label: 'Réglages', to: '/settings' },
-          { label: m.settings_congregation_title(), to: '/settings/congregation' },
+          { label: m.sidebar_settings(), to: '/settings' },
+          { label: m.settings_data_title(), to: '/settings/data' },
           { label: m.import_title() },
         ]}
       />
@@ -96,7 +96,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   if (!uploadedFile || !(uploadedFile as File).name.endsWith('.unitae')) {
     session.flash('error', m.import_invalid_file())
-    return redirect('/settings/congregation/import', {
+    return redirect('/settings/data/import', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
@@ -115,11 +115,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     const summary = await validateImport(storageKey, currentUser.congregationId)
     // Store summary in URL search params for the confirm page
     const params = new URLSearchParams({ storageKey, summary: JSON.stringify(summary) })
-    return redirect(`/settings/congregation/import/confirm?${params.toString()}`)
+    return redirect(`/settings/data/import/confirm?${params.toString()}`)
   } catch (error) {
     logger.error('Import validation failed', { error })
     session.flash('error', m.import_invalid_file())
-    return redirect('/settings/congregation/import', {
+    return redirect('/settings/data/import', {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }

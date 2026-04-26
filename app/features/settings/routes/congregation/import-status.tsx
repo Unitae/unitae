@@ -23,7 +23,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   const job = await dataTransferQueue.getJob(params.jobId)
   if (!job) {
-    throw redirect('/settings/congregation/import')
+    throw redirect('/settings/data/import')
   }
 
   const state = await job.getState()
@@ -56,9 +56,9 @@ export default function ImportStatusPage({ loaderData }: Route.ComponentProps) {
         title={m.import_status_title()}
         subtitle={m.import_status_subtitle()}
         breadcrumbs={[
-          { label: 'Réglages', to: '/settings' },
-          { label: m.settings_congregation_title(), to: '/settings/congregation' },
-          { label: m.import_title(), to: '/settings/congregation/import' },
+          { label: m.sidebar_settings(), to: '/settings' },
+          { label: m.settings_data_title(), to: '/settings/data' },
+          { label: m.import_title(), to: '/settings/data/import' },
           { label: m.import_status_title() },
         ]}
       />
@@ -100,7 +100,7 @@ export default function ImportStatusPage({ loaderData }: Route.ComponentProps) {
               <p className="text-destructive text-sm">{m.import_status_failed_message()}</p>
               {failedReason && <p className="text-muted-foreground text-xs">{failedReason}</p>}
               <Button variant="outline" asChild>
-                <Link to="/settings/congregation/import">{m.export_status_back()}</Link>
+                <Link to="/settings/data/import">{m.export_status_back()}</Link>
               </Button>
             </>
           )}

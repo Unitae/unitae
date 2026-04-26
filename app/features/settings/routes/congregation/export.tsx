@@ -39,8 +39,8 @@ export default function ExportPage({ actionData }: Route.ComponentProps) {
         title={m.export_title()}
         subtitle={m.export_subtitle()}
         breadcrumbs={[
-          { label: 'Réglages', to: '/settings' },
-          { label: m.settings_congregation_title(), to: '/settings/congregation' },
+          { label: m.sidebar_settings(), to: '/settings' },
+          { label: m.settings_data_title(), to: '/settings/data' },
           { label: m.export_title() },
         ]}
       />
@@ -103,5 +103,5 @@ export async function action({ request, context }: Route.ActionArgs) {
     },
   })
 
-  return redirect(`/settings/congregation/export/${job.id}/status`)
+  return redirect(`/settings/data/export/${job.id}/status`)
 }

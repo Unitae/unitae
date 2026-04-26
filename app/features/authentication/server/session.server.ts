@@ -1,4 +1,4 @@
-import { type Session, createCookieSessionStorage, redirect } from 'react-router'
+import { createCookieSessionStorage, redirect, type Session } from 'react-router'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'

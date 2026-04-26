@@ -7,12 +7,14 @@ import {
   ClipboardList,
   FileText,
   FolderOpen,
+  HardDrive,
   Home,
   LayoutGrid,
   LogOut,
   Map as MapIcon,
   MapPin,
   PieChart,
+  Settings,
   User,
   UserRoundCog,
   Users,
@@ -146,21 +148,25 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
             <SidebarGroupLabel>{m.sidebar_settings()}</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                {permissions.canManageSettings && (
+                  <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
+                )}
                 {permissions.canManageUsers && (
                   <SidebarNavItem to="/settings/users" icon={Users} label={m.sidebar_users()} />
                 )}
                 {permissions.canManageSettings && (
                   <>
                     <SidebarNavItem
-                      to="/settings/territories"
-                      icon={MapIcon}
-                      label={m.sidebar_settings_territories()}
-                    />
-                    <SidebarNavItem
                       to="/settings/congregation"
                       icon={Building2}
                       label={m.sidebar_settings_assembly()}
                     />
+                    <SidebarNavItem
+                      to="/settings/territories"
+                      icon={MapIcon}
+                      label={m.sidebar_settings_territories()}
+                    />
+                    <SidebarNavItem to="/settings/data" icon={HardDrive} label={m.sidebar_settings_data()} />
                     <SidebarNavItem to="/settings/audit-log" icon={ClipboardList} label={m.sidebar_audit_log()} />
                   </>
                 )}

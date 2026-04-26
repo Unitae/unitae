@@ -52,21 +52,21 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
 function translateAction(action: string): string {
   const translations: Record<string, string> = {
-    'user.login': 'Connexion',
-    'user.login.failed': 'Echec de connexion',
-    'user.logout': 'Déconnexion',
-    'user.created': 'Utilisateur créé',
-    'user.updated': 'Utilisateur modifié',
-    'user.anonymized': 'Utilisateur anonymisé',
-    'user.roles.changed': 'Rôles modifiés',
-    'user.data.exported': 'Données exportées',
-    'consent.granted': 'Consentement accordé',
-    'consent.withdrawn': 'Consentement retiré',
-    'password.changed': 'Mot de passe modifié',
-    'password.reset.requested': 'Réinitialisation demandée',
-    'board.read_status.viewed': 'Statut de lecture consulté',
-    'platform.congregation.updated': 'Assemblée modifiée (admin)',
-    'platform.users.listed': 'Utilisateurs consultés (admin)',
+    'user.login': m.audit_log_action_user_login(),
+    'user.login.failed': m.audit_log_action_user_login_failed(),
+    'user.logout': m.audit_log_action_user_logout(),
+    'user.created': m.audit_log_action_user_created(),
+    'user.updated': m.audit_log_action_user_updated(),
+    'user.anonymized': m.audit_log_action_user_anonymized(),
+    'user.roles.changed': m.audit_log_action_user_roles_changed(),
+    'user.data.exported': m.audit_log_action_user_data_exported(),
+    'consent.granted': m.audit_log_action_consent_granted(),
+    'consent.withdrawn': m.audit_log_action_consent_withdrawn(),
+    'password.changed': m.audit_log_action_password_changed(),
+    'password.reset.requested': m.audit_log_action_password_reset_requested(),
+    'board.read_status.viewed': m.audit_log_action_board_read_status_viewed(),
+    'platform.congregation.updated': m.audit_log_action_platform_congregation_updated(),
+    'platform.users.listed': m.audit_log_action_platform_users_listed(),
   }
   return translations[action] ?? action
 }
@@ -80,7 +80,7 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.audit_log_title()}
         subtitle={m.audit_log_subtitle()}
-        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_audit_log() }]}
+        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_audit_log() }]}
       />
 
       <RouterForm method="get" className="flex flex-wrap items-end gap-3">
@@ -93,15 +93,19 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
             className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
             <option value="">{m.audit_log_filter_all_actions()}</option>
-            <option value="user.login">Connexion</option>
-            <option value="user.login.failed">Echec de connexion</option>
-            <option value="user.created">Utilisateur créé</option>
-            <option value="user.updated">Utilisateur modifié</option>
-            <option value="user.anonymized">Utilisateur anonymisé</option>
-            <option value="password.changed">Mot de passe modifié</option>
-            <option value="password.reset.requested">Réinitialisation demandée</option>
-            <option value="consent.granted">Consentement accordé</option>
-            <option value="consent.withdrawn">Consentement retiré</option>
+            <option value="user.login">{m.audit_log_action_user_login()}</option>
+            <option value="user.login.failed">{m.audit_log_action_user_login_failed()}</option>
+            <option value="user.logout">{m.audit_log_action_user_logout()}</option>
+            <option value="user.created">{m.audit_log_action_user_created()}</option>
+            <option value="user.updated">{m.audit_log_action_user_updated()}</option>
+            <option value="user.anonymized">{m.audit_log_action_user_anonymized()}</option>
+            <option value="user.roles.changed">{m.audit_log_action_user_roles_changed()}</option>
+            <option value="user.data.exported">{m.audit_log_action_user_data_exported()}</option>
+            <option value="password.changed">{m.audit_log_action_password_changed()}</option>
+            <option value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</option>
+            <option value="consent.granted">{m.audit_log_action_consent_granted()}</option>
+            <option value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</option>
+            <option value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</option>
           </select>
         </div>
         <div className="space-y-1">

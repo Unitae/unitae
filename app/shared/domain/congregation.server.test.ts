@@ -25,6 +25,7 @@ const baseCongregation = {
   name: 'Congrégation Test',
   slug: 'test',
   displayName: null,
+  domain: null,
   emailFromName: null,
   emailFromAddress: null,
   baseUrl: null,
@@ -105,6 +106,27 @@ describe('resolveCongregation', () => {
 
     const result = await resolveCongregation(1)
     expect(result.baseUrl).toBe('https://custom.example.com')
+  })
+
+  it('préfère le domaine personnalisé au slug pour le baseUrl', async () => {
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({
+      ...baseCongregation,
+      domain: 'app.example.org',
+    } as never)
+
+    const result = await resolveCongregation(1)
+    expect(result.baseUrl).toBe('https://app.example.org')
+  })
+
+  it('préfère le domaine personnalisé au baseUrl explicite', async () => {
+    vi.mocked(db.congregation.findUnique).mockResolvedValue({
+      ...baseCongregation,
+      domain: 'app.example.org',
+      baseUrl: 'https://old.example.com',
+    } as never)
+
+    const result = await resolveCongregation(1)
+    expect(result.baseUrl).toBe('https://app.example.org')
   })
 
   it('transmet les champs de plan et limites', async () => {

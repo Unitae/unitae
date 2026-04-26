@@ -55,18 +55,25 @@ export async function loader({ context }: Route.LoaderArgs) {
       currentUser.congregationId,
     )
 
+    const attributionDuration = await getSetting(
+      db,
+      TerritorySettingKey.AttributionDefaultDurationMonths,
+      currentUser.congregationId,
+    )
+
     return {
       territory: serializeTerritoryPolygon(territory),
       zips: serializeZips(zips),
       banoUrl: banoUrl ?? '',
       prospectionValidity: Number(prospectionValidity ?? '24'),
       phoneTypeActivated: phoneTypeActivated ?? false,
+      attributionDuration: Number(attributionDuration ?? '4'),
     }
   })
 }
 
-export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated } = loaderData
+export default function TerritorySettingsPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated, attributionDuration } = loaderData
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -83,7 +90,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
       <PageHeader
         title={m.settings_territories_title()}
         subtitle={m.settings_territories_subtitle()}
-        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_territories() }]}
+        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_territories() }]}
       />
 
       <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
@@ -101,6 +108,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
                 defaultValue={banoUrl}
               />
               {fields['bano-url'].errors && <p className="text-destructive text-sm">{fields['bano-url'].errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_bano_url_hint()}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor={fields.zips.id}>{m.settings_territories_zips_label()}</Label>
@@ -111,6 +119,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
                 defaultValue={zips}
               />
               {fields.zips.errors && <p className="text-destructive text-sm">{fields.zips.errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_zips_hint()}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor={fields['prospection-validity'].id}>
@@ -125,6 +134,31 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
               {fields['prospection-validity'].errors && (
                 <p className="text-destructive text-sm">{fields['prospection-validity'].errors}</p>
               )}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_prospection_validity_hint()}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.settings_territories_attributions_title()}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor={fields['attribution-default-duration'].id}>
+                {m.settings_territories_attribution_duration_label()}
+              </Label>
+              <Input
+                {...getInputProps(fields['attribution-default-duration'], { type: 'number' })}
+                key={fields['attribution-default-duration'].id}
+                defaultValue={attributionDuration}
+                min={1}
+                max={24}
+              />
+              {fields['attribution-default-duration'].errors && (
+                <p className="text-destructive text-sm">{fields['attribution-default-duration'].errors}</p>
+              )}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_attribution_duration_hint()}</p>
             </div>
           </CardContent>
         </Card>
@@ -143,6 +177,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
                 defaultValue={territory}
               />
               {fields.territory.errors && <p className="text-destructive text-sm">{fields.territory.errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_polygon_hint()}</p>
             </div>
 
             <Separator />
@@ -190,6 +225,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const banoUrl = submission.value['bano-url']
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
+  const attributionDuration = submission.value['attribution-default-duration']
 
   return withScopeFromContext(context, async db => {
     await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
@@ -197,7 +233,13 @@ export async function action({ request, context }: Route.ActionArgs) {
     await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
+    await setSetting(
+      db,
+      TerritorySettingKey.AttributionDefaultDurationMonths,
+      attributionDuration,
+      currentUser.congregationId,
+    )
 
-    return redirect('/settings')
+    return redirect('/settings/territories')
   })
 }

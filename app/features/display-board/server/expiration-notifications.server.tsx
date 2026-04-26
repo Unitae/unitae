@@ -1,11 +1,12 @@
+import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { emailQueue } from '~/shared/infra/email-queue.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 
 /**
- * Verifie tous les documents dont la visibilite expire dans les 48 prochaines heures
- * et envoie une notification aux valideurs du tableau d'affichage.
+ * Checks all documents whose visibility expires within the next 48 hours
+ * and sends a notification to display board validators.
  */
 export async function checkExpiringDocuments(): Promise<{
   congregationsNotified: number
@@ -27,13 +28,6 @@ export async function checkExpiringDocuments(): Promise<{
       id: true,
       title: true,
       congregationId: true,
-      congregation: {
-        select: {
-          id: true,
-          displayName: true,
-          slug: true,
-        },
-      },
     },
   })
 
@@ -42,63 +36,58 @@ export async function checkExpiringDocuments(): Promise<{
   }
 
   // Group by congregation
-  const byCongregation = new Map<number, { docs: { id: number; title: string }[]; displayName: string; slug: string }>()
+  const byCongregation = new Map<number, { id: number; title: string }[]>()
   for (const doc of expiringDocuments) {
     const existing = byCongregation.get(doc.congregationId)
     if (existing) {
-      existing.docs.push({ id: doc.id, title: doc.title })
+      existing.push({ id: doc.id, title: doc.title })
     } else {
-      byCongregation.set(doc.congregationId, {
-        docs: [{ id: doc.id, title: doc.title }],
-        displayName: doc.congregation.displayName ?? doc.congregation.slug,
-        slug: doc.congregation.slug,
-      })
+      byCongregation.set(doc.congregationId, [{ id: doc.id, title: doc.title }])
     }
   }
 
   let congregationsNotified = 0
   let jobsEnqueued = 0
 
-  for (const [congregationId, { docs, displayName, slug }] of byCongregation) {
-    // Find BoardValidator users for this congregation
-    const validators = await unscopedDb.user.findMany({
-      where: {
-        congregationId,
-        active: true,
-        congregationRoles: {
-          some: {
-            role: { key: Role.BoardValidator },
+  for (const [congregationId, docs] of byCongregation) {
+    try {
+      const congregation = await resolveCongregation(congregationId)
+
+      // Find BoardValidator users for this congregation
+      const validators = await unscopedDb.user.findMany({
+        where: {
+          congregationId,
+          active: true,
+          congregationRoles: {
+            some: {
+              role: { key: Role.BoardValidator },
+            },
           },
         },
-      },
-      select: { email: true, firstname: true },
-    })
+        select: { email: true, firstname: true },
+      })
 
-    const baseUrl = process.env.BASE_URL ?? `https://${slug}.unitae.app`
-    const emailFrom = `${displayName} <noreply@unitae.app>`
+      const jobs = validators.map(user => ({
+        name: 'documents-expiring',
+        data: {
+          type: 'documents-expiring' as const,
+          congregationId,
+          documents: docs,
+          validatorEmail: user.email,
+          validatorFirstname: user.firstname ?? undefined,
+          emailFrom: congregation.emailFrom,
+          baseUrl: congregation.baseUrl,
+          displayName: congregation.displayName,
+          locale: congregation.locale,
+        },
+      }))
 
-    const jobs = validators.map(user => ({
-      name: 'documents-expiring',
-      data: {
-        type: 'documents-expiring' as const,
-        congregationId,
-        documents: docs,
-        validatorEmail: user.email,
-        validatorFirstname: user.firstname ?? undefined,
-        emailFrom,
-        baseUrl,
-        displayName,
-      },
-    }))
-
-    try {
       await emailQueue.addBulk(jobs)
       jobsEnqueued += jobs.length
+      congregationsNotified++
     } catch (error) {
-      logger.error('Failed to enqueue expiration notification jobs', { congregationId, error })
+      logger.error('Failed to process expiration notifications for congregation', { congregationId, error })
     }
-
-    congregationsNotified++
   }
 
   return { congregationsNotified, documentsFound: expiringDocuments.length, jobsEnqueued }

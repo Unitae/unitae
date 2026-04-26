@@ -23,7 +23,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   const job = await dataTransferQueue.getJob(params.jobId)
   if (!job) {
-    throw redirect('/settings/congregation/export')
+    throw redirect('/settings/data/export')
   }
 
   const state = await job.getState()
@@ -57,9 +57,9 @@ export default function ExportStatusPage({ loaderData }: Route.ComponentProps) {
         title={m.export_status_title()}
         subtitle={m.export_status_subtitle()}
         breadcrumbs={[
-          { label: 'Réglages', to: '/settings' },
-          { label: m.settings_congregation_title(), to: '/settings/congregation' },
-          { label: m.export_title(), to: '/settings/congregation/export' },
+          { label: m.sidebar_settings(), to: '/settings' },
+          { label: m.settings_data_title(), to: '/settings/data' },
+          { label: m.export_title(), to: '/settings/data/export' },
           { label: m.export_status_title() },
         ]}
       />
@@ -91,7 +91,7 @@ export default function ExportStatusPage({ loaderData }: Route.ComponentProps) {
             <>
               <p className="text-sm">{m.export_status_completed_message()}</p>
               <Button asChild>
-                <Link to={`/settings/congregation/export/${jobId}/download`}>
+                <Link to={`/settings/data/export/${jobId}/download`}>
                   <Download className="mr-2 size-4" />
                   {m.export_status_download()}
                 </Link>
@@ -104,7 +104,7 @@ export default function ExportStatusPage({ loaderData }: Route.ComponentProps) {
               <p className="text-destructive text-sm">{m.export_status_failed_message()}</p>
               {failedReason && <p className="text-muted-foreground text-xs">{failedReason}</p>}
               <Button variant="outline" asChild>
-                <Link to="/settings/congregation/export">{m.export_status_back()}</Link>
+                <Link to="/settings/data/export">{m.export_status_back()}</Link>
               </Button>
             </>
           )}
