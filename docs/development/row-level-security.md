@@ -50,9 +50,10 @@ ALTER TABLE "User" FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON "User" FOR ALL
   USING (
-    current_setting('app.congregation_id', true) IS NULL
-    OR current_setting('app.congregation_id', true) = ''
-    OR "congregationId" = current_setting('app.congregation_id', true)::int
+    CASE
+      WHEN NULLIF(current_setting('app.congregation_id', true), '') IS NULL THEN true
+      ELSE "congregationId" = current_setting('app.congregation_id', true)::int
+    END
   );
 ```
 
@@ -63,7 +64,9 @@ CREATE POLICY tenant_isolation ON "User" FOR ALL
 | Not set / empty | All rows | Login, setup, health check, platform admin |
 | Set to a value | Only rows matching that congregation | Normal authenticated requests |
 
-The `true` parameter in `current_setting(...)` makes it return `NULL` instead of throwing an error when the variable is not set.
+The `true` parameter in `current_setting(...)` makes it return `NULL` instead of throwing an error when the variable is not set. `NULLIF(..., '')` converts empty strings to `NULL`, so both cases are handled by the single `IS NULL` check.
+
+> **Why `CASE` instead of `OR`?** PostgreSQL does not guarantee left-to-right short-circuit evaluation of `OR` in RLS policies. The query optimizer may reorder conditions. After a `SET LOCAL` transaction ends, pool connections retain `app.congregation_id = ''`. If PostgreSQL evaluates `''::int` before the `IS NULL` guard, the cast fails with `invalid input syntax for type integer: ""`. `CASE` guarantees sequential evaluation: the `::int` cast only runs in the `ELSE` branch when the value is a non-empty string.
 
 ## Tables with RLS
 
@@ -163,11 +166,14 @@ ALTER TABLE "NewTable" FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON "NewTable" FOR ALL
   USING (
-    current_setting('app.congregation_id', true) IS NULL
-    OR current_setting('app.congregation_id', true) = ''
-    OR "congregationId" = current_setting('app.congregation_id', true)::int
+    CASE
+      WHEN NULLIF(current_setting('app.congregation_id', true), '') IS NULL THEN true
+      ELSE "congregationId" = current_setting('app.congregation_id', true)::int
+    END
   );
 ```
+
+> **Never use `OR` with `::int` casts in RLS policies.** Always use `CASE` to guard the cast. See the "RLS Policy" section above for the rationale.
 
 The `unitae_app` role automatically gets DML privileges on new tables thanks to `ALTER DEFAULT PRIVILEGES` set up in the `20260425100000_add_app_database_role` migration.
 

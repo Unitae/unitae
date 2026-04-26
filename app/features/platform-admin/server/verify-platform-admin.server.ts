@@ -5,9 +5,10 @@ import { unscopedDb } from '~/shared/infra/db.server'
 
 export async function verifyPlatformAdmin(request: Request) {
   const session = await getSession(request.headers.get('Cookie'))
-  const userId = Number(session.get('userId'))
+  const rawUserId = session.get('userId')
+  const userId = Number(rawUserId)
 
-  if (Number.isNaN(userId)) {
+  if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
     throw redirect('/login')
   }
 

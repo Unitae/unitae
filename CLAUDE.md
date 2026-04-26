@@ -57,6 +57,16 @@ GOOGLE_MAPS_API_KEY=""              # Optional — enables maps on territory pag
 GOOGLE_MAPS_MAP_ID=""               # Optional — enables custom styled maps
 ```
 
+## Documentation
+
+The `docs/` folder contains detailed human-readable documentation. Consult it for architecture decisions, design rationale, and implementation guides:
+
+- `docs/development/architecture.md` — system design, request flow, multi-tenancy model
+- `docs/development/row-level-security.md` — PostgreSQL RLS implementation and policy patterns
+- `docs/development/coding-conventions.md` — feature-based architecture, code organization
+- `docs/development/background-processing.md` — BullMQ worker architecture
+- `docs/development/getting-started.md` — local development environment setup
+
 ## Architecture Overview
 
 ### FSD-Inspired Project Structure
@@ -101,7 +111,7 @@ Each feature owns all its code through consistent segments:
 
 **Scoped queries** (`app/shared/infra/db.server.ts`):
 - `db` and `unscopedDb` are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
-- Tenant isolation relies on **PostgreSQL Row-Level Security (RLS)**: scoped tables have policies that filter by `current_setting('app.congregation_id')`
+- Tenant isolation relies on **PostgreSQL Row-Level Security (RLS)**: scoped tables have `CASE`-based policies that safely cast `current_setting('app.congregation_id')` to int only when the value is non-empty (see `docs/development/row-level-security.md`)
 - `withScope(congregationId, fn)` — Runs `fn` inside a `$transaction` that first executes `SET LOCAL app.congregation_id`. The `SET LOCAL` is automatically rolled back when the transaction ends, preventing context leakage through the connection pool
 - Without `SET LOCAL` (i.e., outside `withScope`), RLS policies permit all rows — this is the "unscoped" mode used for login, setup, health, password reset, and platform admin
 - All authenticated route loaders/actions that access tenant-scoped data must use `withScopeFromContext(context, async db => { ... })` to wrap their DB calls
@@ -313,6 +323,7 @@ Uses Biome for formatting with these key rules:
 - **Prisma generate**: Run `pnpm prisma generate` after schema changes — generated client is in `app/database/generated/` (gitignored)
 - **Custom migrations**: Use `pnpm prisma migrate diff --from-config-datasource --to-schema app/database/schema.prisma --script` to generate SQL, create migration dir manually with `mkdir -p app/database/migrations/{timestamp}_{name}`
 - **Tenant scoping placeholder**: RLS injects `congregationId` at runtime but TS requires it at compile time — use `congregationId: 0 as number` in create calls on scoped models
+- **RLS policies must use `CASE`, never `OR`**: PostgreSQL may reorder `OR` branches in RLS policies. After `SET LOCAL` reverts, pool connections have `app.congregation_id = ''`. If the optimizer evaluates `''::int` before the `IS NULL` guard, the cast fails. Always use `CASE WHEN NULLIF(current_setting(...), '') IS NULL THEN true ELSE ... END` — see `docs/development/row-level-security.md`
 - **`db` vs `unscopedDb`**: Both reference the same PrismaClient. The distinction is semantic only. Use `withScopeFromContext(context, ...)` or `withScope(congregationId, ...)` for tenant-scoped queries. Use `db`/`unscopedDb` directly (without `withScope`) for cross-tenant operations: login, password reset, setup, health check, platform admin, seed.
 - **`findUnique` on compound keys**: Setting and EventKind have compound unique `[key, congregationId]` — use `findFirst({ where: { key } })` instead, the extension adds `congregationId`
 - **Biome suppress for Prisma/AWS**: Prisma compound keys (`key_congregationId`) and AWS SDK properties (`Bucket`, `Key`) need `biome-ignore lint/style/useNamingConvention` suppression
