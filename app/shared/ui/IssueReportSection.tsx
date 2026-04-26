@@ -5,8 +5,8 @@ import * as m from '~/paraglide/messages'
 
 export function IssueReportSection({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false)
-  const timestamp = new Date().toISOString()
-  const userAgent = typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+  const [timestamp] = useState(() => new Date().toISOString())
+  const [userAgent] = useState(() => (typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'))
   const issueTitle = encodeURIComponent(`Bug: Unexpected error on ${pathname}`)
   const issueBody = encodeURIComponent(
     `## Description\n\nAn unexpected error occurred.\n\n## Technical details\n\n- **Route:** ${pathname}\n- **Timestamp:** ${timestamp}\n- **Browser:** ${userAgent}\n\n## Steps to reproduce\n\n1. ...\n`,

@@ -15,10 +15,10 @@ import {
 } from '~/shared/auth/route-context.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
-import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/new-publisher'
 

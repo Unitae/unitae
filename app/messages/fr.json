@@ -9,7 +9,7 @@
     "error_boundary_forbidden_description": "Vous n'avez pas les droits nécessaires pour accéder à cette page.",
     "error_boundary_server_error": "Erreur inattendue",
     "error_boundary_server_error_description": "Une erreur est survenue. Veuillez réessayer dans quelques instants.",
-    "error_limit_reached": "Vous avez atteint la limite de votre abonnement pour les {resource}.",
+    "error_limit_reached": "Vous avez atteint la limite de votre abonnement ({resource}).",
     "error_not_found": "La ressource demandée est introuvable.",
     "error_forbidden": "Vous n'avez pas les droits nécessaires pour effectuer cette action.",
     "error_conflict": "Un conflit a été détecté. L'élément existe peut-être déjà.",

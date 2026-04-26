@@ -15,7 +15,7 @@ export function loader() {
   const hostSettings = getHostSettings()
   const isMultiTenant = process.env.MULTI_TENANT === 'true'
   return {
-    platformUrl: isMultiTenant ? (hostSettings.billing?.upgradeUrl ?? null) : null,
+    platformUrl: isMultiTenant ? (hostSettings.support?.url ?? null) : null,
   }
 }
 

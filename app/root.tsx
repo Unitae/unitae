@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, RefreshCw, SearchX, ShieldX } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react'
 import type { LinksFunction } from 'react-router'
 import {
   isRouteErrorResponse,
@@ -16,6 +16,7 @@ import * as m from '~/paraglide/messages'
 import { getLocale } from '~/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { getErrorInfo } from '~/shared/ui/error-info'
 import { IssueReportSection } from '~/shared/ui/IssueReportSection'
 
 import './tailwind.css'
@@ -70,34 +71,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </body>
     </html>
   )
-}
-
-function getErrorInfo(status: number) {
-  if (status === 404) {
-    return {
-      icon: SearchX,
-      title: m.error_boundary_not_found(),
-      description: m.error_boundary_not_found_description(),
-      showRetry: false,
-      showReport: false,
-    }
-  }
-  if (status === 403) {
-    return {
-      icon: ShieldX,
-      title: m.error_boundary_forbidden(),
-      description: m.error_boundary_forbidden_description(),
-      showRetry: false,
-      showReport: false,
-    }
-  }
-  return {
-    icon: AlertTriangle,
-    title: m.error_boundary_server_error(),
-    description: m.error_boundary_server_error_description(),
-    showRetry: true,
-    showReport: true,
-  }
 }
 
 export function ErrorBoundary() {

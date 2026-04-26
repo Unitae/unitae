@@ -18,7 +18,6 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
@@ -32,6 +31,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/new'
 
