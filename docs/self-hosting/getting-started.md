@@ -52,7 +52,7 @@ Run this once on first setup:
 
 ```bash
 docker compose exec web pnpm prisma migrate deploy
-docker compose exec web pnpm tsx app/database/seed.ts
+docker compose exec web pnpm db:seed
 ```
 
 ### 5. Access the Setup Wizard
@@ -75,7 +75,7 @@ cp .env.example .env
 
 pnpm prisma generate
 pnpm prisma migrate deploy
-pnpm tsx app/database/seed.ts
+pnpm db:seed
 pnpm build
 ```
 

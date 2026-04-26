@@ -2,24 +2,27 @@
 
 ## Overview
 
-Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles three job types: territory data sync, email notifications, and PDF thumbnail generation. Jobs carry `congregationId` to maintain tenant isolation.
+Unitae uses a Redis-based background job processing system built on **BullMQ**. A single multi-queue worker process handles four job types: territory data sync, email notifications, PDF thumbnail generation, and data transfer (export/import). Jobs carry `congregationId` to maintain tenant isolation.
 
 ## Architecture
 
 ```
-Web Pod                               Worker Pod (workers/worker.server.ts)
-┌───────────────────────┐             ┌──────────────────────────────────┐
-│  Route / Cron Action  │             │  syncWorker      (concurrency 1)│
-│                       │             │    → handleSyncWork()            │
-│  syncQueue.add(...)   │── Redis ──▶ │                                 │
-│  emailQueue.add(...)  │── Redis ──▶ │  emailWorker     (concurrency 5)│
-│  thumbnailQueue.add() │── Redis ──▶ │    → handleEmailWork()          │
-│                       │             │                                 │
-└───────────────────────┘             │  thumbnailWorker  (concurrency 2)│
-                                      │    → handleThumbnailWork()      │
-                                      │                                 │
-                                      │  Health: :9090                  │
-                                      └──────────────────────────────────┘
+Web Pod                                    Worker Pod (workers/worker.server.ts)
+┌──────────────────────────────┐           ┌─────────────────────────────────────────┐
+│  Route / Cron Action         │           │  syncWorker           (concurrency 1)   │
+│                              │           │    → handleSyncWork()                   │
+│  syncQueue.add(...)          │── Redis ─▶│                                         │
+│  emailQueue.add(...)         │── Redis ─▶│  emailWorker          (concurrency 5)   │
+│  thumbnailQueue.add(...)     │── Redis ─▶│    → handleEmailWork()                  │
+│  dataTransferQueue.add(...)  │── Redis ─▶│                                         │
+│                              │           │  thumbnailWorker      (concurrency 2)   │
+└──────────────────────────────┘           │    → handleThumbnailWork()              │
+                                           │                                         │
+                                           │  dataTransferWorker   (concurrency 1)   │
+                                           │    → handleDataTransferWork()           │
+                                           │                                         │
+                                           │  Health: :9090                          │
+                                           └─────────────────────────────────────────┘
 ```
 
 ## Queue Registry
@@ -31,6 +34,7 @@ export const QUEUE_NAMES = {
   sync: 'syncQueue',
   email: 'emailQueue',
   thumbnail: 'thumbnailQueue',
+  dataTransfer: 'dataTransferQueue',
 } as const
 ```
 
@@ -51,8 +55,8 @@ Imports and processes open data (BANO addresses) for territory management.
 
 Sends notification emails asynchronously with automatic retries.
 
-- **Producer**: `app/features/display-board/server/email-queue.server.ts`
-- **Handler**: `app/features/display-board/server/handle-email-work.server.tsx`
+- **Producer**: `app/shared/infra/email-queue.server.ts`
+- **Handler**: `app/shared/infra/handle-email-work.server.tsx`
 - **Concurrency**: 5 (IO-bound Resend API calls)
 - **Retries**: 3 attempts, exponential backoff (5s base)
 - **Tenant isolation**: Uses `unscopedDb` with explicit `congregationId` filtering
@@ -61,6 +65,8 @@ Sends notification emails asynchronously with automatic retries.
 Job types (discriminated union on `type`):
 - `new-document-notification`: Notifies board validators when a document is uploaded
 - `documents-expiring`: Notifies validators about documents expiring within 48h
+- `notification-digest`: Batched notification email after debounce window settles
+- `notification-instant`: Immediate notification email (no debounce)
 
 ### Thumbnail Queue
 
@@ -74,6 +80,20 @@ Generates PDF thumbnails asynchronously after document upload.
 - **Flow**: Fetch PDF from storage → run `pdftoppm` → upload thumbnail → update document record
 
 Documents are created with `thumbnailUri: null` and updated asynchronously when the worker completes.
+
+### Data Transfer Queue
+
+Handles congregation data export and import as background jobs.
+
+- **Producer**: `app/features/settings/server/data-transfer-queue.server.ts`
+- **Handler**: `app/features/settings/server/handle-data-transfer-work.server.ts`
+- **Concurrency**: 1 (IO-intensive archive creation/extraction)
+- **Retries**: None (1 attempt only)
+- **Tenant isolation**: Uses `withScope(congregationId, ...)` for RLS-scoped DB access
+
+Job types (discriminated union on `type`):
+- `export`: Creates a `.unitae` archive (ZIP) with congregation data and optional uploaded files
+- `import`: Extracts a `.unitae` archive and imports entities with ID remapping
 
 ## Worker Locale Support
 
@@ -93,7 +113,7 @@ This module is imported at the top of `workers/worker.server.ts` before any hand
 
 ## Worker Health & Lifecycle
 
-The unified worker (`workers/worker.server.ts`) manages all three queue workers:
+The unified worker (`workers/worker.server.ts`) manages all four queue workers:
 
 - **Health endpoint**: HTTP server on port `WORKER_HEALTH_PORT` (default 9090)
 - **Ready check**: Returns 200 only when ALL workers have fired `ready` and none are closing
@@ -103,7 +123,7 @@ The unified worker (`workers/worker.server.ts`) manages all three queue workers:
 
 ```bash
 # Start Redis
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker/docker-compose.dev.yml up -d
 
 # Start worker (separate terminal)
 pnpm start:worker

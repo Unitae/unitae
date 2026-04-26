@@ -45,7 +45,6 @@
 │                                                         │
 │  Global: UserRole (14 role definitions)                 │
 │  Global: PasswordResetToken, EmailVerificationToken     │
-│  Global: AuditLog, DataDeletionRecord, ConsentRecord    │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -90,9 +89,17 @@ When to use each:
 | Background workers | `withScope(congregationId, ...)` or `unscopedDb` | Sync jobs use `withScope`, email jobs use `unscopedDb` with explicit `where` |
 | Platform admin | `unscopedDb` | Cross-congregation queries |
 
-**Scoped models** (12): User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
+**Scoped models** (28 — all carry `congregationId` and are isolated by RLS):
+- **Auth**: User, CongregationUserRole
+- **Board**: BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
+- **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData
+- **Publishers**: PublisherGroup, PublisherActivity
+- **Events**: Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible
+- **Settings**: Setting
+- **Notifications**: NotificationEvent, NotificationPreference
+- **GDPR / Audit**: AuditLog, DataDeletionRecord, ConsentRecord
 
-**Global models**: UserRole, Congregation, CongregationUserRole, PasswordResetToken, EmailVerificationToken, AuditLog, DataDeletionRecord, ConsentRecord
+**Global models** (5 — no `congregationId`, not scoped by RLS): Congregation, UserRole, PasswordResetToken, EmailVerificationToken, BoardDynamicDocumentView
 
 ## Authentication & Role Flow
 
@@ -147,7 +154,7 @@ When not set, map features are silently disabled.
 
 Fire-and-forget audit logging via `audit()` from `app/shared/domain/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
 
-Actions tracked: user login/logout/creation/update/anonymization, role changes, data export, consent grant/withdrawal, password changes, board read status, platform admin operations.
+Actions tracked: user login/logout/creation/update/anonymization, role changes, data export, consent grant/withdrawal, password changes, board read status.
 
 ## Testing
 

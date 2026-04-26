@@ -10,7 +10,7 @@ Start here to understand the product, its features, and how it works.
 
 1. [What is Unitae?](product/what-is-unitae.md) — The problem it solves, how it differs, who builds it
 2. [Feature Overview](product/feature-overview.md) — A glance at all features
-3. Deep dives: [Dashboard](product/dashboard.md) · [Display Board](product/display-board.md) · [Territories](product/territories.md) · [Publishers](product/publishers.md) · [Events](product/events.md)
+3. Deep dives: [Dashboard](product/dashboard.md) · [Display Board](product/display-board.md) · [Territories](product/territories.md) · [Publishers](product/publishers.md) · [Events](product/events.md) · [Notifications](product/notifications.md) · [Data Transfer](product/data-transfer.md)
 4. [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
 5. [Security](product/security.md) — How your data is protected (includes GDPR & data protection)
 
@@ -30,6 +30,8 @@ Run Unitae on your own infrastructure with full control over your data.
 3. [Requirements](self-hosting/requirements.md) — Minimum resources for production
 4. [Environment Variables](self-hosting/environment-variables.md) — Full configuration reference
 5. [Open Data Sync](self-hosting/open-data-sync.md) — Import French national addresses for building prospection
+6. [Cron Jobs](self-hosting/cron-jobs.md) — Set up recurring maintenance tasks
+7. [Health Monitoring](self-hosting/health-monitoring.md) — Configure health check probes
 
 ### Contribute to Unitae
 
@@ -40,7 +42,11 @@ Set up a development environment and understand the codebase.
 3. [Architecture](development/architecture.md) — System design, request flow, and data isolation
 4. [Row-Level Security](development/row-level-security.md) — How RLS enforces tenant isolation
 5. [Background Processing](development/background-processing.md) — BullMQ worker architecture
-6. [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
+6. [Notifications](development/notifications.md) — Notification system architecture
+7. [Testing](development/testing.md) — Unit, integration, and E2E test setup
+8. [Internationalization](development/internationalization.md) — Paraglide i18n system
+9. [Email Templates](development/email-templates.md) — React Email templates and Resend
+10. [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
 
 ### Reference
 

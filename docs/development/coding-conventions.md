@@ -139,7 +139,7 @@ Files in `app/features/X/server/` **must not** import from `app/features/Y/serve
 
 - **`withScopeFromContext(context, fn)`** — Reads `congregationId` from route context and wraps `fn` in a `$transaction` with `SET LOCAL app.congregation_id` for PostgreSQL RLS. Preferred in authenticated routes (middleware sets the context).
 - **`withScope(congregationId, fn)`** — Same as above but takes `congregationId` explicitly. Use when route context is not available (e.g., background jobs).
-- **`unscopedDb`** — Same PrismaClient, no `SET LOCAL`. RLS permits all rows. Use for: login, password reset, setup, health check, platform admin, audit logging, email sending.
+- **`unscopedDb`** — Same PrismaClient, no `SET LOCAL`. RLS permits all rows. Use for: login, password reset, setup, health check, audit logging, email sending.
 - **`db` and `unscopedDb`** are the same instance. The distinction is semantic only. Tenant isolation happens via `SET LOCAL` inside `withScope`, not via a different client.
 
 ### Congregation ID Placeholder

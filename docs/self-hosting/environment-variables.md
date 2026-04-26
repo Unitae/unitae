@@ -18,6 +18,8 @@ Complete reference for all configuration variables used by Unitae.
 | `MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
 | `LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
 | `PORT` | `8080` | HTTP server port |
+| `CRON_SECRET` | — | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401 |
+| `WORKER_HEALTH_PORT` | `9090` | HTTP port for the background worker's health check endpoint |
 
 ## Database
 
@@ -25,6 +27,7 @@ Complete reference for all configuration variables used by Unitae.
 |----------|---------|-------------|
 | `DATABASE_URL` | — | PostgreSQL connection string (required). Used for migrations and seed |
 | `DATABASE_APP_URL` | — | Non-superuser connection string for the runtime. Enables RLS enforcement. Falls back to `DATABASE_URL` if not set. See [Row-Level Security](../development/row-level-security.md) |
+| `DATABASE_POOL_MAX` | `10` | Maximum number of PostgreSQL connections in the pool |
 
 The database connection is configured in `prisma.config.ts`, not in `schema.prisma`.
 
@@ -86,7 +89,8 @@ These variables are used by `docker-compose.yml` for the PostgreSQL and Redis co
 | `POSTGRES_PASSWORD` | — | PostgreSQL password (required) |
 | `POSTGRES_DB` | `unitae` | PostgreSQL database name |
 | `REDIS_PASSWORD` | — | Redis password (required) |
-| `UNITAE_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image to use for web and worker services |
+| `UNITAE_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
+| `UNITAE_WORKER_IMAGE` | `ghcr.io/unitae/unitae/worker:latest` | Docker image for the background worker service |
 
 ## Development Defaults
 

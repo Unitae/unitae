@@ -13,20 +13,20 @@ Unitae is multi-tenant: multiple congregations share the same PostgreSQL databas
 RLS moves the isolation guarantee from the application layer down to the database engine. PostgreSQL itself filters rows before they reach the application.
 
 ```
-┌──────────────────────────────────┐
-│          Application             │
-│                                  │
-│  SET LOCAL app.congregation_id   │──── sets context for the transaction
-│  SELECT * FROM "User"            │──── no WHERE needed, RLS filters
-│                                  │
-├──────────────────────────────────┤
-│          PostgreSQL              │
-│                                  │
-│  RLS policy checks every row:    │
-│  "congregationId" = current_setting('app.congregation_id')
-│                                  │
-│  Only matching rows are returned │
-└──────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                        Application                          │              
+│                                                             │
+│      SET LOCAL app.congregation_id                          │──── sets context for the transaction
+│      SELECT * FROM "User"                                   │──── no WHERE needed, RLS filters
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                        PostgreSQL                           │
+│                                                             │
+│               RLS policy checks every row:                  │
+│  "congregationId" = current_setting('app.congregation_id')  │
+│                                                             │
+│               Only matching rows are returned               │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Two Database Roles
@@ -61,7 +61,7 @@ CREATE POLICY tenant_isolation ON "User" FOR ALL
 
 | `app.congregation_id` | Rows visible | When |
 |------------------------|-------------|------|
-| Not set / empty | All rows | Login, setup, health check, platform admin |
+| Not set / empty | All rows | Login, setup, health check |
 | Set to a value | Only rows matching that congregation | Normal authenticated requests |
 
 The `true` parameter in `current_setting(...)` makes it return `NULL` instead of throwing an error when the variable is not set. `NULLIF(..., '')` converts empty strings to `NULL`, so both cases are handled by the single `IS NULL` check.

@@ -42,12 +42,12 @@ Use the same `docker-compose.yml` as the [self-hosted deployment](getting-starte
 ```bash
 docker compose up -d
 docker compose exec web pnpm prisma migrate deploy
-docker compose exec web pnpm tsx app/database/seed.ts
+docker compose exec web pnpm db:seed
 ```
 
 ## PM2 Setup
 
-Same as the [self-hosted PM2 setup](self-hosted.md#pm2-direct-nodejs) with the extra environment variables.
+Same as the [self-hosted PM2 setup](getting-started.md#pm2-direct-nodejs) with the extra environment variables.
 
 ## Creating Congregations
 

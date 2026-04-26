@@ -71,6 +71,26 @@ Manage congregation meeting programmes, event scheduling, and publisher assignme
 
 See [Events](events.md) for details.
 
+## Notifications
+
+Unitae sends email notifications to keep members informed about relevant events.
+
+- **Debouncing** — Rapid events (e.g., several documents uploaded in succession) are grouped into a single digest email
+- **Cancellation** — Deleting a document cancels the pending "new document" notification
+- **Preferences** — Users can enable or disable notification types individually or by category
+
+See [Notifications](notifications.md) for details.
+
+## Data Transfer
+
+Export and import congregation data for migration, backup, or restoration.
+
+- **Export** — Download a `.unitae` archive containing all congregation data, with options to include uploaded files and audit logs
+- **Import** — Upload a `.unitae` archive with automatic conflict detection and resolution
+- **Background processing** — Large exports and imports run as background jobs with progress tracking
+
+See [Data Transfer](data-transfer.md) for details.
+
 ## Settings
 
 Configure the congregation and manage users.
