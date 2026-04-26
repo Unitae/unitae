@@ -334,11 +334,7 @@ function EventCard({
             {group.slots.map((slot, slotIdx) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: slots have no stable id
               <View key={slotIdx}>
-                {slot.parts.length === 1 ? (
-                  <SinglePart part={slot.parts[0]} />
-                ) : (
-                  <MultiTrackPart parts={slot.parts} />
-                )}
+                {slot.parts.length === 1 ? <SinglePart part={slot.parts[0]} /> : <MultiTrackPart parts={slot.parts} />}
               </View>
             ))}
           </View>
