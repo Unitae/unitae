@@ -1,5 +1,4 @@
-import { AlertTriangle, ArrowLeft, ExternalLink, RefreshCw, SearchX, ShieldX } from 'lucide-react'
-import { useState } from 'react'
+import { AlertTriangle, ArrowLeft, RefreshCw, SearchX, ShieldX } from 'lucide-react'
 import type { LinksFunction } from 'react-router'
 import {
   isRouteErrorResponse,
@@ -9,7 +8,6 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  useLocation,
   useRouteError,
   useRouteLoaderData,
 } from 'react-router'
@@ -18,6 +16,7 @@ import * as m from '~/paraglide/messages'
 import { getLocale } from '~/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { IssueReportSection } from '~/shared/ui/IssueReportSection'
 
 import './tailwind.css'
 
@@ -42,6 +41,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const data = useRouteLoaderData<typeof loader>('root')
   const locale = data?.locale ?? 'fr'
 
+  // Static inline script to prevent dark mode flash — no user input involved
+  const darkModeScript =
+    "(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}})()"
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <head>
@@ -56,10 +59,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
         <script
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: inline script to prevent dark mode flash
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('theme');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}})()`,
-          }}
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: static string constant, no user input
+          dangerouslySetInnerHTML={{ __html: darkModeScript }}
         />
       </head>
       <body>
@@ -99,52 +100,9 @@ function getErrorInfo(status: number) {
   }
 }
 
-function IssueReportSection({ pathname }: { pathname: string }) {
-  const [open, setOpen] = useState(false)
-  const timestamp = new Date().toISOString()
-  const issueTitle = encodeURIComponent(`Bug: Unexpected error on ${pathname}`)
-  const issueBody = encodeURIComponent(
-    `## Description\n\nAn unexpected error occurred.\n\n## Technical details\n\n- **Route:** ${pathname}\n- **Timestamp:** ${timestamp}\n- **Browser:** ${navigator.userAgent}\n\n## Steps to reproduce\n\n1. ...\n`,
-  )
-  const issueUrl = `https://github.com/Unitae/unitae/issues/new?title=${issueTitle}&body=${issueBody}&labels=bug`
-
-  return (
-    <div className="mt-4 w-full rounded-lg border p-3 text-left text-xs">
-      <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between">
-        <span className="font-medium text-muted-foreground">{m.error_technical_details()}</span>
-        <span className="text-muted-foreground">{open ? '−' : '+'}</span>
-      </button>
-      {open && (
-        <div className="mt-2 space-y-2">
-          <div className="rounded bg-muted p-2 font-mono text-muted-foreground">
-            <div>Route: {pathname}</div>
-            <div>Time: {timestamp}</div>
-          </div>
-          <p className="text-muted-foreground">{m.error_report_issue_description()}</p>
-          <a
-            href={issueUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary underline"
-          >
-            {m.error_report_issue()}
-            <ExternalLink className="size-3" />
-          </a>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function ErrorBoundary() {
   const error = useRouteError()
-  let pathname = '/'
-  try {
-    // biome-ignore lint/correctness/useHookAtTopLevel: useLocation may fail in error boundary if router context is broken
-    pathname = useLocation().pathname
-  } catch {
-    // useLocation can fail if the router context is broken
-  }
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
 
   if (isRouteErrorResponse(error)) {
     const { icon: Icon, title, description, showRetry, showReport } = getErrorInfo(error.status)

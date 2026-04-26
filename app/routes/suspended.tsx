@@ -1,8 +1,10 @@
 import { LogOut, ShieldAlert } from 'lucide-react'
 import { Link } from 'react-router'
+import { getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
 
 import { getHostSettings } from '~/shared/domain/host-settings.server'
+import { unscopedDb } from '~/shared/infra/db.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
@@ -12,13 +14,24 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Compte suspendu - Unitae' }]
 }
 
-export function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   const hostSettings = getHostSettings()
-  const url = new URL(request.url)
   const isMultiTenant = process.env.MULTI_TENANT === 'true'
 
+  // Read suspended reason from DB instead of query param to prevent phishing
+  let reason: string | null = null
+  const session = await getSession(request.headers.get('Cookie'))
+  const userId = Number(session.get('userId'))
+  if (!Number.isNaN(userId) && userId > 0) {
+    const user = await unscopedDb.user.findUnique({
+      where: { id: userId },
+      select: { congregation: { select: { suspendedReason: true } } },
+    })
+    reason = user?.congregation?.suspendedReason ?? null
+  }
+
   return {
-    reason: url.searchParams.get('reason'),
+    reason,
     supportUrl: isMultiTenant ? (hostSettings.support?.url ?? null) : null,
   }
 }

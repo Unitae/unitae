@@ -248,12 +248,66 @@ export async function action({ request, context }: Route.ActionArgs) {
     try {
       const limits = new LimitService(db, congregation)
       await limits.errorIfWouldGoOverLimit('boardDocuments')
-    } catch (error) {
-      await handleAppError(error, session, '/board/documents/new')
-    }
 
-    try {
       await validateBoardFile(file)
+
+      const storageKey = await saveFile(congregationId, file)
+
+      const document = await createBoardDocument(db, {
+        title: String(name),
+        sectionId,
+        uri: storageKey,
+        congregationId,
+        visibleFrom: parsedFrom,
+        visibleUntil: parsedUntil,
+        ...(submission.value.hightlighted != null ? { isHighlighted } : {}),
+      })
+
+      if (document == null) {
+        session.flash('error', m.common_generic_error())
+        logger.warn(`Document creation failed. User ID: ${currentUser.id}. Database entity not created.`, {
+          currentUser,
+          form: { name, sectionId, file },
+          document,
+        })
+        return redirect('/board/documents', {
+          headers: {
+            'Set-Cookie': await commitSession(session),
+          },
+        })
+      }
+
+      session.flash('success', m.board_documents_new_success({ name: document.title }))
+      logger.info(
+        `Document created. User ID: ${currentUser.id}. Document ID: ${document.id}. File key: ${storageKey}.`,
+        {
+          currentUser,
+          document,
+        },
+      )
+
+      await thumbnailQueue.add('generate-thumbnail', {
+        congregationId,
+        documentId: document.id,
+        pdfStorageKey: storageKey,
+      })
+
+      if (!canManageBoard) {
+        await notify(db, {
+          type: 'board.document.created',
+          entityType: 'BoardDocument',
+          entityId: document.id,
+          congregationId,
+          actorId: currentUser.id,
+          payload: { title: document.title, documentId: document.id },
+        })
+      }
+
+      return redirect(`/board/documents/${document.id}/edit`, {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
     } catch (error) {
       if (error instanceof FileValidationError) {
         logger.warn(`Document creation failed. User ID: ${currentUser.id}. File validation: ${error.messageKey}.`, {
@@ -267,62 +321,7 @@ export async function action({ request, context }: Route.ActionArgs) {
           headers: { 'Set-Cookie': await commitSession(session) },
         })
       }
-      throw error
+      await handleAppError(error, session, '/board/documents/new')
     }
-
-    const storageKey = await saveFile(congregationId, file)
-
-    const document = await createBoardDocument(db, {
-      title: String(name),
-      sectionId,
-      uri: storageKey,
-      congregationId,
-      visibleFrom: parsedFrom,
-      visibleUntil: parsedUntil,
-      ...(submission.value.hightlighted != null ? { isHighlighted } : {}),
-    })
-
-    if (document == null) {
-      session.flash('error', m.common_generic_error())
-      logger.warn(`Document creation failed. User ID: ${currentUser.id}. Database entity not created.`, {
-        currentUser,
-        form: { name, sectionId, file },
-        document,
-      })
-      return redirect('/board/documents', {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
-      })
-    }
-
-    session.flash('success', m.board_documents_new_success({ name: document.title }))
-    logger.info(`Document created. User ID: ${currentUser.id}. Document ID: ${document.id}. File key: ${storageKey}.`, {
-      currentUser,
-      document,
-    })
-
-    await thumbnailQueue.add('generate-thumbnail', {
-      congregationId,
-      documentId: document.id,
-      pdfStorageKey: storageKey,
-    })
-
-    if (!canManageBoard) {
-      await notify(db, {
-        type: 'board.document.created',
-        entityType: 'BoardDocument',
-        entityId: document.id,
-        congregationId,
-        actorId: currentUser.id,
-        payload: { title: document.title, documentId: document.id },
-      })
-    }
-
-    return redirect(`/board/documents/${document.id}/edit`, {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
   })
 }

@@ -12,8 +12,19 @@ import {
 
 type FlashSession = { flash(name: 'error' | 'success', message: string): void }
 
+const LIMIT_NAME_LABELS: Record<string, () => string> = {
+  publishers: () => m.limit_resource_publishers(),
+  territories: () => m.limit_resource_territories(),
+  users: () => m.limit_resource_users(),
+  boardDocuments: () => m.limit_resource_board_documents(),
+  storage: () => m.limit_resource_storage(),
+}
+
 function appErrorToFlashMessage(error: AppError): string {
-  if (error instanceof LimitReachedError) return m.error_limit_reached()
+  if (error instanceof LimitReachedError) {
+    const label = LIMIT_NAME_LABELS[error.limitName]?.() ?? error.limitName
+    return m.error_limit_reached({ resource: label })
+  }
   if (error instanceof NotFoundError) return m.error_not_found()
   if (error instanceof ForbiddenError) return m.error_forbidden()
   if (error instanceof ConflictError) return m.error_conflict()

@@ -9,6 +9,7 @@ import { congregationContext, permissionsContext, withScopeFromContext } from '~
 import { LimitService } from '~/shared/domain/limits.server'
 import { Role } from '~/shared/types/role'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
+import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 
 import type { Route } from './+types/create'
 
@@ -31,7 +32,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { type, entranceIds } = submission.value
   const congregation = context.get(congregationContext)
 
-  const previousPage = request.headers.get('referer') ?? '/territories/buildings/split-territories'
+  const previousPage = safeRedirectUrl(request.headers.get('referer'), '/territories/buildings/split-territories')
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))

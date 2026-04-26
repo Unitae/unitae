@@ -1,10 +1,10 @@
-import { AlertTriangle, ArrowLeft, ExternalLink, RefreshCw, SearchX, ShieldX } from 'lucide-react'
-import { useState } from 'react'
-import { isRouteErrorResponse, Link, useLocation, useRouteError } from 'react-router'
+import { AlertTriangle, ArrowLeft, RefreshCw, SearchX, ShieldX } from 'lucide-react'
+import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 
 import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
+import { IssueReportSection } from '~/shared/ui/IssueReportSection'
 
 function getErrorInfo(status: number) {
   if (status === 404) {
@@ -34,52 +34,9 @@ function getErrorInfo(status: number) {
   }
 }
 
-function IssueReportSection({ pathname }: { pathname: string }) {
-  const [open, setOpen] = useState(false)
-  const timestamp = new Date().toISOString()
-  const issueTitle = encodeURIComponent(`Bug: Unexpected error on ${pathname}`)
-  const issueBody = encodeURIComponent(
-    `## Description\n\nAn unexpected error occurred.\n\n## Technical details\n\n- **Route:** ${pathname}\n- **Timestamp:** ${timestamp}\n- **Browser:** ${navigator.userAgent}\n\n## Steps to reproduce\n\n1. ...\n`,
-  )
-  const issueUrl = `https://github.com/Unitae/unitae/issues/new?title=${issueTitle}&body=${issueBody}&labels=bug`
-
-  return (
-    <div className="mt-4 w-full rounded-lg border p-3 text-left text-xs">
-      <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between">
-        <span className="font-medium text-muted-foreground">{m.error_technical_details()}</span>
-        <span className="text-muted-foreground">{open ? '−' : '+'}</span>
-      </button>
-      {open && (
-        <div className="mt-2 space-y-2">
-          <div className="rounded bg-muted p-2 font-mono text-muted-foreground">
-            <div>Route: {pathname}</div>
-            <div>Time: {timestamp}</div>
-          </div>
-          <p className="text-muted-foreground">{m.error_report_issue_description()}</p>
-          <a
-            href={issueUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-primary underline"
-          >
-            {m.error_report_issue()}
-            <ExternalLink className="size-3" />
-          </a>
-        </div>
-      )}
-    </div>
-  )
-}
-
 export function RouteErrorBoundary() {
   const error = useRouteError()
-  let pathname = '/'
-  try {
-    // biome-ignore lint/correctness/useHookAtTopLevel: useLocation may fail in error boundary if router context is broken
-    pathname = useLocation().pathname
-  } catch {
-    // useLocation can fail if the router context is broken
-  }
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
 
   if (isRouteErrorResponse(error)) {
     const { icon: Icon, title, description, showRetry, showReport } = getErrorInfo(error.status)
