@@ -168,13 +168,6 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: '#94a3b8',
   },
-  partTopic: {
-    fontSize: 7.5,
-    fontStyle: 'italic',
-    color: '#64748b',
-    marginLeft: 20,
-    marginBottom: 1,
-  },
   unassignedRight: {
     fontSize: 8.5,
     color: '#cbd5e1',
@@ -405,18 +398,16 @@ function SinglePart({ part }: { part: PartAssignment }) {
   const assigneeName = formatName(part.assignee)
   const assistantName = formatName(part.assistant)
   const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+  const displayName = part.topic !== '' ? part.topic : part.name
 
   return (
-    <View>
-      <View style={styles.partRow}>
-        <Text style={styles.partLeft}>
-          {part.name}
-          {part.durationMin != null && <Text style={styles.partDuration}> ({part.durationMin} min)</Text>}
-        </Text>
-        <DotLeader />
-        {rightText ? <Text style={styles.partRight}>{rightText}</Text> : <Text style={styles.unassignedRight}>—</Text>}
-      </View>
-      {part.topic !== '' && <Text style={styles.partTopic}>« {part.topic} »</Text>}
+    <View style={styles.partRow}>
+      <Text style={styles.partLeft}>
+        {displayName}
+        {part.durationMin != null && <Text style={styles.partDuration}> ({part.durationMin} min)</Text>}
+      </Text>
+      <DotLeader />
+      {rightText ? <Text style={styles.partRight}>{rightText}</Text> : <Text style={styles.unassignedRight}>—</Text>}
     </View>
   )
 }
@@ -438,15 +429,11 @@ function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
         const assigneeName = formatName(part.assignee)
         const assistantName = formatName(part.assistant)
         const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+        const trackName = part.topic !== '' ? part.topic : part.track || `Salle ${idx + 1}`
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: track parts within a slot
           <View key={idx} style={styles.trackRow}>
-            <Text style={styles.trackLabel}>{part.track || `Salle ${idx + 1}`}</Text>
-            {part.topic !== '' && (
-              <Text style={{ fontSize: 7.5, fontStyle: 'italic', color: '#64748b', marginRight: 4 }}>
-                « {part.topic} »
-              </Text>
-            )}
+            <Text style={styles.trackLabel}>{trackName}</Text>
             <DotLeader />
             {rightText ? (
               <Text style={styles.partRight}>{rightText}</Text>
