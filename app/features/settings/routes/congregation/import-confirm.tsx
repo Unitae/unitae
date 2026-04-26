@@ -69,14 +69,14 @@ export default function ImportConfirmPage() {
         <PageHeader
           title={m.import_confirm_title()}
           breadcrumbs={[
-            { label: 'Réglages', to: '/settings' },
-            { label: m.settings_congregation_title(), to: '/settings/congregation' },
+            { label: m.sidebar_settings(), to: '/settings' },
+            { label: m.settings_data_title(), to: '/settings/data' },
             { label: m.import_confirm_title() },
           ]}
         />
         <p className="text-muted-foreground text-sm">{m.import_confirm_no_data()}</p>
         <Button variant="outline" asChild>
-          <Link to="/settings/congregation/import">{m.import_status_back()}</Link>
+          <Link to="/settings/data/import">{m.import_status_back()}</Link>
         </Button>
       </div>
     )
@@ -92,7 +92,7 @@ export default function ImportConfirmPage() {
         breadcrumbs={[
           { label: 'Réglages', to: '/settings' },
           { label: m.settings_congregation_title(), to: '/settings/congregation' },
-          { label: m.import_title(), to: '/settings/congregation/import' },
+          { label: m.import_title(), to: '/settings/data/import' },
           { label: m.import_confirm_title() },
         ]}
       />
@@ -177,7 +177,7 @@ export default function ImportConfirmPage() {
           <SubmitButton>{m.import_confirm_submit()}</SubmitButton>
         </Form>
         <Button variant="outline" asChild>
-          <Link to="/settings/congregation/import">{m.import_confirm_cancel()}</Link>
+          <Link to="/settings/data/import">{m.import_confirm_cancel()}</Link>
         </Button>
       </div>
     </div>
@@ -195,7 +195,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const storageKey = formData.get('storageKey') as string
 
   if (!storageKey) {
-    throw redirect('/settings/congregation/import')
+    throw redirect('/settings/data/import')
   }
 
   const job = await dataTransferQueue.add('import', {
@@ -205,5 +205,5 @@ export async function action({ request, context }: Route.ActionArgs) {
     storageKey,
   })
 
-  return redirect(`/settings/congregation/import/${job.id}/status`)
+  return redirect(`/settings/data/import/${job.id}/status`)
 }

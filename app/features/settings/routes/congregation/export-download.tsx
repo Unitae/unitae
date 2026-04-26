@@ -13,18 +13,18 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   const job = await dataTransferQueue.getJob(params.jobId)
   if (!job) {
-    throw redirect('/settings/congregation/export')
+    throw redirect('/settings/data/export')
   }
 
   const state = await job.getState()
   if (state !== 'completed' || !job.returnvalue) {
-    throw redirect(`/settings/congregation/export/${params.jobId}/status`)
+    throw redirect(`/settings/data/export/${params.jobId}/status`)
   }
 
   const storageKey = job.returnvalue as string
   const buffer = await getFileBuffer(storageKey)
   if (!buffer) {
-    throw redirect(`/settings/congregation/export/${params.jobId}/status`)
+    throw redirect(`/settings/data/export/${params.jobId}/status`)
   }
 
   const date = new Date().toISOString().slice(0, 10)
