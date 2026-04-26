@@ -38,6 +38,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
   useSidebar,
 } from '~/shared/ui/sidebar'
 import { ThemeToggle } from '~/shared/ui/ThemeToggle'
@@ -78,7 +79,10 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
           <span className="truncate font-bold font-display text-foreground text-lg">
             {congregationName || 'Unitae'}
           </span>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <SidebarTrigger className="size-7 rounded-md" />
+          </div>
         </div>
         <button
           type="button"

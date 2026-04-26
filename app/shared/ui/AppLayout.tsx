@@ -37,9 +37,9 @@ export function AppLayout({ permissions, congregationName }: AppLayoutProps) {
       <SidebarInset>
         <NavigationProgress />
         <OfflineBanner />
-        <header className="flex items-center gap-2 p-2 md:p-3">
+        <div className="flex items-center p-2 md:group-has-data-[state=expanded]/sidebar-wrapper:hidden">
           <SidebarTrigger className="size-8 rounded-md" />
-        </header>
+        </div>
         <div className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
         </div>
