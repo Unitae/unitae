@@ -32,6 +32,7 @@ export async function checkExpiringDocuments(): Promise<{
           id: true,
           displayName: true,
           slug: true,
+          locale: true,
         },
       },
     },
@@ -42,7 +43,10 @@ export async function checkExpiringDocuments(): Promise<{
   }
 
   // Group by congregation
-  const byCongregation = new Map<number, { docs: { id: number; title: string }[]; displayName: string; slug: string }>()
+  const byCongregation = new Map<
+    number,
+    { docs: { id: number; title: string }[]; displayName: string; slug: string; locale: string }
+  >()
   for (const doc of expiringDocuments) {
     const existing = byCongregation.get(doc.congregationId)
     if (existing) {
@@ -52,6 +56,7 @@ export async function checkExpiringDocuments(): Promise<{
         docs: [{ id: doc.id, title: doc.title }],
         displayName: doc.congregation.displayName ?? doc.congregation.slug,
         slug: doc.congregation.slug,
+        locale: doc.congregation.locale,
       })
     }
   }
@@ -59,7 +64,7 @@ export async function checkExpiringDocuments(): Promise<{
   let congregationsNotified = 0
   let jobsEnqueued = 0
 
-  for (const [congregationId, { docs, displayName, slug }] of byCongregation) {
+  for (const [congregationId, { docs, displayName, slug, locale }] of byCongregation) {
     // Find BoardValidator users for this congregation
     const validators = await unscopedDb.user.findMany({
       where: {
@@ -88,6 +93,7 @@ export async function checkExpiringDocuments(): Promise<{
         emailFrom,
         baseUrl,
         displayName,
+        locale,
       },
     }))
 

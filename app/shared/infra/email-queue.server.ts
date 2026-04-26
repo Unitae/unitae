@@ -26,6 +26,7 @@ export type EmailJobData =
       emailFrom: string
       baseUrl: string
       displayName: string
+      locale?: string
     }
   | {
       type: 'notification-digest'
