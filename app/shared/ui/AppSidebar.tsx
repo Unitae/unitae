@@ -16,6 +16,7 @@ import {
   PieChart,
   Settings,
   User,
+  UserCog,
   UserRoundCog,
   Users,
   UsersRound,
@@ -69,10 +70,11 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex items-center gap-2 border-sidebar-border border-b px-3 py-4">
+        <div className="flex items-center justify-between gap-2 border-sidebar-border border-b px-3 py-4">
           <span className="truncate font-bold font-display text-foreground text-lg">
             {congregationName || 'Unitae'}
           </span>
+          <ThemeToggle />
         </div>
       </SidebarHeader>
 
@@ -152,7 +154,7 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
                   <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
                 )}
                 {permissions.canManageUsers && (
-                  <SidebarNavItem to="/settings/users" icon={Users} label={m.sidebar_users()} />
+                  <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
                 )}
                 {permissions.canManageSettings && (
                   <>
@@ -194,15 +196,12 @@ export function AppSidebar({ permissions, congregationName }: AppSidebarProps) {
           <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
           <SidebarNavItem to="/me/notifications" icon={Bell} label={m.notification_preferences_page_title()} />
           <SidebarMenuItem>
-            <div className="flex items-center justify-between">
-              <Form action="/logout" method="post">
-                <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
-                  <LogOut className="size-4" />
-                  <span>{m.sidebar_logout()}</span>
-                </SidebarMenuButton>
-              </Form>
-              <ThemeToggle />
-            </div>
+            <Form action="/logout" method="post">
+              <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
+                <LogOut className="size-4" />
+                <span>{m.sidebar_logout()}</span>
+              </SidebarMenuButton>
+            </Form>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
