@@ -44,7 +44,9 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     emailFrom: congregation.emailFromAddress
       ? `${congregation.emailFromName ?? congregation.name} <${congregation.emailFromAddress}>`
       : DEFAULT_EMAIL_FROM,
-    baseUrl: congregation.baseUrl ?? `https://${congregation.slug}.${appBaseUrl.replace('https://', '')}`,
+    baseUrl: congregation.domain
+      ? `https://${congregation.domain}`
+      : (congregation.baseUrl ?? `https://${congregation.slug}.${appBaseUrl.replace('https://', '')}`),
     plan: congregation.plan,
     maxPublishers: congregation.maxPublishers,
     maxTerritories: congregation.maxTerritories,
