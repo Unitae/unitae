@@ -42,13 +42,13 @@
   --color-chart-5: oklch(0.769 0.188 70.08);
 
   /* Sidebar */
-  --color-sidebar: oklch(0.985 0.001 106.423);
+  --color-sidebar: oklch(0.97 0.001 106.424); /* stone-100 — darker than page bg */
   --color-sidebar-foreground: oklch(0.216 0.006 56.043);
   --color-sidebar-primary: oklch(0.523 0.105 184.704);
   --color-sidebar-primary-foreground: oklch(0.985 0.001 106.423);
-  --color-sidebar-accent: oklch(0.97 0.001 106.424);
+  --color-sidebar-accent: oklch(0.923 0.003 48.717); /* stone-200 — visible hover on stone-100 */
   --color-sidebar-accent-foreground: oklch(0.216 0.006 56.043);
-  --color-sidebar-border: oklch(0.923 0.003 48.717); /* stone-200 */
+  --color-sidebar-border: oklch(0.869 0.005 56.366); /* stone-300 — distinct from accent */
   --color-sidebar-ring: oklch(0.523 0.105 184.704);
 }
 
@@ -73,7 +73,7 @@
   --color-input: oklch(0.374 0.01 67.558);
   --color-ring: oklch(0.648 0.116 184.117);
 
-  --color-sidebar: oklch(0.216 0.006 56.043);
+  --color-sidebar: oklch(0.180 0.005 56.043); /* darker than page bg */
   --color-sidebar-foreground: oklch(0.985 0.001 106.423);
   --color-sidebar-primary: oklch(0.648 0.116 184.117);
   --color-sidebar-primary-foreground: oklch(0.216 0.006 56.043);

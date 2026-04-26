@@ -94,7 +94,7 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   items.push({ id: 'my-absences', label: m.sidebar_my_absences(), icon: CalendarOff, to: '/me/days-off' })
   items.push({
     id: 'notifications',
-    label: m.notification_preferences_page_title(),
+    label: m.sidebar_my_notifications(),
     icon: Bell,
     to: '/me/notifications',
   })
