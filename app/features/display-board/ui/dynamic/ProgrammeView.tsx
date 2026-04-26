@@ -1,8 +1,23 @@
 import { Calendar } from 'lucide-react'
+import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
 import * as m from '~/paraglide/messages'
-import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
+
+// JW workbook section colors
+const SECTION_COLOR_RULES: [string, string][] = [
+  ['joyaux', '#5B6770'],
+  ['minist', '#C18626'],
+  ['chr', '#942926'],
+]
+
+function sectionColor(section: string): string | null {
+  const lower = section.toLowerCase()
+  for (const [pattern, color] of SECTION_COLOR_RULES) {
+    if (lower.includes(pattern)) return color
+  }
+  return null
+}
 
 interface PartAssignment {
   id: number
@@ -41,13 +56,15 @@ interface ProgrammeEvent {
   id: number
   name: string
   startDate: Date
+  templateId?: number | null
   partAssignments: PartAssignment[]
   serviceRoleAssignments?: ServiceRoleAssignment[]
 }
 
-interface ProgrammeViewData {
+export interface ProgrammeViewData {
   events: ProgrammeEvent[]
   showServices: boolean
+  config: ProgrammeDynamicConfig | null
 }
 
 function formatName(
@@ -56,10 +73,17 @@ function formatName(
     lastname: string | null
     anonymizedAt: Date | null
   } | null,
-): string {
-  if (!user) return '—'
+): string | null {
+  if (!user) return null
   if (user.anonymizedAt != null) return m.board_read_status_anonymized_user()
-  return [user.firstname, user.lastname].filter(Boolean).join(' ') || '—'
+  const name = [user.firstname, user.lastname].filter(Boolean).join(' ')
+  return name || null
+}
+
+function formatAssigneeWithAssistant(assignee: string | null, assistant: string | null): string | null {
+  if (!assignee) return null
+  if (assistant) return `${assignee} / ${assistant}`
+  return assignee
 }
 
 function formatDate(date: Date): string {
@@ -70,34 +94,108 @@ function formatDate(date: Date): string {
   })
 }
 
-function PartRow({ part }: { part: PartAssignment }) {
+function DotLeader() {
+  return <span className="mx-1 mb-0.5 flex-1 self-end border-b border-dotted border-muted-foreground/25" />
+}
+
+function SectionHeader({ section }: { section: string }) {
+  const color = sectionColor(section) ?? '#64748b'
   return (
-    <div className="flex flex-col gap-0.5 rounded-md bg-muted/40 p-2">
-      <div className="flex items-start justify-between gap-2">
-        <span className="font-medium">{part.name}</span>
-        {part.durationMin != null && <span className="text-muted-foreground text-xs">{part.durationMin} min</span>}
-      </div>
-      {part.topic && <span className="text-muted-foreground text-xs italic">{part.topic}</span>}
-      <div className="flex flex-wrap gap-3 text-xs">
-        <span>
-          <span className="text-muted-foreground">{m.board_dynamic_programme_assignee()} </span>
-          <span className="font-medium">{formatName(part.assignee)}</span>
-        </span>
-        {part.assistant && (
-          <span>
-            <span className="text-muted-foreground">{m.board_dynamic_programme_assistant()} </span>
-            <span className="font-medium">{formatName(part.assistant)}</span>
-          </span>
+    <div className="mt-2 mb-1 flex items-center gap-2">
+      <div className="h-3.5 w-1 rounded-sm" style={{ backgroundColor: color }} />
+      <span
+        className="rounded px-2 py-0.5 font-bold text-white text-xs uppercase tracking-wider"
+        style={{ backgroundColor: color }}
+      >
+        {section}
+      </span>
+    </div>
+  )
+}
+
+function PartRow({ part }: { part: PartAssignment }) {
+  const assigneeName = formatName(part.assignee)
+  const assistantName = formatName(part.assistant)
+  const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+  const displayName = part.topic !== '' ? part.topic : part.name
+
+  return (
+    <div className="ml-3 flex items-baseline">
+      <span className="shrink-0 font-semibold text-foreground text-sm">
+        {displayName}
+        {part.durationMin != null && (
+          <span className="ml-1 font-normal text-muted-foreground text-xs">({part.durationMin} min)</span>
         )}
+      </span>
+      <DotLeader />
+      {rightText ? (
+        <span className="shrink-0 text-foreground text-sm">{rightText}</span>
+      ) : (
+        <span className="shrink-0 text-muted-foreground/40 text-sm italic">—</span>
+      )}
+    </div>
+  )
+}
+
+function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
+  const representative = parts[0]
+
+  return (
+    <div className="ml-3">
+      <div className="font-semibold text-foreground text-sm">
+        {representative.name}
+        {representative.durationMin != null && (
+          <span className="ml-1 font-normal text-muted-foreground text-xs">({representative.durationMin} min)</span>
+        )}
+      </div>
+      {parts.map((part, idx) => {
+        const assigneeName = formatName(part.assignee)
+        const assistantName = formatName(part.assistant)
+        const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+        const trackName = part.topic !== '' ? part.topic : part.track || `Salle ${idx + 1}`
+        return (
+          <div key={part.id} className="ml-3 flex items-baseline">
+            <span className="shrink-0 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+              {trackName}
+            </span>
+            <DotLeader />
+            {rightText ? (
+              <span className="shrink-0 text-foreground text-sm">{rightText}</span>
+            ) : (
+              <span className="shrink-0 text-muted-foreground/40 text-sm italic">—</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ServiceSection({ services, hasParts }: { services: ServiceRoleAssignment[]; hasParts: boolean }) {
+  return (
+    <div className={hasParts ? 'mt-2 ml-3 border-t pt-2' : 'ml-3'}>
+      <p className="mb-1 font-semibold text-muted-foreground text-xs uppercase tracking-wider">Services</p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+        {services.map(role => {
+          const name = formatName(role.assignee ?? null)
+          return (
+            <div key={role.id} className="flex items-baseline">
+              <span className="shrink-0 text-muted-foreground text-sm">{role.name}</span>
+              <DotLeader />
+              {name ? (
+                <span className="shrink-0 font-medium text-foreground text-sm">{name}</span>
+              ) : (
+                <span className="shrink-0 text-muted-foreground/40 text-sm italic">—</span>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
 
-export function ProgrammeView({ events, showServices }: ProgrammeViewData) {
-  const uniqueNames = new Set(events.map(e => e.name))
-  const allSameName = uniqueNames.size === 1
-
+export function ProgrammeView({ events, showServices, config }: ProgrammeViewData) {
   if (events.length === 0) {
     return (
       <EmptyState
@@ -108,72 +206,61 @@ export function ProgrammeView({ events, showServices }: ProgrammeViewData) {
     )
   }
 
+  // Build per-template config map for filtering
+  const configMap = config
+    ? new Map(config.templates.map(t => [t.templateId, { parts: t.parts, services: t.services }]))
+    : null
+
+  // Order events
+  const orderedEvents =
+    config?.groupBy === 'template'
+      ? [...events].sort((a, b) => {
+          const nameA = a.name
+          const nameB = b.name
+          if (nameA !== nameB) return nameA.localeCompare(nameB)
+          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
+        })
+      : events
+
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 md:p-6">
-      {events.map(event => {
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-4 md:p-6">
+      {orderedEvents.map(event => {
+        const templateConfig = event.templateId && configMap ? configMap.get(event.templateId) : null
+        const eventShowParts = templateConfig?.parts ?? true
+        const eventShowServices = templateConfig?.services ?? showServices
+
         const sections = groupPartsBySlot(event.partAssignments)
+
         return (
-          <Card key={event.id}>
-            <CardContent className="flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                {allSameName ? (
-                  <h2 className="font-display font-semibold text-lg capitalize">{formatDate(event.startDate)}</h2>
-                ) : (
-                  <>
-                    <h2 className="font-display font-semibold text-lg">{event.name}</h2>
-                    <span className="text-muted-foreground text-sm capitalize">{formatDate(event.startDate)}</span>
-                  </>
-                )}
-              </div>
-              {sections.map(({ section, slots }) => (
-                <div key={`${section}-${slots[0]?.parts[0]?.id ?? 0}`} className="flex flex-col gap-2">
-                  {section && (
-                    <p className="font-semibold text-muted-foreground text-xs uppercase tracking-wide">{section}</p>
-                  )}
-                  <ul className="flex flex-col gap-2 text-sm">
-                    {slots.map(slot => (
-                      <li key={`slot-${slot.parts[0].id}`}>
-                        {slot.parts.length === 1 ? (
-                          <PartRow part={slot.parts[0]} />
-                        ) : (
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            {slot.parts.map(part => (
-                              <div key={part.id} className="flex flex-col gap-1">
-                                {part.track && (
-                                  <span className="font-semibold text-[10px] text-muted-foreground uppercase tracking-wide">
-                                    {part.track}
-                                  </span>
-                                )}
-                                <PartRow part={part} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+          <div key={event.id}>
+            {/* Date header */}
+            <div className="mb-1 flex items-center justify-between rounded bg-muted/60 px-3 py-1.5">
+              <span className="font-bold text-foreground text-sm capitalize">{formatDate(event.startDate)}</span>
+              <span className="text-muted-foreground text-xs">{event.name}</span>
+            </div>
+
+            {/* Parts */}
+            {eventShowParts &&
+              sections.map(({ section, slots }) => (
+                <div key={`${section}-${slots[0]?.parts[0]?.id ?? 0}`}>
+                  {section && <SectionHeader section={section} />}
+                  {slots.map(slot => (
+                    <div key={`slot-${slot.parts[0].id}`}>
+                      {slot.parts.length === 1 ? (
+                        <PartRow part={slot.parts[0]} />
+                      ) : (
+                        <MultiTrackPart parts={slot.parts} />
+                      )}
+                    </div>
+                  ))}
                 </div>
               ))}
-              {showServices && event.serviceRoleAssignments && event.serviceRoleAssignments.length > 0 && (
-                <div className="flex flex-col gap-2">
-                  <p className="font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                    {m.board_dynamic_programme_services_heading()}
-                  </p>
-                  <ul className="flex flex-col gap-1 text-sm">
-                    {event.serviceRoleAssignments.map(role => (
-                      <li
-                        key={role.id}
-                        className="flex flex-wrap items-center justify-between gap-2 rounded-md bg-muted/40 p-2"
-                      >
-                        <span className="font-medium">{role.name}</span>
-                        <span className="text-xs">{formatName(role.assignee ?? null)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+            {/* Services */}
+            {eventShowServices && event.serviceRoleAssignments && event.serviceRoleAssignments.length > 0 && (
+              <ServiceSection services={event.serviceRoleAssignments} hasParts={eventShowParts} />
+            )}
+          </div>
         )
       })}
     </div>

@@ -1,4 +1,8 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
+
+// biome-ignore lint/suspicious/noExplicitAny: Prisma Json fields accept any serializable value
+type JsonValue = any
+
 import logger from '~/shared/infra/logger.server'
 import { deleteFile } from './document.server'
 
@@ -203,11 +207,17 @@ export function createDynamicDocument(
     title: string
     dynamicType: string
     dynamicRef: string | null
+    dynamicConfig?: JsonValue
     sectionId: number
     congregationId: number
   },
 ) {
-  return db.boardDynamicDocumentSettings.create({ data })
+  return db.boardDynamicDocumentSettings.create({
+    data: {
+      ...data,
+      dynamicConfig: data.dynamicConfig ?? undefined,
+    },
+  })
 }
 
 export function updateDynamicDocument(
@@ -221,6 +231,7 @@ export function updateDynamicDocument(
     visibleUntil: Date | null
     isHighlighted: boolean
     showServices: boolean
+    dynamicConfig?: JsonValue
   },
 ) {
   return db.boardDynamicDocumentSettings.update({

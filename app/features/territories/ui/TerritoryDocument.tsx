@@ -1,3 +1,4 @@
+import path from 'node:path'
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { formatAccessSequence } from '~/features/territories/model/access-format'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
@@ -7,13 +8,15 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 
+const fontsDir = path.join(process.cwd(), 'public', 'fonts')
+
 Font.register({
   family: 'Fira Sans',
   fonts: [
-    { src: '/fonts/FiraSans-Regular.ttf' },
-    { src: '/fonts/FiraSans-Bold.ttf', fontWeight: 'bold' },
-    { src: '/fonts/FiraSans-Italic.ttf', fontStyle: 'italic' },
-    { src: '/fonts/FiraSans-BoldItalic.ttf', fontWeight: 'bold', fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'FiraSans-Regular.ttf') },
+    { src: path.join(fontsDir, 'FiraSans-Bold.ttf'), fontWeight: 'bold' },
+    { src: path.join(fontsDir, 'FiraSans-Italic.ttf'), fontStyle: 'italic' },
+    { src: path.join(fontsDir, 'FiraSans-BoldItalic.ttf'), fontWeight: 'bold', fontStyle: 'italic' },
   ],
 })
 

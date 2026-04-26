@@ -5,6 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { createDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
+import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -132,10 +133,24 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
 
+    // For programme documents, build default config with all templates selected
+    let dynamicConfig: ProgrammeDynamicConfig | undefined
+    if (dynamicType === DynamicType.Programme) {
+      const templates = await db.programmeTemplate.findMany({
+        where: { congregationId },
+        select: { id: true },
+      })
+      dynamicConfig = {
+        templates: templates.map(t => ({ templateId: t.id, parts: true, services: true })),
+        groupBy: 'date',
+      }
+    }
+
     const settings = await createDynamicDocument(db, {
       title,
       dynamicType,
       dynamicRef,
+      dynamicConfig,
       sectionId: section.id,
       congregationId,
     })
