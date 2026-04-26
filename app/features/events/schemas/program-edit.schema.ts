@@ -32,6 +32,22 @@ export const deleteServiceSchema = z.object({
   serviceAssignmentId: z.coerce.number(),
 })
 
+export const updatePartSchema = z.object({
+  intent: z.literal('update-part'),
+  partAssignmentId: z.coerce.number(),
+  partName: z.string().min(1),
+  partSection: z.string().optional().default(''),
+  partTrack: z.string().optional().default(''),
+  partOrder: z.coerce.number().default(0),
+  partDuration: z.coerce.number().optional(),
+})
+
+export const updateServiceSchema = z.object({
+  intent: z.literal('update-service'),
+  serviceAssignmentId: z.coerce.number(),
+  serviceName: z.string().min(1),
+})
+
 export const applyTemplateSchema = z.object({
   intent: z.literal('apply-template'),
   templateId: z.coerce.number(),

@@ -43,7 +43,7 @@ export const upsertServiceRoleSchema = z.object({
   intent: z.literal('upsert-service-role'),
   roleId: z.coerce.number().optional(),
   roleName: z.string().min(1),
-  roleKey: z.string().min(1),
+  roleKey: z.string().optional().default(''),
 })
 
 export const deleteServiceRoleSchema = z.object({

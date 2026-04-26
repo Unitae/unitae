@@ -1,5 +1,9 @@
 import { parseWithZod } from '@conform-to/zod'
-import { data, Form, redirect } from 'react-router'
+import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
   deleteTemplatePart,
@@ -10,6 +14,10 @@ import {
   upsertTemplatePart,
   upsertTemplateServiceRole,
 } from '~/features/events/server/programme-templates.server'
+import { InlineDeleteDialog } from '~/features/events/ui/InlineDeleteDialog'
+import { PartEditSheet } from '~/features/events/ui/PartEditSheet'
+import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
+import { SortableRow } from '~/features/events/ui/SortableRow'
 import {
   deletePartSchema,
   deleteServiceRoleSchema,
@@ -19,17 +27,18 @@ import {
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -38,7 +47,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_edit_meta_title() }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
@@ -86,9 +95,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (serviceResult && 'reply' in serviceResult) return data(serviceResult.reply(), { status: 400 })
     if (serviceResult?.message) session.flash('success', serviceResult.message)
 
-    return redirect(`/settings/congregation/templates/${templateId}`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 
@@ -144,7 +151,13 @@ async function handleServiceRoleIntent(
     if (submission.status !== 'success') return submission
 
     const { roleId, roleName, roleKey } = submission.value
-    await upsertTemplateServiceRole(db, templateId, { id: roleId, name: roleName, key: roleKey }, congregationId)
+    const key =
+      roleKey ||
+      roleName
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+    await upsertTemplateServiceRole(db, templateId, { id: roleId, name: roleName, key }, congregationId)
     return {
       message: roleId ? m.settings_template_edit_service_role_updated() : m.settings_template_edit_service_role_added(),
     }
@@ -162,11 +175,77 @@ async function handleServiceRoleIntent(
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
   const { template } = loaderData
 
-  const { blocker, markDirty } = useUnsavedChanges()
+  const infoFetcher = useFetcher()
+  const partFetcher = useFetcher()
+  const serviceFetcher = useFetcher()
+  const deleteFetcher = useFetcher()
+  const reorderFetcher = useFetcher()
+
+  const [editingPart, setEditingPart] = useState<{
+    id: number
+    name: string
+    section: string
+    track: string
+    order: number
+    durationMin: number | null
+    isVariable: boolean
+  } | null>(null)
+  const [partSheetOpen, setPartSheetOpen] = useState(false)
+
+  const [editingService, setEditingService] = useState<{ id: number; name: string } | null>(null)
+  const [serviceSheetOpen, setServiceSheetOpen] = useState(false)
+
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: 'part' | 'service'
+    id: number
+    name: string
+  } | null>(null)
+
+  function handlePartDragEnd(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+
+    const ids = template.parts.map(p => p.id)
+    const oldIndex = ids.indexOf(Number(active.id))
+    const newIndex = ids.indexOf(Number(over.id))
+    const reordered = [...ids]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    reorderFetcher.submit(
+      { orderedIds: reordered },
+      { method: 'POST', action: './reorder-parts', encType: 'application/json' },
+    )
+  }
+
+  function handleDelete() {
+    if (!deleteTarget) return
+    const formData = new FormData()
+    if (deleteTarget.type === 'part') {
+      formData.set('intent', 'delete-part')
+      formData.set('partId', String(deleteTarget.id))
+    } else {
+      formData.set('intent', 'delete-service-role')
+      formData.set('roleId', String(deleteTarget.id))
+    }
+    deleteFetcher.submit(formData, { method: 'post' })
+    setDeleteTarget(null)
+  }
+
+  // Group parts by section
+  const partsBySection: { section: string; parts: typeof template.parts }[] = []
+  let currentSection = ''
+  for (const part of template.parts) {
+    const section = part.section || ''
+    if (section !== currentSection) {
+      partsBySection.push({ section, parts: [] })
+      currentSection = section
+    }
+    partsBySection.at(-1)?.parts.push(part)
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.settings_template_edit_title({ name: template.name })}
         subtitle={m.settings_template_edit_subtitle()}
@@ -178,12 +257,13 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
         backTo="/settings/congregation/templates"
       />
 
-      <Card>
+      {/* General info */}
+      <Card className="max-w-lg">
         <CardHeader>
           <CardTitle className="text-base">{m.settings_template_edit_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
+          <infoFetcher.Form method="post" className="flex flex-col gap-4">
             <input type="hidden" name="intent" value="update-template" />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.settings_template_edit_name_label()}</Label>
@@ -207,167 +287,217 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-fit">
-              {m.common_save()}
-            </Button>
-          </Form>
+            <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
+          </infoFetcher.Form>
         </CardContent>
       </Card>
 
+      {/* Program parts */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{m.settings_template_edit_parts_title()}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {template.parts.map(part => (
-            <div key={part.id} className="flex items-end gap-2 border-b pb-3">
-              <Form method="post" className="flex flex-1 flex-wrap items-end gap-2">
-                <input type="hidden" name="intent" value="upsert-part" />
-                <input type="hidden" name="partId" value={part.id} />
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_part_name_label()}</Label>
-                  <Input name="partName" defaultValue={part.name} className="w-40" required />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_part_section_label()}</Label>
-                  <Input name="partSection" defaultValue={part.section} className="w-40" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_part_track_label()}</Label>
-                  <Input name="partTrack" defaultValue={part.track} className="w-40" />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_part_order_label()}</Label>
-                  <Input name="partOrder" type="number" defaultValue={part.order} className="w-16" required />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_part_duration_label()}</Label>
-                  <Input name="partDuration" type="number" defaultValue={part.durationMin ?? ''} className="w-20" />
-                </div>
-                <div className="flex items-center gap-1">
-                  <input type="checkbox" name="partIsVariable" id={`var-${part.id}`} defaultChecked={part.isVariable} />
-                  <Label htmlFor={`var-${part.id}`} className="text-xs">
-                    {m.settings_template_edit_part_variable_label()}
-                  </Label>
-                </div>
-                <Button type="submit" variant="outline" size="sm">
-                  {m.common_save()}
-                </Button>
-              </Form>
-              <Form method="post">
-                <input type="hidden" name="intent" value="delete-part" />
-                <input type="hidden" name="partId" value={part.id} />
-                <Button type="submit" variant="destructive" size="sm">
-                  {m.common_delete()}
-                </Button>
-              </Form>
-            </div>
-          ))}
-
-          <Form method="post" className="flex flex-wrap items-end gap-2 border-t pt-3">
-            <input type="hidden" name="intent" value="upsert-part" />
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_part_name_label()}</Label>
-              <Input
-                name="partName"
-                placeholder={m.settings_template_edit_part_new_placeholder()}
-                className="w-40"
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_part_section_label()}</Label>
-              <Input name="partSection" className="w-40" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_part_track_label()}</Label>
-              <Input name="partTrack" className="w-40" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_part_order_label()}</Label>
-              <Input
-                name="partOrder"
-                type="number"
-                defaultValue={template.parts.length + 1}
-                className="w-16"
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_part_duration_label()}</Label>
-              <Input name="partDuration" type="number" className="w-20" />
-            </div>
-            <div className="flex items-center gap-1">
-              <input type="checkbox" name="partIsVariable" id="var-new" />
-              <Label htmlFor="var-new" className="text-xs">
-                {m.settings_template_edit_part_variable_label()}
-              </Label>
-            </div>
-            <Button type="submit" size="sm">
-              {m.settings_template_edit_add_button()}
+          <CardAction>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingPart(null)
+                setPartSheetOpen(true)
+              }}
+            >
+              <Plus className="size-4" />
+              {m.programs_edit_add_part_button()}
             </Button>
-          </Form>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {template.parts.length > 0 ? (
+            <DndContext collisionDetection={closestCenter} onDragEnd={handlePartDragEnd}>
+              <SortableContext items={template.parts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8" />
+                      <TableHead className="w-12">#</TableHead>
+                      <TableHead>{m.settings_template_view_part_column()}</TableHead>
+                      <TableHead className="w-24">{m.settings_template_view_duration_column()}</TableHead>
+                      <TableHead className="w-20">{m.common_actions()}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {partsBySection.map(group => (
+                      <>
+                        {group.section && (
+                          <TableRow key={`section-${group.section}`} className="bg-muted/50">
+                            <TableCell colSpan={5} className="py-1.5">
+                              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                                {group.section}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {group.parts.map(part => (
+                          <SortableRow key={part.id} id={part.id}>
+                            <TableCell className="text-muted-foreground">{part.order}</TableCell>
+                            <TableCell>
+                              <span className="font-medium text-sm">
+                                {part.name}
+                                {part.isVariable && (
+                                  <Badge variant="secondary" className="ml-2 text-xs">
+                                    {m.programs_edit_variable_badge()}
+                                  </Badge>
+                                )}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {part.durationMin ? (
+                                <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                                  <Clock className="size-3" />
+                                  {part.durationMin} min
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">
+                                  {m.programs_edit_variable_badge()}
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7"
+                                  onClick={() => {
+                                    setEditingPart({
+                                      id: part.id,
+                                      name: part.name,
+                                      section: part.section,
+                                      track: part.track,
+                                      order: part.order,
+                                      durationMin: part.durationMin,
+                                      isVariable: part.isVariable,
+                                    })
+                                    setPartSheetOpen(true)
+                                  }}
+                                >
+                                  <Pencil className="size-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteTarget({ type: 'part', id: part.id, name: part.name })}
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </SortableRow>
+                        ))}
+                      </>
+                    ))}
+                  </TableBody>
+                </Table>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-muted-foreground text-sm italic">{m.settings_template_edit_part_new_placeholder()}</p>
+          )}
         </CardContent>
       </Card>
 
+      {/* Service roles */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{m.settings_template_edit_service_roles_title()}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {template.serviceRoles.map(role => (
-            <div key={role.id} className="flex items-end gap-2 border-b pb-3">
-              <Form method="post" className="flex flex-1 items-end gap-2">
-                <input type="hidden" name="intent" value="upsert-service-role" />
-                <input type="hidden" name="roleId" value={role.id} />
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_role_name_label()}</Label>
-                  <Input name="roleName" defaultValue={role.name} className="w-40" required />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">{m.settings_template_edit_role_key_label()}</Label>
-                  <Input name="roleKey" defaultValue={role.key} className="w-32" required />
-                </div>
-                <Button type="submit" variant="outline" size="sm">
-                  {m.common_save()}
-                </Button>
-              </Form>
-              <Form method="post">
-                <input type="hidden" name="intent" value="delete-service-role" />
-                <input type="hidden" name="roleId" value={role.id} />
-                <Button type="submit" variant="destructive" size="sm">
-                  {m.common_delete()}
-                </Button>
-              </Form>
-            </div>
-          ))}
-
-          <Form method="post" className="flex items-end gap-2 border-t pt-3">
-            <input type="hidden" name="intent" value="upsert-service-role" />
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_role_name_label()}</Label>
-              <Input
-                name="roleName"
-                placeholder={m.settings_template_edit_role_new_name_placeholder()}
-                className="w-40"
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.settings_template_edit_role_key_label()}</Label>
-              <Input
-                name="roleKey"
-                placeholder={m.settings_template_edit_role_new_key_placeholder()}
-                className="w-32"
-                required
-              />
-            </div>
-            <Button type="submit" size="sm">
-              {m.settings_template_edit_add_button()}
+          <CardAction>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingService(null)
+                setServiceSheetOpen(true)
+              }}
+            >
+              <Plus className="size-4" />
+              {m.programs_edit_add_service_button()}
             </Button>
-          </Form>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {template.serviceRoles.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{m.settings_template_edit_role_name_label()}</TableHead>
+                  <TableHead className="w-20">{m.common_actions()}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {template.serviceRoles.map(role => (
+                  <TableRow key={role.id}>
+                    <TableCell className="font-medium text-sm">{role.name}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => {
+                            setEditingService({ id: role.id, name: role.name })
+                            setServiceSheetOpen(true)
+                          }}
+                        >
+                          <Pencil className="size-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget({ type: 'service', id: role.id, name: role.name })}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-sm italic">
+              {m.settings_template_edit_role_new_name_placeholder()}
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      {/* Sheets */}
+      <PartEditSheet
+        open={partSheetOpen}
+        onOpenChange={setPartSheetOpen}
+        part={editingPart}
+        mode="template"
+        fetcher={partFetcher}
+        defaultOrder={template.parts.length + 1}
+      />
+
+      <ServiceEditSheet
+        open={serviceSheetOpen}
+        onOpenChange={setServiceSheetOpen}
+        service={editingService}
+        mode="template"
+        fetcher={serviceFetcher}
+      />
+
+      {/* Delete confirmation */}
+      <InlineDeleteDialog
+        open={deleteTarget != null}
+        onOpenChange={open => {
+          if (!open) setDeleteTarget(null)
+        }}
+        itemName={deleteTarget?.name ?? ''}
+        onConfirm={handleDelete}
+        isDeleting={deleteFetcher.state !== 'idle'}
+      />
     </div>
   )
 }
