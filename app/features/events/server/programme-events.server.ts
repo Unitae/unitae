@@ -125,7 +125,6 @@ export async function reorderPartAssignments(
   }
 }
 
-
 export async function applyTemplateToEvent(
   db: TransactionClient,
   eventId: number,

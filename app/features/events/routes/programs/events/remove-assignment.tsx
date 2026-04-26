@@ -1,4 +1,4 @@
-import { redirect } from 'react-router'
+import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
@@ -44,9 +44,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
     session.flash('success', m.programs_remove_assignment_success())
 
-    return redirect(`/programs/events/${eventId}`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 

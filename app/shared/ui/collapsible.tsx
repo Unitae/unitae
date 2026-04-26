@@ -4,4 +4,4 @@ const CollapsibleRoot = Collapsible.Root
 const CollapsibleTrigger = Collapsible.Trigger
 const CollapsibleContent = Collapsible.Content
 
-export { CollapsibleRoot as Collapsible, CollapsibleTrigger, CollapsibleContent }
+export { CollapsibleContent, CollapsibleRoot as Collapsible, CollapsibleTrigger }

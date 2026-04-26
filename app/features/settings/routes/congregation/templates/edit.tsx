@@ -234,7 +234,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
 
   // Group parts by section
   const partsBySection: { section: string; parts: typeof template.parts }[] = []
-  let currentSection = ''
+  let currentSection: string | null = null
   for (const part of template.parts) {
     const section = part.section || ''
     if (section !== currentSection) {

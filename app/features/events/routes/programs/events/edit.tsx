@@ -333,7 +333,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
   // Group parts by section for visual grouping
   const partsBySection: { section: string; parts: typeof event.partAssignments }[] = []
-  let currentSection = ''
+  let currentSection: string | null = null
   for (const part of event.partAssignments) {
     const section = part.section || ''
     if (section !== currentSection) {
