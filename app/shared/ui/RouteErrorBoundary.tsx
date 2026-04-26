@@ -1,40 +1,18 @@
-import { AlertTriangle, ArrowLeft, RefreshCw, SearchX, ShieldX } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react'
 import { isRouteErrorResponse, Link, useRouteError } from 'react-router'
 
 import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
-
-function getErrorInfo(status: number) {
-  if (status === 404) {
-    return {
-      icon: SearchX,
-      title: m.error_boundary_not_found(),
-      description: m.error_boundary_not_found_description(),
-      showRetry: false,
-    }
-  }
-  if (status === 403) {
-    return {
-      icon: ShieldX,
-      title: m.error_boundary_forbidden(),
-      description: m.error_boundary_forbidden_description(),
-      showRetry: false,
-    }
-  }
-  return {
-    icon: AlertTriangle,
-    title: m.error_boundary_server_error(),
-    description: m.error_boundary_server_error_description(),
-    showRetry: true,
-  }
-}
+import { getErrorInfo } from '~/shared/ui/error-info'
+import { IssueReportSection } from '~/shared/ui/IssueReportSection'
 
 export function RouteErrorBoundary() {
   const error = useRouteError()
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
 
   if (isRouteErrorResponse(error)) {
-    const { icon: Icon, title, description, showRetry } = getErrorInfo(error.status)
+    const { icon: Icon, title, description, showRetry, showReport } = getErrorInfo(error.status)
 
     return (
       <div className="flex items-center justify-center py-20">
@@ -50,6 +28,7 @@ export function RouteErrorBoundary() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground text-sm">{description}</p>
+            {showReport && <IssueReportSection pathname={pathname} />}
           </CardContent>
           <CardFooter className="justify-center gap-2">
             <Button variant="outline" asChild>
@@ -81,6 +60,7 @@ export function RouteErrorBoundary() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground text-sm">{m.error_boundary_server_error_description()}</p>
+          <IssueReportSection pathname={pathname} />
         </CardContent>
         <CardFooter className="justify-center gap-2">
           <Button variant="outline" asChild>

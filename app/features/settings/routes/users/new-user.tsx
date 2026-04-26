@@ -20,6 +20,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import type { Route } from './+types/new-user'
 
 export const meta: Route.MetaFunction = () => {
@@ -129,9 +130,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
     } catch (error) {
       if (error instanceof UserAlreadyExistsError) {
-        throw redirect('/settings/users/new')
+        session.flash('error', m.error_conflict())
+        throw redirect('/settings/users/new', {
+          headers: { 'Set-Cookie': await commitSession(session) },
+        })
       }
-      throw error
+      await handleAppError(error, session, '/settings/users/new')
     }
 
     return redirect('/settings/users', {

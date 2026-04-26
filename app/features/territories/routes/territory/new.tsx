@@ -3,6 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
+import { getSession } from '~/features/authentication/server/session.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { createTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
@@ -30,6 +31,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/new'
 
@@ -205,16 +207,21 @@ export async function action({ request, context }: Route.ActionArgs) {
   const congregation = context.get(congregationContext)
 
   return withScopeFromContext(context, async db => {
-    const limits = new LimitService(db, congregation)
-    await limits.errorIfWouldGoOverLimit('territories')
+    const session = await getSession(request.headers.get('Cookie'))
+    try {
+      const limits = new LimitService(db, congregation)
+      await limits.errorIfWouldGoOverLimit('territories')
 
-    await createTerritory(db, {
-      number,
-      type,
-      entranceIds: entrances,
-      congregationId: congregation.id,
-    })
+      await createTerritory(db, {
+        number,
+        type,
+        entranceIds: entrances,
+        congregationId: congregation.id,
+      })
 
-    return redirect('/territories')
+      return redirect('/territories')
+    } catch (error) {
+      await handleAppError(error, session, '/territories/new')
+    }
   })
 }

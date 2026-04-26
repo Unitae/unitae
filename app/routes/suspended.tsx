@@ -1,7 +1,12 @@
+import { LogOut, ShieldAlert } from 'lucide-react'
 import { Link } from 'react-router'
+import { getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
 
 import { getHostSettings } from '~/shared/domain/host-settings.server'
+import { unscopedDb } from '~/shared/infra/db.server'
+import { Button } from '~/shared/ui/button'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 
 import type { Route } from './+types/suspended'
 
@@ -9,13 +14,28 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Compte suspendu - Unitae' }]
 }
 
-export function loader({ request }: Route.LoaderArgs) {
+export async function loader({ request }: Route.LoaderArgs) {
   const hostSettings = getHostSettings()
-  const url = new URL(request.url)
   const isMultiTenant = process.env.MULTI_TENANT === 'true'
 
+  // Read suspended reason from DB instead of query param to prevent phishing
+  let reason: string | null = null
+  try {
+    const session = await getSession(request.headers.get('Cookie'))
+    const userId = Number(session.get('userId'))
+    if (!Number.isNaN(userId) && userId > 0) {
+      const user = await unscopedDb.user.findUnique({
+        where: { id: userId },
+        select: { congregation: { select: { suspendedReason: true } } },
+      })
+      reason = user?.congregation?.suspendedReason ?? null
+    }
+  } catch {
+    // Default to generic message if DB is unreachable
+  }
+
   return {
-    reason: url.searchParams.get('reason'),
+    reason,
     supportUrl: isMultiTenant ? (hostSettings.support?.url ?? null) : null,
   }
 }
@@ -24,21 +44,31 @@ export default function SuspendedPage({ loaderData }: Route.ComponentProps) {
   const { reason, supportUrl } = loaderData
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50">
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="mb-4 font-bold text-2xl text-gray-900">{m.suspended_title()}</h1>
-        <p className="mb-6 text-gray-600">{reason ? reason : m.suspended_message_default()}</p>
-        <div className="flex flex-col gap-3">
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <Card className="max-w-md text-center">
+        <CardHeader className="items-center gap-3">
+          <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
+            <ShieldAlert className="size-6 text-destructive" />
+          </div>
+          <CardTitle>{m.suspended_title()}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground text-sm">{reason ? reason : m.suspended_message_default()}</p>
+        </CardContent>
+        <CardFooter className="flex-col gap-3">
           {supportUrl && (
-            <a href={supportUrl} className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
-              {m.suspended_contact_support()}
-            </a>
+            <Button asChild>
+              <a href={supportUrl}>{m.suspended_contact_support()}</a>
+            </Button>
           )}
-          <Link to="/logout" className="text-gray-500 text-sm hover:text-gray-700">
-            {m.suspended_logout()}
-          </Link>
-        </div>
-      </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/logout">
+              <LogOut className="size-4" />
+              {m.suspended_logout()}
+            </Link>
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
