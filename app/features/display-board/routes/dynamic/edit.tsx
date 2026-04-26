@@ -1,22 +1,30 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { updateDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
+import {
+  type ProgrammeDynamicConfig,
+  parseProgrammeConfig,
+} from '~/features/display-board/model/dynamic-document.type'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
+import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -50,12 +58,21 @@ export function loader({ params, context }: Route.LoaderArgs) {
       orderBy: { order: 'asc' },
     })
 
-    return { settings, sections }
+    // Load templates for programme config grid
+    const templates = settings.dynamicType === DynamicType.Programme ? await getTemplates(db, congregationId) : []
+
+    return { settings, sections, templates }
   })
 }
 
+interface TemplateConfig {
+  selected: boolean
+  parts: boolean
+  services: boolean
+}
+
 export default function EditDynamicDocumentPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { settings, sections } = loaderData
+  const { settings, sections, templates } = loaderData
   const [form, fields] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -64,6 +81,41 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
   })
 
   const { blocker, markDirty } = useUnsavedChanges()
+
+  // Parse existing config for programme documents
+  const existingConfig = parseProgrammeConfig(settings.dynamicConfig)
+
+  // Initialize template config state from existing config or defaults
+  const [templateConfigs, setTemplateConfigs] = useState<Record<number, TemplateConfig>>(() => {
+    if (existingConfig) {
+      const configMap = new Map(existingConfig.templates.map(t => [t.templateId, t]))
+      return Object.fromEntries(
+        templates.map(t => {
+          const existing = configMap.get(t.id)
+          return [t.id, { selected: !!existing, parts: existing?.parts ?? true, services: existing?.services ?? true }]
+        }),
+      )
+    }
+    // Default: all templates selected with parts + services
+    return Object.fromEntries(templates.map(t => [t.id, { selected: true, parts: true, services: true }]))
+  })
+
+  const [groupBy, setGroupBy] = useState<'date' | 'template'>(existingConfig?.groupBy ?? 'date')
+
+  function updateTemplateConfig(templateId: number, patch: Partial<TemplateConfig>) {
+    setTemplateConfigs(prev => ({
+      ...prev,
+      [templateId]: { ...prev[templateId], ...patch },
+    }))
+    markDirty()
+  }
+
+  // Build dynamicConfig JSON from state
+  const selectedTemplates = Object.entries(templateConfigs)
+    .filter(([_, c]) => c.selected && (c.parts || c.services))
+    .map(([id, c]) => ({ templateId: Number(id), parts: c.parts, services: c.services }))
+
+  const dynamicConfigJson: ProgrammeDynamicConfig = { templates: selectedTemplates, groupBy }
 
   let formattedVisibleFrom = ''
   if (settings.visibleFrom !== null) {
@@ -99,9 +151,9 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
         }
       />
 
-      <Card>
-        <CardContent className="pt-6">
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
+        <Card>
+          <CardContent className="flex flex-col gap-4 pt-6">
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.title.id}>{m.board_documents_new_name_label()}</Label>
               <Input
@@ -158,29 +210,87 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
                 {m.board_documents_new_highlight_label()}
               </Label>
             </div>
+          </CardContent>
+        </Card>
 
-            {settings.dynamicType === DynamicType.Programme && (
-              <div className="flex flex-col gap-3 border-t pt-4">
-                <h3 className="font-semibold text-sm">{m.board_dynamic_display_options_title()}</h3>
-                <div className="flex items-center gap-2">
-                  <input
-                    id={fields.showServices.id}
-                    name={fields.showServices.name}
-                    type="checkbox"
-                    defaultChecked={settings.showServices}
-                    className="size-4 rounded border border-input accent-primary"
-                  />
-                  <Label htmlFor={fields.showServices.id} className="cursor-pointer font-normal">
-                    {m.board_dynamic_show_services_label()}
-                  </Label>
+        {settings.dynamicType === DynamicType.Programme && templates.length > 0 && (
+          <Card>
+            <CardContent className="flex flex-col gap-4 pt-6">
+              <h3 className="font-semibold text-sm">{m.board_dynamic_display_options_title()}</h3>
+
+              {/* Per-template content selection */}
+              <div className="flex flex-col gap-2">
+                <Label>{m.programs_export_templates_label()}</Label>
+                <div className="rounded-md border">
+                  <div className="flex items-center gap-3 border-b bg-muted/50 px-3 py-2 text-muted-foreground text-xs font-medium">
+                    <div className="w-5" />
+                    <div className="flex-1">{m.programs_export_meeting_type_label()}</div>
+                    <div className="w-20 text-center">{m.programs_export_col_parts()}</div>
+                    <div className="w-20 text-center">{m.programs_export_col_services()}</div>
+                  </div>
+                  {templates.map(template => {
+                    const config = templateConfigs[template.id]
+                    return (
+                      <div key={template.id} className="flex items-center gap-3 border-b px-3 py-2.5 last:border-b-0">
+                        <Checkbox
+                          checked={config.selected}
+                          onCheckedChange={checked =>
+                            updateTemplateConfig(template.id, { selected: checked === true })
+                          }
+                        />
+                        <div className="flex-1 text-sm">{template.name}</div>
+                        <div className="flex w-20 justify-center">
+                          <Checkbox
+                            checked={config.parts}
+                            disabled={!config.selected}
+                            onCheckedChange={checked =>
+                              updateTemplateConfig(template.id, { parts: checked === true })
+                            }
+                          />
+                        </div>
+                        <div className="flex w-20 justify-center">
+                          <Checkbox
+                            checked={config.services}
+                            disabled={!config.selected}
+                            onCheckedChange={checked =>
+                              updateTemplateConfig(template.id, { services: checked === true })
+                            }
+                          />
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-            )}
 
-            <SubmitButton className="w-fit">{m.board_documents_edit_submit()}</SubmitButton>
-          </Form>
-        </CardContent>
-      </Card>
+              {/* Grouping */}
+              <div className="flex flex-col gap-2">
+                <Label>{m.programs_export_group_by_label()}</Label>
+                <Select
+                  value={groupBy}
+                  onValueChange={v => {
+                    setGroupBy(v as 'date' | 'template')
+                    markDirty()
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">{m.programs_export_group_by_date()}</SelectItem>
+                    <SelectItem value="template">{m.programs_export_group_by_template()}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Hidden field to submit dynamicConfig as JSON */}
+              <input type="hidden" name="dynamicConfig" value={JSON.stringify(dynamicConfigJson)} />
+            </CardContent>
+          </Card>
+        )}
+
+        <SubmitButton className="w-fit">{m.board_documents_edit_submit()}</SubmitButton>
+      </Form>
     </div>
   )
 }
@@ -203,6 +313,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const isHighlighted = submission.value.hightlighted === 'on'
   const showServices = submission.value.showServices === 'on'
 
+  // Parse dynamicConfig from form if provided
+  let dynamicConfig: Record<string, unknown> | undefined
+  if (submission.value.dynamicConfig) {
+    try {
+      dynamicConfig = JSON.parse(submission.value.dynamicConfig)
+    } catch {
+      // Ignore invalid JSON, keep existing config
+    }
+  }
+
   const dynamicId = requireParamId(params.dynamicId, '/board')
 
   const parsedFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
@@ -224,6 +344,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       visibleUntil: parsedUntil,
       isHighlighted,
       showServices,
+      dynamicConfig,
     })
 
     session.flash('success', m.board_dynamic_edit_success({ name: settings.title }))

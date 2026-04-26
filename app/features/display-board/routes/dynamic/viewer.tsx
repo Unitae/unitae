@@ -39,6 +39,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const data = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
       showServices: settings.showServices,
+      dynamicConfig: settings.dynamicConfig,
     })
 
     return { settings, data }
@@ -68,7 +69,7 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
         {data?.type === DynamicType.PublisherGroups && <PublisherGroupsView groups={data.groups} />}
         {data?.type === DynamicType.Pioneers && <PioneersView pioneers={data.pioneers} />}
         {data?.type === DynamicType.Programme && (
-          <ProgrammeView events={data.events} showServices={data.showServices} />
+          <ProgrammeView events={data.events} showServices={data.showServices} config={data.config} />
         )}
       </div>
     </div>

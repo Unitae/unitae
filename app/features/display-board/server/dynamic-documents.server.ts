@@ -1,21 +1,24 @@
-import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
+import {
+  type AvailableDynamicType,
+  DynamicType,
+  type ProgrammeDynamicConfig,
+  parseProgrammeConfig,
+} from '~/features/display-board/model/dynamic-document.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 const PIONEER_TYPES = ['PionnierPermanant', 'PionnierSpecial', 'Missionnaire']
 
-export type { AvailableDynamicType }
+export type { AvailableDynamicType, ProgrammeDynamicConfig }
+export { parseProgrammeConfig }
 
-/**
- * Calcule le début du mois courant pour filtrer les évènements programme.
- */
 function startOfCurrentMonth(): Date {
   const now = new Date()
   return new Date(now.getFullYear(), now.getMonth(), 1)
 }
 
 /**
- * Retourne les types de documents dynamiques disponibles pour la congrégation,
- * en fonction des données présentes. Utilisé par le catalogue d'ajout.
+ * Returns available dynamic document types for the congregation.
+ * Programme is listed once (not per template) since the new config supports multi-template.
  */
 export async function listAvailableDynamicTypes(
   db: TransactionClient,
@@ -53,18 +56,14 @@ export async function listAvailableDynamicTypes(
     })
   }
 
-  const templates = await db.programmeTemplate.findMany({
-    where: { congregationId },
-    select: { key: true, name: true },
-    orderBy: { name: 'asc' },
-  })
-
-  for (const template of templates) {
+  // Programme: always available (users can create multiple with different configs)
+  const templateCount = await db.programmeTemplate.count({ where: { congregationId } })
+  if (templateCount > 0) {
     available.push({
       dynamicType: DynamicType.Programme,
-      dynamicRef: template.key,
-      defaultTitle: template.name,
-      alreadyAdded: isAlreadyAdded(DynamicType.Programme, template.key),
+      dynamicRef: null,
+      defaultTitle: 'Programme',
+      alreadyAdded: false,
     })
   }
 
@@ -72,15 +71,15 @@ export async function listAvailableDynamicTypes(
 }
 
 /**
- * Récupère la date de dernière modification des données sous-jacentes
- * pour un document dynamique. Utilisé pour détecter si le contenu a changé
- * depuis la dernière consultation par l'utilisateur.
+ * Returns the latest modification date of the underlying data for change detection.
  */
 export async function getContentVersion(
   db: TransactionClient,
   dynamicType: string,
   dynamicRef: string | null,
   congregationId: number,
+  // biome-ignore lint/suspicious/noExplicitAny: dynamicConfig is raw JSON from DB
+  dynamicConfig?: any,
 ): Promise<Date | null> {
   if (dynamicType === DynamicType.PublisherGroups) {
     const [group, memberUser] = await Promise.all([
@@ -108,33 +107,47 @@ export async function getContentVersion(
     return pioneer?.updatedAt ?? null
   }
 
-  if (dynamicType === DynamicType.Programme && dynamicRef) {
+  if (dynamicType === DynamicType.Programme) {
+    const config = parseProgrammeConfig(dynamicConfig)
     const fromDate = startOfCurrentMonth()
 
-    const [event, assignment] = await Promise.all([
-      db.event.findFirst({
-        where: {
-          congregationId,
-          template: { key: dynamicRef },
-          startDate: { gte: fromDate },
-        },
-        orderBy: { updatedAt: 'desc' },
-        select: { updatedAt: true },
-      }),
-      db.programmePartAssignment.findFirst({
-        where: {
-          congregationId,
-          event: {
-            template: { key: dynamicRef },
-            startDate: { gte: fromDate },
-          },
-        },
-        orderBy: { updatedAt: 'desc' },
-        select: { updatedAt: true },
-      }),
-    ])
+    if (config) {
+      // Multi-template: check across all configured templates
+      const templateIds = config.templates.map(t => t.templateId)
+      const [event, assignment] = await Promise.all([
+        db.event.findFirst({
+          where: { congregationId, templateId: { in: templateIds }, startDate: { gte: fromDate } },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
+        db.programmePartAssignment.findFirst({
+          where: { congregationId, event: { templateId: { in: templateIds }, startDate: { gte: fromDate } } },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
+      ])
+      return maxDate(event?.updatedAt, assignment?.updatedAt)
+    }
 
-    return maxDate(event?.updatedAt, assignment?.updatedAt)
+    // Legacy: single template via dynamicRef
+    if (dynamicRef) {
+      const [event, assignment] = await Promise.all([
+        db.event.findFirst({
+          where: { congregationId, template: { key: dynamicRef }, startDate: { gte: fromDate } },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
+        db.programmePartAssignment.findFirst({
+          where: {
+            congregationId,
+            event: { template: { key: dynamicRef }, startDate: { gte: fromDate } },
+          },
+          orderBy: { updatedAt: 'desc' },
+          select: { updatedAt: true },
+        }),
+      ])
+      return maxDate(event?.updatedAt, assignment?.updatedAt)
+    }
   }
 
   return null
@@ -147,14 +160,15 @@ function maxDate(...dates: (Date | null | undefined)[]): Date | null {
 }
 
 /**
- * Returns a short preview string for a dynamic document card.
- * Lightweight queries (count / findFirst) for display on the board index.
+ * Returns a short preview string for a dynamic document card on the board index.
  */
 export async function getDynamicPreview(
   db: TransactionClient,
   dynamicType: string,
   dynamicRef: string | null,
   congregationId: number,
+  // biome-ignore lint/suspicious/noExplicitAny: dynamicConfig is raw JSON from DB
+  dynamicConfig?: any,
 ): Promise<string | null> {
   if (dynamicType === DynamicType.PublisherGroups) {
     const count = await db.publisherGroup.count({ where: { congregationId } })
@@ -168,13 +182,20 @@ export async function getDynamicPreview(
     return count > 0 ? `${count} pionniers` : null
   }
 
-  if (dynamicType === DynamicType.Programme && dynamicRef) {
+  if (dynamicType === DynamicType.Programme) {
+    const config = parseProgrammeConfig(dynamicConfig)
+
+    // Build template filter
+    const templateFilter = config
+      ? { templateId: { in: config.templates.map(t => t.templateId) } }
+      : dynamicRef
+        ? { template: { key: dynamicRef } }
+        : null
+
+    if (!templateFilter) return null
+
     const nextEvent = await db.event.findFirst({
-      where: {
-        congregationId,
-        template: { key: dynamicRef },
-        startDate: { gte: new Date() },
-      },
+      where: { congregationId, ...templateFilter, startDate: { gte: new Date() } },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },
     })
@@ -190,10 +211,6 @@ export async function getDynamicPreview(
   return null
 }
 
-/**
- * Marque un document dynamique comme vu par l'utilisateur en mettant à jour
- * le timestamp `viewedAt`. Réinitialise ainsi l'indicateur non-lu pour cet utilisateur.
- */
 export async function markDynamicDocumentViewed(
   db: TransactionClient,
   settingsId: number,
@@ -209,16 +226,17 @@ export async function markDynamicDocumentViewed(
   })
 }
 
+const userSelect = { id: true, firstname: true, lastname: true, anonymizedAt: true } as const
+
 /**
- * Récupère les données live pour un document dynamique.
- * Le routeur du viewer appelle cette fonction puis délègue le rendu au composant approprié.
+ * Fetches live data for a dynamic document. Dispatches by type.
  */
 export async function getDynamicDocumentData(
   db: TransactionClient,
   dynamicType: string,
   dynamicRef: string | null,
   congregationId: number,
-  options: { showServices?: boolean } = {},
+  options: { showServices?: boolean; dynamicConfig?: unknown } = {},
 ) {
   if (dynamicType === DynamicType.PublisherGroups) {
     return {
@@ -234,13 +252,35 @@ export async function getDynamicDocumentData(
     } as const
   }
 
-  if (dynamicType === DynamicType.Programme && dynamicRef) {
-    return {
-      type: DynamicType.Programme,
-      events: await fetchProgramme(db, congregationId, dynamicRef, options.showServices ?? false),
-      templateKey: dynamicRef,
-      showServices: options.showServices ?? false,
-    } as const
+  if (dynamicType === DynamicType.Programme) {
+    const config = parseProgrammeConfig(options.dynamicConfig)
+
+    if (config) {
+      // Multi-template mode: fetch events for all configured templates
+      const templateIds = config.templates.map(t => t.templateId)
+      const anyServices = config.templates.some(t => t.services)
+      const events = await fetchProgrammeByIds(db, congregationId, templateIds, anyServices)
+      return {
+        type: DynamicType.Programme,
+        events,
+        config,
+        // Legacy compat fields
+        templateKey: null,
+        showServices: anyServices,
+      } as const
+    }
+
+    // Legacy: single template via dynamicRef
+    if (dynamicRef) {
+      const events = await fetchProgrammeByKey(db, congregationId, dynamicRef, options.showServices ?? false)
+      return {
+        type: DynamicType.Programme,
+        events,
+        config: null,
+        templateKey: dynamicRef,
+        showServices: options.showServices ?? false,
+      } as const
+    }
   }
 
   return null
@@ -250,11 +290,11 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
   return db.publisherGroup.findMany({
     where: { congregationId },
     include: {
-      responsible: { select: { id: true, firstname: true, lastname: true, anonymizedAt: true } },
-      deputy: { select: { id: true, firstname: true, lastname: true, anonymizedAt: true } },
+      responsible: { select: userSelect },
+      deputy: { select: userSelect },
       members: {
         where: { active: true, isPublisher: true },
-        select: { id: true, firstname: true, lastname: true, anonymizedAt: true, type: true },
+        select: { ...userSelect, type: true },
         orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
       },
     },
@@ -265,12 +305,46 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
 function fetchPioneers(db: TransactionClient, congregationId: number) {
   return db.user.findMany({
     where: { congregationId, type: { in: PIONEER_TYPES }, active: true },
-    select: { id: true, firstname: true, lastname: true, type: true, anonymizedAt: true },
+    select: { ...userSelect, type: true },
     orderBy: [{ type: 'asc' }, { lastname: 'asc' }, { firstname: 'asc' }],
   })
 }
 
-function fetchProgramme(db: TransactionClient, congregationId: number, templateKey: string, showServices: boolean) {
+function fetchProgrammeByIds(
+  db: TransactionClient,
+  congregationId: number,
+  templateIds: number[],
+  includeServices: boolean,
+) {
+  const fromDate = startOfCurrentMonth()
+
+  return db.event.findMany({
+    where: {
+      congregationId,
+      templateId: { in: templateIds },
+      startDate: { gte: fromDate },
+    },
+    include: {
+      template: true,
+      partAssignments: {
+        orderBy: { order: 'asc' },
+        include: {
+          assignee: { select: userSelect },
+          assistant: { select: userSelect },
+        },
+      },
+      serviceRoleAssignments: includeServices ? { include: { assignee: { select: userSelect } } } : false,
+    },
+    orderBy: { startDate: 'asc' },
+  })
+}
+
+function fetchProgrammeByKey(
+  db: TransactionClient,
+  congregationId: number,
+  templateKey: string,
+  showServices: boolean,
+) {
   const fromDate = startOfCurrentMonth()
 
   return db.event.findMany({
@@ -283,17 +357,11 @@ function fetchProgramme(db: TransactionClient, congregationId: number, templateK
       partAssignments: {
         orderBy: { order: 'asc' },
         include: {
-          assignee: { select: { id: true, firstname: true, lastname: true, anonymizedAt: true } },
-          assistant: { select: { id: true, firstname: true, lastname: true, anonymizedAt: true } },
+          assignee: { select: userSelect },
+          assistant: { select: userSelect },
         },
       },
-      serviceRoleAssignments: showServices
-        ? {
-            include: {
-              assignee: { select: { id: true, firstname: true, lastname: true, anonymizedAt: true } },
-            },
-          }
-        : false,
+      serviceRoleAssignments: showServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })

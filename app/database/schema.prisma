@@ -202,6 +202,7 @@ model BoardDynamicDocumentSettings {
   title         String
   dynamicType   String
   dynamicRef    String?
+  dynamicConfig Json?
   section       BoardSection @relation(fields: [sectionId], references: [id])
   sectionId     Int
   order         Int?
@@ -215,7 +216,6 @@ model BoardDynamicDocumentSettings {
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
-  @@unique([congregationId, dynamicType, dynamicRef])
   @@unique([id, congregationId])
 }
 

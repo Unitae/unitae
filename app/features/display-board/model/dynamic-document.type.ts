@@ -15,3 +15,28 @@ export interface AvailableDynamicType {
   defaultTitle: string
   alreadyAdded: boolean
 }
+
+export interface ProgrammeTemplateConfig {
+  templateId: number
+  parts: boolean
+  services: boolean
+}
+
+export interface ProgrammeDynamicConfig {
+  templates: ProgrammeTemplateConfig[]
+  groupBy: 'date' | 'template'
+}
+
+/**
+ * Parses and validates the dynamicConfig JSON for programme documents.
+ * Returns null if the config is missing or invalid (legacy document).
+ */
+export function parseProgrammeConfig(raw: unknown): ProgrammeDynamicConfig | null {
+  if (!raw || typeof raw !== 'object') return null
+  const obj = raw as Record<string, unknown>
+  if (!Array.isArray(obj.templates)) return null
+  return {
+    templates: obj.templates as ProgrammeTemplateConfig[],
+    groupBy: obj.groupBy === 'template' ? 'template' : 'date',
+  }
+}

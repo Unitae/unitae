@@ -32,6 +32,7 @@ export const updateDynamicDocumentSchema = z.object({
   'visible-until': z.string().optional().default(''),
   hightlighted: z.string().optional(),
   showServices: z.string().optional(),
+  dynamicConfig: z.string().optional(),
 })
 
 export const restoreVersionSchema = z.object({

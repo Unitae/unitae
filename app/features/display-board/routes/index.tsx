@@ -106,12 +106,14 @@ export function loader({ context }: Route.LoaderArgs) {
     const [contentVersionEntries, previewEntries] = await Promise.all([
       Promise.all(
         uniqueDynamicDocs.map(
-          async d => [d.id, await getContentVersion(db, d.dynamicType, d.dynamicRef, congregationId)] as const,
+          async d =>
+            [d.id, await getContentVersion(db, d.dynamicType, d.dynamicRef, congregationId, d.dynamicConfig)] as const,
         ),
       ),
       Promise.all(
         uniqueDynamicDocs.map(
-          async d => [d.id, await getDynamicPreview(db, d.dynamicType, d.dynamicRef, congregationId)] as const,
+          async d =>
+            [d.id, await getDynamicPreview(db, d.dynamicType, d.dynamicRef, congregationId, d.dynamicConfig)] as const,
         ),
       ),
     ])
