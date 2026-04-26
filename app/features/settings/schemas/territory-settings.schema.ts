@@ -9,6 +9,7 @@ export const territorySettingsSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on' || v === 'true'),
+  'attribution-default-duration': z.string().default('4'),
 })
 
 export type TerritorySettingsInput = z.infer<typeof territorySettingsSchema>

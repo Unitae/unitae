@@ -55,18 +55,25 @@ export async function loader({ context }: Route.LoaderArgs) {
       currentUser.congregationId,
     )
 
+    const attributionDuration = await getSetting(
+      db,
+      TerritorySettingKey.AttributionDefaultDurationMonths,
+      currentUser.congregationId,
+    )
+
     return {
       territory: serializeTerritoryPolygon(territory),
       zips: serializeZips(zips),
       banoUrl: banoUrl ?? '',
       prospectionValidity: Number(prospectionValidity ?? '24'),
       phoneTypeActivated: phoneTypeActivated ?? false,
+      attributionDuration: Number(attributionDuration ?? '4'),
     }
   })
 }
 
 export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated } = loaderData
+  const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated, attributionDuration } = loaderData
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -125,6 +132,30 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
               {fields['prospection-validity'].errors && (
                 <p className="text-destructive text-sm">{fields['prospection-validity'].errors}</p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.settings_territories_attributions_title()}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor={fields['attribution-default-duration'].id}>
+                {m.settings_territories_attribution_duration_label()}
+              </Label>
+              <Input
+                {...getInputProps(fields['attribution-default-duration'], { type: 'number' })}
+                key={fields['attribution-default-duration'].id}
+                defaultValue={attributionDuration}
+                min={1}
+                max={24}
+              />
+              {fields['attribution-default-duration'].errors && (
+                <p className="text-destructive text-sm">{fields['attribution-default-duration'].errors}</p>
+              )}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_attribution_duration_hint()}</p>
             </div>
           </CardContent>
         </Card>
@@ -190,6 +221,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const banoUrl = submission.value['bano-url']
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
+  const attributionDuration = submission.value['attribution-default-duration']
 
   return withScopeFromContext(context, async db => {
     await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
@@ -197,6 +229,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
+    await setSetting(
+      db,
+      TerritorySettingKey.AttributionDefaultDurationMonths,
+      attributionDuration,
+      currentUser.congregationId,
+    )
 
     return redirect('/settings')
   })
