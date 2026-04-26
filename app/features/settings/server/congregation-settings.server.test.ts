@@ -11,7 +11,6 @@ vi.mock('~/shared/domain/settings.server', () => ({
 }))
 
 const { updateCongregationSettings } = await import('./congregation-settings.server')
-const { unscopedDb } = await import('~/shared/infra/db.server')
 const { setSetting } = await import('~/shared/domain/settings.server')
 
 const mockDb = {
@@ -25,30 +24,22 @@ beforeEach(() => {
 })
 
 describe('updateCongregationSettings', () => {
-  it('updates display name and sets the auxiliary pioneer setting', async () => {
-    vi.mocked(unscopedDb.congregation.update).mockResolvedValue({} as never)
+  it('sets the auxiliary pioneer setting', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
 
     await updateCongregationSettings(mockDb as never, 10, {
-      displayName: 'Ma Congregation',
       auxiliaryPioneerProfileActivated: 'true',
     })
 
-    expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
-      where: { id: 10 },
-      data: { displayName: 'Ma Congregation' },
-    })
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
     expect(mockDb.user.updateMany).not.toHaveBeenCalled()
   })
 
   it('resets auxiliary pioneers to normal when feature is deactivated', async () => {
-    vi.mocked(unscopedDb.congregation.update).mockResolvedValue({} as never)
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
     mockDb.user.updateMany.mockResolvedValue({ count: 3 })
 
     await updateCongregationSettings(mockDb as never, 10, {
-      displayName: null,
       auxiliaryPioneerProfileActivated: 'false',
     })
 

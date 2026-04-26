@@ -1,16 +1,11 @@
-import { getFormProps, getInputProps, useForm } from '@conform-to/react'
+import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { ArrowRight } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
 import * as m from '~/paraglide/messages'
-import {
-  congregationContext,
-  permissionsContext,
-  userContext,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
@@ -18,7 +13,6 @@ import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
-import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -32,7 +26,6 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const congregation = context.get(congregationContext)
   const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
@@ -48,16 +41,15 @@ export async function loader({ context }: Route.LoaderArgs) {
 
     return {
       auxiliaryPioneerProfileActivated: auxiliaryPioneerProfileActivated ?? false,
-      congregationDisplayName: congregation.displayName,
     }
   })
 }
 
-export default function BuildingSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { auxiliaryPioneerProfileActivated, congregationDisplayName } = loaderData
+export default function CongregationSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { auxiliaryPioneerProfileActivated } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
 
-  const [form, fields] = useForm({
+  const [form] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: congregationSettingsSchema })
@@ -70,29 +62,10 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
       <PageHeader
         title={m.settings_congregation_title()}
         subtitle={m.settings_congregation_subtitle()}
-        breadcrumbs={[{ label: 'Réglages', to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
+        breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_assembly() }]}
       />
 
       <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
-        <Card>
-          <CardHeader>
-            <CardTitle>{m.settings_congregation_local_title()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor={fields.displayName.id}>{m.settings_congregation_display_name_label()}</Label>
-              <Input
-                {...getInputProps(fields.displayName, { type: 'text' })}
-                key={fields.displayName.id}
-                placeholder={m.settings_congregation_display_name_placeholder()}
-                defaultValue={congregationDisplayName}
-              />
-              {fields.displayName.errors && <p className="text-destructive text-sm">{fields.displayName.errors}</p>}
-              <p className="text-muted-foreground text-xs">{m.settings_congregation_display_name_hint()}</p>
-            </div>
-          </CardContent>
-        </Card>
-
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_congregation_publishers_title()}</CardTitle>
@@ -132,30 +105,6 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
 
         <SubmitButton>{m.common_save()}</SubmitButton>
       </Form>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{m.data_transfer_title()}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-            <span className="text-sm">{m.data_transfer_export_link()}</span>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="./export" className="flex items-center gap-2">
-                {m.data_transfer_export_link()} <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
-          <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
-            <span className="text-sm">{m.data_transfer_import_link()}</span>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="./import" className="flex items-center gap-2">
-                {m.data_transfer_import_link()} <ArrowRight className="size-4" />
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
@@ -174,15 +123,12 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { displayName, [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
+  const { [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
     submission.value
 
   return withScopeFromContext(context, async db => {
-    await updateCongregationSettings(db, congregation.id, {
-      displayName: displayName || null,
-      auxiliaryPioneerProfileActivated,
-    })
+    await updateCongregationSettings(db, congregation.id, { auxiliaryPioneerProfileActivated })
 
-    return redirect('/settings')
+    return redirect('/settings/congregation')
   })
 }
