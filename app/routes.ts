@@ -63,6 +63,7 @@ export default [
     ]),
     route('settings', 'features/settings/routes/_layout.tsx', [
       index('features/settings/routes/index.tsx'),
+      route('general', 'features/settings/routes/general/settings.tsx'),
       ...prefix('users', [
         index('features/settings/routes/users/user-list.tsx'),
         route('new', 'features/settings/routes/users/new-user.tsx'),
