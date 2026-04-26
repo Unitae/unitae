@@ -8,6 +8,7 @@ import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/user-list'
@@ -16,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageUser = permissions.has(Role.SettingsUserManager)
@@ -33,9 +34,24 @@ export async function loader({ context }: Route.LoaderArgs) {
     `Loading users. User ID: ${currentUser.id}. ${canManageUser ? 'Has' : 'Does NOT have'} rights to manage users.`,
   )
 
+  const url = new URL(request.url)
+  const search = url.searchParams.get('q')?.trim() || undefined
+
   return withScopeFromContext(context, async db => {
     const users = await db.user.findMany({
-      where: { congregationId: currentUser.congregationId },
+      where: {
+        congregationId: currentUser.congregationId,
+        ...(search
+          ? {
+              // biome-ignore lint/style/useNamingConvention: prisma filter
+              OR: [
+                { firstname: { contains: search, mode: 'insensitive' } },
+                { lastname: { contains: search, mode: 'insensitive' } },
+                { email: { contains: search, mode: 'insensitive' } },
+              ],
+            }
+          : {}),
+      },
       include: {
         congregationRoles: { include: { role: true } },
       },
@@ -84,6 +100,8 @@ export default function SettingsLayout({ loaderData }: Route.ComponentProps) {
           </Button>
         }
       />
+
+      <SearchInput placeholder={m.settings_users_search_placeholder()} />
 
       <div className="overflow-hidden rounded-xl border">
         <Table>

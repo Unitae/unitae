@@ -108,6 +108,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
                 defaultValue={banoUrl}
               />
               {fields['bano-url'].errors && <p className="text-destructive text-sm">{fields['bano-url'].errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_bano_url_hint()}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor={fields.zips.id}>{m.settings_territories_zips_label()}</Label>
@@ -118,6 +119,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
                 defaultValue={zips}
               />
               {fields.zips.errors && <p className="text-destructive text-sm">{fields.zips.errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_zips_hint()}</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor={fields['prospection-validity'].id}>
@@ -132,6 +134,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
               {fields['prospection-validity'].errors && (
                 <p className="text-destructive text-sm">{fields['prospection-validity'].errors}</p>
               )}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_prospection_validity_hint()}</p>
             </div>
           </CardContent>
         </Card>
@@ -174,6 +177,7 @@ export default function BuildingSettingsPage({ loaderData, actionData }: Route.C
                 defaultValue={territory}
               />
               {fields.territory.errors && <p className="text-destructive text-sm">{fields.territory.errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_territories_polygon_hint()}</p>
             </div>
 
             <Separator />
