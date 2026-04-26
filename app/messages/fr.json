@@ -1153,6 +1153,7 @@
     "programs_export_group_by_date": "Date (chronologique)",
     "programs_export_group_by_template": "Type de réunion",
     "programs_export_no_selection": "Sélectionnez au moins un modèle avec du contenu",
+    "programs_export_pdf_title_label": "Titre du document",
     "publisher_info_elder_badge": "Ancien",
     "publisher_info_servant_badge": "Serviteur ministériel",
     "publisher_info_absence_during_event": "Absence pendant cet évènement",

@@ -88,11 +88,7 @@ const styles = StyleSheet.create({
   },
   // Event card
   eventCard: {
-    marginBottom: 6,
-  },
-  eventSeparator: {
-    borderBottom: '0.75 solid #e2e8f0',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   dateHeader: {
     backgroundColor: '#f1f5f9',
@@ -137,12 +133,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 2,
   },
-  // Part lines
-  partBlock: {
+  // Part lines — single row: name (duration) ........... assignee
+  partRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     marginLeft: 12,
-    marginBottom: 3,
+    marginBottom: 2,
   },
-  partTitle: {
+  partLeft: {
     fontSize: 9,
     fontWeight: 'bold',
     color: '#1e293b',
@@ -151,39 +149,56 @@ const styles = StyleSheet.create({
     fontWeight: 'normal',
     color: '#64748b',
   },
-  partTopic: {
-    fontSize: 8,
-    fontStyle: 'italic',
-    color: '#64748b',
-    marginTop: 1,
+  partDotsContainer: {
+    flex: 1,
+    marginHorizontal: 4,
+    maxHeight: 9, // clip to single line at fontSize 7
+    overflow: 'hidden',
   },
-  partAssignee: {
-    fontSize: 8,
+  partDotsText: {
+    fontSize: 7,
+    color: '#cbd5e1',
+  },
+  partRight: {
+    fontSize: 8.5,
     color: '#334155',
-    marginTop: 1,
+    textAlign: 'right',
   },
-  assigneeLabel: {
+  partAssistant: {
+    fontSize: 8,
     color: '#94a3b8',
   },
+  partTopic: {
+    fontSize: 7.5,
+    fontStyle: 'italic',
+    color: '#64748b',
+    marginLeft: 20,
+    marginBottom: 1,
+  },
+  unassignedRight: {
+    fontSize: 8.5,
+    color: '#cbd5e1',
+    fontStyle: 'italic',
+    textAlign: 'right',
+  },
   // Multi-track rendering
-  trackBlock: {
-    marginLeft: 10,
-    marginTop: 2,
-    marginBottom: 3,
-    paddingLeft: 8,
-    borderLeft: '2 solid #e2e8f0',
+  trackRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginLeft: 22,
+    marginBottom: 1,
   },
   trackLabel: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontWeight: 'bold',
     color: '#94a3b8',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 1,
+    letterSpacing: 0.4,
+    width: 40,
   },
   // Services
   servicesDivider: {
-    borderTop: '1 dotted #cbd5e1',
+    borderTop: '0.75 solid #e2e8f0',
     marginTop: 6,
     paddingTop: 5,
   },
@@ -281,7 +296,6 @@ export function ProgrammeBoardDocument({
           return (
             // biome-ignore lint/suspicious/noArrayIndexKey: events may share id across pages
             <View key={idx}>
-              {idx > 0 && !templateHeader && <View style={styles.eventSeparator} />}
               {templateHeader && <Text style={styles.templateGroupHeader}>{templateHeader}</Text>}
               <EventCard event={event} showParts={showParts} showServices={showServices} />
             </View>
@@ -307,7 +321,6 @@ function EventCard({
   showServices: boolean
 }) {
   const sectionGroups = groupPartsBySlot(event.partAssignments)
-  let partCounter = 0
 
   return (
     <View style={styles.eventCard}>
@@ -321,20 +334,16 @@ function EventCard({
           // biome-ignore lint/suspicious/noArrayIndexKey: section groups have no stable id
           <View key={groupIdx}>
             {group.section !== '' && <SectionHeader section={group.section} />}
-            {group.slots.map((slot, slotIdx) => {
-              partCounter++
-              const num = partCounter
-              return (
-                // biome-ignore lint/suspicious/noArrayIndexKey: slots have no stable id
-                <View key={slotIdx}>
-                  {slot.parts.length === 1 ? (
-                    <SinglePart part={slot.parts[0]} number={num} />
-                  ) : (
-                    <MultiTrackPart parts={slot.parts} number={num} />
-                  )}
-                </View>
-              )
-            })}
+            {group.slots.map((slot, slotIdx) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: slots have no stable id
+              <View key={slotIdx}>
+                {slot.parts.length === 1 ? (
+                  <SinglePart part={slot.parts[0]} />
+                ) : (
+                  <MultiTrackPart parts={slot.parts} />
+                )}
+              </View>
+            ))}
           </View>
         ))}
 
@@ -371,57 +380,74 @@ function SectionHeader({ section }: { section: string }) {
   )
 }
 
-function SinglePart({ part, number }: { part: PartAssignment; number: number }) {
-  const assigneeName = formatName(part.assignee)
-  const assistantName = formatName(part.assistant)
+// Long dot string — the flex container + maxHeight clip it to one line
+const DOT_LEADER = ' .'.repeat(200)
 
+function formatAssigneeWithAssistant(assignee: string | null, assistant: string | null): string | null {
+  if (!assignee) return null
+  if (assistant) return `${assignee} / ${assistant}`
+  return assignee
+}
+
+function DotLeader() {
   return (
-    <View style={styles.partBlock}>
-      <Text style={styles.partTitle}>
-        {number}. {part.name}
-        {part.durationMin != null && <Text style={styles.partDuration}> ({part.durationMin} min)</Text>}
-      </Text>
-      {part.topic !== '' && <Text style={styles.partTopic}>« {part.topic} »</Text>}
-      {assigneeName && (
-        <Text style={styles.partAssignee}>
-          {assigneeName}
-          {assistantName && <Text style={styles.assigneeLabel}> — Assistant : </Text>}
-          {assistantName}
-        </Text>
-      )}
-      {!assigneeName && <Text style={styles.unassigned}>—</Text>}
+    <View style={styles.partDotsContainer}>
+      <Text style={styles.partDotsText}>{DOT_LEADER}</Text>
     </View>
   )
 }
 
-function MultiTrackPart({ parts, number }: { parts: PartAssignment[]; number: number }) {
-  // All tracks share the same template part name/duration
+function SinglePart({ part }: { part: PartAssignment }) {
+  const assigneeName = formatName(part.assignee)
+  const assistantName = formatName(part.assistant)
+  const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+
+  return (
+    <View>
+      <View style={styles.partRow}>
+        <Text style={styles.partLeft}>
+          {part.name}
+          {part.durationMin != null && <Text style={styles.partDuration}> ({part.durationMin} min)</Text>}
+        </Text>
+        <DotLeader />
+        {rightText ? <Text style={styles.partRight}>{rightText}</Text> : <Text style={styles.unassignedRight}>—</Text>}
+      </View>
+      {part.topic !== '' && <Text style={styles.partTopic}>« {part.topic} »</Text>}
+    </View>
+  )
+}
+
+function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
   const representative = parts[0]
 
   return (
-    <View style={styles.partBlock}>
-      <Text style={styles.partTitle}>
-        {number}. {representative.name}
-        {representative.durationMin != null && (
-          <Text style={styles.partDuration}> ({representative.durationMin} min)</Text>
-        )}
-      </Text>
+    <View>
+      <View style={styles.partRow}>
+        <Text style={styles.partLeft}>
+          {representative.name}
+          {representative.durationMin != null && (
+            <Text style={styles.partDuration}> ({representative.durationMin} min)</Text>
+          )}
+        </Text>
+      </View>
       {parts.map((part, idx) => {
         const assigneeName = formatName(part.assignee)
         const assistantName = formatName(part.assistant)
+        const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: track parts within a slot
-          <View key={idx} style={styles.trackBlock}>
+          <View key={idx} style={styles.trackRow}>
             <Text style={styles.trackLabel}>{part.track || `Salle ${idx + 1}`}</Text>
-            {part.topic !== '' && <Text style={styles.partTopic}>« {part.topic} »</Text>}
-            {assigneeName ? (
-              <Text style={styles.partAssignee}>
-                {assigneeName}
-                {assistantName && <Text style={styles.assigneeLabel}> — Assistant : </Text>}
-                {assistantName}
+            {part.topic !== '' && (
+              <Text style={{ fontSize: 7.5, fontStyle: 'italic', color: '#64748b', marginRight: 4 }}>
+                « {part.topic} »
               </Text>
+            )}
+            <DotLeader />
+            {rightText ? (
+              <Text style={styles.partRight}>{rightText}</Text>
             ) : (
-              <Text style={styles.unassigned}>—</Text>
+              <Text style={styles.unassignedRight}>—</Text>
             )}
           </View>
         )

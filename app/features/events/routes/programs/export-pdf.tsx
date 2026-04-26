@@ -42,6 +42,7 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
     Object.fromEntries(templates.map(t => [t.id, { selected: true, parts: true, services: true }])),
   )
   const [groupBy, setGroupBy] = useState<'date' | 'template'>('date')
+  const [pdfTitle, setPdfTitle] = useState<string>(m.programs_export_default_title())
 
   const today = new Date()
   const twoMonthsLater = new Date()
@@ -63,7 +64,7 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
 
   const hasSelection = selectedConfigs.length > 0
   const encoded = hasSelection ? btoa(JSON.stringify(selectedConfigs)) : ''
-  const downloadUrl = `/programs/export-pdf/download?configs=${encodeURIComponent(encoded)}&startDate=${startDate}&endDate=${endDate}&groupBy=${groupBy}`
+  const downloadUrl = `/programs/export-pdf/download?configs=${encodeURIComponent(encoded)}&startDate=${startDate}&endDate=${endDate}&groupBy=${groupBy}&title=${encodeURIComponent(pdfTitle)}`
 
   return (
     <div className="flex flex-col gap-6">
@@ -80,6 +81,12 @@ export default function ExportPdfPage({ loaderData }: Route.ComponentProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-5">
+            {/* Title */}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="pdfTitle">{m.programs_export_pdf_title_label()}</Label>
+              <Input id="pdfTitle" type="text" value={pdfTitle} onChange={e => setPdfTitle(e.target.value)} />
+            </div>
+
             {/* Date range */}
             <div className="flex gap-4">
               <div className="flex flex-1 flex-col gap-2">

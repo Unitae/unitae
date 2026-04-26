@@ -1153,6 +1153,7 @@
     "programs_export_group_by_date": "Date (chronological)",
     "programs_export_group_by_template": "Meeting type",
     "programs_export_no_selection": "Select at least one template with content",
+    "programs_export_pdf_title_label": "Document title",
     "publisher_info_elder_badge": "Elder",
     "publisher_info_servant_badge": "Ministerial servant",
     "publisher_info_absence_during_event": "Absent during this event",

@@ -64,7 +64,9 @@ function handleNewFormat(
       configs.map(c => [c.templateId, { parts: c.parts, services: c.services }]),
     )
 
-    const title = `${m.programs_export_default_title()} — ${startDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
+    const customTitle = url.searchParams.get('title')
+    const baseTitle = customTitle || m.programs_export_default_title()
+    const title = `${baseTitle} — ${startDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
 
     const file = await pdf(
       <ProgrammeBoardDocument
