@@ -68,6 +68,36 @@ export function addServiceRoleAssignment(
   return db.programmeServiceRoleAssignment.create({ data })
 }
 
+export function updatePartAssignment(
+  db: TransactionClient,
+  id: number,
+  data: { name: string; section: string; track: string; order: number; durationMin: number | null },
+  congregationId: number,
+) {
+  return db.programmePartAssignment.update({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id, congregationId },
+    },
+    data,
+  })
+}
+
+export function updateServiceRoleAssignment(
+  db: TransactionClient,
+  id: number,
+  data: { name: string },
+  congregationId: number,
+) {
+  return db.programmeServiceRoleAssignment.update({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: prisma compound key
+      id_congregationId: { id, congregationId },
+    },
+    data,
+  })
+}
+
 export function deleteServiceRoleAssignment(db: TransactionClient, id: number, congregationId: number) {
   return db.programmeServiceRoleAssignment.delete({
     where: {
@@ -75,6 +105,24 @@ export function deleteServiceRoleAssignment(db: TransactionClient, id: number, c
       id_congregationId: { id, congregationId },
     },
   })
+}
+
+export async function reorderPartAssignments(
+  db: TransactionClient,
+  congregationId: number,
+  orderedIds: number[],
+): Promise<void> {
+  await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_003, congregationId)
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.programmePartAssignment.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: orderedIds[i], congregationId },
+      },
+      data: { order: i * 5 },
+    })
+  }
 }
 
 export async function applyTemplateToEvent(

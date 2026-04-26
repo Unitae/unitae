@@ -1,0 +1,102 @@
+import { useEffect, useRef } from 'react'
+import type { useFetcher } from 'react-router'
+import * as m from '~/paraglide/messages'
+import { Checkbox } from '~/shared/ui/checkbox'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
+
+type PartData = {
+  id?: number
+  name: string
+  section: string
+  track: string
+  order: number
+  durationMin: number | null
+  isVariable?: boolean
+}
+
+type PartEditSheetProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  part: PartData | null
+  mode: 'event' | 'template'
+  fetcher: ReturnType<typeof useFetcher>
+  defaultOrder: number
+}
+
+export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, defaultOrder }: PartEditSheetProps) {
+  const isEditing = part != null
+  const prevState = useRef(fetcher.state)
+
+  useEffect(() => {
+    if (prevState.current === 'submitting' && fetcher.state === 'idle') {
+      onOpenChange(false)
+    }
+    prevState.current = fetcher.state
+  }, [fetcher.state, onOpenChange])
+
+  const intent = mode === 'template' ? 'upsert-part' : isEditing ? 'update-part' : 'add-part'
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>
+            {isEditing ? m.programs_edit_part_sheet_title_edit() : m.programs_edit_part_sheet_title_new()}
+          </SheetTitle>
+          <SheetDescription>{part?.name}</SheetDescription>
+        </SheetHeader>
+        <fetcher.Form method="post" className="flex flex-col gap-4 px-4">
+          <input type="hidden" name="intent" value={intent} />
+          {mode === 'template' && part?.id && <input type="hidden" name="partId" value={part.id} />}
+          {mode === 'event' && part?.id && <input type="hidden" name="partAssignmentId" value={part.id} />}
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="partName">{m.programs_edit_part_name_label()}</Label>
+            <Input id="partName" name="partName" defaultValue={part?.name ?? ''} required />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="partSection">{m.programs_edit_part_section_label()}</Label>
+            <Input id="partSection" name="partSection" defaultValue={part?.section ?? ''} />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
+            <Input id="partTrack" name="partTrack" defaultValue={part?.track ?? ''} />
+          </div>
+
+          <div className="flex gap-4">
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="partOrder">{m.programs_edit_part_order_label()}</Label>
+              <Input
+                id="partOrder"
+                name="partOrder"
+                type="number"
+                defaultValue={part?.order ?? defaultOrder}
+                required
+              />
+            </div>
+            <div className="flex flex-1 flex-col gap-2">
+              <Label htmlFor="partDuration">{m.programs_edit_part_duration_label()}</Label>
+              <Input id="partDuration" name="partDuration" type="number" defaultValue={part?.durationMin ?? ''} />
+            </div>
+          </div>
+
+          {mode === 'template' && (
+            <div className="flex items-center gap-2">
+              <Checkbox id="partIsVariable" name="partIsVariable" defaultChecked={part?.isVariable ?? false} />
+              <Label htmlFor="partIsVariable">{m.programs_edit_variable_badge()}</Label>
+            </div>
+          )}
+
+          <SheetFooter>
+            <SubmitButton>{m.common_save()}</SubmitButton>
+          </SheetFooter>
+        </fetcher.Form>
+      </SheetContent>
+    </Sheet>
+  )
+}

@@ -85,6 +85,7 @@ export default [
           index('features/settings/routes/congregation/templates/view.tsx'),
           route('edit', 'features/settings/routes/congregation/templates/edit.tsx'),
           route('responsible', 'features/settings/routes/congregation/templates/responsible.tsx'),
+          route('reorder-parts', 'features/settings/routes/congregation/templates/reorder-parts.tsx'),
         ]),
       ]),
       route('data', 'features/settings/routes/data/settings.tsx'),

@@ -129,6 +129,24 @@ export function deleteTemplateServiceRole(db: TransactionClient, roleId: number,
   })
 }
 
+export async function reorderTemplateParts(
+  db: TransactionClient,
+  congregationId: number,
+  orderedIds: number[],
+): Promise<void> {
+  await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_005, congregationId)
+
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.programmeTemplatePart.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: orderedIds[i], congregationId },
+      },
+      data: { order: i * 5 },
+    })
+  }
+}
+
 export function setTemplateResponsible(
   db: TransactionClient,
   templateId: number,

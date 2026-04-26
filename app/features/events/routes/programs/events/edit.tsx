@@ -1,5 +1,9 @@
 import { parseWithZod } from '@conform-to/zod'
-import { data, Form, redirect } from 'react-router'
+import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useState } from 'react'
+import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import {
   addPartSchema,
@@ -8,6 +12,8 @@ import {
   deletePartSchema,
   deleteServiceSchema,
   updateEventSchema,
+  updatePartSchema,
+  updateServiceSchema,
 } from '~/features/events/schemas/program-edit.schema'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
@@ -18,20 +24,26 @@ import {
   deletePartAssignment,
   deleteServiceRoleAssignment,
   updateEvent,
+  updatePartAssignment,
+  updateServiceRoleAssignment,
 } from '~/features/events/server/programme-events.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
+import { InlineDeleteDialog } from '~/features/events/ui/InlineDeleteDialog'
+import { PartEditSheet } from '~/features/events/ui/PartEditSheet'
+import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
+import { SortableRow } from '~/features/events/ui/SortableRow'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
-import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -83,9 +95,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (result && 'reply' in result) return data(result.reply(), { status: 400 })
     if (result?.message) session.flash('success', result.message)
 
-    return redirect(`/programs/events/${eventId}`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 
@@ -104,10 +114,14 @@ function handleEditIntent(
       return handleUpdateEvent(formData, db, eventId, congregationId)
     case 'add-part':
       return handleAddPart(formData, db, eventId, congregationId)
+    case 'update-part':
+      return handleUpdatePart(formData, db, congregationId)
     case 'delete-part':
       return handleDeletePart(formData, db, congregationId)
     case 'add-service':
       return handleAddService(formData, db, eventId, congregationId)
+    case 'update-service':
+      return handleUpdateService(formData, db, congregationId)
     case 'delete-service':
       return handleDeleteService(formData, db, congregationId)
     case 'apply-template':
@@ -164,6 +178,41 @@ async function handleAddPart(
   return { message: m.programs_edit_part_added() }
 }
 
+async function handleUpdatePart(
+  formData: FormData,
+  db: TransactionClient,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: updatePartSchema })
+  if (submission.status !== 'success') return submission
+
+  const { partAssignmentId, partName, partSection, partTrack, partOrder, partDuration } = submission.value
+  await updatePartAssignment(
+    db,
+    partAssignmentId,
+    { name: partName, section: partSection, track: partTrack, order: partOrder, durationMin: partDuration ?? null },
+    congregationId,
+  )
+  return { message: m.programs_edit_event_updated() }
+}
+
+async function handleUpdateService(
+  formData: FormData,
+  db: TransactionClient,
+  congregationId: number,
+): Promise<IntentResult> {
+  const submission = parseWithZod(formData, { schema: updateServiceSchema })
+  if (submission.status !== 'success') return submission
+
+  await updateServiceRoleAssignment(
+    db,
+    submission.value.serviceAssignmentId,
+    { name: submission.value.serviceName },
+    congregationId,
+  )
+  return { message: m.programs_edit_event_updated() }
+}
+
 async function handleDeletePart(
   formData: FormData,
   db: TransactionClient,
@@ -218,13 +267,84 @@ async function handleApplyTemplate(
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
   const { event, templates } = loaderData
-  const hasParts = event.partAssignments.length > 0 || event.serviceRoleAssignments.length > 0
 
-  const { blocker, markDirty } = useUnsavedChanges()
+  const infoFetcher = useFetcher()
+  const partFetcher = useFetcher()
+  const serviceFetcher = useFetcher()
+  const deleteFetcher = useFetcher()
+  const reorderFetcher = useFetcher()
+  const templateFetcher = useFetcher()
+
+  const [editingPart, setEditingPart] = useState<{
+    id: number
+    name: string
+    section: string
+    track: string
+    order: number
+    durationMin: number | null
+  } | null>(null)
+  const [partSheetOpen, setPartSheetOpen] = useState(false)
+
+  const [editingService, setEditingService] = useState<{ id: number; name: string } | null>(null)
+  const [serviceSheetOpen, setServiceSheetOpen] = useState(false)
+
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'part' | 'service'; id: number; name: string } | null>(null)
+
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('')
+
+  function handlePartDragEnd(e: DragEndEvent) {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+
+    const ids = event.partAssignments.map(p => p.id)
+    const oldIndex = ids.indexOf(Number(active.id))
+    const newIndex = ids.indexOf(Number(over.id))
+    const reordered = [...ids]
+    const [moved] = reordered.splice(oldIndex, 1)
+    reordered.splice(newIndex, 0, moved)
+
+    reorderFetcher.submit(
+      { orderedIds: reordered },
+      { method: 'POST', action: `./reorder-parts`, encType: 'application/json' },
+    )
+  }
+
+  function handleDelete() {
+    if (!deleteTarget) return
+    const formData = new FormData()
+    if (deleteTarget.type === 'part') {
+      formData.set('intent', 'delete-part')
+      formData.set('partAssignmentId', String(deleteTarget.id))
+    } else {
+      formData.set('intent', 'delete-service')
+      formData.set('serviceAssignmentId', String(deleteTarget.id))
+    }
+    deleteFetcher.submit(formData, { method: 'post' })
+    setDeleteTarget(null)
+  }
+
+  function handleApplyTemplate() {
+    if (!selectedTemplateId) return
+    const formData = new FormData()
+    formData.set('intent', 'apply-template')
+    formData.set('templateId', selectedTemplateId)
+    templateFetcher.submit(formData, { method: 'post' })
+  }
+
+  // Group parts by section for visual grouping
+  const partsBySection: { section: string; parts: typeof event.partAssignments }[] = []
+  let currentSection: string | null = null
+  for (const part of event.partAssignments) {
+    const section = part.section || ''
+    if (section !== currentSection) {
+      partsBySection.push({ section, parts: [] })
+      currentSection = section
+    }
+    partsBySection.at(-1)?.parts.push(part)
+  }
 
   return (
     <div className="flex flex-col gap-6">
-      <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_edit_page_title()}
         subtitle={event.name}
@@ -236,12 +356,13 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         backTo={`/programs/events/${event.id}`}
       />
 
+      {/* General info */}
       <Card className="max-w-lg">
         <CardHeader>
           <CardTitle className="text-base">{m.programs_edit_info_title()}</CardTitle>
         </CardHeader>
         <CardContent>
-          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
+          <infoFetcher.Form method="post" className="flex flex-col gap-4">
             <input type="hidden" name="intent" value="update-event" />
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">{m.common_name()}</Label>
@@ -279,139 +400,231 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 />
               </div>
             </div>
-            <Button type="submit" className="w-fit">
-              {m.common_save()}
-            </Button>
-          </Form>
+            <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
+          </infoFetcher.Form>
         </CardContent>
       </Card>
 
-      {!hasParts && (
-        <Card className="max-w-lg">
-          <CardHeader>
-            <CardTitle className="text-base">{m.programs_edit_apply_template_title()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Form method="post" className="flex flex-col gap-4">
-              <input type="hidden" name="intent" value="apply-template" />
-              <p className="text-muted-foreground text-sm">{m.programs_edit_apply_template_hint()}</p>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="templateId">{m.programs_edit_template_label()}</Label>
-                <Select name="templateId">
-                  <SelectTrigger>
-                    <SelectValue placeholder={m.programs_edit_select_template()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {templates.map(template => (
-                      <SelectItem key={template.id} value={template.id.toString()}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-fit">
-                {m.programs_edit_apply_button()}
-              </Button>
-            </Form>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* Spiritual program */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{m.programs_edit_spiritual_program()}</CardTitle>
+          <CardAction>
+            <div className="flex items-center gap-2">
+              {templates.length > 0 && (
+                <div className="flex items-center gap-1">
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger className="h-8 w-40 text-xs">
+                      <SelectValue placeholder={m.programs_edit_select_template()} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {templates.map(template => (
+                        <SelectItem key={template.id} value={template.id.toString()}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleApplyTemplate}
+                    disabled={!selectedTemplateId || templateFetcher.state !== 'idle'}
+                  >
+                    {m.programs_edit_apply_button()}
+                  </Button>
+                </div>
+              )}
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingPart(null)
+                  setPartSheetOpen(true)
+                }}
+              >
+                <Plus className="size-4" />
+                {m.programs_edit_add_part_button()}
+              </Button>
+            </div>
+          </CardAction>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {event.partAssignments.map(assignment => (
-            <div key={assignment.id} className="flex items-center justify-between border-b pb-2">
-              <div className="flex flex-col">
-                <span className="font-medium text-sm">{assignment.name}</span>
-                {assignment.section && <span className="text-muted-foreground text-xs">{assignment.section}</span>}
-                {assignment.durationMin && (
-                  <span className="text-muted-foreground text-xs">{assignment.durationMin} min</span>
-                )}
-              </div>
-              <Form method="post">
-                <input type="hidden" name="intent" value="delete-part" />
-                <input type="hidden" name="partAssignmentId" value={assignment.id} />
-                <Button type="submit" variant="destructive" size="sm">
-                  {m.common_delete()}
-                </Button>
-              </Form>
-            </div>
-          ))}
-
-          <Form method="post" className="flex flex-wrap items-end gap-2 border-t pt-3">
-            <input type="hidden" name="intent" value="add-part" />
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.programs_edit_part_name_label()}</Label>
-              <Input name="partName" placeholder={m.programs_edit_new_part_placeholder()} className="w-40" required />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.programs_edit_part_section_label()}</Label>
-              <Input name="partSection" className="w-40" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.programs_edit_part_track_label()}</Label>
-              <Input name="partTrack" className="w-40" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.programs_edit_part_order_label()}</Label>
-              <Input
-                name="partOrder"
-                type="number"
-                defaultValue={event.partAssignments.length + 1}
-                className="w-16"
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.programs_edit_part_duration_label()}</Label>
-              <Input name="partDuration" type="number" className="w-20" />
-            </div>
-            <Button type="submit" size="sm">
-              {m.programs_edit_add_button()}
-            </Button>
-          </Form>
+        <CardContent>
+          {event.partAssignments.length > 0 ? (
+            <DndContext collisionDetection={closestCenter} onDragEnd={handlePartDragEnd}>
+              <SortableContext items={event.partAssignments.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-8" />
+                      <TableHead>{m.programs_view_part_col()}</TableHead>
+                      <TableHead className="w-24">{m.programs_view_duration_col()}</TableHead>
+                      <TableHead className="w-20">{m.common_actions()}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {partsBySection.map(group => (
+                      <>
+                        {group.section && (
+                          <TableRow key={`section-${group.section}`} className="bg-muted/50">
+                            <TableCell colSpan={4} className="py-1.5">
+                              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                                {group.section}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {group.parts.map(assignment => (
+                          <SortableRow key={assignment.id} id={assignment.id}>
+                            <TableCell>
+                              <span className="font-medium text-sm">{assignment.name}</span>
+                            </TableCell>
+                            <TableCell>
+                              {assignment.durationMin ? (
+                                <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                                  <Clock className="size-3" />
+                                  {assignment.durationMin} min
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7"
+                                  onClick={() => {
+                                    setEditingPart({
+                                      id: assignment.id,
+                                      name: assignment.name,
+                                      section: assignment.section,
+                                      track: assignment.track,
+                                      order: assignment.order,
+                                      durationMin: assignment.durationMin,
+                                    })
+                                    setPartSheetOpen(true)
+                                  }}
+                                >
+                                  <Pencil className="size-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="size-7 text-destructive hover:text-destructive"
+                                  onClick={() =>
+                                    setDeleteTarget({ type: 'part', id: assignment.id, name: assignment.name })
+                                  }
+                                >
+                                  <Trash2 className="size-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </SortableRow>
+                        ))}
+                      </>
+                    ))}
+                  </TableBody>
+                </Table>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <p className="text-muted-foreground text-sm">{m.programs_edit_apply_template_hint()}</p>
+          )}
         </CardContent>
       </Card>
 
+      {/* Services */}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">{m.programs_edit_services_title()}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {event.serviceRoleAssignments.map(assignment => (
-            <div key={assignment.id} className="flex items-center justify-between border-b pb-2">
-              <span className="font-medium text-sm">{assignment.name}</span>
-              <Form method="post">
-                <input type="hidden" name="intent" value="delete-service" />
-                <input type="hidden" name="serviceAssignmentId" value={assignment.id} />
-                <Button type="submit" variant="destructive" size="sm">
-                  {m.common_delete()}
-                </Button>
-              </Form>
-            </div>
-          ))}
-
-          <Form method="post" className="flex items-end gap-2 border-t pt-3">
-            <input type="hidden" name="intent" value="add-service" />
-            <div className="flex flex-col gap-1">
-              <Label className="text-xs">{m.programs_edit_part_name_label()}</Label>
-              <Input
-                name="serviceName"
-                placeholder={m.programs_edit_new_service_placeholder()}
-                className="w-48"
-                required
-              />
-            </div>
-            <Button type="submit" size="sm">
-              {m.programs_edit_add_button()}
+          <CardAction>
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingService(null)
+                setServiceSheetOpen(true)
+              }}
+            >
+              <Plus className="size-4" />
+              {m.programs_edit_add_service_button()}
             </Button>
-          </Form>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          {event.serviceRoleAssignments.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{m.programs_view_role_col()}</TableHead>
+                  <TableHead className="w-20">{m.common_actions()}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {event.serviceRoleAssignments.map(assignment => (
+                  <TableRow key={assignment.id}>
+                    <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => {
+                            setEditingService({ id: assignment.id, name: assignment.name })
+                            setServiceSheetOpen(true)
+                          }}
+                        >
+                          <Pencil className="size-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 text-destructive hover:text-destructive"
+                          onClick={() => setDeleteTarget({ type: 'service', id: assignment.id, name: assignment.name })}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-muted-foreground text-sm italic">{m.programs_edit_new_service_placeholder()}</p>
+          )}
         </CardContent>
       </Card>
+
+      {/* Sheets */}
+      <PartEditSheet
+        open={partSheetOpen}
+        onOpenChange={setPartSheetOpen}
+        part={editingPart}
+        mode="event"
+        fetcher={partFetcher}
+        defaultOrder={event.partAssignments.length + 1}
+      />
+
+      <ServiceEditSheet
+        open={serviceSheetOpen}
+        onOpenChange={setServiceSheetOpen}
+        service={editingService}
+        mode="event"
+        fetcher={serviceFetcher}
+      />
+
+      {/* Delete confirmation */}
+      <InlineDeleteDialog
+        open={deleteTarget != null}
+        onOpenChange={open => {
+          if (!open) setDeleteTarget(null)
+        }}
+        itemName={deleteTarget?.name ?? ''}
+        onConfirm={handleDelete}
+        isDeleting={deleteFetcher.state !== 'idle'}
+      />
     </div>
   )
 }

@@ -88,9 +88,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
     }
 
-    return redirect(`/programs/events/${eventId}`, {
-      headers: { 'Set-Cookie': await commitSession(session) },
-    })
+    return data(
+      { ok: !('error' in result && result.error) },
+      { headers: { 'Set-Cookie': await commitSession(session) } },
+    )
   })
 }
 
