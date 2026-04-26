@@ -7,7 +7,6 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
@@ -87,27 +86,27 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
       <RouterForm method="get" className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <Label htmlFor="action">{m.audit_log_filter_action()}</Label>
-          <Select name="action" defaultValue={searchParams.get('action') ?? ''}>
-            <SelectTrigger id="action" className="w-[220px]">
-              <SelectValue placeholder={m.audit_log_filter_all_actions()} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">{m.audit_log_filter_all_actions()}</SelectItem>
-              <SelectItem value="user.login">{m.audit_log_action_user_login()}</SelectItem>
-              <SelectItem value="user.login.failed">{m.audit_log_action_user_login_failed()}</SelectItem>
-              <SelectItem value="user.logout">{m.audit_log_action_user_logout()}</SelectItem>
-              <SelectItem value="user.created">{m.audit_log_action_user_created()}</SelectItem>
-              <SelectItem value="user.updated">{m.audit_log_action_user_updated()}</SelectItem>
-              <SelectItem value="user.anonymized">{m.audit_log_action_user_anonymized()}</SelectItem>
-              <SelectItem value="user.roles.changed">{m.audit_log_action_user_roles_changed()}</SelectItem>
-              <SelectItem value="user.data.exported">{m.audit_log_action_user_data_exported()}</SelectItem>
-              <SelectItem value="password.changed">{m.audit_log_action_password_changed()}</SelectItem>
-              <SelectItem value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</SelectItem>
-              <SelectItem value="consent.granted">{m.audit_log_action_consent_granted()}</SelectItem>
-              <SelectItem value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</SelectItem>
-              <SelectItem value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</SelectItem>
-            </SelectContent>
-          </Select>
+          <select
+            id="action"
+            name="action"
+            defaultValue={searchParams.get('action') ?? ''}
+            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <option value="">{m.audit_log_filter_all_actions()}</option>
+            <option value="user.login">{m.audit_log_action_user_login()}</option>
+            <option value="user.login.failed">{m.audit_log_action_user_login_failed()}</option>
+            <option value="user.logout">{m.audit_log_action_user_logout()}</option>
+            <option value="user.created">{m.audit_log_action_user_created()}</option>
+            <option value="user.updated">{m.audit_log_action_user_updated()}</option>
+            <option value="user.anonymized">{m.audit_log_action_user_anonymized()}</option>
+            <option value="user.roles.changed">{m.audit_log_action_user_roles_changed()}</option>
+            <option value="user.data.exported">{m.audit_log_action_user_data_exported()}</option>
+            <option value="password.changed">{m.audit_log_action_password_changed()}</option>
+            <option value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</option>
+            <option value="consent.granted">{m.audit_log_action_consent_granted()}</option>
+            <option value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</option>
+            <option value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</option>
+          </select>
         </div>
         <div className="space-y-1">
           <Label htmlFor="dateFrom">{m.audit_log_filter_from()}</Label>
