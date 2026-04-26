@@ -8,6 +8,7 @@ import * as m from '~/paraglide/messages'
 import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { Role } from '~/shared/types/role'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/create'
 
@@ -30,24 +31,29 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { type, entranceIds } = submission.value
   const congregation = context.get(congregationContext)
 
+  const previousPage = request.headers.get('referer') ?? '/territories/buildings/split-territories'
+
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
-    const limits = new LimitService(db, congregation)
-    await limits.errorIfWouldGoOverLimit('territories')
+    try {
+      const limits = new LimitService(db, congregation)
+      await limits.errorIfWouldGoOverLimit('territories')
 
-    const territory = await createTerritoryFromSplit(db, {
-      type,
-      entranceIds: entranceIds.split(',').map(el => Number(el)),
-      congregationId: congregation.id,
-    })
+      const territory = await createTerritoryFromSplit(db, {
+        type,
+        entranceIds: entranceIds.split(',').map(el => Number(el)),
+        congregationId: congregation.id,
+      })
 
-    session.flash('success', m.split_tool_create_flash_success({ number: territory.number }))
+      session.flash('success', m.split_tool_create_flash_success({ number: territory.number }))
 
-    const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/territories/buildings/split-territories', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+      return redirect(previousPage, {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    } catch (error) {
+      await handleAppError(error, session, previousPage)
+    }
   })
 }

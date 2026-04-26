@@ -21,6 +21,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -244,8 +245,12 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {
-    const limits = new LimitService(db, congregation)
-    await limits.errorIfWouldGoOverLimit('boardDocuments')
+    try {
+      const limits = new LimitService(db, congregation)
+      await limits.errorIfWouldGoOverLimit('boardDocuments')
+    } catch (error) {
+      await handleAppError(error, session, '/board/documents/new')
+    }
 
     try {
       await validateBoardFile(file)

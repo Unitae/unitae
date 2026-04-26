@@ -14,6 +14,7 @@ import {
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -129,9 +130,12 @@ export async function action({ request, context }: Route.ActionArgs) {
       }
     } catch (error) {
       if (error instanceof UserAlreadyExistsError) {
-        throw redirect('/settings/users/new')
+        session.flash('error', m.error_conflict())
+        throw redirect('/settings/users/new', {
+          headers: { 'Set-Cookie': await commitSession(session) },
+        })
       }
-      throw error
+      await handleAppError(error, session, '/settings/users/new')
     }
 
     return redirect('/settings/users', {

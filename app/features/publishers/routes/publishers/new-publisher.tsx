@@ -15,6 +15,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
+import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -81,27 +82,31 @@ export async function action({ request, context }: Route.ActionArgs) {
     submission.value
 
   return withScopeFromContext(context, async db => {
-    const user = await createPublisher(db, congregation, {
-      firstname,
-      lastname,
-      email: email && email.length > 0 ? email : null,
-      gender,
-      birthDate: birthDate || null,
-      baptismDate: baptismDate || null,
-      isHelder,
-      isServant,
-      isAnointed,
-      groupId: group ?? 0,
-      type,
-      congregationId: currentUser.congregationId,
-    })
-
     const session = await getSession(request.headers.get('Cookie'))
-    session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))
-    return redirect(`/publishers/${user.id}/edit`, {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
-    })
+    try {
+      const user = await createPublisher(db, congregation, {
+        firstname,
+        lastname,
+        email: email && email.length > 0 ? email : null,
+        gender,
+        birthDate: birthDate || null,
+        baptismDate: baptismDate || null,
+        isHelder,
+        isServant,
+        isAnointed,
+        groupId: group ?? 0,
+        type,
+        congregationId: currentUser.congregationId,
+      })
+
+      session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))
+      return redirect(`/publishers/${user.id}/edit`, {
+        headers: {
+          'Set-Cookie': await commitSession(session),
+        },
+      })
+    } catch (error) {
+      await handleAppError(error, session, '/publishers/new')
+    }
   })
 }
