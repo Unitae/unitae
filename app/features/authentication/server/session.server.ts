@@ -1,4 +1,4 @@
-import { createCookieSessionStorage, redirect } from 'react-router'
+import { type Session, createCookieSessionStorage, redirect } from 'react-router'
 import { Prisma } from '~/database/generated/client'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
@@ -32,58 +32,45 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
 
 export { commitSession, destroySession, getSession }
 
-export async function verifySession(request: Request) {
-  const session = await getSession(request.headers.get('Cookie'))
+async function redirectToLogin(session: Session<SessionData, SessionFlashData>): Promise<never> {
+  throw redirect('/login', {
+    headers: {
+      'Set-Cookie': await destroySession(session),
+    },
+  })
+}
+
+async function findUserFromSession(session: Session<SessionData, SessionFlashData>) {
   const rawUserId = session.get('userId')
   const userId = Number(rawUserId)
   if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
-    throw redirect('/login', {
-      headers: {
-        'Set-Cookie': await destroySession(session),
-      },
-    })
+    return redirectToLogin(session)
   }
 
-  // Use unscopedDb for user lookup — we don't have congregation context yet
-  let user
   try {
-    user = await unscopedDb.user.findUnique({
-      where: {
-        id: userId,
-      },
-      include: {
-        responsibleFor: true,
-        deputyFor: true,
-      },
+    const user = await unscopedDb.user.findUnique({
+      where: { id: userId },
+      include: { responsibleFor: true, deputyFor: true },
     })
+
+    if (user == null || !user.active) return redirectToLogin(session)
+    return user
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2007') {
       logger.warn(`Session verification failed: adapter sent invalid value for userId ${userId} (P2007)`)
-      throw redirect('/login', {
-        headers: {
-          'Set-Cookie': await destroySession(session),
-        },
-      })
+      return redirectToLogin(session)
     }
     throw error
   }
+}
 
-  if (user == null || !user.active) {
-    throw redirect('/login', {
-      headers: {
-        'Set-Cookie': await destroySession(session),
-      },
-    })
-  }
+export async function verifySession(request: Request) {
+  const session = await getSession(request.headers.get('Cookie'))
+  const user = await findUserFromSession(session)
 
-  // In multi-tenant mode, verify that the subdomain matches the user's congregation
   const urlCongregation = await resolveCongregationFromRequest(request)
   if (urlCongregation && urlCongregation.id !== user.congregationId) {
-    throw redirect('/login', {
-      headers: {
-        'Set-Cookie': await destroySession(session),
-      },
-    })
+    return redirectToLogin(session)
   }
 
   const congregation = await resolveCongregation(user.congregationId)
