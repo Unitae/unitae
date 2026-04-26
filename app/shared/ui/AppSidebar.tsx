@@ -83,10 +83,10 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
         <button
           type="button"
           onClick={onSearchClick}
-          className="mx-2 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border bg-sidebar px-2 py-1.5 text-muted-foreground text-sm hover:bg-sidebar-accent"
+          className="mx-2 mt-3 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border px-2 py-1 text-muted-foreground text-xs hover:bg-sidebar-accent"
         >
-          <Search className="size-4 shrink-0" />
-          <span className="flex-1 text-left">{m.command_palette_placeholder()}</span>
+          <Search className="size-3.5 shrink-0" />
+          <span className="flex-1 truncate text-left">{m.sidebar_search()}</span>
           <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
         </button>
       </SidebarHeader>
