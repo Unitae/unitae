@@ -66,7 +66,6 @@ interface AppSidebarProps {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
 export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
-  const showDocuments = permissions.canManageBoard
   const showAssemblee = permissions.canViewPublishers || permissions.canViewPrograms
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
@@ -100,23 +99,26 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarNavItem to="/" icon={Home} label={m.sidebar_home()} end />
-              {permissions.canViewBoard && <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />}
+              {permissions.canViewBoard && !permissions.canManageBoard && (
+                <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {showDocuments && (
+        {permissions.canManageBoard && (
           <Collapsible defaultOpen className="group/collapsible">
             <SidebarGroup>
               <SidebarGroupLabel asChild>
                 <CollapsibleTrigger>
-                  {m.sidebar_documents()}
+                  {m.sidebar_board()}
                   <ChevronDown className="ml-auto size-3 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
                 </CollapsibleTrigger>
               </SidebarGroupLabel>
               <CollapsibleContent>
                 <SidebarGroupContent>
                   <SidebarMenu>
+                    <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} end />
                     <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
                     <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
                   </SidebarMenu>
