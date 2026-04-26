@@ -36,10 +36,17 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const session = await getSession(request.headers.get('Cookie'))
   if (session.has('userId') === true) {
+    const uid = Number(session.get('userId'))
+    if (Number.isNaN(uid) || uid <= 0) {
+      return data(
+        { error: undefined, brandingName: await getBrandingName(request) },
+        { headers: { 'Set-Cookie': await destroySession(session) } },
+      )
+    }
+
     // In multi-tenant mode, verify the session matches the subdomain's congregation
     const urlCongregation = await resolveCongregationFromRequest(request)
     if (urlCongregation) {
-      const uid = Number(session.get('userId'))
       const user = await unscopedDb.user.findUnique({
         where: { id: uid },
         select: { congregationId: true },

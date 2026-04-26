@@ -1,7 +1,9 @@
 import { createCookieSessionStorage, redirect } from 'react-router'
+import { Prisma } from '~/database/generated/client'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 
 type SessionData = {
   userId: string
@@ -32,8 +34,9 @@ export { commitSession, destroySession, getSession }
 
 export async function verifySession(request: Request) {
   const session = await getSession(request.headers.get('Cookie'))
-  const userId = Number(session.get('userId'))
-  if (Number.isNaN(userId)) {
+  const rawUserId = session.get('userId')
+  const userId = Number(rawUserId)
+  if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
     throw redirect('/login', {
       headers: {
         'Set-Cookie': await destroySession(session),
@@ -42,15 +45,28 @@ export async function verifySession(request: Request) {
   }
 
   // Use unscopedDb for user lookup — we don't have congregation context yet
-  const user = await unscopedDb.user.findUnique({
-    where: {
-      id: userId,
-    },
-    include: {
-      responsibleFor: true,
-      deputyFor: true,
-    },
-  })
+  let user
+  try {
+    user = await unscopedDb.user.findUnique({
+      where: {
+        id: userId,
+      },
+      include: {
+        responsibleFor: true,
+        deputyFor: true,
+      },
+    })
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2007') {
+      logger.warn(`Session verification failed: adapter sent invalid value for userId ${userId} (P2007)`)
+      throw redirect('/login', {
+        headers: {
+          'Set-Cookie': await destroySession(session),
+        },
+      })
+    }
+    throw error
+  }
 
   if (user == null || !user.active) {
     throw redirect('/login', {

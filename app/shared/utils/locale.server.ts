@@ -7,9 +7,10 @@ const DEFAULT_LOCALE = 'fr'
 export async function resolveLocaleFromRequest(request: Request): Promise<string> {
   // 1. Try session → user → congregation → locale (authenticated users)
   const session = await getSession(request.headers.get('Cookie'))
-  const userId = Number(session.get('userId'))
+  const rawUserId = session.get('userId')
+  const userId = Number(rawUserId)
 
-  if (!Number.isNaN(userId)) {
+  if (rawUserId && !Number.isNaN(userId) && userId > 0) {
     const user = await unscopedDb.user.findUnique({
       where: { id: userId },
       select: { congregationId: true },
