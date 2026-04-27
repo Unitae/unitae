@@ -88,6 +88,7 @@ These variables are used by `docker-compose.yml` for the PostgreSQL and Redis co
 | `POSTGRES_USER` | `unitae` | PostgreSQL user |
 | `POSTGRES_PASSWORD` | — | PostgreSQL password (required) |
 | `POSTGRES_DB` | `unitae` | PostgreSQL database name |
+| `POSTGRES_APP_PASSWORD` | Value of `POSTGRES_PASSWORD` | Password for the `unitae_app` non-superuser role used for RLS enforcement. See [Row-Level Security](../development/row-level-security.md) |
 | `REDIS_PASSWORD` | — | Redis password (required) |
 | `UNITAE_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
 | `UNITAE_WORKER_IMAGE` | `ghcr.io/unitae/unitae/worker:latest` | Docker image for the background worker service |
