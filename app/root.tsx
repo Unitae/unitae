@@ -83,7 +83,7 @@ export function ErrorBoundary() {
     return (
       <div className="flex min-h-screen items-center justify-center px-4">
         <Card className="max-w-md text-center">
-          <CardHeader className="items-center gap-3">
+          <CardHeader className="items-center justify-items-center gap-3">
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
               <Icon className="size-6 text-muted-foreground" />
             </div>
@@ -118,7 +118,7 @@ export function ErrorBoundary() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="max-w-md text-center">
-        <CardHeader className="items-center gap-3">
+        <CardHeader className="items-center justify-items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle className="size-6 text-destructive" />
           </div>

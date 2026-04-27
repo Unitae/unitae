@@ -9,7 +9,6 @@ export const authenticationRoutes = [
   route('verify-email/:token', 'features/authentication/routes/verify-email-confirm.tsx'),
   ...prefix('password', [
     route(':userHash/reset', 'features/authentication/routes/password-reset.tsx'),
-    route(':userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('forgot', 'features/authentication/routes/password-forgot.tsx'),
   ]),
 ] satisfies RouteConfig
