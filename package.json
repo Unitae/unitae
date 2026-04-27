@@ -8,7 +8,7 @@
         "build": "react-router build",
         "build:format": "biome check --write",
         "build:db": "prisma generate",
-        "start": "react-router-serve ./build/server/index.js",
+        "start": "PORT=${UNITAE_WEB_PORT:-${PORT:-3000}} react-router-serve ./build/server/index.js",
         "db:migrate": "pnpm prisma migrate deploy",
         "db:seed": "pnpm prisma db seed",
         "db:seed:marketing": "pnpm tsx app/database/seed-marketing.ts",

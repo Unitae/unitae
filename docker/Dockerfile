@@ -36,7 +36,7 @@ LABEL org.opencontainers.image.title="unitae" \
       org.opencontainers.image.description="Unitae web server" \
       org.opencontainers.image.licenses="AGPL-3.0-only"
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV UNITAE_WEB_PORT=8080
 RUN addgroup -g 1001 -S unitae && \
     adduser -u 1001 -S unitae -G unitae -s /sbin/nologin -H
 COPY --from=build --chown=1001:1001 /app/build ./build
@@ -45,7 +45,7 @@ COPY --from=prod-deps --chown=1001:1001 /app/node_modules ./node_modules
 USER 1001
 EXPOSE 8080
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node_modules/.bin/react-router-serve", "./build/server/index.js"]
+CMD ["sh", "-c", "PORT=${UNITAE_WEB_PORT:-3000} node_modules/.bin/react-router-serve ./build/server/index.js"]
 
 # ── Worker: background job processor ─────────────────────────
 FROM base-worker AS worker
