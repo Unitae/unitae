@@ -4,15 +4,16 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-unitae}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-unitae}
+      POSTGRES_USER: ${DB_USER:-unitae}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      POSTGRES_DB: ${DB_NAME:-unitae}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
     networks:
       - app
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-unitae} -d ${POSTGRES_DB:-unitae}']
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-unitae} -d ${DB_NAME:-unitae}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,11 +43,13 @@ services:
       - app
 
   web:
-    image: ${UNITAE_IMAGE:-ghcr.io/unitae/unitae:latest}
+    image: ${UNITAE_WEB_IMAGE:-ghcr.io/unitae/unitae:latest}
     restart: unless-stopped
     ports:
-      - '${PORT:-8080}:8080'
+      - '${UNITAE_WEB_PORT:-8080}:8080'
     env_file: .env
+    environment:
+      PORT: ${UNITAE_WEB_PORT:-8080}
     depends_on:
       migrate:
         condition: service_completed_successfully

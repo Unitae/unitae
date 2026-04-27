@@ -4,7 +4,7 @@ import { Readable } from 'node:stream'
 import logger from './logger.server'
 
 const useS3 = Boolean(process.env.S3_ENDPOINT)
-const LOCAL_STORAGE_ROOT = path.resolve(process.env.LOCAL_STORAGE_PATH ?? 'content/uploads')
+const LOCAL_STORAGE_ROOT = path.resolve(process.env.UNITAE_STORAGE_PATH ?? 'content/uploads')
 
 // --- S3 driver (lazy-loaded to avoid import errors when not used) ---
 

@@ -135,9 +135,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     env:
-      DATABASE_URL: postgresql://unitae:unitae@localhost:5432/unitae_test
-      DATABASE_APP_URL: postgresql://unitae_app:unitae_app@localhost:5432/unitae_test
-      SESSION_SECRET: ci-test-secret-at-least-32-characters-long
+      DB_URL: postgresql://unitae:unitae@localhost:5432/unitae_test
+      DB_RUNTIME_URL: postgresql://unitae_app:unitae_app@localhost:5432/unitae_test
+      UNITAE_SESSION_SECRET: ci-test-secret-at-least-32-characters-long
       RESEND_API_KEY: re_test
       REDIS_HOST: localhost
       REDIS_PORT: "6379"
@@ -165,8 +165,8 @@ jobs:
 
       - name: Create non-superuser app role for RLS
         run: |
-          psql "$DATABASE_URL" -c "CREATE ROLE unitae_app LOGIN PASSWORD 'unitae_app' NOSUPERUSER;"
-          psql "$DATABASE_URL" -c "GRANT unitae_app TO unitae;"
+          psql "$DB_URL" -c "CREATE ROLE unitae_app LOGIN PASSWORD 'unitae_app' NOSUPERUSER;"
+          psql "$DB_URL" -c "GRANT unitae_app TO unitae;"
 
       - name: Apply database migrations
         run: pnpm prisma migrate deploy
@@ -181,7 +181,7 @@ jobs:
         run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://localhost:8080
-          PORT: "8080"
+          UNITAE_WEB_PORT: "8080"
 
       - name: Upload Playwright report
         if: failure()

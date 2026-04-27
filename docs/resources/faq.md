@@ -31,7 +31,7 @@ No. Unitae requires PostgreSQL 17 or higher. The application uses PostgreSQL-spe
 
 ### Can I manage multiple congregations?
 
-Yes. Set `MULTI_TENANT=true` in your environment to enable multi-congregation mode. Each congregation gets its own subdomain and isolated data. See the [multi-congregation guide](../self-hosting/multi-tenant.md).
+Yes. Set `UNITAE_MULTI_TENANT=true` in your environment to enable multi-congregation mode. Each congregation gets its own subdomain and isolated data. See the [multi-congregation guide](../self-hosting/multi-tenant.md).
 
 Alternatively, use [managed hosting](../managed-hosting/getting-started.md) which handles multi-congregation out of the box.
 

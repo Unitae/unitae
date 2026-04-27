@@ -95,7 +95,7 @@ Key conventions:
 
 The mailer is a Resend client initialized with `RESEND_API_KEY`. If the key is not set, email sending silently fails with a log message.
 
-The sender address is per-congregation (`congregation.emailFrom`) with a fallback to `EMAIL_FROM` env var or `Unitae <noreply@unitae.app>`.
+The sender address is per-congregation (`congregation.emailFrom`) with a fallback to `UNITAE_EMAIL_FROM` env var or `Unitae <noreply@unitae.app>`.
 
 ## Creating a New Email Template
 

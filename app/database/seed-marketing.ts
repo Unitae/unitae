@@ -23,7 +23,7 @@ import { PublisherType } from '../shared/types/publisher-type'
 import { Role } from '../shared/types/role'
 import { PrismaClient } from './generated/client'
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg({ connectionString: process.env.DB_URL })
 const prisma = new PrismaClient({ adapter })
 
 // ---------------------------------------------------------------------------

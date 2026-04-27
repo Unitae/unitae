@@ -56,7 +56,7 @@ const redactPii = format(info => {
 
 export function createLogger(service = 'unitae-app') {
   return createWinstonLogger({
-    level: process.env.LOG_LEVEL || 'info',
+    level: process.env.UNITAE_LOG_LEVEL || 'info',
     defaultMeta: {
       service,
     },

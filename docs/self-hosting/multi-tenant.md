@@ -26,13 +26,13 @@ Add these environment variables to your `.env` file, in addition to the ones fro
 
 ```ini
 # Enable multi-tenant mode
-MULTI_TENANT=true
+UNITAE_MULTI_TENANT=true
 
 # Your root domain (subdomains will be resolved from this)
-APP_BASE_URL=https://unitae.example.com
+UNITAE_BASE_URL=https://unitae.example.com
 
 # Cookie domain (for cross-subdomain sessions)
-COOKIE_DOMAIN=unitae.example.com
+UNITAE_COOKIE_DOMAIN=unitae.example.com
 ```
 
 ## Docker Compose Setup
@@ -57,7 +57,7 @@ Visit your root domain (e.g., `https://unitae.example.com`). The setup wizard cr
 
 ### Additional Congregations
 
-Once the first congregation exists, new congregations can be created by visiting `/register`. This page is only available when `MULTI_TENANT=true`.
+Once the first congregation exists, new congregations can be created by visiting `/register`. This page is only available when `UNITAE_MULTI_TENANT=true`.
 
 The registration form asks for:
 - **Congregation name** — The display name (e.g., "Lyon Centre")

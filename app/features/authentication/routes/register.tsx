@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  if (process.env.MULTI_TENANT !== 'true') {
+  if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     throw redirect('/login')
   }
 

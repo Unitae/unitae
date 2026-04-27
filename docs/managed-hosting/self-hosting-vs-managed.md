@@ -14,7 +14,7 @@ Unitae can be self-hosted on your own infrastructure or used through the managed
 | **Features** | All features | All features (same code) |
 | **GDPR compliance** | DPA provided by MindsersIT | Your responsibility (built-in tools included) |
 | **Resource limits** | Per plan | Unlimited by default |
-| **Multi-congregation** | Built-in | Enable with `MULTI_TENANT=true` |
+| **Multi-congregation** | Built-in | Enable with `UNITAE_MULTI_TENANT=true` |
 | **Support** | Included | Community / self |
 | **Cost** | Monthly subscription | Your infrastructure costs |
 

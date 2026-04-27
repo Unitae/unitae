@@ -47,10 +47,10 @@ pnpm start:worker          # Start sync background job worker (BullMQ)
 docker compose -f docker/docker-compose.dev.yml up -d  # Start PostgreSQL + Redis
 ```
 ```ini
-DATABASE_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
-DATABASE_APP_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"  # Optional — non-superuser for RLS enforcement
+DB_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
+DB_RUNTIME_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"  # Optional — non-superuser for RLS enforcement
 RESEND_API_KEY="re_123"
-SESSION_SECRET="your-secret-key"
+UNITAE_SESSION_SECRET="your-secret-key"
 REDIS_HOST="localhost"
 REDIS_PORT="6379"
 GOOGLE_MAPS_API_KEY=""              # Optional — enables maps on territory pages and PDF exports
@@ -201,7 +201,7 @@ if (submission.status !== 'success') return submission.reply()
 
 **File Storage** (dual driver):
 - **S3**: used when `S3_ENDPOINT` is set. Configured via `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
-- **Local filesystem**: used when `S3_ENDPOINT` is not set. Files stored in `content/uploads/` (configurable via `LOCAL_STORAGE_PATH`)
+- **Local filesystem**: used when `S3_ENDPOINT` is not set. Files stored in `content/uploads/` (configurable via `UNITAE_STORAGE_PATH`)
 - Key pattern: `{congregationId}/{feature}/{uuid}.pdf`
 
 **Background Jobs** (BullMQ):
@@ -310,7 +310,7 @@ Uses Biome for formatting with these key rules:
 - TypeScript strict mode enabled
 - Biome linting with custom rules (no console.log in production)
 - Prisma generates types from schema
-- Startup env validation for `DATABASE_URL` and `SESSION_SECRET`
+- Startup env validation for `DB_URL` and `UNITAE_SESSION_SECRET`
 - `requireParamId()` utility for safe route param parsing
 
 ### Gotchas & Patterns
@@ -343,7 +343,7 @@ Uses Biome for formatting with these key rules:
 
 The application follows Conventional Commits. French is the primary language for UI text. English is used for code comments, test descriptions, commits, PRs, and documentation.
 
-Session cookies: 1 hour production, 8 hours development. Cookie domain configurable via `COOKIE_DOMAIN` env var.
+Session cookies: 1 hour production, 8 hours development. Cookie domain configurable via `UNITAE_COOKIE_DOMAIN` env var.
 
 ## Production
 

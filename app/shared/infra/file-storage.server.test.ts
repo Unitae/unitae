@@ -10,12 +10,12 @@ let testDir: string
 
 beforeAll(async () => {
   testDir = await fs.mkdtemp(path.join(os.tmpdir(), 'unitae-storage-test-'))
-  process.env.LOCAL_STORAGE_PATH = testDir
+  process.env.UNITAE_STORAGE_PATH = testDir
 })
 
 afterAll(async () => {
   await fs.rm(testDir, { recursive: true, force: true })
-  delete process.env.LOCAL_STORAGE_PATH
+  delete process.env.UNITAE_STORAGE_PATH
 })
 
 beforeEach(() => {

@@ -31,7 +31,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const shouldStartSetup = await needSetupProcess()
   if (shouldStartSetup) {
-    return redirect(process.env.MULTI_TENANT === 'true' ? '/register' : '/setup')
+    return redirect(process.env.UNITAE_MULTI_TENANT === 'true' ? '/register' : '/setup')
   }
 
   const session = await getSession(request.headers.get('Cookie'))

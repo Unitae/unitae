@@ -9,7 +9,7 @@ Unitae is designed with data isolation and security as core concerns. This page 
 Users authenticate with an email address and password. Sessions are managed through HTTP-only cookies that cannot be accessed by client-side JavaScript.
 
 - **Session lifetime**: 1 hour in production, 8 hours in development
-- **Session cookie**: HTTP-only, `SameSite=Lax`, configurable domain via `COOKIE_DOMAIN`
+- **Session cookie**: HTTP-only, `SameSite=Lax`, configurable domain via `UNITAE_COOKIE_DOMAIN`
 
 ### Rate Limiting
 
