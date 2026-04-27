@@ -17,7 +17,7 @@ export function RouteErrorBoundary() {
     return (
       <div className="flex items-center justify-center py-20">
         <Card className="max-w-md text-center">
-          <CardHeader className="items-center gap-3">
+          <CardHeader className="items-center justify-items-center gap-3">
             <div className="flex size-12 items-center justify-center rounded-full bg-muted">
               <Icon className="size-6 text-muted-foreground" />
             </div>
@@ -52,7 +52,7 @@ export function RouteErrorBoundary() {
   return (
     <div className="flex items-center justify-center py-20">
       <Card className="max-w-md text-center">
-        <CardHeader className="items-center gap-3">
+        <CardHeader className="items-center justify-items-center gap-3">
           <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle className="size-6 text-destructive" />
           </div>

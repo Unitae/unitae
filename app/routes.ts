@@ -18,6 +18,7 @@ export default [
   ...authenticationRoutes,
   route('', 'routes/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
+    route('password/:userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
       route('profile', 'features/authentication/routes/user/profile.tsx'),
       route('consents', 'features/authentication/routes/user/consents.tsx'),
