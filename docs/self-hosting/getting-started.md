@@ -57,7 +57,7 @@ This starts PostgreSQL, Redis, runs database migrations automatically, then star
 
 ### 4. Access the Setup Wizard
 
-Visit `http://your-server:8080`. The setup wizard creates the first user and congregation, and automatically seeds roles and default programme templates.
+Visit your `UNITAE_BASE_URL`. The setup wizard creates the first user and congregation, and automatically seeds roles and default programme templates.
 
 ## PM2 (Direct Node.js)
 
@@ -99,7 +99,7 @@ pm2 save
 
 ### 4. Access the Setup Wizard
 
-Visit `http://your-server:8080` and follow the setup wizard.
+Visit your `UNITAE_BASE_URL` and follow the setup wizard.
 
 ## Production Essentials
 
