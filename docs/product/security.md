@@ -20,7 +20,7 @@ Login attempts are rate-limited to prevent brute-force attacks:
 
 ### Password Security
 
-- Passwords are hashed using **scrypt** with a 16-byte random salt and 64-byte derived key
+- Passwords are hashed using **scrypt** with a 16-byte random salt and 32-byte derived key
 - Passwords are never stored in plain text
 - Password comparison uses constant-time comparison to prevent timing attacks
 
@@ -40,7 +40,7 @@ All congregation data is strictly isolated. The application uses PostgreSQL Row-
 
 - A user in Congregation A can never see data from Congregation B
 - This isolation is enforced at the database query level, not just the UI level
-- 12 models are congregation-scoped: User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
+- 28 models are congregation-scoped (see [Architecture](../development/architecture.md#data-isolation) for the full list)
 
 ### File Storage Isolation
 

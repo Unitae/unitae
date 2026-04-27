@@ -30,7 +30,7 @@ Visit [unitae.app](https://unitae.app) for current pricing and plan details.
 
 If you are currently self-hosting and want to migrate to unitae.app, contact the MindsersIT team through the website for assistance.
 
-## Next Steps
+## Related
 
 - [Feature Overview](../product/feature-overview.md) — Discover what Unitae can do
 - [Display Board](../product/display-board.md), [Territories](../product/territories.md), [Publishers](../product/publishers.md) — Learn about each feature in detail

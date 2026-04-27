@@ -45,7 +45,7 @@ Contact the MindsersIT team through [unitae.app](https://unitae.app) for migrati
 
 You can export your data and set up a self-hosted instance at any time. Your data belongs to you.
 
-## Next Steps
+## Related
 
 - [Get started with managed hosting](getting-started.md) — Sign up at unitae.app
 - [Self-hosting guide](../self-hosting/getting-started.md) — Deploy on your own infrastructure

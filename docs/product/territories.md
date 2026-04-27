@@ -105,6 +105,32 @@ Each building record includes:
 
 For congregations in France, building addresses can be automatically imported from the national address database (BANO). See [Open Data Sync](../self-hosting/open-data-sync.md) for details.
 
+## Split Tool
+
+The split tool helps administrators create new territories from prospected building data. It groups building entrances by type and lets you select which ones to include in a new territory.
+
+### Available categories
+
+| Category | Selects entrances with |
+|----------|----------------------|
+| **Porte à Porte** | Interphone, doorbell, or early-opening access code entrances |
+| **Commerces** | Commercial building entrances |
+| **Université** | Campus or university entrances |
+| **Téléphone** | Buildings with phone numbers or late-opening access codes |
+| **Hôtels** | Hotel entrances |
+
+The Téléphone category is only visible if phone territories are enabled in settings.
+
+### Workflow
+
+1. Navigate to **Territoires > Prospection > Outil de découpage**
+2. A dashboard shows the number of available entrances per category
+3. Click a category to see the matching entrances
+4. Select the entrances to include
+5. Create the territory — the system assigns the next available number and validates the territory limit
+
+Only building entrances that are active, prospected, and not already assigned to a territory of the target type are shown.
+
 ## Maps
 
 When a Google Maps API key is configured, Unitae displays:

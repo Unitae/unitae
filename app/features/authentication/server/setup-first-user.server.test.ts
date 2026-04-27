@@ -9,7 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { create: vi.fn() },
     user: { create: vi.fn() },
-    userRole: { findUnique: vi.fn() },
+    userRole: { findUnique: vi.fn(), upsert: vi.fn() },
     congregationUserRole: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
   },

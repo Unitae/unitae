@@ -1,0 +1,160 @@
+# Testing
+
+## Test Types
+
+Unitae uses three layers of tests, each with its own configuration and runner.
+
+| Type | Runner | Config | File pattern | Command |
+|------|--------|--------|--------------|---------|
+| Unit | Vitest | `vitest.config.ts` | `*.test.ts` (co-located) | `pnpm test:unit` |
+| Integration | Vitest | `app/tests/vitest.config.integration.ts` | `*.integration.test.ts` | `pnpm test:integration` |
+| E2E | Playwright | `app/tests/playwright.config.ts` | `app/tests/e2e/*.spec.ts` | `pnpm test:e2e` |
+| Boundaries | ESLint | `.eslintrc.boundaries.cjs` | — | `pnpm test:boundaries` |
+
+## Commands
+
+```bash
+pnpm test:unit              # Run unit tests once
+pnpm test:unit:watch        # Watch mode
+pnpm test:unit:coverage     # With v8 coverage report (targets app/**/*.server.ts)
+pnpm test:integration       # Integration tests (requires running PostgreSQL)
+pnpm test:e2e               # Playwright headless
+pnpm test:e2e:headed        # Playwright with visible browser
+pnpm test:boundaries        # Cross-feature import rule checks
+pnpm test:lint              # Biome lint
+pnpm test:typecheck         # react-router typegen + tsc
+```
+
+## Unit Tests
+
+Unit tests are co-located next to their source files (e.g., `change-user-password.server.ts` → `change-user-password.server.test.ts`).
+
+### Configuration
+
+- Environment: `node` (no DOM)
+- Path alias: `~` → `./app`
+- Excludes `*.integration.test.ts` files
+- Coverage targets only `app/**/*.server.ts`, excluding `app/database/**` and routes
+
+### Patterns
+
+**Mocking dependencies:**
+
+```typescript
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('~/shared/infra/db.server', () => ({
+  unscopedDb: { user: { findUnique: vi.fn(), update: vi.fn() } },
+}))
+
+vi.mock('~/shared/auth/crypto.server', () => ({
+  hashPassword: vi.fn(),
+  verifyPassword: vi.fn(),
+}))
+```
+
+**Black-box assertions** — assert on observable outcomes (return values, thrown errors), not spy call counts:
+
+```typescript
+it('should throw NotFoundError when user does not exist', async () => {
+  vi.mocked(db.user.findUnique).mockResolvedValue(null)
+  await expect(changePassword(params)).rejects.toThrow(NotFoundError)
+})
+```
+
+**Mocking Paraglide messages:**
+
+```typescript
+vi.mock('~/paraglide/messages', () => ({
+  dashboard_urgent_territory_overdue: ({ number }: { number: string }) =>
+    `Territory ${number} — overdue`,
+}))
+```
+
+**Testing client hooks** — Vitest runs in `node` environment. Mock `react` and `react-router` entirely. Shim `globalThis.window` for browser APIs. Suppress `biome-ignore lint/correctness/useHookAtTopLevel` in test helpers.
+
+### Reset mocks between tests
+
+```typescript
+beforeEach(() => {
+  vi.resetAllMocks()
+})
+```
+
+## Integration Tests
+
+Integration tests run against a real PostgreSQL database. They use a separate Vitest config with a 30-second timeout.
+
+### Prerequisites
+
+PostgreSQL must be running (start with `docker compose -f docker/docker-compose.dev.yml up -d`).
+
+### Configuration
+
+- Config: `app/tests/vitest.config.integration.ts`
+- File pattern: `*.integration.test.ts`
+- Path alias: `~` → `./app`
+- Extended timeout: 30s
+
+### Patterns
+
+Integration tests use real Prisma queries with RLS scoping:
+
+```typescript
+import { PrismaClient } from '~/database/generated/client'
+
+const db = new PrismaClient()
+
+beforeAll(async () => {
+  // Create test data
+})
+
+afterAll(async () => {
+  // Clean up test data
+  await db.$disconnect()
+})
+
+it('should return scoped results', async () => {
+  const result = await db.$transaction(async tx => {
+    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${congregationId}'`)
+    return someFunctionUnderTest(tx)
+  })
+  expect(result).toEqual(...)
+})
+```
+
+## E2E Tests
+
+End-to-end tests use Playwright with Chromium.
+
+### Configuration
+
+- Config: `app/tests/playwright.config.ts`
+- Test directory: `app/tests/e2e/`
+- Base URL: `http://localhost:5173` (or `E2E_BASE_URL` env var)
+- Retries: 1 in CI, 0 locally
+- Trace: on first retry
+- Auto-starts `pnpm start:dev` if not already running
+
+### Helpers
+
+Shared helpers live in `app/tests/e2e/helpers/`:
+
+```typescript
+// auth.ts — reusable login helper
+import { login } from './helpers/auth'
+
+test('should display dashboard', async ({ page }) => {
+  await login(page, 'admin@test.com', 'password')
+  await expect(page.getByRole('heading', { name: /tableau de bord/i })).toBeVisible()
+})
+```
+
+## Boundary Checks
+
+`pnpm test:boundaries` runs ESLint with `eslint-plugin-boundaries` to enforce cross-feature import rules. Features must not import from each other's `server/` directories directly — shared code goes in `app/shared/`.
+
+## Related
+
+- [Coding Conventions](coding-conventions.md) — Code style and patterns
+- [Architecture](architecture.md) — System design context

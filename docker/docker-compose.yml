@@ -2,12 +2,15 @@ services:
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-unitae}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-unitae}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-unitae} -d ${POSTGRES_DB:-unitae}']
       interval: 10s
@@ -17,14 +20,26 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    env_file: .env
     command: redis-server --requirepass ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
     volumes:
       - redis_data:/data
+    networks:
+      - app
     healthcheck:
       test: ['CMD', 'redis-cli', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
+
+  migrate:
+    image: ${UNITAE_MIGRATE_IMAGE:-ghcr.io/unitae/unitae/migrate:latest}
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app
 
   web:
     image: ${UNITAE_IMAGE:-ghcr.io/unitae/unitae:latest}
@@ -33,21 +48,41 @@ services:
       - '${PORT:-8080}:8080'
     env_file: .env
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
+    networks:
+      - app
+    volumes:
+      - unitae_content:/app/content:rw
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:8080/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   worker:
     image: ${UNITAE_WORKER_IMAGE:-ghcr.io/unitae/unitae/worker:latest}
     restart: unless-stopped
     env_file: .env
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
+    networks:
+      - app
+    healthcheck:
+      test: ['CMD', 'curl', '-sf', 'http://localhost:9090/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  app:
 
 volumes:
   postgres_data:
   redis_data:
+  unitae_content:

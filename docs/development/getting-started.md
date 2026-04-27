@@ -106,7 +106,7 @@ pnpm test:lint        # Check linting
 pnpm test:unit        # Run unit tests
 ```
 
-## Next Steps
+## Related
 
 - [Coding Conventions](coding-conventions.md) — Patterns, philosophy, and rules
 - [Architecture](architecture.md) — System design, request flow, and data isolation

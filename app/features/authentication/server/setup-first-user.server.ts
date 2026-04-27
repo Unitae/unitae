@@ -1,7 +1,7 @@
 import type { locales } from '~/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
-import { seedCongregationDefaults } from '~/shared/domain/setup.server'
+import { seedCongregationDefaults, seedRoles } from '~/shared/domain/setup.server'
 
 type Locale = (typeof locales)[number]
 
@@ -14,6 +14,8 @@ export async function setupFirstUser(
   congregationSlug: string,
   locale: Locale,
 ) {
+  await seedRoles(db)
+
   const hashedPassword = await hash(password)
 
   const congregation = await db.congregation.create({

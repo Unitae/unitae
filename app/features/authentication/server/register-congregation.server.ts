@@ -2,7 +2,7 @@ import * as m from '~/paraglide/messages'
 import type { locales } from '~/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
-import { seedCongregationDefaults } from '~/shared/domain/setup.server'
+import { seedCongregationDefaults, seedRoles } from '~/shared/domain/setup.server'
 
 type Locale = (typeof locales)[number]
 
@@ -24,6 +24,8 @@ export async function registerCongregation(
   if (existingUser) {
     return { error: m.auth_register_email_taken_error() }
   }
+
+  await seedRoles(db)
 
   const hashedPassword = await hash(adminPassword)
 

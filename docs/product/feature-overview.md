@@ -1,5 +1,7 @@
 # Feature Overview
 
+> Unitae's interface is in French. UI labels in this documentation are shown as they appear in the application.
+
 ## Dashboard
 
 The dashboard is the personal homepage every member sees after logging in. It is organized around intent: *who am I*, *what needs my attention*, and *what's the general state of things*.
@@ -66,10 +68,30 @@ Manage congregation meeting programmes, event scheduling, and publisher assignme
 - **Event generation** — Auto-generate events from templates, or create one-time events from templates or freeform. Events are listed from the start of the current month onward
 - **Publisher assignments** — Assign speakers, readers, and service roles with a dynamic info card showing availability, conflicts, and rotation history
 - **Conflict detection** — Days-off conflicts block assignments in real time and retroactively flag existing ones
-- **Per-template responsibility** — Delegate programme management to specific elders without granting full ProgramManager role
+- **Per-template responsibility** — Delegate programme management to specific elders without granting full `ProgramManager` role
 - **Days off** — Members record their upcoming absences so programme organizers can plan accordingly
 
 See [Events](events.md) for details.
+
+## Notifications
+
+Unitae sends email notifications to keep members informed about relevant events.
+
+- **Debouncing** — Rapid events (e.g., several documents uploaded in succession) are grouped into a single digest email
+- **Cancellation** — Deleting a document cancels the pending "new document" notification
+- **Preferences** — Users can enable or disable notification types individually or by category
+
+See [Notifications](notifications.md) for details.
+
+## Data Transfer
+
+Export and import congregation data for migration, backup, or restoration.
+
+- **Export** — Download a `.unitae` archive containing all congregation data, with options to include uploaded files and audit logs
+- **Import** — Upload a `.unitae` archive with automatic conflict detection and resolution
+- **Background processing** — Large exports and imports run as background jobs with progress tracking
+
+See [Data Transfer](data-transfer.md) for details.
 
 ## Settings
 

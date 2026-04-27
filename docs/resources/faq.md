@@ -79,8 +79,14 @@ Use [GitHub Security Advisories](https://github.com/Unitae/unitae/security/advis
 
 ### Can I fork Unitae?
 
-Yes, under AGPL-3.0 terms. Your fork must also be AGPL-3.0 and you must provide source code to your users. Use a different name for your fork — "Unitae" is a trademark of MindsersIT. See [Licensing](licensing.md) and [Trademark](trademark.md).
+Yes, under AGPL-3.0 terms. Your fork must also be AGPL-3.0 and you must provide source code to your users. Use a different name for your fork — "Unitae" is a trademark of MindsersIT. See [Licensing & Trademark](licensing.md#trademark).
 
 ### Do I need to share my data if I self-host?
 
 No. The AGPL-3.0 license covers the source code, not your data. Your congregation data is yours.
+
+## Related
+
+- [Licensing & Trademark](licensing.md) — AGPL-3.0, open-core model, and brand usage
+- [Self-Hosting Guide](../self-hosting/getting-started.md) — Deploy Unitae on your own infrastructure
+- [Feature Overview](../product/feature-overview.md) — See all features at a glance

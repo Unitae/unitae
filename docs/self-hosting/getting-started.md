@@ -44,20 +44,11 @@ REDIS_PORT=6379
 docker compose up -d
 ```
 
-This starts PostgreSQL, Redis, the web application (port 8080), and the background worker.
+This starts PostgreSQL, Redis, runs database migrations automatically, then starts the web application (port 8080) and background worker. The `migrate` service applies pending migrations and exits before `web` and `worker` start.
 
-### 4. Initialize the Database
+### 4. Access the Setup Wizard
 
-Run this once on first setup:
-
-```bash
-docker compose exec web pnpm prisma migrate deploy
-docker compose exec web pnpm tsx app/database/seed.ts
-```
-
-### 5. Access the Setup Wizard
-
-Visit `http://your-server:8080`. The setup wizard will guide you through creating the first user and congregation.
+Visit `http://your-server:8080`. The setup wizard creates the first user and congregation, and automatically seeds roles and default programme templates.
 
 ## PM2 (Direct Node.js)
 
@@ -75,7 +66,6 @@ cp .env.example .env
 
 pnpm prisma generate
 pnpm prisma migrate deploy
-pnpm tsx app/database/seed.ts
 pnpm build
 ```
 
@@ -118,7 +108,7 @@ S3_SECRET_KEY=your-secret-key
 
 Set `GOOGLE_MAPS_API_KEY` to enable interactive maps on territory pages and map images in PDF territory cards. The key needs the **Maps JavaScript API** and **Maps Static API** enabled.
 
-## Next Steps
+## Related
 
 - [Requirements](requirements.md) — Minimum resources for production
 - [Environment Variables](environment-variables.md) — Full configuration reference
