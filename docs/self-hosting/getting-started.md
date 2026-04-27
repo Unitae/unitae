@@ -46,17 +46,9 @@ docker compose up -d
 
 This starts PostgreSQL, Redis, runs database migrations automatically, then starts the web application (port 8080) and background worker. The `migrate` service applies pending migrations and exits before `web` and `worker` start.
 
-### 4. Seed the Database (First Setup Only)
+### 4. Access the Setup Wizard
 
-On the very first deployment, seed the database with initial data:
-
-```bash
-docker compose exec web pnpm db:seed
-```
-
-### 5. Access the Setup Wizard
-
-Visit `http://your-server:8080`. The setup wizard will guide you through creating the first user and congregation.
+Visit `http://your-server:8080`. The setup wizard creates the first user and congregation, and automatically seeds roles and default programme templates.
 
 ## PM2 (Direct Node.js)
 
@@ -74,7 +66,6 @@ cp .env.example .env
 
 pnpm prisma generate
 pnpm prisma migrate deploy
-pnpm db:seed
 pnpm build
 ```
 

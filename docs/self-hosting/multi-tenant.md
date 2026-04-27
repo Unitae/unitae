@@ -41,10 +41,9 @@ Use the same `docker-compose.yml` as the [self-hosted deployment](getting-starte
 
 ```bash
 docker compose up -d
-docker compose exec web pnpm db:seed  # first setup only
 ```
 
-Database migrations run automatically via the `migrate` service before `web` and `worker` start.
+Database migrations run automatically via the `migrate` service before `web` and `worker` start. Roles and default data are seeded automatically when the first congregation is registered.
 
 ## PM2 Setup
 
