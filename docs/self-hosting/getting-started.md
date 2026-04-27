@@ -33,10 +33,15 @@ REDIS_PASSWORD=your-strong-redis-password
 UNITAE_SESSION_SECRET=your-secret-key-at-least-32-characters
 DB_URL=postgresql://unitae:your-strong-database-password@postgres:5432/unitae
 
+# RLS enforcement (recommended) — uses the non-superuser role created by init-db
+DB_RUNTIME_URL=postgresql://unitae_app:your-strong-database-password@postgres:5432/unitae
+
 # Redis (Docker Compose service name)
 REDIS_HOST=redis
 REDIS_PORT=6379
 ```
+
+By default, `DB_RUNTIME_PASSWORD` matches `DB_PASSWORD`. If you set a different password, update the connection string in `DB_RUNTIME_URL` accordingly.
 
 ### 3. Start the Services
 
@@ -62,7 +67,7 @@ cd unitae
 pnpm install
 
 cp .env.example .env
-# Edit .env — set DB_URL, SESSION_SECRET, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+# Edit .env — set DB_URL, DB_RUNTIME_URL, UNITAE_SESSION_SECRET, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 
 pnpm prisma generate
 pnpm prisma migrate deploy
