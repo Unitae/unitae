@@ -263,3 +263,9 @@ docs: add open data sync documentation
 - Don't re-export types "for convenience" — import from the source
 - Don't put `db.*.create/update/delete` calls in route files — use service functions
 - Don't import from `features/X/server/` in `features/Y/server/` — use `shared/`
+
+## Related
+
+- [Architecture](architecture.md) — System design, request flow, and data isolation
+- [Getting Started](getting-started.md) — Set up a development environment
+- [Testing](testing.md) — Unit, integration, and E2E test setup

@@ -176,3 +176,9 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 - **Roles**: 14 congregation-scoped roles via CongregationUserRole
 - **Files**: Congregation-scoped storage keys, UUID filenames
 - **RLS**: PostgreSQL Row-Level Security for tenant data isolation
+
+## Related
+
+- [Row-Level Security](row-level-security.md) — How RLS enforces tenant isolation
+- [Coding Conventions](coding-conventions.md) — Patterns, philosophy, and rules
+- [Background Processing](background-processing.md) — BullMQ worker architecture

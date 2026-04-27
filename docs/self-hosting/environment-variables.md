@@ -91,6 +91,7 @@ These variables are used by `docker-compose.yml` for the PostgreSQL and Redis co
 | `REDIS_PASSWORD` | — | Redis password (required) |
 | `UNITAE_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
 | `UNITAE_WORKER_IMAGE` | `ghcr.io/unitae/unitae/worker:latest` | Docker image for the background worker service |
+| `UNITAE_MIGRATE_IMAGE` | `ghcr.io/unitae/unitae/migrate:latest` | Docker image for the database migration service. Runs `prisma migrate deploy` and exits |
 
 ## Development Defaults
 
@@ -102,3 +103,9 @@ REDIS_HOST="localhost"
 REDIS_PORT="6379"
 # No REDIS_PASSWORD in development
 ```
+
+## Related
+
+- [Getting Started](getting-started.md) — Deploy with Docker Compose or PM2
+- [Cron Jobs](cron-jobs.md) — Set up recurring maintenance tasks
+- [Row-Level Security](../development/row-level-security.md) — `DATABASE_APP_URL` and tenant isolation

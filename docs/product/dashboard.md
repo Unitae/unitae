@@ -18,7 +18,7 @@ The greeting is displayed at `text-4xl` / `text-5xl` (desktop) for a warm, app-l
 On the right side of the greeting (below on mobile), contextual action buttons provide shortcuts to frequent tasks:
 
 - **Saisir une absence** — Link to the absence creation form (all users)
-- **Attribuer un territoire** — Link to the territory list (visible only to Admin and TerritoriesManager roles)
+- **Attribuer un territoire** — Link to the territory list (visible only to `Admin` and `TerritoriesManager` roles)
 
 ## Admin Onboarding Checklist
 

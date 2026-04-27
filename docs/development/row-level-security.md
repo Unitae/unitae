@@ -195,3 +195,8 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO unitae_app;
 ```
 
 Then set `DATABASE_APP_URL` in the environment to use this role for the runtime.
+
+## Related
+
+- [Architecture](architecture.md) — System design and data isolation overview
+- [Environment Variables](../self-hosting/environment-variables.md) — `DATABASE_APP_URL` configuration

@@ -41,9 +41,10 @@ Use the same `docker-compose.yml` as the [self-hosted deployment](getting-starte
 
 ```bash
 docker compose up -d
-docker compose exec web pnpm prisma migrate deploy
-docker compose exec web pnpm db:seed
+docker compose exec web pnpm db:seed  # first setup only
 ```
+
+Database migrations run automatically via the `migrate` service before `web` and `worker` start.
 
 ## PM2 Setup
 
@@ -103,7 +104,7 @@ Each congregation's data is completely isolated at the database level. All queri
 
 See [Security](../product/security.md) for more details on the isolation model.
 
-## Next Steps
+## Related
 
 - [Requirements](requirements.md) — Resource recommendations for multi-congregation deployments
 - [Environment Variables](environment-variables.md) — Full configuration reference

@@ -8,48 +8,61 @@ Unitae is an open-source web application for managing Jehovah's Witnesses congre
 
 Start here to understand the product, its features, and how it works.
 
-1. [What is Unitae?](product/what-is-unitae.md) — The problem it solves, how it differs, who builds it
-2. [Feature Overview](product/feature-overview.md) — A glance at all features
-3. Deep dives: [Dashboard](product/dashboard.md) · [Display Board](product/display-board.md) · [Territories](product/territories.md) · [Publishers](product/publishers.md) · [Events](product/events.md) · [Notifications](product/notifications.md) · [Data Transfer](product/data-transfer.md)
-4. [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
-5. [Security](product/security.md) — How your data is protected (includes GDPR & data protection)
+- [What is Unitae?](product/what-is-unitae.md) — The problem it solves, how it differs, who builds it
+- [Feature Overview](product/feature-overview.md) — A glance at all features
+- [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
+- [Security](product/security.md) — How your data is protected (includes GDPR & data protection)
+
+Feature deep dives:
+
+- [Dashboard](product/dashboard.md) — Personal homepage with urgent items and widgets
+- [Display Board](product/display-board.md) — Digital notice board for PDF documents and live views
+- [Territories](product/territories.md) — Geographic areas, attributions, prospection, and statistics
+- [Publishers](product/publishers.md) — Profiles, groups, and activity tracking
+- [Events](product/events.md) — Meeting programmes, assignments, and days off
+- [Notifications](product/notifications.md) — Email notifications with debouncing and preferences
+- [Data Transfer](product/data-transfer.md) — Export and import congregation data
 
 ### Use the managed hosting service
 
-The fastest way to get started — no server to manage. GDPR compliance is handled for you with a Data Processing Agreement (DPA), EU-hosted data, and managed sub-processor relationships.
+The fastest way to get started — no server to manage.
 
-1. [Get started with managed hosting](managed-hosting/getting-started.md) — Sign up at unitae.app
-2. [Self-Hosting vs Managed Hosting](managed-hosting/self-hosting-vs-managed.md) — Compare your options
+- [Get started with managed hosting](managed-hosting/getting-started.md) — Sign up at unitae.app
+- [Self-Hosting vs Managed Hosting](managed-hosting/self-hosting-vs-managed.md) — Compare your options
 
 ### Self-host Unitae
 
 Run Unitae on your own infrastructure with full control over your data.
 
-1. [Getting Started](self-hosting/getting-started.md) — Deploy with Docker Compose or PM2
-2. [Multi-Congregation Setup](self-hosting/multi-tenant.md) — Host several congregations on one instance
-3. [Requirements](self-hosting/requirements.md) — Minimum resources for production
-4. [Environment Variables](self-hosting/environment-variables.md) — Full configuration reference
-5. [Open Data Sync](self-hosting/open-data-sync.md) — Import French national addresses for building prospection
-6. [Cron Jobs](self-hosting/cron-jobs.md) — Set up recurring maintenance tasks
-7. [Health Monitoring](self-hosting/health-monitoring.md) — Configure health check probes
+- [Getting Started](self-hosting/getting-started.md) — Deploy with Docker Compose or PM2
+- [Requirements](self-hosting/requirements.md) — Minimum resources for production
+- [Environment Variables](self-hosting/environment-variables.md) — Full configuration reference
+- [Multi-Congregation Setup](self-hosting/multi-tenant.md) — Host several congregations on one instance
+- [Cron Jobs](self-hosting/cron-jobs.md) — Set up recurring maintenance tasks
+- [Health Monitoring](self-hosting/health-monitoring.md) — Configure health check probes
+- [Open Data Sync](self-hosting/open-data-sync.md) — Import French national addresses for building prospection
 
 ### Contribute to Unitae
 
 Set up a development environment and understand the codebase.
 
-1. [Development Setup](development/getting-started.md) — Clone, install, and run locally
-2. [Coding Conventions](development/coding-conventions.md) — Patterns, philosophy, and rules
-3. [Architecture](development/architecture.md) — System design, request flow, and data isolation
-4. [Row-Level Security](development/row-level-security.md) — How RLS enforces tenant isolation
-5. [Background Processing](development/background-processing.md) — BullMQ worker architecture
-6. [Notifications](development/notifications.md) — Notification system architecture
-7. [Testing](development/testing.md) — Unit, integration, and E2E test setup
-8. [Internationalization](development/internationalization.md) — Paraglide i18n system
-9. [Email Templates](development/email-templates.md) — React Email templates and Resend
-10. [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
+Getting started:
+
+- [Development Setup](development/getting-started.md) — Clone, install, and run locally
+- [Coding Conventions](development/coding-conventions.md) — Patterns, philosophy, and rules
+- [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
+
+Architecture and systems:
+
+- [Architecture](development/architecture.md) — System design, request flow, and data isolation
+- [Row-Level Security](development/row-level-security.md) — How RLS enforces tenant isolation
+- [Background Processing](development/background-processing.md) — BullMQ worker architecture
+- [Notifications](development/notifications.md) — Notification system architecture
+- [Email Templates](development/email-templates.md) — React Email templates and Resend
+- [Testing](development/testing.md) — Unit, integration, and E2E test setup
+- [Internationalization](development/internationalization.md) — Paraglide i18n system
 
 ### Reference
 
 - [FAQ](resources/faq.md) — Common questions answered
-- [Licensing](resources/licensing.md) — AGPL-3.0 explained
-- [Trademark](resources/trademark.md) — Usage guidelines for the Unitae name
+- [Licensing & Trademark](resources/licensing.md) — AGPL-3.0, open-core model, and brand usage

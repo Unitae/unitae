@@ -151,3 +151,9 @@ The worker is only needed if you're working on territory sync, document uploads,
    - For email rendering: wrap in `runWithLocale(congregation.locale, ...)`
 4. Register worker in `workers/worker.server.ts` with appropriate concurrency
 5. No new K8s deployment needed — the unified worker handles all queues
+
+## Related
+
+- [Notifications](notifications.md) — Notification system architecture
+- [Email Templates](email-templates.md) — React Email templates and Resend
+- [Architecture](architecture.md) — System design overview

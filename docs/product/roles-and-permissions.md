@@ -71,8 +71,8 @@ Everything else requires at least one role assignment.
 
 Each feature page documents which roles apply to it:
 
-- [Display Board](display-board.md) — BoardUploader, BoardValidator
-- [Territories](territories.md) — TerritoriesViewer/Manager, ProspectionViewer/Manager
-- [Publishers](publishers.md) — PublisherViewer/Manager, ActivityViewer/Manager
-- [Events](events.md) — ProgramViewer, ProgramManager
+- [Display Board](display-board.md) — `BoardUploader`, `BoardValidator`
+- [Territories](territories.md) — `TerritoriesViewer`/`Manager`, `ProspectionViewer`/`Manager`
+- [Publishers](publishers.md) — `PublisherViewer`/`Manager`, `ActivityViewer`/`Manager`
+- [Events](events.md) — `ProgramViewer`, `ProgramManager`
 - [Security](security.md) — How roles are enforced at the server level

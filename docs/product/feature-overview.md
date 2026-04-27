@@ -1,5 +1,7 @@
 # Feature Overview
 
+> Unitae's interface is in French. UI labels in this documentation are shown as they appear in the application.
+
 ## Dashboard
 
 The dashboard is the personal homepage every member sees after logging in. It is organized around intent: *who am I*, *what needs my attention*, and *what's the general state of things*.
@@ -66,7 +68,7 @@ Manage congregation meeting programmes, event scheduling, and publisher assignme
 - **Event generation** — Auto-generate events from templates, or create one-time events from templates or freeform. Events are listed from the start of the current month onward
 - **Publisher assignments** — Assign speakers, readers, and service roles with a dynamic info card showing availability, conflicts, and rotation history
 - **Conflict detection** — Days-off conflicts block assignments in real time and retroactively flag existing ones
-- **Per-template responsibility** — Delegate programme management to specific elders without granting full ProgramManager role
+- **Per-template responsibility** — Delegate programme management to specific elders without granting full `ProgramManager` role
 - **Days off** — Members record their upcoming absences so programme organizers can plan accordingly
 
 See [Events](events.md) for details.

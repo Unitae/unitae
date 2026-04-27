@@ -44,14 +44,13 @@ REDIS_PORT=6379
 docker compose up -d
 ```
 
-This starts PostgreSQL, Redis, the web application (port 8080), and the background worker.
+This starts PostgreSQL, Redis, runs database migrations automatically, then starts the web application (port 8080) and background worker. The `migrate` service applies pending migrations and exits before `web` and `worker` start.
 
-### 4. Initialize the Database
+### 4. Seed the Database (First Setup Only)
 
-Run this once on first setup:
+On the very first deployment, seed the database with initial data:
 
 ```bash
-docker compose exec web pnpm prisma migrate deploy
 docker compose exec web pnpm db:seed
 ```
 
@@ -118,7 +117,7 @@ S3_SECRET_KEY=your-secret-key
 
 Set `GOOGLE_MAPS_API_KEY` to enable interactive maps on territory pages and map images in PDF territory cards. The key needs the **Maps JavaScript API** and **Maps Static API** enabled.
 
-## Next Steps
+## Related
 
 - [Requirements](requirements.md) — Minimum resources for production
 - [Environment Variables](environment-variables.md) — Full configuration reference
