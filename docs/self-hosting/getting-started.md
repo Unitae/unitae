@@ -32,6 +32,10 @@ DB_PASSWORD=your-strong-database-password
 REDIS_PASSWORD=your-strong-redis-password
 UNITAE_SESSION_SECRET=your-secret-key-at-least-32-characters
 DB_URL=postgresql://unitae:your-strong-database-password@postgres:5432/unitae
+RESEND_API_KEY=re_your-resend-api-key
+
+# Your public URL (used in emails and redirects)
+UNITAE_BASE_URL=https://unitae.your-domain.com
 
 # RLS enforcement (recommended) — uses the non-superuser role created by init-db
 DB_RUNTIME_URL=postgresql://unitae_app:your-strong-database-password@postgres:5432/unitae
@@ -67,14 +71,25 @@ cd unitae
 pnpm install
 
 cp .env.example .env
-# Edit .env — set DB_URL, DB_RUNTIME_URL, UNITAE_SESSION_SECRET, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+# Edit .env — set DB_URL, DB_RUNTIME_URL, UNITAE_SESSION_SECRET, UNITAE_BASE_URL, RESEND_API_KEY, REDIS_*
 
 pnpm prisma generate
 pnpm prisma migrate deploy
 pnpm build
 ```
 
-### 2. Start with PM2
+### 2. Create the Database Runtime Role
+
+The Docker Compose setup creates the `unitae_app` role automatically via the init-db script. With PM2, you need to create it manually:
+
+```sql
+CREATE ROLE unitae_app LOGIN PASSWORD 'your-app-password';
+GRANT unitae_app TO unitae;
+```
+
+Then set `DB_RUNTIME_URL` in your `.env` to use this role. See [Row-Level Security](../development/row-level-security.md) for details.
+
+### 3. Start with PM2
 
 ```bash
 pm2 start pnpm --name unitae-web -- start
@@ -82,9 +97,28 @@ pm2 start pnpm --name unitae-worker -- start:worker
 pm2 save
 ```
 
-### 3. Access the Setup Wizard
+### 4. Access the Setup Wizard
 
 Visit `http://your-server:8080` and follow the setup wizard.
+
+## Production Essentials
+
+### Email (Resend)
+
+`RESEND_API_KEY` is required for password reset, email verification, and notification delivery. The application starts without it, but users who forget their password will be locked out and no notifications will be sent. Sign up at [resend.com](https://resend.com/) and set the key in your `.env`.
+
+### Cron Jobs
+
+Unitae requires three cron endpoints to be called on a schedule for background maintenance. Set `UNITAE_CRON_SECRET` in your `.env` and configure an external scheduler (cron, systemd timer, or Kubernetes CronJob) to call these endpoints.
+
+See [Cron Jobs](cron-jobs.md) for the full list of endpoints, recommended schedules, and setup examples.
+
+### Backups
+
+We recommend backing up:
+
+- **PostgreSQL database** — contains all congregation data, user accounts, settings, and audit logs
+- **Uploaded files** — stored in `content/uploads/` (local filesystem) or your S3 bucket, depending on your storage configuration
 
 ## Optional Configuration
 
@@ -93,10 +127,6 @@ These features work without configuration but can be enabled for a better experi
 ### Reverse Proxy (TLS)
 
 Put a reverse proxy (Nginx, Caddy, or Traefik) in front of Unitae to handle TLS certificates. The app listens on port 8080 by default.
-
-### Email Notifications
-
-Set `RESEND_API_KEY` in your `.env` to enable email notifications (password reset, sync completion). Without it, the app works but cannot send emails.
 
 ### File Storage (S3)
 
@@ -117,6 +147,7 @@ Set `GOOGLE_MAPS_API_KEY` to enable interactive maps on territory pages and map 
 
 - [Requirements](requirements.md) — Minimum resources for production
 - [Environment Variables](environment-variables.md) — Full configuration reference
+- [Cron Jobs](cron-jobs.md) — Set up recurring maintenance tasks
 - [Multi-Congregation Setup](multi-tenant.md) — Host several congregations on one instance
 - [Open Data Sync](open-data-sync.md) — Import French national addresses for building prospection
 - [Feature Overview](../product/feature-overview.md) — Learn what Unitae can do
