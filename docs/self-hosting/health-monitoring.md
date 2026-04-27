@@ -59,7 +59,7 @@ The worker process runs its own HTTP health server, separate from the web applic
 - **200 OK** — All queue workers have fired `ready` and none are in a closing state
 - **503 Not Ready** — At least one worker is not ready or is shutting down
 
-The port is configurable via `WORKER_HEALTH_PORT` (default `9090`).
+The port is configurable via `UNITAE_WORKER_HEALTH_PORT` (default `9090`).
 
 ### Docker Compose healthcheck
 
@@ -94,6 +94,6 @@ readinessProbe:
 
 ## Related
 
-- [Environment Variables](environment-variables.md) — `PORT`, `WORKER_HEALTH_PORT`
+- [Environment Variables](environment-variables.md) — `UNITAE_WEB_PORT`, `UNITAE_WORKER_HEALTH_PORT`
 - [Cron Jobs](cron-jobs.md) — Recurring maintenance endpoints
 - [Background Processing](../development/background-processing.md) — Worker architecture details

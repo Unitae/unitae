@@ -3,7 +3,7 @@ import { redirect } from 'react-router'
 import { unscopedDb } from '~/shared/infra/db.server'
 
 const DEFAULT_PLATFORM_NAME = 'Unitae'
-const DEFAULT_EMAIL_FROM = process.env.EMAIL_FROM ?? 'Unitae <noreply@unitae.app>'
+const DEFAULT_EMAIL_FROM = process.env.UNITAE_EMAIL_FROM ?? 'Unitae <noreply@unitae.app>'
 
 export type CongregationInfo = {
   id: number
@@ -33,7 +33,7 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     throw new Error(`Congregation ${congregationId} not found`)
   }
 
-  const appBaseUrl = process.env.APP_BASE_URL ?? 'https://unitae.app'
+  const appBaseUrl = process.env.UNITAE_BASE_URL ?? 'https://unitae.app'
 
   return {
     id: congregation.id,
@@ -71,10 +71,10 @@ export function getPlatformName(): string {
  * - Redirects to `/congregation-not-found` if a slug is present but doesn't match any congregation.
  */
 export async function resolveCongregationFromRequest(request: Request): Promise<{ id: number; slug: string } | null> {
-  if (process.env.MULTI_TENANT !== 'true') return null
+  if (process.env.UNITAE_MULTI_TENANT !== 'true') return null
 
   const hostname = new URL(request.url).hostname
-  const appBaseUrl = (process.env.APP_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
+  const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
   const slug = hostname.endsWith(appBaseUrl) ? hostname.replace(`.${appBaseUrl}`, '') : null
 
   if (slug) {
@@ -104,9 +104,9 @@ const DEFAULT_CONGREGATION_NAME = 'Ma Congrégation'
 export async function getBrandingName(request?: Request): Promise<string> {
   let congregation: { name: string; displayName: string | null } | null = null
 
-  if (process.env.MULTI_TENANT === 'true' && request) {
+  if (process.env.UNITAE_MULTI_TENANT === 'true' && request) {
     const hostname = new URL(request.url).hostname
-    const appBaseUrl = (process.env.APP_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
+    const appBaseUrl = (process.env.UNITAE_BASE_URL ?? 'unitae.app').replace('https://', '').replace('http://', '')
     const slug = hostname.endsWith(appBaseUrl) ? hostname.replace(`.${appBaseUrl}`, '') : null
 
     if (slug) {

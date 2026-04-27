@@ -1,8 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '~/database/generated/client'
 
-const poolMax = Number.parseInt(process.env.DATABASE_POOL_MAX ?? '10', 10)
-const connectionString = process.env.DATABASE_APP_URL ?? process.env.DATABASE_URL
+const poolMax = Number.parseInt(process.env.DB_POOL_MAX ?? '10', 10)
+const connectionString = process.env.DB_RUNTIME_URL ?? process.env.DB_URL
 const adapter = new PrismaPg({
   connectionString,
   max: poolMax,

@@ -39,7 +39,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     displayName: fullCongregation.displayName ?? '',
     locale: fullCongregation.locale ?? 'fr',
     domain: fullCongregation.domain ?? '',
-    showDomain: process.env.MULTI_TENANT === 'true',
+    showDomain: process.env.UNITAE_MULTI_TENANT === 'true',
   }
 }
 

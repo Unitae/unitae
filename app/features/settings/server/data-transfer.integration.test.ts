@@ -7,7 +7,7 @@ import { EntityIdMap, type ManifestJson } from './data-transfer.type'
 // --- Test DB setup (same pattern as db.server.integration.test.ts) ---
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DB_URL,
   max: 5,
   connectionTimeoutMillis: 5000,
 })

@@ -38,7 +38,7 @@ RLS policies are bypassed by PostgreSQL superusers. To make RLS effective, the a
 | `unitae` | Yes | Migrations, seed, backup | Schema changes (DDL), `pg_dump` |
 | `unitae_app` | No | Web server, worker | Runtime queries — RLS is enforced |
 
-The application reads `DATABASE_APP_URL` for the runtime connection. If not set, it falls back to `DATABASE_URL` (for backwards compatibility with single-role setups, but RLS will not be enforced if the role is a superuser).
+The application reads `DB_RUNTIME_URL` for the runtime connection. If not set, it falls back to `DB_URL` (for backwards compatibility with single-role setups, but RLS will not be enforced if the role is a superuser).
 
 ## RLS Policy
 
@@ -124,11 +124,11 @@ In these cases, use `db` or `unscopedDb` directly (they are the same instance). 
 
 The dev Docker Compose creates both roles automatically via an init script (`docker/init-db/01-create-app-role.sql`). To use the non-superuser role locally:
 
-1. Set `DATABASE_APP_URL` in your `.env`:
+1. Set `DB_RUNTIME_URL` in your `.env`:
 
    ```ini
-   DATABASE_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
-   DATABASE_APP_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"
+   DB_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
+   DB_RUNTIME_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"
    ```
 
 2. If your database volume already exists (created before the init script was added), reset it:
@@ -182,10 +182,10 @@ The `unitae_app` role automatically gets DML privileges on new tables thanks to 
 Self-hosted users deploying with a single database role (superuser) will see a warning at startup:
 
 ```
-DATABASE_APP_URL is not set — RLS enforcement requires a non-superuser database role.
+DB_RUNTIME_URL is not set — RLS enforcement requires a non-superuser database role.
 ```
 
-The application works correctly without `DATABASE_APP_URL` — tenant isolation still relies on `withScope` at the application level. However, for defense-in-depth, self-hosters should create a non-superuser role:
+The application works correctly without `DB_RUNTIME_URL` — tenant isolation still relies on `withScope` at the application level. However, for defense-in-depth, self-hosters should create a non-superuser role:
 
 ```sql
 CREATE ROLE unitae_app LOGIN PASSWORD 'your-secure-password' NOSUPERUSER;
@@ -194,9 +194,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO unitae_ap
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO unitae_app;
 ```
 
-Then set `DATABASE_APP_URL` in the environment to use this role for the runtime.
+Then set `DB_RUNTIME_URL` in the environment to use this role for the runtime.
 
 ## Related
 
 - [Architecture](architecture.md) — System design and data isolation overview
-- [Environment Variables](../self-hosting/environment-variables.md) — `DATABASE_APP_URL` configuration
+- [Environment Variables](../self-hosting/environment-variables.md) — `DB_RUNTIME_URL` configuration

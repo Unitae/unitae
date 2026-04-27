@@ -4,13 +4,13 @@ Unitae exposes HTTP endpoints for recurring maintenance tasks. These endpoints m
 
 ## Authentication
 
-All cron endpoints require a `CRON_SECRET` environment variable. Requests must include it as a Bearer token:
+All cron endpoints require a `UNITAE_CRON_SECRET` environment variable. Requests must include it as a Bearer token:
 
 ```
 Authorization: Bearer <your-cron-secret>
 ```
 
-If `CRON_SECRET` is not set, all cron endpoints return `401 Unauthorized`.
+If `UNITAE_CRON_SECRET` is not set, all cron endpoints return `401 Unauthorized`.
 
 ## Endpoints
 
@@ -50,8 +50,8 @@ On authentication failure: `{ "error": "Unauthorized" }` with status `401`.
 ### crontab
 
 ```bash
-CRON_SECRET="your-secret-here"
-BASE_URL="http://localhost:8080"
+UNITAE_CRON_SECRET="your-secret-here"
+UNITAE_BASE_URL="http://localhost:8080"
 
 # Retention cleanup — daily at 3:00 AM
 0 3 * * * curl -s -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/cron/retention"
@@ -128,6 +128,6 @@ spec:
 
 ## Related
 
-- [Environment Variables](environment-variables.md) — `CRON_SECRET` configuration
+- [Environment Variables](environment-variables.md) — `UNITAE_CRON_SECRET` configuration
 - [Health Monitoring](health-monitoring.md) — Health check endpoints
 - [Background Processing](../development/background-processing.md) — How background jobs work

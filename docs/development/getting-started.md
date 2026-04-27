@@ -35,8 +35,8 @@ This starts:
 Create a `.env` file at the project root:
 
 ```ini
-DATABASE_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
-SESSION_SECRET="dev-secret-at-least-32-characters-long"
+DB_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
+UNITAE_SESSION_SECRET="dev-secret-at-least-32-characters-long"
 RESEND_API_KEY="re_123"
 REDIS_HOST="localhost"
 REDIS_PORT="6379"
@@ -45,8 +45,8 @@ REDIS_PORT="6379"
 Optional variables:
 
 ```ini
-CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations)
-DATABASE_POOL_MAX="10"                  # PostgreSQL connection pool size (default: 10)
+UNITAE_CRON_SECRET="your-cron-secret"          # Required for cron endpoints (/cron/retention, /cron/board-expirations)
+DB_POOL_MAX="10"                  # PostgreSQL connection pool size (default: 10)
 GOOGLE_MAPS_API_KEY=""                  # Enables maps on territory pages and PDF exports
 GOOGLE_MAPS_MAP_ID=""                   # Enables custom styled maps
 ```

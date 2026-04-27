@@ -115,7 +115,7 @@ This module is imported at the top of `workers/worker.server.ts` before any hand
 
 The unified worker (`workers/worker.server.ts`) manages all four queue workers:
 
-- **Health endpoint**: HTTP server on port `WORKER_HEALTH_PORT` (default 9090)
+- **Health endpoint**: HTTP server on port `UNITAE_WORKER_HEALTH_PORT` (default 9090)
 - **Ready check**: Returns 200 only when ALL workers have fired `ready` and none are closing
 - **Graceful shutdown**: On SIGINT/SIGTERM, closes the health server then calls `worker.close()` on all workers via `Promise.allSettled`
 

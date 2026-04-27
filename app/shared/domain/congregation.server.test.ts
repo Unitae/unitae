@@ -175,15 +175,15 @@ describe('resolveCongregationFromRequest', () => {
   }
 
   it('retourne null en mode mono-tenant', async () => {
-    delete process.env.MULTI_TENANT
+    delete process.env.UNITAE_MULTI_TENANT
 
     const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
     expect(result).toBeNull()
   })
 
   it('retourne la congrégation correspondant au slug du sous-domaine', async () => {
-    process.env.MULTI_TENANT = 'true'
-    process.env.APP_BASE_URL = 'unitae.app'
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
     vi.mocked(db.congregation.findUnique).mockResolvedValue({ id: 1, slug: 'tenant-alpha' } as never)
 
     const result = await resolveCongregationFromRequest(makeRequest('https://tenant-alpha.unitae.app/'))
@@ -195,8 +195,8 @@ describe('resolveCongregationFromRequest', () => {
   })
 
   it('redirige vers /congregation-not-found si le slug ne correspond à aucune assemblée', async () => {
-    process.env.MULTI_TENANT = 'true'
-    process.env.APP_BASE_URL = 'unitae.app'
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
     vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
 
     await expect(resolveCongregationFromRequest(makeRequest('https://inconnu.unitae.app/'))).rejects.toSatisfy(
@@ -205,8 +205,8 @@ describe('resolveCongregationFromRequest', () => {
   })
 
   it("résout par domaine personnalisé quand il n'y a pas de slug", async () => {
-    process.env.MULTI_TENANT = 'true'
-    process.env.APP_BASE_URL = 'unitae.app'
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
     vi.mocked(db.congregation.findFirst).mockResolvedValue({ id: 2, slug: 'paris' } as never)
 
     const result = await resolveCongregationFromRequest(makeRequest('https://custom.example.com/'))
@@ -218,8 +218,8 @@ describe('resolveCongregationFromRequest', () => {
   })
 
   it('retourne null pour le domaine racine sans slug ni domaine personnalisé', async () => {
-    process.env.MULTI_TENANT = 'true'
-    process.env.APP_BASE_URL = 'unitae.app'
+    process.env.UNITAE_MULTI_TENANT = 'true'
+    process.env.UNITAE_BASE_URL = 'unitae.app'
     vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
 
     const result = await resolveCongregationFromRequest(makeRequest('https://custom-unknown.example.com/'))

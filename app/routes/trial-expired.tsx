@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader() {
   const hostSettings = getHostSettings()
-  const isMultiTenant = process.env.MULTI_TENANT === 'true'
+  const isMultiTenant = process.env.UNITAE_MULTI_TENANT === 'true'
 
   return {
     upgradeUrl: isMultiTenant ? (hostSettings.billing?.upgradeUrl ?? null) : null,

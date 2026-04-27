@@ -11,7 +11,7 @@ import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { redis } from '~/shared/infra/redis.server'
 
 const logger = createLogger('worker')
-const HEALTH_PORT = Number(process.env.WORKER_HEALTH_PORT ?? '9090')
+const HEALTH_PORT = Number(process.env.UNITAE_WORKER_HEALTH_PORT ?? '9090')
 
 const readyWorkers = new Set<string>()
 

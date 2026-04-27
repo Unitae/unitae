@@ -35,7 +35,7 @@ export async function resolveLocaleFromRequest(request: Request): Promise<string
   }
 
   // 3. Single-tenant fallback: first congregation's locale
-  if (process.env.MULTI_TENANT !== 'true') {
+  if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     const first = await unscopedDb.congregation.findFirst({
       select: { locale: true },
     })

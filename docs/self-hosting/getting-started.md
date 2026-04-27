@@ -28,10 +28,10 @@ Edit `.env` and set the required values:
 
 ```ini
 # Required
-POSTGRES_PASSWORD=your-strong-database-password
+DB_PASSWORD=your-strong-database-password
 REDIS_PASSWORD=your-strong-redis-password
-SESSION_SECRET=your-secret-key-at-least-32-characters
-DATABASE_URL=postgresql://unitae:your-strong-database-password@postgres:5432/unitae
+UNITAE_SESSION_SECRET=your-secret-key-at-least-32-characters
+DB_URL=postgresql://unitae:your-strong-database-password@postgres:5432/unitae
 
 # Redis (Docker Compose service name)
 REDIS_HOST=redis
@@ -62,7 +62,7 @@ cd unitae
 pnpm install
 
 cp .env.example .env
-# Edit .env — set DATABASE_URL, SESSION_SECRET, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+# Edit .env — set DB_URL, SESSION_SECRET, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
 
 pnpm prisma generate
 pnpm prisma migrate deploy

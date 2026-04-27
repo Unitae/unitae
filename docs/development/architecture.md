@@ -137,7 +137,7 @@ Two storage drivers, selected automatically based on `S3_ENDPOINT`:
 | Condition | Driver | Storage location |
 |-----------|--------|------------------|
 | `S3_ENDPOINT` is set | S3 | S3-compatible bucket |
-| `S3_ENDPOINT` is absent | Local filesystem | `content/uploads/` (configurable via `LOCAL_STORAGE_PATH`) |
+| `S3_ENDPOINT` is absent | Local filesystem | `content/uploads/` (configurable via `UNITAE_STORAGE_PATH`) |
 
 Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
@@ -169,7 +169,7 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 
 ## Security
 
-- **Session**: Cookie-based, `SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
+- **Session**: Cookie-based, `UNITAE_SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
 - **Passwords**: scrypt hashed with random salt, reset via 24h time-limited tokens
 - **Email verification**: Required before accessing the app, 24h token expiry
 - **Rate limiting**: Login (5/15min), password reset (3/15min) per email via Redis

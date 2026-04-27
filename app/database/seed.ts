@@ -5,7 +5,7 @@ import * as m from '../paraglide/messages'
 import { seedRoles } from '../shared/domain/setup.server'
 import { PrismaClient } from './generated/client'
 
-const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg({ connectionString: process.env.DB_URL })
 const prisma = new PrismaClient({ adapter })
 async function main() {
   await seedRoles(prisma)
@@ -14,7 +14,7 @@ async function main() {
   // EventKind and programme templates. In multi-tenant mode, congregations
   // are created through the /register flow (registerCongregation), which
   // already seeds templates for each new tenant.
-  if (process.env.MULTI_TENANT !== 'true') {
+  if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     const seedLocale = 'fr'
 
     const defaultCongregation = await prisma.congregation.upsert({

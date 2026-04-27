@@ -6,28 +6,28 @@ Complete reference for all configuration variables used by Unitae.
 
 | Variable | Description |
 |----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/dbname`) |
-| `SESSION_SECRET` | Cookie signing secret. Must be at least 32 characters. Keep this secret |
+| `DB_URL` | PostgreSQL connection string (e.g., `postgresql://user:pass@host:5432/dbname`) |
+| `UNITAE_SESSION_SECRET` | Cookie signing secret. Must be at least 32 characters. Keep this secret |
 
 ## Application
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `APP_BASE_URL` | — | Base URL for emails and redirects (e.g., `https://unitae.example.com`) |
-| `COOKIE_DOMAIN` | — | Session cookie domain. Set in production to match your domain |
-| `MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
-| `LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
-| `PORT` | `8080` | HTTP server port |
-| `CRON_SECRET` | — | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401 |
-| `WORKER_HEALTH_PORT` | `9090` | HTTP port for the background worker's health check endpoint |
+| `UNITAE_BASE_URL` | — | Base URL for emails and redirects (e.g., `https://unitae.example.com`) |
+| `UNITAE_COOKIE_DOMAIN` | — | Session cookie domain. Set in production to match your domain |
+| `UNITAE_MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
+| `UNITAE_LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
+| `UNITAE_WEB_PORT` | `8080` | HTTP server port (aliased to `PORT` in the container) |
+| `UNITAE_CRON_SECRET` | — | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401 |
+| `UNITAE_WORKER_HEALTH_PORT` | `9090` | HTTP port for the background worker's health check endpoint |
 
 ## Database
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_URL` | — | PostgreSQL connection string (required). Used for migrations and seed |
-| `DATABASE_APP_URL` | — | Non-superuser connection string for the runtime. Enables RLS enforcement. Falls back to `DATABASE_URL` if not set. See [Row-Level Security](../development/row-level-security.md) |
-| `DATABASE_POOL_MAX` | `10` | Maximum number of PostgreSQL connections in the pool |
+| `DB_URL` | — | PostgreSQL connection string (required). Used for migrations and seed |
+| `DB_RUNTIME_URL` | — | Non-superuser connection string for the runtime. Enables RLS enforcement. Falls back to `DB_URL` if not set. See [Row-Level Security](../development/row-level-security.md) |
+| `DB_POOL_MAX` | `10` | Maximum number of PostgreSQL connections in the pool |
 
 The database connection is configured in `prisma.config.ts`, not in `schema.prisma`.
 
@@ -46,7 +46,7 @@ Redis is used for the BullMQ job queue and login rate limiting.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `RESEND_API_KEY` | — | [Resend](https://resend.com/) API key for sending emails. Without this, the app works but cannot send password reset emails or notifications |
-| `EMAIL_FROM` | `Unitae <noreply@unitae.app>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account |
+| `UNITAE_EMAIL_FROM` | `Unitae <noreply@unitae.app>` | Default sender address for outgoing emails. Must match a verified domain in your Resend account |
 
 ## File Storage
 
@@ -56,7 +56,7 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `LOCAL_STORAGE_PATH` | `content/uploads` | Directory for uploaded files |
+| `UNITAE_STORAGE_PATH` | `content/uploads` | Directory for uploaded files |
 
 ### S3-Compatible Storage
 
@@ -85,12 +85,12 @@ These variables are used by `docker-compose.yml` for the PostgreSQL and Redis co
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `POSTGRES_USER` | `unitae` | PostgreSQL user |
-| `POSTGRES_PASSWORD` | — | PostgreSQL password (required) |
-| `POSTGRES_DB` | `unitae` | PostgreSQL database name |
-| `POSTGRES_APP_PASSWORD` | Value of `POSTGRES_PASSWORD` | Password for the `unitae_app` non-superuser role used for RLS enforcement. See [Row-Level Security](../development/row-level-security.md) |
+| `DB_USER` | `unitae` | PostgreSQL superuser (aliased to `POSTGRES_USER` in the container) |
+| `DB_PASSWORD` | — | PostgreSQL password (required, aliased to `POSTGRES_PASSWORD`) |
+| `DB_NAME` | `unitae` | PostgreSQL database name (aliased to `POSTGRES_DB`) |
+| `DB_RUNTIME_PASSWORD` | Value of `DB_PASSWORD` | Password for the `unitae_app` non-superuser role used for RLS enforcement. See [Row-Level Security](../development/row-level-security.md) |
 | `REDIS_PASSWORD` | — | Redis password (required) |
-| `UNITAE_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
+| `UNITAE_WEB_IMAGE` | `ghcr.io/unitae/unitae:latest` | Docker image for the web service |
 | `UNITAE_WORKER_IMAGE` | `ghcr.io/unitae/unitae/worker:latest` | Docker image for the background worker service |
 | `UNITAE_MIGRATE_IMAGE` | `ghcr.io/unitae/unitae/migrate:latest` | Docker image for the database migration service. Runs `prisma migrate deploy` and exits |
 
@@ -99,7 +99,7 @@ These variables are used by `docker-compose.yml` for the PostgreSQL and Redis co
 The development Docker Compose (`docker-compose.dev.yml`) uses these defaults:
 
 ```ini
-DATABASE_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
+DB_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
 REDIS_HOST="localhost"
 REDIS_PORT="6379"
 # No REDIS_PASSWORD in development
@@ -109,4 +109,4 @@ REDIS_PORT="6379"
 
 - [Getting Started](getting-started.md) — Deploy with Docker Compose or PM2
 - [Cron Jobs](cron-jobs.md) — Set up recurring maintenance tasks
-- [Row-Level Security](../development/row-level-security.md) — `DATABASE_APP_URL` and tenant isolation
+- [Row-Level Security](../development/row-level-security.md) — `DB_RUNTIME_URL` and tenant isolation

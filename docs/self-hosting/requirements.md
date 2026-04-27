@@ -69,7 +69,7 @@ Back up PostgreSQL regularly. Options:
 
 ### File Storage
 
-- **Local storage**: Back up the `content/uploads/` directory (or the path set in `LOCAL_STORAGE_PATH`)
+- **Local storage**: Back up the `content/uploads/` directory (or the path set in `UNITAE_STORAGE_PATH`)
 - **S3 storage**: Rely on your S3 provider's durability guarantees, but consider cross-region replication for critical data
 
 ### Redis

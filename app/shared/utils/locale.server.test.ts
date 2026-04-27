@@ -23,7 +23,7 @@ const { resolveCongregation, resolveCongregationFromRequest } = await import('~/
 
 beforeEach(() => {
   vi.resetAllMocks()
-  delete process.env.MULTI_TENANT
+  delete process.env.UNITAE_MULTI_TENANT
 })
 
 function makeRequest(url = 'http://localhost:5173/board') {
@@ -111,7 +111,7 @@ describe('resolveLocaleFromRequest', () => {
   })
 
   it("returns 'fr' in multi-tenant mode when no subdomain match and no session", async () => {
-    process.env.MULTI_TENANT = 'true'
+    process.env.UNITAE_MULTI_TENANT = 'true'
     mockSession(NaN)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
 

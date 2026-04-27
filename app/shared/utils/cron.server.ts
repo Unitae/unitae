@@ -1,7 +1,7 @@
 import { timingSafeEqual } from 'node:crypto'
 
 export function verifyCronSecret(request: Request): boolean {
-  const secret = process.env.CRON_SECRET
+  const secret = process.env.UNITAE_CRON_SECRET
   if (!secret) return false
 
   const auth = request.headers.get('Authorization')

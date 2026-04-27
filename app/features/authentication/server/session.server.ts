@@ -18,13 +18,13 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
     name: '__session',
 
     // all of these are optional
-    ...(process.env.NODE_ENV === 'production' ? { domain: process.env.COOKIE_DOMAIN } : {}),
+    ...(process.env.NODE_ENV === 'production' ? { domain: process.env.UNITAE_COOKIE_DOMAIN } : {}),
     httpOnly: true,
     maxAge: process.env.NODE_ENV === 'production' ? 60 * 60 : 60 * 60 * 8,
     path: '/',
     sameSite: 'lax',
     // biome-ignore lint/style/noNonNullAssertion: validated at startup by env.server.ts
-    secrets: [process.env.SESSION_SECRET!],
+    secrets: [process.env.UNITAE_SESSION_SECRET!],
     secure: process.env.NODE_ENV === 'production',
   },
 })

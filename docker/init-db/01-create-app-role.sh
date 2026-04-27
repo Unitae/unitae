@@ -5,9 +5,9 @@ set -e
 # The superuser (POSTGRES_USER) remains for migrations; unitae_app is used by
 # the web/worker processes so that RLS policies are enforced.
 #
-# POSTGRES_APP_PASSWORD defaults to POSTGRES_PASSWORD if not set.
+# DB_RUNTIME_PASSWORD defaults to DB_PASSWORD (aliased as POSTGRES_PASSWORD) if not set.
 
-APP_PASSWORD="${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}"
+APP_PASSWORD="${DB_RUNTIME_PASSWORD:-${DB_PASSWORD:-${POSTGRES_PASSWORD}}}"
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
   DO \$\$

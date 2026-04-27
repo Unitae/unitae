@@ -16,7 +16,7 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const hostSettings = getHostSettings()
-  const isMultiTenant = process.env.MULTI_TENANT === 'true'
+  const isMultiTenant = process.env.UNITAE_MULTI_TENANT === 'true'
 
   // Read suspended reason from DB instead of query param to prevent phishing
   let reason: string | null = null
