@@ -5,20 +5,18 @@ set -e
 # The superuser (POSTGRES_USER) remains for migrations; unitae_app is used by
 # the web/worker processes so that RLS policies are enforced.
 #
-# DB_RUNTIME_PASSWORD defaults to DB_PASSWORD (aliased as POSTGRES_PASSWORD) if not set.
+# Uses DB_RUNTIME_PASSWORD if set, otherwise falls back to POSTGRES_PASSWORD.
 
-APP_PASSWORD="${DB_RUNTIME_PASSWORD:-${DB_PASSWORD:-${POSTGRES_PASSWORD}}}"
+password="${DB_RUNTIME_PASSWORD:-${POSTGRES_PASSWORD}}"
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-  DO \$\$
-  BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'unitae_app') THEN
-      CREATE ROLE unitae_app LOGIN PASSWORD '${APP_PASSWORD}';
-    ELSE
-      ALTER ROLE unitae_app LOGIN PASSWORD '${APP_PASSWORD}';
-    END IF;
-  END
-  \$\$;
+# Use -c with separate statements to avoid PL/pgSQL heredoc escaping issues.
+# CREATE ROLE fails if the role already exists — ignore that error.
+psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  -c "CREATE ROLE unitae_app LOGIN PASSWORD '$password';" 2>/dev/null || true
 
-  GRANT unitae_app TO ${POSTGRES_USER};
-EOSQL
+# Ensure LOGIN is set and password is up to date (idempotent).
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  -c "ALTER ROLE unitae_app LOGIN PASSWORD '$password';"
+
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  -c "GRANT unitae_app TO $POSTGRES_USER;"
