@@ -7,7 +7,7 @@ const scopedDb = {
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    congregation: { create: vi.fn() },
+    congregation: { findFirst: vi.fn(), create: vi.fn() },
     user: { create: vi.fn() },
     userRole: { findUnique: vi.fn(), upsert: vi.fn() },
     congregationUserRole: { create: vi.fn() },
@@ -25,6 +25,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
   vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test' } as never)
   vi.mocked(db.user.create).mockResolvedValue({ id: 42 } as never)
   vi.mocked(db.userRole.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
