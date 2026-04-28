@@ -43,6 +43,9 @@ DB_RUNTIME_URL=postgresql://unitae_app:your-strong-database-password@postgres:54
 # Redis (Docker Compose service name)
 REDIS_HOST=redis
 REDIS_PORT=6379
+
+# Cron secret (required for scheduled maintenance tasks)
+UNITAE_CRON_SECRET=your-cron-secret-at-least-32-characters
 ```
 
 By default, `DB_RUNTIME_PASSWORD` matches `DB_PASSWORD`. If you set a different password, update the connection string in `DB_RUNTIME_URL` accordingly.
