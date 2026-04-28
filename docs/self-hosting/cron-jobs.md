@@ -54,13 +54,13 @@ UNITAE_CRON_SECRET="your-secret-here"
 UNITAE_BASE_URL="http://localhost:8080"
 
 # Retention cleanup — daily at 3:00 AM
-0 3 * * * curl -s -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/cron/retention"
+0 3 * * * curl -s -H "Authorization: Bearer $UNITAE_CRON_SECRET" "$UNITAE_BASE_URL/cron/retention"
 
 # Board expiration check — daily at 7:00 AM
-0 7 * * * curl -s -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/cron/board-expirations"
+0 7 * * * curl -s -H "Authorization: Bearer $UNITAE_CRON_SECRET" "$UNITAE_BASE_URL/cron/board-expirations"
 
 # Notification flush — every 5 minutes
-*/5 * * * * curl -s -H "Authorization: Bearer $CRON_SECRET" "$BASE_URL/cron/process-notifications"
+*/5 * * * * curl -s -H "Authorization: Bearer $UNITAE_CRON_SECRET" "$UNITAE_BASE_URL/cron/process-notifications"
 ```
 
 ### systemd timer
