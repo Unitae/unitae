@@ -91,11 +91,21 @@ describe('resolveCongregation', () => {
     expect(result.emailFrom).toBe('Congrégation Test <contact@test.org>')
   })
 
-  it('construit le baseUrl à partir du slug quand baseUrl est null', async () => {
+  it('construit le baseUrl à partir du slug quand baseUrl est null (multi-tenant)', async () => {
+    process.env.UNITAE_MULTI_TENANT = 'true'
     vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
 
     const result = await resolveCongregation(1)
     expect(result.baseUrl).toBe('https://test.unitae.app')
+    delete process.env.UNITAE_MULTI_TENANT
+  })
+
+  it('utilise UNITAE_BASE_URL directement quand single-tenant', async () => {
+    delete process.env.UNITAE_MULTI_TENANT
+    vi.mocked(db.congregation.findUnique).mockResolvedValue(baseCongregation as never)
+
+    const result = await resolveCongregation(1)
+    expect(result.baseUrl).toBe('https://unitae.app')
   })
 
   it('utilise le baseUrl personnalisé quand il est défini', async () => {
