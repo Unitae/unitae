@@ -18,13 +18,18 @@ export async function setupFirstUser(
 
   const hashedPassword = await hash(password)
 
-  const congregation = await db.congregation.create({
-    data: {
-      name: congregationName,
-      slug: congregationSlug,
-      locale,
-    },
-  })
+  // In single-tenant mode, the seed may have already created a congregation.
+  // Reuse it instead of creating a duplicate.
+  const existingCongregation = await db.congregation.findFirst()
+  const congregation =
+    existingCongregation ??
+    (await db.congregation.create({
+      data: {
+        name: congregationName,
+        slug: congregationSlug,
+        locale,
+      },
+    }))
 
   const user = await db.user.create({
     data: {
