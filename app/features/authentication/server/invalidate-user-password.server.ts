@@ -1,9 +1,13 @@
 import crypto from 'node:crypto'
-import { unscopedDb as db } from '~/shared/infra/db.server'
+import { unscopedDb, type TransactionClient } from '~/shared/infra/db.server'
 
 const TOKEN_EXPIRY_HOURS = 24
 
-export async function createPasswordResetToken(userId: number): Promise<string> {
+export async function createPasswordResetToken(
+  userId: number,
+  dbClient?: TransactionClient,
+): Promise<string> {
+  const db = dbClient ?? unscopedDb
   const token = crypto.randomBytes(32).toString('base64url')
   const expiresAt = new Date()
   expiresAt.setHours(expiresAt.getHours() + TOKEN_EXPIRY_HOURS)
@@ -18,14 +22,14 @@ export async function createPasswordResetToken(userId: number): Promise<string> 
 }
 
 export async function verifyPasswordResetToken(token: string) {
-  const resetToken = await db.passwordResetToken.findUnique({
+  const resetToken = await unscopedDb.passwordResetToken.findUnique({
     where: { token },
     include: { user: true },
   })
 
   if (resetToken == null) return null
   if (resetToken.expiresAt < new Date()) {
-    await db.passwordResetToken.delete({ where: { id: resetToken.id } })
+    await unscopedDb.passwordResetToken.delete({ where: { id: resetToken.id } })
     return null
   }
 
@@ -33,8 +37,8 @@ export async function verifyPasswordResetToken(token: string) {
 }
 
 export async function consumePasswordResetToken(token: string) {
-  const resetToken = await db.passwordResetToken.findUnique({ where: { token } })
+  const resetToken = await unscopedDb.passwordResetToken.findUnique({ where: { token } })
   if (resetToken != null) {
-    await db.passwordResetToken.delete({ where: { id: resetToken.id } })
+    await unscopedDb.passwordResetToken.delete({ where: { id: resetToken.id } })
   }
 }

@@ -194,7 +194,16 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 Fire-and-forget audit logging via `audit()` from `app/shared/domain/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
 
-Actions tracked: user login/logout/creation/update/anonymization, role changes, data export, consent grant/withdrawal, password changes, board read status.
+```typescript
+import { audit, AuditAction } from '~/shared/domain/audit.server'
+
+// In a service function, after a successful DB write:
+audit({ action: AuditAction.TerritoryCreated, congregationId, actorId, entityType: 'Territory', entityId: territory.id })
+```
+
+All user-facing operations are covered across every feature — authentication, settings, territories, publishers, events, display board, and notifications. See `app/shared/domain/audit.server.ts` for the full `AuditAction` enum, and `docs/development/audit-logging.md` for the complete action reference and implementation guide.
+
+**GDPR note:** When a user is anonymized, `anonymizeUser` also wipes `actorEmail` from all their `AuditLog` entries (Article 17 right to erasure). The `actorId` FK is preserved so historical attribution is maintained, but the email is cleared. The audit log UI resolves actor email at read time via a join on `actorId`.
 
 ## Testing
 
