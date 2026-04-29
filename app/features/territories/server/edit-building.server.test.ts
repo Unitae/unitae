@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 vi.mock('~/shared/infra/db.server', () => ({
   db: {
     building: { update: vi.fn() },
   },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 vi.mock('~/shared/utils/point-in-polygon.server', () => ({

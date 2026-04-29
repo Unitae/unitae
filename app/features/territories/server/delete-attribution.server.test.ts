@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 vi.mock('~/shared/infra/db.server', () => ({
   db: { attribution: { delete: vi.fn() } },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 const { deleteAttribution } = await import('./delete-attribution.server')

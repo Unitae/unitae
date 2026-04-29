@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    auditLog: { create: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
   },
 }))
 

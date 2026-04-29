@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 const mockCreate = vi.fn()
 const mockDelete = vi.fn()
 
@@ -7,6 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   db: {
     publisherGroup: { create: mockCreate, delete: mockDelete },
   },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 const { createPublisherGroup, deletePublisherGroup } = await import('./publisher-group-mutations.server')

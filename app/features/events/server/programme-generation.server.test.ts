@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
 import { computeDatesForWeekdayCount } from '../model/compute-dates'
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -8,6 +10,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     programmePartAssignment: { create: vi.fn() },
     programmeServiceRoleAssignment: { create: vi.fn() },
   },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 const { generateEventsFromTemplate, createSingleEventFromTemplate } = await import('./programme-generation.server')

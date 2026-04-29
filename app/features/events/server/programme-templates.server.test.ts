@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 vi.mock('~/shared/infra/db.server', () => ({
   db: {
     programmeTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
@@ -7,6 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     programmeTemplateServiceRole: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     programmeTemplateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
   },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 const {

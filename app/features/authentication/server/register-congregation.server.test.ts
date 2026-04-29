@@ -12,6 +12,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     userRole: { findUnique: vi.fn(), upsert: vi.fn() },
     congregationUserRole: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
+    auditLog: { create: vi.fn().mockResolvedValue({}) },
   },
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
 }))
@@ -40,7 +41,7 @@ describe('registerCongregation', () => {
   it('retourne le slug et userId en cas de succès', async () => {
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
-    expect(result).toEqual({ congregationSlug: 'test-congre', userId: 10 })
+    expect(result).toEqual({ congregationSlug: 'test-congre', userId: 10, congregationId: 1 })
   })
 
   it('retourne une erreur si le slug est déjà pris', async () => {
@@ -76,6 +77,6 @@ describe('registerCongregation', () => {
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
     // Ne doit pas planter, juste ne pas assigner de rôle
-    expect(result).toEqual({ congregationSlug: 'test-congre', userId: 10 })
+    expect(result).toEqual({ congregationSlug: 'test-congre', userId: 10, congregationId: 1 })
   })
 })

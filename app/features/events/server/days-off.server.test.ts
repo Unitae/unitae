@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 vi.mock('~/shared/infra/db.server', () => ({
   db: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
@@ -7,6 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     programmePartAssignment: { updateMany: vi.fn() },
     programmeServiceRoleAssignment: { updateMany: vi.fn() },
   },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 const { createDayOff } = await import('./days-off.server')

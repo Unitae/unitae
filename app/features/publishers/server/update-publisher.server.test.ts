@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 const mockUpdate = vi.fn()
 
 vi.mock('~/shared/infra/db.server', () => ({
   db: {
     user: { update: mockUpdate },
   },
+  unscopedDb: { auditLog: { create: vi.fn().mockResolvedValue({}) } },
 }))
 
 const { updatePublisher } = await import('./update-publisher.server')
