@@ -306,6 +306,10 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
                 {m.settings_territories_phone_type_after()}
               </Label>
             </div>
+
+            <Separator />
+
+            <p className="font-medium text-sm">{m.settings_territories_virtual_territory_title()}</p>
             <div className="flex items-center gap-2">
               <Checkbox
                 id="map-tab-active"

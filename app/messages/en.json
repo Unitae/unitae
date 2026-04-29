@@ -677,6 +677,7 @@
     "settings_territories_polygon_placeholder": "Enter polygon coordinates: latitude longitude,latitude longitude,...",
     "settings_territories_polygon_hint": "GeoJSON coordinates delineating the congregation's territory boundary.",
     "settings_territories_types_title": "Territory types",
+    "settings_territories_virtual_territory_title": "Virtual territory",
     "settings_territories_phone_type_before": "Enable",
     "settings_territories_phone_type_highlight": "phone",
     "settings_territories_phone_type_after": "territory management.",

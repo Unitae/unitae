@@ -677,6 +677,7 @@
     "settings_territories_polygon_placeholder": "Entrez les coordonnées du polygone : latitude longitude,latitude longitude,...",
     "settings_territories_polygon_hint": "Coordonnées GeoJSON délimitant la zone du territoire de l'assemblée.",
     "settings_territories_types_title": "Types de territoires",
+    "settings_territories_virtual_territory_title": "Territoire virtuel",
     "settings_territories_phone_type_before": "Activer la gestion des territoires",
     "settings_territories_phone_type_highlight": "téléphone",
     "settings_territories_phone_type_after": ".",
