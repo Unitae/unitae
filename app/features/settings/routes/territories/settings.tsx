@@ -311,12 +311,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
 
             <p className="font-medium text-sm">{m.settings_territories_virtual_territory_title()}</p>
             <div className="flex items-center gap-2">
-              <Checkbox
-                id="map-tab-active"
-                name="map-tab-active"
-                value="on"
-                defaultChecked={mapTabActivated}
-              />
+              <Checkbox id="map-tab-active" name="map-tab-active" value="on" defaultChecked={mapTabActivated} />
               <Label htmlFor="map-tab-active" className="font-normal">
                 {m.settings_territories_map_tab_before()}
                 <span className="font-bold text-primary">{m.settings_territories_map_tab_highlight()}</span>

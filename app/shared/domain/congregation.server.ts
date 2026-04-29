@@ -47,10 +47,10 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     // Priority: custom domain > explicit baseUrl > single-tenant base URL > slug-derived URL
     baseUrl: congregation.domain
       ? `https://${congregation.domain}`
-      : (congregation.baseUrl
-          ?? (process.env.UNITAE_MULTI_TENANT !== 'true'
-            ? appBaseUrl
-            : `https://${congregation.slug}.${appBaseUrl.replace('https://', '')}`)),
+      : (congregation.baseUrl ??
+        (process.env.UNITAE_MULTI_TENANT !== 'true'
+          ? appBaseUrl
+          : `https://${congregation.slug}.${appBaseUrl.replace('https://', '')}`)),
     plan: congregation.plan,
     maxPublishers: congregation.maxPublishers,
     maxTerritories: congregation.maxTerritories,

@@ -87,8 +87,21 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { firstname, lastname, email, gender, birthDate, baptismDate, isHelder, isServant, isAnointed, group, type, phone, address } =
-    submission.value
+  const {
+    firstname,
+    lastname,
+    email,
+    gender,
+    birthDate,
+    baptismDate,
+    isHelder,
+    isServant,
+    isAnointed,
+    group,
+    type,
+    phone,
+    address,
+  } = submission.value
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))

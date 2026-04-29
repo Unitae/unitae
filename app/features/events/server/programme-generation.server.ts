@@ -5,7 +5,16 @@ interface TemplateWithRelations {
   id: number
   name: string
   kindId: number | null
-  parts: { id: number; name: string; section: string; track: string; trackOrder: number | null; order: number; durationMin: number | null; allowExternalSpeaker: boolean }[]
+  parts: {
+    id: number
+    name: string
+    section: string
+    track: string
+    trackOrder: number | null
+    order: number
+    durationMin: number | null
+    allowExternalSpeaker: boolean
+  }[]
   serviceRoles: { id: number; name: string }[]
 }
 
@@ -98,14 +107,7 @@ export async function generateEventsFromTemplate(
   const createdEvents = []
   for (const date of dates) {
     if (existingDateStrings.has(toDateString(date))) continue
-    const event = await createEventWithAssignments(
-      db,
-      template,
-      date,
-      createdById,
-      congregationId,
-      template.kindId,
-    )
+    const event = await createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId)
     createdEvents.push(event)
   }
 

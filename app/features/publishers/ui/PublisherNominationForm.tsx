@@ -3,7 +3,13 @@ import type { UserInput } from '~/shared/types/user-input'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 
-export default function PublisherNominationForm({ user, gender }: { user?: UserInput; gender?: 'male' | 'female' | null }) {
+export default function PublisherNominationForm({
+  user,
+  gender,
+}: {
+  user?: UserInput
+  gender?: 'male' | 'female' | null
+}) {
   if (gender !== 'male') return null
 
   return (

@@ -73,7 +73,10 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion de semaine',
       weekDay: 2,
       kindId: null,
-      parts: [{ id: 10, order: 1 }, { id: 11, order: 2 }],
+      parts: [
+        { id: 10, order: 1 },
+        { id: 11, order: 2 },
+      ],
       serviceRoles: [{ id: 20 }],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
@@ -131,7 +134,9 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion du week-end',
       weekDay: 0,
       kindId: null,
-      parts: [{ id: 10, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 30, allowExternalSpeaker: true }],
+      parts: [
+        { id: 10, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 30, allowExternalSpeaker: true },
+      ],
       serviceRoles: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
@@ -252,7 +257,9 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
-      parts: [{ id: 30, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 45, allowExternalSpeaker: true }],
+      parts: [
+        { id: 30, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 45, allowExternalSpeaker: true },
+      ],
       serviceRoles: [],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)

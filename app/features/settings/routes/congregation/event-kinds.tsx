@@ -35,7 +35,11 @@ export function loader({ context }: Route.LoaderArgs) {
 
   const { congregationId } = context.get(userContext)
   return withScopeFromContext(context, async db => {
-    const kinds = await db.eventKind.findMany({ where: { congregationId, NOT: { key: 'off' } }, orderBy: { name: 'asc' } })
+    const kinds = await db.eventKind.findMany({
+      // biome-ignore lint/style/useNamingConvention: prisma filter key
+      where: { congregationId, NOT: { key: 'off' } },
+      orderBy: { name: 'asc' },
+    })
     return { kinds }
   })
 }
@@ -53,7 +57,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       const submission = parseWithZod(formData, { schema: createKindSchema })
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-      const key = submission.value.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      const key = submission.value.name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
       await db.eventKind.create({
         data: { name: submission.value.name, color: submission.value.color, key, congregationId },
       })
@@ -105,7 +112,13 @@ export default function EventKindsPage({ loaderData }: Route.ComponentProps) {
             <div className="flex flex-col gap-2">
               <Label htmlFor="color">{m.settings_event_kinds_color_label()}</Label>
               <div className="flex items-center gap-2">
-                <Input id="color" name="color" type="color" defaultValue="#6366f1" className="h-9 w-16 cursor-pointer p-1" />
+                <Input
+                  id="color"
+                  name="color"
+                  type="color"
+                  defaultValue="#6366f1"
+                  className="h-9 w-16 cursor-pointer p-1"
+                />
                 <span className="text-muted-foreground text-xs">{m.settings_event_kinds_color_hint()}</span>
               </div>
             </div>

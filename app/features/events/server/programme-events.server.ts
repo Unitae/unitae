@@ -80,7 +80,15 @@ export function addServiceRoleAssignment(
 export function updatePartAssignment(
   db: TransactionClient,
   id: number,
-  data: { name: string; section: string; track: string; trackOrder?: number | null; order: number; durationMin: number | null; allowExternalSpeaker: boolean },
+  data: {
+    name: string
+    section: string
+    track: string
+    trackOrder?: number | null
+    order: number
+    durationMin: number | null
+    allowExternalSpeaker: boolean
+  },
   congregationId: number,
 ) {
   return db.programmePartAssignment.update({

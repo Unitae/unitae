@@ -55,7 +55,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const [template, eventKinds] = await Promise.all([
       getTemplateById(db, templateId, currentUser.congregationId),
-      db.eventKind.findMany({ where: { congregationId: currentUser.congregationId, NOT: { key: 'off' } }, orderBy: { name: 'asc' } }),
+      db.eventKind.findMany({
+        // biome-ignore lint/style/useNamingConvention: prisma filter key
+        where: { congregationId: currentUser.congregationId, NOT: { key: 'off' } },
+        orderBy: { name: 'asc' },
+      }),
     ])
     if (!template) throw redirect('/settings/congregation/templates')
 
@@ -114,8 +118,16 @@ async function handlePartIntent(
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status !== 'success') return submission
 
-    const { partId, partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
-      submission.value
+    const {
+      partId,
+      partName,
+      partSection,
+      partTrack,
+      partTrackOrder,
+      partOrder,
+      partDuration,
+      partAllowExternalSpeaker,
+    } = submission.value
     await upsertTemplatePart(
       db,
       templateId,

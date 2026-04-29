@@ -71,23 +71,13 @@ export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, default
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
-            <Input
-              id="partTrack"
-              name="partTrack"
-              value={trackValue}
-              onChange={e => setTrackValue(e.target.value)}
-            />
+            <Input id="partTrack" name="partTrack" value={trackValue} onChange={e => setTrackValue(e.target.value)} />
           </div>
 
           {trackValue !== '' && (
             <div className="flex flex-col gap-2">
               <Label htmlFor="partTrackOrder">{m.programs_edit_part_track_order_label()}</Label>
-              <Input
-                id="partTrackOrder"
-                name="partTrackOrder"
-                type="number"
-                defaultValue={part?.trackOrder ?? ''}
-              />
+              <Input id="partTrackOrder" name="partTrackOrder" type="number" defaultValue={part?.trackOrder ?? ''} />
             </div>
           )}
 

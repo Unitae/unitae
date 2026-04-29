@@ -123,7 +123,12 @@ function WeekCheckbox({
       ref={ref}
       type="checkbox"
       checked={allSelected}
-      onChange={() => onToggleWeek(events.map(e => e.id), !allSelected)}
+      onChange={() =>
+        onToggleWeek(
+          events.map(e => e.id),
+          !allSelected,
+        )
+      }
       className="size-4 rounded border border-input accent-primary"
     />
   )
@@ -271,7 +276,9 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                           <div className="flex flex-col gap-0.5">
                             <span className="font-medium text-sm">{event.name}</span>
                             <span className="text-muted-foreground text-xs capitalize">
-                              {weekday}{time ? ` · ${time}` : ''}{event.kind ? ` · ${event.kind.name}` : ''}
+                              {weekday}
+                              {time ? ` · ${time}` : ''}
+                              {event.kind ? ` · ${event.kind.name}` : ''}
                             </span>
                           </div>
                           <ChevronRight className="size-4 text-muted-foreground" />
@@ -291,12 +298,8 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
       <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
         <AlertDialogContent size="sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {m.programs_bulk_delete_confirm_title({ count: selectedIds.size })}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {m.programs_bulk_delete_confirm_description()}
-            </AlertDialogDescription>
+            <AlertDialogTitle>{m.programs_bulk_delete_confirm_title({ count: selectedIds.size })}</AlertDialogTitle>
+            <AlertDialogDescription>{m.programs_bulk_delete_confirm_description()}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>{m.common_cancel()}</AlertDialogCancel>

@@ -70,7 +70,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const [templates, eventKinds] = await Promise.all([
       getTemplates(db, congregationId),
-      db.eventKind.findMany({ where: { congregationId, NOT: { key: 'off' } }, orderBy: { name: 'asc' } }),
+      db.eventKind.findMany({
+        // biome-ignore lint/style/useNamingConvention: prisma filter key
+        where: { congregationId, NOT: { key: 'off' } },
+        orderBy: { name: 'asc' },
+      }),
     ])
     return { event, templates, eventKinds }
   })
@@ -168,7 +172,8 @@ async function handleAddPart(
   const submission = parseWithZod(formData, { schema: addPartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } = submission.value
+  const { partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
+    submission.value
   await addPartAssignment(db, {
     eventId,
     name: partName,
@@ -191,8 +196,16 @@ async function handleUpdatePart(
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partAssignmentId, partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
-    submission.value
+  const {
+    partAssignmentId,
+    partName,
+    partSection,
+    partTrack,
+    partTrackOrder,
+    partOrder,
+    partDuration,
+    partAllowExternalSpeaker,
+  } = submission.value
   await updatePartAssignment(
     db,
     partAssignmentId,
