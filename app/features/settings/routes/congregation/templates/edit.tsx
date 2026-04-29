@@ -30,7 +30,6 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
-import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -112,7 +111,8 @@ async function handlePartIntent(
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status !== 'success') return submission
 
-    const { partId, partName, partSection, partTrack, partOrder, partDuration, partIsVariable } = submission.value
+    const { partId, partName, partSection, partTrack, partOrder, partDuration, partAllowExternalSpeaker } =
+      submission.value
     await upsertTemplatePart(
       db,
       templateId,
@@ -123,7 +123,7 @@ async function handlePartIntent(
         track: partTrack,
         order: partOrder,
         durationMin: partDuration ?? null,
-        isVariable: partIsVariable,
+        allowExternalSpeaker: partAllowExternalSpeaker,
       },
       congregationId,
     )
@@ -188,7 +188,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
     track: string
     order: number
     durationMin: number | null
-    isVariable: boolean
+    allowExternalSpeaker: boolean
   } | null>(null)
   const [partSheetOpen, setPartSheetOpen] = useState(false)
 
@@ -339,14 +339,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                           <SortableRow key={part.id} id={part.id}>
                             <TableCell className="text-muted-foreground">{part.order}</TableCell>
                             <TableCell>
-                              <span className="font-medium text-sm">
-                                {part.name}
-                                {part.isVariable && (
-                                  <Badge variant="secondary" className="ml-2 text-xs">
-                                    {m.programs_edit_variable_badge()}
-                                  </Badge>
-                                )}
-                              </span>
+                              <span className="font-medium text-sm">{part.name}</span>
                             </TableCell>
                             <TableCell>
                               {part.durationMin ? (
@@ -355,9 +348,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                                   {part.durationMin} min
                                 </span>
                               ) : (
-                                <span className="text-muted-foreground text-sm">
-                                  {m.programs_edit_variable_badge()}
-                                </span>
+                                <span className="text-muted-foreground text-sm">—</span>
                               )}
                             </TableCell>
                             <TableCell>
@@ -374,7 +365,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                                       track: part.track,
                                       order: part.order,
                                       durationMin: part.durationMin,
-                                      isVariable: part.isVariable,
+                                      allowExternalSpeaker: part.allowExternalSpeaker,
                                     })
                                     setPartSheetOpen(true)
                                   }}

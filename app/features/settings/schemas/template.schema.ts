@@ -28,7 +28,7 @@ export const upsertPartSchema = z.object({
   partTrack: z.string().optional().default(''),
   partOrder: z.coerce.number().default(0),
   partDuration: z.coerce.number().optional(),
-  partIsVariable: z
+  partAllowExternalSpeaker: z
     .string()
     .optional()
     .transform(v => v === 'on'),

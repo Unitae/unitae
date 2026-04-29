@@ -29,6 +29,7 @@ export async function assignPart(
   assignmentId: number,
   assigneeId: number | null,
   assistantId: number | null,
+  externalSpeakerName: string | null,
   topic: string,
   congregationId: number,
 ) {
@@ -37,6 +38,17 @@ export async function assignPart(
     include: { event: true },
   })
   if (!existing) return { error: "L'attribution n'existe pas." }
+
+  if (externalSpeakerName) {
+    const assignment = await db.programmePartAssignment.update({
+      where: {
+        // biome-ignore lint/style/useNamingConvention: prisma compound key
+        id_congregationId: { id: assignmentId, congregationId },
+      },
+      data: { assigneeId: null, assistantId: null, externalSpeakerName, topic, hasConflict: false },
+    })
+    return { assignment }
+  }
 
   if (assigneeId != null) {
     const conflict = await checkDayOffConflict(
@@ -65,7 +77,7 @@ export async function assignPart(
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, assistantId, topic, hasConflict: false },
+    data: { assigneeId, assistantId, externalSpeakerName: null, topic, hasConflict: false },
   })
 
   return { assignment }
@@ -111,7 +123,7 @@ export function unassignPart(db: TransactionClient, assignmentId: number, congre
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId: null, assistantId: null, hasConflict: false },
+    data: { assigneeId: null, assistantId: null, externalSpeakerName: null, hasConflict: false },
   })
 }
 

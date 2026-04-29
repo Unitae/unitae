@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -66,7 +67,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { assignmentId, assigneeId, assistantId, topic } = submission.value
+  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerName, topic } = submission.value
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -78,7 +79,19 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const result = await assignPart(db, assignmentId, assigneeId, assistantId, topic, congregationId)
+    const resolvedExternalName = speakerType === 'external' && externalSpeakerName ? externalSpeakerName : null
+    const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
+    const resolvedAssistantId = speakerType === 'external' ? null : assistantId
+
+    const result = await assignPart(
+      db,
+      assignmentId,
+      resolvedAssigneeId,
+      resolvedAssistantId,
+      resolvedExternalName,
+      topic,
+      congregationId,
+    )
 
     if ('error' in result && result.error) {
       session.flash('error', result.error)
@@ -100,6 +113,9 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? 'none')
+  const [speakerType, setSpeakerType] = useState<'internal' | 'external'>(
+    assignment?.externalSpeakerName ? 'external' : 'internal',
+  )
   const { blocker, markDirty } = useUnsavedChanges()
 
   const activeSelection =
@@ -129,46 +145,83 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
                 <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
-                <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.firstname} {user.lastname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {assignment?.allowExternalSpeaker && (
+                <div className="flex flex-col gap-2">
+                  <Label>{m.programs_assign_part_speaker_type_label()}</Label>
+                  <RadioGroup
+                    name="speakerType"
+                    value={speakerType}
+                    onValueChange={v => setSpeakerType(v as 'internal' | 'external')}
+                    className="flex gap-4"
+                  >
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="internal" id="speakerInternal" />
+                      <Label htmlFor="speakerInternal">{m.programs_assign_part_speaker_type_internal()}</Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="external" id="speakerExternal" />
+                      <Label htmlFor="speakerExternal">{m.programs_assign_part_speaker_type_external()}</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
-                <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={m.programs_assign_part_no_reader()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.firstname} {user.lastname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {speakerType === 'external' ? (
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="externalSpeakerName">{m.programs_assign_part_external_name_label()}</Label>
+                  <Input
+                    id="externalSpeakerName"
+                    name="externalSpeakerName"
+                    defaultValue={assignment?.externalSpeakerName ?? ''}
+                    placeholder={m.programs_assign_part_external_name_placeholder()}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
+                    <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
+                        {users.map(user => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.firstname} {user.lastname}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
+                    <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={m.programs_assign_part_no_reader()} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
+                        {users.map(user => (
+                          <SelectItem key={user.id} value={user.id.toString()}>
+                            {user.firstname} {user.lastname}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
 
               <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
             </Form>
           </CardContent>
         </Card>
 
-        <PublisherInfoCard eventId={event.id} userId={activeSelection} partName={assignment?.name} />
+        {speakerType === 'internal' && (
+          <PublisherInfoCard eventId={event.id} userId={activeSelection} partName={assignment?.name} />
+        )}
       </div>
     </div>
   )

@@ -64,6 +64,8 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     topic: string
     assigneeId: number | null
     assistantId: number | null
+    allowExternalSpeaker: boolean
+    externalSpeakerName: string | null
   } | null>(null)
   const [assignPartOpen, setAssignPartOpen] = useState(false)
 
@@ -83,7 +85,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 
   // Derived values
   const hasAnyTopic = event.partAssignments.some(a => a.topic)
-  const partAssignedCount = event.partAssignments.filter(a => a.assigneeId).length
+  const partAssignedCount = event.partAssignments.filter(a => a.assigneeId ?? a.externalSpeakerName).length
   const serviceAssignedCount = event.serviceRoleAssignments.filter(a => a.assigneeId).length
 
   // Group parts by section, then by track within each section
@@ -132,6 +134,8 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
       topic: assignment.topic,
       assigneeId: assignment.assigneeId,
       assistantId: assignment.assistantId,
+      allowExternalSpeaker: assignment.allowExternalSpeaker,
+      externalSpeakerName: assignment.externalSpeakerName,
     })
     setAssignPartOpen(true)
   }
@@ -240,7 +244,11 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                               className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
                               onClick={canEdit ? () => openPartAssign(assignment) : undefined}
                             >
-                              <AssigneeCell assignee={assignment.assignee} hasConflict={assignment.hasConflict} />
+                              <AssigneeCell
+                                assignee={assignment.assignee}
+                                externalSpeakerName={assignment.externalSpeakerName}
+                                hasConflict={assignment.hasConflict}
+                              />
                             </TableCell>
                             <TableCell
                               className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
@@ -265,7 +273,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                                   >
                                     <UserPlus className="size-3" />
                                   </Button>
-                                  {assignment.assigneeId && (
+                                  {(assignment.assigneeId ?? assignment.externalSpeakerName) && (
                                     <Button
                                       variant="ghost"
                                       size="icon"
@@ -276,6 +284,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                                           id: assignment.id,
                                           name: assignment.name,
                                           assigneeName:
+                                            assignment.externalSpeakerName ??
                                             `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
                                         })
                                       }
@@ -339,7 +348,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                         : undefined
                     }
                   >
-                    <AssigneeCell assignee={assignment.assignee} hasConflict={assignment.hasConflict} />
+                    <AssigneeCell assignee={assignment.assignee} externalSpeakerName={null} hasConflict={assignment.hasConflict} />
                   </TableCell>
                   {canEdit && (
                     <TableCell>
@@ -419,11 +428,24 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 
 function AssigneeCell({
   assignee,
+  externalSpeakerName,
   hasConflict,
 }: {
   assignee: { firstname: string | null; lastname: string | null } | null
+  externalSpeakerName: string | null
   hasConflict: boolean
 }) {
+  if (externalSpeakerName) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-sm">{externalSpeakerName}</span>
+        <Badge variant="secondary" className="text-xs">
+          {m.programs_view_external_badge()}
+        </Badge>
+      </div>
+    )
+  }
+
   if (!assignee) {
     return <span className="text-muted-foreground text-sm italic">{m.programs_view_unassigned()}</span>
   }

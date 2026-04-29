@@ -4,6 +4,7 @@ import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
@@ -16,6 +17,8 @@ type PartAssignment = {
   topic: string
   assigneeId: number | null
   assistantId: number | null
+  allowExternalSpeaker: boolean
+  externalSpeakerName: string | null
 }
 
 type AssignPartSheetProps = {
@@ -31,11 +34,13 @@ export function AssignPartSheet({ open, onOpenChange, assignment, users, eventId
   const prevState = useRef(fetcher.state)
   const [selectedAssignee, setSelectedAssignee] = useState('none')
   const [selectedAssistant, setSelectedAssistant] = useState('none')
+  const [speakerType, setSpeakerType] = useState<'internal' | 'external'>('internal')
 
   useEffect(() => {
     if (assignment) {
       setSelectedAssignee(assignment.assigneeId?.toString() ?? 'none')
       setSelectedAssistant(assignment.assistantId?.toString() ?? 'none')
+      setSpeakerType(assignment.externalSpeakerName ? 'external' : 'internal')
     }
   }, [assignment])
 
@@ -70,41 +75,76 @@ export function AssignPartSheet({ open, onOpenChange, assignment, users, eventId
             <Input id="topic" name="topic" defaultValue={assignment.topic ?? ''} />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
-            <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
-              <SelectTrigger>
-                <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                {users.map(user => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.firstname} {user.lastname}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {assignment.allowExternalSpeaker && (
+            <div className="flex flex-col gap-2">
+              <Label>{m.programs_assign_part_speaker_type_label()}</Label>
+              <RadioGroup
+                name="speakerType"
+                value={speakerType}
+                onValueChange={v => setSpeakerType(v as 'internal' | 'external')}
+                className="flex gap-4"
+              >
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="internal" id="sheetSpeakerInternal" />
+                  <Label htmlFor="sheetSpeakerInternal">{m.programs_assign_part_speaker_type_internal()}</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <RadioGroupItem value="external" id="sheetSpeakerExternal" />
+                  <Label htmlFor="sheetSpeakerExternal">{m.programs_assign_part_speaker_type_external()}</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
-            <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
-              <SelectTrigger>
-                <SelectValue placeholder={m.programs_assign_part_no_reader()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                {users.map(user => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.firstname} {user.lastname}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {speakerType === 'external' ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="externalSpeakerName">{m.programs_assign_part_external_name_label()}</Label>
+              <Input
+                id="externalSpeakerName"
+                name="externalSpeakerName"
+                defaultValue={assignment.externalSpeakerName ?? ''}
+                placeholder={m.programs_assign_part_external_name_placeholder()}
+              />
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
+                <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.firstname} {user.lastname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <PublisherInfoCard eventId={eventId} userId={activeSelection} partName={assignment.name} />
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
+                <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={m.programs_assign_part_no_reader()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
+                    {users.map(user => (
+                      <SelectItem key={user.id} value={user.id.toString()}>
+                        {user.firstname} {user.lastname}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <PublisherInfoCard eventId={eventId} userId={activeSelection} partName={assignment.name} />
+            </>
+          )}
 
           <SheetFooter>
             <SubmitButton>{m.common_save()}</SubmitButton>

@@ -72,7 +72,7 @@ describe('upsertTemplatePart', () => {
     const result = await upsertTemplatePart(
       db,
       1,
-      { name: 'New Part', section: '', track: '', order: 1, durationMin: 10, isVariable: false },
+      { name: 'New Part', section: '', track: '', order: 1, durationMin: 10, allowExternalSpeaker: false },
       1,
     )
     expect(result).toEqual(newPart)
@@ -85,7 +85,7 @@ describe('upsertTemplatePart', () => {
     const result = await upsertTemplatePart(
       db,
       1,
-      { id: 5, name: 'Updated Part', section: '', track: '', order: 1, durationMin: 10, isVariable: false },
+      { id: 5, name: 'Updated Part', section: '', track: '', order: 1, durationMin: 10, allowExternalSpeaker: false },
       1,
     )
     expect(result).toEqual(updatedPart)

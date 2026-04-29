@@ -14,7 +14,7 @@ type PartData = {
   track: string
   order: number
   durationMin: number | null
-  isVariable?: boolean
+  allowExternalSpeaker?: boolean
 }
 
 type PartEditSheetProps = {
@@ -85,12 +85,14 @@ export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, default
             </div>
           </div>
 
-          {mode === 'template' && (
-            <div className="flex items-center gap-2">
-              <Checkbox id="partIsVariable" name="partIsVariable" defaultChecked={part?.isVariable ?? false} />
-              <Label htmlFor="partIsVariable">{m.programs_edit_variable_badge()}</Label>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="partAllowExternalSpeaker"
+              name="partAllowExternalSpeaker"
+              defaultChecked={part?.allowExternalSpeaker ?? false}
+            />
+            <Label htmlFor="partAllowExternalSpeaker">{m.programs_edit_allow_external_speaker()}</Label>
+          </div>
 
           <SheetFooter>
             <SubmitButton>{m.common_save()}</SubmitButton>
