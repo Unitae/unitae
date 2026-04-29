@@ -4,7 +4,7 @@ import { Form, redirect } from 'react-router'
 import { exportOptionsSchema } from '~/features/settings/schemas/data-transfer.schema'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -19,9 +19,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
   return null
 }
 
@@ -81,9 +79,7 @@ export default function ExportPage({ actionData }: Route.ComponentProps) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
 
   const currentUser = context.get(userContext)
   const formData = await request.formData()

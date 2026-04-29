@@ -8,7 +8,7 @@ import {
   isTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Badge } from '~/shared/ui/badge'
@@ -28,7 +28,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.ProgramViewer)) throw redirect('/')
+  requireRole(permissions, Role.ProgramViewer)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 

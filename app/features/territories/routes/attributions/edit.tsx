@@ -10,7 +10,7 @@ import { aggregateEntrance } from '~/features/territories/server/buildings.serve
 import { updateAttribution } from '~/features/territories/server/update-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
@@ -34,9 +34,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -223,9 +221,7 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: updateAttributionSchema })
   if (submission.status !== 'success') {

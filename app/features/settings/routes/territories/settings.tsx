@@ -13,7 +13,8 @@ import {
 } from '~/features/territories/server/settings.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { getBoolSetting, getSetting, setSetting } from '~/shared/domain/settings.server'
+import { getSetting, setSetting } from '~/shared/domain/settings.server'
+import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -94,28 +95,15 @@ export async function loader({ context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const territory = await getTerritoryPolygon(db)
-    const zips = await getAllowedZips(db)
-    const banoUrl = await getSetting(db, TerritorySettingKey.BanoUrl, currentUser.congregationId)
-    const prospectionValidity = await getSetting(
-      db,
-      TerritorySettingKey.ProspectionValidity,
-      currentUser.congregationId,
-    )
-    const phoneTypeActivated = await getBoolSetting(
-      db,
-      TerritorySettingKey.TerritoryTypePhoneActive,
-      currentUser.congregationId,
-    )
-    const mapTabActivated = await getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId)
+    const [territory, zips, settings] = await Promise.all([
+      getTerritoryPolygon(db),
+      getAllowedZips(db),
+      loadTerritorySettings(db, currentUser.congregationId),
+    ])
 
-    // Attribution durations — all stored in days; fall back to legacy months×30 for default
-    const defaultDaysSetting = await getSetting(
-      db,
-      TerritorySettingKey.AttributionDefaultDurationDays,
-      currentUser.congregationId,
-    )
+    // Attribution default duration — fall back to legacy months×30 for pre-v2 congregations
     let attributionDefaultDuration: number
+    const defaultDaysSetting = settings[TerritorySettingKey.AttributionDefaultDurationDays]
     if (defaultDaysSetting && Number(defaultDaysSetting) > 0) {
       attributionDefaultDuration = Number(defaultDaysSetting)
     } else {
@@ -128,33 +116,17 @@ export async function loader({ context }: Route.LoaderArgs) {
       attributionDefaultDuration = legacyMonths && Number(legacyMonths) > 0 ? Number(legacyMonths) * 30 : 120
     }
 
-    const campaignDuration = await getSetting(
-      db,
-      TerritorySettingKey.AttributionCampaignDurationDays,
-      currentUser.congregationId,
-    )
-    const phoneDuration = await getSetting(
-      db,
-      TerritorySettingKey.AttributionPhoneDurationDays,
-      currentUser.congregationId,
-    )
-    const commerceDuration = await getSetting(
-      db,
-      TerritorySettingKey.AttributionCommerceDurationDays,
-      currentUser.congregationId,
-    )
-
     return {
       territory: serializeTerritoryPolygon(territory),
       zips: serializeZips(zips),
-      banoUrl: banoUrl ?? '',
-      prospectionValidity: Number(prospectionValidity ?? '24'),
-      phoneTypeActivated: phoneTypeActivated ?? false,
-      mapTabActivated: mapTabActivated ?? false,
+      banoUrl: settings[TerritorySettingKey.BanoUrl] ?? '',
+      prospectionValidity: Number(settings[TerritorySettingKey.ProspectionValidity] ?? '24'),
+      phoneTypeActivated: settings[TerritorySettingKey.TerritoryTypePhoneActive] === 'true',
+      mapTabActivated: settings[TerritorySettingKey.MapTabActive] === 'true',
       attributionDefaultDuration,
-      attributionCampaignDuration: Number(campaignDuration ?? '60'),
-      attributionPhoneDuration: Number(phoneDuration ?? '14'),
-      attributionCommerceDuration: Number(commerceDuration ?? '120'),
+      attributionCampaignDuration: Number(settings[TerritorySettingKey.AttributionCampaignDurationDays] ?? '60'),
+      attributionPhoneDuration: Number(settings[TerritorySettingKey.AttributionPhoneDurationDays] ?? '14'),
+      attributionCommerceDuration: Number(settings[TerritorySettingKey.AttributionCommerceDurationDays] ?? '120'),
     }
   })
 }

@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { deleteSectionWithFiles } from '~/features/display-board/server/document.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 
@@ -12,9 +12,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.BoardValidator)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.BoardValidator)
 
   const { ids } = (await request.json()) as { ids: number[] }
 

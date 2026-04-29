@@ -4,7 +4,7 @@ import { createPasswordResetToken } from '~/features/authentication/server/inval
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, requireRole } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
@@ -25,7 +25,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const session = await getSession(request.headers.get('Cookie'))
 
-  if (!permissions.has(Role.SettingsUserManager)) throw redirect('/')
+  requireRole(permissions, Role.SettingsUserManager)
 
   const user = await db.user.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },

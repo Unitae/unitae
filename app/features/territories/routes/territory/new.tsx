@@ -16,7 +16,7 @@ import {
   permissionsContext,
   userContext,
   withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+  requireRole } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
@@ -42,9 +42,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(userContext)
@@ -194,9 +192,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: createTerritorySchema })
   if (submission.status !== 'success') {

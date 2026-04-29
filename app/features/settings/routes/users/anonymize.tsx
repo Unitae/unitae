@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { anonymizeUser } from '~/features/settings/server/anonymize-user.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -14,9 +14,7 @@ export async function action({ params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const congregationId = currentUser.congregationId
 
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
 
   const userId = requireParamId(params.userId, '/settings/users')
 

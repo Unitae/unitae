@@ -3,7 +3,7 @@ import { Form, Link, redirect, useSearchParams } from 'react-router'
 import type { ImportSummary } from '~/features/settings/server/data-transfer.type'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription, AlertTitle } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
@@ -52,9 +52,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
   return null
 }
 
@@ -186,9 +184,7 @@ export default function ImportConfirmPage() {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
 
   const currentUser = context.get(userContext)
   const formData = await request.formData()

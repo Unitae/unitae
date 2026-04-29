@@ -7,7 +7,7 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -53,9 +53,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesViewer)
 
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 

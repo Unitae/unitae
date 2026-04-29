@@ -12,6 +12,11 @@ interface MiddlewareArgs {
   }
 }
 
+async function enforceGdprConsent(userId: number): Promise<void> {
+  const hasConsent = await hasDataProcessingConsent(userId)
+  if (!hasConsent) throw redirect('/consent')
+}
+
 /**
  * Auth middleware that verifies the session, resolves permissions,
  * checks GDPR consent, and sets typed context for downstream loaders/actions.
@@ -26,11 +31,7 @@ export function requireAuth(roles: Role[] = []) {
     const resolved = await Promise.all(roles.map(async role => [role, await verifyRole(request, role)] as const))
     const permissions = new Set<Role>(resolved.filter(([, granted]) => granted).map(([role]) => role))
 
-    // Check GDPR consent
-    const hasConsent = await hasDataProcessingConsent(currentUser.id)
-    if (!hasConsent) {
-      throw redirect('/consent')
-    }
+    await enforceGdprConsent(currentUser.id)
 
     // Set typed context for downstream loaders/actions
     context.set(userContext, currentUser)

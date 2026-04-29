@@ -8,7 +8,7 @@ import { updateBuildingSchema } from '~/features/territories/schemas/building.sc
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
@@ -36,9 +36,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   return withScopeFromContext(context, async db => {
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))
@@ -144,9 +142,7 @@ export default function EditBuildingPage({ loaderData, actionData }: Route.Compo
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: updateBuildingSchema })
   if (submission.status !== 'success') {

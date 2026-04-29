@@ -4,7 +4,7 @@ import { computeFilters } from '~/features/territories/server/building-filters.s
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
@@ -19,9 +19,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.ProspectionViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionViewer)
 
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
   const canManageProspection = permissions.has(Role.ProspectionManager)

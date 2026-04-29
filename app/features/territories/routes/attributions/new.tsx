@@ -12,7 +12,7 @@ import {
   permissionsContext,
   userContext,
   withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+  requireRole } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
@@ -34,9 +34,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const url = new URL(request.url)
   if (!url.searchParams.has('territory')) {
@@ -176,9 +174,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: createAttributionSchema })
   if (submission.status !== 'success') {

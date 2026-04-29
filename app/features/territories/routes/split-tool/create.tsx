@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { congregationContext, permissionsContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { Role } from '~/shared/types/role'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
@@ -20,9 +20,7 @@ export function loader(_args: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
   if (submission.status !== 'success') {

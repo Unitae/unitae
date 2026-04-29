@@ -4,7 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createTemplateSchema } from '~/features/settings/schemas/template.schema'
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -24,14 +24,14 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) throw redirect('/')
+  requireRole(permissions, Role.Admin)
   return {}
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  if (!permissions.has(Role.Admin)) throw redirect('/')
+  requireRole(permissions, Role.Admin)
 
   const submission = parseWithZod(await request.formData(), { schema: createTemplateSchema })
   if (submission.status !== 'success') {

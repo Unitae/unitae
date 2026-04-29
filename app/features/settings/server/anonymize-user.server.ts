@@ -55,6 +55,12 @@ export async function anonymizeUser(db: TransactionClient, userId: number, reque
     data: { deputyId: null },
   })
 
+  // Clore les attributions actives (territoire reste visible, attribution fermee proprement)
+  await db.attribution.updateMany({
+    where: { publisherId: userId, endDate: null },
+    data: { endDate: new Date() },
+  })
+
   // Supprimer les roles de l'utilisateur
   await db.congregationUserRole.deleteMany({
     where: { userId },

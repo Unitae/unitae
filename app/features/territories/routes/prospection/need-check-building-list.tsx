@@ -6,7 +6,7 @@ import { findBuildingsWithEntrancePaginated } from '~/features/territories/serve
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -23,9 +23,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.ProspectionViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionViewer)
 
   const canManageProspection = permissions.has(Role.ProspectionManager)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)

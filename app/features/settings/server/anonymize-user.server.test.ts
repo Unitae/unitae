@@ -5,6 +5,7 @@ const ANONYMIZED_EMAIL_PATTERN = /^deleted-.*@anonymized\.local$/
 const mockDb = {
   user: { findUnique: vi.fn(), update: vi.fn() },
   publisherGroup: { updateMany: vi.fn() },
+  attribution: { updateMany: vi.fn() },
   congregationUserRole: { deleteMany: vi.fn() },
   passwordResetToken: { deleteMany: vi.fn() },
   boardDocumentVersion: { updateMany: vi.fn() },
@@ -26,6 +27,7 @@ describe('anonymizeUser', () => {
     } as never)
     mockDb.user.update.mockResolvedValue({} as never)
     mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
+    mockDb.attribution.updateMany.mockResolvedValue({ count: 1 } as never)
     mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 2 } as never)
     mockDb.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.boardDocumentVersion.updateMany.mockResolvedValue({ count: 0 } as never)
@@ -47,6 +49,10 @@ describe('anonymizeUser', () => {
     expect(updateCall.data.anonymizedAt).toBeInstanceOf(Date)
 
     expect(mockDb.publisherGroup.updateMany).toHaveBeenCalledWith({ where: { deputyId: 1 }, data: { deputyId: null } })
+    expect(mockDb.attribution.updateMany).toHaveBeenCalledWith({
+      where: { publisherId: 1, endDate: null },
+      data: { endDate: expect.any(Date) },
+    })
     expect(mockDb.congregationUserRole.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
     expect(mockDb.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
     expect(mockDb.boardDocumentVersion.updateMany).toHaveBeenCalledWith({

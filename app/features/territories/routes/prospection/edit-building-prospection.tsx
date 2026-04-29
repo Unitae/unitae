@@ -27,7 +27,7 @@ import {
   permissionsContext,
   userContext,
   withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+  requireRole } from '~/shared/auth/route-context.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -49,9 +49,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!permissions.has(Role.ProspectionManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -235,9 +233,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!permissions.has(Role.ProspectionManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionManager)
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
   const congregation = context.get(congregationContext)

@@ -4,7 +4,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { validateImport } from '~/features/settings/server/import-congregation.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, requireRole } from '~/shared/auth/route-context.server'
 import { buildStorageKey, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -26,9 +26,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
   return null
 }
 
@@ -68,9 +66,7 @@ export default function ImportPage() {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))

@@ -116,26 +116,17 @@ function handleEditIntent(
   congregationId: number,
   userId: number,
 ): Promise<IntentResult | null> {
-  switch (intent) {
-    case 'update-event':
-      return handleUpdateEvent(formData, db, eventId, congregationId)
-    case 'add-part':
-      return handleAddPart(formData, db, eventId, congregationId)
-    case 'update-part':
-      return handleUpdatePart(formData, db, congregationId)
-    case 'delete-part':
-      return handleDeletePart(formData, db, congregationId)
-    case 'add-service':
-      return handleAddService(formData, db, eventId, congregationId)
-    case 'update-service':
-      return handleUpdateService(formData, db, congregationId)
-    case 'delete-service':
-      return handleDeleteService(formData, db, congregationId)
-    case 'apply-template':
-      return handleApplyTemplate(formData, db, eventId, congregationId, userId)
-    default:
-      return Promise.resolve(null)
+  const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
+    'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId),
+    'add-part': () => handleAddPart(formData, db, eventId, congregationId),
+    'update-part': () => handleUpdatePart(formData, db, congregationId),
+    'delete-part': () => handleDeletePart(formData, db, congregationId),
+    'add-service': () => handleAddService(formData, db, eventId, congregationId),
+    'update-service': () => handleUpdateService(formData, db, congregationId),
+    'delete-service': () => handleDeleteService(formData, db, congregationId),
+    'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId),
   }
+  return handlers[String(intent)]?.() ?? Promise.resolve(null)
 }
 
 async function handleUpdateEvent(

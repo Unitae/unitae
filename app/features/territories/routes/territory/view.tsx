@@ -9,7 +9,7 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -29,9 +29,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesViewer)
 
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
   const canViewPublisher = permissions.has(Role.PublisherViewer)
