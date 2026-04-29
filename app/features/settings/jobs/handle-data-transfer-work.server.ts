@@ -1,8 +1,8 @@
 import type { Job } from 'bullmq'
 import { createLogger } from '~/shared/infra/logger.server'
-import type { DataTransferJobData } from './data-transfer-queue.server'
-import { runExport } from './export-congregation.server'
-import { runImport } from './import-congregation.server'
+import type { DataTransferJobData } from '../server/data-transfer-queue.server'
+import { runExport } from '../server/export-congregation.server'
+import { runImport } from '../server/import-congregation.server'
 
 const logger = createLogger('data-transfer-worker')
 

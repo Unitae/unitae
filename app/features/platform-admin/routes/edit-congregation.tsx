@@ -5,7 +5,7 @@ import { editCongregationSchema } from '~/features/platform-admin/schemas/congre
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
 import * as m from '~/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'

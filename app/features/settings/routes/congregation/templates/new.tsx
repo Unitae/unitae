@@ -5,7 +5,7 @@ import { createTemplateSchema } from '~/features/settings/schemas/template.schem
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'

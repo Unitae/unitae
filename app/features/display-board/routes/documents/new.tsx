@@ -21,7 +21,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'

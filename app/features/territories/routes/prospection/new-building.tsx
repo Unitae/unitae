@@ -6,7 +6,7 @@ import { createBuildingSchema } from '~/features/territories/schemas/building.sc
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
 import { congregationContext, permissionsContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'

@@ -12,19 +12,19 @@ vi.mock('~/shared/infra/logger.server', () => ({
   createLogger: () => ({ info: vi.fn(), error: vi.fn() }),
 }))
 
-vi.mock('./import-open-data.server', () => ({
+vi.mock('../server/import-open-data.server', () => ({
   importOpenData: vi.fn(),
 }))
 
-vi.mock('./send-mail-after-data-sync.server', () => ({
+vi.mock('../server/send-mail-after-data-sync.server', () => ({
   sendMailAfterDataSync: vi.fn(),
 }))
 
 const { handleSyncWork } = await import('./handle-sync-work.server')
 const { resolveCongregation } = await import('~/shared/domain/congregation.server')
 const { withScope } = await import('~/shared/infra/db.server')
-const { importOpenData } = await import('./import-open-data.server')
-const { sendMailAfterDataSync } = await import('./send-mail-after-data-sync.server')
+const { importOpenData } = await import('../server/import-open-data.server')
+const { sendMailAfterDataSync } = await import('../server/send-mail-after-data-sync.server')
 
 function makeJob(data: Record<string, unknown> = {}) {
   return {

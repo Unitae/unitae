@@ -17,7 +17,7 @@ import {
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

@@ -4,7 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import * as m from '~/paraglide/messages'
 import { congregationContext, userContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'

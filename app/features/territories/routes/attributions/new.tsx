@@ -14,8 +14,8 @@ import {
   withScopeFromContext,
   requireRole } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent } from '~/shared/ui/card'

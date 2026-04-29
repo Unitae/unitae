@@ -2,9 +2,9 @@ import type { Job } from 'bullmq'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { importOpenData } from './import-open-data.server'
-import { sendMailAfterDataSync } from './send-mail-after-data-sync.server'
-import type { SyncJobData } from './sync-queue.server'
+import { importOpenData } from '../server/import-open-data.server'
+import { sendMailAfterDataSync } from '../server/send-mail-after-data-sync.server'
+import type { SyncJobData } from '../server/sync-queue.server'
 
 const logger = createLogger('sync-worker')
 

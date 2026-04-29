@@ -6,13 +6,13 @@ vi.mock('~/features/authentication/server/session.server', () => ({
   verifySession: vi.fn(),
 }))
 
-vi.mock('~/features/authorization/server/verify-role.server', () => ({
+vi.mock('~/shared/auth/permissions.server', () => ({
   verifyRole: vi.fn(),
 }))
 
 const { authenticateAndAuthorize } = await import('./auth.server')
 const { verifySession } = await import('~/features/authentication/server/session.server')
-const { verifyRole } = await import('~/features/authorization/server/verify-role.server')
+const { verifyRole } = await import('~/shared/auth/permissions.server')
 
 function makeRequest() {
   return new Request('http://localhost/')

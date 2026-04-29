@@ -17,7 +17,7 @@ import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'

@@ -11,8 +11,8 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'

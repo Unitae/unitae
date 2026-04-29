@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigation, useSearchParams } from 'react-router'
 
 import * as m from '~/paraglide/messages'
-import { useDebouncedValue } from '~/shared/hooks/use-debounced-value'
+import { useDebouncedValue } from '~/shared/ui/hooks/use-debounced-value'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 

@@ -11,7 +11,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { verifyRole } = await import('./verify-role.server')
+const { verifyRole } = await import('./permissions.server')
 const { getSession } = await import('~/features/authentication/server/session.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
 

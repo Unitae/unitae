@@ -1,7 +1,7 @@
 import { WifiOff } from 'lucide-react'
 
 import * as m from '~/paraglide/messages'
-import { useOnlineStatus } from '~/shared/hooks/use-online-status'
+import { useOnlineStatus } from '~/shared/ui/hooks/use-online-status'
 
 export function OfflineBanner() {
   const isOnline = useOnlineStatus()

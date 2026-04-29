@@ -11,7 +11,7 @@ import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useDebouncedValue } from '~/shared/hooks/use-debounced-value'
+import { useDebouncedValue } from '~/shared/ui/hooks/use-debounced-value'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { requireParamId } from '~/shared/utils/params.server'

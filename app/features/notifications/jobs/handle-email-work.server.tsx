@@ -8,7 +8,7 @@ import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
 import { Role } from '~/shared/types/role'
 import { runWithLocale } from '~/shared/utils/worker-locale.server'
-import type { EmailJobData } from './email-queue.server'
+import type { EmailJobData } from '~/shared/infra/email-queue.server'
 
 const logger = createLogger('email-worker')
 
@@ -73,12 +73,12 @@ async function handleNewDocumentNotification(data: Extract<EmailJobData, { type:
 }
 
 async function handleNotificationDigest(data: Extract<EmailJobData, { type: 'notification-digest' }>) {
-  const { handleDigestEmail } = await import('~/features/notifications/server/handle-notification-email.server')
+  const { handleDigestEmail } = await import('../server/handle-notification-email.server')
   return handleDigestEmail(data)
 }
 
 async function handleNotificationInstant(data: Extract<EmailJobData, { type: 'notification-instant' }>) {
-  const { handleInstantEmail } = await import('~/features/notifications/server/handle-notification-email.server')
+  const { handleInstantEmail } = await import('../server/handle-notification-email.server')
   return handleInstantEmail(data)
 }
 
