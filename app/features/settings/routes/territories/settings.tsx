@@ -107,6 +107,7 @@ export async function loader({ context }: Route.LoaderArgs) {
       TerritorySettingKey.TerritoryTypePhoneActive,
       currentUser.congregationId,
     )
+    const mapTabActivated = await getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId)
 
     // Attribution durations — all stored in days; fall back to legacy months×30 for default
     const defaultDaysSetting = await getSetting(
@@ -148,6 +149,7 @@ export async function loader({ context }: Route.LoaderArgs) {
       banoUrl: banoUrl ?? '',
       prospectionValidity: Number(prospectionValidity ?? '24'),
       phoneTypeActivated: phoneTypeActivated ?? false,
+      mapTabActivated: mapTabActivated ?? false,
       attributionDefaultDuration,
       attributionCampaignDuration: Number(campaignDuration ?? '60'),
       attributionPhoneDuration: Number(phoneDuration ?? '14'),
@@ -163,6 +165,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
     banoUrl,
     prospectionValidity,
     phoneTypeActivated,
+    mapTabActivated,
     attributionDefaultDuration,
     attributionCampaignDuration,
     attributionPhoneDuration,
@@ -303,6 +306,19 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
                 {m.settings_territories_phone_type_after()}
               </Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="map-tab-active"
+                name="map-tab-active"
+                value="on"
+                defaultChecked={mapTabActivated}
+              />
+              <Label htmlFor="map-tab-active" className="font-normal">
+                {m.settings_territories_map_tab_before()}
+                <span className="font-bold text-primary">{m.settings_territories_map_tab_highlight()}</span>
+                {m.settings_territories_map_tab_after()}
+              </Label>
+            </div>
           </CardContent>
         </Card>
 
@@ -332,6 +348,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const banoUrl = submission.value['bano-url']
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
+  const mapTabActivated = String(submission.value['map-tab-active'])
   const attributionDefaultDuration = submission.value['attribution-default-duration']
   const attributionCampaignDuration = submission.value['attribution-campaign-duration']
   const attributionPhoneDuration = submission.value['attribution-phone-duration']
@@ -343,6 +360,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.MapTabActive, mapTabActivated, currentUser.congregationId)
     await setSetting(
       db,
       TerritorySettingKey.AttributionDefaultDurationDays,
