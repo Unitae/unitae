@@ -30,8 +30,9 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
 }
 
 export async function loader({ request, params, context }: Route.LoaderArgs) {

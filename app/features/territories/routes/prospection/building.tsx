@@ -19,8 +19,9 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/building'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: `${data.building.number} ${data.building.street}, ${data.building.zip} - Unitae` }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: `${loaderData.building.number} ${loaderData.building.street}, ${loaderData.building.zip} - Unitae` }]
 }
 
 export async function loader({ params, context }: Route.LoaderArgs) {

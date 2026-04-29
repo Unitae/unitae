@@ -121,6 +121,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     } else {
       const legacyMonths = await getSetting(
         db,
+        // @ts-ignore — intentional read of deprecated key, legacy fallback for pre-v2 congregations
         TerritorySettingKey.AttributionDefaultDurationMonths,
         currentUser.congregationId,
       )

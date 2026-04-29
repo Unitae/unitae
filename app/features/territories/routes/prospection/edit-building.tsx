@@ -24,10 +24,11 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-building'
 
-export const meta: Route.MetaFunction = ({ data }) => {
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
   return [
     {
-      title: `Modification du ${data.building.number} ${data.building.street}, ${data.building.zip} - Unitae`,
+      title: `Modification du ${loaderData.building.number} ${loaderData.building.street}, ${loaderData.building.zip} - Unitae`,
     },
   ]
 }

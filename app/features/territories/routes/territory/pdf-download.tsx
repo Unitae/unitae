@@ -8,7 +8,7 @@ import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
-import { renderPdfResponse } from '~/shared/infra/pdf.server'
+import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { getOptionalEnv } from '~/shared/utils/env.server'
@@ -46,8 +46,8 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     const owner = currentAttribution
       ? `${currentAttribution.publisher.firstname} ${currentAttribution.publisher.lastname?.toUpperCase().at(0)}.`
       : undefined
-    const ownerFirstname = currentAttribution?.publisher.firstname?.toLowerCase() ?? ''
-    const filename = `territoire-${territory.number}${ownerFirstname.length > 0 ? `__${ownerFirstname}` : ''}.pdf`
+    const ownerFirstname = sanitizeFilename(currentAttribution?.publisher.firstname?.toLowerCase() ?? '')
+    const filename = `territoire-${sanitizeFilename(territory.number)}${ownerFirstname.length > 0 ? `__${ownerFirstname}` : ''}.pdf`
 
     return renderPdfResponse(
       <TerritoryDocument

@@ -1,14 +1,21 @@
 import { redirect } from 'react-router'
+import { getPublisherById } from '~/features/publishers/server/publishers.server'
+import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
-import { renderPdfResponse } from '~/shared/infra/pdf.server'
+import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Role } from '~/shared/types/role'
 import { requireParamId } from '~/shared/utils/params.server'
-import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
 
 import type { Route } from './+types/activity-pdf'
+
+function computeServiceYearStart(): number {
+  const today = new Date()
+  const cutoff = new Date(today.getFullYear(), 8, 1)
+  return today < cutoff ? today.getFullYear() - 1 : today.getFullYear()
+}
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -22,34 +29,12 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const publisherId = requireParamId(params.publisherId, '/publishers')
 
   return withScopeFromContext(context, async db => {
-    const today = new Date()
-    const yearBegining = new Date(today.getFullYear(), 8, 1)
-    if (today < yearBegining) {
-      yearBegining.setFullYear(today.getFullYear() - 1)
-    }
-
-    const publisher = await db.user.findUnique({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: { id: publisherId, congregationId: currentUser.congregationId },
-      },
-      include: {
-        activities: {
-          where: {
-            // biome-ignore lint/style/useNamingConvention: Prisma syntax
-            OR: [
-              { year: yearBegining.getFullYear(), month: { gte: 8 } },
-              { year: yearBegining.getFullYear() + 1, month: { lte: 11 } },
-            ],
-          },
-        },
-      },
-    })
+    const publisher = await getPublisherById(db, publisherId, currentUser.congregationId, computeServiceYearStart())
 
     if (!publisher) throw new NotFoundError('publisher', publisherId)
 
     const sanitized = sanitizeUser(publisher)
-    const filename = `S-21_F-${publisher.firstname}-${publisher.lastname}.pdf`
+    const filename = `S-21_F-${sanitizeFilename(publisher.firstname ?? '')}-${sanitizeFilename(publisher.lastname ?? '')}.pdf`
 
     return renderPdfResponse(<PublisherActivityDocument publisher={sanitized} />, filename)
   })

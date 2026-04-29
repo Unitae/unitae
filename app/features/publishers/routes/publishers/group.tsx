@@ -17,8 +17,8 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: data?.group ? `${data.group.name} — Unitae` : 'Groupe — Unitae' }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  return [{ title: loaderData?.group ? `${loaderData.group.name} — Unitae` : 'Groupe — Unitae' }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
