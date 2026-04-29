@@ -18,6 +18,11 @@ export const updateTemplateSchema = z.object({
     .optional()
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
+  kindId: z
+    .string()
+    .optional()
+    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
+    .pipe(z.number().nullable()),
 })
 
 export const upsertPartSchema = z.object({

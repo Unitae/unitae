@@ -53,13 +53,20 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   return withScopeFromContext(context, async db => {
-    const template = await getTemplateById(db, templateId, currentUser.congregationId)
+    const [template, eventKinds] = await Promise.all([
+      getTemplateById(db, templateId, currentUser.congregationId),
+      db.eventKind.findMany({
+        // biome-ignore lint/style/useNamingConvention: prisma filter key
+        where: { congregationId: currentUser.congregationId, NOT: { key: 'off' } },
+        orderBy: { name: 'asc' },
+      }),
+    ])
     if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
-    return { template }
+    return { template, eventKinds }
   })
 }
 
@@ -80,8 +87,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       const submission = parseWithZod(formData, { schema: updateTemplateSchema })
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-      const { name, weekDay } = submission.value
-      await updateTemplate(db, templateId, { name, weekDay }, currentUser.congregationId)
+      const { name, weekDay, kindId } = submission.value
+      await updateTemplate(db, templateId, { name, weekDay, kindId }, currentUser.congregationId)
       session.flash('success', m.settings_template_edit_update_success())
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }
@@ -111,8 +118,16 @@ async function handlePartIntent(
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status !== 'success') return submission
 
-    const { partId, partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
-      submission.value
+    const {
+      partId,
+      partName,
+      partSection,
+      partTrack,
+      partTrackOrder,
+      partOrder,
+      partDuration,
+      partAllowExternalSpeaker,
+    } = submission.value
     await upsertTemplatePart(
       db,
       templateId,
@@ -174,7 +189,7 @@ async function handleServiceRoleIntent(
 }
 
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
-  const { template } = loaderData
+  const { template, eventKinds } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -289,6 +304,24 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                 </SelectContent>
               </Select>
             </div>
+            {eventKinds.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="kindId">{m.programs_new_kind_label()}</Label>
+                <Select name="kindId" defaultValue={template.kindId?.toString() ?? 'none'}>
+                  <SelectTrigger id="kindId">
+                    <SelectValue placeholder={m.programs_new_kind_placeholder()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{m.programs_edit_kind_none()}</SelectItem>
+                    {eventKinds.map(kind => (
+                      <SelectItem key={kind.id} value={kind.id.toString()}>
+                        {kind.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
           </infoFetcher.Form>
         </CardContent>

@@ -9,6 +9,7 @@ Programme templates (*Modèles de programme*) define the recurring structure of 
 - **Nom** — The template name (e.g., "Réunion de semaine")
 - **Clé unique** — An internal identifier
 - **Jour de la semaine** — The recurring weekday (null for one-time events like the Memorial)
+- **Type d'événement** — An optional event kind (see [Event Kinds](#event-kinds)) that is automatically applied to all events generated from this template
 - **Parties** — Ordered list of programme parts (spiritual content), each with a name, section grouping, order, optional duration, and a variable flag
 - **Piste / Salle** (`track`) — Optional label for parts happening simultaneously. Parts sharing the same order number with different tracks run in parallel (e.g., an adult class in the main hall while children have a separate activity). Leave empty for normal sequential parts
 - **Rôles de service** — Service attributions needed during the event (Sono, Estrade, Accueil, Nettoyage)
@@ -26,18 +27,21 @@ Templates are managed in **Réglages > Réglages assemblée > Modèles de progra
 
 Events are concrete occurrences on the congregation calendar. They can be created in three ways:
 
-1. **From a recurring template** — Auto-generates events for the next 2 months on the template's weekday
-2. **From a non-recurring template** — Creates a single event on a chosen date, inheriting the template's parts and service roles
-3. **Freeform** — Creates a standalone event with a custom name and date (no template structure)
+1. **From a recurring template** — Generates a series of events on the template's weekday. You choose the number of occurrences (quick-pick presets: 1, 2, 3, 6 months, or 1 year) and an optional start date. Events inherit the template's kind automatically.
+2. **From a non-recurring template** — Creates a single event on a chosen date, inheriting the template's parts and service roles.
+3. **Freeform** — Creates a standalone event with a custom name, date, start/end time, and optional event kind (no template structure).
 
 Each event has:
 
 - **Nom** — The event title (inherited from template or custom)
+- **Type d'événement** — An optional kind that controls the color accent shown in the programme list
 - **Date, début, fin** — Date and time range (editable after creation)
 - **Programme spirituel** — Ordered list of parts with speaker/reader assignments and topics
 - **Services** — List of service role assignments
 
-Events are accessible at **Programmes** in the sidebar. The list shows all events from the start of the current month onward, so events planned several months ahead are visible.
+Events are accessible at **Programmes** in the sidebar. The list is grouped by week, with each week showing a header and all events for that week. Events planned several months ahead are visible. Each event card shows a left color bar matching its kind for quick visual identification.
+
+Bulk deletion is available: select multiple events using the per-week or global checkboxes, then confirm deletion via the bulk action bar.
 
 ### Event Structure Editing
 
@@ -48,6 +52,20 @@ Each event's structure (parts and service roles) can be edited independently fro
 - **Apply a template** — Freeform events can retroactively adopt a template's structure
 
 Parts and service roles are stored inline on each event (with name, section, order, duration), so editing one event's structure does not affect the template or other events.
+
+## Event Kinds
+
+Event kinds (*Types d'événements*) are congregation-defined categories used to visually distinguish events in the programme list. Each kind has a name and a color.
+
+- A **color bar** on the left edge of each event card reflects its kind
+- Kinds are optional — events with no kind show no color bar
+- The built-in **Absence** kind (key `off`) is reserved for days off and is not shown in user-facing kind selectors
+
+Kinds can be assigned to events in two ways:
+- **On the template** — all events generated from that template inherit the kind automatically
+- **On individual events** — can be set or changed on the event edit page
+
+Event kinds are managed by admins at **Réglages > Réglages assemblée > Types d'événements**.
 
 ## PDF Export
 

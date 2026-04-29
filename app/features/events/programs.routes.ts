@@ -4,6 +4,7 @@ export const programsRoutes = [
   ...prefix('programs', [
     index('features/events/routes/programs/list.tsx'),
     route('new', 'features/events/routes/programs/new.tsx'),
+    route('bulk-delete', 'features/events/routes/programs/bulk-delete.tsx'),
     route('days-off', 'features/events/routes/programs/days-off.tsx'),
     route('export-pdf', 'features/events/routes/programs/export-pdf.tsx'),
     route('export-pdf/download', 'features/events/routes/programs/export-pdf-download.tsx'),

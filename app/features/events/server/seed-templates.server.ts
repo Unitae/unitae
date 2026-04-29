@@ -45,7 +45,13 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       weekDay: 2, // Tuesday
       isRecurring: true,
       parts: [
-        { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, allowExternalSpeaker: false },
+        {
+          name: m.seed_part_song_and_prayer({}, { locale }),
+          section: '',
+          order: 1,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+        },
         {
           name: m.seed_part_discourse({}, { locale }),
           section: m.seed_section_spiritual_gems({}, { locale }),
@@ -126,7 +132,13 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       weekDay: 6, // Saturday
       isRecurring: true,
       parts: [
-        { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, allowExternalSpeaker: false },
+        {
+          name: m.seed_part_song_and_prayer({}, { locale }),
+          section: '',
+          order: 1,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+        },
         {
           name: m.seed_part_public_discourse({}, { locale }),
           section: '',
@@ -158,7 +170,13 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       weekDay: null,
       isRecurring: false,
       parts: [
-        { name: m.seed_part_song_and_prayer({}, { locale }), section: '', order: 1, durationMin: 5, allowExternalSpeaker: false },
+        {
+          name: m.seed_part_song_and_prayer({}, { locale }),
+          section: '',
+          order: 1,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+        },
         {
           name: m.seed_part_memorial_discourse({}, { locale }),
           section: '',
@@ -166,8 +184,20 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           durationMin: 45,
           allowExternalSpeaker: true,
         },
-        { name: m.seed_part_prayer_bread({}, { locale }), section: '', order: 3, durationMin: null, allowExternalSpeaker: false },
-        { name: m.seed_part_prayer_wine({}, { locale }), section: '', order: 4, durationMin: null, allowExternalSpeaker: false },
+        {
+          name: m.seed_part_prayer_bread({}, { locale }),
+          section: '',
+          order: 3,
+          durationMin: null,
+          allowExternalSpeaker: false,
+        },
+        {
+          name: m.seed_part_prayer_wine({}, { locale }),
+          section: '',
+          order: 4,
+          durationMin: null,
+          allowExternalSpeaker: false,
+        },
         {
           name: m.seed_part_song_and_closing_prayer({}, { locale }),
           section: '',

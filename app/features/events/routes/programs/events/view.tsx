@@ -301,7 +301,11 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                         : undefined
                     }
                   >
-                    <AssigneeCell assignee={assignment.assignee} externalSpeakerName={null} hasConflict={assignment.hasConflict} />
+                    <AssigneeCell
+                      assignee={assignment.assignee}
+                      externalSpeakerName={null}
+                      hasConflict={assignment.hasConflict}
+                    />
                   </TableCell>
                   {canEdit && (
                     <TableCell>
@@ -390,7 +394,9 @@ function PartRow({
   canEdit: boolean
   hasAnyTopic: boolean
   openPartAssign: (assignment: PartRowAssignment) => void
-  setUnassignTarget: (target: { type: 'part' | 'service'; id: number; name: string; assigneeName: string } | null) => void
+  setUnassignTarget: (
+    target: { type: 'part' | 'service'; id: number; name: string; assigneeName: string } | null,
+  ) => void
 }) {
   return (
     <TableRow>

@@ -6,6 +6,11 @@ export const updateEventSchema = z.object({
   date: z.string().min(1),
   startTime: z.string().min(1),
   endTime: z.string().min(1),
+  kindId: z
+    .string()
+    .optional()
+    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
+    .pipe(z.number().nullable()),
 })
 
 export const addPartSchema = z.object({

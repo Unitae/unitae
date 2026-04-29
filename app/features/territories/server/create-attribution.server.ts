@@ -1,7 +1,7 @@
-import { getSetting } from '~/shared/domain/settings.server'
-import type { TransactionClient } from '~/shared/infra/db.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { getSetting } from '~/shared/domain/settings.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 
 const DEFAULT_DURATION_DAYS = {

@@ -68,8 +68,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const templates = await getTemplates(db, congregationId)
-    return { event, templates }
+    const [templates, eventKinds] = await Promise.all([
+      getTemplates(db, congregationId),
+      db.eventKind.findMany({
+        // biome-ignore lint/style/useNamingConvention: prisma filter key
+        where: { congregationId, NOT: { key: 'off' } },
+        orderBy: { name: 'asc' },
+      }),
+    ])
+    return { event, templates, eventKinds }
   })
 }
 
@@ -140,8 +147,8 @@ async function handleUpdateEvent(
   const submission = parseWithZod(formData, { schema: updateEventSchema })
   if (submission.status !== 'success') return submission
 
-  const { name, date: dateStr, startTime: startTimeStr, endTime: endTimeStr } = submission.value
-  const payload: Record<string, unknown> = { name }
+  const { name, date: dateStr, startTime: startTimeStr, endTime: endTimeStr, kindId } = submission.value
+  const payload: Record<string, unknown> = { name, kindId }
 
   if (dateStr && startTimeStr) {
     const startDate = new Date(`${dateStr}T${startTimeStr}`)
@@ -165,7 +172,8 @@ async function handleAddPart(
   const submission = parseWithZod(formData, { schema: addPartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } = submission.value
+  const { partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
+    submission.value
   await addPartAssignment(db, {
     eventId,
     name: partName,
@@ -188,8 +196,16 @@ async function handleUpdatePart(
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partAssignmentId, partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
-    submission.value
+  const {
+    partAssignmentId,
+    partName,
+    partSection,
+    partTrack,
+    partTrackOrder,
+    partOrder,
+    partDuration,
+    partAllowExternalSpeaker,
+  } = submission.value
   await updatePartAssignment(
     db,
     partAssignmentId,
@@ -277,7 +293,7 @@ async function handleApplyTemplate(
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates } = loaderData
+  const { event, templates, eventKinds } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -413,6 +429,24 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 />
               </div>
             </div>
+            {eventKinds.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="kindId">{m.programs_new_kind_label()}</Label>
+                <Select name="kindId" defaultValue={event.kindId?.toString() ?? 'none'}>
+                  <SelectTrigger id="kindId">
+                    <SelectValue placeholder={m.programs_new_kind_placeholder()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{m.programs_edit_kind_none()}</SelectItem>
+                    {eventKinds.map(kind => (
+                      <SelectItem key={kind.id} value={kind.id.toString()}>
+                        {kind.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
           </infoFetcher.Form>
         </CardContent>

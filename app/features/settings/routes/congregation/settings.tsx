@@ -96,11 +96,19 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
           <CardHeader>
             <CardTitle>{m.settings_congregation_programs_title()}</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-2">
             <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
               <span className="text-sm">{m.settings_congregation_program_templates_link()}</span>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="./templates" className="flex items-center gap-2">
+                  {m.settings_congregation_program_templates_see_all()} <ArrowRight className="size-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="flex items-center justify-between gap-5 rounded-lg border p-4">
+              <span className="text-sm">{m.settings_congregation_event_kinds_link()}</span>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="./event-kinds" className="flex items-center gap-2">
                   {m.settings_congregation_program_templates_see_all()} <ArrowRight className="size-4" />
                 </Link>
               </Button>

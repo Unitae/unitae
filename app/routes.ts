@@ -79,6 +79,7 @@ export default [
       route('territories', 'features/settings/routes/territories/settings.tsx'),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
+      route('congregation/event-kinds', 'features/settings/routes/congregation/event-kinds.tsx'),
       ...prefix('congregation/templates', [
         index('features/settings/routes/congregation/template-list.tsx'),
         route('new', 'features/settings/routes/congregation/templates/new.tsx'),
