@@ -2,7 +2,6 @@ import { parseWithZod } from '@conform-to/zod'
 import { Download, ExternalLink, Trash2, X } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import {
@@ -15,13 +14,11 @@ import { computeTerritoryQuantity } from '~/features/territories/server/compute-
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
-import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
@@ -45,7 +42,6 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
   }
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
   const { congregationId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
@@ -65,8 +61,6 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         status: 404,
       })
     }
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
-
     const zips = await getAvailableZips(db, congregationId, territory.type as TerritoryKind)
     const url = new URL(request.url)
     const entrances = await getAvailableEntrances(
@@ -84,8 +78,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         entrances: entrances.map(aggregateEntrance),
         streets: [],
         territory,
-        googleMaps: { mapId, apiKey },
-        phoneTypeActive,
+        googleMapsApiKey: apiKey,
       }
     }
 
@@ -102,8 +95,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         territoryEntrances: territory.entrances.map(aggregateEntrance),
         entrances: entrances.map(aggregateEntrance),
         streets,
-        googleMaps: { mapId, apiKey },
-        phoneTypeActive,
+        googleMapsApiKey: apiKey,
       }
     }
 
@@ -113,8 +105,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       entrances: entrances.map(aggregateEntrance),
       zips,
       streets,
-      googleMaps: { mapId, apiKey },
-      phoneTypeActive,
+      googleMapsApiKey: apiKey,
     }
   })
 }
@@ -125,8 +116,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     zips,
     streets,
     territory,
-    googleMaps: { mapId, apiKey },
-    phoneTypeActive,
+    googleMapsApiKey,
   } = loaderData
   const [territoryEntrances, setTerritoryEntrances] = useState(savedTerritoryEntrances)
   const { blocker, markDirty } = useUnsavedChanges()
@@ -148,24 +138,11 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         backTo="../view"
         actions={
           <>
-            <TerritoryDownloadLink
-              territory={territory}
-              entrances={territory.entrances}
-              googleMapId={mapId}
-              googleMapKey={apiKey}
-              owner={
-                attribution
-                  ? `${attribution.publisher.firstname} ${attribution.publisher.lastname?.toUpperCase().at(0)}.`
-                  : undefined
-              }
-              restitutionDate={attribution?.lateDate}
-              showPhone={!phoneTypeActive}
-              attributionType={attribution?.type as TerritoryAttributionKind}
-            >
-              <Button variant="outline" size="icon" title={m.territories_download_pdf_title()}>
+            <Button asChild variant="outline" size="icon" title={m.territories_download_pdf_title()}>
+              <a href={`/territories/territory/${territory.id}/pdf`}>
                 <Download className="size-4" />
-              </Button>
-            </TerritoryDownloadLink>
+              </a>
+            </Button>
 
             <Button variant="destructive" size="icon" asChild>
               <Link to={`/territories/territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
@@ -313,7 +290,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             <SubmitButton className="mt-2">{m.territories_edit_submit()}</SubmitButton>
           </Form>
         </div>
-        <BuildingEntranceMap apiKey={apiKey} entrances={territoryEntrances} />
+        <BuildingEntranceMap apiKey={googleMapsApiKey} entrances={territoryEntrances} />
       </div>
     </div>
   )

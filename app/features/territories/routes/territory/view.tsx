@@ -1,19 +1,16 @@
 import { CalendarCheck, Download, ExternalLink, Pencil, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
-import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
-import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -51,14 +48,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     }
 
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-    const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
 
     return {
       territory,
       territoryEntrances: territory.entrances.map(aggregateEntrance),
-      googleMaps: { mapId, apiKey },
-      phoneTypeActive,
+      googleMapsApiKey: apiKey,
       canManageTerritories,
       canViewPublisher,
     }
@@ -219,14 +213,7 @@ function AttributionHistoryTable({
 }
 
 export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) {
-  const {
-    territory,
-    territoryEntrances,
-    googleMaps: { mapId, apiKey },
-    phoneTypeActive,
-    canManageTerritories,
-    canViewPublisher,
-  } = loaderData
+  const { territory, territoryEntrances, googleMapsApiKey, canManageTerritories, canViewPublisher } = loaderData
 
   const currentAttribution = territory.attributions.find(a => a.endDate == null)
   const pastAttributions = territory.attributions.filter(a => a.endDate != null)
@@ -241,24 +228,11 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
         backTo="/territories"
         actions={
           <>
-            <TerritoryDownloadLink
-              territory={territory}
-              entrances={territory.entrances}
-              googleMapId={mapId}
-              googleMapKey={apiKey}
-              owner={
-                currentAttribution
-                  ? `${currentAttribution.publisher.firstname} ${currentAttribution.publisher.lastname?.toUpperCase().at(0)}.`
-                  : undefined
-              }
-              restitutionDate={currentAttribution?.lateDate}
-              showPhone={!phoneTypeActive}
-              attributionType={currentAttribution?.type as TerritoryAttributionKind}
-            >
-              <Button variant="outline" size="icon" title={m.territories_download_pdf_title()}>
+            <Button asChild variant="outline" size="icon" title={m.territories_download_pdf_title()}>
+              <a href={`/territories/territory/${territory.id}/pdf`}>
                 <Download className="size-4" />
-              </Button>
-            </TerritoryDownloadLink>
+              </a>
+            </Button>
 
             {canManageTerritories && (
               <Button asChild variant="outline" size="icon" title={m.territories_edit_title_attr()}>
@@ -361,7 +335,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
           <AttributionHistoryTable attributions={pastAttributions} canViewPublisher={canViewPublisher} />
         </div>
 
-        <BuildingEntranceMap apiKey={apiKey} entrances={territory.entrances} />
+        <BuildingEntranceMap apiKey={googleMapsApiKey} entrances={territory.entrances} />
       </div>
     </div>
   )

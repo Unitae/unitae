@@ -1,6 +1,6 @@
 import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { PublisherActivityDownloadLink } from '~/features/publishers/ui/PublisherActivityDownloadLink'
+
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
@@ -121,11 +121,11 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
           roles.canManagePublisher && (
             <>
               {roles.canManageActivity && (
-                <PublisherActivityDownloadLink publisher={publisher}>
-                  <Button variant="outline" size="icon" title={m.publishers_view_download_s21_title()} type="button">
+                <Button asChild variant="outline" size="icon" title={m.publishers_view_download_s21_title()}>
+                  <a href={`/publishers/${publisher.id}/activity/pdf`}>
                     <Download className="size-4" />
-                  </Button>
-                </PublisherActivityDownloadLink>
+                  </a>
+                </Button>
               )}
               <Button asChild variant="outline" size="icon" title={m.publishers_view_edit_title()}>
                 <Link to="../edit" relative="path">

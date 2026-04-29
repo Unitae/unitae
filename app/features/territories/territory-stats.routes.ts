@@ -8,6 +8,7 @@ export const territoryStatsRoutes = [
       route('view', 'features/territories/routes/territory/view.tsx'),
       route('edit', 'features/territories/routes/territory/edit.tsx'),
       route('delete', 'features/territories/routes/territory/delete.tsx'),
+      route('pdf', 'features/territories/routes/territory/pdf-download.tsx'),
     ]),
   ]),
 ] satisfies RouteConfig

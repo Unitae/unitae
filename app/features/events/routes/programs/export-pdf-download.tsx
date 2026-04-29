@@ -1,4 +1,3 @@
-import { pdf } from '@react-pdf/renderer'
 import { redirect } from 'react-router'
 import {
   getEventsForExport,
@@ -15,6 +14,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { renderPdfResponse } from '~/shared/infra/pdf.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/export-pdf-download'
@@ -68,7 +68,9 @@ function handleNewFormat(
     const baseTitle = customTitle || m.programs_export_default_title()
     const title = `${baseTitle} — ${startDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
 
-    const file = await pdf(
+    const filename = `programme_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
+
+    return renderPdfResponse(
       <ProgrammeBoardDocument
         events={events}
         configMap={configMap}
@@ -76,17 +78,8 @@ function handleNewFormat(
         title={title}
         congregationName={congregation.displayName}
       />,
-    ).toBlob()
-
-    const filename = `programme_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
-
-    return new Response(file, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    })
+      filename,
+    )
   })
 }
 
@@ -129,23 +122,16 @@ function handleLegacyFormat(
       : m.programs_export_default_title()
     const title = `${templateName} — ${startDate.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}`
 
-    const file = await pdf(
+    const filename = `programme-${templateId ?? 'tous'}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
+
+    return renderPdfResponse(
       <ProgrammeDocument
         events={events}
         title={title}
         showParts={contentType === 'both' || contentType === 'parts'}
         showServices={contentType === 'both' || contentType === 'services'}
       />,
-    ).toBlob()
-
-    const filename = `programme-${templateId ?? 'tous'}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
-
-    return new Response(file, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${filename}"`,
-      },
-    })
+      filename,
+    )
   })
 }

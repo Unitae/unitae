@@ -1,10 +1,10 @@
-import { pdf } from '@react-pdf/renderer'
 import { redirect } from 'react-router'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { renderPdfResponse } from '~/shared/infra/pdf.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/pdf-export'
@@ -32,16 +32,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const territories = await getTerritoriesExportData(db, congregationId, Number(params.year))
-    const file = await pdf(
-      <TerritoryAttributionDocument year={Number(params.year)} territories={territories} />,
-    ).toBlob()
 
-    return new Response(file, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="S-13_F-${params.year}.zip"`,
-      },
-    })
+    return renderPdfResponse(
+      <TerritoryAttributionDocument year={Number(params.year)} territories={territories} />,
+      `S-13_F-${params.year}.pdf`,
+    )
   })
 }
