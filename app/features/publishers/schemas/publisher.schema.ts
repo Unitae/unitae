@@ -21,6 +21,8 @@ export const createPublisherSchema = z.object({
     .transform(v => v === 'on'),
   group: z.coerce.number().optional(),
   type: z.string(),
+  phone: z.string().optional().default(''),
+  address: z.string().optional().default(''),
 })
 
 export type CreatePublisherInput = z.infer<typeof createPublisherSchema>

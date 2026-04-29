@@ -40,6 +40,8 @@ const baseParams = {
   groupId: null,
   type: 'publisher',
   congregationId: 1,
+  phone: '',
+  address: '',
 }
 
 describe('createPublisher', () => {

@@ -1,4 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createPublisherSchema } from '~/features/publishers/schemas/publisher.schema'
@@ -13,7 +14,9 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -37,14 +40,20 @@ export function loader({ context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
+    const showAuxiliaryPioneer = await getBoolSetting(
+      db,
+      CongregationSettingKey.AuxiliaryPioneerProfileActivated,
+      currentUser.congregationId,
+    )
 
-    return { groups, hideAuxiliaryPioneer: false }
+    return { groups, hideAuxiliaryPioneer: !showAuxiliaryPioneer }
   })
 }
 
 export default function NewPublisher({ loaderData }: Route.ComponentProps) {
   const { groups, hideAuxiliaryPioneer } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
+  const [gender, setGender] = useState<'male' | 'female' | null>(null)
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,8 +66,8 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
       />
 
       <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
-        <PublisherPersonalInformationForm />
-        <PublisherNominationForm />
+        <PublisherPersonalInformationForm onGenderChange={setGender} />
+        <PublisherNominationForm gender={gender} />
         <PublisherFieldServiceForm groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
         <SubmitButton size="lg" className="self-start">
@@ -78,7 +87,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { firstname, lastname, email, gender, birthDate, baptismDate, isHelder, isServant, isAnointed, group, type } =
+  const { firstname, lastname, email, gender, birthDate, baptismDate, isHelder, isServant, isAnointed, group, type, phone, address } =
     submission.value
 
   return withScopeFromContext(context, async db => {
@@ -97,6 +106,8 @@ export async function action({ request, context }: Route.ActionArgs) {
         groupId: group ?? 0,
         type,
         congregationId: currentUser.congregationId,
+        phone: phone ?? '',
+        address: address ?? '',
       })
 
       session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))
