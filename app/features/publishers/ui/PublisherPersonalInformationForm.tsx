@@ -4,7 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 
-export default function PublisherPersonalInformationForm({ user }: { user?: UserInput }) {
+export default function PublisherPersonalInformationForm({
+  user,
+  onGenderChange,
+}: {
+  user?: UserInput
+  onGenderChange?: (gender: 'male' | 'female') => void
+}) {
   return (
     <Card>
       <CardHeader>
@@ -67,6 +73,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
                   value="male"
                   required
                   defaultChecked={user?.isMale === true}
+                  onChange={() => onGenderChange?.('male')}
                 />
                 {m.publishers_form_gender_male()}
               </label>
@@ -78,6 +85,7 @@ export default function PublisherPersonalInformationForm({ user }: { user?: User
                   value="female"
                   required
                   defaultChecked={user?.isMale === false}
+                  onChange={() => onGenderChange?.('female')}
                 />
                 {m.publishers_form_gender_female()}
               </label>

@@ -1,5 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Archive, IdCard } from 'lucide-react'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
@@ -67,6 +68,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
   const { user, groups, hideAuxiliaryPioneer } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
+  const [gender, setGender] = useState<'male' | 'female' | null>(user.isMale ? 'male' : 'female')
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,8 +96,8 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
       />
 
       <Form method="post" className="flex flex-col gap-6" onChange={markDirty}>
-        <PublisherPersonalInformationForm user={user} />
-        <PublisherNominationForm user={user} />
+        <PublisherPersonalInformationForm user={user} onGenderChange={setGender} />
+        <PublisherNominationForm user={user} gender={gender} />
         <PublisherFieldServiceForm user={user} groups={groups} hideAuxiliaryPioneer={hideAuxiliaryPioneer} />
 
         <SubmitButton size="lg" className="self-start">

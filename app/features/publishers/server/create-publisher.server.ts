@@ -15,6 +15,8 @@ export interface CreatePublisherParams {
   groupId: number | null
   type: string
   congregationId: number
+  phone: string
+  address: string
 }
 
 export async function createPublisher(
@@ -48,6 +50,8 @@ export async function createPublisher(
       publisherGroupId: Number.isNaN(params.groupId) ? null : params.groupId,
       type: params.type,
       congregationId: params.congregationId,
+      phone: params.phone,
+      address: params.address,
     },
   })
 }
