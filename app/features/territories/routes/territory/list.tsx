@@ -81,12 +81,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
-  const {
-    pagination,
-    territories,
-    canManageTerritories,
-    zips,
-  } = loaderData
+  const { pagination, territories, canManageTerritories, zips } = loaderData
 
   if (territories.length < 1) {
     return (
@@ -182,7 +177,10 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" asChild>
-                          <a href={`/territories/territory/${territory.id}/pdf`} title={m.territories_download_pdf_title()}>
+                          <a
+                            href={`/territories/territory/${territory.id}/pdf`}
+                            title={m.territories_download_pdf_title()}
+                          >
                             <Download className="size-4" />
                           </a>
                         </Button>

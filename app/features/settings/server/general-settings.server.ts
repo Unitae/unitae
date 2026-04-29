@@ -2,7 +2,11 @@ import type { GeneralSettingsInput } from '~/features/settings/schemas/general-s
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 
-export async function updateGeneralSettings(congregationId: number, input: GeneralSettingsInput, actorId: number): Promise<void> {
+export async function updateGeneralSettings(
+  congregationId: number,
+  input: GeneralSettingsInput,
+  actorId: number,
+): Promise<void> {
   await unscopedDb.congregation.update({
     where: { id: congregationId },
     data: {

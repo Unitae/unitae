@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction mock matches exported name
 vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -20,11 +21,15 @@ describe('updateGeneralSettings', () => {
   it('updates congregation with provided values', async () => {
     vi.mocked(unscopedDb.congregation.update).mockResolvedValue({} as never)
 
-    await updateGeneralSettings(10, {
-      displayName: 'Ma Congrégation',
-      locale: 'fr',
-      domain: 'app.example.org',
-    }, 1)
+    await updateGeneralSettings(
+      10,
+      {
+        displayName: 'Ma Congrégation',
+        locale: 'fr',
+        domain: 'app.example.org',
+      },
+      1,
+    )
 
     expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
       where: { id: 10 },
@@ -39,11 +44,15 @@ describe('updateGeneralSettings', () => {
   it('coerces empty displayName to null', async () => {
     vi.mocked(unscopedDb.congregation.update).mockResolvedValue({} as never)
 
-    await updateGeneralSettings(10, {
-      displayName: '',
-      locale: 'en',
-      domain: null,
-    }, 1)
+    await updateGeneralSettings(
+      10,
+      {
+        displayName: '',
+        locale: 'en',
+        domain: null,
+      },
+      1,
+    )
 
     expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
       where: { id: 10 },
@@ -58,11 +67,15 @@ describe('updateGeneralSettings', () => {
   it('passes null domain when cleared', async () => {
     vi.mocked(unscopedDb.congregation.update).mockResolvedValue({} as never)
 
-    await updateGeneralSettings(10, {
-      displayName: 'Test',
-      locale: 'fr',
-      domain: null,
-    }, 1)
+    await updateGeneralSettings(
+      10,
+      {
+        displayName: 'Test',
+        locale: 'fr',
+        domain: null,
+      },
+      1,
+    )
 
     expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
       where: { id: 10 },

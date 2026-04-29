@@ -12,7 +12,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_data_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageSettings = permissions.has(Role.Admin)
 

@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
-import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -37,7 +37,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
       throw new ForbiddenError()
     }
 
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId)
+    const phoneTypeActive = await getBoolSetting(
+      db,
+      TerritorySettingKey.TerritoryTypePhoneActive,
+      currentUser.congregationId,
+    )
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
     const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 

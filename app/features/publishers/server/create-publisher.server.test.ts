@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction mock matches exported name
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 const mockErrorIfWouldGoOverLimit = vi.fn()
 
 vi.mock('~/shared/domain/limits.server', () => ({
@@ -25,7 +28,7 @@ const baseCongregation = {
   maxUsers: null,
   maxStorageBytes: null,
   maxBoardDocuments: null,
-} as any
+} as never
 
 const baseParams = {
   firstname: 'Jean',
@@ -49,7 +52,7 @@ describe('createPublisher', () => {
     const fake = { id: 1, email: 'jean@example.com' }
     mockDb.user.create.mockResolvedValue(fake as never)
 
-    const result = await createPublisher(mockDb as any, baseCongregation, baseParams, 1)
+    const result = await createPublisher(mockDb as never, baseCongregation, baseParams, 1)
 
     expect(result).toEqual(fake)
     const call = mockDb.user.create.mock.calls[0][0]
@@ -59,7 +62,7 @@ describe('createPublisher', () => {
   it('creates publisher with placeholder email when email is null', async () => {
     mockDb.user.create.mockResolvedValue({ id: 2 } as never)
 
-    await createPublisher(mockDb as any, baseCongregation, { ...baseParams, email: null }, 1)
+    await createPublisher(mockDb as never, baseCongregation, { ...baseParams, email: null }, 1)
 
     const call = mockDb.user.create.mock.calls[0][0]
     expect(call.data.email).toBe('jean.dupont@placeholder.unitae.app')
@@ -68,11 +71,16 @@ describe('createPublisher', () => {
   it('saves phone and address to the database', async () => {
     mockDb.user.create.mockResolvedValue({ id: 3 } as never)
 
-    await createPublisher(mockDb as any, baseCongregation, {
-      ...baseParams,
-      phone: '0612345678',
-      address: '5 rue de la Paix',
-    }, 1)
+    await createPublisher(
+      mockDb as never,
+      baseCongregation,
+      {
+        ...baseParams,
+        phone: '0612345678',
+        address: '5 rue de la Paix',
+      },
+      1,
+    )
 
     const call = mockDb.user.create.mock.calls[0][0]
     expect(call.data.phone).toBe('0612345678')
@@ -82,7 +90,7 @@ describe('createPublisher', () => {
   it('throws LimitError when publisher limit reached', async () => {
     mockErrorIfWouldGoOverLimit.mockRejectedValue(new Error('Limit reached'))
 
-    await expect(createPublisher(mockDb as any, baseCongregation, baseParams, 1)).rejects.toThrow('Limit reached')
+    await expect(createPublisher(mockDb as never, baseCongregation, baseParams, 1)).rejects.toThrow('Limit reached')
 
     expect(mockDb.user.create).not.toHaveBeenCalled()
   })

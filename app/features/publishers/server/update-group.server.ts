@@ -7,7 +7,7 @@ export interface UpdateGroupParams {
   deputyId: number | null
 }
 
-export async function updateGroup(
+export function updateGroup(
   db: TransactionClient,
   groupId: number,
   congregationId: number,

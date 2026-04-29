@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction mock matches exported name
 vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -19,12 +20,18 @@ describe('updateAttribution', () => {
     const fake = { id: 1, publisherId: 10, type: 'standard' }
     vi.mocked(db.attribution.update).mockResolvedValue(fake as never)
 
-    const result = await updateAttribution(db as any, 1, 1, {
-      publisherId: 10,
-      notes: 'test',
-      type: 'standard',
-      startDate: new Date('2025-01-01'),
-    }, 1)
+    const result = await updateAttribution(
+      db as any,
+      1,
+      1,
+      {
+        publisherId: 10,
+        notes: 'test',
+        type: 'standard',
+        startDate: new Date('2025-01-01'),
+      },
+      1,
+    )
 
     expect(result).toEqual(fake)
   })
@@ -33,12 +40,18 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const startDate = new Date('2025-03-01')
 
-    await updateAttribution(db as any, 5, 2, {
-      publisherId: 3,
-      notes: 'note',
-      type: 'campaign',
-      startDate,
-    }, 1)
+    await updateAttribution(
+      db as any,
+      5,
+      2,
+      {
+        publisherId: 3,
+        notes: 'note',
+        type: 'campaign',
+        startDate,
+      },
+      1,
+    )
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
     expect(call.data).not.toHaveProperty('lateDate')
@@ -51,13 +64,19 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const lateDate = new Date('2025-06-01')
 
-    await updateAttribution(db as any, 5, 2, {
-      publisherId: 3,
-      notes: '',
-      type: 'standard',
-      startDate: new Date('2025-01-01'),
-      lateDate,
-    }, 1)
+    await updateAttribution(
+      db as any,
+      5,
+      2,
+      {
+        publisherId: 3,
+        notes: '',
+        type: 'standard',
+        startDate: new Date('2025-01-01'),
+        lateDate,
+      },
+      1,
+    )
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
     expect(call.data.lateDate).toBe(lateDate)
@@ -67,13 +86,19 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const endDate = new Date('2025-12-31')
 
-    await updateAttribution(db as any, 5, 2, {
-      publisherId: 3,
-      notes: '',
-      type: 'standard',
-      startDate: new Date('2025-01-01'),
-      endDate,
-    }, 1)
+    await updateAttribution(
+      db as any,
+      5,
+      2,
+      {
+        publisherId: 3,
+        notes: '',
+        type: 'standard',
+        startDate: new Date('2025-01-01'),
+        endDate,
+      },
+      1,
+    )
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
     expect(call.data.endDate).toBe(endDate)

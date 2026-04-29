@@ -22,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_new_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.Admin)) throw redirect('/')
   return {}
@@ -52,12 +52,16 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
 
-    const template = await createProgrammeTemplate(db, {
-      name,
-      key,
-      weekDay,
-      congregationId: currentUser.congregationId,
-    }, currentUser.id)
+    const template = await createProgrammeTemplate(
+      db,
+      {
+        name,
+        key,
+        weekDay,
+        congregationId: currentUser.congregationId,
+      },
+      currentUser.id,
+    )
 
     logger.info(`Created template "${name}" (${key}). User ID: ${currentUser.id}.`)
     session.flash('success', m.settings_template_new_success({ name }))

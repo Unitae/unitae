@@ -46,12 +46,13 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_edit_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-intent action with several update paths
   return withScopeFromContext(context, async db => {
     const [template, eventKinds] = await Promise.all([
       getTemplateById(db, templateId, currentUser.congregationId),
@@ -78,6 +79,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const formData = await request.formData()
   const intent = formData.get('intent')
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: multi-intent action with several update paths
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')

@@ -199,7 +199,12 @@ export function isTemplateResponsible(
   })
 }
 
-export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number, actorId: number) {
+export async function duplicateTemplate(
+  db: TransactionClient,
+  templateId: number,
+  congregationId: number,
+  actorId: number,
+) {
   const source = await db.programmeTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: { parts: { orderBy: { order: 'asc' } }, serviceRoles: true },

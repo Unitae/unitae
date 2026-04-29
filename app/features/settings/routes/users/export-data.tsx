@@ -8,7 +8,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/export-data'
 
 // Route loader-only : renvoie un fichier JSON avec les donnees personnelles de l'utilisateur
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const congregationId = currentUser.congregationId

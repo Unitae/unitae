@@ -106,22 +106,27 @@ export async function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
-      const user = await createPublisher(db, congregation, {
-        firstname,
-        lastname,
-        email: email && email.length > 0 ? email : null,
-        gender,
-        birthDate: birthDate || null,
-        baptismDate: baptismDate || null,
-        isHelder,
-        isServant,
-        isAnointed,
-        groupId: group ?? 0,
-        type,
-        congregationId: currentUser.congregationId,
-        phone: phone ?? '',
-        address: address ?? '',
-      }, currentUser.id)
+      const user = await createPublisher(
+        db,
+        congregation,
+        {
+          firstname,
+          lastname,
+          email: email && email.length > 0 ? email : null,
+          gender,
+          birthDate: birthDate || null,
+          baptismDate: baptismDate || null,
+          isHelder,
+          isServant,
+          isAnointed,
+          groupId: group ?? 0,
+          type,
+          congregationId: currentUser.congregationId,
+          phone: phone ?? '',
+          address: address ?? '',
+        },
+        currentUser.id,
+      )
 
       session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))
       return redirect(`/publishers/${user.id}/edit`, {

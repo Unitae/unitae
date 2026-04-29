@@ -213,12 +213,16 @@ export async function action({ request, context }: Route.ActionArgs) {
       const limits = new LimitService(db, congregation)
       await limits.errorIfWouldGoOverLimit('territories')
 
-      await createTerritory(db, {
-        number,
-        type,
-        entranceIds: entrances,
-        congregationId: congregation.id,
-      }, currentUser.id)
+      await createTerritory(
+        db,
+        {
+          number,
+          type,
+          entranceIds: entrances,
+          congregationId: congregation.id,
+        },
+        currentUser.id,
+      )
 
       return redirect('/territories')
     } catch (error) {

@@ -312,10 +312,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), currentUser.congregationId, {
-      entranceIds: entrances,
-      notes,
-    }, currentUser.id)
+    await updateTerritory(
+      db,
+      requireParamId(params.territoryId, '/territories'),
+      currentUser.congregationId,
+      {
+        entranceIds: entrances,
+        notes,
+      },
+      currentUser.id,
+    )
 
     return redirect('/territories')
   })

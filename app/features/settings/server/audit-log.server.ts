@@ -9,16 +9,16 @@ interface AuditLogQueryParams {
   dateTo?: string
 }
 
-const ENTITY_URL_PATTERNS: Record<string, (id: number) => string> = {
-  Territory: id => `/territories/territory/${id}/edit`,
-  Attribution: id => `/territories/attributions/${id}/edit`,
-  Building: id => `/territories/building/${id}/edit`,
-  User: id => `/settings/users/${id}/edit`,
-  PublisherGroup: id => `/publishers/groups/${id}/edit`,
-  ProgrammeTemplate: id => `/settings/congregation/templates/${id}`,
-  Event: id => `/programs/events/${id}`,
-  BoardDocument: id => `/board/documents/${id}/edit`,
-}
+const ENTITY_URL_PATTERNS = new Map<string, (id: number) => string>([
+  ['Territory', id => `/territories/territory/${id}/edit`],
+  ['Attribution', id => `/territories/attributions/${id}/edit`],
+  ['Building', id => `/territories/building/${id}/edit`],
+  ['User', id => `/settings/users/${id}/edit`],
+  ['PublisherGroup', id => `/publishers/groups/${id}/edit`],
+  ['ProgrammeTemplate', id => `/settings/congregation/templates/${id}`],
+  ['Event', id => `/programs/events/${id}`],
+  ['BoardDocument', id => `/board/documents/${id}/edit`],
+])
 
 async function resolveEntityUrls(
   logs: Array<{ entityType: string | null; entityId: number | null }>,
@@ -27,7 +27,7 @@ async function resolveEntityUrls(
   const byType = new Map<string, number[]>()
   for (const log of logs) {
     if (!log.entityType || log.entityId == null) continue
-    if (!ENTITY_URL_PATTERNS[log.entityType]) continue
+    if (!ENTITY_URL_PATTERNS.has(log.entityType)) continue
     const ids = byType.get(log.entityType) ?? []
     ids.push(log.entityId)
     byType.set(log.entityType, ids)
@@ -35,6 +35,7 @@ async function resolveEntityUrls(
 
   const existenceMap = new Map<string, string>()
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: 8-branch dispatch per Prisma entity type
   await Promise.all(
     [...byType.entries()].map(async ([type, ids]) => {
       const uniqueIds = [...new Set(ids)]
@@ -90,7 +91,8 @@ async function resolveEntityUrls(
         existingIds = rows.map(r => r.id)
       }
 
-      const urlFn = ENTITY_URL_PATTERNS[type]
+      const urlFn = ENTITY_URL_PATTERNS.get(type)
+      if (!urlFn) return
       for (const id of existingIds) {
         existenceMap.set(`${type}:${id}`, urlFn(id))
       }

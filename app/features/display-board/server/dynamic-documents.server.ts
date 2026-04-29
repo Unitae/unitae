@@ -162,6 +162,7 @@ function maxDate(...dates: (Date | null | undefined)[]): Date | null {
 /**
  * Returns a short preview string for a dynamic document card on the board index.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: long but linear dispatch, refactoring would obscure the logic
 export async function getDynamicPreview(
   db: TransactionClient,
   dynamicType: string,

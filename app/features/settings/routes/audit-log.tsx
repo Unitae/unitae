@@ -1,4 +1,4 @@
-import { Form as RouterForm, Link, useSearchParams } from 'react-router'
+import { Link, Form as RouterForm, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/paraglide/messages'
 import { userContext } from '~/shared/auth/route-context.server'
@@ -117,19 +117,19 @@ function translateAction(action: string): string {
 }
 
 function translateEntityType(entityType: string): string {
-  const translations: Record<string, string> = {
-    User: m.audit_log_entity_user(),
-    Congregation: m.audit_log_entity_congregation(),
-    Territory: m.audit_log_entity_territory(),
-    Attribution: m.audit_log_entity_attribution(),
-    Building: m.audit_log_entity_building(),
-    PublisherGroup: m.audit_log_entity_publisher_group(),
-    PublisherActivity: m.audit_log_entity_publisher_activity(),
-    ProgrammeTemplate: m.audit_log_entity_programme_template(),
-    Event: m.audit_log_entity_event(),
-    BoardDocument: m.audit_log_entity_board_document(),
+  switch (entityType) {
+    case 'User': return m.audit_log_entity_user()
+    case 'Congregation': return m.audit_log_entity_congregation()
+    case 'Territory': return m.audit_log_entity_territory()
+    case 'Attribution': return m.audit_log_entity_attribution()
+    case 'Building': return m.audit_log_entity_building()
+    case 'PublisherGroup': return m.audit_log_entity_publisher_group()
+    case 'PublisherActivity': return m.audit_log_entity_publisher_activity()
+    case 'ProgrammeTemplate': return m.audit_log_entity_programme_template()
+    case 'Event': return m.audit_log_entity_event()
+    case 'BoardDocument': return m.audit_log_entity_board_document()
+    default: return entityType
   }
-  return translations[entityType] ?? entityType
 }
 
 export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
@@ -202,10 +202,16 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
             <option value="board.document.deleted">{m.audit_log_action_board_document_deleted()}</option>
             <option value="board.documents.bulk_deleted">{m.audit_log_action_board_documents_bulk_deleted()}</option>
             <option value="board.document.file_replaced">{m.audit_log_action_board_document_file_replaced()}</option>
-            <option value="board.document.version_created">{m.audit_log_action_board_document_version_created()}</option>
-            <option value="board.document.version_restored">{m.audit_log_action_board_document_version_restored()}</option>
+            <option value="board.document.version_created">
+              {m.audit_log_action_board_document_version_created()}
+            </option>
+            <option value="board.document.version_restored">
+              {m.audit_log_action_board_document_version_restored()}
+            </option>
             <option value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</option>
-            <option value="notification.preference.changed">{m.audit_log_action_notification_preference_changed()}</option>
+            <option value="notification.preference.changed">
+              {m.audit_log_action_notification_preference_changed()}
+            </option>
             <option value="congregation.registered">{m.audit_log_action_congregation_registered()}</option>
             <option value="congregation.exported">{m.audit_log_action_congregation_exported()}</option>
             <option value="congregation.imported">{m.audit_log_action_congregation_imported()}</option>

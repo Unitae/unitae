@@ -1,5 +1,5 @@
-import { pdf } from '@react-pdf/renderer'
 import type { DocumentProps } from '@react-pdf/renderer'
+import { pdf } from '@react-pdf/renderer'
 import type { ReactElement } from 'react'
 
 export async function renderPdfResponse(document: ReactElement<DocumentProps>, filename: string): Promise<Response> {

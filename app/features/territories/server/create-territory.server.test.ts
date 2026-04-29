@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction mock matches exported name
 vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -19,12 +20,16 @@ describe('createTerritory', () => {
     const fake = { id: 1, number: 'D001', type: 'doors-to-doors', congregationId: 1 }
     vi.mocked(db.territory.create).mockResolvedValue(fake as never)
 
-    const result = await createTerritory(db as any, {
-      number: 'D001',
-      type: 'doors-to-doors',
-      entranceIds: [10, 20],
-      congregationId: 1,
-    }, 1)
+    const result = await createTerritory(
+      db as any,
+      {
+        number: 'D001',
+        type: 'doors-to-doors',
+        entranceIds: [10, 20],
+        congregationId: 1,
+      },
+      1,
+    )
 
     expect(result).toEqual(fake)
   })
@@ -32,12 +37,16 @@ describe('createTerritory', () => {
   it('passes entrance ids as connect array', async () => {
     vi.mocked(db.territory.create).mockResolvedValue({} as never)
 
-    await createTerritory(db as any, {
-      number: 'H002',
-      type: 'hotel',
-      entranceIds: [3, 5, 7],
-      congregationId: 2,
-    }, 1)
+    await createTerritory(
+      db as any,
+      {
+        number: 'H002',
+        type: 'hotel',
+        entranceIds: [3, 5, 7],
+        congregationId: 2,
+      },
+      1,
+    )
 
     expect(db.territory.create).toHaveBeenCalledWith({
       data: {

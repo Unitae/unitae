@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction mock matches exported name
+vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
+
 import { createProgrammeTemplate } from './programme-template.server'
 
 const mockDb = {
@@ -17,12 +20,16 @@ describe('createProgrammeTemplate', () => {
     const expected = { id: 1, name: 'Reunion', key: 'meeting', weekDay: 3, isRecurring: true }
     mockDb.programmeTemplate.create.mockResolvedValue(expected)
 
-    const result = await createProgrammeTemplate(mockDb as never, {
-      name: 'Reunion',
-      key: 'meeting',
-      weekDay: 3,
-      congregationId: 10,
-    }, 1)
+    const result = await createProgrammeTemplate(
+      mockDb as never,
+      {
+        name: 'Reunion',
+        key: 'meeting',
+        weekDay: 3,
+        congregationId: 10,
+      },
+      1,
+    )
 
     expect(result).toEqual(expected)
     expect(mockDb.programmeTemplate.create).toHaveBeenCalledWith({
@@ -40,12 +47,16 @@ describe('createProgrammeTemplate', () => {
     const expected = { id: 2, name: 'Special', key: 'special', weekDay: null, isRecurring: false }
     mockDb.programmeTemplate.create.mockResolvedValue(expected)
 
-    const result = await createProgrammeTemplate(mockDb as never, {
-      name: 'Special',
-      key: 'special',
-      weekDay: null,
-      congregationId: 10,
-    }, 1)
+    const result = await createProgrammeTemplate(
+      mockDb as never,
+      {
+        name: 'Special',
+        key: 'special',
+        weekDay: null,
+        congregationId: 10,
+      },
+      1,
+    )
 
     expect(result).toEqual(expected)
     expect(mockDb.programmeTemplate.create).toHaveBeenCalledWith({

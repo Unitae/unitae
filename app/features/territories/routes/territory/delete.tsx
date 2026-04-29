@@ -63,7 +63,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
-    const territory = await deleteTerritory(db, requireParamId(params.territoryId, '/territories'), currentUser.congregationId, currentUser.id)
+    const territory = await deleteTerritory(
+      db,
+      requireParamId(params.territoryId, '/territories'),
+      currentUser.congregationId,
+      currentUser.id,
+    )
 
     session.flash('success', m.territories_delete_flash_success({ number: territory.number }))
 

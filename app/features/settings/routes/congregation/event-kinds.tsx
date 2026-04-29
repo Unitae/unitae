@@ -155,7 +155,7 @@ export default function EventKindsPage({ loaderData }: Route.ComponentProps) {
                   className="size-4 shrink-0 rounded-full border"
                   style={{ backgroundColor: kind.color, borderColor: `${kind.color}80` }}
                 />
-                <span className="flex-1 text-sm font-medium">{kind.name}</span>
+                <span className="flex-1 font-medium text-sm">{kind.name}</span>
                 <deleteFetcher.Form method="post">
                   <input type="hidden" name="intent" value="delete" />
                   <input type="hidden" name="id" value={kind.id} />

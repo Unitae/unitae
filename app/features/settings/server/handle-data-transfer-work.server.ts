@@ -6,7 +6,7 @@ import { runImport } from './import-congregation.server'
 
 const logger = createLogger('data-transfer-worker')
 
-export async function handleDataTransferWork(job: Job<DataTransferJobData>): Promise<string | void> {
+export function handleDataTransferWork(job: Job<DataTransferJobData>): Promise<string | undefined> {
   logger.info(`Starting data transfer job ${job.id}`, { type: job.data.type, congregationId: job.data.congregationId })
 
   switch (job.data.type) {

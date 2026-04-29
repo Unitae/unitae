@@ -15,7 +15,7 @@ describe('updateGroup', () => {
     const fake = { id: 1, name: 'Groupe A' }
     mockDb.publisherGroup.update.mockResolvedValue(fake as never)
 
-    const result = await updateGroup(mockDb as any, 1, 10, {
+    const result = await updateGroup(mockDb as never, 1, 10, {
       name: 'Groupe A',
       address: '123 rue Exemple',
       responsibleId: 5,
@@ -32,7 +32,7 @@ describe('updateGroup', () => {
   it('updates group with responsible only (no deputy)', async () => {
     mockDb.publisherGroup.update.mockResolvedValue({} as never)
 
-    await updateGroup(mockDb as any, 2, 10, {
+    await updateGroup(mockDb as never, 2, 10, {
       name: 'Groupe B',
       address: '456 avenue Test',
       responsibleId: 3,

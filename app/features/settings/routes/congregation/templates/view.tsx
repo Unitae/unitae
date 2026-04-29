@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_view_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
@@ -45,7 +45,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 

@@ -1,12 +1,9 @@
 import crypto from 'node:crypto'
-import { unscopedDb, type TransactionClient } from '~/shared/infra/db.server'
+import { type TransactionClient, unscopedDb } from '~/shared/infra/db.server'
 
 const TOKEN_EXPIRY_HOURS = 24
 
-export async function createPasswordResetToken(
-  userId: number,
-  dbClient?: TransactionClient,
-): Promise<string> {
+export async function createPasswordResetToken(userId: number, dbClient?: TransactionClient): Promise<string> {
   const db = dbClient ?? unscopedDb
   const token = crypto.randomBytes(32).toString('base64url')
   const expiresAt = new Date()

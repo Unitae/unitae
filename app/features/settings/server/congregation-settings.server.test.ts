@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction mock matches exported name
 vi.mock('~/shared/domain/audit.server', () => ({ audit: vi.fn(), AuditAction: {} }))
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -30,9 +31,14 @@ describe('updateCongregationSettings', () => {
   it('sets the auxiliary pioneer setting', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
 
-    await updateCongregationSettings(mockDb as never, 10, {
-      auxiliaryPioneerProfileActivated: 'true',
-    }, 1)
+    await updateCongregationSettings(
+      mockDb as never,
+      10,
+      {
+        auxiliaryPioneerProfileActivated: 'true',
+      },
+      1,
+    )
 
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
     expect(mockDb.user.updateMany).not.toHaveBeenCalled()
@@ -42,9 +48,14 @@ describe('updateCongregationSettings', () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
     mockDb.user.updateMany.mockResolvedValue({ count: 3 })
 
-    await updateCongregationSettings(mockDb as never, 10, {
-      auxiliaryPioneerProfileActivated: 'false',
-    }, 1)
+    await updateCongregationSettings(
+      mockDb as never,
+      10,
+      {
+        auxiliaryPioneerProfileActivated: 'false',
+      },
+      1,
+    )
 
     expect(mockDb.user.updateMany).toHaveBeenCalledWith({
       where: {

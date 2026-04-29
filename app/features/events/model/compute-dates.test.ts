@@ -16,7 +16,9 @@ describe('computeDatesForWeekdayCount', () => {
 
   it('spaces dates exactly 7 days apart', () => {
     const dates = computeDatesForWeekdayCount(3, 3)
+    // biome-ignore lint/style/noNonNullAssertion: array length is guaranteed by computeDatesForWeekdayCount(3, 3)
     expect(dates[1]!.getTime() - dates[0]!.getTime()).toBe(7 * 24 * 60 * 60 * 1000)
+    // biome-ignore lint/style/noNonNullAssertion: array length is guaranteed by computeDatesForWeekdayCount(3, 3)
     expect(dates[2]!.getTime() - dates[1]!.getTime()).toBe(7 * 24 * 60 * 60 * 1000)
   })
 

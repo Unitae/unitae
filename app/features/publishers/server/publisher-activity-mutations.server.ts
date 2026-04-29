@@ -80,7 +80,12 @@ export async function updatePublisherActivity(
   return activity
 }
 
-export async function deletePublisherActivity(db: TransactionClient, id: number, congregationId: number, actorId: number) {
+export async function deletePublisherActivity(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+) {
   const activity = await db.publisherActivity.delete({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound unique key

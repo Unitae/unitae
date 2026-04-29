@@ -84,7 +84,7 @@ function DurationInput({
   )
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)

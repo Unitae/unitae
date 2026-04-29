@@ -169,7 +169,7 @@ export function updatePartAssignment(
 
 export async function reorderPartAssignments(
   db: TransactionClient,
-  congregationId: number,
+  _congregationId: number,
   orderedIds: number[],
 ): Promise<void> {
   for (let i = 0; i < orderedIds.length; i++) {

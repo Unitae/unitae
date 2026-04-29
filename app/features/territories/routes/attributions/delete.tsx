@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Supprimer une attribution — Unitae' }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   if (!permissions.has(Role.TerritoriesManager)) {
