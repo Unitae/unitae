@@ -94,6 +94,28 @@ describe('generateEventsFromTemplate', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
+  it('copies allowExternalSpeaker from template parts to assignments', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      name: 'Réunion du week-end',
+      weekDay: 0,
+      parts: [{ id: 10, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 30, allowExternalSpeaker: true }],
+      serviceRoles: [],
+    } as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventKind.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
+
+    await generateEventsFromTemplate(db, 1, 2, 1, 1)
+
+    const calls = vi.mocked(db.programmePartAssignment.create).mock.calls
+    expect(calls.length).toBeGreaterThan(0)
+    for (const call of calls) {
+      expect((call[0] as { data: { allowExternalSpeaker: boolean } }).data.allowExternalSpeaker).toBe(true)
+    }
+  })
+
   it('skips dates where an event already exists', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
       id: 1,
@@ -152,5 +174,23 @@ describe('createSingleEventFromTemplate', () => {
 
     const result = await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1)
     expect(result).toEqual({ id: 1, name: 'Mémorial' })
+  })
+
+  it('copies allowExternalSpeaker from template parts to assignments', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 3,
+      name: 'Mémorial',
+      parts: [{ id: 30, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 45, allowExternalSpeaker: true }],
+      serviceRoles: [],
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventKind.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
+
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1)
+
+    const call = vi.mocked(db.programmePartAssignment.create).mock.calls[0]
+    expect((call[0] as { data: { allowExternalSpeaker: boolean } }).data.allowExternalSpeaker).toBe(true)
   })
 })

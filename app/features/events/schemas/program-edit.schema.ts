@@ -15,6 +15,10 @@ export const addPartSchema = z.object({
   partTrack: z.string().optional().default(''),
   partOrder: z.coerce.number().default(0),
   partDuration: z.coerce.number().optional(),
+  partAllowExternalSpeaker: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
 })
 
 export const deletePartSchema = z.object({
@@ -40,6 +44,10 @@ export const updatePartSchema = z.object({
   partTrack: z.string().optional().default(''),
   partOrder: z.coerce.number().default(0),
   partDuration: z.coerce.number().optional(),
+  partAllowExternalSpeaker: z
+    .string()
+    .optional()
+    .transform(v => v === 'on'),
 })
 
 export const updateServiceSchema = z.object({

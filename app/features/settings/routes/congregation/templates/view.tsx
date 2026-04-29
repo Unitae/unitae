@@ -142,14 +142,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
               {template.parts.map(part => (
                 <TableRow key={part.id}>
                   <TableCell className="text-muted-foreground">{part.order}</TableCell>
-                  <TableCell className="font-medium">
-                    {part.name}
-                    {part.isVariable && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        {m.settings_template_view_variable()}
-                      </Badge>
-                    )}
-                  </TableCell>
+                  <TableCell className="font-medium">{part.name}</TableCell>
                   <TableCell className="text-muted-foreground">{part.section || '—'}</TableCell>
                   <TableCell>
                     {part.durationMin ? (
@@ -158,7 +151,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
                         {m.settings_template_view_duration_min({ minutes: String(part.durationMin) })}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground text-sm">{m.settings_template_view_variable()}</span>
+                      <span className="text-muted-foreground text-sm">—</span>
                     )}
                   </TableCell>
                 </TableRow>

@@ -1081,7 +1081,7 @@ async function main() {
       // Create part assignments
       for (const part of midweekTemplate.parts) {
         const assignee = pick(createdUsers)
-        const needsAssistant = part.isVariable && Math.random() > 0.5
+        const needsAssistant = !part.durationMin && Math.random() > 0.5
         await prisma.programmePartAssignment.create({
           data: {
             name: part.name,

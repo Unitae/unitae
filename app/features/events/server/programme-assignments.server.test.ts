@@ -33,7 +33,7 @@ describe('checkDayOffConflict', () => {
 describe('assignPart', () => {
   it('returns error when assignment not found', async () => {
     vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
-    const result = await assignPart(db, 999, 5, null, 'Topic', 1)
+    const result = await assignPart(db, 999, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('error')
   })
 
@@ -44,7 +44,7 @@ describe('assignPart', () => {
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
 
-    const result = await assignPart(db, 1, 5, null, 'Topic', 1)
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('error')
   })
 
@@ -56,7 +56,7 @@ describe('assignPart', () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never) // no day-off
     vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
-    const result = await assignPart(db, 1, 5, null, 'Topic', 1)
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('assignment')
   })
 
@@ -67,7 +67,7 @@ describe('assignPart', () => {
     } as never)
     vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: null } as never)
 
-    const result = await assignPart(db, 1, null, null, '', 1)
+    const result = await assignPart(db, 1, null, null, null, '', 1)
     expect(result).toHaveProperty('assignment')
   })
 })

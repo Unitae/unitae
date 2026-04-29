@@ -477,8 +477,8 @@ model ProgrammeTemplatePart {
   section     String  @default("")
   track       String  @default("")
   order       Int
-  durationMin Int?
-  isVariable  Boolean @default(false)
+  durationMin          Int?
+  allowExternalSpeaker Boolean @default(false)
 
   template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
@@ -531,6 +531,9 @@ model ProgrammePartAssignment {
 
   assistant   User? @relation("partAssistant", fields: [assistantId], references: [id])
   assistantId Int?
+
+  allowExternalSpeaker Boolean @default(false)
+  externalSpeakerName  String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -165,7 +165,7 @@ async function handleAddPart(
   const submission = parseWithZod(formData, { schema: addPartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partName, partSection, partTrack, partOrder, partDuration } = submission.value
+  const { partName, partSection, partTrack, partOrder, partDuration, partAllowExternalSpeaker } = submission.value
   await addPartAssignment(db, {
     eventId,
     name: partName,
@@ -173,6 +173,7 @@ async function handleAddPart(
     track: partTrack,
     order: partOrder,
     durationMin: partDuration ?? null,
+    allowExternalSpeaker: partAllowExternalSpeaker,
     congregationId,
   })
   return { message: m.programs_edit_part_added() }
@@ -186,11 +187,19 @@ async function handleUpdatePart(
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partAssignmentId, partName, partSection, partTrack, partOrder, partDuration } = submission.value
+  const { partAssignmentId, partName, partSection, partTrack, partOrder, partDuration, partAllowExternalSpeaker } =
+    submission.value
   await updatePartAssignment(
     db,
     partAssignmentId,
-    { name: partName, section: partSection, track: partTrack, order: partOrder, durationMin: partDuration ?? null },
+    {
+      name: partName,
+      section: partSection,
+      track: partTrack,
+      order: partOrder,
+      durationMin: partDuration ?? null,
+      allowExternalSpeaker: partAllowExternalSpeaker,
+    },
     congregationId,
   )
   return { message: m.programs_edit_event_updated() }
@@ -282,6 +291,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
     track: string
     order: number
     durationMin: number | null
+    allowExternalSpeaker: boolean
   } | null>(null)
   const [partSheetOpen, setPartSheetOpen] = useState(false)
 
@@ -502,6 +512,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                                       track: assignment.track,
                                       order: assignment.order,
                                       durationMin: assignment.durationMin,
+                                      allowExternalSpeaker: assignment.allowExternalSpeaker,
                                     })
                                     setPartSheetOpen(true)
                                   }}

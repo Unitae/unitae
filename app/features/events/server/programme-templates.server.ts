@@ -47,7 +47,7 @@ export function upsertTemplatePart(
     track: string
     order: number
     durationMin: number | null
-    isVariable: boolean
+    allowExternalSpeaker: boolean
   },
   congregationId: number,
 ) {
@@ -63,7 +63,7 @@ export function upsertTemplatePart(
         track: partData.track,
         order: partData.order,
         durationMin: partData.durationMin,
-        isVariable: partData.isVariable,
+        allowExternalSpeaker: partData.allowExternalSpeaker,
       },
     })
   }
@@ -75,7 +75,7 @@ export function upsertTemplatePart(
       track: partData.track,
       order: partData.order,
       durationMin: partData.durationMin,
-      isVariable: partData.isVariable,
+      allowExternalSpeaker: partData.allowExternalSpeaker,
       templateId,
       congregationId,
     },
@@ -206,7 +206,7 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
           track: part.track,
           order: part.order,
           durationMin: part.durationMin,
-          isVariable: part.isVariable,
+          allowExternalSpeaker: part.allowExternalSpeaker,
           congregationId,
         })),
       },

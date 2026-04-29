@@ -98,6 +98,7 @@ describe('addPartAssignment', () => {
       track: 'A',
       order: 1,
       durationMin: 30,
+      allowExternalSpeaker: false,
       congregationId: 10,
     }
     const expected = { id: 1, ...data }

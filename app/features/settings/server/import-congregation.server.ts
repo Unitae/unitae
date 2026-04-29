@@ -871,7 +871,7 @@ export async function importProgrammeTemplateParts(
     track: string
     order: number
     durationMin: number | null
-    isVariable: boolean
+    allowExternalSpeaker: boolean
     templateId: number
   }>(zip, 'programme-template-parts')
 
@@ -886,7 +886,7 @@ export async function importProgrammeTemplateParts(
         track: record.track,
         order: record.order,
         durationMin: record.durationMin,
-        isVariable: record.isVariable,
+        allowExternalSpeaker: record.allowExternalSpeaker,
         templateId,
         congregationId,
       },

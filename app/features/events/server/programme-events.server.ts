@@ -42,6 +42,7 @@ export function addPartAssignment(
     track: string
     order: number
     durationMin: number | null
+    allowExternalSpeaker: boolean
     congregationId: number
   },
 ) {
@@ -71,7 +72,7 @@ export function addServiceRoleAssignment(
 export function updatePartAssignment(
   db: TransactionClient,
   id: number,
-  data: { name: string; section: string; track: string; order: number; durationMin: number | null },
+  data: { name: string; section: string; track: string; order: number; durationMin: number | null; allowExternalSpeaker: boolean },
   congregationId: number,
 ) {
   return db.programmePartAssignment.update({
@@ -156,6 +157,7 @@ export async function applyTemplateToEvent(
         track: part.track,
         order: part.order,
         durationMin: part.durationMin,
+        allowExternalSpeaker: part.allowExternalSpeaker,
         congregationId,
       },
     })

@@ -81,17 +81,17 @@ describe('seedDefaultTemplates', () => {
       section: '',
       order: 1,
       durationMin: 5,
-      isVariable: false,
+      allowExternalSpeaker: false,
       congregationId: 1,
     })
 
-    // Every part has name, section, order, durationMin, isVariable, congregationId
+    // Every part has name, section, order, durationMin, allowExternalSpeaker, congregationId
     for (const part of midweekParts) {
       expect(part).toHaveProperty('name')
       expect(part).toHaveProperty('section')
       expect(part).toHaveProperty('order')
       expect(part).toHaveProperty('durationMin')
-      expect(part).toHaveProperty('isVariable')
+      expect(part).toHaveProperty('allowExternalSpeaker')
       expect(part).toHaveProperty('congregationId')
     }
   })

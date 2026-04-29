@@ -49,8 +49,11 @@ export async function seedRoles(db: any) {
  */
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 export async function seedCongregationDefaults(db: any, congregationId: number, locale: Locale) {
-  await db.eventKind.create({
-    data: {
+  await db.eventKind.upsert({
+    // biome-ignore lint/style/useNamingConvention: prisma compound key
+    where: { key_congregationId: { key: EventKind.Off, congregationId } },
+    update: {},
+    create: {
       name: m.seed_event_kind_absence({}, { locale }),
       key: EventKind.Off,
       color: '#cfcfcf',
