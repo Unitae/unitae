@@ -38,6 +38,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const brothers = await db.user.findMany({
       where: {
         congregationId: currentUser.congregationId,
+        isMale: true,
         // biome-ignore lint/style/useNamingConvention: Prisma OR operator
         OR: [{ isHelder: true }, { isServant: true }],
       },

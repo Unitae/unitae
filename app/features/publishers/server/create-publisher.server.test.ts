@@ -65,6 +65,20 @@ describe('createPublisher', () => {
     expect(call.data.email).toBe('jean.dupont@placeholder.unitae.app')
   })
 
+  it('saves phone and address to the database', async () => {
+    mockDb.user.create.mockResolvedValue({ id: 3 } as never)
+
+    await createPublisher(mockDb as any, baseCongregation, {
+      ...baseParams,
+      phone: '0612345678',
+      address: '5 rue de la Paix',
+    })
+
+    const call = mockDb.user.create.mock.calls[0][0]
+    expect(call.data.phone).toBe('0612345678')
+    expect(call.data.address).toBe('5 rue de la Paix')
+  })
+
   it('throws LimitError when publisher limit reached', async () => {
     mockErrorIfWouldGoOverLimit.mockRejectedValue(new Error('Limit reached'))
 
