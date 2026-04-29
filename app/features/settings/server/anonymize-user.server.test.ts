@@ -8,6 +8,7 @@ const mockDb = {
   congregationUserRole: { deleteMany: vi.fn() },
   passwordResetToken: { deleteMany: vi.fn() },
   boardDocumentVersion: { updateMany: vi.fn() },
+  auditLog: { updateMany: vi.fn() },
   dataDeletionRecord: { create: vi.fn() },
 }
 
@@ -29,6 +30,7 @@ describe('anonymizeUser', () => {
     mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 2 } as never)
     mockDb.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.boardDocumentVersion.updateMany.mockResolvedValue({ count: 0 } as never)
+    mockDb.auditLog.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.dataDeletionRecord.create.mockResolvedValue({} as never)
 
     await anonymizeUser(mockDb as never, 1, 'admin:5')

@@ -71,6 +71,12 @@ export async function anonymizeUser(db: TransactionClient, userId: number, reque
     data: { uploadedById: null },
   })
 
+  // Effacer l'email stocke dans les entrees du journal d'audit (RGPD - droit a l'effacement)
+  await db.auditLog.updateMany({
+    where: { actorId: userId },
+    data: { actorEmail: null },
+  })
+
   // Enregistrer dans le registre de suppression (reconciliation des sauvegardes)
   await db.dataDeletionRecord.create({
     data: {

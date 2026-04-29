@@ -105,6 +105,7 @@
     "audit_log_entity_programme_template": "Modèle",
     "audit_log_entity_event": "Événement",
     "audit_log_entity_board_document": "Document",
+    "audit_log_actor_deleted": "Utilisateur supprimé",
     "sidebar_board": "Tableau d'affichage",
     "sidebar_documents": "Documents",
     "sidebar_sections": "Sections",

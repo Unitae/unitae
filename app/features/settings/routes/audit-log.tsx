@@ -1,4 +1,4 @@
-import { Form as RouterForm, useSearchParams } from 'react-router'
+import { Form as RouterForm, Link, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/paraglide/messages'
 import { userContext } from '~/shared/auth/route-context.server'
@@ -40,9 +40,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     logs: logs.map(log => ({
       id: log.id,
       action: log.action,
+      actorId: log.actorId,
       actorEmail: log.actorEmail,
+      actorAnonymized: log.actorAnonymized,
       entityType: log.entityType,
       entityId: log.entityId,
+      entityUrl: log.entityUrl,
       metadata: log.metadata,
       createdAt: log.createdAt.toISOString(),
     })),
@@ -235,10 +238,28 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
                 <TableCell className="text-muted-foreground text-sm">
                   {new Date(log.createdAt).toLocaleString('fr-FR')}
                 </TableCell>
-                <TableCell className="text-sm">{log.actorEmail ?? '—'}</TableCell>
+                <TableCell className="text-sm">
+                  {log.actorId != null ? (
+                    <Link to={`/settings/users/${log.actorId}/edit`} className="hover:underline">
+                      {log.actorAnonymized ? m.audit_log_actor_deleted() : (log.actorEmail ?? '—')}
+                    </Link>
+                  ) : (
+                    (log.actorEmail ?? '—')
+                  )}
+                </TableCell>
                 <TableCell className="text-sm">{translateAction(log.action)}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {log.entityType ? `${translateEntityType(log.entityType)} #${log.entityId}` : '—'}
+                  {log.entityType ? (
+                    log.entityUrl ? (
+                      <Link to={log.entityUrl} className="hover:underline">
+                        {translateEntityType(log.entityType)} #{log.entityId}
+                      </Link>
+                    ) : (
+                      `${translateEntityType(log.entityType)} #${log.entityId}`
+                    )
+                  ) : (
+                    '—'
+                  )}
                 </TableCell>
               </TableRow>
             ))}
