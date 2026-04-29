@@ -113,6 +113,22 @@ function translateAction(action: string): string {
   return translations[action] ?? action
 }
 
+function translateEntityType(entityType: string): string {
+  const translations: Record<string, string> = {
+    User: m.audit_log_entity_user(),
+    Congregation: m.audit_log_entity_congregation(),
+    Territory: m.audit_log_entity_territory(),
+    Attribution: m.audit_log_entity_attribution(),
+    Building: m.audit_log_entity_building(),
+    PublisherGroup: m.audit_log_entity_publisher_group(),
+    PublisherActivity: m.audit_log_entity_publisher_activity(),
+    ProgrammeTemplate: m.audit_log_entity_programme_template(),
+    Event: m.audit_log_entity_event(),
+    BoardDocument: m.audit_log_entity_board_document(),
+  }
+  return translations[entityType] ?? entityType
+}
+
 export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
   const { logs, pagination } = loaderData
   const [searchParams] = useSearchParams()
@@ -222,7 +238,7 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
                 <TableCell className="text-sm">{log.actorEmail ?? '—'}</TableCell>
                 <TableCell className="text-sm">{translateAction(log.action)}</TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {log.entityType ? `${log.entityType} #${log.entityId}` : '—'}
+                  {log.entityType ? `${translateEntityType(log.entityType)} #${log.entityId}` : '—'}
                 </TableCell>
               </TableRow>
             ))}
