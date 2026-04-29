@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     user: { findMany: vi.fn() },
   },
 }))
@@ -32,7 +32,7 @@ vi.mock('~/features/publishers/ui/PublisherActivityDocument', () => ({
 }))
 
 const { renderActivityPdfZip } = await import('./render-activity-pdf-zip.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

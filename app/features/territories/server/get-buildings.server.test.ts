@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     building: { findMany: vi.fn() },
   },
 }))
 
 const { getBuildings } = await import('./get-buildings.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

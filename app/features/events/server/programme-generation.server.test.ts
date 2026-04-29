@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { computeDatesForWeekdayCount } from '../model/compute-dates'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     programmeTemplate: { findFirst: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     programmePartAssignment: { create: vi.fn() },
@@ -11,7 +11,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 const { generateEventsFromTemplate, createSingleEventFromTemplate } = await import('./programme-generation.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

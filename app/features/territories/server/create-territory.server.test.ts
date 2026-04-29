@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: { territory: { create: vi.fn() } },
+  unscopedDb: { territory: { create: vi.fn() } },
 }))
 
 const { createTerritory } = await import('./create-territory.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

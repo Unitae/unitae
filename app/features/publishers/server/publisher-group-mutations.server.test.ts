@@ -4,13 +4,13 @@ const mockCreate = vi.fn()
 const mockDelete = vi.fn()
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     publisherGroup: { create: mockCreate, delete: mockDelete },
   },
 }))
 
 const { createPublisherGroup, deletePublisherGroup } = await import('./publisher-group-mutations.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const mockUpdate = vi.fn()
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     user: { update: mockUpdate },
   },
 }))
 
 const { updatePublisher } = await import('./update-publisher.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

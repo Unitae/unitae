@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     building: { update: vi.fn() },
   },
 }))
@@ -15,7 +15,7 @@ vi.mock('./get-territory-polygon.server', () => ({
 }))
 
 const { editBuilding } = await import('./edit-building.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { pointInPolygon } = await import('~/shared/utils/point-in-polygon.server')
 const { getTerritoryPolygon } = await import('./get-territory-polygon.server')
 

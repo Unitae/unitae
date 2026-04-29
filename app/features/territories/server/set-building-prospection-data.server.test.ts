@@ -4,7 +4,7 @@ import type { BuildingProspectionInput } from '~/features/territories/schemas/bu
 const SENTINEL_ENTRANCE = { id: 42, kind: 'residential' }
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     building: { update: vi.fn() },
     buildingEntrance: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn(), delete: vi.fn() },
     buildingResidentialData: { upsert: vi.fn(), aggregate: vi.fn(), deleteMany: vi.fn() },
@@ -13,7 +13,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 const { setBuildingProspectionData } = await import('./set-building-prospection-data.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 const defaultInput: BuildingProspectionInput = {
   'prospection-date': '',

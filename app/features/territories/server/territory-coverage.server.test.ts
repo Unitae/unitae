@@ -3,7 +3,7 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     territory: { count: vi.fn() },
     attribution: { count: vi.fn() },
   },
@@ -11,7 +11,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 // Import après le mock
 const { computeTerritoryCoverage } = await import('./territory-coverage.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

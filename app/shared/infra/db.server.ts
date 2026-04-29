@@ -30,4 +30,4 @@ function withScope<T>(congregationId: number, fn: (tx: TransactionClient) => Pro
 type TransactionClient = Parameters<Parameters<typeof db.$transaction>[0]>[0]
 
 export type { TransactionClient }
-export { db, unscopedDb, withScope }
+export { unscopedDb, withScope }

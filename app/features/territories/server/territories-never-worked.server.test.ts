@@ -3,13 +3,13 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     territory: { findMany: vi.fn() },
   },
 }))
 
 const { getTerritoriesNeverWorked } = await import('./territories-never-worked.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

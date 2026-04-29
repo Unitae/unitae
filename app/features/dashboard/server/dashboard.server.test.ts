@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     attribution: { findMany: vi.fn() },
     boardDocument: { findMany: vi.fn(), count: vi.fn() },
     boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
@@ -15,7 +15,7 @@ vi.mock('~/features/events/server/days-off.server', () => ({
 
 const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getUpcomingAbsences } =
   await import('./dashboard.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { getNextDaysOffs } = await import('~/features/events/server/days-off.server')
 
 beforeEach(() => {
