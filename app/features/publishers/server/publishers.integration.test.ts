@@ -16,7 +16,7 @@ async function withScope<T>(
   fn: (tx: Parameters<Parameters<typeof testDb.$transaction>[0]>[0]) => Promise<T>,
 ): Promise<T> {
   return testDb.$transaction(async tx => {
-    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = $1`, congregationId)
+    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
     return fn(tx)
   })
 }

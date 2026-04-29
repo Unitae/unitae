@@ -22,7 +22,7 @@ const unscopedDb = db
  */
 function withScope<T>(congregationId: number, fn: (tx: TransactionClient) => Promise<T>): Promise<T> {
   return db.$transaction(async tx => {
-    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = $1`, congregationId)
+    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
     return fn(tx)
   })
 }
