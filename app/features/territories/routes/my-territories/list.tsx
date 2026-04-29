@@ -1,24 +1,20 @@
 import { ChevronRight, Download, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
 
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
   getUserTerritoriesWithDetails,
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
-import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
-import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/list'
 
@@ -31,15 +27,8 @@ export function loader({ context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const territories = await getUserTerritoriesWithDetails(db, currentUser.id)
-    const phoneTypeActive = await getBoolSetting(
-      db,
-      TerritorySettingKey.TerritoryTypePhoneActive,
-      currentUser.congregationId,
-    )
-    const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-    const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 
-    return { territories, phoneTypeActive, googleMaps: { apiKey, mapId } }
+    return { territories }
   })
 }
 
@@ -79,7 +68,7 @@ function quantityLabel(type: string, entrances: { homes: number | null; phones: 
 }
 
 export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) {
-  const { territories, phoneTypeActive, googleMaps } = loaderData
+  const { territories } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,19 +111,12 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
                 </Link>
 
                 <div className="border-t px-4 py-2.5">
-                  <TerritoryDownloadLink
-                    territory={t.territory}
-                    entrances={[]}
-                    googleMapKey={googleMaps.apiKey}
-                    googleMapId={googleMaps.mapId}
-                    showPhone={phoneTypeActive}
-                    attributionType={t.type as TerritoryAttributionKind}
-                  >
-                    <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                  <Button asChild variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+                    <a href={`/territories/territory/${t.territory.id}/pdf`}>
                       <Download className="size-3.5" />
                       {m.my_territories_download_pdf()}
-                    </Button>
-                  </TerritoryDownloadLink>
+                    </a>
+                  </Button>
                 </div>
               </CardContent>
             </Card>

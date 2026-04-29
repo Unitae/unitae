@@ -1,23 +1,19 @@
-import { Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
+import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
-import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
-import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/list'
 
@@ -63,14 +59,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
-
   const { congregationId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
-
     const url = new URL(request.url)
     const selectors = await computeFilters(url.searchParams)
     const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId)
@@ -84,9 +75,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       },
       territories,
       pagination,
-      googleMaps: { mapId, apiKey },
       canManageTerritories,
-      phoneTypeActive,
     }
   })
 }
@@ -96,9 +85,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
     pagination,
     territories,
     canManageTerritories,
-    googleMaps: { mapId, apiKey },
     zips,
-    phoneTypeActive,
   } = loaderData
 
   if (territories.length < 1) {
@@ -194,22 +181,11 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <TerritoryDownloadLink
-                          territory={territory}
-                          entrances={territory.entrances}
-                          googleMapId={mapId}
-                          googleMapKey={apiKey}
-                          attributionType={attribution?.type as TerritoryAttributionKind}
-                          owner={
-                            attribution
-                              ? `${attribution.publisher.firstname} ${attribution.publisher.lastname
-                                  ?.toUpperCase()
-                                  .at(0)}.`
-                              : undefined
-                          }
-                          restitutionDate={attribution?.lateDate}
-                          showPhone={!phoneTypeActive}
-                        />
+                        <Button variant="ghost" size="icon" asChild>
+                          <a href={`/territories/territory/${territory.id}/pdf`} title={m.territories_download_pdf_title()}>
+                            <Download className="size-4" />
+                          </a>
+                        </Button>
                         {canManageTerritories && (
                           <>
                             <Button variant="ghost" size="icon" asChild>

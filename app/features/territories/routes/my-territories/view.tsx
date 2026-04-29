@@ -4,16 +4,14 @@ import {
   Marker as GoogleMapMarker,
 } from '@vis.gl/react-google-maps'
 import { Download, MapPin } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { redirect } from 'react-router'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import {
   computeStatus,
   getUserTerritoryDetail,
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
-import { TerritoryDownloadLink } from '~/features/territories/ui/TerritoryDownloadLink'
+
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -94,13 +92,12 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_my_territories(), to: '/me/territories' }, { label: territory.number }]}
         backTo="/me/territories"
         actions={
-          <PdfDownloadButton
-            territory={territory}
-            entrances={entrances}
-            googleMaps={googleMaps}
-            phoneTypeActive={phoneTypeActive}
-            attributionType={attribution.type}
-          />
+          <Button asChild variant="outline" size="sm" className="gap-1.5">
+            <a href={`/territories/territory/${territory.id}/pdf`}>
+              <Download className="size-3.5" />
+              {m.my_territories_download_pdf()}
+            </a>
+          </Button>
         }
       />
 
@@ -145,40 +142,6 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
   )
 }
 
-function PdfDownloadButton({
-  territory,
-  entrances,
-  googleMaps,
-  phoneTypeActive,
-  attributionType,
-}: {
-  territory: { number: string; type: string }
-  entrances: ReturnType<typeof aggregateEntrance>[]
-  googleMaps: { apiKey: string | undefined; mapId: string | undefined }
-  phoneTypeActive: boolean | undefined
-  attributionType: string
-}) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => setMounted(true), [])
-
-  if (!mounted) return null
-
-  return (
-    <TerritoryDownloadLink
-      territory={territory}
-      entrances={entrances}
-      googleMapKey={googleMaps.apiKey}
-      googleMapId={googleMaps.mapId}
-      showPhone={phoneTypeActive}
-      attributionType={attributionType as TerritoryAttributionKind}
-    >
-      <Button variant="outline" size="sm" className="gap-1.5">
-        <Download className="size-3.5" />
-        {m.my_territories_download_pdf()}
-      </Button>
-    </TerritoryDownloadLink>
-  )
-}
 
 function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggregateEntrance>[]; apiKey?: string }) {
   const { consented, grantConsent } = useMapConsent()

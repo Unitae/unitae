@@ -150,6 +150,46 @@ Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
 When not set, map features are silently disabled.
 
+## PDF Generation
+
+All PDF generation runs **server-side only** using `@react-pdf/renderer`. The library references Node.js globals (`process.env`) that are unavailable in the browser — never use `PDFDownloadLink` or `PDFViewer` in client components.
+
+### Shared utility
+
+`app/shared/infra/pdf.server.ts` exposes a single helper used by every PDF route:
+
+```ts
+renderPdfResponse(document: ReactElement<DocumentProps>, filename: string): Promise<Response>
+```
+
+It renders the JSX document to a buffer and returns a `Response` with `Content-Type: application/pdf` and `Content-Disposition: attachment`.
+
+### Pattern
+
+PDF downloads are plain `<a href="/path/to/pdf">` links pointing to a dedicated loader route. The loader fetches the data, calls `renderPdfResponse`, and returns the response directly — no action, no form.
+
+```ts
+// Example: app/features/.../pdf-download.tsx
+export async function loader({ params, context }: Route.LoaderArgs) {
+  // 1. Check permissions
+  // 2. Fetch data
+  return renderPdfResponse(<MyDocument {...data} />, 'filename.pdf')
+}
+```
+
+### Existing PDF routes
+
+| Route | File | Description |
+|-------|------|-------------|
+| `GET /territories/territory/:id/pdf` | `territories/routes/territory/pdf-download.tsx` | Individual territory card — accessible to `TerritoriesViewer` or the attributed publisher |
+| `GET /publishers/:id/activity/pdf` | `publishers/routes/publishers/activity-pdf.tsx` | Publisher S-21 activity report |
+| `GET /territories/attributions/export/:year/pdf` | `territories/routes/attributions/pdf-export.tsx` | S-13 annual attribution report |
+| `GET /programs/export-pdf/download` | `events/routes/programs/export-pdf-download.tsx` | Programme PDF export |
+
+### Business rules
+
+`showPhoneOnTerritoryCard(phoneTypeActive: boolean)` in `territories/server/territory-pdf.server.ts` encodes the following invariant: when dedicated phone territory cards exist (`phoneTypeActive = true`), phone entrance data is only shown on those cards — not on regular territory cards. The inverse applies when no dedicated phone cards exist.
+
 ## Audit Logging
 
 Fire-and-forget audit logging via `audit()` from `app/shared/domain/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
