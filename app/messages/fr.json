@@ -1116,6 +1116,7 @@
     "programs_edit_new_part_placeholder": "Nouvelle partie",
     "programs_edit_part_section_label": "Section",
     "programs_edit_part_track_label": "Groupe / Salle",
+    "programs_edit_part_track_order_label": "Ordre de la salle",
     "programs_edit_part_order_label": "Ordre",
     "programs_edit_part_duration_label": "Durée (min)",
     "programs_edit_add_button": "Ajouter",

@@ -1116,6 +1116,7 @@
     "programs_edit_new_part_placeholder": "New part",
     "programs_edit_part_section_label": "Section",
     "programs_edit_part_track_label": "Track / Room",
+    "programs_edit_part_track_order_label": "Track order",
     "programs_edit_part_order_label": "Order",
     "programs_edit_part_duration_label": "Duration (min)",
     "programs_edit_add_button": "Add",

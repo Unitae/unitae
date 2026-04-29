@@ -476,6 +476,7 @@ model ProgrammeTemplatePart {
   name        String
   section     String  @default("")
   track       String  @default("")
+  trackOrder  Int?
   order       Int
   durationMin          Int?
   allowExternalSpeaker Boolean @default(false)
@@ -517,6 +518,7 @@ model ProgrammePartAssignment {
   name        String  @default("")
   section     String  @default("")
   track       String  @default("")
+  trackOrder  Int?
   order       Int     @default(0)
   durationMin Int?
 

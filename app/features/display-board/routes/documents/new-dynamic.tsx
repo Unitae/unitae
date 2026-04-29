@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Calendar, Star, Users } from 'lucide-react'
+import { Calendar, Info, Star, Users } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
@@ -10,6 +10,7 @@ import { listAvailableDynamicTypes } from '~/features/display-board/server/dynam
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -58,11 +59,10 @@ export default function NewDynamicDocumentPage({ loaderData }: Route.ComponentPr
       />
 
       {!hasSection && (
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-muted-foreground text-sm">{m.board_new_dynamic_requires_section()}</p>
-          </CardContent>
-        </Card>
+        <Alert>
+          <Info />
+          <AlertDescription>{m.board_new_dynamic_requires_section()}</AlertDescription>
+        </Alert>
       )}
 
       {available.length === 0 ? (

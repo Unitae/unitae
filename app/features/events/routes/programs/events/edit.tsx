@@ -165,12 +165,13 @@ async function handleAddPart(
   const submission = parseWithZod(formData, { schema: addPartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partName, partSection, partTrack, partOrder, partDuration, partAllowExternalSpeaker } = submission.value
+  const { partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } = submission.value
   await addPartAssignment(db, {
     eventId,
     name: partName,
     section: partSection,
     track: partTrack,
+    trackOrder: partTrackOrder ?? null,
     order: partOrder,
     durationMin: partDuration ?? null,
     allowExternalSpeaker: partAllowExternalSpeaker,
@@ -187,7 +188,7 @@ async function handleUpdatePart(
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partAssignmentId, partName, partSection, partTrack, partOrder, partDuration, partAllowExternalSpeaker } =
+  const { partAssignmentId, partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
     submission.value
   await updatePartAssignment(
     db,
@@ -196,6 +197,7 @@ async function handleUpdatePart(
       name: partName,
       section: partSection,
       track: partTrack,
+      trackOrder: partTrackOrder ?? null,
       order: partOrder,
       durationMin: partDuration ?? null,
       allowExternalSpeaker: partAllowExternalSpeaker,
@@ -289,6 +291,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
     name: string
     section: string
     track: string
+    trackOrder: number | null
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
@@ -510,6 +513,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                                       name: assignment.name,
                                       section: assignment.section,
                                       track: assignment.track,
+                                      trackOrder: assignment.trackOrder,
                                       order: assignment.order,
                                       durationMin: assignment.durationMin,
                                       allowExternalSpeaker: assignment.allowExternalSpeaker,

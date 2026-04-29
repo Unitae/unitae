@@ -3,8 +3,6 @@ import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/rendere
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
 import type { ExportEvent, TemplateExportConfig } from '~/features/events/server/programme-export.server'
 
-// Register fonts lazily to avoid conflicts with TerritoryDocument.tsx which uses bare `/fonts/...`
-// paths. @react-pdf/font is a singleton — the last Font.register() for the same family wins.
 function ensureFontsRegistered() {
   const fontsDir = path.join(process.cwd(), 'public', 'fonts')
   Font.register({
@@ -187,7 +185,7 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-    width: 40,
+    flexShrink: 0,
   },
   // Services
   servicesDivider: {
@@ -410,12 +408,13 @@ function SinglePart({ part }: { part: PartAssignment }) {
 
 function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
   const representative = parts[0]
+  const displayName = representative.topic !== '' ? representative.topic : representative.name
 
   return (
     <View>
       <View style={styles.partRow}>
         <Text style={styles.partLeft}>
-          {representative.name}
+          {displayName}
           {representative.durationMin != null && (
             <Text style={styles.partDuration}> ({representative.durationMin} min)</Text>
           )}
@@ -425,7 +424,7 @@ function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
         const assigneeName = formatName(part.assignee)
         const assistantName = formatName(part.assistant)
         const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
-        const trackName = part.topic !== '' ? part.topic : part.track || `Salle ${idx + 1}`
+        const trackName = part.track || `Salle ${idx + 1}`
         return (
           // biome-ignore lint/suspicious/noArrayIndexKey: track parts within a slot
           <View key={idx} style={styles.trackRow}>

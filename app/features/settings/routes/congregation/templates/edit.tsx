@@ -111,7 +111,7 @@ async function handlePartIntent(
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
     if (submission.status !== 'success') return submission
 
-    const { partId, partName, partSection, partTrack, partOrder, partDuration, partAllowExternalSpeaker } =
+    const { partId, partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
       submission.value
     await upsertTemplatePart(
       db,
@@ -121,6 +121,7 @@ async function handlePartIntent(
         name: partName,
         section: partSection,
         track: partTrack,
+        trackOrder: partTrackOrder ?? null,
         order: partOrder,
         durationMin: partDuration ?? null,
         allowExternalSpeaker: partAllowExternalSpeaker,
@@ -186,6 +187,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
     name: string
     section: string
     track: string
+    trackOrder: number | null
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
@@ -363,6 +365,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                                       name: part.name,
                                       section: part.section,
                                       track: part.track,
+                                      trackOrder: part.trackOrder,
                                       order: part.order,
                                       durationMin: part.durationMin,
                                       allowExternalSpeaker: part.allowExternalSpeaker,
