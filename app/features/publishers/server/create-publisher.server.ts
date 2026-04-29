@@ -1,6 +1,7 @@
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 export interface CreatePublisherParams {
   firstname: string
@@ -13,7 +14,7 @@ export interface CreatePublisherParams {
   isServant: boolean
   isAnointed: boolean
   groupId: number | null
-  type: string
+  type: PublisherType
   congregationId: number
   phone: string
   address: string

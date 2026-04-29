@@ -4,9 +4,10 @@ import {
   type ProgrammeDynamicConfig,
   parseProgrammeConfig,
 } from '~/features/display-board/model/dynamic-document.type'
+import { PublisherType } from '~/shared/types/publisher-type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-const PIONEER_TYPES = ['PionnierPermanant', 'PionnierSpecial', 'Missionnaire']
+const PIONEER_TYPES: PublisherType[] = [PublisherType.PionnierPermanant, PublisherType.PionnierSpecial, PublisherType.Missionnaire]
 
 export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }

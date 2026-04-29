@@ -1,6 +1,10 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { type TransactionClient, unscopedDb, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -403,7 +407,7 @@ export async function importUsers(
             lastname: record.lastname,
             active: record.active,
             isPublisher: record.isPublisher,
-            type: record.type,
+            type: record.type as PublisherType,
             isMale: record.isMale,
             phone: record.phone,
             address: record.address,
@@ -429,7 +433,7 @@ export async function importUsers(
           active: record.active,
           platformAdmin: false,
           isPublisher: record.isPublisher,
-          type: record.type,
+          type: record.type as PublisherType,
           isMale: record.isMale,
           phone: record.phone,
           address: record.address,
@@ -553,7 +557,7 @@ export async function importPublisherActivities(
         publisherId,
         hours: record.hours,
         studies: record.studies,
-        type: record.type,
+        type: record.type as PublisherType,
         isPublisher: record.isPublisher,
         notes: record.notes,
         congregationId,
@@ -575,12 +579,12 @@ export async function importTerritories(
     if (existing) {
       await db.territory.update({
         where: { id: existing.id },
-        data: { type: record.type, notes: record.notes },
+        data: { type: record.type as TerritoryKind, notes: record.notes },
       })
       idMap.set('territories', record.id, existing.id)
     } else {
       const created = await db.territory.create({
-        data: { number: record.number, type: record.type, notes: record.notes, congregationId },
+        data: { number: record.number, type: record.type as TerritoryKind, notes: record.notes, congregationId },
       })
       idMap.set('territories', record.id, created.id)
     }
@@ -666,7 +670,7 @@ export async function importBuildingEntrances(
   for (const record of records) {
     const created = await db.buildingEntrance.create({
       data: {
-        kind: record.kind,
+        kind: record.kind as EntranceKind,
         shopKind: record.shopKind,
         homes: record.homes,
         phones: record.phones,
@@ -800,7 +804,7 @@ export async function importAttributions(
 
     const created = await db.attribution.create({
       data: {
-        type: record.type,
+        type: record.type as TerritoryAttributionKind,
         publisherId,
         territoryId,
         startDate: new Date(record.startDate),

@@ -48,7 +48,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   const { document } = loaderData
   const pdfUrl = `/board/documents/${document.id}/view`
   const embedUrl = `${pdfUrl}${PDF_VIEWER_PARAMS}`
-  const [useFallback, setUseFallback] = useState(false)
+  const [useFallback, setUseFallback] = useState<boolean | null>(null)
 
   useEffect(() => {
     setUseFallback(isAndroidDevice())
@@ -73,7 +73,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
         </Button>
       </div>
 
-      {useFallback ? (
+      {useFallback === null ? null : useFallback ? (
         <PdfViewer url={pdfUrl} />
       ) : (
         <div className="flex flex-1 justify-center bg-muted/30 p-4 md:p-6">

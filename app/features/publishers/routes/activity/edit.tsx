@@ -72,7 +72,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditActivity({ loaderData, actionData }: Route.ComponentProps) {
   const { activity } = loaderData
-  const [type, setType] = useState<PublisherType>(activity.type as PublisherType)
+  const [type, setType] = useState<PublisherType>(activity.type)
 
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -142,12 +142,12 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {[
+              {([
                 PublisherType.PionnierAuxiliaires,
                 PublisherType.PionnierPermanant,
                 PublisherType.PionnierSpecial,
                 PublisherType.Missionnaire,
-              ].includes(type as PublisherType) ? (
+              ] as PublisherType[]).includes(type) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
                   <Input
@@ -259,7 +259,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
       {
-        type: type as PublisherType,
+        type: type,
         isPublisher: hours > 0 ? true : preached,
         hours,
         studies,

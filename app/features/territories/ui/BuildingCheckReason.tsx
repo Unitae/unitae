@@ -1,4 +1,5 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -6,7 +7,7 @@ import { Badge } from '~/shared/ui/badge'
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }
 
 function getResidentialEntrance(building: BuildingWithEntrances): BuildingEntrance | undefined {
-  return building.entrances.find(e => e.kind === 'residential')
+  return building.entrances.find(e => e.kind === EntranceKind.Residential)
 }
 
 export function BuildingCheckReason({

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/paraglide/messages', () => ({
   // biome-ignore lint/style/useNamingConvention: paraglide message keys
@@ -38,7 +39,7 @@ function makeTerritory(id: number, number: string, status: 'on-time' | 'due-soon
     id,
     startDate: new Date(2026, 0, 1),
     lateDate,
-    territory: { id, number, type: 'classical' },
+    territory: { id, number, type: TerritoryKind.Classical },
     status,
   }
 }

@@ -7,6 +7,36 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PublisherType {
+  Normal              @map("normal")
+  PionnierAuxiliaires @map("pionnier-auxiliaires")
+  PionnierPermanant   @map("pionnier-permanant")
+  PionnierSpecial     @map("pionnier-special")
+  Missionnaire        @map("missionnaire")
+}
+
+enum TerritoryKind {
+  Classical @map("doors-to-doors")
+  Univ      @map("campus")
+  Commerces @map("commerces")
+  Phone     @map("phones")
+  Hotel     @map("hotel")
+}
+
+enum EntranceKind {
+  Residential @map("residential")
+  Commerce    @map("commerce")
+  Hotel       @map("hotel")
+  Laundromat  @map("laundromat")
+  Campus      @map("campus")
+}
+
+enum TerritoryAttributionKind {
+  Default  @map("default")
+  Phone    @map("phones")
+  Campaign @map("campaign")
+}
+
 model Congregation {
   id              Int     @id @default(autoincrement())
   name            String
@@ -80,8 +110,8 @@ model User {
   platformAdmin Boolean    @default(false)
   congregationRoles CongregationUserRole[]
 
-  isPublisher Boolean   @default(false)
-  type        String    @default("normal")
+  isPublisher Boolean       @default(false)
+  type        PublisherType @default(Normal)
   isMale      Boolean?
   phone       String?
   address     String?
@@ -233,7 +263,7 @@ model BoardDynamicDocumentView {
 model Territory {
   id           Int                @id @default(autoincrement())
   number       String
-  type         String             @default("doors-to-doors")
+  type         TerritoryKind      @default(Classical)
   notes        String             @default("")
   attributions Attribution[]      @relation("territory")
   entrances    BuildingEntrance[]
@@ -248,7 +278,7 @@ model Territory {
 
 model Attribution {
   id          Int       @id @default(autoincrement())
-  type        String    @default("default")
+  type        TerritoryAttributionKind @default(Default)
   publisher   User      @relation("publisher", fields: [publisherId], references: [id])
   territory   Territory @relation("territory", fields: [territoryId], references: [id])
   publisherId Int
@@ -272,7 +302,7 @@ model BuildingEntrance {
   territories Territory[]
   buildings   Building[]
 
-  kind     String @default("residential")
+  kind     EntranceKind @default(Residential)
   shopKind String @default("")
 
   // Materialized aggregates for residential entrances (sum of BuildingResidentialData)
@@ -391,9 +421,9 @@ model PublisherActivity {
   publisherId Int
 
   hours       Int?
-  studies     Int     @default(0)
-  type        String  @default("normal")
-  isPublisher Boolean @default(false)
+  studies     Int           @default(0)
+  type        PublisherType @default(Normal)
+  isPublisher Boolean       @default(false)
   notes       String  @default("")
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])

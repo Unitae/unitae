@@ -241,7 +241,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               </div>
             </div>
 
-            {[PublisherType.Normal].includes(publisher?.type as PublisherType) && (
+            {publisher?.type != null && (publisher.type === PublisherType.Normal) && (
               <div className="space-y-2">
                 <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
                 <select
@@ -261,13 +261,13 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {[
+              {([
                 PublisherType.PionnierAuxiliaires,
                 PublisherType.PionnierPermanant,
                 PublisherType.PionnierSpecial,
                 PublisherType.Missionnaire,
-              ].includes(publisher?.type as PublisherType) ||
-              [PublisherType.PionnierAuxiliaires].includes(pioneer as PublisherType) ? (
+              ] as PublisherType[]).includes(publisher?.type ?? PublisherType.Normal) ||
+              (pioneer != null && ([PublisherType.PionnierAuxiliaires] as PublisherType[]).includes(pioneer)) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
                   <Input {...getInputProps(fields.hours, { type: 'number' })} key={fields.hours.id} min={0} required />
@@ -356,8 +356,8 @@ export async function action({ request, context }: Route.ActionArgs) {
 
     const type =
       publisher.type === PublisherType.Normal
-        ? (submission.value.type as PublisherType)
-        : (publisher.type ?? PublisherType.Normal)
+        ? (submission.value.type ?? PublisherType.Normal)
+        : publisher.type
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
       month,

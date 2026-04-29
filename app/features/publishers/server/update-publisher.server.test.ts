@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const mockUpdate = vi.fn()
 
@@ -27,7 +28,7 @@ describe('updatePublisher', () => {
     isServant: false,
     isAnointed: false,
     groupId: 5,
-    type: 'publisher',
+    type: PublisherType.Normal,
     phone: '0612345678',
     address: '12 rue de la Paix',
   }
@@ -55,7 +56,7 @@ describe('updatePublisher', () => {
         isAnointed: false,
         publisherGroupId: 5,
         email: 'jean@example.com',
-        type: 'publisher',
+        type: PublisherType.Normal,
         address: '12 rue de la Paix',
         phone: '0612345678',
       },

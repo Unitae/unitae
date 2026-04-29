@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_URL,
@@ -37,7 +38,7 @@ beforeAll(async () => {
         lastname: 'Dupont',
         active: true,
         isPublisher: true,
-        type: 'normal',
+        type: PublisherType.Normal,
         congregationId,
       },
     })
@@ -52,7 +53,7 @@ beforeAll(async () => {
         lastname: 'Martin',
         active: true,
         isPublisher: true,
-        type: 'PionnierPermanant',
+        type: PublisherType.PionnierPermanant,
         congregationId,
       },
     })

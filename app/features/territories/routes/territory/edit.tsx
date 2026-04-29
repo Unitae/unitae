@@ -60,14 +60,14 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         status: 404,
       })
     }
-    const zips = await getAvailableZips(db, congregationId, territory.type as TerritoryKind)
+    const zips = await getAvailableZips(db, congregationId, territory.type)
     const url = new URL(request.url)
     const entrances = await getAvailableEntrances(
       db,
       congregationId,
       String(url.searchParams.get('zip')),
       String(url.searchParams.get('street')),
-      territory.type as TerritoryKind,
+      territory.type,
     )
 
     if (!url.searchParams.has('zip')) {
@@ -85,7 +85,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       db,
       congregationId,
       String(url.searchParams.get('zip')),
-      territory.type as TerritoryKind,
+      territory.type,
     )
     if (!url.searchParams.has('street')) {
       return {

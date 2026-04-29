@@ -1,9 +1,10 @@
+import type { CongregationId, UserId } from '~/shared/types/branded'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getPublisherById(
   db: TransactionClient,
-  publisherId: number,
-  congregationId: number,
+  publisherId: UserId,
+  congregationId: CongregationId,
   serviceYearStart: number,
 ) {
   return db.user.findUnique({

@@ -4,6 +4,7 @@ import { permissionsContext, userContext, withScopeFromContext, requireRole } fr
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
+import type { UserId } from '~/shared/types/branded'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/anonymize'
@@ -16,7 +17,7 @@ export async function action({ params, context }: Route.ActionArgs) {
 
   requireRole(permissions, Role.Admin)
 
-  const userId = requireParamId(params.userId, '/settings/users')
+  const userId = requireParamId<UserId>(params.userId, '/settings/users')
 
   // Empecher l'auto-anonymisation
   if (currentUser.id === userId) {

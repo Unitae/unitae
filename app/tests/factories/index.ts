@@ -1,4 +1,5 @@
 import { PrismaClient } from '~/database/generated/client'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 export function createTestCongregation(db: PrismaClient, overrides: Record<string, unknown> = {}) {
   const suffix = Date.now()
@@ -33,6 +34,6 @@ export function createTestTerritory(
 ) {
   const suffix = Date.now()
   return db.territory.create({
-    data: { number: `T-${suffix}`, type: 'doors-to-doors', congregationId, ...overrides },
+    data: { number: `T-${suffix}`, type: TerritoryKind.Classical, congregationId, ...overrides },
   })
 }

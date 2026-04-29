@@ -2,6 +2,7 @@ import { X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Building } from '~/database/generated/client'
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Label } from '~/shared/ui/label'
@@ -15,7 +16,7 @@ export default function SharedEntranceField({
   avaibleBuildings: Building[]
   onSharedEntranceBuildingsChange: (state: boolean) => void
 }) {
-  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const residentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
   const previousBuildings = residentialEntrance?.buildings ?? []
   const [hasSharedEntrance, setHasSharedEntrance] = useState(previousBuildings.length > 1)
   const [sharedEntranceBuildings, setSharedEntranceBuildings] = useState(previousBuildings)

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { attribution: { update: vi.fn() } },
@@ -13,13 +14,13 @@ beforeEach(() => {
 
 describe('updateAttribution', () => {
   it('returns the updated attribution with required fields only', async () => {
-    const fake = { id: 1, publisherId: 10, type: 'standard' }
+    const fake = { id: 1, publisherId: 10, type: TerritoryAttributionKind.Default }
     vi.mocked(db.attribution.update).mockResolvedValue(fake as never)
 
     const result = await updateAttribution(db as any, 1, 1, {
       publisherId: 10,
       notes: 'test',
-      type: 'standard',
+      type: TerritoryAttributionKind.Default,
       startDate: new Date('2025-01-01'),
     })
 
@@ -33,7 +34,7 @@ describe('updateAttribution', () => {
     await updateAttribution(db as any, 5, 2, {
       publisherId: 3,
       notes: 'note',
-      type: 'campaign',
+      type: TerritoryAttributionKind.Campaign,
       startDate,
     })
 
@@ -51,7 +52,7 @@ describe('updateAttribution', () => {
     await updateAttribution(db as any, 5, 2, {
       publisherId: 3,
       notes: '',
-      type: 'standard',
+      type: TerritoryAttributionKind.Default,
       startDate: new Date('2025-01-01'),
       lateDate,
     })
@@ -67,7 +68,7 @@ describe('updateAttribution', () => {
     await updateAttribution(db as any, 5, 2, {
       publisherId: 3,
       notes: '',
-      type: 'standard',
+      type: TerritoryAttributionKind.Default,
       startDate: new Date('2025-01-01'),
       endDate,
     })

@@ -1,8 +1,9 @@
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface CreateTerritoryParams {
   number: string
-  type: string
+  type: TerritoryKind
   entranceIds: number[]
   congregationId: number
 }

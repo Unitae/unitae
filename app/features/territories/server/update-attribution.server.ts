@@ -1,10 +1,11 @@
 import type { Prisma } from '~/database/generated/client'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateAttributionParams {
   publisherId: number
   notes: string
-  type: string
+  type: TerritoryAttributionKind
   startDate: Date
   lateDate?: Date
   endDate?: Date

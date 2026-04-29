@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Form, redirect } from 'react-router'
+import { Form } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters.server'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings.server'
@@ -35,7 +36,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
     const selectors: Prisma.BuildingEntranceWhereInput = {
-      kind: 'residential',
+      kind: EntranceKind.Residential,
       buildings: {
         some: {
           ...filters,

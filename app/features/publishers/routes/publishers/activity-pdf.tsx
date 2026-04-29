@@ -7,6 +7,7 @@ import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Role } from '~/shared/types/role'
+import type { CongregationId, UserId } from '~/shared/types/branded'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/activity-pdf'
@@ -26,10 +27,10 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const publisherId = requireParamId(params.publisherId, '/publishers')
+  const publisherId = requireParamId<UserId>(params.publisherId, '/publishers')
 
   return withScopeFromContext(context, async db => {
-    const publisher = await getPublisherById(db, publisherId, currentUser.congregationId, computeServiceYearStart())
+    const publisher = await getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, computeServiceYearStart())
 
     if (!publisher) throw new NotFoundError('publisher', publisherId)
 

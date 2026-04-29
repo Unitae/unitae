@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const mockCreate = vi.fn()
 const mockUpdate = vi.fn()
@@ -25,7 +26,7 @@ describe('createPublisherActivity', () => {
       publisherId: 1,
       month: 3,
       year: 2026,
-      type: 'regular',
+      type: PublisherType.Normal,
       isPublisher: true,
       hours: 15,
       studies: 2,
@@ -43,7 +44,7 @@ describe('createPublisherActivity', () => {
         publisherId: 1,
         month: 3,
         year: 2026,
-        type: 'regular',
+        type: PublisherType.Normal,
         isPublisher: true,
         hours: 15,
         studies: 2,
@@ -57,7 +58,7 @@ describe('createPublisherActivity', () => {
 describe('updatePublisherActivity', () => {
   it('updates an activity with correct data', async () => {
     const params = {
-      type: 'auxiliary',
+      type: PublisherType.PionnierAuxiliaires,
       isPublisher: true,
       hours: 30,
       studies: 3,
@@ -75,7 +76,7 @@ describe('updatePublisherActivity', () => {
         id_congregationId: { id: 5, congregationId: 10 },
       },
       data: {
-        type: 'auxiliary',
+        type: PublisherType.PionnierAuxiliaires,
         isPublisher: true,
         hours: 30,
         studies: 3,

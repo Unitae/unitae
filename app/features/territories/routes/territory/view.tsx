@@ -1,6 +1,7 @@
 import { CalendarCheck, Download, ExternalLink, Pencil, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
@@ -198,9 +199,9 @@ function AttributionHistoryTable({
                   {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {attribution.type === 'default' && m.territories_view_attribution_type_default()}
-                  {attribution.type === 'campaign' && m.territories_view_attribution_type_campaign()}
-                  {attribution.type === 'phones' && m.territories_view_attribution_type_phones()}
+                  {attribution.type === TerritoryAttributionKind.Default && m.territories_view_attribution_type_default()}
+                  {attribution.type === TerritoryAttributionKind.Campaign && m.territories_view_attribution_type_campaign()}
+                  {attribution.type === TerritoryAttributionKind.Phone && m.territories_view_attribution_type_phones()}
                 </TableCell>
               </TableRow>
             )

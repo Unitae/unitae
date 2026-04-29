@@ -1,4 +1,5 @@
-import { NavLink, Outlet, redirect } from 'react-router'
+import { NavLink, Outlet } from 'react-router'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -54,7 +55,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     })
     const totalBuildingsForCommerce = await db.buildingEntrance.count({
       where: {
-        kind: 'commerce',
+        kind: EntranceKind.Commerce,
         congregationId,
         buildings: { some: prospectedBuilding },
         territories: { none: { type: TerritoryKind.Commerces } },
@@ -62,7 +63,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     })
     const totalBuildingsForCampus = await db.buildingEntrance.count({
       where: {
-        kind: 'campus',
+        kind: EntranceKind.Campus,
         congregationId,
         buildings: { some: prospectedBuilding },
         territories: { none: { type: TerritoryKind.Univ } },
@@ -70,7 +71,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     })
     const totalBuildingsForHotel = await db.buildingEntrance.count({
       where: {
-        kind: 'hotel',
+        kind: EntranceKind.Hotel,
         congregationId,
         buildings: { some: prospectedBuilding },
         territories: { none: { type: TerritoryKind.Hotel } },

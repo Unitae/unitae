@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -46,10 +47,10 @@ describe('updateCongregationSettings', () => {
     expect(mockDb.user.updateMany).toHaveBeenCalledWith({
       where: {
         congregationId: 10,
-        type: 'pionnier-auxiliaires',
+        type: PublisherType.PionnierAuxiliaires,
       },
       data: {
-        type: 'normal',
+        type: PublisherType.Normal,
       },
     })
   })

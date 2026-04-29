@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { UserId } from '~/shared/types/branded'
 
 const ANONYMIZED_EMAIL_PATTERN = /^deleted-.*@anonymized\.local$/
 
@@ -33,7 +34,7 @@ describe('anonymizeUser', () => {
     mockDb.boardDocumentVersion.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.dataDeletionRecord.create.mockResolvedValue({} as never)
 
-    await anonymizeUser(mockDb as never, 1, 'admin:5')
+    await anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')
 
     const updateCall = mockDb.user.update.mock.calls[0][0]
     expect(updateCall.where).toEqual({ id: 1 })
@@ -69,7 +70,7 @@ describe('anonymizeUser', () => {
   it('refuse d anonymiser un utilisateur inexistant', async () => {
     mockDb.user.findUnique.mockResolvedValue(null as never)
 
-    await expect(anonymizeUser(mockDb as never, 999, 'admin:5')).rejects.toThrow('Utilisateur introuvable : 999')
+    await expect(anonymizeUser(mockDb as never, 999 as UserId, 'admin:5')).rejects.toThrow('Utilisateur introuvable : 999')
   })
 
   it('refuse d anonymiser un utilisateur deja anonymise', async () => {
@@ -79,6 +80,6 @@ describe('anonymizeUser', () => {
       congregationId: 10,
     } as never)
 
-    await expect(anonymizeUser(mockDb as never, 1, 'admin:5')).rejects.toThrow('Utilisateur deja anonymise : 1')
+    await expect(anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')).rejects.toThrow('Utilisateur deja anonymise : 1')
   })
 })

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const mockErrorIfWouldGoOverLimit = vi.fn()
 
@@ -38,7 +39,7 @@ const baseParams = {
   isServant: false,
   isAnointed: false,
   groupId: null,
-  type: 'publisher',
+  type: PublisherType.Normal,
   congregationId: 1,
   phone: '',
   address: '',

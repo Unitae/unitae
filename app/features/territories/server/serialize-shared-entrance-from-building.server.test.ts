@@ -4,7 +4,7 @@ import { serializeSharedEntranceFromBuilding } from './serialize-shared-entrance
 describe('serializeSharedEntranceFromBuilding', () => {
   it('retourne les ids des bâtiments séparés par des virgules', () => {
     const building = {
-      entrances: [{ kind: 'residential', buildings: [{ id: 1 }, { id: 2 }, { id: 3 }] }],
+      entrances: [{ kind: 'Residential', buildings: [{ id: 1 }, { id: 2 }, { id: 3 }] }],
     }
 
     expect(serializeSharedEntranceFromBuilding(building as never)).toBe('1,2,3')
@@ -12,7 +12,7 @@ describe('serializeSharedEntranceFromBuilding', () => {
 
   it('retourne un seul id pour un bâtiment unique', () => {
     const building = {
-      entrances: [{ kind: 'residential', buildings: [{ id: 42 }] }],
+      entrances: [{ kind: 'Residential', buildings: [{ id: 42 }] }],
     }
 
     expect(serializeSharedEntranceFromBuilding(building as never)).toBe('42')
@@ -28,7 +28,7 @@ describe('serializeSharedEntranceFromBuilding', () => {
   })
 
   it('retourne une chaîne vide pour une liste de bâtiments vide', () => {
-    const building = { entrances: [{ kind: 'residential', buildings: [] }] }
+    const building = { entrances: [{ kind: 'Residential', buildings: [] }] }
     expect(serializeSharedEntranceFromBuilding(building as never)).toBe('')
   })
 })

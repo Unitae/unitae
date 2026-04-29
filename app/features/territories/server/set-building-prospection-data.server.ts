@@ -1,4 +1,5 @@
 import type { Building } from '~/database/generated/client'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { BuildingProspectionInput } from '~/features/territories/schemas/building-prospection.schema'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -17,7 +18,7 @@ export async function setBuildingProspectionData(
   const building = await db.building.update({
     where: { id: buildingId },
     data: { prospectionDate: prospectionDate ? new Date(prospectionDate) : null },
-    include: { entrances: { where: { kind: 'residential' }, take: 1 } },
+    include: { entrances: { where: { kind: EntranceKind.Residential }, take: 1 } },
   })
 
   const { congregationId } = building
@@ -35,7 +36,7 @@ export async function setBuildingProspectionData(
   if (hasResidential && residentialEntrance == null) {
     const newEntrance = await db.buildingEntrance.create({
       data: {
-        kind: 'residential',
+        kind: EntranceKind.Residential,
         buildings: { connect: { id: buildingId } },
         congregation: { connect: { id: congregationId } },
       },
@@ -106,9 +107,9 @@ export async function setBuildingProspectionData(
   await syncCommerceEntrances(db, buildingId, congregationId, commerceShopKinds, commerceNotes)
 
   // Manage unique typed entrances (hotel, campus, laundromat)
-  await syncUniqueEntrance(db, buildingId, congregationId, 'hotel', Boolean(input.hotel))
-  await syncUniqueEntrance(db, buildingId, congregationId, 'campus', Boolean(input.campus))
-  await syncUniqueEntrance(db, buildingId, congregationId, 'laundromat', Boolean(input.landromat))
+  await syncUniqueEntrance(db, buildingId, congregationId, EntranceKind.Hotel, Boolean(input.hotel))
+  await syncUniqueEntrance(db, buildingId, congregationId, EntranceKind.Campus, Boolean(input.campus))
+  await syncUniqueEntrance(db, buildingId, congregationId, EntranceKind.Laundromat, Boolean(input.landromat))
 
   return building
 }
@@ -121,7 +122,7 @@ async function syncCommerceEntrances(
   notes: string[],
 ) {
   const existing = await db.buildingEntrance.findMany({
-    where: { kind: 'commerce', buildings: { some: { id: buildingId } } },
+    where: { kind: EntranceKind.Commerce, buildings: { some: { id: buildingId } } },
     orderBy: { id: 'asc' },
   })
 
@@ -141,7 +142,7 @@ async function syncCommerceEntrances(
   for (let i = existing.length; i < shopKinds.length; i++) {
     await db.buildingEntrance.create({
       data: {
-        kind: 'commerce',
+        kind: EntranceKind.Commerce,
         shopKind: shopKinds[i],
         notes: notes[i] ?? '',
         buildings: { connect: { id: buildingId } },
@@ -155,7 +156,7 @@ async function syncUniqueEntrance(
   db: TransactionClient,
   buildingId: number,
   congregationId: number,
-  kind: string,
+  kind: EntranceKind,
   shouldExist: boolean,
 ) {
   const existing = await db.buildingEntrance.findFirst({

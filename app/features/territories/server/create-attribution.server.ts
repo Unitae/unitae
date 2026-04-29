@@ -16,7 +16,7 @@ export interface CreateAttributionParams {
   territoryId: number
   startDate: string
   notes: string
-  type: string
+  type: TerritoryAttributionKind
   congregationId: number
 }
 
@@ -28,8 +28,8 @@ function parsePositiveDays(value: string | null | undefined, fallback: number): 
 
 async function resolveDurationDays(
   db: TransactionClient,
-  attributionType: string,
-  territoryType: string,
+  attributionType: TerritoryAttributionKind,
+  territoryType: TerritoryKind,
   congregationId: number,
 ): Promise<number> {
   if (attributionType === TerritoryAttributionKind.Phone) {

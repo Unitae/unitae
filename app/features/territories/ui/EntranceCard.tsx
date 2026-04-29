@@ -2,7 +2,7 @@ import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import type { BuildingAccess, BuildingEntrance, BuildingResidentialData } from '~/database/generated/client'
 import {
-  type EntranceKind,
+  EntranceKind,
   entranceKindLabels as getEntranceKindLabels,
 } from '~/features/territories/model/entrance-kind.type'
 import { ShopKind } from '~/features/territories/model/shop-kind.type'
@@ -184,7 +184,7 @@ export function CommerceEntranceCard({
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            {getEntranceKindLabels()['commerce' as EntranceKind]}
+            {getEntranceKindLabels()[EntranceKind.Commerce]}
           </CardTitle>
           {onDelete && (
             <Button

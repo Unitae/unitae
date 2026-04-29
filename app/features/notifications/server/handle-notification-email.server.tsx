@@ -6,6 +6,7 @@ import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
 import { runWithLocale } from '~/shared/utils/worker-locale.server'
+import { boardDocumentCreatedPayloadSchema } from '../schemas/notification-payload.schema'
 import { resolveRecipients } from './resolve-recipients.server'
 
 const logger = createLogger('notification-email')
@@ -132,30 +133,33 @@ async function sendNotificationToUser(
 
 function renderNotificationEmail(
   notificationType: string,
-  // biome-ignore lint/suspicious/noExplicitAny: payload shape varies by notification type
-  payload: any,
+  payload: unknown,
   recipient: { email: string; firstname: string | null },
   // biome-ignore lint/suspicious/noExplicitAny: congregation info from resolveCongregation
   congregation: any,
 ): { subject: string; react: React.ReactNode | null } {
   switch (notificationType) {
-    case 'board.document.created':
+    case 'board.document.created': {
+      const parsed = boardDocumentCreatedPayloadSchema.safeParse(payload)
+      if (!parsed.success) {
+        logger.warn('Invalid payload for board.document.created', { payload, error: parsed.error.message })
+        return { subject: '', react: null }
+      }
       return {
         subject: m.email_board_new_document_subject(),
         react: (
           <NewDocumentInBoard
             email={recipient.email}
             firstname={recipient.firstname ?? undefined}
-            filename={payload.title}
-            documentId={payload.documentId}
+            filename={parsed.data.title}
+            documentId={parsed.data.documentId}
             baseUrl={congregation.baseUrl}
             platformName={congregation.displayName}
           />
         ),
       }
+    }
     case 'board.document.deleted':
-      // Fallback notification — document was removed after being notified of creation
-      // For now, reuse the board notification subject with a deletion context
       return {
         subject: m.email_board_new_document_subject(),
         react: null, // No template yet — will be added in follow-up PR

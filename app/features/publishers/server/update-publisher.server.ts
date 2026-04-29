@@ -1,3 +1,4 @@
+import { PublisherType } from '~/shared/types/publisher-type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdatePublisherParams {
@@ -11,7 +12,7 @@ export interface UpdatePublisherParams {
   isServant: boolean
   isAnointed: boolean
   groupId: number | null
-  type: string
+  type: PublisherType
   phone: string
   address: string
 }

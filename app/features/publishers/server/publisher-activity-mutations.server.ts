@@ -1,10 +1,11 @@
+import { PublisherType } from '~/shared/types/publisher-type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface CreatePublisherActivityParams {
   publisherId: number
   month: number
   year: number
-  type: string
+  type: PublisherType
   isPublisher: boolean
   hours: number
   studies: number
@@ -29,7 +30,7 @@ export function createPublisherActivity(db: TransactionClient, params: CreatePub
 }
 
 export interface UpdatePublisherActivityParams {
-  type: string
+  type: PublisherType
   isPublisher: boolean
   hours: number
   studies: number

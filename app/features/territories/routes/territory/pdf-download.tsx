@@ -1,6 +1,4 @@
 import { redirect } from 'react-router'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
 import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
@@ -52,14 +50,14 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     return renderPdfResponse(
       <TerritoryDocument
         name={territory.number}
-        type={territory.type as TerritoryKind}
+        type={territory.type}
         entrances={entrances}
         googleMapKey={apiKey}
         googleMapId={mapId}
         showPhone={showPhoneOnTerritoryCard(phoneTypeActive ?? false)}
         owner={owner}
         restitutionDate={currentAttribution?.lateDate ?? undefined}
-        attributionType={currentAttribution?.type as TerritoryAttributionKind}
+        attributionType={currentAttribution?.type}
       />,
       filename,
     )

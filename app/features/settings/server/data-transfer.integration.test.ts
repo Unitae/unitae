@@ -2,6 +2,9 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import JsZip from 'jszip'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { PublisherType } from '~/shared/types/publisher-type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { EntityIdMap, type ManifestJson } from './data-transfer.type'
 
 // --- Test DB setup (same pattern as db.server.integration.test.ts) ---
@@ -46,7 +49,7 @@ beforeAll(async () => {
         lastname: 'Dupont',
         active: true,
         isPublisher: true,
-        type: 'normal',
+        type: PublisherType.Normal,
         isMale: false,
         congregationId: sourceId,
       },
@@ -60,7 +63,7 @@ beforeAll(async () => {
         lastname: 'Martin',
         active: true,
         isPublisher: true,
-        type: 'normal',
+        type: PublisherType.Normal,
         congregationId: sourceId,
       },
     })
@@ -74,7 +77,7 @@ beforeAll(async () => {
     })
 
     const territory = await tx.territory.create({
-      data: { number: `T-${ts}`, type: 'doors-to-doors', notes: 'Test territory', congregationId: sourceId },
+      data: { number: `T-${ts}`, type: TerritoryKind.Classical, notes: 'Test territory', congregationId: sourceId },
     })
 
     const building = await tx.building.create({
@@ -90,7 +93,7 @@ beforeAll(async () => {
 
     const entrance = await tx.buildingEntrance.create({
       data: {
-        kind: 'residential',
+        kind: EntranceKind.Residential,
         homes: 10,
         phones: 5,
         notes: 'Test entrance',
@@ -126,7 +129,7 @@ beforeAll(async () => {
         publisherId: alice.id,
         hours: 10,
         studies: 1,
-        type: 'normal',
+        type: PublisherType.Normal,
         isPublisher: true,
         congregationId: sourceId,
       },

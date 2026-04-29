@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import type { CongregationId, UserId } from '~/shared/types/branded'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher'
@@ -47,11 +48,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
-  const publisherId = requireParamId(params.publisherId, '/publishers')
+  const publisherId = requireParamId<UserId>(params.publisherId, '/publishers')
 
   return withScopeFromContext(context, async db => {
     const [publisher, attributions] = await Promise.all([
-      getPublisherById(db, publisherId, currentUser.congregationId, computeServiceYearStart()),
+      getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, computeServiceYearStart()),
       findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
     ])
 
