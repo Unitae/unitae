@@ -192,6 +192,16 @@ if (submission.status !== 'success') return submission.reply()
 - Service functions throw these; route actions catch and convert to user-facing responses
 - Unexpected errors bubble up to the error boundary
 
+**Service error contract** — enforced across all `features/*/server/` functions:
+
+| Case | Contract |
+|---|---|
+| Record not found | Return `null` — the caller (route loader/action) decides whether to redirect |
+| Business rule violation | Throw an `AppError` subclass (`ConflictError`, `ForbiddenError`, `LimitReachedError`) |
+| Redirect decisions | Route loaders/actions only — never from service functions |
+
+`throw redirect()` is allowed only in: auth middleware (`requireAuth`, `enforceGdprConsent`), route guards (`requireRole`, `verifyPlatformAdmin`), and session validation (`session.server.ts`). It must never appear in a business service function.
+
 **Database Layer**:
 - Prisma ORM with PostgreSQL via `@prisma/adapter-pg`
 - Schema at `app/database/schema.prisma`
