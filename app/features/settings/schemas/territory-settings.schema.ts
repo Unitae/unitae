@@ -9,7 +9,14 @@ export const territorySettingsSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on' || v === 'true'),
-  'attribution-default-duration': z.string().default('4'),
+  'map-tab-active': z
+    .string()
+    .optional()
+    .transform(v => v === 'on' || v === 'true'),
+  'attribution-default-duration': z.string().default('120'),
+  'attribution-campaign-duration': z.string().default('60'),
+  'attribution-phone-duration': z.string().default('14'),
+  'attribution-commerce-duration': z.string().default('120'),
 })
 
 export type TerritorySettingsInput = z.infer<typeof territorySettingsSchema>

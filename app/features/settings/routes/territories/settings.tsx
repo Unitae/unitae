@@ -1,5 +1,6 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
@@ -31,6 +32,58 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_territories_meta_title() }]
 }
 
+function formatDayHint(days: number): string {
+  if (days < 14) return `${days} jour${days > 1 ? 's' : ''}`
+  if (days < 28) {
+    const weeks = Math.round(days / 7)
+    return `= ${weeks} semaine${weeks > 1 ? 's' : ''}`
+  }
+  const months = Math.round(days / 30)
+  return `≈ ${months} mois`
+}
+
+function DurationInput({
+  field,
+  label,
+  hint,
+  defaultValue,
+  onChange,
+}: {
+  field: { id: string; name: string; errors?: string[] }
+  label: string
+  hint: string
+  defaultValue: number
+  onChange: () => void
+}) {
+  const [hint_, setHint] = useState(formatDayHint(defaultValue))
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={field.id}>{label}</Label>
+      <div className="flex items-center gap-3">
+        <Input
+          id={field.id}
+          name={field.name}
+          type="number"
+          min={1}
+          max={365}
+          defaultValue={defaultValue}
+          className="w-28"
+          onChange={e => {
+            const v = Number(e.target.value)
+            if (v > 0) setHint(formatDayHint(v))
+            onChange()
+          }}
+        />
+        <span className="text-muted-foreground text-sm">{m.settings_territories_attribution_duration_days_unit()}</span>
+        <span className="text-muted-foreground text-xs">{hint_}</span>
+      </div>
+      {field.errors && <p className="text-destructive text-sm">{field.errors}</p>}
+      <p className="text-muted-foreground text-xs">{hint}</p>
+    </div>
+  )
+}
+
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
@@ -54,10 +107,39 @@ export async function loader({ context }: Route.LoaderArgs) {
       TerritorySettingKey.TerritoryTypePhoneActive,
       currentUser.congregationId,
     )
+    const mapTabActivated = await getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId)
 
-    const attributionDuration = await getSetting(
+    // Attribution durations — all stored in days; fall back to legacy months×30 for default
+    const defaultDaysSetting = await getSetting(
       db,
-      TerritorySettingKey.AttributionDefaultDurationMonths,
+      TerritorySettingKey.AttributionDefaultDurationDays,
+      currentUser.congregationId,
+    )
+    let attributionDefaultDuration: number
+    if (defaultDaysSetting && Number(defaultDaysSetting) > 0) {
+      attributionDefaultDuration = Number(defaultDaysSetting)
+    } else {
+      const legacyMonths = await getSetting(
+        db,
+        TerritorySettingKey.AttributionDefaultDurationMonths,
+        currentUser.congregationId,
+      )
+      attributionDefaultDuration = legacyMonths && Number(legacyMonths) > 0 ? Number(legacyMonths) * 30 : 120
+    }
+
+    const campaignDuration = await getSetting(
+      db,
+      TerritorySettingKey.AttributionCampaignDurationDays,
+      currentUser.congregationId,
+    )
+    const phoneDuration = await getSetting(
+      db,
+      TerritorySettingKey.AttributionPhoneDurationDays,
+      currentUser.congregationId,
+    )
+    const commerceDuration = await getSetting(
+      db,
+      TerritorySettingKey.AttributionCommerceDurationDays,
       currentUser.congregationId,
     )
 
@@ -67,13 +149,28 @@ export async function loader({ context }: Route.LoaderArgs) {
       banoUrl: banoUrl ?? '',
       prospectionValidity: Number(prospectionValidity ?? '24'),
       phoneTypeActivated: phoneTypeActivated ?? false,
-      attributionDuration: Number(attributionDuration ?? '4'),
+      mapTabActivated: mapTabActivated ?? false,
+      attributionDefaultDuration,
+      attributionCampaignDuration: Number(campaignDuration ?? '60'),
+      attributionPhoneDuration: Number(phoneDuration ?? '14'),
+      attributionCommerceDuration: Number(commerceDuration ?? '120'),
     }
   })
 }
 
 export default function TerritorySettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { territory, zips, banoUrl, prospectionValidity, phoneTypeActivated, attributionDuration } = loaderData
+  const {
+    territory,
+    zips,
+    banoUrl,
+    prospectionValidity,
+    phoneTypeActivated,
+    mapTabActivated,
+    attributionDefaultDuration,
+    attributionCampaignDuration,
+    attributionPhoneDuration,
+    attributionCommerceDuration,
+  } = loaderData
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -144,22 +241,35 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
             <CardTitle>{m.settings_territories_attributions_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <Label htmlFor={fields['attribution-default-duration'].id}>
-                {m.settings_territories_attribution_duration_label()}
-              </Label>
-              <Input
-                {...getInputProps(fields['attribution-default-duration'], { type: 'number' })}
-                key={fields['attribution-default-duration'].id}
-                defaultValue={attributionDuration}
-                min={1}
-                max={24}
-              />
-              {fields['attribution-default-duration'].errors && (
-                <p className="text-destructive text-sm">{fields['attribution-default-duration'].errors}</p>
-              )}
-              <p className="text-muted-foreground text-xs">{m.settings_territories_attribution_duration_hint()}</p>
-            </div>
+            <p className="text-muted-foreground text-sm">{m.settings_territories_attribution_durations_section()}</p>
+            <DurationInput
+              field={fields['attribution-default-duration']}
+              label={m.settings_territories_attribution_default_duration_label()}
+              hint={m.settings_territories_attribution_default_duration_hint()}
+              defaultValue={attributionDefaultDuration}
+              onChange={markDirty}
+            />
+            <DurationInput
+              field={fields['attribution-commerce-duration']}
+              label={m.settings_territories_attribution_commerce_duration_label()}
+              hint={m.settings_territories_attribution_commerce_duration_hint()}
+              defaultValue={attributionCommerceDuration}
+              onChange={markDirty}
+            />
+            <DurationInput
+              field={fields['attribution-campaign-duration']}
+              label={m.settings_territories_attribution_campaign_duration_label()}
+              hint={m.settings_territories_attribution_campaign_duration_hint()}
+              defaultValue={attributionCampaignDuration}
+              onChange={markDirty}
+            />
+            <DurationInput
+              field={fields['attribution-phone-duration']}
+              label={m.settings_territories_attribution_phone_duration_label()}
+              hint={m.settings_territories_attribution_phone_duration_hint()}
+              defaultValue={attributionPhoneDuration}
+              onChange={markDirty}
+            />
           </CardContent>
         </Card>
 
@@ -196,6 +306,23 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
                 {m.settings_territories_phone_type_after()}
               </Label>
             </div>
+
+            <Separator />
+
+            <p className="font-medium text-sm">{m.settings_territories_virtual_territory_title()}</p>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="map-tab-active"
+                name="map-tab-active"
+                value="on"
+                defaultChecked={mapTabActivated}
+              />
+              <Label htmlFor="map-tab-active" className="font-normal">
+                {m.settings_territories_map_tab_before()}
+                <span className="font-bold text-primary">{m.settings_territories_map_tab_highlight()}</span>
+                {m.settings_territories_map_tab_after()}
+              </Label>
+            </div>
           </CardContent>
         </Card>
 
@@ -225,7 +352,11 @@ export async function action({ request, context }: Route.ActionArgs) {
   const banoUrl = submission.value['bano-url']
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
-  const attributionDuration = submission.value['attribution-default-duration']
+  const mapTabActivated = String(submission.value['map-tab-active'])
+  const attributionDefaultDuration = submission.value['attribution-default-duration']
+  const attributionCampaignDuration = submission.value['attribution-campaign-duration']
+  const attributionPhoneDuration = submission.value['attribution-phone-duration']
+  const attributionCommerceDuration = submission.value['attribution-commerce-duration']
 
   return withScopeFromContext(context, async db => {
     await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
@@ -233,10 +364,29 @@ export async function action({ request, context }: Route.ActionArgs) {
     await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, phoneTypeActivated, currentUser.congregationId)
+    await setSetting(db, TerritorySettingKey.MapTabActive, mapTabActivated, currentUser.congregationId)
     await setSetting(
       db,
-      TerritorySettingKey.AttributionDefaultDurationMonths,
-      attributionDuration,
+      TerritorySettingKey.AttributionDefaultDurationDays,
+      attributionDefaultDuration,
+      currentUser.congregationId,
+    )
+    await setSetting(
+      db,
+      TerritorySettingKey.AttributionCampaignDurationDays,
+      attributionCampaignDuration,
+      currentUser.congregationId,
+    )
+    await setSetting(
+      db,
+      TerritorySettingKey.AttributionPhoneDurationDays,
+      attributionPhoneDuration,
+      currentUser.congregationId,
+    )
+    await setSetting(
+      db,
+      TerritorySettingKey.AttributionCommerceDurationDays,
+      attributionCommerceDuration,
       currentUser.congregationId,
     )
 

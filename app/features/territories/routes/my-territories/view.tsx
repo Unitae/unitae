@@ -54,6 +54,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       TerritorySettingKey.TerritoryTypePhoneActive,
       currentUser.congregationId,
     )
+    const mapTabActive = await getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId)
 
     return {
       territory: attribution.territory,
@@ -65,6 +66,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         status: computeStatus(attribution.lateDate),
       },
       phoneTypeActive,
+      mapTabActive: mapTabActive ?? false,
       googleMaps: { apiKey, mapId },
     }
   })
@@ -83,7 +85,7 @@ function statusLabel(status: TerritoryStatus): string {
 }
 
 export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
-  const { territory, entrances, attribution, phoneTypeActive, googleMaps } = loaderData
+  const { territory, entrances, attribution, phoneTypeActive, mapTabActive, googleMaps } = loaderData
 
   return (
     <div className="flex flex-col gap-6">
@@ -117,7 +119,7 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
       <Tabs defaultValue="territory">
         <TabsList>
           <TabsTrigger value="territory">{m.my_territories_tab_territory()}</TabsTrigger>
-          <TabsTrigger value="map">{m.my_territories_tab_map()}</TabsTrigger>
+          {mapTabActive && <TabsTrigger value="map">{m.my_territories_tab_map()}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="territory">
@@ -133,9 +135,11 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
           </div>
         </TabsContent>
 
-        <TabsContent value="map">
-          <TerritoryMap entrances={entrances} apiKey={googleMaps.apiKey} />
-        </TabsContent>
+        {mapTabActive && (
+          <TabsContent value="map">
+            <TerritoryMap entrances={entrances} apiKey={googleMaps.apiKey} />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
