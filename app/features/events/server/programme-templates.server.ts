@@ -25,7 +25,7 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
 export function updateTemplate(
   db: TransactionClient,
   templateId: number,
-  data: { name?: string; weekDay?: number | null; isRecurring?: boolean; description?: string },
+  data: { name?: string; weekDay?: number | null; isRecurring?: boolean; description?: string; kindId?: number | null },
   congregationId: number,
 ) {
   return db.programmeTemplate.update({

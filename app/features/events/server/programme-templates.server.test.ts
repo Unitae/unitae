@@ -55,12 +55,30 @@ describe('getTemplateById', () => {
 })
 
 describe('updateTemplate', () => {
-  it('updates template metadata', async () => {
+  it('updates template name', async () => {
     const updated = { id: 1, name: 'Updated Name' }
     vi.mocked(db.programmeTemplate.update).mockResolvedValue(updated as never)
 
     const result = await updateTemplate(db, 1, { name: 'Updated Name' }, 1)
     expect(result).toEqual(updated)
+  })
+
+  it('sets kindId when provided', async () => {
+    vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
+
+    await updateTemplate(db, 1, { name: 'Réunion', kindId: 5 }, 1)
+
+    const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
+    expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(5)
+  })
+
+  it('clears kindId when set to null', async () => {
+    vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
+
+    await updateTemplate(db, 1, { name: 'Réunion', kindId: null }, 1)
+
+    const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
+    expect((call[0] as { data: { kindId: null } }).data.kindId).toBeNull()
   })
 })
 

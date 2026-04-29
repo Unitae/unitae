@@ -1,9 +1,10 @@
-import { EventKind } from '~/features/events/model/event-kind.type'
+import { computeDatesForWeekdayCount } from '~/features/events/model/compute-dates'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 interface TemplateWithRelations {
   id: number
   name: string
+  kindId: number | null
   parts: { id: number; name: string; section: string; track: string; trackOrder: number | null; order: number; durationMin: number | null; allowExternalSpeaker: boolean }[]
   serviceRoles: { id: number; name: string }[]
 }
@@ -14,6 +15,7 @@ function loadTemplate(db: TransactionClient, templateId: number, congregationId:
     include: {
       parts: { orderBy: { order: 'asc' } },
       serviceRoles: true,
+      kind: true,
     },
   })
 }
@@ -37,7 +39,7 @@ async function createEventWithAssignments(
       startDate,
       endDate,
       templateId: template.id,
-      ...(meetingKindId ? { kindId: meetingKindId } : {}),
+      ...(meetingKindId != null ? { kindId: meetingKindId } : {}),
       createdById,
       congregationId,
     },
@@ -77,22 +79,21 @@ async function createEventWithAssignments(
 export async function generateEventsFromTemplate(
   db: TransactionClient,
   templateId: number,
-  monthsAhead: number,
+  occurrences: number,
   createdById: number,
   congregationId: number,
+  startFrom?: Date,
 ) {
   const template = await loadTemplate(db, templateId, congregationId)
   if (!template || template.weekDay == null) return []
 
-  const dates = computeDatesForWeekday(template.weekDay, monthsAhead)
+  const dates = computeDatesForWeekdayCount(template.weekDay, occurrences, startFrom)
 
   const existingEvents = await db.event.findMany({
     where: { templateId, congregationId, startDate: { gte: dates[0] ?? new Date() } },
     select: { startDate: true },
   })
   const existingDateStrings = new Set(existingEvents.map(e => toDateString(e.startDate)))
-
-  const meetingKind = await db.eventKind.findFirst({ where: { key: EventKind.Meeting, congregationId } })
 
   const createdEvents = []
   for (const date of dates) {
@@ -103,7 +104,7 @@ export async function generateEventsFromTemplate(
       date,
       createdById,
       congregationId,
-      meetingKind?.id ?? null,
+      template.kindId,
     )
     createdEvents.push(event)
   }
@@ -127,28 +128,7 @@ export async function createSingleEventFromTemplate(
   })
   if (existing) return null
 
-  const meetingKind = await db.eventKind.findFirst({ where: { key: EventKind.Meeting, congregationId } })
-  return createEventWithAssignments(db, template, date, createdById, congregationId, meetingKind?.id ?? null)
-}
-
-export function computeDatesForWeekday(weekDay: number, monthsAhead: number): Date[] {
-  const dates: Date[] = []
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-
-  const endDate = new Date(today)
-  endDate.setMonth(endDate.getMonth() + monthsAhead)
-
-  const current = new Date(today)
-  const daysUntilTarget = (weekDay - current.getDay() + 7) % 7
-  current.setDate(current.getDate() + (daysUntilTarget === 0 ? 0 : daysUntilTarget))
-
-  while (current <= endDate) {
-    dates.push(new Date(current))
-    current.setDate(current.getDate() + 7)
-  }
-
-  return dates
+  return createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId)
 }
 
 function toDateString(date: Date): string {

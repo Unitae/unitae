@@ -9,9 +9,16 @@ export function createFreeformEvent(
     endDate: Date
     createdById: number
     congregationId: number
+    kindId?: number
   },
 ) {
   return db.event.create({ data })
+}
+
+export function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number) {
+  return db.event.deleteMany({
+    where: { id: { in: ids }, congregationId },
+  })
 }
 
 export function deleteEvent(db: TransactionClient, id: number, congregationId: number) {
