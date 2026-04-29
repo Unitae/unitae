@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
 import * as m from '~/paraglide/messages'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -12,6 +12,7 @@ type PartData = {
   name: string
   section: string
   track: string
+  trackOrder?: number | null
   order: number
   durationMin: number | null
   allowExternalSpeaker?: boolean
@@ -29,6 +30,11 @@ type PartEditSheetProps = {
 export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, defaultOrder }: PartEditSheetProps) {
   const isEditing = part != null
   const prevState = useRef(fetcher.state)
+  const [trackValue, setTrackValue] = useState(part?.track ?? '')
+
+  useEffect(() => {
+    setTrackValue(part?.track ?? '')
+  }, [part])
 
   useEffect(() => {
     if (prevState.current === 'submitting' && fetcher.state === 'idle') {
@@ -65,8 +71,25 @@ export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, default
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
-            <Input id="partTrack" name="partTrack" defaultValue={part?.track ?? ''} />
+            <Input
+              id="partTrack"
+              name="partTrack"
+              value={trackValue}
+              onChange={e => setTrackValue(e.target.value)}
+            />
           </div>
+
+          {trackValue !== '' && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="partTrackOrder">{m.programs_edit_part_track_order_label()}</Label>
+              <Input
+                id="partTrackOrder"
+                name="partTrackOrder"
+                type="number"
+                defaultValue={part?.trackOrder ?? ''}
+              />
+            </div>
+          )}
 
           <div className="flex gap-4">
             <div className="flex flex-1 flex-col gap-2">

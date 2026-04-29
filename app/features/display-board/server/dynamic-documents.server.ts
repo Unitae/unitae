@@ -327,7 +327,7 @@ function fetchProgrammeByIds(
     include: {
       template: true,
       partAssignments: {
-        orderBy: { order: 'asc' },
+        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
         include: {
           assignee: { select: userSelect },
           assistant: { select: userSelect },
@@ -355,7 +355,7 @@ function fetchProgrammeByKey(
     },
     include: {
       partAssignments: {
-        orderBy: { order: 'asc' },
+        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
         include: {
           assignee: { select: userSelect },
           assistant: { select: userSelect },

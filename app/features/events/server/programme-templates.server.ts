@@ -45,6 +45,7 @@ export function upsertTemplatePart(
     name: string
     section: string
     track: string
+    trackOrder?: number | null
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
@@ -61,6 +62,7 @@ export function upsertTemplatePart(
         name: partData.name,
         section: partData.section,
         track: partData.track,
+        trackOrder: partData.trackOrder,
         order: partData.order,
         durationMin: partData.durationMin,
         allowExternalSpeaker: partData.allowExternalSpeaker,
@@ -73,6 +75,7 @@ export function upsertTemplatePart(
       name: partData.name,
       section: partData.section,
       track: partData.track,
+      trackOrder: partData.trackOrder,
       order: partData.order,
       durationMin: partData.durationMin,
       allowExternalSpeaker: partData.allowExternalSpeaker,

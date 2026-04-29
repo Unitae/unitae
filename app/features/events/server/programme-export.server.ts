@@ -43,7 +43,7 @@ export async function getEventsForExport(db: TransactionClient, templateIds: num
       template: true,
       partAssignments: {
         include: { assignee: true, assistant: true },
-        orderBy: { order: 'asc' },
+        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
       },
       serviceRoleAssignments: {
         include: { assignee: true },

@@ -61,4 +61,18 @@ describe('groupPartsBySlot', () => {
   it('retourne un tableau vide pour une liste vide', () => {
     expect(groupPartsBySlot([])).toEqual([])
   })
+
+  it("préserve le champ track de chaque partie dans un slot parallèle (le rendu l'utilise comme étiquette de salle)", () => {
+    const parts: Part[] = [
+      makePart(1, 'Ministere', 5, 'Salle principale'),
+      makePart(2, 'Ministere', 5, 'Salle secondaire'),
+    ]
+
+    const result = groupPartsBySlot(parts)
+    const slot = result[0].slots[0]
+
+    expect(slot.parts).toHaveLength(2)
+    expect(slot.parts[0].track).toBe('Salle principale')
+    expect(slot.parts[1].track).toBe('Salle secondaire')
+  })
 })

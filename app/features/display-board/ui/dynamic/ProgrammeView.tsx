@@ -200,10 +200,12 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
   const representative = parts[0]
   const hasQuery = query.length > 0
 
+  const displayName = representative.topic !== '' ? representative.topic : representative.name
+
   return (
     <div>
       <div className="font-semibold text-foreground text-sm">
-        {representative.name}
+        {displayName}
         {representative.durationMin != null && (
           <span className="ml-1 font-normal text-muted-foreground text-xs">({representative.durationMin} min)</span>
         )}
@@ -212,7 +214,7 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
         const assigneeName = formatName(part.assignee)
         const assistantName = formatName(part.assistant)
         const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
-        const trackName = part.topic !== '' ? part.topic : part.track || `Salle ${idx + 1}`
+        const trackName = part.track || `Salle ${idx + 1}`
         const highlighted = hasQuery && (nameMatches(part.assignee, query) || nameMatches(part.assistant, query))
         const dimmed = hasQuery && !highlighted
 

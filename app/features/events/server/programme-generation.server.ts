@@ -4,7 +4,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 interface TemplateWithRelations {
   id: number
   name: string
-  parts: { id: number; name: string; section: string; track: string; order: number; durationMin: number | null; allowExternalSpeaker: boolean }[]
+  parts: { id: number; name: string; section: string; track: string; trackOrder: number | null; order: number; durationMin: number | null; allowExternalSpeaker: boolean }[]
   serviceRoles: { id: number; name: string }[]
 }
 
@@ -51,6 +51,7 @@ async function createEventWithAssignments(
         name: part.name,
         section: part.section,
         track: part.track,
+        trackOrder: part.trackOrder,
         order: part.order,
         durationMin: part.durationMin,
         allowExternalSpeaker: part.allowExternalSpeaker,
