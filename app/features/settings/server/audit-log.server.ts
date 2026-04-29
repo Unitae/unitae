@@ -33,5 +33,17 @@ export async function findAuditLogsPaginated(params: AuditLogQueryParams) {
     }),
   ])
 
-  return { count, logs }
+  const actorIds = [...new Set(logs.map(l => l.actorId).filter((id): id is number => id != null))]
+  const actors =
+    actorIds.length > 0
+      ? await unscopedDb.user.findMany({ where: { id: { in: actorIds } }, select: { id: true, email: true } })
+      : []
+  const actorMap = new Map(actors.map(a => [a.id, a.email]))
+
+  const logsWithActor = logs.map(log => ({
+    ...log,
+    actorEmail: log.actorEmail ?? (log.actorId != null ? (actorMap.get(log.actorId) ?? null) : null),
+  }))
+
+  return { count, logs: logsWithActor }
 }
