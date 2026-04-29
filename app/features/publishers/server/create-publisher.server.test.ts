@@ -49,7 +49,7 @@ describe('createPublisher', () => {
     const fake = { id: 1, email: 'jean@example.com' }
     mockDb.user.create.mockResolvedValue(fake as never)
 
-    const result = await createPublisher(mockDb as any, baseCongregation, baseParams)
+    const result = await createPublisher(mockDb as any, baseCongregation, baseParams, 1)
 
     expect(result).toEqual(fake)
     const call = mockDb.user.create.mock.calls[0][0]
@@ -59,7 +59,7 @@ describe('createPublisher', () => {
   it('creates publisher with placeholder email when email is null', async () => {
     mockDb.user.create.mockResolvedValue({ id: 2 } as never)
 
-    await createPublisher(mockDb as any, baseCongregation, { ...baseParams, email: null })
+    await createPublisher(mockDb as any, baseCongregation, { ...baseParams, email: null }, 1)
 
     const call = mockDb.user.create.mock.calls[0][0]
     expect(call.data.email).toBe('jean.dupont@placeholder.unitae.app')
@@ -72,7 +72,7 @@ describe('createPublisher', () => {
       ...baseParams,
       phone: '0612345678',
       address: '5 rue de la Paix',
-    })
+    }, 1)
 
     const call = mockDb.user.create.mock.calls[0][0]
     expect(call.data.phone).toBe('0612345678')
@@ -82,7 +82,7 @@ describe('createPublisher', () => {
   it('throws LimitError when publisher limit reached', async () => {
     mockErrorIfWouldGoOverLimit.mockRejectedValue(new Error('Limit reached'))
 
-    await expect(createPublisher(mockDb as any, baseCongregation, baseParams)).rejects.toThrow('Limit reached')
+    await expect(createPublisher(mockDb as any, baseCongregation, baseParams, 1)).rejects.toThrow('Limit reached')
 
     expect(mockDb.user.create).not.toHaveBeenCalled()
   })

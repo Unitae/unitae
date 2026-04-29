@@ -52,7 +52,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    await deleteEvent(db, eventId, congregationId)
+    await deleteEvent(db, eventId, congregationId, currentUser.id)
 
     logger.info(`Deleted event ${eventId}. User ID: ${currentUser.id}.`)
     session.flash('success', m.programs_delete_success({ name: event.name }))

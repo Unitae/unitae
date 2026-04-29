@@ -57,7 +57,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       key,
       weekDay,
       congregationId: currentUser.congregationId,
-    })
+    }, currentUser.id)
 
     logger.info(`Created template "${name}" (${key}). User ID: ${currentUser.id}.`)
     session.flash('success', m.settings_template_new_success({ name }))

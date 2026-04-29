@@ -1,3 +1,4 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { deleteFile } from './document.server'
@@ -38,6 +39,14 @@ export async function createVersionFromCurrent(
       uploadedById,
       congregationId,
     },
+  })
+
+  audit({
+    action: AuditAction.BoardDocumentVersionCreated,
+    congregationId,
+    actorId: uploadedById,
+    entityType: 'BoardDocument',
+    entityId: documentId,
   })
 }
 
@@ -113,6 +122,15 @@ export async function restoreDocumentVersion(
     congregationId,
     documentId,
     pdfStorageKey: version.uri,
+  })
+
+  audit({
+    action: AuditAction.BoardDocumentVersionRestored,
+    congregationId,
+    actorId: uploadedById,
+    entityType: 'BoardDocument',
+    entityId: documentId,
+    metadata: { versionId },
   })
 
   return { versionNumber: version.versionNumber }

@@ -22,7 +22,7 @@ describe('createProgrammeTemplate', () => {
       key: 'meeting',
       weekDay: 3,
       congregationId: 10,
-    })
+    }, 1)
 
     expect(result).toEqual(expected)
     expect(mockDb.programmeTemplate.create).toHaveBeenCalledWith({
@@ -45,7 +45,7 @@ describe('createProgrammeTemplate', () => {
       key: 'special',
       weekDay: null,
       congregationId: 10,
-    })
+    }, 1)
 
     expect(result).toEqual(expected)
     expect(mockDb.programmeTemplate.create).toHaveBeenCalledWith({

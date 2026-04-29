@@ -6,6 +6,7 @@ import { registerCongregation } from '~/features/authentication/server/register-
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/paraglide/messages'
 import { locales } from '~/paraglide/runtime'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
@@ -164,6 +165,12 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   session.set('userId', String(result.userId))
+
+  audit({
+    action: AuditAction.CongregationRegistered,
+    congregationId: result.congregationId,
+    metadata: { slug, adminEmail: email },
+  })
 
   return redirect('/', {
     headers: { 'Set-Cookie': await commitSession(session) },

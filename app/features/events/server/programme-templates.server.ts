@@ -1,3 +1,4 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
@@ -22,19 +23,30 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
   })
 }
 
-export function updateTemplate(
+export async function updateTemplate(
   db: TransactionClient,
   templateId: number,
   data: { name?: string; weekDay?: number | null; isRecurring?: boolean; description?: string; kindId?: number | null },
   congregationId: number,
+  actorId: number,
 ) {
-  return db.programmeTemplate.update({
+  const template = await db.programmeTemplate.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: templateId, congregationId },
     },
     data,
   })
+
+  audit({
+    action: AuditAction.ProgrammeTemplateUpdated,
+    congregationId,
+    actorId,
+    entityType: 'ProgrammeTemplate',
+    entityId: templateId,
+  })
+
+  return template
 }
 
 export function upsertTemplatePart(
@@ -187,14 +199,14 @@ export function isTemplateResponsible(
   })
 }
 
-export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number) {
+export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number, actorId: number) {
   const source = await db.programmeTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: { parts: { orderBy: { order: 'asc' } }, serviceRoles: true },
   })
   if (!source) return null
 
-  return db.programmeTemplate.create({
+  const newTemplate = await db.programmeTemplate.create({
     data: {
       name: `${source.name} (copie)`,
       key: `${source.key}-copy-${Date.now()}`,
@@ -222,4 +234,15 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
       },
     },
   })
+
+  audit({
+    action: AuditAction.ProgrammeTemplateCreated,
+    congregationId,
+    actorId,
+    entityType: 'ProgrammeTemplate',
+    entityId: newTemplate.id,
+    metadata: { duplicatedFrom: templateId },
+  })
+
+  return newTemplate
 }

@@ -118,7 +118,7 @@ function handleEditIntent(
 ): Promise<IntentResult | null> {
   switch (intent) {
     case 'update-event':
-      return handleUpdateEvent(formData, db, eventId, congregationId)
+      return handleUpdateEvent(formData, db, eventId, congregationId, userId)
     case 'add-part':
       return handleAddPart(formData, db, eventId, congregationId)
     case 'update-part':
@@ -143,6 +143,7 @@ async function handleUpdateEvent(
   db: TransactionClient,
   eventId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updateEventSchema })
   if (submission.status !== 'success') return submission
@@ -159,7 +160,7 @@ async function handleUpdateEvent(
     if (!Number.isNaN(endDate.getTime())) payload.endDate = endDate
   }
 
-  await updateEvent(db, eventId, congregationId, payload)
+  await updateEvent(db, eventId, congregationId, payload, actorId)
   return { message: m.programs_edit_event_updated() }
 }
 

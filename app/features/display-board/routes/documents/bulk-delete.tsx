@@ -28,8 +28,9 @@ export async function action({ request, context }: Route.ActionArgs) {
   const dynIds = items.filter(i => i.kind === 'dyn').map(i => i.id)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
-    const { pdfDeleted, dynDeleted } = await bulkDeleteBoardItems(db, congregationId, pdfIds, dynIds)
+    const currentUser = context.get(userContext)
+    const { congregationId } = currentUser
+    const { pdfDeleted, dynDeleted } = await bulkDeleteBoardItems(db, congregationId, pdfIds, dynIds, currentUser.id)
 
     logger.info(`Bulk deleted ${pdfDeleted} PDF documents and ${dynDeleted} dynamic documents.`)
 

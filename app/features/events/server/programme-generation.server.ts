@@ -1,4 +1,5 @@
 import { computeDatesForWeekdayCount } from '~/features/events/model/compute-dates'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 interface TemplateWithRelations {
@@ -111,6 +112,17 @@ export async function generateEventsFromTemplate(
     createdEvents.push(event)
   }
 
+  if (createdEvents.length > 0) {
+    audit({
+      action: AuditAction.ProgrammeGenerated,
+      congregationId,
+      actorId: createdById,
+      entityType: 'ProgrammeTemplate',
+      entityId: templateId,
+      metadata: { templateId, count: createdEvents.length },
+    })
+  }
+
   return createdEvents
 }
 
@@ -130,7 +142,20 @@ export async function createSingleEventFromTemplate(
   })
   if (existing) return null
 
-  return createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId)
+  const event = await createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId)
+
+  if (event) {
+    audit({
+      action: AuditAction.ProgrammeGenerated,
+      congregationId,
+      actorId: createdById,
+      entityType: 'Event',
+      entityId: event.id,
+      metadata: { templateId, date: date.toISOString() },
+    })
+  }
+
+  return event
 }
 
 function toDateString(date: Date): string {

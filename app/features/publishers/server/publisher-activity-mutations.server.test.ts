@@ -31,6 +31,7 @@ describe('createPublisherActivity', () => {
       studies: 2,
       notes: 'Good month',
       congregationId: 10,
+      actorId: 1,
     }
     const fakeActivity = { id: 1, ...params }
     mockCreate.mockResolvedValue(fakeActivity as never)
@@ -66,7 +67,7 @@ describe('updatePublisherActivity', () => {
     const fakeUpdated = { id: 5, ...params }
     mockUpdate.mockResolvedValue(fakeUpdated as never)
 
-    const result = await updatePublisherActivity(db, 5, 10, params)
+    const result = await updatePublisherActivity(db, 5, 10, params, 1)
 
     expect(result).toEqual(fakeUpdated)
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -90,7 +91,7 @@ describe('deletePublisherActivity', () => {
     const fakeDeleted = { id: 7, publisher: { id: 1, firstname: 'Jean' } }
     mockDelete.mockResolvedValue(fakeDeleted as never)
 
-    const result = await deletePublisherActivity(db, 7, 10)
+    const result = await deletePublisherActivity(db, 7, 10, 1)
 
     expect(result).toEqual(fakeDeleted)
     expect(mockDelete).toHaveBeenCalledWith({

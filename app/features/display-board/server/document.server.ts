@@ -1,4 +1,5 @@
 import type { BoardDocument } from '~/database/generated/client'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage.server'
@@ -101,6 +102,14 @@ export async function replaceDocumentFile(
     congregationId,
     documentId,
     pdfStorageKey: uri,
+  })
+
+  audit({
+    action: AuditAction.BoardDocumentFileReplaced,
+    congregationId,
+    actorId: uploadedById,
+    entityType: 'BoardDocument',
+    entityId: documentId,
   })
 
   return { replaced: true, uri, thumbnailUri: null }

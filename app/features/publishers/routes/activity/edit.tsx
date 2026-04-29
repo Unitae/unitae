@@ -265,6 +265,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         studies,
         notes: observations,
       },
+      currentUser.id,
     )
 
     session.flash(

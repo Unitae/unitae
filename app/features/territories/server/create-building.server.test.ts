@@ -40,6 +40,7 @@ describe('createBuilding', () => {
     const result = await createBuilding(db, {
       address: { number: '12', street: 'Rue Test', zip: '75001' },
       congregationId: 1,
+      actorId: 1,
     })
 
     expect(result.inTerritory).toBe(true)
@@ -65,6 +66,7 @@ describe('createBuilding', () => {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
       congregationId: 1,
+      actorId: 1,
     })
 
     expect(result.inTerritory).toBe(true)
@@ -75,6 +77,7 @@ describe('createBuilding', () => {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5 },
       congregationId: 1,
+      actorId: 1,
     })
 
     // getTerritoryPolygon ne devrait pas être appelé car longitude manque
@@ -87,6 +90,7 @@ describe('createBuilding', () => {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { longitude: 5 },
       congregationId: 1,
+      actorId: 1,
     })
 
     expect(vi.mocked(db.building.create)).toBeDefined()
@@ -104,6 +108,7 @@ describe('createBuilding', () => {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
       congregationId: 1,
+      actorId: 1,
     })
 
     const callArgs = vi.mocked(db.building.create).mock.calls[0][0]
@@ -128,6 +133,7 @@ describe('createBuilding', () => {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 50, longitude: 50 },
       congregationId: 1,
+      actorId: 1,
     })
 
     expect(result.inTerritory).toBe(false)

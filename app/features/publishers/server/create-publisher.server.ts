@@ -1,4 +1,5 @@
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -23,6 +24,7 @@ export async function createPublisher(
   db: TransactionClient,
   congregation: CongregationInfo,
   params: CreatePublisherParams,
+  actorId: number,
 ) {
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('publishers')
@@ -32,7 +34,7 @@ export async function createPublisher(
       ? params.email
       : `${params.firstname}.${params.lastname}@placeholder.unitae.app`.toLowerCase()
 
-  return db.user.create({
+  const user = await db.user.create({
     data: {
       firstname: params.firstname,
       lastname: params.lastname,
@@ -54,4 +56,15 @@ export async function createPublisher(
       address: params.address,
     },
   })
+
+  audit({
+    action: AuditAction.PublisherCreated,
+    congregationId: params.congregationId,
+    actorId,
+    entityType: 'User',
+    entityId: user.id,
+    metadata: { firstname: params.firstname, lastname: params.lastname, type: params.type },
+  })
+
+  return user
 }

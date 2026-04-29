@@ -4,7 +4,7 @@ import { data, Form, redirect } from 'react-router'
 import { generalSettingsSchema } from '~/features/settings/schemas/general-settings.schema'
 import { updateGeneralSettings } from '~/features/settings/server/general-settings.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext } from '~/shared/auth/route-context.server'
+import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { Role } from '~/shared/types/role'
@@ -128,6 +128,7 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
+  const currentUser = context.get(userContext)
   const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
@@ -139,7 +140,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  await updateGeneralSettings(congregation.id, submission.value)
+  await updateGeneralSettings(congregation.id, submission.value, currentUser.id)
 
   return redirect('/settings/general')
 }

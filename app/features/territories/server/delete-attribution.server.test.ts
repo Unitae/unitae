@@ -16,7 +16,7 @@ describe('deleteAttribution', () => {
     const fake = { id: 1, publisher: { id: 10, name: 'John' }, congregationId: 1 }
     vi.mocked(db.attribution.delete).mockResolvedValue(fake as never)
 
-    const result = await deleteAttribution(db as any, 1, 1)
+    const result = await deleteAttribution(db as any, 1, 1, 1)
 
     expect(result).toEqual(fake)
   })
@@ -24,7 +24,7 @@ describe('deleteAttribution', () => {
   it('passes compound key and includes publisher', async () => {
     vi.mocked(db.attribution.delete).mockResolvedValue({} as never)
 
-    await deleteAttribution(db as any, 8, 3)
+    await deleteAttribution(db as any, 8, 3, 1)
 
     expect(db.attribution.delete).toHaveBeenCalledWith({
       where: {

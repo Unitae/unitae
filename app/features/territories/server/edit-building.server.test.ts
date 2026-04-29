@@ -30,6 +30,7 @@ describe('editBuilding', () => {
 
     await editBuilding(db, 1, {
       address: { number: '12', street: 'Rue Test', zip: '75001' },
+      actorId: 1,
     })
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
@@ -49,6 +50,7 @@ describe('editBuilding', () => {
     const result = await editBuilding(db, 1, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
+      actorId: 1,
     })
 
     expect(result.inTerritory).toBe(true)
@@ -60,6 +62,7 @@ describe('editBuilding', () => {
     await editBuilding(db, 1, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5 },
+      actorId: 1,
     })
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]
@@ -73,6 +76,7 @@ describe('editBuilding', () => {
     await editBuilding(db, 1, {
       address: { number: '5', street: 'Rue Test', zip: '75001' },
       coordinates: { latitude: 5, longitude: 5 },
+      actorId: 1,
     })
 
     const callArgs = vi.mocked(db.building.update).mock.calls[0][0]

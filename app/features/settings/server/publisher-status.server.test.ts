@@ -17,7 +17,7 @@ describe('togglePublisherStatus', () => {
     const expected = { id: 5, isPublisher: true }
     mockDb.user.update.mockResolvedValue(expected)
 
-    const result = await togglePublisherStatus(mockDb as never, 5, 10, true)
+    const result = await togglePublisherStatus(mockDb as never, 5, 10, true, 1)
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({
@@ -31,7 +31,7 @@ describe('togglePublisherStatus', () => {
     const expected = { id: 5, isPublisher: false }
     mockDb.user.update.mockResolvedValue(expected)
 
-    const result = await togglePublisherStatus(mockDb as never, 5, 10, false)
+    const result = await togglePublisherStatus(mockDb as never, 5, 10, false, 1)
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({

@@ -21,7 +21,7 @@ describe('updateAttribution', () => {
       notes: 'test',
       type: 'standard',
       startDate: new Date('2025-01-01'),
-    })
+    }, 1)
 
     expect(result).toEqual(fake)
   })
@@ -35,7 +35,7 @@ describe('updateAttribution', () => {
       notes: 'note',
       type: 'campaign',
       startDate,
-    })
+    }, 1)
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
     expect(call.data).not.toHaveProperty('lateDate')
@@ -54,7 +54,7 @@ describe('updateAttribution', () => {
       type: 'standard',
       startDate: new Date('2025-01-01'),
       lateDate,
-    })
+    }, 1)
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
     expect(call.data.lateDate).toBe(lateDate)
@@ -70,7 +70,7 @@ describe('updateAttribution', () => {
       type: 'standard',
       startDate: new Date('2025-01-01'),
       endDate,
-    })
+    }, 1)
 
     const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
     expect(call.data.endDate).toBe(endDate)

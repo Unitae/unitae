@@ -309,13 +309,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const { entrances, notes } = submission.value
-  const { congregationId } = context.get(userContext)
+  const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, {
+    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), currentUser.congregationId, {
       entranceIds: entrances,
       notes,
-    })
+    }, currentUser.id)
 
     return redirect('/territories')
   })

@@ -18,6 +18,7 @@ const baseParams = {
   startDate: '2025-03-15',
   notes: 'test',
   congregationId: 10,
+  actorId: 1,
 }
 
 beforeEach(() => {

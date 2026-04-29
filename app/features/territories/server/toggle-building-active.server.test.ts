@@ -16,7 +16,7 @@ describe('toggleBuildingActive', () => {
     const fake = { id: 1, active: true, congregationId: 1 }
     vi.mocked(db.building.update).mockResolvedValue(fake as never)
 
-    const result = await toggleBuildingActive(db as any, 1, 1, true)
+    const result = await toggleBuildingActive(db as any, 1, 1, true, 1)
 
     expect(result).toEqual(fake)
     expect(db.building.update).toHaveBeenCalledWith({
@@ -32,7 +32,7 @@ describe('toggleBuildingActive', () => {
     const fake = { id: 2, active: false, congregationId: 3 }
     vi.mocked(db.building.update).mockResolvedValue(fake as never)
 
-    const result = await toggleBuildingActive(db as any, 2, 3, false)
+    const result = await toggleBuildingActive(db as any, 2, 3, false, 1)
 
     expect(result).toEqual(fake)
     expect(db.building.update).toHaveBeenCalledWith({

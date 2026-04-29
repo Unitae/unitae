@@ -2,6 +2,7 @@ import type { Building } from '~/database/generated/client'
 
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
 
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 
@@ -11,9 +12,11 @@ export async function editBuilding(
   {
     address,
     coordinates = {},
+    actorId,
   }: {
     address: { number: string; street: string; zip: string }
     coordinates?: { latitude?: number; longitude?: number }
+    actorId: number
   },
 ): Promise<Building> {
   let isInTerritory = true
@@ -24,7 +27,7 @@ export async function editBuilding(
     }
   }
 
-  return db.building.update({
+  const building = await db.building.update({
     where: {
       id: buildingId,
     },
@@ -37,4 +40,14 @@ export async function editBuilding(
       inTerritory: isInTerritory,
     },
   })
+
+  audit({
+    action: AuditAction.BuildingUpdated,
+    congregationId: building.congregationId,
+    actorId,
+    entityType: 'Building',
+    entityId: buildingId,
+  })
+
+  return building
 }

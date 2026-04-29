@@ -187,6 +187,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { territory: territoryId, publisher: publisherId, 'start-date': startDate, notes, type } = submission.value
   const congregation = context.get(congregationContext)
+  const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const attribution = await createAttribution(db, {
@@ -196,6 +197,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       notes,
       type,
       congregationId: congregation.id,
+      actorId: currentUser.id,
     })
 
     return redirect(`/territories/attributions/${attribution.id}/edit`)

@@ -239,13 +239,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'
-  const { congregationId } = context.get(userContext)
+  const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const attribution = await updateAttribution(
       db,
       requireParamId(params.attributionId, '/territories/attributions'),
-      congregationId,
+      currentUser.congregationId,
       {
         publisherId,
         notes,
@@ -254,6 +254,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         lateDate: hasLateDate ? new Date(lateDateText) : undefined,
         endDate: hasEndDate ? new Date(endDateText) : undefined,
       },
+      currentUser.id,
     )
 
     return redirect(hasEndDate ? '/territories/attributions' : `/territories/attributions/${attribution.id}/edit`)

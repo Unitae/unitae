@@ -1,6 +1,7 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 import * as m from '~/paraglide/messages'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {
@@ -51,6 +52,15 @@ export async function createDayOff(
   // Update conflict flags on programme assignments overlapping this new day-off
   await refreshConflictFlags(db, userId, startDate, endDate, congregationId)
 
+  audit({
+    action: AuditAction.DayOffCreated,
+    congregationId,
+    actorId: userId,
+    entityType: 'Event',
+    entityId: event.id,
+    metadata: { startDate: startDate.toISOString(), endDate: endDate.toISOString() },
+  })
+
   return event
 }
 
@@ -64,6 +74,14 @@ export async function deleteDayOff(db: TransactionClient, eventId: number, userI
 
   // Refresh conflict flags — the absence is gone, so conflicts may be resolved
   await refreshConflictFlags(db, userId, event.startDate, event.endDate, congregationId)
+
+  audit({
+    action: AuditAction.DayOffDeleted,
+    congregationId,
+    actorId: userId,
+    entityType: 'Event',
+    entityId: eventId,
+  })
 
   return event
 }

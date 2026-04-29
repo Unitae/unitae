@@ -153,6 +153,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         address,
         phone,
       },
+      currentUser.id,
     )
     const session = await getSession(request.headers.get('Cookie'))
     session.flash('success', m.publishers_edit_success({ name: user.firstname ?? '' }))

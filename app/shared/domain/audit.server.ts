@@ -41,6 +41,100 @@ export const AuditAction = {
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   BoardReadStatusViewed: 'board.read_status.viewed',
 
+  // Authentication
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  CongregationRegistered: 'congregation.registered',
+
+  // Settings
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  UserPublisherStatusChanged: 'user.publisher_status.changed',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  ProgrammeTemplateCreated: 'programme_template.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  ProgrammeTemplateUpdated: 'programme_template.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  ProgrammeTemplateDeleted: 'programme_template.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  GeneralSettingsUpdated: 'settings.general.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  CongregationSettingsUpdated: 'settings.congregation.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  EventKindUpdated: 'event_kind.updated',
+
+  // Territories
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  TerritoryCreated: 'territory.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  TerritoryUpdated: 'territory.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  TerritoryDeleted: 'territory.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  AttributionCreated: 'attribution.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  AttributionUpdated: 'attribution.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  AttributionDeleted: 'attribution.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BuildingCreated: 'building.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BuildingUpdated: 'building.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BuildingDeleted: 'building.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BuildingEnabled: 'building.enabled',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BuildingDisabled: 'building.disabled',
+
+  // Publishers
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherCreated: 'publisher.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherUpdated: 'publisher.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherGroupCreated: 'publisher_group.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherGroupDeleted: 'publisher_group.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherActivityCreated: 'publisher_activity.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherActivityUpdated: 'publisher_activity.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherActivityDeleted: 'publisher_activity.deleted',
+
+  // Events
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  ProgrammeGenerated: 'programme.generated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  EventCreated: 'event.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  EventUpdated: 'event.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  EventDeleted: 'event.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  EventsBulkDeleted: 'events.bulk_deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  DayOffCreated: 'day_off.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  DayOffDeleted: 'day_off.deleted',
+
+  // Board documents
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentCreated: 'board.document.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentDeleted: 'board.document.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentsBulkDeleted: 'board.documents.bulk_deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentFileReplaced: 'board.document.file_replaced',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentVersionCreated: 'board.document.version_created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentVersionRestored: 'board.document.version_restored',
+
+  // Notifications
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  NotificationPreferenceChanged: 'notification.preference.changed',
+
   // Data transfer
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   CongregationExported: 'congregation.exported',

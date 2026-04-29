@@ -1,4 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateAttributionParams {
@@ -15,6 +16,7 @@ export async function updateAttribution(
   id: number,
   congregationId: number,
   params: UpdateAttributionParams,
+  actorId: number,
 ) {
   const updateData: Prisma.XOR<Prisma.AttributionUpdateInput, Prisma.AttributionUncheckedUpdateInput> = {
     publisherId: params.publisherId,
@@ -31,11 +33,21 @@ export async function updateAttribution(
     updateData.endDate = params.endDate
   }
 
-  return db.attribution.update({
+  const attribution = await db.attribution.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound key
       id_congregationId: { id, congregationId },
     },
     data: updateData,
   })
+
+  audit({
+    action: AuditAction.AttributionUpdated,
+    congregationId,
+    actorId,
+    entityType: 'Attribution',
+    entityId: id,
+  })
+
+  return attribution
 }

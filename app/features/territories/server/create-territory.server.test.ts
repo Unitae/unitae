@@ -21,7 +21,7 @@ describe('createTerritory', () => {
       type: 'doors-to-doors',
       entranceIds: [10, 20],
       congregationId: 1,
-    })
+    }, 1)
 
     expect(result).toEqual(fake)
   })
@@ -34,7 +34,7 @@ describe('createTerritory', () => {
       type: 'hotel',
       entranceIds: [3, 5, 7],
       congregationId: 2,
-    })
+    }, 1)
 
     expect(db.territory.create).toHaveBeenCalledWith({
       data: {

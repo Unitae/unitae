@@ -19,7 +19,7 @@ describe('updateTerritory', () => {
     const result = await updateTerritory(db as any, 3, 1, {
       entranceIds: [1, 2],
       notes: 'some notes',
-    })
+    }, 1)
 
     expect(result).toEqual(fake)
   })
@@ -30,7 +30,7 @@ describe('updateTerritory', () => {
     await updateTerritory(db as any, 10, 5, {
       entranceIds: [4, 8],
       notes: 'updated notes',
-    })
+    }, 1)
 
     expect(db.territory.update).toHaveBeenCalledWith({
       where: {

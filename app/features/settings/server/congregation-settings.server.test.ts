@@ -29,7 +29,7 @@ describe('updateCongregationSettings', () => {
 
     await updateCongregationSettings(mockDb as never, 10, {
       auxiliaryPioneerProfileActivated: 'true',
-    })
+    }, 1)
 
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
     expect(mockDb.user.updateMany).not.toHaveBeenCalled()
@@ -41,7 +41,7 @@ describe('updateCongregationSettings', () => {
 
     await updateCongregationSettings(mockDb as never, 10, {
       auxiliaryPioneerProfileActivated: 'false',
-    })
+    }, 1)
 
     expect(mockDb.user.updateMany).toHaveBeenCalledWith({
       where: {

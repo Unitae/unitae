@@ -9,6 +9,7 @@ import {
 import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
@@ -78,6 +79,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       session.flash('success', m.settings_template_responsible_removed_success())
       logger.info(`Removed template responsible. User ID: ${currentUser.id}. Template: ${templateId}.`)
     }
+    audit({
+      action: AuditAction.ProgrammeTemplateUpdated,
+      congregationId: currentUser.congregationId,
+      actorId: currentUser.id,
+      entityType: 'ProgrammeTemplate',
+      entityId: templateId,
+      metadata: { intent: 'responsible', userId: userId ?? null },
+    })
 
     return redirect(`/settings/congregation/templates/${templateId}`, {
       headers: { 'Set-Cookie': await commitSession(session) },

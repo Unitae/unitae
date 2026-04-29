@@ -3,22 +3,24 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 // biome-ignore lint/suspicious/noExplicitAny: Prisma Json fields accept any serializable value
 type JsonValue = any
 
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
 import { deleteFile } from './document.server'
 
-export function createBoardDocument(
+export async function createBoardDocument(
   db: TransactionClient,
   data: {
     title: string
     sectionId: number
     uri: string
     congregationId: number
+    actorId: number
     visibleFrom?: Date | null
     visibleUntil?: Date | null
     isHighlighted?: boolean
   },
 ) {
-  return db.boardDocument.create({
+  const document = await db.boardDocument.create({
     data: {
       title: data.title,
       type: 'pdf',
@@ -32,12 +34,24 @@ export function createBoardDocument(
       ...(data.isHighlighted != null ? { isHighlighted: data.isHighlighted } : {}),
     },
   })
+
+  audit({
+    action: AuditAction.BoardDocumentCreated,
+    congregationId: data.congregationId,
+    actorId: data.actorId,
+    entityType: 'BoardDocument',
+    entityId: document.id,
+    metadata: { title: data.title, sectionId: data.sectionId },
+  })
+
+  return document
 }
 
 export async function deleteBoardDocument(
   db: TransactionClient,
   documentId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<{ id: number; title: string }> {
   const document = await db.boardDocument.delete({
     where: {
@@ -55,6 +69,15 @@ export async function deleteBoardDocument(
     logger.error('Document removal failed. Unexpected error during deletion of the file on the disk', { error })
   }
 
+  audit({
+    action: AuditAction.BoardDocumentDeleted,
+    congregationId,
+    actorId,
+    entityType: 'BoardDocument',
+    entityId: documentId,
+    metadata: { title: document.title },
+  })
+
   return { id: document.id, title: document.title }
 }
 
@@ -63,6 +86,7 @@ export async function bulkDeleteBoardItems(
   congregationId: number,
   pdfIds: number[],
   dynIds: number[],
+  actorId: number,
 ): Promise<{ pdfDeleted: number; dynDeleted: number }> {
   let pdfDeleted = 0
   if (pdfIds.length > 0) {
@@ -92,6 +116,13 @@ export async function bulkDeleteBoardItems(
     })
     dynDeleted = result.count
   }
+
+  audit({
+    action: AuditAction.BoardDocumentsBulkDeleted,
+    congregationId,
+    actorId,
+    metadata: { count: pdfDeleted + dynDeleted },
+  })
 
   return { pdfDeleted, dynDeleted }
 }

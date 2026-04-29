@@ -1,4 +1,5 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
@@ -9,10 +10,12 @@ export async function createBuilding(
     address,
     coordinates = {},
     congregationId,
+    actorId,
   }: {
     address: { number: string; street: string; zip: string }
     coordinates?: { latitude?: number; longitude?: number }
     congregationId: number
+    actorId: number
   },
 ): Promise<DetailedBuilding> {
   let isInTerritory = true
@@ -58,6 +61,15 @@ export async function createBuilding(
       },
     })
   }
+
+  audit({
+    action: AuditAction.BuildingCreated,
+    congregationId,
+    actorId,
+    entityType: 'Building',
+    entityId: building.id,
+    metadata: { address: `${address.number} ${address.street}, ${address.zip}` },
+  })
 
   return building
 }

@@ -2,6 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, useFetcher } from 'react-router'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -46,6 +47,13 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   await withScopeFromContext(context, async db => {
     await togglePreference(db, currentUser.id, currentUser.congregationId, notificationType, enabled)
+  })
+
+  audit({
+    action: AuditAction.NotificationPreferenceChanged,
+    congregationId: currentUser.congregationId,
+    actorId: currentUser.id,
+    metadata: { notificationType, enabled },
   })
 
   return { ok: true }

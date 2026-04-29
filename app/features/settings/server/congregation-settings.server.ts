@@ -1,3 +1,4 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { setSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
@@ -9,6 +10,7 @@ export async function updateCongregationSettings(
   data: {
     auxiliaryPioneerProfileActivated: string
   },
+  actorId: number,
 ) {
   await setSetting(
     db,
@@ -28,4 +30,11 @@ export async function updateCongregationSettings(
       },
     })
   }
+
+  audit({
+    action: AuditAction.CongregationSettingsUpdated,
+    congregationId,
+    actorId,
+    metadata: { auxiliaryPioneerProfileActivated: data.auxiliaryPioneerProfileActivated },
+  })
 }

@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { congregationContext, permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -112,6 +112,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { number, street, zip, latitude, longitude } = submission.value
   const congregation = context.get(congregationContext)
+  const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
@@ -122,6 +123,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         longitude: longitude ?? undefined,
       },
       congregationId: congregation.id,
+      actorId: currentUser.id,
     })
 
     if (building == null) {

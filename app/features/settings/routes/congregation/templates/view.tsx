@@ -56,7 +56,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     const session = await getSession(request.headers.get('Cookie'))
-    const copy = await duplicateTemplate(db, templateId, currentUser.congregationId)
+    const copy = await duplicateTemplate(db, templateId, currentUser.congregationId, currentUser.id)
     if (copy) {
       session.flash('success', m.settings_template_view_duplicate_success({ name: copy.name }))
       logger.info(`Duplicated template ${templateId} → ${copy.id}. User ID: ${currentUser.id}.`)

@@ -368,6 +368,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       studies,
       notes: observations,
       congregationId: currentUser.congregationId,
+      actorId: currentUser.id,
     })
 
     session.flash('success', m.activity_new_success({ name: `${publisher.firstname} ${publisher.lastname}` }))

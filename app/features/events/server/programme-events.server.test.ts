@@ -62,7 +62,7 @@ describe('deleteEvent', () => {
     const expected = { id: 3 }
     mockDb.event.delete.mockResolvedValue(expected)
 
-    const result = await deleteEvent(mockDb as never, 3, 10)
+    const result = await deleteEvent(mockDb as never, 3, 10, 1)
 
     expect(result).toEqual(expected)
     expect(mockDb.event.delete).toHaveBeenCalledWith({
@@ -78,7 +78,7 @@ describe('updateEvent', () => {
     const expected = { id: 2, name: 'Assemblee' }
     mockDb.event.update.mockResolvedValue(expected)
 
-    const result = await updateEvent(mockDb as never, 2, 10, data)
+    const result = await updateEvent(mockDb as never, 2, 10, data, 1)
 
     expect(result).toEqual(expected)
     expect(mockDb.event.update).toHaveBeenCalledWith({

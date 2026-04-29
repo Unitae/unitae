@@ -20,15 +20,16 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const { congregationId } = context.get(userContext)
+  const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     const building = await toggleBuildingActive(
       db,
       requireParamId(params.buildingId, '/territories/buildings'),
-      congregationId,
+      currentUser.congregationId,
       true,
+      currentUser.id,
     )
     if (building.active === true) {
       session.flash(

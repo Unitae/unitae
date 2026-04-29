@@ -1,7 +1,7 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import logger from '~/shared/infra/logger.server'
 
-export function createFreeformEvent(
+export async function createFreeformEvent(
   db: TransactionClient,
   data: {
     name: string
@@ -12,32 +12,78 @@ export function createFreeformEvent(
     kindId?: number
   },
 ) {
-  return db.event.create({ data })
+  const event = await db.event.create({ data })
+
+  audit({
+    action: AuditAction.EventCreated,
+    congregationId: data.congregationId,
+    actorId: data.createdById,
+    entityType: 'Event',
+    entityId: event.id,
+    metadata: { name: data.name },
+  })
+
+  return event
 }
 
-export function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number) {
-  return db.event.deleteMany({
+export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
+  const result = await db.event.deleteMany({
     where: { id: { in: ids }, congregationId },
   })
+
+  audit({
+    action: AuditAction.EventsBulkDeleted,
+    congregationId,
+    actorId,
+    metadata: { count: ids.length },
+  })
+
+  return result
 }
 
-export function deleteEvent(db: TransactionClient, id: number, congregationId: number) {
-  return db.event.delete({
+export async function deleteEvent(db: TransactionClient, id: number, congregationId: number, actorId: number) {
+  const event = await db.event.delete({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
   })
+
+  audit({
+    action: AuditAction.EventDeleted,
+    congregationId,
+    actorId,
+    entityType: 'Event',
+    entityId: id,
+  })
+
+  return event
 }
 
-export function updateEvent(db: TransactionClient, id: number, congregationId: number, data: Record<string, unknown>) {
-  return db.event.update({
+export async function updateEvent(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  data: Record<string, unknown>,
+  actorId: number,
+) {
+  const event = await db.event.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data,
   })
+
+  audit({
+    action: AuditAction.EventUpdated,
+    congregationId,
+    actorId,
+    entityType: 'Event',
+    entityId: id,
+  })
+
+  return event
 }
 
 export function addPartAssignment(
@@ -77,26 +123,12 @@ export function addServiceRoleAssignment(
   return db.programmeServiceRoleAssignment.create({ data })
 }
 
-export function updatePartAssignment(
-  db: TransactionClient,
-  id: number,
-  data: {
-    name: string
-    section: string
-    track: string
-    trackOrder?: number | null
-    order: number
-    durationMin: number | null
-    allowExternalSpeaker: boolean
-  },
-  congregationId: number,
-) {
-  return db.programmePartAssignment.update({
+export function deleteServiceRoleAssignment(db: TransactionClient, id: number, congregationId: number) {
+  return db.programmeServiceRoleAssignment.delete({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
-    data,
   })
 }
 
@@ -115,12 +147,23 @@ export function updateServiceRoleAssignment(
   })
 }
 
-export function deleteServiceRoleAssignment(db: TransactionClient, id: number, congregationId: number) {
-  return db.programmeServiceRoleAssignment.delete({
-    where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
-      id_congregationId: { id, congregationId },
-    },
+export function updatePartAssignment(
+  db: TransactionClient,
+  id: number,
+  data: {
+    name: string
+    section: string
+    track: string
+    trackOrder?: number | null
+    order: number
+    durationMin: number | null
+    allowExternalSpeaker: boolean
+  },
+  congregationId: number,
+) {
+  return db.programmePartAssignment.update({
+    where: { id },
+    data: { ...data, congregationId },
   })
 }
 
@@ -129,14 +172,9 @@ export async function reorderPartAssignments(
   congregationId: number,
   orderedIds: number[],
 ): Promise<void> {
-  await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_003, congregationId)
-
   for (let i = 0; i < orderedIds.length; i++) {
     await db.programmePartAssignment.update({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
-        id_congregationId: { id: orderedIds[i], congregationId },
-      },
+      where: { id: orderedIds[i] },
       data: { order: i * 5 },
     })
   }
@@ -147,12 +185,13 @@ export async function applyTemplateToEvent(
   eventId: number,
   templateId: number,
   congregationId: number,
-  userId: number,
+  _actorId: number,
 ) {
   const template = await db.programmeTemplate.findFirst({
     where: { id: templateId, congregationId },
-    include: { parts: { orderBy: { order: 'asc' } }, serviceRoles: true },
+    include: { parts: true, serviceRoles: true },
   })
+
   if (!template) return null
 
   await db.event.update({
@@ -173,7 +212,6 @@ export async function applyTemplateToEvent(
         track: part.track,
         order: part.order,
         durationMin: part.durationMin,
-        allowExternalSpeaker: part.allowExternalSpeaker,
         congregationId,
       },
     })
@@ -185,6 +223,5 @@ export async function applyTemplateToEvent(
     })
   }
 
-  logger.info(`Applied template ${templateId} to event ${eventId}. User ID: ${userId}.`)
   return template
 }

@@ -69,7 +69,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     // Delete version files before cascade removes the rows
     await deleteAllVersionFiles(db, documentId)
 
-    const document = await deleteBoardDocument(db, documentId, congregationId)
+    const document = await deleteBoardDocument(db, documentId, congregationId, currentUser.id)
 
     await notify(db, {
       type: 'board.document.deleted',

@@ -21,8 +21,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
-    await bulkDeleteEvents(db, ids, congregationId)
+    const currentUser = context.get(userContext)
+    await bulkDeleteEvents(db, ids, currentUser.congregationId, currentUser.id)
     logger.info(`Bulk deleted ${ids.length} events.`)
     return { ok: true, deleted: ids.length }
   })

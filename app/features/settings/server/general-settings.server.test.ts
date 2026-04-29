@@ -21,7 +21,7 @@ describe('updateGeneralSettings', () => {
       displayName: 'Ma Congrégation',
       locale: 'fr',
       domain: 'app.example.org',
-    })
+    }, 1)
 
     expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
       where: { id: 10 },
@@ -40,7 +40,7 @@ describe('updateGeneralSettings', () => {
       displayName: '',
       locale: 'en',
       domain: null,
-    })
+    }, 1)
 
     expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
       where: { id: 10 },
@@ -59,7 +59,7 @@ describe('updateGeneralSettings', () => {
       displayName: 'Test',
       locale: 'fr',
       domain: null,
-    })
+    }, 1)
 
     expect(unscopedDb.congregation.update).toHaveBeenCalledWith({
       where: { id: 10 },

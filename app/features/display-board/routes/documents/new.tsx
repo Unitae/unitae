@@ -258,6 +258,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         sectionId,
         uri: storageKey,
         congregationId,
+        actorId: currentUser.id,
         visibleFrom: parsedFrom,
         visibleUntil: parsedUntil,
         ...(submission.value.hightlighted != null ? { isHighlighted } : {}),

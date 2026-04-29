@@ -4,6 +4,7 @@ import { data, Form, redirect, useFetcher } from 'react-router'
 import { z } from 'zod'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -48,7 +49,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Role.Admin)) throw redirect('/settings/congregation')
 
-  const { congregationId } = context.get(userContext)
+  const currentUser = context.get(userContext)
+  const { congregationId } = currentUser
   const formData = await request.formData()
   const intent = formData.get('intent')
 
@@ -61,8 +63,16 @@ export async function action({ request, context }: Route.ActionArgs) {
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '')
-      await db.eventKind.create({
+      const kind = await db.eventKind.create({
         data: { name: submission.value.name, color: submission.value.color, key, congregationId },
+      })
+      audit({
+        action: AuditAction.EventKindUpdated,
+        congregationId,
+        actorId: currentUser.id,
+        entityType: 'EventKind',
+        entityId: kind.id,
+        metadata: { intent: 'create', name: submission.value.name },
       })
     }
 
@@ -75,6 +85,12 @@ export async function action({ request, context }: Route.ActionArgs) {
           // biome-ignore lint/style/useNamingConvention: prisma compound key
           id_congregationId: { id: submission.value.id, congregationId },
         },
+      })
+      audit({
+        action: AuditAction.EventKindUpdated,
+        congregationId,
+        actorId: currentUser.id,
+        metadata: { intent: 'delete', id: submission.value.id },
       })
     }
 

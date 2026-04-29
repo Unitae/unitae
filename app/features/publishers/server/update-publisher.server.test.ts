@@ -36,7 +36,7 @@ describe('updatePublisher', () => {
     const fakeUpdated = { id: 1, ...baseParams }
     mockUpdate.mockResolvedValue(fakeUpdated as never)
 
-    const result = await updatePublisher(db, 1, 10, baseParams)
+    const result = await updatePublisher(db, 1, 10, baseParams, 1)
 
     expect(result).toEqual(fakeUpdated)
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -66,7 +66,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, gender: 'female' }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, params, 1)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -79,7 +79,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, birthDate: null, baptismDate: null }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, params, 1)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -92,7 +92,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, groupId: Number.NaN }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, params, 1)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -105,7 +105,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, email: null }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, params, 1)
 
     const callData = mockUpdate.mock.calls[0][0].data
     expect(callData).not.toHaveProperty('email')

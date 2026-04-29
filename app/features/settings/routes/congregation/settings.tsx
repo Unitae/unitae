@@ -139,8 +139,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { [CongregationSettingKey.AuxiliaryPioneerProfileActivated]: auxiliaryPioneerProfileActivated } =
     submission.value
 
+  const currentUser = context.get(userContext)
+
   return withScopeFromContext(context, async db => {
-    await updateCongregationSettings(db, congregation.id, { auxiliaryPioneerProfileActivated })
+    await updateCongregationSettings(db, congregation.id, { auxiliaryPioneerProfileActivated }, currentUser.id)
 
     return redirect('/settings/congregation')
   })

@@ -8,7 +8,7 @@ import { updateBuildingSchema } from '~/features/territories/schemas/building.sc
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { useFocusError } from '~/shared/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
@@ -153,6 +153,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const { number, street, zip, latitude, longitude } = submission.value
+  const currentUser = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
@@ -163,6 +164,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
           longitude: longitude ?? undefined,
         },
         address: { number, street, zip },
+        actorId: currentUser.id,
       })
 
       session.flash('success', m.prospection_edit_building_success())

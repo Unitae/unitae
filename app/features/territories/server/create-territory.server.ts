@@ -1,3 +1,4 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface CreateTerritoryParams {
@@ -7,8 +8,8 @@ export interface CreateTerritoryParams {
   congregationId: number
 }
 
-export async function createTerritory(db: TransactionClient, params: CreateTerritoryParams) {
-  return db.territory.create({
+export async function createTerritory(db: TransactionClient, params: CreateTerritoryParams, actorId: number) {
+  const territory = await db.territory.create({
     data: {
       number: params.number,
       type: params.type,
@@ -18,4 +19,15 @@ export async function createTerritory(db: TransactionClient, params: CreateTerri
       congregationId: params.congregationId,
     },
   })
+
+  audit({
+    action: AuditAction.TerritoryCreated,
+    congregationId: params.congregationId,
+    actorId,
+    entityType: 'Territory',
+    entityId: territory.id,
+    metadata: { number: params.number, type: params.type },
+  })
+
+  return territory
 }

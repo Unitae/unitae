@@ -67,5 +67,5 @@ export async function registerCongregation(
   // Enregistrer le consentement RGPD initial
   await recordConsentUnscoped(user.id, congregation.id, ConsentPurpose.DataProcessing)
 
-  return { congregationSlug: congregation.slug, userId: user.id }
+  return { congregationSlug: congregation.slug, userId: user.id, congregationId: congregation.id }
 }

@@ -174,6 +174,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       responsibleId,
       deputyId: deputyId ?? null,
       congregationId: currentUser.congregationId,
+      actorId: currentUser.id,
     })
 
     session.flash('success', m.groups_new_success({ name: group.name }))

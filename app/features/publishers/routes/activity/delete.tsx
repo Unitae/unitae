@@ -83,6 +83,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
       db,
       requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
+      currentUser.id,
     )
 
     const session = await getSession(request.headers.get('Cookie'))
