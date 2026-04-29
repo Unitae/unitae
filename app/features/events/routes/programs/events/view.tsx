@@ -20,6 +20,22 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
 
+type PartRowAssignment = {
+  id: number
+  name: string
+  topic: string
+  section: string
+  track: string
+  durationMin: number | null
+  assigneeId: number | null
+  assistantId: number | null
+  allowExternalSpeaker: boolean
+  externalSpeakerName: string | null
+  hasConflict: boolean
+  assignee: { firstname: string | null; lastname: string | null } | null
+  assistant: { firstname: string | null; lastname: string | null } | null
+}
+
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_view_meta_title() }]
 }
@@ -125,7 +141,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     year: 'numeric',
   })
 
-  function openPartAssign(assignment: PartAssignment) {
+  function openPartAssign(assignment: PartRowAssignment) {
     setAssignPartTarget({
       id: assignment.id,
       name: assignment.name,
@@ -225,77 +241,14 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                           </TableRow>
                         )}
                         {trackGroup.parts.map(assignment => (
-                          <TableRow key={assignment.id}>
-                            <TableCell>
-                              <span className="font-medium text-sm">{assignment.name}</span>
-                            </TableCell>
-                            {hasAnyTopic && <TableCell className="text-sm">{assignment.topic || '—'}</TableCell>}
-                            <TableCell>
-                              {assignment.durationMin ? (
-                                <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                                  <Clock className="size-3" />
-                                  {assignment.durationMin} min
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell
-                              className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
-                              onClick={canEdit ? () => openPartAssign(assignment) : undefined}
-                            >
-                              <AssigneeCell
-                                assignee={assignment.assignee}
-                                externalSpeakerName={assignment.externalSpeakerName}
-                                hasConflict={assignment.hasConflict}
-                              />
-                            </TableCell>
-                            <TableCell
-                              className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
-                              onClick={canEdit ? () => openPartAssign(assignment) : undefined}
-                            >
-                              {assignment.assistant ? (
-                                <span className="text-sm">
-                                  {assignment.assistant.firstname} {assignment.assistant.lastname}
-                                </span>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">—</span>
-                              )}
-                            </TableCell>
-                            {canEdit && (
-                              <TableCell>
-                                <div className="flex gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="size-7"
-                                    onClick={() => openPartAssign(assignment)}
-                                  >
-                                    <UserPlus className="size-3" />
-                                  </Button>
-                                  {(assignment.assigneeId ?? assignment.externalSpeakerName) && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="size-7 text-destructive hover:text-destructive"
-                                      onClick={() =>
-                                        setUnassignTarget({
-                                          type: 'part',
-                                          id: assignment.id,
-                                          name: assignment.name,
-                                          assigneeName:
-                                            assignment.externalSpeakerName ??
-                                            `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
-                                        })
-                                      }
-                                    >
-                                      <X className="size-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                              </TableCell>
-                            )}
-                          </TableRow>
+                          <PartRow
+                            key={assignment.id}
+                            assignment={assignment}
+                            canEdit={canEdit}
+                            hasAnyTopic={hasAnyTopic}
+                            openPartAssign={openPartAssign}
+                            setUnassignTarget={setUnassignTarget}
+                          />
                         ))}
                       </>
                     ))}
@@ -423,6 +376,89 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
         eventId={event.id}
       />
     </div>
+  )
+}
+
+function PartRow({
+  assignment,
+  canEdit,
+  hasAnyTopic,
+  openPartAssign,
+  setUnassignTarget,
+}: {
+  assignment: PartRowAssignment
+  canEdit: boolean
+  hasAnyTopic: boolean
+  openPartAssign: (assignment: PartRowAssignment) => void
+  setUnassignTarget: (target: { type: 'part' | 'service'; id: number; name: string; assigneeName: string } | null) => void
+}) {
+  return (
+    <TableRow>
+      <TableCell>
+        <span className="font-medium text-sm">{assignment.name}</span>
+      </TableCell>
+      {hasAnyTopic && <TableCell className="text-sm">{assignment.topic || '—'}</TableCell>}
+      <TableCell>
+        {assignment.durationMin ? (
+          <span className="flex items-center gap-1 text-muted-foreground text-sm">
+            <Clock className="size-3" />
+            {assignment.durationMin} min
+          </span>
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        )}
+      </TableCell>
+      <TableCell
+        className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
+        onClick={canEdit ? () => openPartAssign(assignment) : undefined}
+      >
+        <AssigneeCell
+          assignee={assignment.assignee}
+          externalSpeakerName={assignment.externalSpeakerName}
+          hasConflict={assignment.hasConflict}
+        />
+      </TableCell>
+      <TableCell
+        className={canEdit ? 'cursor-pointer hover:bg-muted/50' : ''}
+        onClick={canEdit ? () => openPartAssign(assignment) : undefined}
+      >
+        {assignment.assistant ? (
+          <span className="text-sm">
+            {assignment.assistant.firstname} {assignment.assistant.lastname}
+          </span>
+        ) : (
+          <span className="text-muted-foreground text-sm">—</span>
+        )}
+      </TableCell>
+      {canEdit && (
+        <TableCell>
+          <div className="flex gap-1">
+            <Button variant="ghost" size="icon" className="size-7" onClick={() => openPartAssign(assignment)}>
+              <UserPlus className="size-3" />
+            </Button>
+            {(assignment.assigneeId ?? assignment.externalSpeakerName) && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-destructive hover:text-destructive"
+                onClick={() =>
+                  setUnassignTarget({
+                    type: 'part',
+                    id: assignment.id,
+                    name: assignment.name,
+                    assigneeName:
+                      assignment.externalSpeakerName ??
+                      `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
+                  })
+                }
+              >
+                <X className="size-3" />
+              </Button>
+            )}
+          </div>
+        </TableCell>
+      )}
+    </TableRow>
   )
 }
 

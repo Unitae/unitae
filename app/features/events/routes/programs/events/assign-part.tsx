@@ -69,6 +69,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerName, topic } = submission.value
 
+  const resolvedExternalName = speakerType === 'external' && externalSpeakerName ? externalSpeakerName : null
+  const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
+  const resolvedAssistantId = speakerType === 'external' ? null : assistantId
+
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const can = (role: Role) => permissions.has(role)
@@ -78,10 +82,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
-
-    const resolvedExternalName = speakerType === 'external' && externalSpeakerName ? externalSpeakerName : null
-    const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
-    const resolvedAssistantId = speakerType === 'external' ? null : assistantId
 
     const result = await assignPart(
       db,
