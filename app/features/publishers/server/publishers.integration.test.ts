@@ -52,8 +52,8 @@ describe('getPublisherById', () => {
     )
 
     expect(publisher).not.toBeNull()
-    expect(publisher!.id).toBe(publisherIdA)
-    expect(publisher!.congregationId).toBe(congregationIdA)
+    expect(publisher?.id).toBe(publisherIdA)
+    expect(publisher?.congregationId).toBe(congregationIdA)
   })
 
   it('retourne null si le publisher appartient à une autre congrégation', async () => {

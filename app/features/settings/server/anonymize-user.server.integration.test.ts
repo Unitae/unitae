@@ -5,6 +5,8 @@ import { PublisherType } from '~/shared/types/publisher-type'
 import type { UserId } from '~/shared/types/branded'
 
 const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
+const ALREADY_ANONYMIZED_RE = /deja anonymise/
+const USER_NOT_FOUND_RE = /introuvable/
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -99,6 +101,7 @@ afterAll(async () => {
       await tx.congregationUserRole.deleteMany({})
       await tx.publisherGroup.deleteMany({})
       await tx.user.deleteMany({})
+      await tx.territory.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })
@@ -134,13 +137,13 @@ describe('anonymizeUser (integration)', () => {
   it('throws when the user is already anonymized', async () => {
     await expect(
       withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as UserId, 'admin@test.com')),
-    ).rejects.toThrow(/deja anonymise/)
+    ).rejects.toThrow(ALREADY_ANONYMIZED_RE)
   })
 
   it('throws when the user does not exist', async () => {
     await expect(
       withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as UserId, 'admin@test.com')),
-    ).rejects.toThrow(/introuvable/)
+    ).rejects.toThrow(USER_NOT_FOUND_RE)
   })
 
   it('does not anonymize a user from another congregation — RLS isolation', async () => {
@@ -151,7 +154,7 @@ describe('anonymizeUser (integration)', () => {
     // The primary scope must not be able to locate the other congregation's user
     await expect(
       withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as UserId, 'admin@test.com')),
-    ).rejects.toThrow(/introuvable/)
+    ).rejects.toThrow(USER_NOT_FOUND_RE)
 
     const otherUserAfter = await testDb.user.findUnique({ where: { id: otherUserId } })
     expect(otherUserAfter?.firstname).toBe('Bob')
