@@ -2,6 +2,12 @@ import type { LucideIcon } from 'lucide-react'
 import { BookOpen, Calendar, ChevronRight, Gem, HeartHandshake } from 'lucide-react'
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
+import {
+  formatName,
+  getPartDisplay,
+  nameMatches,
+  partMatchesQuery,
+} from '~/features/display-board/model/programme-display'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
 import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -53,6 +59,7 @@ interface PartAssignment {
   order: number
   topic: string
   durationMin: number | null
+  externalSpeakerName: string | null
   assignee: {
     id: number
     firstname: string | null
@@ -99,25 +106,6 @@ export interface ProgrammeViewData {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatName(
-  user: {
-    firstname: string | null
-    lastname: string | null
-    anonymizedAt: Date | null
-  } | null,
-): string | null {
-  if (!user) return null
-  if (user.anonymizedAt != null) return m.board_read_status_anonymized_user()
-  const name = [user.firstname, user.lastname].filter(Boolean).join(' ')
-  return name || null
-}
-
-function formatAssigneeWithAssistant(assignee: string | null, assistant: string | null): string | null {
-  if (!assignee) return null
-  if (assistant) return `${assignee} / ${assistant}`
-  return assignee
-}
-
 function formatDate(date: Date): string {
   return new Date(date).toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -146,19 +134,6 @@ function getMonth(date: Date): string {
   })
 }
 
-function nameMatches(
-  user: {
-    firstname: string | null
-    lastname: string | null
-    anonymizedAt: Date | null
-  } | null,
-  query: string,
-): boolean {
-  const name = formatName(user)
-  if (!name) return false
-  return name.toLowerCase().includes(query)
-}
-
 // ---------------------------------------------------------------------------
 // Sub-components
 // ---------------------------------------------------------------------------
@@ -176,9 +151,7 @@ function SectionHeader({ section, icon: Icon }: { section: string; icon?: Lucide
 }
 
 function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highlighted: boolean; dimmed: boolean }) {
-  const assigneeName = formatName(part.assignee)
-  const assistantName = formatName(part.assistant)
-  const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+  const { text: rightText, isExternal } = getPartDisplay(part)
   const displayName = part.topic !== '' ? part.topic : part.name
 
   return (
@@ -197,11 +170,16 @@ function PartRow({ part, highlighted, dimmed }: { part: PartAssignment; highligh
       {rightText ? (
         <span
           className={cn(
-            'shrink-0 text-foreground text-sm',
+            'flex shrink-0 items-center gap-1.5 text-foreground text-sm',
             highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
           )}
         >
           {rightText}
+          {isExternal && (
+            <Badge variant="secondary" className="text-[10px]">
+              {m.programs_view_external_badge()}
+            </Badge>
+          )}
         </span>
       ) : (
         <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
@@ -225,11 +203,9 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
         )}
       </div>
       {parts.map((part, idx) => {
-        const assigneeName = formatName(part.assignee)
-        const assistantName = formatName(part.assistant)
-        const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+        const { text: rightText, isExternal } = getPartDisplay(part)
         const trackName = part.track || `Salle ${idx + 1}`
-        const highlighted = hasQuery && (nameMatches(part.assignee, query) || nameMatches(part.assistant, query))
+        const highlighted = hasQuery && partMatchesQuery(part, query)
         const dimmed = hasQuery && !highlighted
 
         return (
@@ -246,11 +222,16 @@ function MultiTrackPart({ parts, query }: { parts: PartAssignment[]; query: stri
             {rightText ? (
               <span
                 className={cn(
-                  'shrink-0 text-foreground text-sm',
+                  'flex shrink-0 items-center gap-1.5 text-foreground text-sm',
                   highlighted && 'rounded-sm bg-amber-100 px-1 dark:bg-amber-900/40',
                 )}
               >
                 {rightText}
+                {isExternal && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {m.programs_view_external_badge()}
+                  </Badge>
+                )}
               </span>
             ) : (
               <span className="shrink-0 text-muted-foreground/40 text-sm italic">&mdash;</span>
@@ -531,8 +512,7 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                       {slots.map(slot => {
                         if (slot.parts.length === 1) {
                           const part = slot.parts[0]
-                          const highlighted =
-                            hasQuery && (nameMatches(part.assignee, query) || nameMatches(part.assistant, query))
+                          const highlighted = hasQuery && partMatchesQuery(part, query)
                           const dimmed = hasQuery && !highlighted
 
                           return <PartRow key={part.id} part={part} highlighted={highlighted} dimmed={dimmed} />
