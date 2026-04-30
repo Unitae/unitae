@@ -6,6 +6,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   auditInTransaction: vi.fn(),
+  // biome-ignore lint/style/useNamingConvention: matches the exported enum names
   AuditAction: { UserUpdated: 'user.updated' },
 }))
 

@@ -520,6 +520,7 @@ async function exportFiles(zip: JsZip, db: TransactionClient, congregationId: nu
     const buffer = await getFileBuffer(uri)
     if (buffer) {
       // Store using just the filename part (strip the congregationId/board/ prefix)
+      // biome-ignore lint/style/noNonNullAssertion: split('/') always returns at least one element
       const filename = uri.split('/').pop()!
       filesDir.file(filename, buffer)
     } else {

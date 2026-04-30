@@ -176,6 +176,7 @@ function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggr
             entrance.buildings
               .filter(b => b.latitude != null && b.longitude != null)
               .map(building => (
+                {/* biome-ignore lint/style/noNonNullAssertion: filtered to non-null latitude/longitude above */}
                 <GoogleMapMarker key={building.id} position={{ lat: building.latitude!, lng: building.longitude! }} />
               )),
           )}
