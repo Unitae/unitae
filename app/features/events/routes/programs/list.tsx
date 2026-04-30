@@ -241,13 +241,13 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                   <WeekCheckbox events={events} selectedIds={selectedIds} onToggleWeek={toggleWeek} />
                 )}
                 <div className="flex flex-1 items-center gap-3">
-                  <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                  <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
                     {m.programs_week_header_count({
                       date: weekMonday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
                       count: events.length,
                     })}
                   </span>
-                  <div className="flex-1 border-t border-border" />
+                  <div className="flex-1 border-border border-t" />
                 </div>
               </div>
 
@@ -266,9 +266,9 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                         onClick={e => e.stopPropagation()}
                       />
                     )}
-                    <Link to={`./events/${event.id}`} className="no-underline flex-1">
+                    <Link to={`./events/${event.id}`} className="flex-1 no-underline">
                       <Card
-                        className="transition-colors hover:bg-muted/50 overflow-hidden"
+                        className="overflow-hidden transition-colors hover:bg-muted/50"
                         style={event.kind?.color ? { borderLeftColor: event.kind.color, borderLeftWidth: '4px' } : {}}
                       >
                         <CardContent className="flex items-center justify-between py-3">
