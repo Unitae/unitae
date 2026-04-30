@@ -17,9 +17,6 @@ test.describe('Authentication', () => {
   })
 
   test('unauthenticated access to a protected route redirects to login', async ({ page }) => {
-    await page.goto('/login')
-    if (page.url().includes('/setup') || page.url().includes('/register')) test.skip()
-
     await page.goto('/publishers')
     await expect(page).toHaveURL(LOGIN_URL_RE)
   })

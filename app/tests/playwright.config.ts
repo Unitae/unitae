@@ -12,7 +12,10 @@ export default defineConfig({
     baseURL: baseUrl,
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'setup', testMatch: /app-setup\.spec\.ts/ },
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, dependencies: ['setup'] },
+  ],
   webServer: {
     command: process.env.CI ? 'pnpm start' : 'pnpm start:dev',
     url: baseUrl,
