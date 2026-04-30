@@ -251,8 +251,8 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
 
-      - name: Generate Prisma client
-        run: pnpm prisma generate
+      - name: Generate Prisma client and i18n messages
+        run: pnpm prisma generate && pnpm react-router typegen
 
       - name: Create non-superuser app role for RLS
         run: |
