@@ -25,12 +25,6 @@
         "forceConsistentCasingInFileNames": true,
         "paths": {
             "~/*": ["./app/*"],
-            "emails/reset-password": ["./app/features/authentication/emails/reset-password"],
-            "emails/verify-email": ["./app/features/authentication/emails/verify-email"],
-            "emails/reset-password-required": ["./app/features/authentication/emails/reset-password-required"],
-            "emails/notifications/buildings-sync-done": ["./app/features/territories/emails/buildings-sync-done"],
-            "emails/notifications/new-document-in-board": ["./app/features/notifications/emails/new-document-in-board"],
-            "emails/notifications/documents-expiring": ["./app/features/notifications/emails/documents-expiring"]
         },
 
         // Vite takes care of building everything, not tsc.

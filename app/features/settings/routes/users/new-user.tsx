@@ -108,7 +108,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
-      const ResetPasswordRequired = (await import('emails/reset-password-required')).default
+      const ResetPasswordRequired = (await import('~/features/authentication/emails/reset-password-required')).default
       const result = await createUser(
         db,
         congregation,

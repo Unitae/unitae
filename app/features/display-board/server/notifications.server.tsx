@@ -1,4 +1,4 @@
-import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
+import NewDocumentInBoard from '~/features/notifications/emails/new-document-in-board'
 import type { BoardDocument } from '~/database/generated/client'
 import * as m from '~/paraglide/messages'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'

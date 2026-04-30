@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import ResetPassword from 'emails/reset-password'
+import ResetPassword from '~/features/authentication/emails/reset-password'
 import { data, Form, Link, redirect } from 'react-router'
 import { forgotPasswordSchema } from '~/features/authentication/schemas/login.schema'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'

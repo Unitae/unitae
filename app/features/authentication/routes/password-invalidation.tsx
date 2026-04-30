@@ -1,4 +1,4 @@
-import ResetPasswordRequired from 'emails/reset-password-required'
+import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
 import { redirect } from 'react-router'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'

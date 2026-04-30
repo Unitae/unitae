@@ -1,4 +1,4 @@
-import VerifyEmailTemplate from 'emails/verify-email'
+import VerifyEmailTemplate from '~/features/authentication/emails/verify-email'
 import { Form, Link, redirect } from 'react-router'
 import {
   createEmailVerificationToken,

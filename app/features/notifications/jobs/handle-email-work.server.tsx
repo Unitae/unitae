@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq'
-import DocumentsExpiring from 'emails/notifications/documents-expiring'
-import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
+import DocumentsExpiring from '../emails/documents-expiring'
+import NewDocumentInBoard from '../emails/new-document-in-board'
 import * as m from '~/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'

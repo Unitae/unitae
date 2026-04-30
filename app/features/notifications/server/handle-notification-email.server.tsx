@@ -1,4 +1,4 @@
-import NewDocumentInBoard from 'emails/notifications/new-document-in-board'
+import NewDocumentInBoard from '~/features/notifications/emails/new-document-in-board'
 import * as m from '~/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
