@@ -127,7 +127,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                   {user.isPublisher ? (
                     roles.canViewPublishers ? (
                       <Link
-                        to={`/publishers/${user.id}`}
+                        to={`/publishers/${user.id}/view`}
                         title={m.settings_users_view_publisher_title()}
                         className="text-primary"
                       >

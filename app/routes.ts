@@ -102,7 +102,7 @@ export default [
       index('features/publishers/routes/publishers/publisher-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
       ...prefix(':publisherId', [
-        index('features/publishers/routes/publishers/publisher.tsx'),
+        route('view', 'features/publishers/routes/publishers/publisher.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
       ]),
