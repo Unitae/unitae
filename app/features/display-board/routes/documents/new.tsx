@@ -261,6 +261,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         visibleFrom: parsedFrom,
         visibleUntil: parsedUntil,
         ...(submission.value.hightlighted != null ? { isHighlighted } : {}),
+        actorId: currentUser.id,
       })
 
       if (document == null) {

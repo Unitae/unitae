@@ -1,3 +1,4 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateTerritoryParams {
@@ -9,9 +10,10 @@ export async function updateTerritory(
   db: TransactionClient,
   id: number,
   congregationId: number,
+  actorId: number,
   params: UpdateTerritoryParams,
 ) {
-  return db.territory.update({
+  const territory = await db.territory.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound key
       id_congregationId: { id, congregationId },
@@ -23,4 +25,14 @@ export async function updateTerritory(
       notes: params.notes,
     },
   })
+
+  audit({
+    action: AuditAction.TerritoryUpdated,
+    congregationId,
+    actorId,
+    entityType: 'Territory',
+    entityId: id,
+  })
+
+  return territory
 }

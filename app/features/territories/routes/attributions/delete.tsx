@@ -59,7 +59,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   requireRole(permissions, Role.TerritoriesManager)
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId, id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
@@ -67,6 +67,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       db,
       requireParamId(params.attributionId, '/territories/attributions'),
       congregationId,
+      actorId,
     )
 
     session.flash(

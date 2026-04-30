@@ -201,6 +201,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { number, type, entrances } = submission.value
   const congregation = context.get(congregationContext)
+  const { id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
@@ -213,6 +214,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         type,
         entranceIds: entrances,
         congregationId: congregation.id,
+        actorId,
       })
 
       return redirect('/territories')

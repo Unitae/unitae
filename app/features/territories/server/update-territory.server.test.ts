@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { territory: { update: vi.fn() } },
 }))
@@ -16,7 +17,7 @@ describe('updateTerritory', () => {
     const fake = { id: 3, number: 'D003', notes: 'some notes', congregationId: 1 }
     vi.mocked(db.territory.update).mockResolvedValue(fake as never)
 
-    const result = await updateTerritory(db as any, 3, 1, {
+    const result = await updateTerritory(db as any, 3, 1, 99, {
       entranceIds: [1, 2],
       notes: 'some notes',
     })
@@ -27,7 +28,7 @@ describe('updateTerritory', () => {
   it('passes entrance ids as set array and notes', async () => {
     vi.mocked(db.territory.update).mockResolvedValue({} as never)
 
-    await updateTerritory(db as any, 10, 5, {
+    await updateTerritory(db as any, 10, 5, 99, {
       entranceIds: [4, 8],
       notes: 'updated notes',
     })

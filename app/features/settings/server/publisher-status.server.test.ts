@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
+
 import { togglePublisherStatus } from './publisher-status.server'
 
 const mockDb = {
@@ -17,7 +20,7 @@ describe('togglePublisherStatus', () => {
     const expected = { id: 5, isPublisher: true }
     mockDb.user.update.mockResolvedValue(expected)
 
-    const result = await togglePublisherStatus(mockDb as never, 5, 10, true)
+    const result = await togglePublisherStatus(mockDb as never, 5, 10, true, 99)
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({
@@ -31,7 +34,7 @@ describe('togglePublisherStatus', () => {
     const expected = { id: 5, isPublisher: false }
     mockDb.user.update.mockResolvedValue(expected)
 
-    const result = await togglePublisherStatus(mockDb as never, 5, 10, false)
+    const result = await togglePublisherStatus(mockDb as never, 5, 10, false, 99)
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({

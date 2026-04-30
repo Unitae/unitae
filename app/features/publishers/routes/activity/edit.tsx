@@ -258,6 +258,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       db,
       requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
+      currentUser.id,
       {
         type: type,
         isPublisher: hours > 0 ? true : preached,

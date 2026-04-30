@@ -235,13 +235,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'
-  const { congregationId } = context.get(userContext)
+  const { congregationId, id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const attribution = await updateAttribution(
       db,
       requireParamId(params.attributionId, '/territories/attributions'),
       congregationId,
+      actorId,
       {
         publisherId,
         notes,

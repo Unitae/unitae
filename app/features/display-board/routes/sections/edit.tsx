@@ -102,8 +102,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { name } = submission.value
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
-    const section = await updateBoardSection(db, requireParamId(params.sectionId, '/board'), congregationId, {
+    const { congregationId, id: actorId } = context.get(userContext)
+    const section = await updateBoardSection(db, requireParamId(params.sectionId, '/board'), congregationId, actorId, {
       name,
     })
 

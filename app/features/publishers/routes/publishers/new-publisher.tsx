@@ -121,6 +121,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         congregationId: currentUser.congregationId,
         phone: phone ?? '',
         address: address ?? '',
+        actorId: currentUser.id,
       })
 
       session.flash('success', m.publishers_new_success({ name: user.firstname ?? '' }))

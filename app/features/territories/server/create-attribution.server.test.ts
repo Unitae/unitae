@@ -5,6 +5,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 vi.mock('~/shared/domain/settings.server', () => ({
   getSetting: vi.fn(),
 }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const mockDb = {
   attribution: { create: vi.fn() },
@@ -20,6 +21,7 @@ const baseParams = {
   startDate: '2025-03-15',
   notes: 'test',
   congregationId: 10,
+  actorId: 99,
 }
 
 beforeEach(() => {

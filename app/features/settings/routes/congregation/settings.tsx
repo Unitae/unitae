@@ -125,6 +125,7 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
+  const { id: actorId } = context.get(userContext)
   const canManageSettings = permissions.has(Role.Admin)
 
   if (!canManageSettings) {
@@ -140,7 +141,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     submission.value
 
   return withScopeFromContext(context, async db => {
-    await updateCongregationSettings(db, congregation.id, { auxiliaryPioneerProfileActivated })
+    await updateCongregationSettings(db, congregation.id, actorId, { auxiliaryPioneerProfileActivated })
 
     return redirect('/settings/congregation')
   })

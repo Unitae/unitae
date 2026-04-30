@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { territory: { create: vi.fn() } },
+  unscopedDb: { territory: { create: vi.fn() }, auditLog: { create: vi.fn() } },
 }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { createTerritory } = await import('./create-territory.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -22,6 +23,7 @@ describe('createTerritory', () => {
       type: TerritoryKind.Classical,
       entranceIds: [10, 20],
       congregationId: 1,
+      actorId: 99,
     })
 
     expect(result).toEqual(fake)
@@ -35,6 +37,7 @@ describe('createTerritory', () => {
       type: TerritoryKind.Hotel,
       entranceIds: [3, 5, 7],
       congregationId: 2,
+      actorId: 99,
     })
 
     expect(db.territory.create).toHaveBeenCalledWith({

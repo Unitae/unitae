@@ -23,6 +23,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       requireParamId(params.userId, '/settings/users'),
       currentUser.congregationId,
       false,
+      currentUser.id,
     )
     const session = await getSession(request.headers.get('Cookie'))
     if (user.isPublisher === true) {

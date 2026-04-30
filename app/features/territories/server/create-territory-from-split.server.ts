@@ -1,10 +1,12 @@
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface CreateTerritoryFromSplitParams {
   type: TerritoryKind
   entranceIds: number[]
   congregationId: number
+  actorId: number
 }
 
 export async function createTerritoryFromSplit(db: TransactionClient, params: CreateTerritoryFromSplitParams) {
@@ -35,6 +37,14 @@ export async function createTerritoryFromSplit(db: TransactionClient, params: Cr
       },
       congregationId: params.congregationId,
     },
+  })
+
+  audit({
+    action: AuditAction.TerritoryCreated,
+    congregationId: params.congregationId,
+    actorId: params.actorId,
+    entityType: 'Territory',
+    entityId: territory.id,
   })
 
   return { ...territory, number }

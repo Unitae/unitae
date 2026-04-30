@@ -272,7 +272,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       }
     }
 
-    const document = await updateBoardDocument(db, documentId, congregationId, {
+    const document = await updateBoardDocument(db, documentId, congregationId, currentUser.id, {
       title: String(title),
       sectionId,
       visibleFrom: resolvedVisibleFrom,

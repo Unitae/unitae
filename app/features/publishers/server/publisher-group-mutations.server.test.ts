@@ -6,8 +6,10 @@ const mockDelete = vi.fn()
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     publisherGroup: { create: mockCreate, delete: mockDelete },
+    auditLog: { create: vi.fn() },
   },
 }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { createPublisherGroup, deletePublisherGroup } = await import('./publisher-group-mutations.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -24,6 +26,7 @@ describe('createPublisherGroup', () => {
       responsibleId: 10,
       deputyId: 20,
       congregationId: 1,
+      actorId: 99,
     }
     const fakeGroup = { id: 1, ...params }
     mockCreate.mockResolvedValue(fakeGroup as never)
@@ -50,6 +53,7 @@ describe('createPublisherGroup', () => {
       responsibleId: 10,
       deputyId: null,
       congregationId: 1,
+      actorId: 99,
     }
     const fakeGroup = { id: 2, ...params }
     mockCreate.mockResolvedValue(fakeGroup as never)
@@ -75,7 +79,7 @@ describe('deletePublisherGroup', () => {
     const fakeDeleted = { id: 5, name: 'Groupe Ouest' }
     mockDelete.mockResolvedValue(fakeDeleted as never)
 
-    const result = await deletePublisherGroup(db, 5, 1)
+    const result = await deletePublisherGroup(db, 5, 1, 99)
 
     expect(result).toEqual(fakeDeleted)
     expect(mockDelete).toHaveBeenCalledWith({

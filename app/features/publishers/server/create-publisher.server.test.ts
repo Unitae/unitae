@@ -9,6 +9,7 @@ vi.mock('~/shared/domain/limits.server', () => ({
     errorIfWouldGoOverLimit = mockErrorIfWouldGoOverLimit
   },
 }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const mockDb = {
   user: { create: vi.fn() },
@@ -43,6 +44,7 @@ const baseParams = {
   congregationId: 1,
   phone: '',
   address: '',
+  actorId: 99,
 }
 
 describe('createPublisher', () => {

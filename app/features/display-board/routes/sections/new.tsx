@@ -78,8 +78,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { name } = submission.value
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
-    const section = await createBoardSection(db, { name, congregationId })
+    const { congregationId, id: actorId } = context.get(userContext)
+    const section = await createBoardSection(db, { name, congregationId, actorId })
 
     if (section == null) {
       session.flash('error', m.common_generic_error())

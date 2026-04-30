@@ -1,5 +1,6 @@
-import { PublisherType } from '~/shared/types/publisher-type'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 export interface CreatePublisherActivityParams {
   publisherId: number
@@ -11,10 +12,11 @@ export interface CreatePublisherActivityParams {
   studies: number
   notes: string
   congregationId: number
+  actorId: number
 }
 
-export function createPublisherActivity(db: TransactionClient, params: CreatePublisherActivityParams) {
-  return db.publisherActivity.create({
+export async function createPublisherActivity(db: TransactionClient, params: CreatePublisherActivityParams) {
+  const activity = await db.publisherActivity.create({
     data: {
       publisherId: params.publisherId,
       month: params.month,
@@ -27,6 +29,17 @@ export function createPublisherActivity(db: TransactionClient, params: CreatePub
       congregationId: params.congregationId,
     },
   })
+
+  audit({
+    action: AuditAction.PublisherActivityCreated,
+    congregationId: params.congregationId,
+    actorId: params.actorId,
+    entityType: 'PublisherActivity',
+    entityId: activity.id,
+    metadata: { publisherId: params.publisherId, month: params.month, year: params.year },
+  })
+
+  return activity
 }
 
 export interface UpdatePublisherActivityParams {
@@ -37,13 +50,14 @@ export interface UpdatePublisherActivityParams {
   notes: string
 }
 
-export function updatePublisherActivity(
+export async function updatePublisherActivity(
   db: TransactionClient,
   id: number,
   congregationId: number,
+  actorId: number,
   params: UpdatePublisherActivityParams,
 ) {
-  return db.publisherActivity.update({
+  const activity = await db.publisherActivity.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
@@ -56,14 +70,34 @@ export function updatePublisherActivity(
       notes: params.notes,
     },
   })
+
+  audit({
+    action: AuditAction.PublisherActivityUpdated,
+    congregationId,
+    actorId,
+    entityType: 'PublisherActivity',
+    entityId: id,
+  })
+
+  return activity
 }
 
-export function deletePublisherActivity(db: TransactionClient, id: number, congregationId: number) {
-  return db.publisherActivity.delete({
+export async function deletePublisherActivity(db: TransactionClient, id: number, congregationId: number, actorId: number) {
+  const activity = await db.publisherActivity.delete({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
     },
     include: { publisher: true },
   })
+
+  audit({
+    action: AuditAction.PublisherActivityDeleted,
+    congregationId,
+    actorId,
+    entityType: 'PublisherActivity',
+    entityId: id,
+  })
+
+  return activity
 }

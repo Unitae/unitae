@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { attribution: { update: vi.fn() } },
+  unscopedDb: { attribution: { update: vi.fn() }, auditLog: { create: vi.fn() } },
 }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { updateAttribution } = await import('./update-attribution.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -17,7 +18,7 @@ describe('updateAttribution', () => {
     const fake = { id: 1, publisherId: 10, type: TerritoryAttributionKind.Default }
     vi.mocked(db.attribution.update).mockResolvedValue(fake as never)
 
-    const result = await updateAttribution(db as any, 1, 1, {
+    const result = await updateAttribution(db as any, 1, 1, 99, {
       publisherId: 10,
       notes: 'test',
       type: TerritoryAttributionKind.Default,
@@ -31,7 +32,7 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const startDate = new Date('2025-03-01')
 
-    await updateAttribution(db as any, 5, 2, {
+    await updateAttribution(db as any, 5, 2, 99, {
       publisherId: 3,
       notes: 'note',
       type: TerritoryAttributionKind.Campaign,
@@ -49,7 +50,7 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const lateDate = new Date('2025-06-01')
 
-    await updateAttribution(db as any, 5, 2, {
+    await updateAttribution(db as any, 5, 2, 99, {
       publisherId: 3,
       notes: '',
       type: TerritoryAttributionKind.Default,
@@ -65,7 +66,7 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const endDate = new Date('2025-12-31')
 
-    await updateAttribution(db as any, 5, 2, {
+    await updateAttribution(db as any, 5, 2, 99, {
       publisherId: 3,
       notes: '',
       type: TerritoryAttributionKind.Default,

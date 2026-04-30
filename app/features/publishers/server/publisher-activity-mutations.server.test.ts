@@ -8,8 +8,10 @@ const mockDelete = vi.fn()
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     publisherActivity: { create: mockCreate, update: mockUpdate, delete: mockDelete },
+    auditLog: { create: vi.fn() },
   },
 }))
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { createPublisherActivity, updatePublisherActivity, deletePublisherActivity } = await import(
   './publisher-activity-mutations.server'
@@ -32,6 +34,7 @@ describe('createPublisherActivity', () => {
       studies: 2,
       notes: 'Good month',
       congregationId: 10,
+      actorId: 99,
     }
     const fakeActivity = { id: 1, ...params }
     mockCreate.mockResolvedValue(fakeActivity as never)
@@ -67,7 +70,7 @@ describe('updatePublisherActivity', () => {
     const fakeUpdated = { id: 5, ...params }
     mockUpdate.mockResolvedValue(fakeUpdated as never)
 
-    const result = await updatePublisherActivity(db, 5, 10, params)
+    const result = await updatePublisherActivity(db, 5, 10, 99, params)
 
     expect(result).toEqual(fakeUpdated)
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -91,7 +94,7 @@ describe('deletePublisherActivity', () => {
     const fakeDeleted = { id: 7, publisher: { id: 1, firstname: 'Jean' } }
     mockDelete.mockResolvedValue(fakeDeleted as never)
 
-    const result = await deletePublisherActivity(db, 7, 10)
+    const result = await deletePublisherActivity(db, 7, 10, 99)
 
     expect(result).toEqual(fakeDeleted)
     expect(mockDelete).toHaveBeenCalledWith({

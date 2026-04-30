@@ -1,4 +1,5 @@
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -18,6 +19,7 @@ export interface CreatePublisherParams {
   congregationId: number
   phone: string
   address: string
+  actorId: number
 }
 
 export async function createPublisher(
@@ -33,7 +35,7 @@ export async function createPublisher(
       ? params.email
       : `${params.firstname}.${params.lastname}@placeholder.unitae.app`.toLowerCase()
 
-  return db.user.create({
+  const publisher = await db.user.create({
     data: {
       firstname: params.firstname,
       lastname: params.lastname,
@@ -55,4 +57,14 @@ export async function createPublisher(
       address: params.address,
     },
   })
+
+  audit({
+    action: AuditAction.PublisherCreated,
+    congregationId: params.congregationId,
+    actorId: params.actorId,
+    entityType: 'User',
+    entityId: publisher.id,
+  })
+
+  return publisher
 }

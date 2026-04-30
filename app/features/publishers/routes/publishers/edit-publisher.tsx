@@ -138,6 +138,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       db,
       requireParamId(params.publisherId, '/publishers'),
       currentUser.congregationId,
+      currentUser.id,
       {
         firstname,
         lastname,

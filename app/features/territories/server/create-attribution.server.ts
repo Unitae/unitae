@@ -1,5 +1,6 @@
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -18,6 +19,7 @@ export interface CreateAttributionParams {
   notes: string
   type: TerritoryAttributionKind
   congregationId: number
+  actorId: number
 }
 
 function parsePositiveDays(value: string | null | undefined, fallback: number): number {
@@ -68,7 +70,7 @@ export async function createAttribution(db: TransactionClient, params: CreateAtt
   const lateDate = new Date(params.startDate)
   lateDate.setDate(lateDate.getDate() + durationDays)
 
-  return db.attribution.create({
+  const attribution = await db.attribution.create({
     data: {
       publisherId: params.publisherId,
       territoryId: params.territoryId,
@@ -79,4 +81,15 @@ export async function createAttribution(db: TransactionClient, params: CreateAtt
       congregationId: params.congregationId,
     },
   })
+
+  audit({
+    action: AuditAction.AttributionCreated,
+    congregationId: params.congregationId,
+    actorId: params.actorId,
+    entityType: 'Attribution',
+    entityId: attribution.id,
+    metadata: { publisherId: params.publisherId, territoryId: params.territoryId },
+  })
+
+  return attribution
 }
