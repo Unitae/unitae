@@ -63,6 +63,8 @@ export async function runExport(job: Job<ExportJobData>): Promise<string> {
     action: AuditAction.CongregationExported,
     congregationId,
     actorId: userId,
+    entityType: 'Congregation',
+    entityId: congregationId,
     metadata: { entityCounts, includeFiles: options.includeFiles, includeAuditLogs: options.includeAuditLogs },
   })
 

@@ -172,6 +172,8 @@ export async function action({ request }: Route.ActionArgs) {
       congregationId: urlCongregation.id,
       actorId: userId,
       actorEmail: username,
+      entityType: 'User',
+      entityId: userId,
     })
   }
 

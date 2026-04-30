@@ -288,6 +288,8 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
     action: AuditAction.CongregationImported,
     congregationId,
     actorId: userId,
+    entityType: 'Congregation',
+    entityId: congregationId,
     metadata: { storageKey },
   })
 

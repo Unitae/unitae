@@ -48,6 +48,8 @@ export async function action({ request, context }: Route.ActionArgs) {
     action: AuditAction.ConsentWithdrawn,
     congregationId: currentUser.congregationId,
     actorId: currentUser.id,
+    entityType: 'User',
+    entityId: currentUser.id,
     metadata: { purpose },
   })
 

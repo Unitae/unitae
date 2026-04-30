@@ -40,6 +40,8 @@ export async function action({ request }: Route.ActionArgs) {
     action: AuditAction.ConsentGranted,
     congregationId: currentUser.congregationId,
     actorId: currentUser.id,
+    entityType: 'User',
+    entityId: currentUser.id,
     metadata: { purpose: ConsentPurpose.DataProcessing },
   })
 
