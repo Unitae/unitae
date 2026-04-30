@@ -147,7 +147,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         isHelder,
         isServant,
         isAnointed,
-        groupId: group ?? 0,
+        groupId: group ?? null,
         email: email && email.length > 0 ? email : null,
         type,
         address,

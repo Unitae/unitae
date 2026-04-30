@@ -116,7 +116,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         isHelder,
         isServant,
         isAnointed,
-        groupId: group ?? 0,
+        groupId: group ?? null,
         type,
         congregationId: currentUser.congregationId,
         phone: phone ?? '',
