@@ -11,6 +11,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 vi.mock('~/shared/domain/settings.server', () => ({
   setSetting: vi.fn(),
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { updateCongregationSettings } = await import('./congregation-settings.server')

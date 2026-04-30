@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { restoreVersionSchema } from '~/features/display-board/schemas/board-document.schema'
 import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'

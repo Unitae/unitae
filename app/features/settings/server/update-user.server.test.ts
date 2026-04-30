@@ -25,7 +25,7 @@ describe('updateUser', () => {
     mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.userRole.findMany.mockResolvedValue([] as never)
 
-    await updateUser(mockDb as any, 1, 10, 99, {
+    await updateUser(mockDb as never, 1, 10, 99, {
       firstname: 'Marie',
       lastname: 'Martin',
       email: 'Marie.Martin@Example.COM',
@@ -49,7 +49,7 @@ describe('updateUser', () => {
     ] as never)
     mockDb.congregationUserRole.createMany.mockResolvedValue({ count: 2 } as never)
 
-    await updateUser(mockDb as any, 5, 10, 99, {
+    await updateUser(mockDb as never, 5, 10, 99, {
       firstname: 'Paul',
       lastname: 'Durand',
       email: 'paul@example.com',
@@ -74,7 +74,7 @@ describe('updateUser', () => {
     mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.userRole.findMany.mockResolvedValue([] as never)
 
-    await updateUser(mockDb as any, 7, 10, 99, {
+    await updateUser(mockDb as never, 7, 10, 99, {
       firstname: 'Luc',
       lastname: 'Bernard',
       email: 'luc@example.com',

@@ -1,6 +1,6 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { PublisherType } from '~/shared/types/publisher-type'
+import type { PublisherType } from '~/shared/types/publisher-type'
 
 export interface CreatePublisherActivityParams {
   publisherId: number
@@ -82,7 +82,12 @@ export async function updatePublisherActivity(
   return activity
 }
 
-export async function deletePublisherActivity(db: TransactionClient, id: number, congregationId: number, actorId: number) {
+export async function deletePublisherActivity(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+) {
   const activity = await db.publisherActivity.delete({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound unique key

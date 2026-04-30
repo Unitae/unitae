@@ -5,7 +5,7 @@ import { Form, redirect } from 'react-router'
 import { exportOptionsSchema } from '~/features/settings/schemas/data-transfer.schema'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -105,7 +105,11 @@ export default function ExportPage({ loaderData, actionData }: Route.ComponentPr
                 {completedExports.map(job => (
                   <TableRow key={job.id}>
                     <TableCell>
-                      {job.finishedOn ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(job.finishedOn)) : '—'}
+                      {job.finishedOn
+                        ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(
+                            new Date(job.finishedOn),
+                          )
+                        : '—'}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild variant="ghost" size="sm">

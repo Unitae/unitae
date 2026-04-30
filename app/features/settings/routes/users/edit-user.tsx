@@ -6,8 +6,6 @@ import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
@@ -24,6 +22,8 @@ import {
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -58,7 +58,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageUser = permissions.has(Role.SettingsUserManager)

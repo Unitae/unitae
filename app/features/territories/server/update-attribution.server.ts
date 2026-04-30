@@ -1,5 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 

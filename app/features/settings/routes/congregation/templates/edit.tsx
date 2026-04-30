@@ -46,7 +46,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_edit_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
@@ -78,6 +78,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const formData = await request.formData()
   const intent = formData.get('intent')
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles multiple form intents in a single transaction
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')

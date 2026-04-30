@@ -1,4 +1,4 @@
-import { createContext, redirect, type RouterContext } from 'react-router'
+import { createContext, type RouterContext, redirect } from 'react-router'
 import type { SanitizedUser } from '~/shared/auth/sanitize-user.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import type { TransactionClient } from '~/shared/infra/db.server'

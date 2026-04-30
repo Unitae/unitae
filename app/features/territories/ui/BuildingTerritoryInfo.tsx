@@ -18,7 +18,12 @@ export default function BuildingTerritoryInfo({ building }: { building: Building
               {m.prospection_territory_notes_label()}{' '}
               <span className="text-muted-foreground text-sm">{m.prospection_territory_notes_visibility()}</span>
             </Label>
-            <textarea className="rounded-md border border-input bg-background px-3 py-2 text-sm" rows={4} name="notes" defaultValue={building.notes ?? ''} />
+            <textarea
+              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+              rows={4}
+              name="notes"
+              defaultValue={building.notes ?? ''}
+            />
           </div>
           <p className="text-muted-foreground text-sm italic">{m.prospection_territory_notes_hint()}</p>
           <SubmitButton className="self-start">{m.prospection_territory_notes_submit()}</SubmitButton>

@@ -70,7 +70,9 @@ describe('anonymizeUser', () => {
   it('refuse d anonymiser un utilisateur inexistant', async () => {
     mockDb.user.findUnique.mockResolvedValue(null as never)
 
-    await expect(anonymizeUser(mockDb as never, 999 as UserId, 'admin:5')).rejects.toThrow('Utilisateur introuvable : 999')
+    await expect(anonymizeUser(mockDb as never, 999 as UserId, 'admin:5')).rejects.toThrow(
+      'Utilisateur introuvable : 999',
+    )
   })
 
   it('refuse d anonymiser un utilisateur deja anonymise', async () => {
@@ -80,6 +82,8 @@ describe('anonymizeUser', () => {
       congregationId: 10,
     } as never)
 
-    await expect(anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')).rejects.toThrow('Utilisateur deja anonymise : 1')
+    await expect(anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')).rejects.toThrow(
+      'Utilisateur deja anonymise : 1',
+    )
   })
 })

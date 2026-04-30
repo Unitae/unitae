@@ -10,15 +10,16 @@ import * as m from '~/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
+  requireRole,
   userContext,
   withScopeFromContext,
-  requireRole } from '~/shared/auth/route-context.server'
+} from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -31,7 +32,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_new_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)

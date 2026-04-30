@@ -2,9 +2,9 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import JsZip from 'jszip'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { PublisherType } from '~/shared/types/publisher-type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { EntityIdMap, type ManifestJson } from './data-transfer.type'
 
 // --- Test DB setup (same pattern as db.server.integration.test.ts) ---
@@ -18,7 +18,7 @@ const testDb = new PrismaClient({ adapter })
 
 type Tx = Parameters<Parameters<typeof testDb.$transaction>[0]>[0]
 
-async function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
+function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
   return testDb.$transaction(async tx => {
     await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
     return fn(tx)

@@ -12,7 +12,7 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-async function withScope<T>(
+function withScope<T>(
   congregationId: number,
   fn: (tx: Parameters<Parameters<typeof testDb.$transaction>[0]>[0]) => Promise<T>,
 ): Promise<T> {

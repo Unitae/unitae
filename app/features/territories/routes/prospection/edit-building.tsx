@@ -7,13 +7,13 @@ import { updateBuildingSchema } from '~/features/territories/schemas/building.sc
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
+import { permissionsContext, requireRole, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -32,7 +32,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   ]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)

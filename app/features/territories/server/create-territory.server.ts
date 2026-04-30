@@ -1,4 +1,4 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 

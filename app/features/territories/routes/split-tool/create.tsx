@@ -5,7 +5,13 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  permissionsContext,
+  requireRole,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { Role } from '~/shared/types/role'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'

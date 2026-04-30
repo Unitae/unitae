@@ -33,7 +33,7 @@ export function parseExportConfigs(raw: string): TemplateExportConfig[] {
  * Fetches events with their part and service role assignments for PDF export.
  * Events are ordered by startDate ascending.
  */
-export async function getEventsForExport(db: TransactionClient, templateIds: number[], startDate: Date, endDate: Date) {
+export function getEventsForExport(db: TransactionClient, templateIds: number[], startDate: Date, endDate: Date) {
   return db.event.findMany({
     where: {
       templateId: { in: templateIds },

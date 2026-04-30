@@ -1,8 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_URL,

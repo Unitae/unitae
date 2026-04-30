@@ -8,7 +8,7 @@ import { createDynamicDocumentSchema } from '~/features/display-board/schemas/bo
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Card, CardContent } from '~/shared/ui/card'

@@ -71,7 +71,7 @@ describe('getUserTerritoriesWithDetails', () => {
         type: 'default',
         territory: { id: 2, number: 'T-2', type: 'doors-to-doors', entrances: [] },
       },
-    ] as any)
+    ] as never)
 
     const result = await getUserTerritoriesWithDetails(db, 1)
 

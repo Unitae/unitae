@@ -9,11 +9,11 @@ import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -241,7 +241,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
               </div>
             </div>
 
-            {publisher?.type != null && (publisher.type === PublisherType.Normal) && (
+            {publisher?.type != null && publisher.type === PublisherType.Normal && (
               <div className="space-y-2">
                 <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
                 <select
@@ -261,12 +261,14 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {([
-                PublisherType.PionnierAuxiliaires,
-                PublisherType.PionnierPermanant,
-                PublisherType.PionnierSpecial,
-                PublisherType.Missionnaire,
-              ] as PublisherType[]).includes(publisher?.type ?? PublisherType.Normal) ||
+              {(
+                [
+                  PublisherType.PionnierAuxiliaires,
+                  PublisherType.PionnierPermanant,
+                  PublisherType.PionnierSpecial,
+                  PublisherType.Missionnaire,
+                ] as PublisherType[]
+              ).includes(publisher?.type ?? PublisherType.Normal) ||
               (pioneer != null && ([PublisherType.PionnierAuxiliaires] as PublisherType[]).includes(pioneer)) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
@@ -355,9 +357,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     }
 
     const type =
-      publisher.type === PublisherType.Normal
-        ? (submission.value.type ?? PublisherType.Normal)
-        : publisher.type
+      publisher.type === PublisherType.Normal ? (submission.value.type ?? PublisherType.Normal) : publisher.type
     const activity = await createPublisherActivity(db, {
       publisherId: publisher.id,
       month,

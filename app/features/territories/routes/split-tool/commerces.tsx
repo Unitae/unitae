@@ -8,7 +8,7 @@ import { findEntrancesPaginated } from '~/features/territories/server/buildings.
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
@@ -20,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_commerces_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesViewer)

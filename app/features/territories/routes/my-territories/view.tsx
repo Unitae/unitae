@@ -140,7 +140,6 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
   )
 }
 
-
 function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggregateEntrance>[]; apiKey?: string }) {
   const { consented, grantConsent } = useMapConsent()
 

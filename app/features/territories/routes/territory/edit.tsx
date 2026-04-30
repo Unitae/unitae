@@ -16,11 +16,11 @@ import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -35,7 +35,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)
@@ -81,12 +81,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       }
     }
 
-    const streets = await getAvailableStreets(
-      db,
-      congregationId,
-      String(url.searchParams.get('zip')),
-      territory.type,
-    )
+    const streets = await getAvailableStreets(db, congregationId, String(url.searchParams.get('zip')), territory.type)
     if (!url.searchParams.has('street')) {
       return {
         territory,

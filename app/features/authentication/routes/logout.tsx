@@ -18,7 +18,13 @@ export async function action({ request }: Route.ActionArgs) {
   if (rawUserId && !Number.isNaN(userId) && userId > 0) {
     const user = await unscopedDb.user.findUnique({ where: { id: userId }, select: { congregationId: true } })
     if (user) {
-      audit({ action: AuditAction.UserLogout, congregationId: user.congregationId, actorId: userId, entityType: 'User', entityId: userId })
+      audit({
+        action: AuditAction.UserLogout,
+        congregationId: user.congregationId,
+        actorId: userId,
+        entityType: 'User',
+        entityId: userId,
+      })
     }
   }
 

@@ -5,6 +5,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     buildingEntrance: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn(), deleteMany: vi.fn() },
     buildingResidentialData: { aggregate: vi.fn() },
     buildingAccess: { create: vi.fn() },
+    // biome-ignore lint/style/useNamingConvention: Prisma-style snake_case field name
     buildingResidentialData_unused: undefined,
   },
 }))
@@ -33,6 +34,7 @@ describe('aggregate recalculation', () => {
       kind: 'residential',
       access: null,
       isMailboxOpen: false,
+      // biome-ignore lint/style/useNamingConvention: Prisma field name with consecutive uppercase letters
       isPMR: false,
       isOpenEarly: false,
       accesses: [],
@@ -56,6 +58,7 @@ describe('aggregate recalculation', () => {
       kind: 'residential',
       access: null,
       isMailboxOpen: false,
+      // biome-ignore lint/style/useNamingConvention: Prisma field name with consecutive uppercase letters
       isPMR: false,
       isOpenEarly: false,
       accesses: [],
@@ -79,6 +82,7 @@ describe('aggregate recalculation', () => {
       kind: 'residential',
       access: null,
       isMailboxOpen: false,
+      // biome-ignore lint/style/useNamingConvention: Prisma field name with consecutive uppercase letters
       isPMR: false,
       isOpenEarly: false,
       accesses: [],

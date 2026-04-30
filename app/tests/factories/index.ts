@@ -1,4 +1,4 @@
-import { PrismaClient } from '~/database/generated/client'
+import type { PrismaClient } from '~/database/generated/client'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 export function createTestCongregation(db: PrismaClient, overrides: Record<string, unknown> = {}) {
@@ -8,11 +8,7 @@ export function createTestCongregation(db: PrismaClient, overrides: Record<strin
   })
 }
 
-export function createTestUser(
-  db: PrismaClient,
-  congregationId: number,
-  overrides: Record<string, unknown> = {},
-) {
+export function createTestUser(db: PrismaClient, congregationId: number, overrides: Record<string, unknown> = {}) {
   const suffix = Date.now()
   return db.user.create({
     data: {
@@ -27,11 +23,7 @@ export function createTestUser(
   })
 }
 
-export function createTestTerritory(
-  db: PrismaClient,
-  congregationId: number,
-  overrides: Record<string, unknown> = {},
-) {
+export function createTestTerritory(db: PrismaClient, congregationId: number, overrides: Record<string, unknown> = {}) {
   const suffix = Date.now()
   return db.territory.create({
     data: { number: `T-${suffix}`, type: TerritoryKind.Classical, congregationId, ...overrides },

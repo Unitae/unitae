@@ -1,13 +1,13 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
+import type { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { type TransactionClient, unscopedDb, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
+import type { PublisherType } from '~/shared/types/publisher-type'
 import {
   ARCHIVE_VERSION,
   EntityIdMap,
@@ -366,6 +366,7 @@ export async function importEventKinds(
   }
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex import logic with many entity types and validation steps
 export async function importUsers(
   zip: JsZip,
   db: TransactionClient,

@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { deleteSectionWithFiles } from '~/features/display-board/server/document.server'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 

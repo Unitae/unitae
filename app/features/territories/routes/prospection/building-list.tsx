@@ -1,10 +1,10 @@
 import { Eye, Search } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Link } from 'react-router'
 import { computeFilters } from '~/features/territories/server/building-filters.server'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
@@ -16,7 +16,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_all_buildings_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.ProspectionViewer)

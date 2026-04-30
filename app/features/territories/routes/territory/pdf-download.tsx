@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
+import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
-import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -14,7 +14,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/pdf-download'
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const territoryId = requireParamId(params.territoryId, '/territories')
@@ -35,7 +35,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
       throw new ForbiddenError()
     }
 
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId)
+    const phoneTypeActive = await getBoolSetting(
+      db,
+      TerritorySettingKey.TerritoryTypePhoneActive,
+      currentUser.congregationId,
+    )
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
     const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 

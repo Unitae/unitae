@@ -9,7 +9,7 @@ import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildi
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   return [{ title: `${loaderData.building.number} ${loaderData.building.street}, ${loaderData.building.zip} - Unitae` }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewProspection = permissions.has(Role.ProspectionViewer)

@@ -1,5 +1,5 @@
-import type { CongregationId, UserId } from '~/shared/types/branded'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { CongregationId, UserId } from '~/shared/types/branded'
 
 export function getPublisherById(
   db: TransactionClient,

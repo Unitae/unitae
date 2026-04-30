@@ -10,7 +10,7 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -27,7 +27,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesViewer)
@@ -199,8 +199,10 @@ function AttributionHistoryTable({
                   {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {attribution.type === TerritoryAttributionKind.Default && m.territories_view_attribution_type_default()}
-                  {attribution.type === TerritoryAttributionKind.Campaign && m.territories_view_attribution_type_campaign()}
+                  {attribution.type === TerritoryAttributionKind.Default &&
+                    m.territories_view_attribution_type_default()}
+                  {attribution.type === TerritoryAttributionKind.Campaign &&
+                    m.territories_view_attribution_type_campaign()}
                   {attribution.type === TerritoryAttributionKind.Phone && m.territories_view_attribution_type_phones()}
                 </TableCell>
               </TableRow>

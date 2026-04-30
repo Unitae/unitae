@@ -25,14 +25,15 @@ import * as m from '~/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
+  requireRole,
   userContext,
   withScopeFromContext,
-  requireRole } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -45,7 +46,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
@@ -229,7 +230,7 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 

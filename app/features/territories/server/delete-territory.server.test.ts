@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { territory: { delete: vi.fn() } },
@@ -17,7 +18,7 @@ describe('deleteTerritory', () => {
     const fake = { id: 5, number: 'D001', congregationId: 1 }
     vi.mocked(db.territory.delete).mockResolvedValue(fake as never)
 
-    const result = await deleteTerritory(db as any, 5, 1, 99)
+    const result = await deleteTerritory(db as never, 5, 1, 99)
 
     expect(result).toEqual(fake)
   })
@@ -25,7 +26,7 @@ describe('deleteTerritory', () => {
   it('passes the compound key to the delete call', async () => {
     vi.mocked(db.territory.delete).mockResolvedValue({} as never)
 
-    await deleteTerritory(db as any, 42, 7, 99)
+    await deleteTerritory(db as never, 42, 7, 99)
 
     expect(db.territory.delete).toHaveBeenCalledWith({
       where: {

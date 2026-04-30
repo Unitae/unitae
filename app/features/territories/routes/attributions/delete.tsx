@@ -3,7 +3,7 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteAttribution } from '~/features/territories/server/delete-attribution.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Supprimer une attribution — Unitae' }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)
@@ -54,7 +54,7 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)

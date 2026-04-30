@@ -93,19 +93,32 @@ function translateAction(action: string): string {
   return translations[action] ?? action
 }
 
+function getEntityLabel(entityType: string): string {
+  switch (entityType) {
+    case 'User':
+      return m.audit_log_entity_user()
+    case 'Congregation':
+      return m.audit_log_entity_congregation()
+    case 'BoardDocument':
+      return m.audit_log_entity_board_document()
+    case 'BoardSection':
+      return m.audit_log_entity_board_section()
+    case 'Territory':
+      return m.audit_log_entity_territory()
+    case 'Attribution':
+      return m.audit_log_entity_attribution()
+    case 'PublisherGroup':
+      return m.audit_log_entity_publisher_group()
+    case 'PublisherActivity':
+      return m.audit_log_entity_publisher_activity()
+    default:
+      return entityType
+  }
+}
+
 function translateEntity(entityType: string | null, entityId: number | null): string {
   if (!entityType || entityId == null) return '—'
-  const labels: Record<string, string> = {
-    'User': m.audit_log_entity_user(),
-    'Congregation': m.audit_log_entity_congregation(),
-    'BoardDocument': m.audit_log_entity_board_document(),
-    'BoardSection': m.audit_log_entity_board_section(),
-    'Territory': m.audit_log_entity_territory(),
-    'Attribution': m.audit_log_entity_attribution(),
-    'PublisherGroup': m.audit_log_entity_publisher_group(),
-    'PublisherActivity': m.audit_log_entity_publisher_activity(),
-  }
-  return `${labels[entityType] ?? entityType} #${entityId}`
+  return `${getEntityLabel(entityType)} #${entityId}`
 }
 
 export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
@@ -171,7 +184,9 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
               <option value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</option>
             </optgroup>
             <optgroup label={m.audit_log_group_settings()}>
-              <option value="congregation.settings.updated">{m.audit_log_action_congregation_settings_updated()}</option>
+              <option value="congregation.settings.updated">
+                {m.audit_log_action_congregation_settings_updated()}
+              </option>
               <option value="congregation.exported">{m.audit_log_action_congregation_exported()}</option>
               <option value="congregation.imported">{m.audit_log_action_congregation_imported()}</option>
             </optgroup>

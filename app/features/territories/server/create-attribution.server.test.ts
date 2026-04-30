@@ -5,6 +5,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 vi.mock('~/shared/domain/settings.server', () => ({
   getSetting: vi.fn(),
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const mockDb = {
@@ -33,7 +34,7 @@ beforeEach(() => {
 
 describe('createAttribution', () => {
   it('uses default duration of 120 days when no setting exists', async () => {
-    await createAttribution(mockDb as any, { ...baseParams, type: TerritoryAttributionKind.Default })
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
     const expected = new Date('2025-03-15')
@@ -46,7 +47,7 @@ describe('createAttribution', () => {
   it('uses configured default duration in days from setting', async () => {
     vi.mocked(getSetting).mockResolvedValue('90')
 
-    await createAttribution(mockDb as any, { ...baseParams, type: TerritoryAttributionKind.Default })
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
     const expected = new Date('2025-03-15')
@@ -56,7 +57,7 @@ describe('createAttribution', () => {
   })
 
   it('uses phone duration (14 days) for phone attribution type', async () => {
-    await createAttribution(mockDb as any, { ...baseParams, type: TerritoryAttributionKind.Phone })
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Phone })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
     const expected = new Date('2025-03-15')
@@ -66,7 +67,7 @@ describe('createAttribution', () => {
   })
 
   it('uses campaign duration (60 days) for campaign attribution type', async () => {
-    await createAttribution(mockDb as any, { ...baseParams, type: TerritoryAttributionKind.Campaign })
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Campaign })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
     const expected = new Date('2025-03-15')
@@ -78,7 +79,7 @@ describe('createAttribution', () => {
   it('uses commerce duration (120 days) for commerce territory type', async () => {
     mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Commerces } as never)
 
-    await createAttribution(mockDb as any, { ...baseParams, type: TerritoryAttributionKind.Default })
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
     const expected = new Date('2025-03-15')
@@ -91,7 +92,7 @@ describe('createAttribution', () => {
     const fake = { id: 42, publisherId: 1, territoryId: 2 }
     mockDb.attribution.create.mockResolvedValue(fake as never)
 
-    const result = await createAttribution(mockDb as any, { ...baseParams, type: TerritoryAttributionKind.Default })
+    const result = await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     expect(result).toEqual(fake)
   })

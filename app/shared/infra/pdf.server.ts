@@ -1,5 +1,5 @@
-import { pdf } from '@react-pdf/renderer'
 import type { DocumentProps } from '@react-pdf/renderer'
+import { pdf } from '@react-pdf/renderer'
 import type { ReactElement } from 'react'
 import logger from '~/shared/infra/logger.server'
 

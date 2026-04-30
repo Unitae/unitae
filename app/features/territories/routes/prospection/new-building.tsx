@@ -5,10 +5,15 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import {
+  congregationContext,
+  permissionsContext,
+  requireRole,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -20,7 +25,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_new_building_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)

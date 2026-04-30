@@ -4,6 +4,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { territory: { create: vi.fn() }, auditLog: { create: vi.fn() } },
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { createTerritory } = await import('./create-territory.server')
@@ -18,7 +19,7 @@ describe('createTerritory', () => {
     const fake = { id: 1, number: 'D001', type: TerritoryKind.Classical, congregationId: 1 }
     vi.mocked(db.territory.create).mockResolvedValue(fake as never)
 
-    const result = await createTerritory(db as any, {
+    const result = await createTerritory(db as never, {
       number: 'D001',
       type: TerritoryKind.Classical,
       entranceIds: [10, 20],
@@ -32,7 +33,7 @@ describe('createTerritory', () => {
   it('passes entrance ids as connect array', async () => {
     vi.mocked(db.territory.create).mockResolvedValue({} as never)
 
-    await createTerritory(db as any, {
+    await createTerritory(db as never, {
       number: 'H002',
       type: TerritoryKind.Hotel,
       entranceIds: [3, 5, 7],

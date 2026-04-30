@@ -3,7 +3,7 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext, requireRole } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 
 import type { Route } from './+types/sync-buildings'
@@ -16,7 +16,7 @@ export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
 }
 
-export async function action({ request, context }: Route.ActionArgs) {
+export function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesManager)

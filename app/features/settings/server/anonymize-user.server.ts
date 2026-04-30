@@ -1,7 +1,6 @@
 import { randomUUID } from 'node:crypto'
-
-import type { UserId } from '~/shared/types/branded'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { UserId } from '~/shared/types/branded'
 
 /**
  * Anonymise un utilisateur en remplacant toutes les donnees personnelles

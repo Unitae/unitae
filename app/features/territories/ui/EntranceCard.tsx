@@ -182,9 +182,7 @@ export function CommerceEntranceCard({
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            {getEntranceKindLabels()[EntranceKind.Commerce]}
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2">{getEntranceKindLabels()[EntranceKind.Commerce]}</CardTitle>
           {onDelete && (
             <Button
               type="button"

@@ -9,6 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     auditLog: { create: vi.fn() },
   },
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { createPublisherGroup, deletePublisherGroup } = await import('./publisher-group-mutations.server')

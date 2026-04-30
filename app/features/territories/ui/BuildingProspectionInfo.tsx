@@ -21,7 +21,9 @@ function getAccessLabels(): Record<number, string> {
 export default function BuildingProspectionInfo({ building }: { building: BuildingWithEntrances }) {
   const residentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
   const commerceEntrances = building.entrances.filter(e => e.kind === EntranceKind.Commerce)
-  const otherEntrances = building.entrances.filter(e => e.kind !== EntranceKind.Residential && e.kind !== EntranceKind.Commerce)
+  const otherEntrances = building.entrances.filter(
+    e => e.kind !== EntranceKind.Residential && e.kind !== EntranceKind.Commerce,
+  )
   const allNotes = building.entrances.filter(e => e.notes.length > 0)
   const hasProspectionData = building.prospectionDate != null || building.entrances.length > 0
 
@@ -58,9 +60,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
           <div className="mt-2 flex flex-col gap-1 rounded-md border border-destructive/20 bg-destructive/5 p-3">
             {allNotes.map(entrance => (
               <p key={entrance.id} className="text-destructive text-sm">
-                <span className="font-medium">
-                  {getEntranceKindLabels()[entrance.kind] ?? entrance.kind} :
-                </span>{' '}
+                <span className="font-medium">{getEntranceKindLabels()[entrance.kind] ?? entrance.kind} :</span>{' '}
                 {entrance.notes}
               </p>
             ))}

@@ -16,7 +16,7 @@ describe('deleteBuilding', () => {
     const fake = { id: 4, name: 'Building A', congregationId: 1 }
     vi.mocked(db.building.delete).mockResolvedValue(fake as never)
 
-    const result = await deleteBuilding(db as any, 4, 1)
+    const result = await deleteBuilding(db as never, 4, 1)
 
     expect(result).toEqual(fake)
   })
@@ -24,7 +24,7 @@ describe('deleteBuilding', () => {
   it('passes the compound key to the delete call', async () => {
     vi.mocked(db.building.delete).mockResolvedValue({} as never)
 
-    await deleteBuilding(db as any, 15, 6)
+    await deleteBuilding(db as never, 15, 6)
 
     expect(db.building.delete).toHaveBeenCalledWith({
       where: {

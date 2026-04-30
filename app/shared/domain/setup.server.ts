@@ -47,8 +47,8 @@ type SeedTemplatesFn = (db: any, congregationId: number, locale: Locale) => Prom
  * Pass `seedTemplates` to also seed programme templates — the caller must supply
  * it to avoid a domain→feature dependency inversion.
  */
-// biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 export async function seedCongregationDefaults(
+  // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
   db: any,
   congregationId: number,
   locale: Locale,

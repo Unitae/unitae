@@ -12,12 +12,12 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -28,7 +28,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_congregation_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageSettings = permissions.has(Role.Admin)

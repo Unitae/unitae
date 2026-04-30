@@ -1,6 +1,6 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { PublisherType } from '~/shared/types/publisher-type'
+import type { PublisherType } from '~/shared/types/publisher-type'
 
 export interface UpdatePublisherParams {
   firstname: string

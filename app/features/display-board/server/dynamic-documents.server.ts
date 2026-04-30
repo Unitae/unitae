@@ -4,10 +4,14 @@ import {
   type ProgrammeDynamicConfig,
   parseProgrammeConfig,
 } from '~/features/display-board/model/dynamic-document.type'
-import { PublisherType } from '~/shared/types/publisher-type'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { PublisherType } from '~/shared/types/publisher-type'
 
-const PIONEER_TYPES: PublisherType[] = [PublisherType.PionnierPermanant, PublisherType.PionnierSpecial, PublisherType.Missionnaire]
+const PIONEER_TYPES: PublisherType[] = [
+  PublisherType.PionnierPermanant,
+  PublisherType.PionnierSpecial,
+  PublisherType.Missionnaire,
+]
 
 export type { AvailableDynamicType, ProgrammeDynamicConfig }
 export { parseProgrammeConfig }
@@ -163,6 +167,7 @@ function maxDate(...dates: (Date | null | undefined)[]): Date | null {
 /**
  * Returns a short preview string for a dynamic document card on the board index.
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles many dynamic document types in a single function
 export async function getDynamicPreview(
   db: TransactionClient,
   dynamicType: string,

@@ -14,7 +14,10 @@ const TERRITORY_SETTING_KEYS = [
 
 type TerritorySettingMap = Partial<Record<(typeof TERRITORY_SETTING_KEYS)[number], string>>
 
-export async function loadTerritorySettings(db: TransactionClient, congregationId: number): Promise<TerritorySettingMap> {
+export async function loadTerritorySettings(
+  db: TransactionClient,
+  congregationId: number,
+): Promise<TerritorySettingMap> {
   const rows = await db.setting.findMany({
     where: { congregationId, key: { in: TERRITORY_SETTING_KEYS as unknown as string[] } },
   })
