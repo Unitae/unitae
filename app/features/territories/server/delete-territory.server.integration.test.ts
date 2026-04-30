@@ -100,12 +100,12 @@ describe('deleteTerritory (integration)', () => {
     expect(found).not.toBeNull()
   })
 
-  it('closes active attributions via cascade when territory is deleted', async () => {
+  it('throws when deleting a territory that has open attributions — FK constraint', async () => {
     const territory = await withScope(primaryCongId, tx =>
-      tx.territory.create({ data: { number: `T-DEL-CASCADE-${ts}`, congregationId: primaryCongId } }),
+      tx.territory.create({ data: { number: `T-DEL-FK-${ts}`, congregationId: primaryCongId } }),
     )
 
-    const attribution = await withScope(primaryCongId, tx =>
+    await withScope(primaryCongId, tx =>
       tx.attribution.create({
         data: {
           publisherId: primaryUserId,
@@ -116,10 +116,22 @@ describe('deleteTerritory (integration)', () => {
       }),
     )
 
-    await withScope(primaryCongId, tx => deleteTerritory(tx, territory.id, primaryCongId, primaryUserId))
+    // Attribution has no onDelete: Cascade — must close attributions before deleting territory
+    await expect(
+      withScope(primaryCongId, tx => deleteTerritory(tx, territory.id, primaryCongId, primaryUserId)),
+    ).rejects.toThrow()
 
-    const foundAttribution = await testDb.attribution.findUnique({ where: { id: attribution.id } })
-    // Attribution should be cascade deleted with the territory
-    expect(foundAttribution).toBeNull()
+    // Territory must still exist since the delete was rejected
+    const found = await testDb.territory.findUnique({ where: { id: territory.id } })
+    expect(found).not.toBeNull()
+
+    // Cleanup — close attribution then delete territory
+    await withScope(primaryCongId, async tx => {
+      await tx.attribution.updateMany({ where: { territoryId: territory.id }, data: { endDate: new Date() } })
+    })
+    await withScope(primaryCongId, async tx => {
+      await tx.attribution.deleteMany({ where: { territoryId: territory.id } })
+      await tx.territory.delete({ where: { id: territory.id } })
+    })
   })
 })

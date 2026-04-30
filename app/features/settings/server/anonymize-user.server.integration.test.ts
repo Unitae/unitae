@@ -4,6 +4,8 @@ import { PrismaClient } from '~/database/generated/client'
 import { PublisherType } from '~/shared/types/publisher-type'
 import type { UserId } from '~/shared/types/branded'
 
+const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
+
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   auditInTransaction: vi.fn(),
@@ -93,7 +95,9 @@ afterAll(async () => {
     if (!congId) continue
     await withScope(congId, async tx => {
       await tx.dataDeletionRecord.deleteMany({})
+      await tx.attribution.deleteMany({})
       await tx.congregationUserRole.deleteMany({})
+      await tx.publisherGroup.deleteMany({})
       await tx.user.deleteMany({})
     })
   }
@@ -108,7 +112,7 @@ describe('anonymizeUser (integration)', () => {
     const user = await testDb.user.findUnique({ where: { id: primaryUserId } })
     expect(user?.firstname).toBe('Utilisateur')
     expect(user?.lastname).toBe('supprime')
-    expect(user?.email).toMatch(/^deleted-.+@anonymized\.local$/)
+    expect(user?.email).toMatch(ANONYMIZED_EMAIL_RE)
     expect(user?.password).toBe('')
     expect(user?.phone).toBeNull()
     expect(user?.active).toBe(false)

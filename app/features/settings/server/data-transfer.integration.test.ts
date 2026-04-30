@@ -563,7 +563,22 @@ describe('Export/Import round-trip', () => {
 
 describe('Export cross-congregation isolation', () => {
   it('export of source congregation does not include target congregation data', async () => {
-    // Add a unique user to the target congregation that should never appear in source's export
+    // Create fresh users in each congregation (the import test deleted source users earlier)
+    const sourceUser = await withScope(sourceId, async tx =>
+      tx.user.create({
+        data: {
+          email: `isolation-source-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Source',
+          lastname: 'Only',
+          active: true,
+          isPublisher: false,
+          type: PublisherType.Normal,
+          congregationId: sourceId,
+        },
+      }),
+    )
+
     const targetUser = await withScope(targetId, async tx =>
       tx.user.create({
         data: {
@@ -595,6 +610,7 @@ describe('Export cross-congregation isolation', () => {
     expect(entityCounts.users).toBeGreaterThanOrEqual(1)
 
     // Cleanup
+    await withScope(sourceId, tx => tx.user.delete({ where: { id: sourceUser.id } }))
     await withScope(targetId, tx => tx.user.delete({ where: { id: targetUser.id } }))
   })
 
