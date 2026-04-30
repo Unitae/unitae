@@ -72,7 +72,6 @@ function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
 
     return {
       ...filters,
-      // biome-ignore lint/style/useNamingConvention: prisma default naming convention
       OR: [
         ...(filters.OR ?? []),
         {
@@ -80,12 +79,10 @@ function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
             some: {
               buildings: {
                 some: {
-                  // biome-ignore lint/style/useNamingConvention: prisma default naming convention
                   OR: [
                     addressTerms == null
                       ? { street: { contains: searchTerms } }
                       : {
-                          // biome-ignore lint/style/useNamingConvention: prisma default naming convention
                           AND: [
                             { number: { contains: addressTerms?.[1] } },
                             { street: { contains: addressTerms?.[3] } },

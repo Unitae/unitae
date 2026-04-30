@@ -51,7 +51,6 @@ export function loader({ context }: Route.LoaderArgs) {
     const totalStaleBuildings = await db.building.count({
       where: {
         congregationId,
-        // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
         OR: [
           {
             prospectionDate: {

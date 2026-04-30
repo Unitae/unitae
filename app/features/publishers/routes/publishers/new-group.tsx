@@ -36,7 +36,6 @@ export function loader({ context }: Route.LoaderArgs) {
       where: {
         congregationId: currentUser.congregationId,
         isMale: true,
-        // biome-ignore lint/style/useNamingConvention: Prisma OR operator
         OR: [{ isHelder: true }, { isServant: true }],
         responsibleFor: {
           is: null,

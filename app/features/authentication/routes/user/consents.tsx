@@ -11,9 +11,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import type { Route } from './+types/consents'
 
 const PURPOSE_LABELS: Record<string, () => string> = {
-  // biome-ignore lint/style/useNamingConvention: database enum values
   DATA_PROCESSING: () => m.consent_purpose_data_processing(),
-  // biome-ignore lint/style/useNamingConvention: database enum values
   EMAIL_NOTIFICATIONS: () => m.consent_purpose_email_notifications(),
 }
 

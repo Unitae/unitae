@@ -20,7 +20,6 @@ export async function countRestingTerritories(db: TransactionClient, congregatio
       congregationId,
       attributions: {
         some: {
-          // biome-ignore lint/style/useNamingConvention: Prisma does not support snake_case
           OR: [
             {
               type: TerritoryAttributionKind.Default,

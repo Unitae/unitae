@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { attribution: { delete: vi.fn() } },
@@ -30,7 +29,6 @@ describe('deleteAttribution', () => {
 
     expect(db.attribution.delete).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: 8, congregationId: 3 },
       },
       include: { publisher: true },

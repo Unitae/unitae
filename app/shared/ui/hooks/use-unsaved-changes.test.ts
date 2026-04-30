@@ -49,7 +49,6 @@ function simulateHook(dirty: boolean, navState = 'idle') {
 
   vi.mocked(useState).mockReturnValue([dirty, setIsDirty] as never)
 
-  // biome-ignore lint/correctness/useHookAtTopLevel: test helper — all React hooks are mocked
   return useUnsavedChanges()
 }
 

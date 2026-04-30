@@ -32,7 +32,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const { congregationId } = currentUser
     const settings = await db.boardDynamicDocumentSettings.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: dynamicId, congregationId },
       },
     })

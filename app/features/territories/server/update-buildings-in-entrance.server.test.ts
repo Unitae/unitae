@@ -44,7 +44,6 @@ describe('updateBuildingsInEntrance', () => {
       id: 10,
       access: 1,
       isMailboxOpen: false,
-      // biome-ignore lint/style/useNamingConvention: Prisma model field
       isPMR: false,
       isOpenEarly: false,
       buildings: [{ id: 1 }, { id: 2 }, { id: 3 }],
@@ -62,7 +61,6 @@ describe('updateBuildingsInEntrance', () => {
       id: 10,
       access: 1,
       isMailboxOpen: false,
-      // biome-ignore lint/style/useNamingConvention: Prisma model field
       isPMR: false,
       isOpenEarly: false,
       buildings: [{ id: 1 }],
@@ -79,7 +77,6 @@ describe('updateBuildingsInEntrance', () => {
       id: 10,
       access: 1,
       isMailboxOpen: false,
-      // biome-ignore lint/style/useNamingConvention: Prisma model field
       isPMR: false,
       isOpenEarly: false,
       buildings: [{ id: 1 }],

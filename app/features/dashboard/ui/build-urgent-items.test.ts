@@ -2,19 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/paraglide/messages', () => ({
-  // biome-ignore lint/style/useNamingConvention: paraglide message keys
   dashboard_urgent_territory_overdue: ({ number }: { number: string }) => `Territory ${number} — overdue`,
-  // biome-ignore lint/style/useNamingConvention: paraglide message keys
   dashboard_urgent_territory_due_soon: ({ number }: { number: string }) => `Territory ${number} — due soon`,
-  // biome-ignore lint/style/useNamingConvention: paraglide message keys
   dashboard_urgent_assignment_soon: ({ name, eventName }: { name: string; eventName: string }) =>
     `${name} — ${eventName}`,
-  // biome-ignore lint/style/useNamingConvention: paraglide message keys
   dashboard_urgent_service_role_soon: ({ name, eventName }: { name: string; eventName: string }) =>
     `${name} — ${eventName}`,
-  // biome-ignore lint/style/useNamingConvention: paraglide message keys
   dashboard_urgent_dayoff_conflict: ({ eventName }: { eventName: string }) => `Conflict with ${eventName}`,
-  // biome-ignore lint/style/useNamingConvention: paraglide message keys
   dashboard_urgent_unread_documents: ({ count }: { count: string }) => `${count} unread documents`,
 }))
 

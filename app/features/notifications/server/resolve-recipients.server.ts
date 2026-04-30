@@ -36,7 +36,6 @@ export async function resolveRecipients(
       userId: { in: userIds },
       congregationId,
       enabled: false,
-      // biome-ignore lint/style/useNamingConvention: Prisma query operator
       OR: [{ notificationType }, { notificationType: categoryWildcard(notificationType) }],
     },
     select: { userId: true },

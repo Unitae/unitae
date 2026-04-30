@@ -9,7 +9,6 @@ vi.mock('./document.server', () => ({
 }))
 
 vi.mock('~/shared/domain/audit.server', () => ({
-  // biome-ignore lint/style/useNamingConvention: PascalCase constant by convention
   AuditAction: {},
   audit: vi.fn(),
 }))
@@ -77,12 +76,24 @@ beforeAll(async () => {
     })
 
     const doc1 = await tx.boardDocument.create({
-      data: { title: 'Primary Doc 1', type: 'pdf', sectionId: primarySectionId, order: 0, congregationId: primaryCongId },
+      data: {
+        title: 'Primary Doc 1',
+        type: 'pdf',
+        sectionId: primarySectionId,
+        order: 0,
+        congregationId: primaryCongId,
+      },
     })
     firstDocId = doc1.id
 
     const doc2 = await tx.boardDocument.create({
-      data: { title: 'Primary Doc 2', type: 'pdf', sectionId: primarySectionId, order: 5, congregationId: primaryCongId },
+      data: {
+        title: 'Primary Doc 2',
+        type: 'pdf',
+        sectionId: primarySectionId,
+        order: 5,
+        congregationId: primaryCongId,
+      },
     })
     secondDocId = doc2.id
 
@@ -163,7 +174,9 @@ describe('bulkDeleteBoardItems (integration)', () => {
 
 describe('bulkMoveBoardItems (integration)', () => {
   it('moves only documents belonging to the scoped congregation', async () => {
-    const sections = await withScope(primaryCongId, tx => tx.boardSection.findMany({ where: { congregationId: primaryCongId } }))
+    const sections = await withScope(primaryCongId, tx =>
+      tx.boardSection.findMany({ where: { congregationId: primaryCongId } }),
+    )
     const targetSection = sections.find(s => s.id !== primarySectionId) ?? sections[0]
 
     const { pdfMoved } = await withScope(primaryCongId, tx =>
@@ -188,12 +201,12 @@ describe('bulkMoveBoardItems (integration)', () => {
 
 describe('reorderBoardItems (integration)', () => {
   it('updates order only for items in the scoped congregation', async () => {
-    const otherDocBefore = await withScope(otherCongId, tx => tx.boardDocument.findUnique({ where: { id: otherDocId } }))
+    const otherDocBefore = await withScope(otherCongId, tx =>
+      tx.boardDocument.findUnique({ where: { id: otherDocId } }),
+    )
 
     // Reorder primary congregation items — other congregation must be unaffected
-    await withScope(primaryCongId, tx =>
-      reorderBoardItems(tx, primaryCongId, [{ kind: 'pdf', id: secondDocId }]),
-    )
+    await withScope(primaryCongId, tx => reorderBoardItems(tx, primaryCongId, [{ kind: 'pdf', id: secondDocId }]))
 
     const otherDocAfter = await withScope(otherCongId, tx => tx.boardDocument.findUnique({ where: { id: otherDocId } }))
     expect(otherDocAfter?.order).toBe(otherDocBefore?.order)

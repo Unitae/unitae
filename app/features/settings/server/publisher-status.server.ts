@@ -10,7 +10,6 @@ export async function togglePublisherStatus(
 ) {
   const user = await db.user.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: userId, congregationId },
     },
     data: { isPublisher },

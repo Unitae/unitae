@@ -12,7 +12,6 @@ export async function renderActivityPdfZip(db: TransactionClient, congregationId
       congregationId,
       activities: {
         some: {
-          // biome-ignore lint/style/useNamingConvention: Prisma syntax
           OR: [
             {
               year: yearBegining.getFullYear(),
@@ -39,7 +38,6 @@ export async function renderActivityPdfZip(db: TransactionClient, congregationId
       },
       activities: {
         where: {
-          // biome-ignore lint/style/useNamingConvention: prisma syntax
           OR: [
             {
               year: yearBegining.getFullYear(),

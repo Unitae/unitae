@@ -8,17 +8,11 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 vi.mock('@react-pdf/renderer', () => ({
   pdf: vi.fn(() => ({ toBuffer: vi.fn().mockResolvedValue(Buffer.from('fake-pdf')) })),
-  // biome-ignore lint/style/useNamingConvention: React component
   Document: vi.fn(({ children }: { children: unknown }) => children),
-  // biome-ignore lint/style/useNamingConvention: React component
   Page: vi.fn(({ children }: { children: unknown }) => children),
-  // biome-ignore lint/style/useNamingConvention: React component
   View: vi.fn(({ children }: { children: unknown }) => children),
-  // biome-ignore lint/style/useNamingConvention: React component
   Text: vi.fn(({ children }: { children: unknown }) => children),
-  // biome-ignore lint/style/useNamingConvention: React component
   StyleSheet: { create: vi.fn((s: unknown) => s) },
-  // biome-ignore lint/style/useNamingConvention: React component
   Font: { register: vi.fn() },
 }))
 
@@ -27,7 +21,6 @@ vi.mock('~/shared/auth/sanitize-user.server', () => ({
 }))
 
 vi.mock('~/features/publishers/ui/PublisherActivityDocument', () => ({
-  // biome-ignore lint/style/useNamingConvention: React component
   PublisherActivityDocument: vi.fn(() => null),
 }))
 

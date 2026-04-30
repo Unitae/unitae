@@ -66,7 +66,6 @@ export async function updateBuildingsInEntrance(
           kind: entrance.kind,
           access: entrance.access,
           isMailboxOpen: entrance.isMailboxOpen,
-          // biome-ignore lint/style/useNamingConvention: prisma model
           isPMR: entrance.isPMR,
           isOpenEarly: entrance.isOpenEarly,
           buildings: { connect: { id: disconnectBuildingId } },

@@ -25,13 +25,11 @@ export function loader({ context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
-    // biome-ignore lint/style/useNamingConvention: prisma keywords
     const prospectedBuilding = { active: true, congregationId, NOT: { prospectionDate: null } } as const
     const totalBuildingsForDoors = await db.building.count({
       where: {
         ...prospectedBuilding,
         entrances: { some: { territories: { none: { type: TerritoryKind.Classical } } } },
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
         OR: [
           { entrances: { some: { access: 1 } } }, // interphone
           { entrances: { some: { access: 2 } } }, // sonnette
@@ -47,7 +45,6 @@ export function loader({ context }: Route.LoaderArgs) {
         entrances: {
           some: {
             territories: { none: { type: TerritoryKind.Classical } },
-            // biome-ignore lint/style/useNamingConvention: prisma keywords
             OR: [{ phones: { gt: 0 } }, { access: 4, isOpenEarly: false }],
           },
         },

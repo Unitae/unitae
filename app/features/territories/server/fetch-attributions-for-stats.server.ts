@@ -6,7 +6,6 @@ import type { StatsFilterParams } from './stats-filter-params.type'
 function buildDateOverlapWhere(startDate: Date, endDate: Date): Prisma.AttributionWhereInput {
   return {
     startDate: { lte: endDate },
-    // biome-ignore lint/style/useNamingConvention: Prisma OR operator
     OR: [{ endDate: null }, { endDate: { gte: startDate } }],
   }
 }

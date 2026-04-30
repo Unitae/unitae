@@ -28,7 +28,6 @@ describe('deleteBuilding', () => {
 
     expect(db.building.delete).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: 15, congregationId: 6 },
       },
     })

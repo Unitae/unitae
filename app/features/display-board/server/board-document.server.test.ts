@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
 
@@ -44,7 +43,6 @@ describe('updateBoardDocument', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDocument.update).toHaveBeenCalledWith({
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 1, congregationId: 10 } },
       data: {
         title: 'Lettre',
@@ -66,7 +64,6 @@ describe('markDocumentAsViewed', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDocument.update).toHaveBeenCalledWith({
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 7, congregationId: 10 } },
       data: { viewedBy: { connect: { id: 42 } } },
       select: { id: true, title: true },
@@ -110,7 +107,6 @@ describe('updateDynamicDocument', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDynamicDocumentSettings.update).toHaveBeenCalledWith({
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data,
     })
@@ -126,7 +122,6 @@ describe('deleteDynamicDocument', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.boardDynamicDocumentSettings.delete).toHaveBeenCalledWith({
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
     })
   })

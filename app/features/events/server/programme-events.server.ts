@@ -24,7 +24,6 @@ export function bulkDeleteEvents(db: TransactionClient, ids: number[], congregat
 export function deleteEvent(db: TransactionClient, id: number, congregationId: number) {
   return db.event.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
   })
@@ -33,7 +32,6 @@ export function deleteEvent(db: TransactionClient, id: number, congregationId: n
 export function updateEvent(db: TransactionClient, id: number, congregationId: number, data: Record<string, unknown>) {
   return db.event.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data,
@@ -60,7 +58,6 @@ export function addPartAssignment(
 export function deletePartAssignment(db: TransactionClient, id: number, congregationId: number) {
   return db.programmePartAssignment.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
   })
@@ -93,7 +90,6 @@ export function updatePartAssignment(
 ) {
   return db.programmePartAssignment.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data,
@@ -108,7 +104,6 @@ export function updateServiceRoleAssignment(
 ) {
   return db.programmeServiceRoleAssignment.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data,
@@ -118,7 +113,6 @@ export function updateServiceRoleAssignment(
 export function deleteServiceRoleAssignment(db: TransactionClient, id: number, congregationId: number) {
   return db.programmeServiceRoleAssignment.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
   })
@@ -134,7 +128,6 @@ export async function reorderPartAssignments(
   for (let i = 0; i < orderedIds.length; i++) {
     await db.programmePartAssignment.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: orderedIds[i], congregationId },
       },
       data: { order: i * 5 },
@@ -157,7 +150,6 @@ export async function applyTemplateToEvent(
 
   await db.event.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: eventId, congregationId },
     },
     data: { templateId },

@@ -36,7 +36,6 @@ export function loader({ context }: Route.LoaderArgs) {
   const { congregationId } = context.get(userContext)
   return withScopeFromContext(context, async db => {
     const kinds = await db.eventKind.findMany({
-      // biome-ignore lint/style/useNamingConvention: prisma filter key
       where: { congregationId, NOT: { key: 'off' } },
       orderBy: { name: 'asc' },
     })
@@ -72,7 +71,6 @@ export async function action({ request, context }: Route.ActionArgs) {
 
       await db.eventKind.delete({
         where: {
-          // biome-ignore lint/style/useNamingConvention: prisma compound key
           id_congregationId: { id: submission.value.id, congregationId },
         },
       })

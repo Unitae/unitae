@@ -41,11 +41,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
         some: {
           ...filters,
           active: true,
-          // biome-ignore lint/style/useNamingConvention: prisma keywords
           NOT: { prospectionDate: null },
         },
       },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
         { access: 1 }, // interphone
         { access: 2 }, // sonnette

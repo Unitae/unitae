@@ -176,7 +176,10 @@ function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggr
             entrance.buildings
               .filter(b => b.latitude != null && b.longitude != null)
               .map(building => (
-                <GoogleMapMarker key={building.id} position={{ lat: building.latitude ?? 0, lng: building.longitude ?? 0 }} />
+                <GoogleMapMarker
+                  key={building.id}
+                  position={{ lat: building.latitude ?? 0, lng: building.longitude ?? 0 }}
+                />
               )),
           )}
         </GoogleMap>

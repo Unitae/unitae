@@ -14,7 +14,6 @@ export async function getTerritoriesNeverWorked(
 ): Promise<NeverWorkedTerritory[]> {
   const dateOverlap: Prisma.AttributionWhereInput = {
     startDate: { lte: params.endDate },
-    // biome-ignore lint/style/useNamingConvention: Prisma OR operator
     OR: [{ endDate: null }, { endDate: { gte: params.startDate } }],
   }
 

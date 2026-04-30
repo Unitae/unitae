@@ -235,7 +235,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const activity = await db.publisherActivity.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
           id: requireParamId(params.activityId, '/publishers/activity'),
           congregationId: currentUser.congregationId,

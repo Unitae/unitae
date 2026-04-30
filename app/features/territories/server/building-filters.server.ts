@@ -90,12 +90,10 @@ function applySearchFilter(filters: Prisma.BuildingWhereInput, params: URLSearch
 
     return {
       ...filters,
-      // biome-ignore lint/style/useNamingConvention: prisma default naming convention
       OR: [
         addressTerms == null
           ? { street: { contains: searchTerms } }
-          : // biome-ignore lint/style/useNamingConvention: prisma default naming convention
-            { AND: [{ number: { contains: addressTerms?.[1] } }, { street: { contains: addressTerms?.[3] } }] },
+          : { AND: [{ number: { contains: addressTerms?.[1] } }, { street: { contains: addressTerms?.[3] } }] },
       ],
     }
   }

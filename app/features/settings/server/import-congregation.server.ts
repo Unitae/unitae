@@ -322,7 +322,6 @@ export async function importSettings(zip: JsZip, db: TransactionClient, congrega
   const records = await readNdjsonFile<{ key: string; value: string }>(zip, 'settings')
   for (const record of records) {
     await db.setting.upsert({
-      // biome-ignore lint/style/useNamingConvention: Prisma compound key
       where: { key_congregationId: { key: record.key, congregationId } },
       update: { value: record.value },
       create: { key: record.key, value: record.value, congregationId },
@@ -663,7 +662,6 @@ export async function importBuildingEntrances(
     phones: number | null
     liberals: number | null
     access: number | null
-    // biome-ignore lint/style/useNamingConvention: Prisma field name
     isPMR: boolean | null
     isOpenEarly: boolean | null
     isMailboxOpen: boolean | null
@@ -679,7 +677,6 @@ export async function importBuildingEntrances(
         phones: record.phones,
         liberals: record.liberals,
         access: record.access,
-        // biome-ignore lint/style/useNamingConvention: Prisma field name
         isPMR: record.isPMR,
         isOpenEarly: record.isOpenEarly,
         isMailboxOpen: record.isMailboxOpen,

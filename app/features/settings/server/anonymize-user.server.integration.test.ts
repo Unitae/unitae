@@ -1,8 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { PublisherType } from '~/shared/types/publisher-type'
 import type { UserId } from '~/shared/types/branded'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
 const ALREADY_ANONYMIZED_RE = /deja anonymise/
@@ -11,7 +11,6 @@ const USER_NOT_FOUND_RE = /introuvable/
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   auditInTransaction: vi.fn(),
-  // biome-ignore lint/style/useNamingConvention: matches the exported enum name
   AuditAction: {},
 }))
 
@@ -142,9 +141,9 @@ describe('anonymizeUser (integration)', () => {
   })
 
   it('throws when the user does not exist', async () => {
-    await expect(
-      withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as UserId, 'admin@test.com')),
-    ).rejects.toThrow(USER_NOT_FOUND_RE)
+    await expect(withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as UserId, 'admin@test.com'))).rejects.toThrow(
+      USER_NOT_FOUND_RE,
+    )
   })
 
   it('does not anonymize a user from another congregation — RLS isolation', async () => {

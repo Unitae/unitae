@@ -43,7 +43,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const attribution = await db.attribution.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
       },
       include: { territory: { include: { entrances: { include: { buildings: true } } } }, publisher: true },

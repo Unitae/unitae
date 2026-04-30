@@ -44,11 +44,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
         some: {
           ...filters,
           active: true,
-          // biome-ignore lint/style/useNamingConvention: prisma keywords
           NOT: { prospectionDate: null },
         },
       },
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [{ phones: { gt: 0 } }, { access: 4, isOpenEarly: false }],
       territories: { none: { type: TerritoryKind.Phone } },
     }

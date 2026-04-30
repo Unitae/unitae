@@ -9,7 +9,6 @@ export default defineConfig({
   fullyParallel: false,
   retries: process.env.CI ? 1 : 0,
   use: {
-    // biome-ignore lint/style/useNamingConvention: playwright config property
     baseURL: baseUrl,
     trace: 'on-first-retry',
   },

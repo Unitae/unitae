@@ -55,7 +55,6 @@ export async function seedCongregationDefaults(
   seedTemplates: SeedTemplatesFn = async () => {},
 ) {
   await db.eventKind.upsert({
-    // biome-ignore lint/style/useNamingConvention: prisma compound key
     where: { key_congregationId: { key: EventKind.Off, congregationId } },
     update: {},
     create: {

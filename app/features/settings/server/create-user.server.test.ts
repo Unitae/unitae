@@ -13,13 +13,11 @@ vi.mock('~/features/authentication/server/send-reset-user-password-email.server'
 }))
 
 vi.mock('~/shared/domain/audit.server', () => ({
-  // biome-ignore lint/style/useNamingConvention: matching exported enum shape
   AuditAction: { UserCreated: 'UserCreated' },
   audit: vi.fn(),
 }))
 
 vi.mock('~/shared/domain/limits.server', () => ({
-  // biome-ignore lint/style/useNamingConvention: matching exported class name
   LimitService: class {
     errorIfWouldGoOverLimit = mockErrorIfWouldGoOverLimit
   },

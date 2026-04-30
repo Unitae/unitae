@@ -54,7 +54,6 @@ export async function deleteBoardDocument(
 ): Promise<{ id: number; title: string }> {
   const document = await db.boardDocument.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: documentId, congregationId },
     },
   })
@@ -160,7 +159,6 @@ export async function reorderBoardItems(
     if (item.kind === 'pdf') {
       await db.boardDocument.update({
         where: {
-          // biome-ignore lint/style/useNamingConvention: prisma compound key
           id_congregationId: { id: item.id, congregationId },
         },
         data: { order: i * 5 },
@@ -168,7 +166,6 @@ export async function reorderBoardItems(
     } else {
       await db.boardDynamicDocumentSettings.update({
         where: {
-          // biome-ignore lint/style/useNamingConvention: prisma compound key
           id_congregationId: { id: item.id, congregationId },
         },
         data: { order: i * 5 },
@@ -192,7 +189,6 @@ export async function updateBoardDocument(
 ) {
   const document = await db.boardDocument.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data: {
@@ -223,7 +219,6 @@ export function markDocumentAsViewed(
 ) {
   return db.boardDocument.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: documentId, congregationId },
     },
     data: {
@@ -268,7 +263,6 @@ export function updateDynamicDocument(
 ) {
   return db.boardDynamicDocumentSettings.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data,
@@ -278,7 +272,6 @@ export function updateDynamicDocument(
 export function deleteDynamicDocument(db: TransactionClient, id: number, congregationId: number) {
   return db.boardDynamicDocumentSettings.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
   })

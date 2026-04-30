@@ -43,7 +43,6 @@ export async function getUserTerritories(db: TransactionClient, userId: number) 
 export async function getRecentDocuments(db: TransactionClient, userId: number, congregationId: number) {
   const now = new Date()
   const visibleNow = {
-    // biome-ignore lint/style/useNamingConvention: prisma ORM
     OR: [
       { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
       { visibleFrom: { lte: now }, visibleUntil: null },
@@ -112,7 +111,6 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
 export async function getUnreadDocumentCount(db: TransactionClient, userId: number, congregationId: number) {
   const now = new Date()
   const visibleNow = {
-    // biome-ignore lint/style/useNamingConvention: prisma ORM
     OR: [
       { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
       { visibleFrom: { lte: now }, visibleUntil: null },
@@ -156,7 +154,6 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
   const [partAssignments, serviceRoleAssignments] = await Promise.all([
     db.programmePartAssignment.findMany({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma ORM
         OR: [{ assigneeId: userId }, { assistantId: userId }],
         event: { startDate: { gte: now } },
       },

@@ -39,7 +39,6 @@ describe('togglePreference', () => {
 
     expect(mockDb.notificationPreference.upsert).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         userId_notificationType_congregationId: {
           userId: 1,
           notificationType: 'board.document.created',

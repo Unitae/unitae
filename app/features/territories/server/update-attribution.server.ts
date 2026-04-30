@@ -36,7 +36,6 @@ export async function updateAttribution(
 
   const attribution = await db.attribution.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound key
       id_congregationId: { id, congregationId },
     },
     data: updateData,

@@ -20,7 +20,6 @@ export async function handleThumbnailWork(job: Job<ThumbnailJobData>): Promise<v
 
   await unscopedDb.boardDocument.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: documentId, congregationId },
     },
     data: { thumbnailUri },

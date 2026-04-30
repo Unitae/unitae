@@ -49,7 +49,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const territory = await db.territory.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: Number(url.searchParams.get('territory')), congregationId },
       },
       include: { entrances: { include: { buildings: true } } },

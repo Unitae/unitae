@@ -71,7 +71,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const user = await db.user.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: {
           id: requireParamId(params.userId, '/settings/users'),
           congregationId: currentUser.congregationId,

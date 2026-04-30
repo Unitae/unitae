@@ -9,7 +9,6 @@ export function getPublisherWithActivities(
   return db.user.findMany({
     where: {
       congregationId,
-      // biome-ignore lint/style/useNamingConvention: prisma keywords
       OR: [
         {
           isPublisher: true,

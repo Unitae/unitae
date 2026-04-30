@@ -17,7 +17,6 @@ const { unscopedDb } = await import('~/shared/infra/db.server')
 
 function makeRequest() {
   return new Request('http://localhost/', {
-    // biome-ignore lint/style/useNamingConvention: HTTP header name
     headers: { Cookie: 'session=abc' },
   })
 }

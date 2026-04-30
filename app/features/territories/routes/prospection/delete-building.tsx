@@ -24,7 +24,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const building = await db.building.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: requireParamId(params.buildingId, '/territories/buildings'), congregationId },
       },
     })

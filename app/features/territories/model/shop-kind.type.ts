@@ -14,8 +14,7 @@ export enum ShopKind {
   Other = 'autre',
 }
 
-// biome-ignore lint/style/useNamingConvention: labels map keyed by enum
-export function shopKindLabels(): { [key in ShopKind]: string } {
+export function shopKindLabels(): Record<ShopKind, string> {
   return {
     [ShopKind.Catering]: m.shop_kind_catering(),
     [ShopKind.Clothing]: m.shop_kind_clothing(),

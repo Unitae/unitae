@@ -21,7 +21,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const { congregationId } = currentUser
     const event = await db.event.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: requireParamId(params.eventId, '/me/days-off'), congregationId },
         kind: { key: EventKind.Off },
       },
@@ -58,7 +57,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const { congregationId } = currentUser
     const event = await db.event.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: requireParamId(params.eventId, '/me/days-off'), congregationId },
       },
       include: { createdBy: true },

@@ -17,11 +17,9 @@ export async function computeTerritoryCoverage(
   if (startDate != null && endDate != null) {
     whereDate = {
       startDate: { lte: endDate },
-      // biome-ignore lint/style/useNamingConvention: Prisma OR operator
       OR: [{ endDate: null }, { endDate: { gte: startDate } }],
     }
   } else if (startDate != null) {
-    // biome-ignore lint/style/useNamingConvention: Prisma OR operator
     whereDate = { OR: [{ endDate: null }, { endDate: { gte: startDate } }] }
   } else if (endDate != null) {
     whereDate = { startDate: { lte: endDate } }

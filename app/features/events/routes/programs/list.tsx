@@ -46,7 +46,6 @@ export function loader({ context }: Route.LoaderArgs) {
       where: {
         congregationId,
         startDate: { gte: startOfCurrentMonth },
-        // biome-ignore lint/style/useNamingConvention: prisma syntax
         NOT: { kind: { key: 'off' } },
       },
       include: { template: true, kind: true },

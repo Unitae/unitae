@@ -289,7 +289,6 @@ export function ProgrammeBoardDocument({
           }
 
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: events may share id across pages
             <View key={idx}>
               {templateHeader && <Text style={styles.templateGroupHeader}>{templateHeader}</Text>}
               <EventCard event={event} showParts={showParts} showServices={showServices} />
@@ -326,11 +325,9 @@ function EventCard({
 
       {showParts &&
         sectionGroups.map((group, groupIdx) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: section groups have no stable id
           <View key={groupIdx}>
             {group.section !== '' && <SectionHeader section={group.section} />}
             {group.slots.map((slot, slotIdx) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: slots have no stable id
               <View key={slotIdx}>
                 {slot.parts.length === 1 ? <SinglePart part={slot.parts[0]} /> : <MultiTrackPart parts={slot.parts} />}
               </View>
@@ -345,7 +342,6 @@ function EventCard({
             {event.serviceRoleAssignments.map((role, roleIdx) => {
               const name = formatName(role.assignee)
               return (
-                // biome-ignore lint/suspicious/noArrayIndexKey: service role rows
                 <View key={roleIdx} style={styles.serviceItem}>
                   <Text style={styles.serviceRoleName}>{role.name}</Text>
                   {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}
@@ -426,7 +422,6 @@ function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
         const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
         const trackName = part.track || `Salle ${idx + 1}`
         return (
-          // biome-ignore lint/suspicious/noArrayIndexKey: track parts within a slot
           <View key={idx} style={styles.trackRow}>
             <Text style={styles.trackLabel}>{trackName}</Text>
             <DotLeader />

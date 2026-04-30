@@ -4,7 +4,6 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { attribution: { update: vi.fn() }, auditLog: { create: vi.fn() } },
 }))
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { updateAttribution } = await import('./update-attribution.server')

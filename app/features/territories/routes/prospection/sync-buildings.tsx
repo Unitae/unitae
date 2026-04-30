@@ -34,7 +34,6 @@ export function action({ request, context }: Route.ActionArgs) {
 
     const user = await db.user.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: sessionUserId, congregationId },
       },
     })

@@ -224,7 +224,6 @@ export async function markDynamicDocumentViewed(
 ): Promise<void> {
   await db.boardDynamicDocumentView.upsert({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       settingsId_userId: { settingsId, userId },
     },
     create: { settingsId, userId, viewedAt: new Date() },

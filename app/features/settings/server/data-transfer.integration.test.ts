@@ -290,7 +290,6 @@ async function exportToZip(
   const { buildExportSteps } = await import('./export-congregation.server')
 
   const zip = new JsZip()
-  // biome-ignore lint/style/noNonNullAssertion: JsZip.folder() only returns null on file entries
   const dataDir = zip.folder('data')!
   const entityCounts: Record<string, number> = {}
 
@@ -362,7 +361,6 @@ describe('Export/Import round-trip', () => {
 
     const manifestFile = zip.file('manifest.json')
     expect(manifestFile).not.toBeNull()
-    // biome-ignore lint/style/noNonNullAssertion: existence asserted by expect above
     const manifest: ManifestJson = JSON.parse(await manifestFile!.async('string'))
     expect(manifest.version).toBe('1.0')
     expect(manifest.sourceApp).toBe('unitae')
@@ -385,7 +383,6 @@ describe('Export/Import round-trip', () => {
 
   it('exported users do not contain passwords or sensitive fields', async () => {
     const { zip } = await exportToZip(sourceId)
-    // biome-ignore lint/style/noNonNullAssertion: file is guaranteed by the export step
     const content = await zip.file('data/users.ndjson')!.async('string')
     const users = content
       .split('\n')
@@ -401,7 +398,6 @@ describe('Export/Import round-trip', () => {
 
   it('exported roles use key instead of numeric roleId', async () => {
     const { zip } = await exportToZip(sourceId)
-    // biome-ignore lint/style/noNonNullAssertion: file is guaranteed by the export step
     const content = await zip.file('data/congregation-user-roles.ndjson')!.async('string')
     const roles = content
       .split('\n')
@@ -462,9 +458,7 @@ describe('Export/Import round-trip', () => {
       // Users
       const users = await tx.user.findMany({})
       expect(users).toHaveLength(2)
-      // biome-ignore lint/style/noNonNullAssertion: users are guaranteed by importUsers above
       const alice = users.find(u => u.firstname === 'Alice')!
-      // biome-ignore lint/style/noNonNullAssertion: users are guaranteed by importUsers above
       const bob = users.find(u => u.firstname === 'Bob')!
       expect(alice.lastname).toBe('Dupont')
       expect(alice.isPublisher).toBe(true)
@@ -602,7 +596,6 @@ describe('Export cross-congregation isolation', () => {
 
     const { entityCounts, zip } = await exportToZip(sourceId)
 
-    // biome-ignore lint/style/noNonNullAssertion: file is guaranteed by the export step
     const content = await zip.file('data/users.ndjson')!.async('string')
     const exportedUsers = content
       .split('\n')

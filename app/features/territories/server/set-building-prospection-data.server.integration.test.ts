@@ -113,9 +113,7 @@ describe('setBuildingProspectionData (integration)', () => {
     )
 
     // Now uncheck
-    await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput()),
-    )
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput()))
 
     const residentialData = await testDb.buildingResidentialData.findFirst({
       where: { buildingId: primaryBuildingId },
@@ -141,15 +139,11 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(kinds).toContain('pharmacy')
 
     // Cleanup
-    await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput()),
-    )
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput()))
   })
 
   it('creates hotel entrance when hotel flag is set', async () => {
-    await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ hotel: 'on' })),
-    )
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput({ hotel: 'on' })))
 
     const hotel = await withScope(primaryCongId, tx =>
       tx.buildingEntrance.findFirst({ where: { kind: EntranceKind.Hotel } }),
@@ -157,9 +151,7 @@ describe('setBuildingProspectionData (integration)', () => {
     expect(hotel).not.toBeNull()
 
     // Cleanup
-    await withScope(primaryCongId, tx =>
-      setBuildingProspectionData(tx, primaryBuildingId, emptyInput()),
-    )
+    await withScope(primaryCongId, tx => setBuildingProspectionData(tx, primaryBuildingId, emptyInput()))
   })
 
   it('upsert of residential data does not touch another congregation building with same buildingId sequence — RLS isolation', async () => {

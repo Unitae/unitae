@@ -42,7 +42,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
     warningDate.setMonth(warningDate.getMonth() - 3)
 
     const selector: Prisma.BuildingWhereInput = {
-      // biome-ignore lint/style/useNamingConvention: OR is a keywork for prisma ORM
       OR: [
         {
           prospectionDate: {

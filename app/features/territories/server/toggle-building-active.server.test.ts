@@ -21,7 +21,6 @@ describe('toggleBuildingActive', () => {
     expect(result).toEqual(fake)
     expect(db.building.update).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: 1, congregationId: 1 },
       },
       data: { active: true },
@@ -37,7 +36,6 @@ describe('toggleBuildingActive', () => {
     expect(result).toEqual(fake)
     expect(db.building.update).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: 2, congregationId: 3 },
       },
       data: { active: false },

@@ -56,20 +56,20 @@ describe('computeFilters', () => {
 
   it('applies search filter matching territory number', () => {
     const result = computeFilters(new URLSearchParams({ search: 'T-42' }))
-    const or = result.OR as Array<unknown>
+    const or = result.OR as unknown[]
     expect(or).toContainEqual({ number: { contains: 'T-42' } })
   })
 
   it('applies search filter matching street in nested buildings', () => {
     const result = computeFilters(new URLSearchParams({ search: 'Rue de la Paix' }))
-    const or = result.OR as Array<{ entrances?: unknown }>
+    const or = result.OR as { entrances?: unknown }[]
     const entranceClause = or.find(c => (c as { entrances?: unknown }).entrances)
     expect(entranceClause).toBeDefined()
   })
 
   it('applies AND(number, street) when search starts with a number', () => {
     const result = computeFilters(new URLSearchParams({ search: '42 Rue de la Paix' }))
-    const or = result.OR as Array<{ entrances?: { some?: { buildings?: { some?: { OR?: unknown[] } } } } }>
+    const or = result.OR as { entrances?: { some?: { buildings?: { some?: { OR?: unknown[] } } } } }[]
     const entranceClause = or.find(c => c.entrances)
     const buildingOr = entranceClause?.entrances?.some?.buildings?.some?.OR
     expect(buildingOr).toBeDefined()
@@ -89,7 +89,7 @@ describe('computeFilters', () => {
 
   it('search extends existing OR clauses, not replacing them', () => {
     const result = computeFilters(new URLSearchParams({ search: 'Test' }))
-    const or = result.OR as Array<unknown>
+    const or = result.OR as unknown[]
     // Must include both the buildings clause and the territory number clause
     expect(or.length).toBeGreaterThanOrEqual(2)
   })

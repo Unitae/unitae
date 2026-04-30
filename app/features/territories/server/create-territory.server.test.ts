@@ -4,7 +4,6 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: { territory: { create: vi.fn() }, auditLog: { create: vi.fn() } },
 }))
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { createTerritory } = await import('./create-territory.server')

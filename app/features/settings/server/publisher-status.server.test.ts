@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
 
@@ -25,7 +24,6 @@ describe('togglePublisherStatus', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: true },
     })
@@ -39,7 +37,6 @@ describe('togglePublisherStatus', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.user.update).toHaveBeenCalledWith({
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: false },
     })

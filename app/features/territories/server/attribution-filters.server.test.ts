@@ -66,10 +66,7 @@ describe('computeFilters', () => {
     const or = result.OR as Array<{ publisher?: unknown; territory?: unknown }>
     const publisherClause = or.find(c => c.publisher)
     expect(publisherClause?.publisher).toMatchObject({
-      OR: expect.arrayContaining([
-        { firstname: { contains: 'Jean' } },
-        { lastname: { contains: 'Jean' } },
-      ]),
+      OR: expect.arrayContaining([{ firstname: { contains: 'Jean' } }, { lastname: { contains: 'Jean' } }]),
     })
   })
 
@@ -86,7 +83,9 @@ describe('computeFilters', () => {
   })
 
   it('combines multiple filters into a single where object', () => {
-    const result = computeFilters(new URLSearchParams({ group: '3', type: TerritoryAttributionKind.Default, status: 'late' }))
+    const result = computeFilters(
+      new URLSearchParams({ group: '3', type: TerritoryAttributionKind.Default, status: 'late' }),
+    )
     expect(result).toHaveProperty('publisher')
     expect(result).toHaveProperty('type')
     expect(result).toHaveProperty('lateDate')

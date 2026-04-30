@@ -8,7 +8,6 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 vi.mock('react-router', () => ({
   redirect: vi.fn((url: string) => {
-    // biome-ignore lint/style/useNamingConvention: standard HTTP header
     throw new Response(null, { status: 302, headers: { Location: url } })
   }),
 }))

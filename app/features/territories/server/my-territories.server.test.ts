@@ -55,7 +55,6 @@ describe('getUserTerritoriesWithDetails', () => {
   })
 
   it('appends computed status to each attribution', async () => {
-    // biome-ignore lint/suspicious/noExplicitAny: mock data includes relations not in base Attribution type
     vi.mocked(db.attribution.findMany).mockResolvedValue([
       {
         id: 1,

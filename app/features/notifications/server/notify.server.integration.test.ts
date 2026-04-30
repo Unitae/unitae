@@ -100,13 +100,17 @@ describe('notify debounce isolation (integration)', () => {
     )
 
     const eventInPrimary = await withScope(primaryCongId, tx =>
-      tx.notificationEvent.findFirst({ where: { congregationId: primaryCongId, type: 'board.document.created', entityId: 100 } }),
+      tx.notificationEvent.findFirst({
+        where: { congregationId: primaryCongId, type: 'board.document.created', entityId: 100 },
+      }),
     )
     expect(eventInPrimary).not.toBeNull()
     expect(eventInPrimary?.status).toBe('pending')
 
     const eventInOther = await withScope(otherCongId, tx =>
-      tx.notificationEvent.findFirst({ where: { congregationId: otherCongId, type: 'board.document.created', entityId: 100 } }),
+      tx.notificationEvent.findFirst({
+        where: { congregationId: otherCongId, type: 'board.document.created', entityId: 100 },
+      }),
     )
     expect(eventInOther).toBeNull()
   })
