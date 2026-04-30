@@ -12,8 +12,8 @@ test('ensure app is initialised', async ({ page }) => {
   if (!page.url().includes('/setup')) return
 
   await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Mot de passe').fill(password)
-  await page.getByLabel('Répéter le mot de passe').fill(password)
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password)
+  await page.getByLabel('Répéter le mot de passe', { exact: true }).fill(password)
   await page.getByRole('button', { name: "Créer l'utilisateur" }).click()
 
   await expect(page).toHaveURL(LOGIN_URL_RE, { timeout: 15_000 })
