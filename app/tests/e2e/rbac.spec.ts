@@ -13,7 +13,8 @@ test.describe('Access control', () => {
     for (const route of ['/publishers', '/territories', '/board', '/settings/users']) {
       await page.goto(route)
       await page.waitForLoadState('networkidle')
-      await expect(page).toHaveURL(LOGIN_URL_RE)
+      // Fresh environments redirect to /setup instead of /login — both mean unauthenticated
+      await expect(page).toHaveURL(/\/(login|setup)/)
     }
   })
 
@@ -47,7 +48,7 @@ test.describe('Access control', () => {
   })
 
   test('health endpoint is publicly accessible', async ({ page }) => {
-    const response = await page.goto('/healthz')
+    const response = await page.goto('/health')
     expect(response?.status()).toBe(200)
   })
 })
