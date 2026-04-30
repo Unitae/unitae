@@ -107,7 +107,7 @@ Each feature owns all its code through consistent segments:
 
 ### Data Isolation
 
-**Congregation model**: Each congregation record isolates its data. 12 models carry a `congregationId` FK. `UserRole` is global (shared role definitions).
+**Congregation model**: Each congregation record isolates its data. 28+ models carry a `congregationId` FK. `UserRole` is global (shared role definitions).
 
 **Scoped queries** (`app/shared/infra/db.server.ts`):
 - `db` and `unscopedDb` are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
@@ -162,6 +162,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 - Service functions take explicit parameters (no `request` object)
 - Service functions receive `db: TransactionClient` as their first parameter
 - **Zero inline DB writes in routes**: route files must NOT contain `db.*.create()`, `db.*.update()`, `db.*.delete()`, or `db.*.deleteMany()` calls directly — all write operations go through service functions
+- **actorId threading**: every service function that writes must accept `actorId: number` — as a positional param right after `congregationId`, or as a field in the params interface. Routes extract it via `context.get(userContext).id`
 - Examples: `findBuildingsPaginated()`, `getPublishers()`, `findActiveAttributionsPaginated()`
 
 **Form validation** (Conform + Zod):
@@ -201,6 +202,14 @@ if (submission.status !== 'success') return submission.reply()
 | Redirect decisions | Route loaders/actions only — never from service functions |
 
 `throw redirect()` is allowed only in: auth middleware (`requireAuth`, `enforceGdprConsent`), route guards (`requireRole`, `verifyPlatformAdmin`), and session validation (`session.server.ts`). It must never appear in a business service function.
+
+**Audit trail** (`app/shared/domain/audit.server.ts`):
+- `audit(entry)` — fire-and-forget; writes via `unscopedDb`, bypasses RLS, never throws. Use in service functions after DB writes.
+- `auditInTransaction(tx, entry)` — writes inside an existing transaction; use only when atomicity is required (rare).
+- **Placement rule**: audit calls go in service functions, not in routes. Exception: logout (call `audit()` directly in the route action since no service function exists for it).
+- **entityType** convention: use the Prisma model name — `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`
+- **Not audited**: bulk operations and high-frequency low-signal ops (`reorderBoardSections`, `bulkDeleteBoardItems`, `bulkMoveBoardItems`)
+- See `docs/development/architecture.md` — Audit Logging section for the full pattern with example
 
 **Database Layer**:
 - Prisma ORM with PostgreSQL via `@prisma/adapter-pg`
@@ -273,7 +282,7 @@ if (submission.status !== 'success') return submission.reply()
 
 **Data isolation**:
 - `Congregation` — Record with branding (name, slug, domain, displayName, emailFrom, baseUrl) and optional plan/limit columns
-- 12 models scoped by `congregationId`: User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
+- 28+ models scoped by `congregationId` (see `docs/development/row-level-security.md` for the full list): User, CongregationUserRole, Territory, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible, Setting, NotificationEvent, NotificationPreference, AuditLog, DataDeletionRecord, ConsentRecord
 
 **Auth**:
 - `UserRole` — Global role definitions (14 roles)

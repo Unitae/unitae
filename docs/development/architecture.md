@@ -192,9 +192,45 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 ## Audit Logging
 
-Fire-and-forget audit logging via `audit()` from `app/shared/domain/audit.server.ts`. Uses `unscopedDb` to write without RLS context. Never throws — audit failures are logged but don't block operations.
+`app/shared/domain/audit.server.ts` exposes two functions:
 
-Actions tracked: user login/logout/creation/update/anonymization, role changes, data export, consent grant/withdrawal, password changes, board read status.
+- **`audit(entry)`** — fire-and-forget; writes via `unscopedDb` (bypasses RLS), never throws. Use this in service functions for all normal mutations.
+- **`auditInTransaction(tx, entry)`** — writes inside an existing transaction; use only when the audit record must succeed or fail atomically with the main write (rare).
+
+### Placement rule
+
+Audit calls belong in service functions (`features/*/server/`), **not** in route loaders or actions. The only exception is logout: there is no service function for it, so the audit call lives directly in the route action.
+
+### actorId threading
+
+Every service function that writes data must accept `actorId: number` — as a positional parameter right after `congregationId`, or as a field in the params interface. Routes extract it from `context.get(userContext).id` and forward it explicitly.
+
+```typescript
+// Service function
+export async function updateTerritory(db, id, congregationId, actorId, params) {
+  const territory = await db.territory.update({ ... })
+  audit({ action: AuditAction.TerritoryUpdated, congregationId, actorId, entityType: 'Territory', entityId: id })
+  return territory
+}
+
+// Route action
+const currentUser = context.get(userContext)
+return withScopeFromContext(context, async db => {
+  return updateTerritory(db, id, currentUser.congregationId, currentUser.id, params)
+})
+```
+
+### entityType convention
+
+Always use the Prisma model name as the `entityType` string: `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`.
+
+### What is not audited
+
+Bulk operations (`bulkDeleteBoardItems`, `bulkMoveBoardItems`) and high-frequency low-signal operations (`reorderBoardSections`) are intentionally excluded — high noise, low investigative value.
+
+### Covered actions
+
+Authentication (login, logout, failed login), consent (granted, withdrawn), passwords, territories (created, updated, deleted), attributions (created, updated, deleted), publishers (created, updated, status changed), publisher groups (created, deleted), publisher activity (created, updated, deleted), board documents (created, updated, deleted), board sections (created, updated), congregation settings, data export/import, platform admin operations.
 
 ## Testing
 

@@ -56,7 +56,7 @@ Imports and processes open data (BANO addresses) for territory management.
 Sends notification emails asynchronously with automatic retries.
 
 - **Producer**: `app/shared/infra/email-queue.server.ts`
-- **Handler**: `app/shared/infra/handle-email-work.server.tsx`
+- **Handler**: `app/features/notifications/jobs/handle-email-work.server.tsx`
 - **Concurrency**: 5 (IO-bound Resend API calls)
 - **Retries**: 3 attempts, exponential backoff (5s base)
 - **Tenant isolation**: Uses `unscopedDb` with explicit `congregationId` filtering
