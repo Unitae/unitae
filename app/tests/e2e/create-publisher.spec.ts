@@ -58,6 +58,7 @@ test.describe('Publishers', () => {
 
     await firstnameField.fill(firstname)
     await lastnameField.fill(lastname)
+    await page.getByRole('radio', { name: 'Homme' }).check()
 
     // Submit the form
     await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
