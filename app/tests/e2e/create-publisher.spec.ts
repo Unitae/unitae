@@ -7,7 +7,7 @@ const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
 const PUBLISHERS_URL_RE = /\/publishers/
 const NEW_PUBLISHER_URL_RE = /\/publishers\/new/
 const FIRSTNAME_FIELD_RE = /prénom/i
-const LASTNAME_FIELD_RE = /nom/i
+const LASTNAME_FIELD_RE = /^nom$/i
 const SUBMIT_BUTTON_RE = /enregistrer|sauvegarder|créer|ajouter/i
 
 test.describe('Publishers', () => {
