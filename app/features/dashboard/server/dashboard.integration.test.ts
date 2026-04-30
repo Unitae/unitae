@@ -5,7 +5,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DB_URL,
+  connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
   max: 5,
   connectionTimeoutMillis: 5000,
 })
