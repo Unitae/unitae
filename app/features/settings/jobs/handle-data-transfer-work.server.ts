@@ -6,7 +6,8 @@ import { runImport } from '../server/import-congregation.server'
 
 const logger = createLogger('data-transfer-worker')
 
-export async function handleDataTransferWork(job: Job<DataTransferJobData>): Promise<string | void> {
+// biome-ignore lint/suspicious/noConfusingVoidType: return type reflects that import returns void and export returns string
+export function handleDataTransferWork(job: Job<DataTransferJobData>): Promise<string | void> {
   logger.info(`Starting data transfer job ${job.id}`, { type: job.data.type, congregationId: job.data.congregationId })
 
   switch (job.data.type) {
