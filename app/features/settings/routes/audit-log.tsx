@@ -65,6 +65,8 @@ function translateAction(action: string): string {
     'password.changed': m.audit_log_action_password_changed(),
     'password.reset.requested': m.audit_log_action_password_reset_requested(),
     'board.read_status.viewed': m.audit_log_action_board_read_status_viewed(),
+    'congregation.exported': m.audit_log_action_congregation_exported(),
+    'congregation.imported': m.audit_log_action_congregation_imported(),
     'platform.congregation.updated': m.audit_log_action_platform_congregation_updated(),
     'platform.users.listed': m.audit_log_action_platform_users_listed(),
   }
@@ -106,6 +108,8 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
             <option value="consent.granted">{m.audit_log_action_consent_granted()}</option>
             <option value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</option>
             <option value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</option>
+            <option value="congregation.exported">{m.audit_log_action_congregation_exported()}</option>
+            <option value="congregation.imported">{m.audit_log_action_congregation_imported()}</option>
           </select>
         </div>
         <div className="space-y-1">
