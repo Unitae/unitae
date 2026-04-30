@@ -1859,6 +1859,10 @@
     "export_include_audit_logs": "Inclure l'historique d'audit",
     "export_include_audit_logs_hint": "Le journal d'audit peut contenir un grand nombre d'entrées.",
     "export_submit": "Lancer l'export",
+    "export_history_title": "Exports précédents",
+    "export_history_empty": "Aucun export précédent disponible.",
+    "export_history_date": "Date",
+    "export_history_download": "Télécharger",
 
     "export_status_meta_title": "Export en cours - Unitae",
     "export_status_title": "Export en cours",

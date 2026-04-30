@@ -1,29 +1,41 @@
 import { getFormProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
+import { Download } from 'lucide-react'
 import { Form, redirect } from 'react-router'
 import { exportOptionsSchema } from '~/features/settings/schemas/data-transfer.schema'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
+import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/export'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.export_meta_title() }]
 }
 
-export function loader({ context }: Route.LoaderArgs) {
+export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
+  const currentUser = context.get(userContext)
   requireRole(permissions, Role.Admin)
-  return null
+
+  const jobs = await dataTransferQueue.getJobs(['completed'])
+  const completedExports = jobs
+    .filter(job => job.data.type === 'export' && job.data.congregationId === currentUser.congregationId)
+    .sort((a, b) => (b.finishedOn ?? 0) - (a.finishedOn ?? 0))
+    .map(job => ({ id: String(job.id), finishedOn: job.finishedOn ?? null }))
+
+  return { completedExports }
 }
 
-export default function ExportPage({ actionData }: Route.ComponentProps) {
+export default function ExportPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { completedExports } = loaderData
   const [form] = useForm({
     lastResult: actionData,
     onValidate({ formData }) {
@@ -73,6 +85,43 @@ export default function ExportPage({ actionData }: Route.ComponentProps) {
 
         <SubmitButton>{m.export_submit()}</SubmitButton>
       </Form>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{m.export_history_title()}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {completedExports.length === 0 ? (
+            <p className="text-muted-foreground text-sm">{m.export_history_empty()}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{m.export_history_date()}</TableHead>
+                  <TableHead className="text-right">{m.export_history_download()}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {completedExports.map(job => (
+                  <TableRow key={job.id}>
+                    <TableCell>
+                      {job.finishedOn ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(job.finishedOn)) : '—'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild variant="ghost" size="sm">
+                        <a href={`/settings/data/export/${job.id}/download`}>
+                          <Download className="mr-2 size-4" />
+                          {m.export_history_download()}
+                        </a>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
