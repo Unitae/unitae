@@ -62,7 +62,6 @@ export function ResidentialEntranceCard({
             <Label>{m.prospection_entrance_access_type_label()}</Label>
             <select
               className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
-              defaultValue={entrance?.access ?? ''}
               name="access"
               value={access ?? ''}
               onChange={e => setAccess(Number(e.target.value))}

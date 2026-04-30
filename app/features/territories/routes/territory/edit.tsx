@@ -131,10 +131,10 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         subtitle={m.territories_edit_subtitle()}
         breadcrumbs={[
           { label: m.sidebar_territories(), to: '/territories' },
-          { label: territory.number, to: `../view` },
+          { label: territory.number, to: `/territories/territory/${territory.id}/view` },
           { label: m.territories_edit_title() },
         ]}
-        backTo="../view"
+        backTo={`/territories/territory/${territory.id}/view`}
         actions={
           <>
             <Button asChild variant="outline" size="icon" title={m.territories_download_pdf_title()}>
