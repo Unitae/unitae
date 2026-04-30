@@ -34,6 +34,9 @@ jobs:
       - name: Check cross-feature import boundaries
         run: pnpm test:boundaries
 
+      - name: Security audit
+        run: pnpm audit --audit-level=high
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
@@ -84,10 +87,73 @@ jobs:
       - name: Run unit tests
         run: pnpm test:unit
 
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: unitae
+          POSTGRES_PASSWORD: unitae
+          POSTGRES_DB: unitae_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U unitae -d unitae_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DB_URL: postgresql://unitae:unitae@localhost:5432/unitae_test
+      DB_RUNTIME_URL: postgresql://unitae_app:unitae_app@localhost:5432/unitae_test
+      UNITAE_SESSION_SECRET: ci-test-secret-at-least-32-characters-long
+      RESEND_API_KEY: re_test
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
+
+      - name: Create non-superuser app role for RLS
+        run: |
+          psql "$DB_URL" -c "CREATE ROLE unitae_app LOGIN PASSWORD 'unitae_app' NOSUPERUSER;"
+          psql "$DB_URL" -c "GRANT unitae_app TO unitae;"
+
+      - name: Apply database migrations
+        run: pnpm prisma migrate deploy
+
+      - name: Run integration tests
+        run: pnpm test:integration
+
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [lint, typecheck, test]
+    needs: [lint, typecheck, test, integration]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -109,6 +175,13 @@ jobs:
 
       - name: Build application
         run: pnpm build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: build/
+          retention-days: 1
 
   e2e:
     name: E2E Tests
@@ -160,11 +233,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ hashFiles('**/pnpm-lock.yaml') }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Generate Prisma client and Paraglide messages
-        run: pnpm prisma generate && pnpm react-router typegen
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      - name: Generate Prisma client
+        run: pnpm prisma generate
 
       - name: Create non-superuser app role for RLS
         run: |
@@ -177,8 +262,11 @@ jobs:
       - name: Seed database
         run: pnpm prisma db seed
 
-      - name: Build application
-        run: pnpm build
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: build/
 
       - name: Run E2E tests
         run: pnpm test:e2e
