@@ -60,7 +60,7 @@ export async function resolveRecipients(
 }
 
 // 'board.document.created' → 'board.*'
-function categoryWildcard(notificationType: string): string {
+export function categoryWildcard(notificationType: string): string {
   const dotIndex = notificationType.indexOf('.')
   if (dotIndex === -1) return `${notificationType}.*`
   return `${notificationType.substring(0, dotIndex)}.*`

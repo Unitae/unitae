@@ -137,7 +137,7 @@ export async function deleteSectionWithFiles(
   return { name: section.name }
 }
 
-function computeReorderedItems(
+export function computeReorderedItems(
   items: { id: number; order: number | null }[],
   targetId: number,
   direction: 'up' | 'down',
