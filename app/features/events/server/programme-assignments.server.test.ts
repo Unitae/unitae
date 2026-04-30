@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     event: { findFirst: vi.fn(), findMany: vi.fn() },
     programmePartAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     programmeServiceRoleAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
@@ -10,7 +10,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 const { assignPart, assignServiceRole, unassignPart, unassignServiceRole, checkDayOffConflict, refreshConflictFlags } =
   await import('./programme-assignments.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

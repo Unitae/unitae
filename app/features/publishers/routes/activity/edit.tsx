@@ -8,12 +8,12 @@ import { updateActivitySchema } from '~/features/publishers/schemas/activity.sch
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -72,7 +72,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function EditActivity({ loaderData, actionData }: Route.ComponentProps) {
   const { activity } = loaderData
-  const [type, setType] = useState<PublisherType>(activity.type as PublisherType)
+  const [type, setType] = useState<PublisherType>(activity.type)
 
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -142,12 +142,14 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                PublisherType.PionnierAuxiliaires,
-                PublisherType.PionnierPermanant,
-                PublisherType.PionnierSpecial,
-                PublisherType.Missionnaire,
-              ].includes(type as PublisherType) ? (
+              {(
+                [
+                  PublisherType.PionnierAuxiliaires,
+                  PublisherType.PionnierPermanant,
+                  PublisherType.PionnierSpecial,
+                  PublisherType.Missionnaire,
+                ] as PublisherType[]
+              ).includes(type) ? (
                 <div className="space-y-2">
                   <Label htmlFor={fields.hours.id}>{m.activity_new_hours_label()}</Label>
                   <Input
@@ -258,8 +260,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       db,
       requireParamId(params.activityId, '/publishers/activity'),
       currentUser.congregationId,
+      currentUser.id,
       {
-        type: type as PublisherType,
+        type: type,
         isPublisher: hours > 0 ? true : preached,
         hours,
         studies,

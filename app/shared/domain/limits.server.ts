@@ -12,6 +12,15 @@ const LIMIT_COLUMN_MAP = {
 
 type LimitName = keyof typeof LIMIT_COLUMN_MAP
 
+type CounterFn = (db: TransactionClient) => Promise<number>
+
+const LIMIT_COUNTERS: Record<LimitName, CounterFn> = {
+  publishers: db => db.user.count({ where: { isPublisher: true } }),
+  territories: db => db.territory.count(),
+  users: db => db.user.count(),
+  boardDocuments: db => db.boardDocument.count(),
+}
+
 type CongregationLimits = {
   maxPublishers: number | null
   maxTerritories: number | null
@@ -64,15 +73,6 @@ export class LimitService {
   }
 
   private countCurrent(name: LimitName): Promise<number> {
-    switch (name) {
-      case 'publishers':
-        return this.db.user.count({ where: { isPublisher: true } })
-      case 'territories':
-        return this.db.territory.count()
-      case 'users':
-        return this.db.user.count()
-      case 'boardDocuments':
-        return this.db.boardDocument.count()
-    }
+    return LIMIT_COUNTERS[name](this.db)
   }
 }

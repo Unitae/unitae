@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     territory: { findMany: vi.fn() },
   },
 }))
@@ -12,7 +12,7 @@ vi.mock('./theocratic-year.server', () => ({
 }))
 
 const { getTerritoriesExportData } = await import('./territories-export-data.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } = await import('./theocratic-year.server')
 
 beforeEach(() => {

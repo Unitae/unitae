@@ -107,7 +107,7 @@ Each feature owns all its code through consistent segments:
 
 ### Data Isolation
 
-**Congregation model**: Each congregation record isolates its data. 12 models carry a `congregationId` FK. `UserRole` is global (shared role definitions).
+**Congregation model**: Each congregation record isolates its data. 28+ models carry a `congregationId` FK. `UserRole` is global (shared role definitions).
 
 **Scoped queries** (`app/shared/infra/db.server.ts`):
 - `db` and `unscopedDb` are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
@@ -162,6 +162,7 @@ export async function loader({ context }: Route.LoaderArgs) {
 - Service functions take explicit parameters (no `request` object)
 - Service functions receive `db: TransactionClient` as their first parameter
 - **Zero inline DB writes in routes**: route files must NOT contain `db.*.create()`, `db.*.update()`, `db.*.delete()`, or `db.*.deleteMany()` calls directly — all write operations go through service functions
+- **actorId threading**: every service function that writes must accept `actorId: number` — as a positional param right after `congregationId`, or as a field in the params interface. Routes extract it via `context.get(userContext).id`
 - Examples: `findBuildingsPaginated()`, `getPublishers()`, `findActiveAttributionsPaginated()`
 
 **Form validation** (Conform + Zod):
@@ -191,6 +192,24 @@ if (submission.status !== 'success') return submission.reply()
 - `LimitReachedError` — 429 (with limit name)
 - Service functions throw these; route actions catch and convert to user-facing responses
 - Unexpected errors bubble up to the error boundary
+
+**Service error contract** — enforced across all `features/*/server/` functions:
+
+| Case | Contract |
+|---|---|
+| Record not found | Return `null` — the caller (route loader/action) decides whether to redirect |
+| Business rule violation | Throw an `AppError` subclass (`ConflictError`, `ForbiddenError`, `LimitReachedError`) |
+| Redirect decisions | Route loaders/actions only — never from service functions |
+
+`throw redirect()` is allowed only in: auth middleware (`requireAuth`, `enforceGdprConsent`), route guards (`requireRole`, `verifyPlatformAdmin`), and session validation (`session.server.ts`). It must never appear in a business service function.
+
+**Audit trail** (`app/shared/domain/audit.server.ts`):
+- `audit(entry)` — fire-and-forget; writes via `unscopedDb`, bypasses RLS, never throws. Use in service functions after DB writes.
+- `auditInTransaction(tx, entry)` — writes inside an existing transaction; use only when atomicity is required (rare).
+- **Placement rule**: audit calls go in service functions, not in routes. Exception: logout (call `audit()` directly in the route action since no service function exists for it).
+- **entityType** convention: use the Prisma model name — `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`
+- **Not audited**: bulk operations and high-frequency low-signal ops (`reorderBoardSections`, `bulkDeleteBoardItems`, `bulkMoveBoardItems`)
+- See `docs/development/architecture.md` — Audit Logging section for the full pattern with example
 
 **Database Layer**:
 - Prisma ORM with PostgreSQL via `@prisma/adapter-pg`
@@ -263,7 +282,7 @@ if (submission.status !== 'success') return submission.reply()
 
 **Data isolation**:
 - `Congregation` — Record with branding (name, slug, domain, displayName, emailFrom, baseUrl) and optional plan/limit columns
-- 12 models scoped by `congregationId`: User, Territory, Building, BuildingEntrance, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, Event, EventKind, Setting
+- 28+ models scoped by `congregationId` (see `docs/development/row-level-security.md` for the full list): User, CongregationUserRole, Territory, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible, Setting, NotificationEvent, NotificationPreference, AuditLog, DataDeletionRecord, ConsentRecord
 
 **Auth**:
 - `UserRole` — Global role definitions (14 roles)
@@ -350,142 +369,3 @@ Session cookies: 1 hour production, 8 hours development. Cookie domain configura
 - `docker/Dockerfile` — Multi-stage build (node:22-slim) with `runtime` and `migrate` targets
 - `.github/workflows/continuous-deployment.yml` — Builds and pushes Docker images to GHCR
 - Kubernetes deployment manifests are managed in the private `unitae-platform` repository
-
-<!-- rtk-instructions v2 -->
-# RTK (Rust Token Killer) - Token-Optimized Commands
-
-## Golden Rule
-
-**Always prefix commands with `rtk`**. If RTK has a dedicated filter, it uses it. If not, it passes through unchanged. This means RTK is always safe to use.
-
-**Important**: Even in command chains with `&&`, use `rtk`:
-```bash
-# ❌ Wrong
-git add . && git commit -m "msg" && git push
-
-# ✅ Correct
-rtk git add . && rtk git commit -m "msg" && rtk git push
-```
-
-## RTK Commands by Workflow
-
-### Build & Compile (80-90% savings)
-```bash
-rtk cargo build         # Cargo build output
-rtk cargo check         # Cargo check output
-rtk cargo clippy        # Clippy warnings grouped by file (80%)
-rtk tsc                 # TypeScript errors grouped by file/code (83%)
-rtk lint                # ESLint/Biome violations grouped (84%)
-rtk prettier --check    # Files needing format only (70%)
-rtk next build          # Next.js build with route metrics (87%)
-```
-
-### Test (60-99% savings)
-```bash
-rtk cargo test          # Cargo test failures only (90%)
-rtk go test             # Go test failures only (90%)
-rtk jest                # Jest failures only (99.5%)
-rtk vitest              # Vitest failures only (99.5%)
-rtk playwright test     # Playwright failures only (94%)
-rtk pytest              # Python test failures only (90%)
-rtk rake test           # Ruby test failures only (90%)
-rtk rspec               # RSpec test failures only (60%)
-rtk test <cmd>          # Generic test wrapper - failures only
-```
-
-### Git (59-80% savings)
-```bash
-rtk git status          # Compact status
-rtk git log             # Compact log (works with all git flags)
-rtk git diff            # Compact diff (80%)
-rtk git show            # Compact show (80%)
-rtk git add             # Ultra-compact confirmations (59%)
-rtk git commit          # Ultra-compact confirmations (59%)
-rtk git push            # Ultra-compact confirmations
-rtk git pull            # Ultra-compact confirmations
-rtk git branch          # Compact branch list
-rtk git fetch           # Compact fetch
-rtk git stash           # Compact stash
-rtk git worktree        # Compact worktree
-```
-
-Note: Git passthrough works for ALL subcommands, even those not explicitly listed.
-
-### GitHub (26-87% savings)
-```bash
-rtk gh pr view <num>    # Compact PR view (87%)
-rtk gh pr checks        # Compact PR checks (79%)
-rtk gh run list         # Compact workflow runs (82%)
-rtk gh issue list       # Compact issue list (80%)
-rtk gh api              # Compact API responses (26%)
-```
-
-### JavaScript/TypeScript Tooling (70-90% savings)
-```bash
-rtk pnpm list           # Compact dependency tree (70%)
-rtk pnpm outdated       # Compact outdated packages (80%)
-rtk pnpm install        # Compact install output (90%)
-rtk npm run <script>    # Compact npm script output
-rtk npx <cmd>           # Compact npx command output
-rtk prisma              # Prisma without ASCII art (88%)
-```
-
-### Files & Search (60-75% savings)
-```bash
-rtk ls <path>           # Tree format, compact (65%)
-rtk read <file>         # Code reading with filtering (60%)
-rtk grep <pattern>      # Search grouped by file (75%)
-rtk find <pattern>      # Find grouped by directory (70%)
-```
-
-### Analysis & Debug (70-90% savings)
-```bash
-rtk err <cmd>           # Filter errors only from any command
-rtk log <file>          # Deduplicated logs with counts
-rtk json <file>         # JSON structure without values
-rtk deps                # Dependency overview
-rtk env                 # Environment variables compact
-rtk summary <cmd>       # Smart summary of command output
-rtk diff                # Ultra-compact diffs
-```
-
-### Infrastructure (85% savings)
-```bash
-rtk docker ps           # Compact container list
-rtk docker images       # Compact image list
-rtk docker logs <c>     # Deduplicated logs
-rtk kubectl get         # Compact resource list
-rtk kubectl logs        # Deduplicated pod logs
-```
-
-### Network (65-70% savings)
-```bash
-rtk curl <url>          # Compact HTTP responses (70%)
-rtk wget <url>          # Compact download output (65%)
-```
-
-### Meta Commands
-```bash
-rtk gain                # View token savings statistics
-rtk gain --history      # View command history with savings
-rtk discover            # Analyze Claude Code sessions for missed RTK usage
-rtk proxy <cmd>         # Run command without filtering (for debugging)
-rtk init                # Add RTK instructions to CLAUDE.md
-rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
-```
-
-## Token Savings Overview
-
-| Category | Commands | Typical Savings |
-|----------|----------|-----------------|
-| Tests | vitest, playwright, cargo test | 90-99% |
-| Build | next, tsc, lint, prettier | 70-87% |
-| Git | status, log, diff, add, commit | 59-80% |
-| GitHub | gh pr, gh run, gh issue | 26-87% |
-| Package Managers | pnpm, npm, npx | 70-90% |
-| Files | ls, read, grep, find | 60-75% |
-| Infrastructure | docker, kubectl | 85% |
-| Network | curl, wget | 65-70% |
-
-Overall average: **60-90% token reduction** on common development operations.
-<!-- /rtk-instructions -->

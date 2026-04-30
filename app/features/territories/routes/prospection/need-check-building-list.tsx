@@ -1,12 +1,12 @@
 import { Eye, Search } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Link } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings.server'
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -20,12 +20,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_need_check_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.ProspectionViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionViewer)
 
   const canManageProspection = permissions.has(Role.ProspectionManager)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)

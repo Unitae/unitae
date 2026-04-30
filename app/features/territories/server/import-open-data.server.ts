@@ -1,3 +1,4 @@
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { getAllowedZips } from '~/features/territories/server/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
@@ -65,7 +66,9 @@ export async function importOpenData(
             inOpenData: true,
             active: isActive,
             inTerritory: isActive,
-            entrances: { create: { kind: 'residential', congregation: { connect: { id: congregationId } } } },
+            entrances: {
+              create: { kind: EntranceKind.Residential, congregation: { connect: { id: congregationId } } },
+            },
             congregation: { connect: { id: congregationId } },
           },
           update: {

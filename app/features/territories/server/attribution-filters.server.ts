@@ -1,5 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 export function computeFilters(params: URLSearchParams): Prisma.AttributionWhereInput {
   let filters: Prisma.AttributionWhereInput = {}
@@ -30,7 +30,7 @@ function applyGroupFilter(
 
 function applyTypeFilter(filters: Prisma.AttributionWhereInput, params: URLSearchParams): Prisma.AttributionWhereInput {
   if (params.has('type') && params.get('type') !== 'none') {
-    return { ...filters, type: { equals: params.get('type') as TerritoryKind } }
+    return { ...filters, type: { equals: params.get('type') as TerritoryAttributionKind } }
   }
 
   return filters

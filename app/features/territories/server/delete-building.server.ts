@@ -1,6 +1,6 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export async function deleteBuilding(db: TransactionClient, id: number, congregationId: number) {
+export function deleteBuilding(db: TransactionClient, id: number, congregationId: number) {
   return db.building.delete({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound key

@@ -40,6 +40,54 @@ export const AuditAction = {
   // Board
   // biome-ignore lint/style/useNamingConvention: enum-like constant
   BoardReadStatusViewed: 'board.read_status.viewed',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentCreated: 'board.document.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentUpdated: 'board.document.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardDocumentDeleted: 'board.document.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardSectionCreated: 'board.section.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  BoardSectionUpdated: 'board.section.updated',
+
+  // Territories
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  TerritoryCreated: 'territory.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  TerritoryUpdated: 'territory.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  TerritoryDeleted: 'territory.deleted',
+
+  // Attributions
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  AttributionCreated: 'attribution.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  AttributionUpdated: 'attribution.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  AttributionDeleted: 'attribution.deleted',
+
+  // Publishers
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherCreated: 'publisher.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherUpdated: 'publisher.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherStatusChanged: 'publisher.status.changed',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherGroupCreated: 'publisher.group.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherGroupDeleted: 'publisher.group.deleted',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherActivityCreated: 'publisher.activity.created',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherActivityUpdated: 'publisher.activity.updated',
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  PublisherActivityDeleted: 'publisher.activity.deleted',
+
+  // Congregation settings
+  // biome-ignore lint/style/useNamingConvention: enum-like constant
+  CongregationSettingsUpdated: 'congregation.settings.updated',
 
   // Data transfer
   // biome-ignore lint/style/useNamingConvention: enum-like constant

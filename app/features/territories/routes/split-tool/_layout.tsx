@@ -1,9 +1,10 @@
-import { NavLink, Outlet, redirect } from 'react-router'
+import { NavLink, Outlet } from 'react-router'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -15,12 +16,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -56,7 +55,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     })
     const totalBuildingsForCommerce = await db.buildingEntrance.count({
       where: {
-        kind: 'commerce',
+        kind: EntranceKind.Commerce,
         congregationId,
         buildings: { some: prospectedBuilding },
         territories: { none: { type: TerritoryKind.Commerces } },
@@ -64,7 +63,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     })
     const totalBuildingsForCampus = await db.buildingEntrance.count({
       where: {
-        kind: 'campus',
+        kind: EntranceKind.Campus,
         congregationId,
         buildings: { some: prospectedBuilding },
         territories: { none: { type: TerritoryKind.Univ } },
@@ -72,7 +71,7 @@ export async function loader({ context }: Route.LoaderArgs) {
     })
     const totalBuildingsForHotel = await db.buildingEntrance.count({
       where: {
-        kind: 'hotel',
+        kind: EntranceKind.Hotel,
         congregationId,
         buildings: { some: prospectedBuilding },
         territories: { none: { type: TerritoryKind.Hotel } },

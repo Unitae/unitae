@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
-
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { UserId } from '~/shared/types/branded'
 
 /**
  * Anonymise un utilisateur en remplacant toutes les donnees personnelles
@@ -9,7 +9,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  *
  * Article 17 du RGPD — Droit a l'effacement.
  */
-export async function anonymizeUser(db: TransactionClient, userId: number, requestedBy: string) {
+export async function anonymizeUser(db: TransactionClient, userId: UserId, requestedBy: string) {
   const user = await db.user.findUnique({
     where: { id: userId },
     select: { id: true, anonymizedAt: true, congregationId: true },
@@ -53,6 +53,12 @@ export async function anonymizeUser(db: TransactionClient, userId: number, reque
   await db.publisherGroup.updateMany({
     where: { deputyId: userId },
     data: { deputyId: null },
+  })
+
+  // Clore les attributions actives (territoire reste visible, attribution fermee proprement)
+  await db.attribution.updateMany({
+    where: { publisherId: userId, endDate: null },
+    data: { endDate: new Date() },
   })
 
   // Supprimer les roles de l'utilisateur

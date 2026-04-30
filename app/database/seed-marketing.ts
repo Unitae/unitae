@@ -19,6 +19,9 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { EventKind } from '../features/events/model/event-kind.type'
 import { ProgrammeTemplateKey } from '../features/events/model/programme-template.type'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
+import { EntranceKind } from '../features/territories/model/entrance-kind.type'
+import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
+import { TerritoryKind } from '../features/territories/model/territory-kind.type'
 import { PublisherType } from '../shared/types/publisher-type'
 import { Role } from '../shared/types/role'
 import { PrismaClient } from './generated/client'
@@ -66,7 +69,7 @@ const PUBLISHERS: {
   firstname: string
   lastname: string
   isMale: boolean
-  type: string
+  type: PublisherType
   isHelder?: boolean
   isServant?: boolean
   email?: string
@@ -357,25 +360,25 @@ const PUBLISHERS: {
   },
 ]
 
-const TERRITORIES = [
-  { number: 'T01', type: 'doors-to-doors', notes: 'Centre-ville, secteur piéton' },
-  { number: 'T02', type: 'doors-to-doors', notes: '' },
-  { number: 'T03', type: 'doors-to-doors', notes: 'Résidences récentes, beaucoup de jeunes familles' },
-  { number: 'T04', type: 'doors-to-doors', notes: '' },
-  { number: 'T05', type: 'doors-to-doors', notes: 'Quartier calme, peu de refus' },
-  { number: 'T06', type: 'doors-to-doors', notes: '' },
-  { number: 'T07', type: 'doors-to-doors', notes: 'Immeubles avec digicodes — voir notes entrées' },
-  { number: 'T08', type: 'doors-to-doors', notes: '' },
-  { number: 'T09', type: 'doors-to-doors', notes: '' },
-  { number: 'T10', type: 'doors-to-doors', notes: 'Proche de la gare' },
-  { number: 'T11', type: 'doors-to-doors', notes: '' },
-  { number: 'T12', type: 'doors-to-doors', notes: 'Longue distance entre immeubles' },
-  { number: 'T13', type: 'doors-to-doors', notes: '' },
-  { number: 'T14', type: 'doors-to-doors', notes: '' },
-  { number: 'P01', type: 'phone', notes: 'Territoire téléphonique — personnes âgées' },
-  { number: 'P02', type: 'phone', notes: 'Territoire téléphonique' },
-  { number: 'C01', type: 'doors-to-doors', notes: 'Commerces rue principale' },
-  { number: 'C02', type: 'doors-to-doors', notes: 'Commerces zone commerciale' },
+const TERRITORIES: { number: string; type: TerritoryKind; notes: string }[] = [
+  { number: 'T01', type: TerritoryKind.Classical, notes: 'Centre-ville, secteur piéton' },
+  { number: 'T02', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T03', type: TerritoryKind.Classical, notes: 'Résidences récentes, beaucoup de jeunes familles' },
+  { number: 'T04', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T05', type: TerritoryKind.Classical, notes: 'Quartier calme, peu de refus' },
+  { number: 'T06', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T07', type: TerritoryKind.Classical, notes: 'Immeubles avec digicodes — voir notes entrées' },
+  { number: 'T08', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T09', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T10', type: TerritoryKind.Classical, notes: 'Proche de la gare' },
+  { number: 'T11', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T12', type: TerritoryKind.Classical, notes: 'Longue distance entre immeubles' },
+  { number: 'T13', type: TerritoryKind.Classical, notes: '' },
+  { number: 'T14', type: TerritoryKind.Classical, notes: '' },
+  { number: 'P01', type: TerritoryKind.Phone, notes: 'Territoire téléphonique — personnes âgées' },
+  { number: 'P02', type: TerritoryKind.Phone, notes: 'Territoire téléphonique' },
+  { number: 'C01', type: TerritoryKind.Classical, notes: 'Commerces rue principale' },
+  { number: 'C02', type: TerritoryKind.Classical, notes: 'Commerces zone commerciale' },
 ]
 
 const STREETS = [
@@ -624,7 +627,7 @@ async function main() {
     firstname: string
     lastname: string
     isMale: boolean
-    type: string
+    type: PublisherType
   }[] = []
 
   for (const pub of PUBLISHERS) {
@@ -841,7 +844,7 @@ async function main() {
 
       const entrance = await prisma.buildingEntrance.create({
         data: {
-          kind: 'residential',
+          kind: EntranceKind.Residential,
           homes: randomInt(4, 35),
           phones: randomInt(0, 10),
           liberals: randomInt(0, 3),
@@ -888,7 +891,7 @@ async function main() {
 
     await prisma.attribution.create({
       data: {
-        type: 'default',
+        type: TerritoryAttributionKind.Default,
         publisherId: publisher.id,
         territoryId: territory.id,
         startDate,
@@ -911,7 +914,7 @@ async function main() {
 
     await prisma.attribution.create({
       data: {
-        type: 'default',
+        type: TerritoryAttributionKind.Default,
         publisherId: publisher.id,
         territoryId: territory.id,
         startDate,
@@ -932,7 +935,7 @@ async function main() {
   lateDatePast.setMonth(lateDatePast.getMonth() + 4)
   await prisma.attribution.create({
     data: {
-      type: 'default',
+      type: TerritoryAttributionKind.Default,
       publisherId: marcDupont.id,
       territoryId: createdTerritories[0].id,
       startDate: lateStart,
@@ -948,7 +951,7 @@ async function main() {
   lateDateFuture.setMonth(lateDateFuture.getMonth() + 4)
   await prisma.attribution.create({
     data: {
-      type: 'default',
+      type: TerritoryAttributionKind.Default,
       publisherId: marcDupont.id,
       territoryId: createdTerritories[1].id,
       startDate: onTimeStart,

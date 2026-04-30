@@ -1,7 +1,7 @@
 import { CheckCircle, XCircle } from 'lucide-react'
 import { redirect } from 'react-router'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -19,9 +19,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.BoardValidator)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.BoardValidator)
 
   const { congregationId } = currentUser
   const documentId = requireParamId(params.documentId, '/board/documents')

@@ -9,7 +9,7 @@ import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildi
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -19,11 +19,12 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/building'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: `${data.building.number} ${data.building.street}, ${data.building.zip} - Unitae` }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: `${loaderData.building.number} ${loaderData.building.street}, ${loaderData.building.zip} - Unitae` }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewProspection = permissions.has(Role.ProspectionViewer)
@@ -130,9 +131,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: buildingNotesSchema })
   if (submission.status !== 'success') {

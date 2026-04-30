@@ -1,10 +1,11 @@
 import { z } from 'zod'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 export const createActivitySchema = z.object({
   publisher: z.coerce.number(),
   month: z.coerce.number().min(0).max(11),
   year: z.coerce.number().min(2022),
-  type: z.string().optional(),
+  type: z.nativeEnum(PublisherType).optional(),
   hours: z.coerce.number().min(0).optional().default(0),
   studies: z.coerce.number().min(0).optional().default(0),
   observations: z.string().optional().default(''),
@@ -16,7 +17,7 @@ export const createActivitySchema = z.object({
 })
 
 export const updateActivitySchema = z.object({
-  type: z.string(),
+  type: z.nativeEnum(PublisherType),
   hours: z.coerce.number().min(0).optional().default(0),
   studies: z.coerce.number().min(0).optional().default(0),
   observations: z.string().optional().default(''),

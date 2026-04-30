@@ -4,11 +4,11 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createTemplateSchema } from '~/features/settings/schemas/template.schema'
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -22,16 +22,16 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_template_new_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) throw redirect('/')
+  requireRole(permissions, Role.Admin)
   return {}
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  if (!permissions.has(Role.Admin)) throw redirect('/')
+  requireRole(permissions, Role.Admin)
 
   const submission = parseWithZod(await request.formData(), { schema: createTemplateSchema })
   if (submission.status !== 'success') {

@@ -1,3 +1,4 @@
+import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
 import type { locales } from '~/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
@@ -54,7 +55,7 @@ export async function setupFirstUser(
   // Create default EventKind and programme templates inside a scoped
   // transaction so PostgreSQL RLS allows the inserts.
   await withScope(congregation.id, async scopedDb => {
-    await seedCongregationDefaults(scopedDb, congregation.id, locale)
+    await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates)
   })
 
   // Enregistrer le consentement RGPD initial

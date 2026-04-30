@@ -1,6 +1,6 @@
 import { Archive, Download, IdCard, Pencil } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-
+import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
@@ -8,6 +8,7 @@ import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import logger from '~/shared/infra/logger.server'
+import type { CongregationId, UserId } from '~/shared/types/branded'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -18,8 +19,15 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: `${data.publisher.firstname} ${data.publisher.lastname} - Unitae` }]
+function computeServiceYearStart(): number {
+  const today = new Date()
+  const cutoff = new Date(today.getFullYear(), 8, 1)
+  return today < cutoff ? today.getFullYear() - 1 : today.getFullYear()
+}
+
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: `${loaderData.publisher.firstname} ${loaderData.publisher.lastname} - Unitae` }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -39,54 +47,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
+  const publisherId = requireParamId<UserId>(params.publisherId, '/publishers')
+
   return withScopeFromContext(context, async db => {
-    const today = new Date()
-    const yearBegining = new Date(today.getFullYear(), 8, 1)
-    if (today < yearBegining) {
-      yearBegining.setFullYear(today.getFullYear() - 1)
-    }
-    const publisher = await db.user.findUnique({
-      where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
-        id_congregationId: {
-          id: requireParamId(params.publisherId, '/publishers'),
-          congregationId: currentUser.congregationId,
-        },
-      },
-      include: {
-        publisherGroup: {
-          include: {
-            responsible: true,
-            deputy: true,
-          },
-        },
-        activities: {
-          where: {
-            // biome-ignore lint/style/useNamingConvention: prisma syntax
-            OR: [
-              {
-                year: yearBegining.getFullYear(),
-                month: {
-                  gte: 8,
-                },
-              },
-              {
-                year: yearBegining.getFullYear() + 1,
-                month: {
-                  lte: 11,
-                },
-              },
-            ],
-          },
-        },
-      },
-    })
+    const [publisher, attributions] = await Promise.all([
+      getPublisherById(db, publisherId, currentUser.congregationId as CongregationId, computeServiceYearStart()),
+      findActiveAttributionsForPublisher(db, publisherId, currentUser.congregationId),
+    ])
 
     if (!publisher) {
       throw redirect('/publishers')
     }
-
-    const attributions = await findActiveAttributionsForPublisher(db, publisher.id, currentUser.congregationId)
 
     return {
       publisher: sanitizeUser(publisher),

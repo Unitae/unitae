@@ -1,14 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { update: vi.fn() },
+    auditLog: { create: vi.fn() },
   },
 }))
 
 vi.mock('~/shared/domain/settings.server', () => ({
   setSetting: vi.fn(),
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { updateCongregationSettings } = await import('./congregation-settings.server')
 const { setSetting } = await import('~/shared/domain/settings.server')
@@ -27,7 +31,7 @@ describe('updateCongregationSettings', () => {
   it('sets the auxiliary pioneer setting', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
 
-    await updateCongregationSettings(mockDb as never, 10, {
+    await updateCongregationSettings(mockDb as never, 10, 99, {
       auxiliaryPioneerProfileActivated: 'true',
     })
 
@@ -39,17 +43,17 @@ describe('updateCongregationSettings', () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
     mockDb.user.updateMany.mockResolvedValue({ count: 3 })
 
-    await updateCongregationSettings(mockDb as never, 10, {
+    await updateCongregationSettings(mockDb as never, 10, 99, {
       auxiliaryPioneerProfileActivated: 'false',
     })
 
     expect(mockDb.user.updateMany).toHaveBeenCalledWith({
       where: {
         congregationId: 10,
-        type: 'pionnier-auxiliaires',
+        type: PublisherType.PionnierAuxiliaires,
       },
       data: {
-        type: 'normal',
+        type: PublisherType.Normal,
       },
     })
   })

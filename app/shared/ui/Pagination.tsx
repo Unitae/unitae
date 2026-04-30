@@ -2,8 +2,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router'
 import * as m from '~/paraglide/messages'
-import { usePersistedState } from '~/shared/hooks/use-persisted-state'
 import { Button } from '~/shared/ui/button'
+import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 export default function Pagination({

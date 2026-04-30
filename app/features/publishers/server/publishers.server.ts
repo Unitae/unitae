@@ -1,4 +1,31 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { CongregationId, UserId } from '~/shared/types/branded'
+
+export function getPublisherById(
+  db: TransactionClient,
+  publisherId: UserId,
+  congregationId: CongregationId,
+  serviceYearStart: number,
+) {
+  return db.user.findUnique({
+    where: {
+      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
+      id_congregationId: { id: publisherId, congregationId },
+    },
+    include: {
+      publisherGroup: { include: { responsible: true, deputy: true } },
+      activities: {
+        where: {
+          // biome-ignore lint/style/useNamingConvention: Prisma syntax
+          OR: [
+            { year: serviceYearStart, month: { gte: 8 } },
+            { year: serviceYearStart + 1, month: { lte: 11 } },
+          ],
+        },
+      },
+    },
+  })
+}
 
 export async function getPublishers(
   db: TransactionClient,

@@ -4,7 +4,7 @@ import { deleteBoardDocument } from '~/features/display-board/server/board-docum
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import { notify } from '~/features/notifications/server/notify.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
@@ -18,9 +18,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.BoardUploader)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.BoardUploader)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -55,9 +53,7 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.BoardUploader)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.BoardUploader)
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
@@ -69,7 +65,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     // Delete version files before cascade removes the rows
     await deleteAllVersionFiles(db, documentId)
 
-    const document = await deleteBoardDocument(db, documentId, congregationId)
+    const document = await deleteBoardDocument(db, documentId, congregationId, currentUser.id)
 
     await notify(db, {
       type: 'board.document.deleted',

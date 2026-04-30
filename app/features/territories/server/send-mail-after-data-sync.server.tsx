@@ -1,4 +1,4 @@
-import BuildingSyncDone from 'emails/notifications/buildings-sync-done'
+import BuildingSyncDone from '~/features/territories/emails/buildings-sync-done'
 import * as m from '~/paraglide/messages'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import logger from '~/shared/infra/logger.server'

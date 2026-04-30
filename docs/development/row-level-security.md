@@ -72,11 +72,11 @@ The `true` parameter in `current_setting(...)` makes it return `NULL` instead of
 
 **Tenant-scoped (RLS enforced):**
 
-Attribution, AuditLog, BoardDocument, BoardDynamicDocumentSettings, BoardSection, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, ConsentRecord, CongregationUserRole, DataDeletionRecord, Event, EventKind, NotificationEvent, NotificationPreference, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateResponsible, ProgrammeTemplateServiceRole, PublisherActivity, PublisherGroup, Setting, Territory, User
+Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, BoardSection, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, ConsentRecord, CongregationUserRole, DataDeletionRecord, Event, EventKind, NotificationEvent, NotificationPreference, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateResponsible, ProgrammeTemplateServiceRole, PublisherActivity, PublisherGroup, Setting, Territory, User
 
 **Global (no RLS):**
 
-Congregation, UserRole, PasswordResetToken, EmailVerificationToken, BoardDocumentVersion, BoardDynamicDocumentView
+Congregation, UserRole, PasswordResetToken, EmailVerificationToken, BoardDynamicDocumentView
 
 ## Application Integration
 

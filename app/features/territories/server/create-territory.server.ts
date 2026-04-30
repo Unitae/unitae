@@ -1,14 +1,17 @@
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface CreateTerritoryParams {
   number: string
-  type: string
+  type: TerritoryKind
   entranceIds: number[]
   congregationId: number
+  actorId: number
 }
 
 export async function createTerritory(db: TransactionClient, params: CreateTerritoryParams) {
-  return db.territory.create({
+  const territory = await db.territory.create({
     data: {
       number: params.number,
       type: params.type,
@@ -18,4 +21,14 @@ export async function createTerritory(db: TransactionClient, params: CreateTerri
       congregationId: params.congregationId,
     },
   })
+
+  audit({
+    action: AuditAction.TerritoryCreated,
+    congregationId: params.congregationId,
+    actorId: params.actorId,
+    entityType: 'Territory',
+    entityId: territory.id,
+  })
+
+  return territory
 }

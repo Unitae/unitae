@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     attribution: { findMany: vi.fn(), findFirst: vi.fn() },
   },
 }))
 
 const { computeStatus, getUserTerritoriesWithDetails, getUserTerritoryDetail } = await import('./my-territories.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -71,7 +71,7 @@ describe('getUserTerritoriesWithDetails', () => {
         type: 'default',
         territory: { id: 2, number: 'T-2', type: 'doors-to-doors', entrances: [] },
       },
-    ] as any)
+    ] as never)
 
     const result = await getUserTerritoriesWithDetails(db, 1)
 

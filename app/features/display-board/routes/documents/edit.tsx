@@ -9,11 +9,11 @@ import { replaceDocumentFile } from '~/features/display-board/server/document.se
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -272,7 +272,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       }
     }
 
-    const document = await updateBoardDocument(db, documentId, congregationId, {
+    const document = await updateBoardDocument(db, documentId, congregationId, currentUser.id, {
       title: String(title),
       sectionId,
       visibleFrom: resolvedVisibleFrom,

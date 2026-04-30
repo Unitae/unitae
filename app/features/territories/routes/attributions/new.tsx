@@ -10,15 +10,16 @@ import * as m from '~/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
+  requireRole,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -31,12 +32,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_new_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const url = new URL(request.url)
   if (!url.searchParams.has('territory')) {
@@ -176,9 +175,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: createAttributionSchema })
   if (submission.status !== 'success') {
@@ -187,6 +184,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { territory: territoryId, publisher: publisherId, 'start-date': startDate, notes, type } = submission.value
   const congregation = context.get(congregationContext)
+  const { id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const attribution = await createAttribution(db, {
@@ -196,6 +194,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       notes,
       type,
       congregationId: congregation.id,
+      actorId,
     })
 
     return redirect(`/territories/attributions/${attribution.id}/edit`)

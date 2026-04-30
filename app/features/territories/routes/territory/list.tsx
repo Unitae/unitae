@@ -1,5 +1,5 @@
 import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Link } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
@@ -7,7 +7,7 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -50,12 +50,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_list_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesViewer)
 
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
@@ -81,12 +79,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
 }
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
-  const {
-    pagination,
-    territories,
-    canManageTerritories,
-    zips,
-  } = loaderData
+  const { pagination, territories, canManageTerritories, zips } = loaderData
 
   if (territories.length < 1) {
     return (
@@ -182,7 +175,10 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" asChild>
-                          <a href={`/territories/territory/${territory.id}/pdf`} title={m.territories_download_pdf_title()}>
+                          <a
+                            href={`/territories/territory/${territory.id}/pdf`}
+                            title={m.territories_download_pdf_title()}
+                          >
                             <Download className="size-4" />
                           </a>
                         </Button>

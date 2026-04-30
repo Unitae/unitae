@@ -4,9 +4,9 @@ import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
 import * as m from '~/paraglide/messages'
-import { usePersistedState } from '~/shared/hooks/use-persisted-state'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'
 import { cn } from '~/shared/utils/utils'
 
 // ---------------------------------------------------------------------------

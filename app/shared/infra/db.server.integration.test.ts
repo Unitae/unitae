@@ -9,7 +9,7 @@ const adapter = new PrismaPg({
 })
 const testDb = new PrismaClient({ adapter })
 
-async function withScope<T>(
+function withScope<T>(
   congregationId: number,
   fn: (tx: Parameters<Parameters<typeof testDb.$transaction>[0]>[0]) => Promise<T>,
 ): Promise<T> {
@@ -63,7 +63,7 @@ afterAll(async () => {
 
 describe('RLS withScope isolation', () => {
   it('ne retourne que les utilisateurs de la congrégation A quand le scope est A', async () => {
-    const users = await withScope(congregationIdA, async tx => {
+    const users = await withScope(congregationIdA, tx => {
       return tx.user.findMany({ where: { congregationId: congregationIdA } })
     })
 
@@ -72,7 +72,7 @@ describe('RLS withScope isolation', () => {
   })
 
   it('empêche la congrégation A de voir les données de la congrégation B', async () => {
-    const users = await withScope(congregationIdA, async tx => {
+    const users = await withScope(congregationIdA, tx => {
       return tx.user.findMany({ where: { congregationId: congregationIdB } })
     })
 

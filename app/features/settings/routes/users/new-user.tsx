@@ -11,10 +11,10 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -27,7 +27,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageUser = permissions.has(Role.SettingsUserManager)
 
@@ -38,9 +38,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return null
 }
 
-export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
-  const _users = loaderData
-  const { blocker, markDirty } = useUnsavedChanges()
+export default function SettingsLayout({ actionData }: Route.ComponentProps) {
+const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -108,7 +107,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
-      const ResetPasswordRequired = (await import('emails/reset-password-required')).default
+      const ResetPasswordRequired = (await import('~/features/authentication/emails/reset-password-required')).default
       const result = await createUser(
         db,
         congregation,

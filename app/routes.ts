@@ -6,17 +6,17 @@ import { programsRoutes } from './features/events/programs.routes'
 import { territoryManagementRoutes } from './features/territories/territory-management.routes'
 
 export default [
-  route('health', 'routes/health.tsx'),
-  route('suspended', 'routes/suspended.tsx'),
-  route('trial-expired', 'routes/trial-expired.tsx'),
-  route('congregation-not-found', 'routes/congregation-not-found.tsx'),
-  route('privacy', 'routes/privacy.tsx'),
-  route('consent', 'routes/consent.tsx'),
-  route('cron/retention', 'routes/cron.retention.tsx'),
-  route('cron/board-expirations', 'routes/cron.board-expirations.tsx'),
-  route('cron/process-notifications', 'routes/cron.process-notifications.tsx'),
+  route('health', 'shell/health.tsx'),
+  route('suspended', 'shell/suspended.tsx'),
+  route('trial-expired', 'shell/trial-expired.tsx'),
+  route('congregation-not-found', 'shell/congregation-not-found.tsx'),
+  route('privacy', 'shell/privacy.tsx'),
+  route('consent', 'shell/consent.tsx'),
+  route('cron/retention', 'shell/cron.retention.tsx'),
+  route('cron/board-expirations', 'shell/cron.board-expirations.tsx'),
+  route('cron/process-notifications', 'shell/cron.process-notifications.tsx'),
   ...authenticationRoutes,
-  route('', 'routes/_authenticated-layout.tsx', [
+  route('', 'shell/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
     route('password/:userId/invalidate', 'features/authentication/routes/password-invalidation.tsx'),
     route('me', 'features/authentication/routes/user/_layout.tsx', [
@@ -102,7 +102,7 @@ export default [
       index('features/publishers/routes/publishers/publisher-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
       ...prefix(':publisherId', [
-        index('features/publishers/routes/publishers/publisher.tsx'),
+        route('view', 'features/publishers/routes/publishers/publisher.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
       ]),
@@ -119,7 +119,7 @@ export default [
       index('features/publishers/routes/publishers/group-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-group.tsx'),
       ...prefix(':groupId', [
-        index('features/publishers/routes/publishers/group.tsx'),
+        route('view', 'features/publishers/routes/publishers/group.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-group.tsx'),
         route('delete', 'features/publishers/routes/publishers/delete-group.tsx'),
       ]),

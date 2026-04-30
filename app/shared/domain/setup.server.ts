@@ -1,5 +1,4 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
 import * as m from '~/paraglide/messages'
 import type { locales } from '~/paraglide/runtime'
 import { Role } from '~/shared/types/role'
@@ -40,15 +39,21 @@ export async function seedRoles(db: any) {
   }
 }
 
-/**
- * Seed the default event kinds and programme templates for a newly created congregation.
- * Called from both first-user setup (single-tenant) and congregation registration (multi-tenant).
- *
- * NOTE: This function deliberately imports from features/events — it acts as a shared orchestrator
- * for congregation bootstrapping, centralising the cross-feature dependency in one place.
- */
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
-export async function seedCongregationDefaults(db: any, congregationId: number, locale: Locale) {
+type SeedTemplatesFn = (db: any, congregationId: number, locale: Locale) => Promise<void>
+
+/**
+ * Seed the default event kinds for a newly created congregation.
+ * Pass `seedTemplates` to also seed programme templates — the caller must supply
+ * it to avoid a domain→feature dependency inversion.
+ */
+export async function seedCongregationDefaults(
+  // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
+  db: any,
+  congregationId: number,
+  locale: Locale,
+  seedTemplates: SeedTemplatesFn = async () => {},
+) {
   await db.eventKind.upsert({
     // biome-ignore lint/style/useNamingConvention: prisma compound key
     where: { key_congregationId: { key: EventKind.Off, congregationId } },
@@ -61,5 +66,5 @@ export async function seedCongregationDefaults(db: any, congregationId: number, 
     },
   })
 
-  await seedDefaultTemplates(db, congregationId, locale)
+  await seedTemplates(db, congregationId, locale)
 }

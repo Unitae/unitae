@@ -20,7 +20,7 @@ export async function fetchTerritoryCounts(
   })
 
   return groups.map(g => ({
-    type: g.type as TerritoryKind,
+    type: g.type,
     count: g._count.id,
   }))
 }

@@ -1,6 +1,6 @@
 import type { Building, BuildingEntrance } from '~/database/generated/client'
 import {
-  type EntranceKind,
+  EntranceKind,
   entranceKindLabels as getEntranceKindLabels,
 } from '~/features/territories/model/entrance-kind.type'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
@@ -19,9 +19,11 @@ function getAccessLabels(): Record<number, string> {
 }
 
 export default function BuildingProspectionInfo({ building }: { building: BuildingWithEntrances }) {
-  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
-  const commerceEntrances = building.entrances.filter(e => e.kind === 'commerce')
-  const otherEntrances = building.entrances.filter(e => e.kind !== 'residential' && e.kind !== 'commerce')
+  const residentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
+  const commerceEntrances = building.entrances.filter(e => e.kind === EntranceKind.Commerce)
+  const otherEntrances = building.entrances.filter(
+    e => e.kind !== EntranceKind.Residential && e.kind !== EntranceKind.Commerce,
+  )
   const allNotes = building.entrances.filter(e => e.notes.length > 0)
   const hasProspectionData = building.prospectionDate != null || building.entrances.length > 0
 
@@ -58,9 +60,7 @@ export default function BuildingProspectionInfo({ building }: { building: Buildi
           <div className="mt-2 flex flex-col gap-1 rounded-md border border-destructive/20 bg-destructive/5 p-3">
             {allNotes.map(entrance => (
               <p key={entrance.id} className="text-destructive text-sm">
-                <span className="font-medium">
-                  {getEntranceKindLabels()[entrance.kind as EntranceKind] ?? entrance.kind} :
-                </span>{' '}
+                <span className="font-medium">{getEntranceKindLabels()[entrance.kind] ?? entrance.kind} :</span>{' '}
                 {entrance.notes}
               </p>
             ))}
@@ -152,17 +152,17 @@ function CommerceSummary({ entrances }: { entrances: BuildingEntrance[] }) {
 }
 
 function OtherEntranceSummary({ entrance }: { entrance: BuildingEntrance }) {
-  const kindLabel = getEntranceKindLabels()[entrance.kind as EntranceKind]?.toLowerCase() ?? entrance.kind
+  const kindLabel = getEntranceKindLabels()[entrance.kind]?.toLowerCase() ?? entrance.kind
 
-  if (entrance.kind === 'hotel') {
+  if (entrance.kind === EntranceKind.Hotel) {
     return <p>{m.prospection_info_hotel()}</p>
   }
 
-  if (entrance.kind === 'campus') {
+  if (entrance.kind === EntranceKind.Campus) {
     return <p>{m.prospection_info_campus()}</p>
   }
 
-  if (entrance.kind === 'laundromat') {
+  if (entrance.kind === EntranceKind.Laundromat) {
     return <p>{m.prospection_info_laundromat()}</p>
   }
 

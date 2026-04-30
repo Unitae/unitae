@@ -17,8 +17,8 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: data?.group ? `${data.group.name} — Unitae` : 'Groupe — Unitae' }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  return [{ title: loaderData?.group ? `${loaderData.group.name} — Unitae` : 'Groupe — Unitae' }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -83,7 +83,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           <p className="text-muted-foreground text-sm">
             {m.groups_view_responsible()} :{' '}
             <Link
-              to={`../../../publishers/${group.responsible.id}`}
+              to={`../../../publishers/${group.responsible.id}/view`}
               relative="path"
               className="font-medium text-primary hover:underline"
             >
@@ -94,7 +94,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             {m.groups_view_deputy()} :{' '}
             {group.deputy ? (
               <Link
-                to={`../../../publishers/${group.deputy.id}`}
+                to={`../../../publishers/${group.deputy.id}/view`}
                 relative="path"
                 className="font-medium text-primary hover:underline"
               >
@@ -143,12 +143,12 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
             {group.members.map(member => (
               <TableRow key={member.email}>
                 <TableCell className="text-center max-sm:text-left">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}`} relative="path">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
                     {member.firstname}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}`} relative="path">
+                  <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
                     {member.lastname?.toLocaleUpperCase()}
                   </Link>
                 </TableCell>
@@ -210,7 +210,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                 <TableCell>
                   <div className="flex justify-end gap-1">
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`../../../publishers/${member.id}`} relative="path">
+                      <Link to={`../../../publishers/${member.id}/view`} relative="path">
                         <Eye className="size-4" />
                       </Link>
                     </Button>

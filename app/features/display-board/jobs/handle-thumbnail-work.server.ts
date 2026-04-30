@@ -1,9 +1,9 @@
 import type { Job } from 'bullmq'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { saveThumbnailFile } from './document-storage.server'
-import { generateThumbnail } from './thumbnail.server'
-import type { ThumbnailJobData } from './thumbnail-queue.server'
+import { saveThumbnailFile } from '../server/document-storage.server'
+import { generateThumbnail } from '../server/thumbnail.server'
+import type { ThumbnailJobData } from '../server/thumbnail-queue.server'
 
 const logger = createLogger('thumbnail-worker')
 

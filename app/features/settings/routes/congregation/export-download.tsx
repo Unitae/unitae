@@ -1,15 +1,13 @@
 import { redirect } from 'react-router'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
-import { permissionsContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole } from '~/shared/auth/route-context.server'
 import { getFileBuffer } from '~/shared/infra/file-storage.server'
 import { Role } from '~/shared/types/role'
 import type { Route } from './+types/export-download'
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
 
   const job = await dataTransferQueue.getJob(params.jobId)
   if (!job) {

@@ -34,7 +34,7 @@ export async function togglePreference(
       userId,
       notificationType,
       enabled,
-      congregationId: 0 as number, // RLS injects congregationId at runtime
+      congregationId,
     },
     update: { enabled },
   })

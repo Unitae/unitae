@@ -1,12 +1,13 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import logger from '~/shared/infra/logger.server'
 
 // biome-ignore lint/suspicious/noExplicitAny: Prisma Json fields accept any serializable value
 type JsonValue = any
 
-import logger from '~/shared/infra/logger.server'
 import { deleteFile } from './document.server'
 
-export function createBoardDocument(
+export async function createBoardDocument(
   db: TransactionClient,
   data: {
     title: string
@@ -16,9 +17,10 @@ export function createBoardDocument(
     visibleFrom?: Date | null
     visibleUntil?: Date | null
     isHighlighted?: boolean
+    actorId: number
   },
 ) {
-  return db.boardDocument.create({
+  const document = await db.boardDocument.create({
     data: {
       title: data.title,
       type: 'pdf',
@@ -32,12 +34,23 @@ export function createBoardDocument(
       ...(data.isHighlighted != null ? { isHighlighted: data.isHighlighted } : {}),
     },
   })
+
+  audit({
+    action: AuditAction.BoardDocumentCreated,
+    congregationId: data.congregationId,
+    actorId: data.actorId,
+    entityType: 'BoardDocument',
+    entityId: document.id,
+  })
+
+  return document
 }
 
 export async function deleteBoardDocument(
   db: TransactionClient,
   documentId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<{ id: number; title: string }> {
   const document = await db.boardDocument.delete({
     where: {
@@ -54,6 +67,14 @@ export async function deleteBoardDocument(
   } catch (error) {
     logger.error('Document removal failed. Unexpected error during deletion of the file on the disk', { error })
   }
+
+  audit({
+    action: AuditAction.BoardDocumentDeleted,
+    congregationId,
+    actorId,
+    entityType: 'BoardDocument',
+    entityId: documentId,
+  })
 
   return { id: document.id, title: document.title }
 }
@@ -156,10 +177,11 @@ export async function reorderBoardItems(
   }
 }
 
-export function updateBoardDocument(
+export async function updateBoardDocument(
   db: TransactionClient,
   id: number,
   congregationId: number,
+  actorId: number,
   data: {
     title: string
     sectionId: number
@@ -168,7 +190,7 @@ export function updateBoardDocument(
     isHighlighted: boolean
   },
 ) {
-  return db.boardDocument.update({
+  const document = await db.boardDocument.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
@@ -181,6 +203,16 @@ export function updateBoardDocument(
       isHighlighted: data.isHighlighted,
     },
   })
+
+  audit({
+    action: AuditAction.BoardDocumentUpdated,
+    congregationId,
+    actorId,
+    entityType: 'BoardDocument',
+    entityId: id,
+  })
+
+  return document
 }
 
 export function markDocumentAsViewed(

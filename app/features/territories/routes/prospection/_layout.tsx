@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canViewProspection = permissions.has(Role.ProspectionViewer)
   const canManageProspection = permissions.has(Role.ProspectionManager)

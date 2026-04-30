@@ -1,4 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
@@ -33,7 +34,7 @@ function applyShopFilter(filters: Prisma.BuildingWhereInput, params: URLSearchPa
   if (params.has('shops') && params.get('shops') !== 'none') {
     const type = params.get('shops') as ShopKind
 
-    return { ...filters, entrances: { some: { kind: 'commerce', shopKind: type } } }
+    return { ...filters, entrances: { some: { kind: EntranceKind.Commerce, shopKind: type } } }
   }
 
   return filters
@@ -44,23 +45,23 @@ function applyTypeFilter(filters: Prisma.BuildingWhereInput, params: URLSearchPa
     const type = params.get('type') as TerritoryKind
 
     if (type === TerritoryKind.Classical) {
-      return { ...filters, entrances: { some: { kind: 'residential', homes: { gt: 0 } } } }
+      return { ...filters, entrances: { some: { kind: EntranceKind.Residential, homes: { gt: 0 } } } }
     }
 
     if (type === TerritoryKind.Phone) {
-      return { ...filters, entrances: { some: { kind: 'residential', phones: { gt: 0 } } } }
+      return { ...filters, entrances: { some: { kind: EntranceKind.Residential, phones: { gt: 0 } } } }
     }
 
     if (type === TerritoryKind.Commerces) {
-      return { ...filters, entrances: { some: { kind: 'commerce' } } }
+      return { ...filters, entrances: { some: { kind: EntranceKind.Commerce } } }
     }
 
     if (type === TerritoryKind.Hotel) {
-      return { ...filters, entrances: { some: { kind: 'hotel' } } }
+      return { ...filters, entrances: { some: { kind: EntranceKind.Hotel } } }
     }
 
     if (type === TerritoryKind.Univ) {
-      return { ...filters, entrances: { some: { kind: 'campus' } } }
+      return { ...filters, entrances: { some: { kind: EntranceKind.Campus } } }
     }
   }
   return filters

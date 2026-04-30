@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteTerritory } from '~/features/territories/server/delete-territory.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -13,12 +13,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Supprimer un territoire — Unitae' }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -52,18 +50,21 @@ export default function DeleteTerritory({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId, id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
-    const territory = await deleteTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId)
+    const territory = await deleteTerritory(
+      db,
+      requireParamId(params.territoryId, '/territories'),
+      congregationId,
+      actorId,
+    )
 
     session.flash('success', m.territories_delete_flash_success({ number: territory.number }))
 

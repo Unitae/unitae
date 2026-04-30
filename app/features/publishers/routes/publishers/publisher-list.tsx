@@ -125,12 +125,12 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
             {users.map(user => (
               <TableRow key={user.email}>
                 <TableCell className="text-center max-sm:text-left">
-                  <Link to={`/publishers/${user.id}`} className="hover:text-primary">
+                  <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
                     {user.firstname}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center">
-                  <Link to={`/publishers/${user.id}`} className="hover:text-primary">
+                  <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
                     {user.lastname?.toLocaleUpperCase()}
                   </Link>
                 </TableCell>
@@ -151,7 +151,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button asChild variant="ghost" size="icon">
-                      <Link to={`/publishers/${user.id}`}>
+                      <Link to={`/publishers/${user.id}/view`}>
                         <Eye className="size-4" />
                       </Link>
                     </Button>

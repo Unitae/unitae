@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { computeTerritoryQuantity } from './compute-territory-quantity'
@@ -8,7 +9,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     id: 1,
     createdAt: new Date(),
     updatedAt: new Date(),
-    kind: 'residential',
+    kind: EntranceKind.Residential,
     shopKind: '',
     notes: '',
     access: null,

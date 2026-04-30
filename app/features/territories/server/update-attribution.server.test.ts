@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: { attribution: { update: vi.fn() } },
+  unscopedDb: { attribution: { update: vi.fn() }, auditLog: { create: vi.fn() } },
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { updateAttribution } = await import('./update-attribution.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -13,13 +16,13 @@ beforeEach(() => {
 
 describe('updateAttribution', () => {
   it('returns the updated attribution with required fields only', async () => {
-    const fake = { id: 1, publisherId: 10, type: 'standard' }
+    const fake = { id: 1, publisherId: 10, type: TerritoryAttributionKind.Default }
     vi.mocked(db.attribution.update).mockResolvedValue(fake as never)
 
-    const result = await updateAttribution(db as any, 1, 1, {
+    const result = await updateAttribution(db as never, 1, 1, 99, {
       publisherId: 10,
       notes: 'test',
-      type: 'standard',
+      type: TerritoryAttributionKind.Default,
       startDate: new Date('2025-01-01'),
     })
 
@@ -30,14 +33,14 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const startDate = new Date('2025-03-01')
 
-    await updateAttribution(db as any, 5, 2, {
+    await updateAttribution(db as never, 5, 2, 99, {
       publisherId: 3,
       notes: 'note',
-      type: 'campaign',
+      type: TerritoryAttributionKind.Campaign,
       startDate,
     })
 
-    const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
+    const call = vi.mocked(db.attribution.update).mock.calls[0][0] as { data: Record<string, unknown> }
     expect(call.data).not.toHaveProperty('lateDate')
     expect(call.data).not.toHaveProperty('endDate')
     expect(call.data.publisherId).toBe(3)
@@ -48,15 +51,15 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const lateDate = new Date('2025-06-01')
 
-    await updateAttribution(db as any, 5, 2, {
+    await updateAttribution(db as never, 5, 2, 99, {
       publisherId: 3,
       notes: '',
-      type: 'standard',
+      type: TerritoryAttributionKind.Default,
       startDate: new Date('2025-01-01'),
       lateDate,
     })
 
-    const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
+    const call = vi.mocked(db.attribution.update).mock.calls[0][0] as { data: Record<string, unknown> }
     expect(call.data.lateDate).toBe(lateDate)
   })
 
@@ -64,15 +67,15 @@ describe('updateAttribution', () => {
     vi.mocked(db.attribution.update).mockResolvedValue({} as never)
     const endDate = new Date('2025-12-31')
 
-    await updateAttribution(db as any, 5, 2, {
+    await updateAttribution(db as never, 5, 2, 99, {
       publisherId: 3,
       notes: '',
-      type: 'standard',
+      type: TerritoryAttributionKind.Default,
       startDate: new Date('2025-01-01'),
       endDate,
     })
 
-    const call = vi.mocked(db.attribution.update).mock.calls[0][0] as any
+    const call = vi.mocked(db.attribution.update).mock.calls[0][0] as { data: Record<string, unknown> }
     expect(call.data.endDate).toBe(endDate)
   })
 })

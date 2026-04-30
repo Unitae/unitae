@@ -9,7 +9,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_meta_title() }]
 }
 
-export async function loader({ context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canViewTerritories = permissions.has(Role.TerritoriesViewer)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)

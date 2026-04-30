@@ -29,9 +29,9 @@ import { formatAbsoluteDate } from '~/shared/utils/relative-time'
 
 import type { Route } from './+types/view'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  if (!data) return [{ title: 'Unitae' }]
-  return [{ title: m.my_territories_view_meta_title({ number: data.territory.number }) }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: m.my_territories_view_meta_title({ number: loaderData.territory.number }) }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -47,12 +47,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
     const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
-    const phoneTypeActive = await getBoolSetting(
-      db,
-      TerritorySettingKey.TerritoryTypePhoneActive,
-      currentUser.congregationId,
-    )
-    const mapTabActive = await getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId)
+    const [phoneTypeActive, mapTabActive] = await Promise.all([
+      getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId),
+      getBoolSetting(db, TerritorySettingKey.MapTabActive, currentUser.congregationId),
+    ])
 
     return {
       territory: attribution.territory,
@@ -141,7 +139,6 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
     </div>
   )
 }
-
 
 function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggregateEntrance>[]; apiKey?: string }) {
   const { consented, grantConsent } = useMapConsent()

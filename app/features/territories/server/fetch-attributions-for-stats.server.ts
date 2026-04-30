@@ -1,5 +1,4 @@
 import type { Prisma } from '~/database/generated/client'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { StatsFilterParams } from './stats-filter-params.type'
@@ -48,8 +47,8 @@ export async function fetchAttributionsForStats(
     id: a.id,
     territoryId: a.territoryId,
     territoryNumber: a.territory.number,
-    territoryType: a.territory.type as TerritoryKind,
-    type: a.type as StatsAttribution['type'],
+    territoryType: a.territory.type,
+    type: a.type,
     startDate: a.startDate,
     endDate: a.endDate,
     lateDate: a.lateDate,

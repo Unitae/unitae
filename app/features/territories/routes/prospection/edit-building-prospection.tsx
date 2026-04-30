@@ -25,14 +25,15 @@ import * as m from '~/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
+  requireRole,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -45,13 +46,11 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.prospection_sync_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!permissions.has(Role.ProspectionManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -93,16 +92,16 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   const { blocker, markDirty } = useUnsavedChanges()
   const [sharedEntranceBuildingsChanged, setsharedEntranceBuildingsChanged] = useState(false)
 
-  const existingResidentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const existingResidentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
   const [hasResidential, setHasResidential] = useState(existingResidentialEntrance != null)
   const initialEntries: EntranceEntry[] = building.entrances
-    .filter(e => e.kind !== 'residential')
-    .map(e => ({ uid: makeUid(), kind: e.kind as EntranceKind, entranceId: e.id, shopKind: e.shopKind }))
+    .filter(e => e.kind !== EntranceKind.Residential)
+    .map(e => ({ uid: makeUid(), kind: e.kind, entranceId: e.id, shopKind: e.shopKind }))
   const [entries, setEntries] = useState<EntranceEntry[]>(initialEntries)
 
   const activeUniqueKinds = [
     ...(hasResidential ? [EntranceKind.Residential] : []),
-    ...entries.filter(e => uniqueKinds.includes(e.kind)).map(e => e.kind),
+    ...entries.filter(e => (uniqueKinds as EntranceKind[]).includes(e.kind)).map(e => e.kind),
   ]
   const availableKinds = allAddableKinds.filter(k => k === EntranceKind.Commerce || !activeUniqueKinds.includes(k))
 
@@ -231,13 +230,11 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
 
-  if (!permissions.has(Role.ProspectionManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionManager)
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
   const congregation = context.get(congregationContext)
@@ -263,7 +260,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
       if (currentEntranceIdsSerialized !== entranceIdsSerialized) {
         try {
-          const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+          const residentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
           await updateBuildingsInEntrance(db, Number(residentialEntrance?.id), entranceIds, congregation.id)
           session.flash('success', m.prospection_edit_prospection_shared_success())
         } catch (e) {

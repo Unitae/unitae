@@ -3,7 +3,7 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteBuilding } from '~/features/territories/server/delete-building.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -14,12 +14,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: 'Supprimer un immeuble — Unitae' }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.ProspectionManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.ProspectionManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -55,12 +53,10 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
   )
 }
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const { congregationId } = context.get(userContext)
 

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     attribution: { count: vi.fn(), findMany: vi.fn() },
     territory: { findUnique: vi.fn() },
   },
@@ -12,7 +12,7 @@ vi.mock('~/shared/utils/pagination.server', () => ({
 }))
 
 const { findActiveAttributionsForPublisher, findTerritoryWithHistory } = await import('./attributions.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()

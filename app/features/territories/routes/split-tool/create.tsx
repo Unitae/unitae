@@ -5,7 +5,13 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/paraglide/messages'
-import { congregationContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  permissionsContext,
+  requireRole,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { Role } from '~/shared/types/role'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
@@ -20,9 +26,7 @@ export function loader(_args: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
   if (submission.status !== 'success') {
@@ -31,6 +35,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { type, entranceIds } = submission.value
   const congregation = context.get(congregationContext)
+  const { id: actorId } = context.get(userContext)
 
   const previousPage = safeRedirectUrl(request.headers.get('referer'), '/territories/buildings/split-territories')
 
@@ -44,6 +49,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         type,
         entranceIds: entranceIds.split(',').map(el => Number(el)),
         congregationId: congregation.id,
+        actorId,
       })
 
       session.flash('success', m.split_tool_create_flash_success({ number: territory.number }))

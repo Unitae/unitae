@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const mockUpdate = vi.fn()
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     user: { update: mockUpdate },
+    auditLog: { create: vi.fn() },
   },
 }))
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const { updatePublisher } = await import('./update-publisher.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -27,7 +31,7 @@ describe('updatePublisher', () => {
     isServant: false,
     isAnointed: false,
     groupId: 5,
-    type: 'publisher',
+    type: PublisherType.Normal,
     phone: '0612345678',
     address: '12 rue de la Paix',
   }
@@ -36,7 +40,7 @@ describe('updatePublisher', () => {
     const fakeUpdated = { id: 1, ...baseParams }
     mockUpdate.mockResolvedValue(fakeUpdated as never)
 
-    const result = await updatePublisher(db, 1, 10, baseParams)
+    const result = await updatePublisher(db, 1, 10, 99, baseParams)
 
     expect(result).toEqual(fakeUpdated)
     expect(mockUpdate).toHaveBeenCalledWith({
@@ -55,7 +59,7 @@ describe('updatePublisher', () => {
         isAnointed: false,
         publisherGroupId: 5,
         email: 'jean@example.com',
-        type: 'publisher',
+        type: PublisherType.Normal,
         address: '12 rue de la Paix',
         phone: '0612345678',
       },
@@ -66,7 +70,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, gender: 'female' }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, 99, params)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -79,7 +83,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, birthDate: null, baptismDate: null }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, 99, params)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -92,7 +96,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, groupId: Number.NaN }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, 99, params)
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -105,7 +109,7 @@ describe('updatePublisher', () => {
     const params = { ...baseParams, email: null }
     mockUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(db, 1, 10, params)
+    await updatePublisher(db, 1, 10, 99, params)
 
     const callData = mockUpdate.mock.calls[0][0].data
     expect(callData).not.toHaveProperty('email')

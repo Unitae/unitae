@@ -5,11 +5,11 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { createBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -24,9 +24,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.BoardValidator)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.BoardValidator)
 
   return null
 }
@@ -80,8 +78,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { name } = submission.value
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
-    const section = await createBoardSection(db, { name, congregationId })
+    const { congregationId, id: actorId } = context.get(userContext)
+    const section = await createBoardSection(db, { name, congregationId, actorId })
 
     if (section == null) {
       session.flash('error', m.common_generic_error())

@@ -3,13 +3,13 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     attribution: { findMany: vi.fn() },
   },
 }))
 
 const { fetchAttributionsForStats } = await import('./fetch-attributions-for-stats.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -21,8 +21,8 @@ describe('fetchAttributionsForStats', () => {
       {
         id: 1,
         territoryId: 10,
-        territory: { number: 'T-1', type: 'doors-to-doors' },
-        type: 'default',
+        territory: { number: 'T-1', type: TerritoryKind.Classical },
+        type: TerritoryAttributionKind.Default,
         startDate: new Date(2025, 9, 1),
         endDate: new Date(2025, 10, 15),
         lateDate: new Date(2025, 11, 1),
@@ -46,7 +46,7 @@ describe('fetchAttributionsForStats', () => {
         territoryId: 10,
         territoryNumber: 'T-1',
         territoryType: TerritoryKind.Classical,
-        type: 'default',
+        type: TerritoryAttributionKind.Default,
         startDate: new Date(2025, 9, 1),
         endDate: new Date(2025, 10, 15),
         lateDate: new Date(2025, 11, 1),

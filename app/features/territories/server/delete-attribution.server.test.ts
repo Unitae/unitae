@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({
-  db: { attribution: { delete: vi.fn() } },
+  unscopedDb: { attribution: { delete: vi.fn() } },
 }))
 
 const { deleteAttribution } = await import('./delete-attribution.server')
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -16,7 +18,7 @@ describe('deleteAttribution', () => {
     const fake = { id: 1, publisher: { id: 10, name: 'John' }, congregationId: 1 }
     vi.mocked(db.attribution.delete).mockResolvedValue(fake as never)
 
-    const result = await deleteAttribution(db as any, 1, 1)
+    const result = await deleteAttribution(db as never, 1, 1, 99)
 
     expect(result).toEqual(fake)
   })
@@ -24,7 +26,7 @@ describe('deleteAttribution', () => {
   it('passes compound key and includes publisher', async () => {
     vi.mocked(db.attribution.delete).mockResolvedValue({} as never)
 
-    await deleteAttribution(db as any, 8, 3)
+    await deleteAttribution(db as never, 8, 3, 99)
 
     expect(db.attribution.delete).toHaveBeenCalledWith({
       where: {

@@ -109,7 +109,7 @@ async function queueDebounced(db: TransactionClient, params: NotifyParams, debou
       type: params.type,
       entityType: params.entityType,
       entityId: params.entityId,
-      congregationId: 0 as number, // RLS injects congregationId at runtime
+      congregationId: params.congregationId,
       recipientId: params.recipientId ?? null,
       recipientRole: params.recipientRole ?? null,
       actorId: params.actorId ?? null,

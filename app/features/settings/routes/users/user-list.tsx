@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManageUser = permissions.has(Role.SettingsUserManager)
@@ -127,7 +127,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                   {user.isPublisher ? (
                     roles.canViewPublishers ? (
                       <Link
-                        to={`/publishers/${user.id}`}
+                        to={`/publishers/${user.id}/view`}
                         title={m.settings_users_view_publisher_title()}
                         className="text-primary"
                       >

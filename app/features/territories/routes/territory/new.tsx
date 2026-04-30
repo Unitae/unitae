@@ -14,17 +14,18 @@ import * as m from '~/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
+  requireRole,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { useFocusError } from '~/shared/hooks/use-focus-error'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -39,12 +40,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.territories_new_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(userContext)
@@ -194,9 +193,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: createTerritorySchema })
   if (submission.status !== 'success') {
@@ -205,6 +202,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { number, type, entrances } = submission.value
   const congregation = context.get(congregationContext)
+  const { id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
@@ -217,6 +215,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         type,
         entranceIds: entrances,
         congregationId: congregation.id,
+        actorId,
       })
 
       return redirect('/territories')

@@ -1,4 +1,6 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { PublisherType } from '~/shared/types/publisher-type'
 
 export interface UpdatePublisherParams {
   firstname: string
@@ -11,18 +13,19 @@ export interface UpdatePublisherParams {
   isServant: boolean
   isAnointed: boolean
   groupId: number | null
-  type: string
+  type: PublisherType
   phone: string
   address: string
 }
 
-export function updatePublisher(
+export async function updatePublisher(
   db: TransactionClient,
   id: number,
   congregationId: number,
+  actorId: number,
   params: UpdatePublisherParams,
 ) {
-  return db.user.update({
+  const publisher = await db.user.update({
     where: {
       // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
@@ -43,4 +46,14 @@ export function updatePublisher(
       phone: params.phone,
     },
   })
+
+  audit({
+    action: AuditAction.PublisherUpdated,
+    congregationId,
+    actorId,
+    entityType: 'User',
+    entityId: id,
+  })
+
+  return publisher
 }

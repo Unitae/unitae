@@ -3,7 +3,7 @@ import { useEffect } from 'react'
 import { Link, redirect, useRevalidator } from 'react-router'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/paraglide/messages'
-import { permissionsContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -17,9 +17,7 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.Admin)
 
   const job = await dataTransferQueue.getJob(params.jobId)
   if (!job) {
@@ -91,10 +89,10 @@ export default function ExportStatusPage({ loaderData }: Route.ComponentProps) {
             <>
               <p className="text-sm">{m.export_status_completed_message()}</p>
               <Button asChild>
-                <Link to={`/settings/data/export/${jobId}/download`}>
+                <a href={`/settings/data/export/${jobId}/download`}>
                   <Download className="mr-2 size-4" />
                   {m.export_status_download()}
-                </Link>
+                </a>
               </Button>
             </>
           )}

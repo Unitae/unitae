@@ -13,7 +13,7 @@
         "db:seed": "pnpm prisma db seed",
         "db:seed:marketing": "pnpm tsx app/database/seed-marketing.ts",
         "start:dev": "react-router dev",
-        "start:emails": "email dev",
+        "start:emails": "email dev --dir app/features",
         "start:worker": "pnpm tsx ./app/workers/worker.server.ts",
         "test:lint": "biome lint",
         "test:typecheck": "react-router typegen && tsc",

@@ -1,12 +1,7 @@
+import { EntranceKind } from '~/database/generated/enums'
 import * as m from '~/paraglide/messages'
 
-export enum EntranceKind {
-  Residential = 'residential',
-  Commerce = 'commerce',
-  Hotel = 'hotel',
-  Laundromat = 'laundromat',
-  Campus = 'campus',
-}
+export { EntranceKind }
 
 // biome-ignore lint/style/useNamingConvention: labels map keyed by enum
 export function entranceKindLabels(): { [key in EntranceKind]: string } {

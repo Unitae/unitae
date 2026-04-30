@@ -1,6 +1,7 @@
 import { CalendarCheck, Download, ExternalLink, Pencil, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
@@ -9,7 +10,7 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -21,16 +22,15 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesViewer)
 
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
   const canViewPublisher = permissions.has(Role.PublisherViewer)
@@ -103,7 +103,7 @@ function CurrentAttributionSection({
       <div className="flex flex-col">
         <span className="font-medium">
           {canViewPublisher ? (
-            <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
+            <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
               {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
             </Link>
           ) : (
@@ -184,7 +184,7 @@ function AttributionHistoryTable({
               <TableRow key={attribution.id}>
                 <TableCell>
                   {canViewPublisher ? (
-                    <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
+                    <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
                       {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                     </Link>
                   ) : (
@@ -199,9 +199,11 @@ function AttributionHistoryTable({
                   {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {attribution.type === 'default' && m.territories_view_attribution_type_default()}
-                  {attribution.type === 'campaign' && m.territories_view_attribution_type_campaign()}
-                  {attribution.type === 'phones' && m.territories_view_attribution_type_phones()}
+                  {attribution.type === TerritoryAttributionKind.Default &&
+                    m.territories_view_attribution_type_default()}
+                  {attribution.type === TerritoryAttributionKind.Campaign &&
+                    m.territories_view_attribution_type_campaign()}
+                  {attribution.type === TerritoryAttributionKind.Phone && m.territories_view_attribution_type_phones()}
                 </TableCell>
               </TableRow>
             )

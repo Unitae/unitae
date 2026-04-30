@@ -1,5 +1,1 @@
-export enum TerritoryAttributionKind {
-  Default = 'default',
-  Phone = 'phones',
-  Campaign = 'campaign',
-}
+export { TerritoryAttributionKind } from '~/database/generated/enums'

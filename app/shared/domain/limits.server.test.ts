@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { LimitError, LimitService } from './limits.server'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  db: {
+  unscopedDb: {
     user: { count: vi.fn() },
     territory: { count: vi.fn() },
     boardDocument: { count: vi.fn() },
   },
 }))
 
-const { db } = await import('~/shared/infra/db.server')
+const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 function makeLimits(overrides: Partial<ConstructorParameters<typeof LimitService>[1]> = {}) {
   return {

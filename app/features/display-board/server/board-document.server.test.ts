@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
+vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
+
 import {
   createDynamicDocument,
   deleteDynamicDocument,
@@ -30,7 +34,7 @@ describe('updateBoardDocument', () => {
 
     const visibleFrom = new Date('2026-01-01')
     const visibleUntil = new Date('2026-02-01')
-    const result = await updateBoardDocument(mockDb as never, 1, 10, {
+    const result = await updateBoardDocument(mockDb as never, 1, 10, 99, {
       title: 'Lettre',
       sectionId: 3,
       visibleFrom,

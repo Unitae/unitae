@@ -26,7 +26,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.attributions_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewTerritories = permissions.has(Role.TerritoriesViewer)
@@ -188,7 +188,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     </TableCell>
                     <TableCell className="text-center">
                       {canViewPublisher ? (
-                        <Link to={`/publishers/${attribution.publisherId}`} className="hover:text-primary">
+                        <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
                           {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
                         </Link>
                       ) : (

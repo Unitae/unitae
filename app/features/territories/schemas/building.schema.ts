@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 export const createBuildingSchema = z.object({
   number: z.string().min(1),
@@ -21,7 +22,7 @@ export const buildingNotesSchema = z.object({
 })
 
 export const splitToolCreateSchema = z.object({
-  type: z.string().min(1),
+  type: z.nativeEnum(TerritoryKind),
   entranceIds: z.string().min(1),
 })
 

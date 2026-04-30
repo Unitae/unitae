@@ -16,11 +16,11 @@ import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { useUnsavedChanges } from '~/shared/hooks/use-unsaved-changes'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
@@ -30,16 +30,15 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
 
-export const meta: Route.MetaFunction = ({ data }) => {
-  return [{ title: m.territories_edit_meta_title({ number: String(data.territory.number) }) }]
+export const meta: Route.MetaFunction = ({ loaderData }) => {
+  if (!loaderData) return [{ title: 'Unitae' }]
+  return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
 }
 
-export async function loader({ request, params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(userContext)
@@ -61,14 +60,14 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
         status: 404,
       })
     }
-    const zips = await getAvailableZips(db, congregationId, territory.type as TerritoryKind)
+    const zips = await getAvailableZips(db, congregationId, territory.type)
     const url = new URL(request.url)
     const entrances = await getAvailableEntrances(
       db,
       congregationId,
       String(url.searchParams.get('zip')),
       String(url.searchParams.get('street')),
-      territory.type as TerritoryKind,
+      territory.type,
     )
 
     if (!url.searchParams.has('zip')) {
@@ -82,12 +81,7 @@ export async function loader({ request, params, context }: Route.LoaderArgs) {
       }
     }
 
-    const streets = await getAvailableStreets(
-      db,
-      congregationId,
-      String(url.searchParams.get('zip')),
-      territory.type as TerritoryKind,
-    )
+    const streets = await getAvailableStreets(db, congregationId, String(url.searchParams.get('zip')), territory.type)
     if (!url.searchParams.has('street')) {
       return {
         territory,
@@ -132,10 +126,10 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         subtitle={m.territories_edit_subtitle()}
         breadcrumbs={[
           { label: m.sidebar_territories(), to: '/territories' },
-          { label: territory.number, to: `../view` },
+          { label: territory.number, to: `/territories/territory/${territory.id}/view` },
           { label: m.territories_edit_title() },
         ]}
-        backTo="../view"
+        backTo={`/territories/territory/${territory.id}/view`}
         actions={
           <>
             <Button asChild variant="outline" size="icon" title={m.territories_download_pdf_title()}>
@@ -299,9 +293,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: updateTerritorySchema })
   if (submission.status !== 'success') {
@@ -309,10 +301,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const { entrances, notes } = submission.value
-  const { congregationId } = context.get(userContext)
+  const { congregationId, id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
-    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, {
+    await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, actorId, {
       entranceIds: entrances,
       notes,
     })

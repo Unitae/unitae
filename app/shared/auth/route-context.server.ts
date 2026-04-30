@@ -1,4 +1,4 @@
-import { createContext, type RouterContext } from 'react-router'
+import { createContext, type RouterContext, redirect } from 'react-router'
 import type { SanitizedUser } from '~/shared/auth/sanitize-user.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -21,4 +21,8 @@ interface RouteContext {
 export function withScopeFromContext<T>(context: RouteContext, fn: (db: TransactionClient) => Promise<T>): Promise<T> {
   const user = context.get(userContext)
   return withScope(user.congregationId, fn)
+}
+
+export function requireRole(permissions: Set<Role>, role: Role): void {
+  if (!permissions.has(role)) throw redirect('/')
 }

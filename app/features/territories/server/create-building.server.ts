@@ -1,4 +1,5 @@
 import type { DetailedBuilding } from '~/features/territories/model/detailed-building.type'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 import { getTerritoryPolygon } from './get-territory-polygon.server'
@@ -31,7 +32,7 @@ export async function createBuilding(
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
       inTerritory: isInTerritory,
-      entrances: { create: { kind: 'residential', congregation: { connect: { id: congregationId } } } },
+      entrances: { create: { kind: EntranceKind.Residential, congregation: { connect: { id: congregationId } } } },
       congregation: { connect: { id: congregationId } },
     },
     include: {
@@ -48,7 +49,7 @@ export async function createBuilding(
   })
 
   // Create empty BuildingResidentialData linked to the residential entrance
-  const residentialEntrance = building.entrances.find(e => e.kind === 'residential')
+  const residentialEntrance = building.entrances.find(e => e.kind === EntranceKind.Residential)
   if (residentialEntrance != null) {
     await db.buildingResidentialData.create({
       data: {

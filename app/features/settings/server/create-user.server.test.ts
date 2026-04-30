@@ -31,7 +31,6 @@ const mockDb = {
 
 const { createUser } = await import('./create-user.server')
 const { ConflictError } = await import('~/shared/errors/app-error.server')
-const { audit } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -43,7 +42,7 @@ const baseCongregation = {
   maxUsers: null,
   maxStorageBytes: null,
   maxBoardDocuments: null,
-} as any
+} as never
 
 const baseParams = {
   firstname: 'Sophie',
@@ -61,7 +60,7 @@ describe('createUser', () => {
     mockCreatePasswordResetToken.mockResolvedValue('token-abc')
     mockSendResetUserPasswordEmail.mockResolvedValue(true)
 
-    const result = await createUser(mockDb as any, baseCongregation, 99, baseParams, mockRenderEmail)
+    const result = await createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
 
     expect(result).toEqual({ userId: 42, emailSent: true })
     expect(mockDb.user.create).toHaveBeenCalled()
@@ -73,7 +72,7 @@ describe('createUser', () => {
   it('throws ConflictError when user already exists', async () => {
     mockDb.user.findUnique.mockResolvedValue({ id: 1, email: 'sophie@example.com' })
 
-    await expect(createUser(mockDb as any, baseCongregation, 99, baseParams, mockRenderEmail)).rejects.toThrow(
+    await expect(createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)).rejects.toThrow(
       ConflictError,
     )
 
@@ -87,7 +86,7 @@ describe('createUser', () => {
     mockSendResetUserPasswordEmail.mockResolvedValue(false)
     mockRenderEmail.mockReturnValue('<html>email</html>')
 
-    const result = await createUser(mockDb as any, baseCongregation, 99, baseParams, mockRenderEmail)
+    const result = await createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
 
     expect(mockCreatePasswordResetToken).toHaveBeenCalledWith(10)
     expect(mockRenderEmail).toHaveBeenCalledWith(10, 'token-xyz')

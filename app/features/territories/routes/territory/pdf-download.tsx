@@ -1,14 +1,12 @@
 import { redirect } from 'react-router'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
-import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
-import { renderPdfResponse } from '~/shared/infra/pdf.server'
+import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import { Role } from '~/shared/types/role'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { getOptionalEnv } from '~/shared/utils/env.server'
@@ -16,7 +14,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/pdf-download'
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const territoryId = requireParamId(params.territoryId, '/territories')
@@ -37,7 +35,11 @@ export async function loader({ params, context }: Route.LoaderArgs) {
       throw new ForbiddenError()
     }
 
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, currentUser.congregationId)
+    const phoneTypeActive = await getBoolSetting(
+      db,
+      TerritorySettingKey.TerritoryTypePhoneActive,
+      currentUser.congregationId,
+    )
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
     const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
 
@@ -46,20 +48,20 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     const owner = currentAttribution
       ? `${currentAttribution.publisher.firstname} ${currentAttribution.publisher.lastname?.toUpperCase().at(0)}.`
       : undefined
-    const ownerFirstname = currentAttribution?.publisher.firstname?.toLowerCase() ?? ''
-    const filename = `territoire-${territory.number}${ownerFirstname.length > 0 ? `__${ownerFirstname}` : ''}.pdf`
+    const ownerFirstname = sanitizeFilename(currentAttribution?.publisher.firstname?.toLowerCase() ?? '')
+    const filename = `territoire-${sanitizeFilename(territory.number)}${ownerFirstname.length > 0 ? `__${ownerFirstname}` : ''}.pdf`
 
     return renderPdfResponse(
       <TerritoryDocument
         name={territory.number}
-        type={territory.type as TerritoryKind}
+        type={territory.type}
         entrances={entrances}
         googleMapKey={apiKey}
         googleMapId={mapId}
         showPhone={showPhoneOnTerritoryCard(phoneTypeActive ?? false)}
         owner={owner}
         restitutionDate={currentAttribution?.lateDate ?? undefined}
-        attributionType={currentAttribution?.type as TerritoryAttributionKind}
+        attributionType={currentAttribution?.type}
       />,
       filename,
     )

@@ -1,4 +1,5 @@
 import type { Building, Prisma } from '~/database/generated/client'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
@@ -66,7 +67,7 @@ export async function findBuildingsWithEntrancePaginated(
     skip: pagination.offset,
     take: pagination.size,
     where: { ...selectors, congregationId },
-    include: { entrances: { where: { kind: 'residential' }, take: 1 } },
+    include: { entrances: { where: { kind: EntranceKind.Residential }, take: 1 } },
     orderBy: [{ zip: 'asc' }, { street: 'asc' }, { number: 'asc' }],
   })
 

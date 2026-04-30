@@ -1,6 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_URL,
@@ -39,7 +41,7 @@ beforeAll(async () => {
         lastname: 'Dupont',
         active: true,
         isPublisher: true,
-        type: 'normal',
+        type: PublisherType.Normal,
         congregationId,
       },
     })
@@ -53,7 +55,7 @@ beforeAll(async () => {
         lastname: 'Martin',
         active: true,
         isPublisher: true,
-        type: 'normal',
+        type: PublisherType.Normal,
         congregationId,
       },
     })
@@ -61,7 +63,7 @@ beforeAll(async () => {
 
     // Territory with attribution to Alice
     const territory = await tx.territory.create({
-      data: { number: `T-DASH-${ts}`, type: 'doors-to-doors', congregationId },
+      data: { number: `T-DASH-${ts}`, type: TerritoryKind.Classical, congregationId },
     })
 
     await tx.attribution.create({

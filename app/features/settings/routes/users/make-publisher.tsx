@@ -8,7 +8,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/make-publisher'
 
-export async function action({ request, params, context }: Route.ActionArgs) {
+export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Role.PublisherManager)
@@ -23,6 +23,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       requireParamId(params.userId, '/settings/users'),
       currentUser.congregationId,
       true,
+      currentUser.id,
     )
     const session = await getSession(request.headers.get('Cookie'))
     if (user.isPublisher === true) {

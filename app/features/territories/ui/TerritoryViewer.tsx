@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import type { Territory } from '~/database/generated/client'
 
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { Entrance } from '~/shared/types/entrance'
 import { TerritoryDocument } from './TerritoryDocument'
 
@@ -38,7 +37,7 @@ export function TerritoryViewer({
         <PDFViewer className="flex-1" showToolbar={false}>
           <TerritoryDocument
             name={territory.number}
-            type={territory.type as TerritoryKind}
+            type={territory.type}
             entrances={entrances}
             googleMapId={googleMapId}
             googleMapKey={googleMapKey}

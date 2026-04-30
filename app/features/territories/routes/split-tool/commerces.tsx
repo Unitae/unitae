@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Form, redirect } from 'react-router'
+import { Form } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { computeFilters } from '~/features/territories/server/building-filters.server'
 import { findEntrancesPaginated } from '~/features/territories/server/buildings.server'
 import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import * as m from '~/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
@@ -19,12 +20,10 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_commerces_meta_title() }]
 }
 
-export async function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  if (!permissions.has(Role.TerritoriesViewer)) {
-    throw redirect('/')
-  }
+  requireRole(permissions, Role.TerritoriesViewer)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(userContext)
@@ -33,7 +32,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     const url = new URL(request.url)
     const filters = computeFilters(url.searchParams)
     const selectors: Prisma.BuildingEntranceWhereInput = {
-      kind: 'commerce',
+      kind: EntranceKind.Commerce,
       buildings: {
         // biome-ignore lint/style/useNamingConvention: prisma keywords
         some: { ...filters, active: true, NOT: { prospectionDate: null } },
