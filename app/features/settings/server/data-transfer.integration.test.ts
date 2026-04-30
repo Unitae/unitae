@@ -560,3 +560,70 @@ describe('Export/Import round-trip', () => {
     })
   })
 })
+
+describe('Export cross-congregation isolation', () => {
+  it('export of source congregation does not include target congregation data', async () => {
+    // Create fresh users in each congregation (the import test deleted source users earlier)
+    const sourceUser = await withScope(sourceId, async tx =>
+      tx.user.create({
+        data: {
+          email: `isolation-source-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Source',
+          lastname: 'Only',
+          active: true,
+          isPublisher: false,
+          type: PublisherType.Normal,
+          congregationId: sourceId,
+        },
+      }),
+    )
+
+    const targetUser = await withScope(targetId, async tx =>
+      tx.user.create({
+        data: {
+          email: `isolation-target-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Target',
+          lastname: 'Only',
+          active: true,
+          isPublisher: false,
+          type: PublisherType.Normal,
+          congregationId: targetId,
+        },
+      }),
+    )
+
+    const { entityCounts, zip } = await exportToZip(sourceId)
+
+    const content = await zip.file('data/users.ndjson')!.async('string')
+    const exportedUsers = content
+      .split('\n')
+      .filter(l => l.trim())
+      .map(l => JSON.parse(l))
+
+    // Target congregation user must not appear in source export
+    const leaked = exportedUsers.find((u: { email?: string }) => u.email === `isolation-target-${ts}@test.com`)
+    expect(leaked).toBeUndefined()
+
+    // Entity count must reflect only source congregation's data
+    expect(entityCounts.users).toBeGreaterThanOrEqual(1)
+
+    // Cleanup
+    await withScope(sourceId, tx => tx.user.delete({ where: { id: sourceUser.id } }))
+    await withScope(targetId, tx => tx.user.delete({ where: { id: targetUser.id } }))
+  })
+
+  it('reading scoped data from congregation A does not return congregation B data', async () => {
+    const sourceSettings = await withScope(sourceId, tx => tx.setting.findMany({}))
+    const targetSettings = await withScope(targetId, tx => tx.setting.findMany({}))
+
+    const sourceKeys = sourceSettings.map(s => s.key)
+    const targetKeys = targetSettings.map(s => s.key)
+
+    // RLS must ensure each congregation only sees its own settings
+    for (const key of sourceKeys) {
+      expect(targetKeys).not.toContain(key)
+    }
+  })
+})

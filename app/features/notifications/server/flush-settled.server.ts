@@ -72,7 +72,7 @@ export async function flushSettledNotifications(): Promise<FlushResult> {
 
 // Groups events by congregation + recipient + type family (e.g., 'board', 'attribution')
 // biome-ignore lint/suspicious/noExplicitAny: raw query rows are untyped
-function groupEvents(events: any[]): Map<string, any[]> {
+export function groupEvents(events: any[]): Map<string, any[]> {
   // biome-ignore lint/suspicious/noExplicitAny: raw query rows are untyped
   const groups = new Map<string, any[]>()
 

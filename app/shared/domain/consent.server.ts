@@ -4,9 +4,7 @@ import { unscopedDb } from '~/shared/infra/db.server'
 export const CONSENT_VERSION = '1.0'
 
 export const ConsentPurpose = {
-  // biome-ignore lint/style/useNamingConvention: enum-like constant
   DataProcessing: 'DATA_PROCESSING',
-  // biome-ignore lint/style/useNamingConvention: enum-like constant
   EmailNotifications: 'EMAIL_NOTIFICATIONS',
 } as const
 

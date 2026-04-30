@@ -17,7 +17,6 @@ export async function getTerritoriesExportData(db: TransactionClient, congregati
         orderBy: { startDate: 'desc' },
         take: 5,
         where: {
-          // biome-ignore lint/style/useNamingConvention: prisma does not support snake_case
           OR: [
             {
               startDate: {

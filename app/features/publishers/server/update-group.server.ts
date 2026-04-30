@@ -7,18 +7,12 @@ export interface UpdateGroupParams {
   deputyId: number | null
 }
 
-export function updateGroup(
-  db: TransactionClient,
-  groupId: number,
-  congregationId: number,
-  params: UpdateGroupParams,
-) {
+export function updateGroup(db: TransactionClient, groupId: number, congregationId: number, params: UpdateGroupParams) {
   const membersToConnect = [{ id: params.responsibleId }]
   if (params.deputyId != null) membersToConnect.push({ id: params.deputyId })
 
   return db.publisherGroup.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id: groupId, congregationId },
     },
     data: {

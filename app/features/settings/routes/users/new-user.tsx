@@ -39,7 +39,7 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function SettingsLayout({ actionData }: Route.ComponentProps) {
-const { blocker, markDirty } = useUnsavedChanges()
+  const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,

@@ -82,7 +82,6 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
       }),
       db.publisherGroup.findFirst({
         where: {
-          // biome-ignore lint/style/useNamingConvention: Prisma OR operator
           OR: [{ members: { some: { id: userId } } }, { responsibleId: userId }, { deputyId: userId }],
         },
         select: {

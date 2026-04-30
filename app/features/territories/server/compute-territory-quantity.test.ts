@@ -13,7 +13,6 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     shopKind: '',
     notes: '',
     access: null,
-    // biome-ignore lint/style/useNamingConvention: Prisma property
     isPMR: null,
     isOpenEarly: null,
     isMailboxOpen: null,

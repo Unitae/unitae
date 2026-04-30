@@ -40,7 +40,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const { congregationId } = context.get(userContext)
     const document = await db.boardDocument.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
       },
     })

@@ -524,9 +524,7 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.auditLog.deleteMany({ where: { congregationId } })
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: seed script — linear procedural data creation
 async function main() {
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log('🌱 Marketing seed: starting...')
 
   // ── Find target congregation ───────────────────────────────────────────
@@ -556,7 +554,6 @@ async function main() {
   const existing = defaultCong ?? marketingCong
 
   if (existing) {
-    // biome-ignore lint/suspicious/noConsole: seed script
     console.log('  ⤵ Cleaning previous marketing data...')
     await cleanCongregationData(existing.id)
     await prisma.user.deleteMany({ where: { congregationId: existing.id } })
@@ -583,13 +580,11 @@ async function main() {
       })
   const congId = congregation.id
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ Congregation "${congregation.name}" (id=${congId})`)
 
   // ── EventKinds ────────────────────────────────────────────────────────
   const offKind = await prisma.eventKind.upsert({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       key_congregationId: { key: EventKind.Off, congregationId: congId },
     },
     update: {},
@@ -603,7 +598,6 @@ async function main() {
 
   const meetingKind = await prisma.eventKind.upsert({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       key_congregationId: { key: EventKind.Meeting, congregationId: congId },
     },
     update: {},
@@ -618,7 +612,6 @@ async function main() {
   // ── Programme templates ───────────────────────────────────────────────
   await seedDefaultTemplates(prisma, congId, 'fr')
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log('  ✓ Event kinds & programme templates')
 
   // ── Users / Publishers ────────────────────────────────────────────────
@@ -672,7 +665,6 @@ async function main() {
     })
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${createdUsers.length} publishers`)
 
   // ── Roles ─────────────────────────────────────────────────────────────
@@ -721,7 +713,6 @@ async function main() {
     if (!role) continue
     await prisma.congregationUserRole.upsert({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         userId_roleId_congregationId: {
           userId: mainAdmin.id,
           roleId: role.id,
@@ -739,7 +730,6 @@ async function main() {
       if (!role) continue
       await prisma.congregationUserRole.upsert({
         where: {
-          // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
           userId_roleId_congregationId: {
             userId: createdUsers[i].id,
             roleId: role.id,
@@ -756,7 +746,6 @@ async function main() {
     }
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log('  ✓ Role assignments')
 
   // ── Publisher Groups ──────────────────────────────────────────────────
@@ -797,7 +786,6 @@ async function main() {
     }
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${groupNames.length} publisher groups`)
 
   // ── Territories ───────────────────────────────────────────────────────
@@ -815,7 +803,6 @@ async function main() {
     createdTerritories.push({ id: territory.id, number: territory.number })
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${createdTerritories.length} territories`)
 
   // ── Buildings & Entrances ─────────────────────────────────────────────
@@ -849,7 +836,6 @@ async function main() {
           phones: randomInt(0, 10),
           liberals: randomInt(0, 3),
           access: Math.random() > 0.5 ? randomInt(1, 3) : null,
-          // biome-ignore lint/style/useNamingConvention: Prisma field name
           isPMR: Math.random() > 0.8,
           isOpenEarly: Math.random() > 0.7,
           isMailboxOpen: Math.random() > 0.4,
@@ -874,7 +860,6 @@ async function main() {
     }
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${buildingCount} buildings with entrances`)
 
   // ── Attributions (active + historical) ────────────────────────────────
@@ -961,7 +946,6 @@ async function main() {
   })
   attrCount++
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${attrCount} territory attributions`)
 
   // ── Publisher Activity (12 months) ────────────────────────────────────
@@ -1000,7 +984,6 @@ async function main() {
     }
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${activityCount} activity reports (12 months)`)
 
   // ── Board Sections & Documents ────────────────────────────────────────
@@ -1039,7 +1022,6 @@ async function main() {
     }
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${BOARD_SECTIONS.length} board sections, ${docCount} documents`)
 
   // ── Events (past meetings + upcoming + days off) ──────────────────────
@@ -1190,12 +1172,9 @@ async function main() {
     eventCount++
   }
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`  ✓ ${eventCount} events with programme assignments`)
 
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log('\n✅ Marketing seed complete!')
-  // biome-ignore lint/suspicious/noConsole: seed script
   console.log(`   Login: marc.dupont@demo.unitae.app / demo1234`)
 }
 
@@ -1204,7 +1183,6 @@ main()
     await prisma.$disconnect()
   })
   .catch(async e => {
-    // biome-ignore lint/suspicious/noConsole: seed script
     console.error(e)
     await prisma.$disconnect()
     process.exit(1)

@@ -69,7 +69,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
     if (searchParams.has('publisherId')) {
       publisher = await db.user.findUnique({
         where: {
-          // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
           id_congregationId: {
             id: Number(searchParams.get('publisherId')),
             congregationId: currentUser.congregationId,
@@ -341,7 +340,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const publisher = await db.user.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: { id: publisherId, congregationId: currentUser.congregationId },
       },
     })

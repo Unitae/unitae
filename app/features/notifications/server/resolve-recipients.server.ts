@@ -36,7 +36,6 @@ export async function resolveRecipients(
       userId: { in: userIds },
       congregationId,
       enabled: false,
-      // biome-ignore lint/style/useNamingConvention: Prisma query operator
       OR: [{ notificationType }, { notificationType: categoryWildcard(notificationType) }],
     },
     select: { userId: true },
@@ -60,7 +59,7 @@ export async function resolveRecipients(
 }
 
 // 'board.document.created' → 'board.*'
-function categoryWildcard(notificationType: string): string {
+export function categoryWildcard(notificationType: string): string {
   const dotIndex = notificationType.indexOf('.')
   if (dotIndex === -1) return `${notificationType}.*`
   return `${notificationType.substring(0, dotIndex)}.*`

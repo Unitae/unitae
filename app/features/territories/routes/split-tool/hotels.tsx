@@ -34,7 +34,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const selectors: Prisma.BuildingEntranceWhereInput = {
       kind: EntranceKind.Hotel,
       buildings: {
-        // biome-ignore lint/style/useNamingConvention: prisma keywords
         some: { ...filters, active: true, NOT: { prospectionDate: null } },
       },
       territories: { none: { type: TerritoryKind.Hotel } },

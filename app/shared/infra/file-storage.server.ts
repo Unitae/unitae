@@ -31,13 +31,9 @@ async function s3Upload(key: string, body: ArrayBuffer | Buffer | Uint8Array, co
   const s3 = await getS3Client()
   await s3.send(
     new PutObjectCommand({
-      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
       Bucket: BUCKET,
-      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
       Key: key,
-      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
       Body: body instanceof ArrayBuffer ? new Uint8Array(body) : body,
-      // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
       ContentType: contentType,
     }),
   )
@@ -47,7 +43,6 @@ async function s3GetFile(key: string): Promise<{ body: ReadableStream; contentTy
   const { GetObjectCommand } = await import('@aws-sdk/client-s3')
   const s3 = await getS3Client()
   try {
-    // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
     const response = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
     if (!response.Body) return null
     return {
@@ -65,7 +60,6 @@ async function s3GetFileBuffer(key: string): Promise<Buffer | null> {
   const { GetObjectCommand } = await import('@aws-sdk/client-s3')
   const s3 = await getS3Client()
   try {
-    // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
     const response = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
     if (!response.Body) return null
     const bytes = await response.Body.transformToByteArray()
@@ -81,7 +75,6 @@ async function s3Delete(key: string): Promise<void> {
   const { DeleteObjectCommand } = await import('@aws-sdk/client-s3')
   const s3 = await getS3Client()
   try {
-    // biome-ignore lint/style/useNamingConvention: AWS SDK uses PascalCase properties
     await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }))
   } catch (error) {
     logger.error(`Failed to delete file from S3: ${key}`, { error })

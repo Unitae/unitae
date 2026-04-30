@@ -20,6 +20,7 @@ export async function runExport(job: Job<ExportJobData>): Promise<string> {
   await job.updateProgress(0)
 
   const zip = new JsZip()
+  // biome-ignore lint/style/noNonNullAssertion: JsZip.folder() only returns null when called on a file entry, not a new folder
   const dataDir = zip.folder('data')!
   const entityCounts: Record<string, number> = {}
 
@@ -222,7 +223,6 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             phones: true,
             liberals: true,
             access: true,
-            // biome-ignore lint/style/useNamingConvention: Prisma field name
             isPMR: true,
             isOpenEarly: true,
             isMailboxOpen: true,
@@ -495,6 +495,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
 }
 
 async function exportFiles(zip: JsZip, db: TransactionClient, congregationId: number): Promise<void> {
+  // biome-ignore lint/style/noNonNullAssertion: JsZip.folder() only returns null on file entries
   const filesDir = zip.folder('files')!.folder('board')!
 
   const documents = await db.boardDocument.findMany({
@@ -518,6 +519,7 @@ async function exportFiles(zip: JsZip, db: TransactionClient, congregationId: nu
     const buffer = await getFileBuffer(uri)
     if (buffer) {
       // Store using just the filename part (strip the congregationId/board/ prefix)
+      // biome-ignore lint/style/noNonNullAssertion: split('/') always returns at least one element
       const filename = uri.split('/').pop()!
       filesDir.file(filename, buffer)
     } else {

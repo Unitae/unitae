@@ -27,7 +27,6 @@ export async function updateBoardSection(
 ) {
   const section = await db.boardSection.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id, congregationId },
     },
     data,
@@ -54,7 +53,6 @@ export async function reorderBoardSections(
   for (let i = 0; i < orderedIds.length; i++) {
     await db.boardSection.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: orderedIds[i], congregationId },
       },
       data: { order: i * 5 },

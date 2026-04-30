@@ -29,7 +29,6 @@ async function main() {
 
     await prisma.eventKind.upsert({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         key_congregationId: { key: 'off', congregationId: defaultCongregation.id },
       },
       update: {
@@ -53,7 +52,6 @@ main()
     await prisma.$disconnect()
   })
   .catch(async e => {
-    // biome-ignore lint/suspicious/noConsole: seed script needs console
     console.error(e)
     await prisma.$disconnect()
     process.exit(1)

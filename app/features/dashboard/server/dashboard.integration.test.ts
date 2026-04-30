@@ -115,7 +115,6 @@ beforeAll(async () => {
     // Mark doc as read by Alice
     await tx.boardDocument.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: readDoc.id, congregationId },
       },
       data: { viewedBy: { connect: { id: aliceId } } },

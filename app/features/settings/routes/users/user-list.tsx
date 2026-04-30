@@ -43,7 +43,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
         congregationId: currentUser.congregationId,
         ...(search
           ? {
-              // biome-ignore lint/style/useNamingConvention: prisma filter
               OR: [
                 { firstname: { contains: search, mode: 'insensitive' } },
                 { lastname: { contains: search, mode: 'insensitive' } },

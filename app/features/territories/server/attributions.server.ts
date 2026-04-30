@@ -33,7 +33,6 @@ export function findActiveAttributionsForPublisher(db: TransactionClient, publis
 export function findTerritoryWithHistory(db: TransactionClient, territoryId: number, congregationId: number) {
   return db.territory.findUnique({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id: territoryId, congregationId },
     },
     include: {

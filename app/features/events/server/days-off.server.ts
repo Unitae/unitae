@@ -11,7 +11,6 @@ export function getNextDaysOffs(db: TransactionClient, userId: number, congregat
       kind: {
         key: EventKind.Off,
       },
-      // biome-ignore lint/style/useNamingConvention: prisma syntax
       OR: [{ startDate: { lte: new Date() }, endDate: { gte: new Date() } }, { endDate: { gte: new Date() } }],
     },
     orderBy: {
@@ -57,7 +56,6 @@ export async function createDayOff(
 export async function deleteDayOff(db: TransactionClient, eventId: number, userId: number, congregationId: number) {
   const event = await db.event.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: eventId, congregationId },
     },
   })

@@ -24,7 +24,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const attribution = await db.attribution.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound key
         id_congregationId: { id: requireParamId(params.attributionId, '/territories/attributions'), congregationId },
       },
       include: { publisher: true, territory: true },

@@ -177,7 +177,6 @@ describe('markDynamicDocumentViewed', () => {
 
     expect(mockDb.boardDynamicDocumentView.upsert).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         settingsId_userId: { settingsId: 5, userId: 42 },
       },
       create: { settingsId: 5, userId: 42, viewedAt: expect.any(Date) },

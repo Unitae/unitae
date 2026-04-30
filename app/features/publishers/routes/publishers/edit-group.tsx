@@ -39,14 +39,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: {
         congregationId: currentUser.congregationId,
         isMale: true,
-        // biome-ignore lint/style/useNamingConvention: Prisma OR operator
         OR: [{ isHelder: true }, { isServant: true }],
       },
     })
 
     const group = await db.publisherGroup.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
           id: requireParamId(params.groupId, '/groups'),
           congregationId: currentUser.congregationId,

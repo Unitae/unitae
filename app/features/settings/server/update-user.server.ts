@@ -18,7 +18,6 @@ export async function updateUser(
 ) {
   await db.user.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: userId, congregationId },
     },
     data: {

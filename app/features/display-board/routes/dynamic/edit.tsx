@@ -44,7 +44,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const { congregationId } = context.get(userContext)
     const settings = await db.boardDynamicDocumentSettings.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: dynamicId, congregationId },
       },
     })
@@ -238,7 +237,7 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
               <div className="flex flex-col gap-2">
                 <Label>{m.programs_export_templates_label()}</Label>
                 <div className="rounded-md border">
-                  <div className="flex items-center gap-3 border-b bg-muted/50 px-3 py-2 text-muted-foreground text-xs font-medium">
+                  <div className="flex items-center gap-3 border-b bg-muted/50 px-3 py-2 font-medium text-muted-foreground text-xs">
                     <div className="w-5" />
                     <div className="flex-1">{m.programs_export_meeting_type_label()}</div>
                     <div className="w-20 text-center">{m.programs_export_col_parts()}</div>

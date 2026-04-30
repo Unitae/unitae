@@ -4,12 +4,10 @@ import { PublisherType } from '~/shared/types/publisher-type'
 const mockErrorIfWouldGoOverLimit = vi.fn()
 
 vi.mock('~/shared/domain/limits.server', () => ({
-  // biome-ignore lint/style/useNamingConvention: matching exported class name
   LimitService: class {
     errorIfWouldGoOverLimit = mockErrorIfWouldGoOverLimit
   },
 }))
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const mockDb = {

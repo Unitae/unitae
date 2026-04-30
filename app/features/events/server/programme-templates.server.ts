@@ -30,7 +30,6 @@ export function updateTemplate(
 ) {
   return db.programmeTemplate.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: templateId, congregationId },
     },
     data,
@@ -55,7 +54,6 @@ export function upsertTemplatePart(
   if (partData.id) {
     return db.programmeTemplatePart.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: partData.id, congregationId },
       },
       data: {
@@ -88,7 +86,6 @@ export function upsertTemplatePart(
 export function deleteTemplatePart(db: TransactionClient, partId: number, congregationId: number) {
   return db.programmeTemplatePart.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: partId, congregationId },
     },
   })
@@ -103,7 +100,6 @@ export function upsertTemplateServiceRole(
   if (roleData.id) {
     return db.programmeTemplateServiceRole.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: roleData.id, congregationId },
       },
       data: {
@@ -126,7 +122,6 @@ export function upsertTemplateServiceRole(
 export function deleteTemplateServiceRole(db: TransactionClient, roleId: number, congregationId: number) {
   return db.programmeTemplateServiceRole.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: roleId, congregationId },
     },
   })
@@ -142,7 +137,6 @@ export async function reorderTemplateParts(
   for (let i = 0; i < orderedIds.length; i++) {
     await db.programmeTemplatePart.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: orderedIds[i], congregationId },
       },
       data: { order: i * 5 },
@@ -158,7 +152,6 @@ export function setTemplateResponsible(
 ) {
   return db.programmeTemplateResponsible.upsert({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       templateId_congregationId: { templateId, congregationId },
     },
     update: { userId },

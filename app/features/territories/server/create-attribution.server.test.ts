@@ -5,7 +5,6 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 vi.mock('~/shared/domain/settings.server', () => ({
   getSetting: vi.fn(),
 }))
-// biome-ignore lint/style/useNamingConvention: AuditAction is a PascalCase constant by convention
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const mockDb = {

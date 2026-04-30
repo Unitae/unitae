@@ -1,371 +1,400 @@
-# CLAUDE.md
-
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# Unitae - AI Agent Reference
 
 ## Project Overview
 
-Unitae is an open-source application for managing Jehovah's Witnesses congregations. Built as a monolithic React Router v7 application with TypeScript, PostgreSQL database, and Redis for background job processing.
+Unitae is an open-source web application for managing Jehovah's Witnesses congregations. Built as a monolithic React Router v7 application with TypeScript, PostgreSQL (with Row-Level Security for multi-tenancy), Redis, and BullMQ for background processing.
 
-## Essential Commands
+**Stack:** React Router v7 · TypeScript · PostgreSQL · Prisma 7 · TailwindCSS 4 · shadcn/ui · Redis · BullMQ · Biome · Vitest · Playwright
 
-### Development
+**License:** AGPL-3.0 — 100% open source, revenue from managed hosting at `unitae.app`.
+
+## Business Context
+
+Core features: territory management with building prospection, publisher activity tracking, information board with document management, meeting programme scheduling, and congregation settings.
+
+**Multi-tenancy model:** All data rows carry a `congregationId` FK. Tenant isolation is enforced at the database level via PostgreSQL Row-Level Security (RLS) policies — not at the application layer. The `SET LOCAL app.congregation_id` session variable activates scoped queries inside `withScope()`. Without it (login, health, setup), all rows are visible.
+
+**Hosting model:** Self-hosted users deploy this repo and get everything unlimited. Managed hosting (`unitae.app`) enforces plan limits via nullable columns on the `Congregation` model read by `LimitService`. `null` = unlimited.
+
+## Agent Instructions
+
+### Core Principles
+
+1. **ALWAYS read files before modifying** — Never propose changes to code you haven't seen
+2. **Follow feature-based architecture strictly**:
+   - Business logic → `features/*/server/*.server.ts`
+   - Route handlers → `features/*/routes/*.tsx`
+   - Feature-specific UI → `features/*/ui/`
+   - Type definitions → `features/*/model/*.type.ts`
+   - Form schemas → `features/*/schemas/*.schema.ts`
+3. **Zero inline DB writes in routes** — `db.*.create()`, `db.*.update()`, `db.*.delete()` calls belong in service functions, never in route loaders or actions
+4. **Always use `withScopeFromContext`** — Every authenticated route that touches the DB must wrap its logic in `withScopeFromContext(context, async db => { ... })`
+5. **Thread `actorId`** — Every service function that writes data must accept `actorId: number` and call `audit()` after the write
+6. **No `throw redirect()` in service functions** — Redirects are only allowed in route guards, middleware, and session validation
+7. **Black-box testing** — Assert on observable outcomes; never spy on implementations
+8. **TypeScript strict mode** — Never use `any`; always define proper interfaces
+
+### After Making Changes
+
+Run the complete quality check:
+
 ```bash
-pnpm start:dev              # Start development server
-pnpm build                  # Build for production
-pnpm start                  # Run production server
-pnpm build:format           # Format and lint with Biome
-pnpm test:lint              # Check linting only
-pnpm test:typecheck         # Generate types and run TypeScript compiler
+pnpm test:unit && pnpm test:lint && pnpm test:typecheck
 ```
 
-### Testing
+For integration tests (require a live database):
+
 ```bash
-pnpm test:unit              # Run unit tests once
-pnpm test:unit:watch        # Run tests in watch mode
-pnpm test:unit:coverage     # Run tests with coverage report
-pnpm test:integration       # Run integration tests (against real database)
-pnpm test:e2e              # Run Playwright E2E tests
-pnpm test:e2e:headed       # Run E2E tests in headed browser
-pnpm test:boundaries       # Check cross-feature import boundaries (eslint-plugin-boundaries)
+pnpm test:integration
 ```
 
-### Database & Infrastructure
-```bash
-pnpm prisma migrate deploy  # Apply database migrations
-pnpm prisma db seed         # Seed database with initial data
-pnpm build:db              # Generate Prisma client
-pnpm db:migrate            # Apply migrations (alias)
-pnpm db:seed               # Seed database (alias)
-pnpm start:emails          # Start email development server
-pnpm start:worker          # Start sync background job worker (BullMQ)
-```
+### Security Rules
 
-### Environment Setup
+- **Never commit secrets** �� All sensitive config must use environment variables
+- **Never commit `.env` files** — Local overrides only, never tracked
+- **RLS enforces tenant isolation** — Do not rely solely on application-layer `congregationId` filtering; `withScope()` is mandatory for scoped queries
+- **Validate user input at boundaries** — Use Conform + Zod schemas in route actions; service functions trust their callers
+- **`requireParamId()`** — Always use this utility for parsing route params, never `parseInt` or `Number()` directly
 
-**Development** - Start infrastructure and create `.env` file:
-```bash
-docker compose -f docker/docker-compose.dev.yml up -d  # Start PostgreSQL + Redis
-```
-```ini
-DB_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
-DB_RUNTIME_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"  # Optional — non-superuser for RLS enforcement
-RESEND_API_KEY="re_123"
-UNITAE_SESSION_SECRET="your-secret-key"
-REDIS_HOST="localhost"
-REDIS_PORT="6379"
-GOOGLE_MAPS_API_KEY=""              # Optional — enables maps on territory pages and PDF exports
-GOOGLE_MAPS_MAP_ID=""               # Optional — enables custom styled maps
-```
-
-## Documentation
-
-The `docs/` folder contains detailed human-readable documentation. Consult it for architecture decisions, design rationale, and implementation guides:
-
-- `docs/development/architecture.md` — system design, request flow, multi-tenancy model
-- `docs/development/row-level-security.md` — PostgreSQL RLS implementation and policy patterns
-- `docs/development/coding-conventions.md` — feature-based architecture, code organization
-- `docs/development/background-processing.md` — BullMQ worker architecture
-- `docs/development/getting-started.md` — local development environment setup
-
-## Architecture Overview
-
-### FSD-Inspired Project Structure
+## Project Structure
 
 ```
 app/
 ├── root.tsx, entry.*, routes.ts, tailwind.css   # App shell
 ├── routes/                   # Shell routes (_index, health, suspended)
 ├── features/
-│   ├── authentication/       # server/, routes/, schemas/
-│   ├── authorization/        # server/, model/
-│   ├── dashboard/            # server/, routes/
-│   ├── display-board/        # server/, routes/, ui/, model/, schemas/
-│   ├── events/               # server/, routes/, ui/, model/, schemas/
-│   ├── platform-admin/       # server/, routes/, schemas/
-│   ├── publishers/           # server/, routes/, ui/, schemas/
-│   ├── settings/             # server/, routes/, schemas/
-│   └── territories/          # server/, routes/, ui/, model/, schemas/
+│   ├── authentication/       # Login, session, password reset, consent, profile
+│   ├── authorization/        # Role resolution
+│   ├── dashboard/            # Dashboard stats and urgent items
+│   ├── display-board/        # Document management, PDF upload, dynamic docs
+│   ├── events/               # Days off, meeting events, programme assignments
+│   ├── notifications/        # Notification events, preferences, flush worker
+│   ├── platform-admin/       # Cross-congregation management (SaaS only)
+│   ├── publishers/           # Publisher CRUD, groups, activity reports
+│   ├── settings/             # User management, congregation config, data transfer
+│   └── territories/          # Buildings, entrances, attributions, PDF, maps
 ├── shared/
-│   ├── auth/                 # auth wrapper, crypto, sanitize-user, route context
-│   ├── domain/               # congregation, limits, audit, settings, retention, host-settings, consent, setup
-│   ├── errors/               # AppError hierarchy (NotFoundError, ValidationError, ConflictError, etc.)
-│   ├── hooks/                # Shared React hooks
+│   ├── auth/                 # requireAuth middleware, route context helpers
+│   ├── domain/               # audit, congregation, consent, limits, retention, setup
+│   ├── errors/               # AppError hierarchy (NotFoundError, ConflictError, …)
+│   ├── hooks/                # useDebouncedValue, useOnlineStatus, useUnsavedChanges, …
 │   ├── infra/                # db, redis, mailer, file-storage, logger, queues
-│   ├── middleware/           # requireAuth middleware
-│   ├── types/                # role, entrance, publisher-type, setting keys
-│   ├── ui/                   # Shared UI components (shadcn/ui + custom)
-│   └── utils/                # env, pagination, params, locale, cron, worker-locale, utils
+│   ├── middleware/           # requireAuth
+│   ├── types/                # role, entrance, publisher-type, setting-key enums
+│   ├── ui/                   # Shared components (shadcn/ui + PageHeader, RelativeTime, …)
+│   └── utils/                # env, pagination, params, locale, cron, relative-time
 ├── database/                 # schema.prisma, migrations/, seed.ts, generated/ (gitignored)
+└── tests/
+    ├── e2e/                  # Playwright specs + helpers
+    └── vitest.config.integration.ts
 ```
 
-Each feature owns all its code through consistent segments:
-- `server/` — Server-side business logic and service functions
-- `routes/` — Route components (referenced from `app/routes.ts`)
-- `ui/` — Feature-specific UI components
-- `model/` — TypeScript type definitions
-- `schemas/` — Conform + Zod form validation schemas
+## Where to Find Things
 
-### Data Isolation
+| What | Where |
+|------|-------|
+| Database schema | `app/database/schema.prisma` |
+| Auth middleware | `app/shared/middleware/auth.server.ts` |
+| Route context helpers | `app/shared/auth/route-context.server.ts` |
+| DB scope wrapper | `app/shared/infra/db.server.ts` → `withScope()` |
+| Audit trail | `app/shared/domain/audit.server.ts` |
+| Feature limits | `app/shared/domain/limits.server.ts` |
+| File storage (S3/local) | `app/shared/infra/file-storage.server.ts` |
+| Background queue | `app/shared/infra/queues.server.ts` |
+| BullMQ worker | `app/workers/worker.server.ts` |
+| i18n messages | `app/paraglide/messages.js` (generated) |
+| Route definitions | `app/routes.ts` |
+| Shared UI components | `app/shared/ui/` |
+| AppError classes | `app/shared/errors/app-error.server.ts` |
+| Role enum | `app/shared/types/role.ts` |
 
-**Congregation model**: Each congregation record isolates its data. 28+ models carry a `congregationId` FK. `UserRole` is global (shared role definitions).
+## Build and Test Commands
 
-**Scoped queries** (`app/shared/infra/db.server.ts`):
-- `db` and `unscopedDb` are the **same** `PrismaClient` instance — there is no Prisma extension or automatic injection
-- Tenant isolation relies on **PostgreSQL Row-Level Security (RLS)**: scoped tables have `CASE`-based policies that safely cast `current_setting('app.congregation_id')` to int only when the value is non-empty (see `docs/development/row-level-security.md`)
-- `withScope(congregationId, fn)` — Runs `fn` inside a `$transaction` that first executes `SET LOCAL app.congregation_id`. The `SET LOCAL` is automatically rolled back when the transaction ends, preventing context leakage through the connection pool
-- Without `SET LOCAL` (i.e., outside `withScope`), RLS policies permit all rows — this is the "unscoped" mode used for login, setup, health, password reset, and platform admin
-- All authenticated route loaders/actions that access tenant-scoped data must use `withScopeFromContext(context, async db => { ... })` to wrap their DB calls
+```bash
+# Development
+pnpm start:dev              # Start dev server with HMR
+pnpm start:worker           # Start BullMQ worker (separate terminal)
+pnpm start:emails           # React Email preview server
 
-**Congregation context** (`app/shared/domain/congregation.server.ts`):
-- `requireCongregation()` / `getCongregationFromContext()` — access congregation branding (displayName, emailFrom, baseUrl)
+# Build
+pnpm build                  # Production build
+pnpm build:format           # Auto-format and lint with Biome (--write)
+pnpm build:db               # Regenerate Prisma client
 
-### Authentication & Authorization
+# Quality checks (run all three before committing)
+pnpm test:unit              # Vitest unit tests
+pnpm test:unit:watch        # Watch mode
+pnpm test:unit:coverage     # With coverage report
+pnpm test:integration       # Integration tests (requires live DB)
+pnpm test:e2e               # Playwright E2E tests
+pnpm test:lint              # Biome lint check
+pnpm test:typecheck         # react-router typegen + tsc
 
-**Middleware pattern** (`app/shared/middleware/auth.server.ts`):
-- Authenticated layout routes export `middleware = [requireAuth([...roles])]`
-- `requireAuth()` verifies the session, resolves role permissions, checks GDPR consent, and sets typed context. **Only roles explicitly listed are resolved** — omitting a role means `permissions.has(Role.X)` is always `false`, silently hiding features. All 14 roles must be listed in `_authenticated-layout.tsx`.
-- Loaders/actions read auth state via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
-- `withScopeFromContext(context, async db => {...})` reads `congregationId` from context and runs the callback inside `withScope`
+# Database
+pnpm prisma generate        # Regenerate client after schema changes
+pnpm prisma migrate deploy  # Apply migrations (prod / CI)
+pnpm prisma db seed         # Seed initial roles and default data
+
+# Infrastructure (dev)
+docker compose -f docker/docker-compose.dev.yml up -d
+```
+
+## Code Style Guidelines
+
+Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
+
+- **Quotes:** Single quotes in JS/TS, double quotes in JSX attributes
+- **Line width:** 120 characters
+- **Trailing commas:** Everywhere
+- **Semicolons:** Only when required (ASI)
+- **Indentation:** 2 spaces
+- **Array syntax:** Shorthand `string[]` not `Array<string>`
+- **No `console.log`** in production code — use `createLogger()` from `~/shared/infra/logger.server`
+- **Naming:** camelCase for variables/functions, PascalCase for types/components, CONSTANT_CASE for constants; naming convention is turned off for `*.server.ts`, route files, and test files (Prisma compound keys use a hybrid format)
+- **Language:** French for all UI text and user-facing strings; English for code, comments, commits, PRs, documentation
+
+### File naming
+
+| Pattern | Purpose |
+|---------|---------|
+| `*.server.ts` | Server-only code (not importable from client bundles) |
+| `*.type.ts` | TypeScript type/interface definitions |
+| `*.schema.ts` | Conform + Zod form validation schemas |
+| `*.routes.ts` | Route configuration |
+| `*-queue.server.ts` | BullMQ queue definitions |
+| `handle-*-work.server.ts` | Background job handlers |
+| PascalCase `.tsx` | React components |
+| camelCase `.ts` | Utilities and services |
+
+## Testing Strategy
+
+**Unit tests** (`*.server.test.ts` or `*.test.ts` co-located with source):
+- Vitest with `vi.mock()` for `db.server`, `redis.server`, external services
+- Assert on return values and thrown errors — never on spy call counts
+- Use sentinel values (e.g., unique IDs) to distinguish test data from coincidental matches
+- For client hooks: shim `globalThis.window`, mock `react-router` entirely
+
+**Integration tests** (`*.integration.test.ts`):
+- Use `PrismaPg` adapter + `testDb.$transaction` + `SET LOCAL app.congregation_id`
+- Create isolated test congregations with `Date.now()` suffix
+- Always clean up in `afterAll` — delete in FK dependency order (attributions before territories, etc.)
+- Tests are order-independent: each test sets up its own state
+
+**E2E tests** (`app/tests/e2e/*.spec.ts`):
+- Playwright against a running application
+- Auth helper in `app/tests/e2e/helpers/auth.ts`
+- Use `test.skip()` gracefully when optional features are absent
+- `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` env vars for credentials
+
+## Architecture Patterns
+
+### Service layer
+
+Routes call service functions; service functions call Prisma. No Prisma calls in route loaders/actions.
 
 ```typescript
-// In _authenticated-layout.tsx
-import { requireAuth } from '~/shared/middleware/auth.server'
-export const middleware = [requireAuth([Role.Admin, Role.TerritoriesManager])]
+// features/territories/server/delete-territory.server.ts
+export async function deleteTerritory(db: TransactionClient, id: number, congregationId: number, actorId: number) {
+  const territory = await db.territory.findFirst({ where: { id } })
+  if (!territory) return null
 
-// In a route loader
-export async function loader({ context }: Route.LoaderArgs) {
-  const user = context.get(userContext)
-  return withScopeFromContext(context, async db => {
-    return getPublishers(db)
-  })
+  await db.territory.delete({ where: { id } })
+
+  audit({ action: AuditAction.TerritoryDeleted, congregationId, actorId, entityType: 'Territory', entityId: id })
+  return territory
 }
+
+// In the route action:
+return withScopeFromContext(context, async db => {
+  const result = await deleteTerritory(db, id, user.congregationId, user.id)
+  if (!result) throw redirect('/territories')
+  return redirect('/territories')
+})
 ```
 
-**Role system** (congregation-scoped):
-- `UserRole` — Global role definitions (14 roles: Admin, BoardUploader, TerritoriesManager, etc.)
-- `CongregationUserRole` — Explicit join: `userId + roleId + congregationId`
-- Roles are resolved in middleware and available via `context.get(permissionsContext)`
-
-**Platform admin**:
-- `platformAdmin` boolean on `User` model
-- Separate from congregation roles — grants access to `/platform-admin/` routes
-- `verifyPlatformAdmin(request)` guard
-
-**Password reset**:
-- `PasswordResetToken` model with 24h expiration
-- Tokens are `crypto.randomBytes(32)`, consumed on use
-
-### Key Architectural Patterns
-
-**Service layer** (`features/*/server/`):
-- Business logic centralized in service functions (not in route loaders)
-- Service functions take explicit parameters (no `request` object)
-- Service functions receive `db: TransactionClient` as their first parameter
-- **Zero inline DB writes in routes**: route files must NOT contain `db.*.create()`, `db.*.update()`, `db.*.delete()`, or `db.*.deleteMany()` calls directly — all write operations go through service functions
-- **actorId threading**: every service function that writes must accept `actorId: number` — as a positional param right after `congregationId`, or as a field in the params interface. Routes extract it via `context.get(userContext).id`
-- Examples: `findBuildingsPaginated()`, `getPublishers()`, `findActiveAttributionsPaginated()`
-
-**Form validation** (Conform + Zod):
-- Feature schemas live in `features/*/schemas/*.schema.ts`
-- Actions use `parseWithZod(formData, { schema })` to validate input
-- On validation failure, return `submission.reply()` — Conform handles error display in the form
-- Schemas define Zod objects with French error messages
+### Authentication & authorization
 
 ```typescript
-// features/publishers/schemas/publisher.schema.ts
-export const publisherSchema = z.object({
-  firstname: z.string().min(1),
-  lastname: z.string().min(1),
-})
+// Layout route
+export const middleware = [requireAuth([Role.Admin, Role.TerritoriesManager, /* ALL 14 roles */])]
 
-// In route action
-const submission = parseWithZod(formData, { schema: publisherSchema })
+// Route loader/action
+const user = context.get(userContext)
+const permissions = context.get(permissionsContext)
+if (!permissions.has(Role.TerritoriesManager)) throw redirect('/dashboard')
+```
+
+**Critical:** `requireAuth()` only resolves roles explicitly listed. Omitting a role means `permissions.has(Role.X)` always returns `false` — silently hiding features. All 14 roles must be listed in `_authenticated-layout.tsx`.
+
+### Form validation
+
+```typescript
+// Schema: features/territories/schemas/territory.schema.ts
+export const territorySchema = z.object({ number: z.string().min(1) })
+
+// Action:
+const submission = parseWithZod(formData, { schema: territorySchema })
 if (submission.status !== 'success') return submission.reply()
 ```
 
-**Error handling** (`app/shared/errors/app-error.server.ts`):
-- `AppError` — Abstract base class with `code` and `statusCode`
-- `NotFoundError` — 404
-- `ValidationError` — 400 (with field name)
-- `ConflictError` — 409
-- `ForbiddenError` — 403
-- `LimitReachedError` — 429 (with limit name)
-- Service functions throw these; route actions catch and convert to user-facing responses
-- Unexpected errors bubble up to the error boundary
+### Error handling
 
-**Service error contract** — enforced across all `features/*/server/` functions:
+Service functions return `null` for not-found; throw `AppError` subclasses for business rule violations. Routes decide whether to redirect or show an error.
 
-| Case | Contract |
-|---|---|
-| Record not found | Return `null` — the caller (route loader/action) decides whether to redirect |
-| Business rule violation | Throw an `AppError` subclass (`ConflictError`, `ForbiddenError`, `LimitReachedError`) |
-| Redirect decisions | Route loaders/actions only — never from service functions |
+```typescript
+// Service: throw for violations
+if (duplicate) throw new ConflictError('Territory number already exists')
 
-`throw redirect()` is allowed only in: auth middleware (`requireAuth`, `enforceGdprConsent`), route guards (`requireRole`, `verifyPlatformAdmin`), and session validation (`session.server.ts`). It must never appear in a business service function.
+// Route: handle null → redirect
+const territory = await getTerritory(db, id)
+if (!territory) throw redirect('/territories')
+```
 
-**Audit trail** (`app/shared/domain/audit.server.ts`):
-- `audit(entry)` — fire-and-forget; writes via `unscopedDb`, bypasses RLS, never throws. Use in service functions after DB writes.
-- `auditInTransaction(tx, entry)` — writes inside an existing transaction; use only when atomicity is required (rare).
-- **Placement rule**: audit calls go in service functions, not in routes. Exception: logout (call `audit()` directly in the route action since no service function exists for it).
-- **entityType** convention: use the Prisma model name — `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`
-- **Not audited**: bulk operations and high-frequency low-signal ops (`reorderBoardSections`, `bulkDeleteBoardItems`, `bulkMoveBoardItems`)
-- See `docs/development/architecture.md` — Audit Logging section for the full pattern with example
+### Audit trail
 
-**Database Layer**:
-- Prisma ORM with PostgreSQL via `@prisma/adapter-pg`
-- Schema at `app/database/schema.prisma`
-- Generated client at `app/database/generated/` (gitignored)
-- Config at `prisma.config.ts` (project root)
-- Migrations run separately (not on app startup)
+```typescript
+// After every write in a service function:
+audit({
+  action: AuditAction.TerritoryUpdated,
+  congregationId,
+  actorId,
+  entityType: 'Territory',   // Prisma model name
+  entityId: territory.id,
+  metadata: { changes },
+})
+```
 
-**File Storage** (dual driver):
-- **S3**: used when `S3_ENDPOINT` is set. Configured via `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
-- **Local filesystem**: used when `S3_ENDPOINT` is not set. Files stored in `content/uploads/` (configurable via `UNITAE_STORAGE_PATH`)
-- Key pattern: `{congregationId}/{feature}/{uuid}.pdf`
+`audit()` is fire-and-forget (never throws). Use `auditInTransaction(tx, entry)` only when atomicity is required.
 
-**Background Jobs** (BullMQ):
-- `syncQueue` in `app/features/territories/server/sync-queue.server.ts`
-- `handleSyncWork` in `app/features/territories/server/handle-sync-work.server.ts`
-- Worker at `app/workers/worker.server.ts` with HTTP health server on port 9090
-- Jobs carry `congregationId` — worker sets congregation context before processing
-- Worker concurrency: 1 for sync operations
+### Multi-tenancy / RLS
 
-**Email**:
-- Resend API via `app/shared/infra/mailer.server.ts`
-- React Email templates in `app/emails/` directory
-- Sender address: per-congregation `emailFrom` or default `Unitae <noreply@unitae.app>`
-- All email sends wrapped in try/catch with logging
+```typescript
+// withScope sets SET LOCAL app.congregation_id for the duration of the transaction
+await withScope(congregationId, async db => {
+  return db.territory.findMany()  // RLS returns only this congregation's territories
+})
 
-**Feature Limits** (`app/shared/domain/limits.server.ts`):
-- `LimitService` class reads nullable limit columns from `Congregation` record
-- When limit columns are `null` (default), resources are unlimited
-- Limit checks are called in route actions before creating publishers, territories, users, board documents
-- `LimitReachedError` thrown when a limit is reached
-- Storage limits checked separately via `checkStorageLimit(currentBytes, additionalBytes)`
+// In routes, prefer the context helper:
+return withScopeFromContext(context, async db => { ... })
+```
 
-**Suspension**:
-- `verifySession()` checks `congregation.suspendedAt` — redirects to `/suspended` if set
-- The `/suspended` route shows a message and optionally a billing link (configurable via env)
+**RLS policy rule:** Always use `CASE WHEN NULLIF(current_setting(...), '') IS NULL THEN true ELSE ... END` — never `OR` (optimizer may reorder branches). See `docs/development/row-level-security.md`.
 
-### Main Application Areas
+### Feature limits
 
-**Territory Management** (`features/territories/`):
-- Building prospection with open data sync
-- Territory attribution to publishers
-- PDF generation for territory cards
-- Map integration for building locations
-- Statistics and coverage reports
+```typescript
+const congregation = getCongregationFromContext(context)
+const limits = new LimitService(db, congregation)
+await limits.errorIfWouldGoOverLimit('territories')  // throws LimitReachedError if at limit
+await createTerritory(db, ...)
+```
 
-**Publisher Management** (`features/publishers/`):
-- Activity tracking (hours, studies, publications)
-- Publisher groups with responsible/deputy roles
-- Statistics and report generation (Excel, PDF)
+## Common Pitfalls to Avoid
 
-**Information Board** (`features/display-board/`):
-- Document management with sections
-- PDF upload to S3 and viewing
-- Visibility controls and highlighting
+- ❌ **Don't put business logic in routes** — Delegate to service functions in `features/*/server/`
+- ❌ **Don't write `db.*.create/update/delete` in route files** — Zero inline DB writes in routes
+- ❌ **Don't `throw redirect()` from service functions** — Only in route guards and middleware
+- ❌ **Don't use `findUnique` on compound keys** — `Setting` and `EventKind` have `[key, congregationId]` compound unique; use `findFirst({ where: { key } })` instead
+- ❌ **Don't use `prisma migrate dev` in CI/scripts** — Non-interactive; use `migrate diff` + `migrate deploy`
+- ❌ **Don't add `.server.ts` to files in `features/*/model/`** — These are shared between client and server; the suffix causes bundler errors
+- ❌ **Don't read flash messages in individual route loaders** — The authenticated layout already reads them; double-reading causes duplicate toasts
+- ❌ **Don't use `congregationId: <real value>` in `db.*.create()`** — Use `congregationId: 0 as number`; RLS injects the real value at runtime
+- ❌ **Don't use `any` type** — TypeScript strict mode is enforced everywhere except explicit `noExplicitAny` suppressions
+- ❌ **Don't create circular imports between features** — Features must be independent; use `shared/` for cross-feature utilities
 
-**Event Management** (`features/events/`):
-- Days off tracking
-- Event kinds and programs
+## Environment Configuration
 
-**Settings** (`features/settings/`):
-- User management (within congregation)
-- Territory and congregation configuration
+Minimum required `.env`:
 
-**Platform Admin** (`features/platform-admin/`):
-- Cross-congregation management
-- User overview across all congregations
+```ini
+DB_URL="postgresql://unitae:unitae@localhost:5432/unitae_dev"
+DB_RUNTIME_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"  # Non-superuser for RLS enforcement
+UNITAE_SESSION_SECRET="a-long-random-string"
+REDIS_HOST="localhost"
+REDIS_PORT="6379"
+RESEND_API_KEY="re_..."                # Email sending
+```
 
-### Database Schema Highlights
+Optional:
 
-**Data isolation**:
-- `Congregation` — Record with branding (name, slug, domain, displayName, emailFrom, baseUrl) and optional plan/limit columns
-- 28+ models scoped by `congregationId` (see `docs/development/row-level-security.md` for the full list): User, CongregationUserRole, Territory, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, Attribution, PublisherGroup, PublisherActivity, BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible, Setting, NotificationEvent, NotificationPreference, AuditLog, DataDeletionRecord, ConsentRecord
+```ini
+GOOGLE_MAPS_API_KEY=""                 # Enables territory maps and PDF map exports
+GOOGLE_MAPS_MAP_ID=""                  # Custom styled map
+S3_ENDPOINT=""                         # S3-compatible storage (fallback: local ./content/uploads/)
+S3_BUCKET=""
+S3_ACCESS_KEY=""
+S3_SECRET_KEY=""
+MULTI_TENANT="true"                    # Enables /register route for SaaS mode
+UNITAE_COOKIE_DOMAIN=".unitae.app"     # Cookie scoping for multi-subdomain SaaS
+```
 
-**Auth**:
-- `UserRole` — Global role definitions (14 roles)
-- `CongregationUserRole` — Role assignments scoped per congregation
-- `PasswordResetToken` — Time-limited reset tokens (24h)
+**Prisma config:** Uses `prisma.config.ts` with `import 'dotenv/config'` — no `url` field in `schema.prisma`.
 
-**Core Entities**:
-- `User` — Publishers, elders, servants with congregation membership
-- `Territory` — Geographic areas with building entrances
-- `Building` — Individual buildings with prospection data
-- `Attribution` — Territory assignments to publishers
-- `PublisherActivity` — Monthly field service reports
+## Troubleshooting
 
-### File Naming Conventions
+| Issue | Solution |
+|-------|---------|
+| `Cannot find module '~/database/generated/...'` | Run `pnpm prisma generate` |
+| Lint errors after schema changes | Run `pnpm build:format` to auto-fix most; check for new `biome-ignore` needs |
+| Integration tests fail with RLS errors | Ensure `DB_RUNTIME_URL` points to the `unitae_app` role (not superuser) |
+| `prisma migrate dev` hangs in terminal | Use `prisma migrate diff --script` + manual migration + `prisma migrate deploy` |
+| Session not persisting in dev | Check `UNITAE_SESSION_SECRET` is set; cookie lifetime is 8h in dev, 1h in prod |
+| Port already in use | `lsof -i :5173` (dev server) or `lsof -i :9090` (worker health) |
+| Worker not processing jobs | Start with `pnpm start:worker`; check Redis connection via `REDIS_HOST`/`REDIS_PORT` |
+| `compound key` TypeScript error | Use `congregationId: 0 as number` in create calls; RLS fills the real value |
+| Flash toast appearing twice | Remove `session.flash()` reads from individual route loaders — layout handles it |
 
-- `server/*.server.ts` — Server-side only code in feature server/ directories
-- `*.routes.ts` — Route configuration files
-- `model/*.type.ts` — TypeScript type definitions in feature model/ directories
-- `schemas/*.schema.ts` — Conform + Zod form validation schemas
-- `routes/_layout.tsx` — Route layout components
-- `*-queue.server.ts` — BullMQ queue definitions
-- `handle-*-work.server.ts` — Background job handlers
-- Components use PascalCase, utilities use camelCase
+## Commit Message Format
 
-### Code Style
+Follow conventional commits:
 
-Uses Biome for formatting with these key rules:
-- Single quotes for JavaScript, double quotes for JSX
-- 120 character line width
-- Trailing commas everywhere
-- Semicolons as needed (ASI)
-- Space indentation
+```
+<type>(<scope>): <description>
 
-### Testing & Quality
+[optional body]
 
-- **Unit tests**: Vitest with co-located test files (`*.server.test.ts` next to source)
-- **Integration tests**: Vitest with `*.integration.test.ts` files, run against real database via `pnpm test:integration`
-- **E2E tests**: Playwright tests in `tests/e2e/*.spec.ts`, run via `pnpm test:e2e`
-- **Boundary checks**: `eslint-plugin-boundaries` enforces cross-feature import rules via `pnpm test:boundaries`
-- **Test style**: Black-box testing — assert on observable outcomes, no spy assertions
-- **Testing client hooks**: Vitest runs in `environment: 'node'` (no DOM). Mock `react` and `react-router` entirely. Shim `globalThis.window` for browser APIs (`addEventListener`). Suppress `biome-ignore lint/correctness/useHookAtTopLevel` in test helpers that call hooks.
-- **Config**: `vitest.config.ts` at project root (separate from `vite.config.ts` to avoid reactRouter plugin issues); `app/tests/vitest.config.integration.ts` for integration tests; `app/tests/playwright.config.ts` for E2E tests
-- **Mocking**: `vi.mock()` for `db.server`, `redis.server`, `crypto.server` — mock return values, assert on results
-- TypeScript strict mode enabled
-- Biome linting with custom rules (no console.log in production)
-- Prisma generates types from schema
-- Startup env validation for `DB_URL` and `UNITAE_SESSION_SECRET`
-- `requireParamId()` utility for safe route param parsing
+[optional footer]
+```
 
-### Gotchas & Patterns
+**Types:**
 
-- **Flash messages are global**: The authenticated layout reads `session.flash()` and displays toasts via Sonner. Individual route loaders must NOT also read flash messages — both loaders parse the same cookie independently, causing duplicate display (toast + inline alert). Use the global toast only.
-- **Personal routes convention**: User-specific pages live under `/me/*` (profile, territories, days-off, consents). The `/me` prefix uses `features/authentication/routes/user/_layout.tsx` as layout. New personal features should follow this pattern.
-- **Shared UI components**: `SubmitButton` (auto-disables during submission), `SearchInput` (debounced live search), `DeleteConfirmation` (entity details + cancel + impact), `PageBreadcrumb` (breadcrumb convenience wrapper), `RelativeTime` (Intl.RelativeTimeFormat), `UnsavedChangesDialog` (renders alert dialog from blocker state), `OfflineBanner`, `CommandPalette` (Cmd+K). `PageHeader` supports `breadcrumbs` and `backTo` props.
-- **Shared hooks**: `useFocusError(actionData)` auto-focuses first invalid field, `useDebouncedValue(value, delay)`, `useUnsavedChanges()` returns `{ blocker, markDirty }` — manages dirty state internally, resets on form submission, blocks only cross-pathname navigations, `useOnlineStatus()`, `usePersistedState(key, default)` wraps localStorage.
-- **Prisma 7**: No `url` in schema — use `prisma.config.ts` with `import 'dotenv/config'` for env loading
-- **Prisma generate**: Run `pnpm prisma generate` after schema changes — generated client is in `app/database/generated/` (gitignored)
-- **Custom migrations**: Use `pnpm prisma migrate diff --from-config-datasource --to-schema app/database/schema.prisma --script` to generate SQL, create migration dir manually with `mkdir -p app/database/migrations/{timestamp}_{name}`
-- **Tenant scoping placeholder**: RLS injects `congregationId` at runtime but TS requires it at compile time — use `congregationId: 0 as number` in create calls on scoped models
-- **RLS policies must use `CASE`, never `OR`**: PostgreSQL may reorder `OR` branches in RLS policies. After `SET LOCAL` reverts, pool connections have `app.congregation_id = ''`. If the optimizer evaluates `''::int` before the `IS NULL` guard, the cast fails. Always use `CASE WHEN NULLIF(current_setting(...), '') IS NULL THEN true ELSE ... END` — see `docs/development/row-level-security.md`
-- **`db` vs `unscopedDb`**: Both reference the same PrismaClient. The distinction is semantic only. Use `withScopeFromContext(context, ...)` or `withScope(congregationId, ...)` for tenant-scoped queries. Use `db`/`unscopedDb` directly (without `withScope`) for cross-tenant operations: login, password reset, setup, health check, platform admin, seed.
-- **`findUnique` on compound keys**: Setting and EventKind have compound unique `[key, congregationId]` — use `findFirst({ where: { key } })` instead, the extension adds `congregationId`
-- **Biome suppress for Prisma/AWS**: Prisma compound keys (`key_congregationId`) and AWS SDK properties (`Bucket`, `Key`) need `biome-ignore lint/style/useNamingConvention` suppression
-- **Non-interactive Prisma CLI**: `prisma migrate dev` fails in non-interactive shells — use `migrate diff` + manual migration + `migrate deploy`
-- **`LimitService` pattern**: Always get congregation from context first, then `new LimitService(db, congregation)`, then `await limits.errorIfWouldGoOverLimit('name')` before `db.*.create()` calls
-- **`.server.ts` suffix exceptions**: Files in `features/*/server/` that are pure functions used in client route components (e.g., `compute-territory-quantity.ts`) must NOT have the `.server.ts` suffix — React Router's bundler will reject them with "Server-only module referenced by client"
-- **Shared model files for client+server**: Files in `features/*/model/` (e.g., `access-format.ts`, `territory-kind.type.ts`) are importable from both server and client code. Never add `.server.ts` suffix to these.
-- **Zod version**: Must use Zod v3 (`zod@^3.25`), not v4 — `@conform-to/zod` v1.x imports `ZodEffects`/`ZodBranded` which were removed in Zod v4. Import as `from 'zod'` (not `from 'zod/v4'`)
-- **Middleware context types**: The `context.set()` in middleware requires `RouterContext` type constraint: `context: { set<C extends RouterContext>(context: C, value: ...): void }`. Don't use plain object types.
-- **File upload + Zod**: Routes with file uploads (e.g., `documents/new.tsx`) use `parseFormData` from `@mjackson/form-data-parser` first, then `parseWithZod` on the resulting FormData for text fields. Don't try to validate files through Zod.
-- **`useBlocker` timing**: `useBlocker` fires synchronously *before* `navigation.state` updates — checking `useNavigation().state` in a boolean passed to `useBlocker` cannot detect in-flight form submissions. Use a `BlockerFunction` with pathname comparison instead.
-- **Batch import path updates**: Use `find app workers -name '*.ts' -o -name '*.tsx' | xargs perl -pi -e 's|old-path|new-path|g'` — also update `vi.mock()` strings and dynamic `import()` calls in test files
-- **Multi-queue worker**: `app/workers/worker.server.ts` runs 3 queues (sync concurrency 1, email concurrency 5, thumbnail concurrency 2). Queue names in `app/shared/infra/queues.server.ts`. Worker locale via `app/shared/utils/worker-locale.server.ts` + `runWithLocale()`.
-- **Two Redis clients**: `redis` (60s timeout, for BullMQ) and `redisRateLimit` (2s timeout, for auth rate limiting) in `app/shared/infra/redis.server.ts`
+- `feat`: New feature
+- `fix`: Bug fix
+- `refactor`: Code refactoring
+- `test`: Adding tests
+- `docs`: Documentation changes
+- `chore`: Maintenance tasks
+- `build`: Build system or dependency changes
+- `perf`: Performance improvement
 
-## Development Notes
+**Examples:**
 
-The application follows Conventional Commits. French is the primary language for UI text. English is used for code comments, test descriptions, commits, PRs, and documentation.
+```
+feat(territories): add favourite toggle for attributions
 
-Session cookies: 1 hour production, 8 hours development. Cookie domain configurable via `UNITAE_COOKIE_DOMAIN` env var.
+fix(auth): resolve session expiry on concurrent requests
 
-## Production
+refactor(publishers): extract activity aggregation to service function
 
-- `docker/Dockerfile` — Multi-stage build (node:22-slim) with `runtime` and `migrate` targets
-- `.github/workflows/continuous-deployment.yml` — Builds and pushes Docker images to GHCR
-- Kubernetes deployment manifests are managed in the private `unitae-platform` repository
+test(settings): add integration tests for update-user role replacement
+
+chore(lint): configure Biome overrides to eliminate per-line suppressions
+
+build(deps): bump Prisma from 7.0.0 to 7.1.0
+```
+
+## Additional Documentation
+
+Detailed guides are in `docs/development/`:
+
+| File | Content |
+|------|---------|
+| `architecture.md` | Request flow, multi-tenancy model, audit logging patterns |
+| `row-level-security.md` | PostgreSQL RLS policies, `withScope`, connection pool safety |
+| `coding-conventions.md` | Feature-based structure, naming rules, service layer contracts |
+| `background-processing.md` | BullMQ worker architecture, queue names, job data shapes |
+| `getting-started.md` | Local environment setup from scratch |
+
+---
+
+**Note for AI Agents**: This file is your primary reference for understanding and contributing to this codebase. Always consult this document before making changes. When in doubt about a pattern, read an existing similar implementation before writing new code — the codebase is consistent and existing patterns are the ground truth.

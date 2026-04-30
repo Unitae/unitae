@@ -23,7 +23,6 @@ export async function togglePreference(
 ): Promise<void> {
   await db.notificationPreference.upsert({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       userId_notificationType_congregationId: {
         userId,
         notificationType,

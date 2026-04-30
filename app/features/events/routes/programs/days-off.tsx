@@ -81,7 +81,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
               endDate: { gte: event.startDate },
               templateId: { not: null },
             },
-            // biome-ignore lint/style/useNamingConvention: prisma syntax
             OR: [{ assigneeId: event.createdById }, { assistantId: event.createdById }],
           },
           select: { event: { select: { id: true, name: true, startDate: true } } },

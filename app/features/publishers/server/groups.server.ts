@@ -30,7 +30,6 @@ export async function getGroup(db: TransactionClient, groupId: number) {
         include: {
           activities: {
             where: {
-              // biome-ignore lint/style/useNamingConvention: prisma keywords
               OR: [
                 {
                   year: lastMonth.getFullYear(),

@@ -27,7 +27,6 @@ export async function updatePublisher(
 ) {
   const publisher = await db.user.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
     },
     data: {

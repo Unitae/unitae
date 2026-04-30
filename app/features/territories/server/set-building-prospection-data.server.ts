@@ -51,7 +51,6 @@ export async function setBuildingProspectionData(
       where: { id: currentResidentialEntrance.id },
       data: {
         access: accessType,
-        // biome-ignore lint/style/useNamingConvention: Name of the table in database
         isPMR: Boolean(input.pmr),
         isOpenEarly: Boolean(input.doors),
         isMailboxOpen: Boolean(input.mailboxes),

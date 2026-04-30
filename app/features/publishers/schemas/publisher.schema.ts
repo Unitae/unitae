@@ -20,7 +20,7 @@ export const createPublisherSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
-  group: z.coerce.number().optional(),
+  group: z.preprocess(v => (v === '' || v === undefined ? undefined : v), z.coerce.number().optional()),
   type: z.nativeEnum(PublisherType),
   phone: z.string().optional().default(''),
   address: z.string().optional().default(''),

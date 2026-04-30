@@ -22,7 +22,6 @@ export const meta: Route.MetaFunction = () => {
 const visibleNow = () => {
   const now = new Date()
   return {
-    // biome-ignore lint/style/useNamingConvention: prisma ORM
     OR: [
       { visibleFrom: { lte: now }, visibleUntil: { gte: now } },
       { visibleFrom: { lte: now }, visibleUntil: null },

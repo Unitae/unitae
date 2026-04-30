@@ -63,7 +63,6 @@ describe('findTerritoryWithHistory', () => {
     expect(result).toEqual(fakeTerritory)
     expect(db.territory.findUnique).toHaveBeenCalledWith({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: { id: 10, congregationId: 1 },
       },
       include: {

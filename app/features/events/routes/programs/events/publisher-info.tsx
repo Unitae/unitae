@@ -45,7 +45,6 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       where: {
         eventId,
         congregationId,
-        // biome-ignore lint/style/useNamingConvention: prisma syntax
         OR: [{ assigneeId: userId }, { assistantId: userId }],
       },
       select: { id: true, name: true, section: true },
@@ -61,7 +60,6 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       ? await db.programmePartAssignment.findMany({
           where: {
             congregationId,
-            // biome-ignore lint/style/useNamingConvention: prisma syntax
             OR: [{ assigneeId: userId }, { assistantId: userId }],
             name: partName,
             event: { startDate: { lt: new Date() } },

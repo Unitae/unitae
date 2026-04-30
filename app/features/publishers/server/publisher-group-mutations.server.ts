@@ -39,7 +39,6 @@ export async function createPublisherGroup(db: TransactionClient, params: Create
 export async function deletePublisherGroup(db: TransactionClient, id: number, congregationId: number, actorId: number) {
   const group = await db.publisherGroup.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
     },
   })

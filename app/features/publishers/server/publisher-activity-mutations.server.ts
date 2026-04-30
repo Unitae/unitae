@@ -59,7 +59,6 @@ export async function updatePublisherActivity(
 ) {
   const activity = await db.publisherActivity.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
     },
     data: {
@@ -90,7 +89,6 @@ export async function deletePublisherActivity(
 ) {
   const activity = await db.publisherActivity.delete({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
       id_congregationId: { id, congregationId },
     },
     include: { publisher: true },

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/domain/audit.server', () => ({
-  // biome-ignore lint/style/useNamingConvention: matching exported enum shape
   AuditAction: { UserUpdated: 'UserUpdated' },
   audit: vi.fn(),
 }))

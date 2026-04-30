@@ -59,11 +59,9 @@ function applySearchFilter(
     const searchTerms = params.get('search') ?? ''
     return {
       ...filters,
-      // biome-ignore lint/style/useNamingConvention: prisma syntax
       OR: [
         {
           publisher: {
-            // biome-ignore lint/style/useNamingConvention: prisma syntax
             OR: [
               {
                 firstname: { contains: searchTerms },

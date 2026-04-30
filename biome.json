@@ -23,7 +23,23 @@
                 "useForOf": "error",
                 "useShorthandAssign": "error",
                 "useShorthandFunctionType": "error",
-                "useNamingConvention": "error",
+                "useNamingConvention": {
+                    "level": "error",
+                    "options": {
+                        "strictCase": false,
+                        "conventions": [
+                            {
+                                "selector": { "kind": "objectLiteralMember" },
+                                "formats": [
+                                    "camelCase",
+                                    "PascalCase",
+                                    "CONSTANT_CASE",
+                                    "snake_case"
+                                ]
+                            }
+                        ]
+                    }
+                },
                 "useFragmentSyntax": "error",
                 "useExponentiationOperator": "error",
                 "noYodaExpression": "error",
@@ -53,6 +69,66 @@
             }
         }
     },
+    "overrides": [
+        {
+            "includes": [
+                "app/database/seed.ts",
+                "app/database/seed-marketing.ts"
+            ],
+            "linter": {
+                "rules": {
+                    "style": { "useNamingConvention": "off" },
+                    "suspicious": { "noConsole": "off" },
+                    "complexity": { "noExcessiveCognitiveComplexity": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["**/*.server.ts", "app/shared/domain/**/*.ts"],
+            "linter": {
+                "rules": {
+                    "style": { "useNamingConvention": "off" }
+                }
+            }
+        },
+        {
+            "includes": ["app/features/**/routes/**/*.tsx", "app/root.tsx"],
+            "linter": {
+                "rules": {
+                    "style": { "useNamingConvention": "off" }
+                }
+            }
+        },
+        {
+            "includes": [
+                "app/features/events/ui/ProgrammeDocument.tsx",
+                "app/features/events/ui/ProgrammeBoardDocument.tsx",
+                "app/features/territories/ui/TerritoryAttributionDocument.tsx"
+            ],
+            "linter": {
+                "rules": {
+                    "suspicious": { "noArrayIndexKey": "off" }
+                }
+            }
+        },
+        {
+            "includes": [
+                "**/*.test.ts",
+                "**/*.test.tsx",
+                "**/*.integration.test.ts",
+                "**/*.spec.ts"
+            ],
+            "linter": {
+                "rules": {
+                    "style": {
+                        "useNamingConvention": "off",
+                        "noNonNullAssertion": "off"
+                    },
+                    "correctness": { "useHookAtTopLevel": "off" }
+                }
+            }
+        }
+    ],
     "javascript": {
         "formatter": {
             "quoteStyle": "single",

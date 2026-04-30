@@ -42,7 +42,6 @@ export async function assignPart(
   if (externalSpeakerName) {
     const assignment = await db.programmePartAssignment.update({
       where: {
-        // biome-ignore lint/style/useNamingConvention: prisma compound key
         id_congregationId: { id: assignmentId, congregationId },
       },
       data: { assigneeId: null, assistantId: null, externalSpeakerName, topic, hasConflict: false },
@@ -74,7 +73,6 @@ export async function assignPart(
 
   const assignment = await db.programmePartAssignment.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: assignmentId, congregationId },
     },
     data: { assigneeId, assistantId, externalSpeakerName: null, topic, hasConflict: false },
@@ -108,7 +106,6 @@ export async function assignServiceRole(
 
   const assignment = await db.programmeServiceRoleAssignment.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: assignmentId, congregationId },
     },
     data: { assigneeId, hasConflict: false },
@@ -120,7 +117,6 @@ export async function assignServiceRole(
 export function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
   return db.programmePartAssignment.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: assignmentId, congregationId },
     },
     data: { assigneeId: null, assistantId: null, externalSpeakerName: null, hasConflict: false },
@@ -130,7 +126,6 @@ export function unassignPart(db: TransactionClient, assignmentId: number, congre
 export function unassignServiceRole(db: TransactionClient, assignmentId: number, congregationId: number) {
   return db.programmeServiceRoleAssignment.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: prisma compound key
       id_congregationId: { id: assignmentId, congregationId },
     },
     data: { assigneeId: null, hasConflict: false },
@@ -183,7 +178,6 @@ export async function refreshConflictFlags(
       where: {
         eventId: event.id,
         congregationId,
-        // biome-ignore lint/style/useNamingConvention: prisma syntax
         OR: [{ assigneeId: userId }, { assistantId: userId }],
       },
       data: { hasConflict },

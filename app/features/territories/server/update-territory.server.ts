@@ -15,7 +15,6 @@ export async function updateTerritory(
 ) {
   const territory = await db.territory.update({
     where: {
-      // biome-ignore lint/style/useNamingConvention: Prisma compound key
       id_congregationId: { id, congregationId },
     },
     data: {

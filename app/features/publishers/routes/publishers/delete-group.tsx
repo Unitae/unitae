@@ -26,7 +26,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const group = await db.publisherGroup.findUnique({
       where: {
-        // biome-ignore lint/style/useNamingConvention: Prisma compound unique key
         id_congregationId: {
           id: requireParamId(params.groupId, '/groups'),
           congregationId: currentUser.congregationId,

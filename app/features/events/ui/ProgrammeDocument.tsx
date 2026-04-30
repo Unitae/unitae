@@ -239,12 +239,10 @@ export function ProgrammeDocument({ events, title, showParts, showServices }: Pr
   return (
     <Document>
       {pages.map((pageEvents, pageIndex) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: pages have no stable id
         <Page key={pageIndex} size="A4" orientation="portrait" style={styles.page}>
           {pageIndex === 0 && <Text style={styles.title}>{title}</Text>}
 
           {pageEvents.map((event, eventIndex) => (
-            // biome-ignore lint/suspicious/noArrayIndexKey: events on page have no stable id
             <View key={eventIndex}>
               {eventIndex > 0 && <View style={styles.separator} />}
               <EventBlock event={event} showParts={showParts} showServices={showServices} />
@@ -299,7 +297,6 @@ function EventBlock({
         groupedParts.map((group, groupIdx) => {
           const color = sectionColor(group.section)
           return (
-            // biome-ignore lint/suspicious/noArrayIndexKey: section groups have no stable id
             <View key={groupIdx}>
               {group.section !== '' && (
                 <View style={[styles.sectionHeader, { backgroundColor: color ?? '#64748b' }]}>
@@ -309,10 +306,7 @@ function EventBlock({
               {group.parts.map((part, partIdx) => {
                 const isAlt = rowIndex % 2 === 1
                 rowIndex++
-                return (
-                  // biome-ignore lint/suspicious/noArrayIndexKey: part rows within a group
-                  <PartRow key={partIdx} part={part} isAlt={isAlt} />
-                )
+                return <PartRow key={partIdx} part={part} isAlt={isAlt} />
               })}
             </View>
           )
@@ -325,7 +319,6 @@ function EventBlock({
             {event.serviceRoleAssignments.map((role, roleIdx) => {
               const name = formatName(role.assignee)
               return (
-                // biome-ignore lint/suspicious/noArrayIndexKey: service role rows
                 <View key={roleIdx} style={styles.serviceItem}>
                   <Text style={styles.serviceRoleName}>{role.name}</Text>
                   {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}

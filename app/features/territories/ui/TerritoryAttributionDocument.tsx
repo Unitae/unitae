@@ -41,7 +41,6 @@ export function TerritoryAttributionDocument({
   return (
     <Document>
       {territoryPages.map((territoriesOfPage, index) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: no other way to key pages
         <Page key={index} size={'A4'} orientation="portrait" style={{ padding: 20 }}>
           <Text style={styles.title}>{m.territory_s13_title()}</Text>
           <Text style={[styles.text]}>

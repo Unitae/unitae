@@ -71,7 +71,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const [templates, eventKinds] = await Promise.all([
       getTemplates(db, congregationId),
       db.eventKind.findMany({
-        // biome-ignore lint/style/useNamingConvention: prisma filter key
         where: { congregationId, NOT: { key: 'off' } },
         orderBy: { name: 'asc' },
       }),

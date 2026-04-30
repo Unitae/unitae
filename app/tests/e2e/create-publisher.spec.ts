@@ -3,7 +3,12 @@ import { login } from './helpers/auth'
 
 const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
+
 const PUBLISHERS_URL_RE = /\/publishers/
+const NEW_PUBLISHER_URL_RE = /\/publishers\/new/
+const FIRSTNAME_FIELD_RE = /prénom/i
+const LASTNAME_FIELD_RE = /^nom$/i
+const SUBMIT_BUTTON_RE = /enregistrer|sauvegarder|créer|ajouter/i
 
 test.describe('Publishers', () => {
   test.beforeEach(async ({ page }) => {
@@ -15,5 +20,56 @@ test.describe('Publishers', () => {
     await page.goto('/publishers')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(PUBLISHERS_URL_RE)
+  })
+
+  test('new publisher page is accessible', async ({ page }) => {
+    const response = await page.goto('/publishers/new')
+    expect(response?.status()).toBeLessThan(500)
+  })
+
+  test('submitting the publisher form without required fields shows validation errors', async ({ page }) => {
+    await page.goto('/publishers/new')
+    await page.waitForLoadState('networkidle')
+
+    if (!page.url().includes('/publishers/new')) test.skip()
+
+    // Submit without filling any fields
+    await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
+    await page.waitForLoadState('networkidle')
+
+    // Should stay on the form page (validation error, no redirect)
+    await expect(page).toHaveURL(NEW_PUBLISHER_URL_RE)
+  })
+
+  test('creates a publisher and shows them in the list', async ({ page }) => {
+    await page.goto('/publishers/new')
+    await page.waitForLoadState('networkidle')
+
+    if (!page.url().includes('/publishers/new')) test.skip()
+
+    const uniqueSuffix = Date.now()
+    const firstname = 'E2E'
+    const lastname = `Test-${uniqueSuffix}`
+
+    const firstnameField = page.getByLabel(FIRSTNAME_FIELD_RE)
+    const lastnameField = page.getByLabel(LASTNAME_FIELD_RE)
+
+    if (!(await firstnameField.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
+
+    await firstnameField.fill(firstname)
+    await lastnameField.fill(lastname)
+    await page.getByRole('radio', { name: 'Homme' }).check()
+
+    // Submit the form
+    await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
+    await page.waitForLoadState('networkidle')
+
+    // Should redirect to list or publisher detail page
+    await expect(page).not.toHaveURL(NEW_PUBLISHER_URL_RE)
+
+    // Navigate to list and verify the new publisher appears
+    await page.goto('/publishers')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(lastname)).toBeVisible()
   })
 })

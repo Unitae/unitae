@@ -32,7 +32,7 @@ export default function PublisherFieldServiceForm({
             name="group"
             defaultValue={user?.publisherGroupId ?? ''}
           >
-            <option>{m.publishers_form_field_service_group_placeholder()}</option>
+            <option value="">{m.publishers_form_field_service_group_placeholder()}</option>
             {groups.map(group => (
               <option key={group.id} value={group.id}>
                 {group.name.toLocaleUpperCase()}
