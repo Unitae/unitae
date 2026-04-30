@@ -2,7 +2,6 @@ import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { Prisma } from '~/database/generated/client'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
@@ -164,7 +163,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
       session.flash('success', m.prospection_edit_building_success())
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      if (e != null && typeof e === 'object' && 'code' in e && e.code === 'P2002') {
         session.flash('error', m.prospection_edit_building_duplicate_error())
       } else {
         logger.error('Error updating building', { error: e, buildingId: params.buildingId })

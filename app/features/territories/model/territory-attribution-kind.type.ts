@@ -1,1 +1,1 @@
-export { TerritoryAttributionKind } from '~/database/generated/client'
+export { TerritoryAttributionKind } from '~/database/generated/enums'

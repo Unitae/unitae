@@ -1,4 +1,4 @@
-import { PublisherType } from '~/database/generated/client'
+import { PublisherType } from '~/database/generated/enums'
 
 export { PublisherType }
 
