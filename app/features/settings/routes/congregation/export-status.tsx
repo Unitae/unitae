@@ -89,10 +89,10 @@ export default function ExportStatusPage({ loaderData }: Route.ComponentProps) {
             <>
               <p className="text-sm">{m.export_status_completed_message()}</p>
               <Button asChild>
-                <Link to={`/settings/data/export/${jobId}/download`}>
+                <a href={`/settings/data/export/${jobId}/download`}>
                   <Download className="mr-2 size-4" />
                   {m.export_status_download()}
-                </Link>
+                </a>
               </Button>
             </>
           )}
