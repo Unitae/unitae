@@ -119,7 +119,7 @@ export default [
       index('features/publishers/routes/publishers/group-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-group.tsx'),
       ...prefix(':groupId', [
-        index('features/publishers/routes/publishers/group.tsx'),
+        route('view', 'features/publishers/routes/publishers/group.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-group.tsx'),
         route('delete', 'features/publishers/routes/publishers/delete-group.tsx'),
       ]),
