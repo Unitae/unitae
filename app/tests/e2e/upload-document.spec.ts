@@ -20,9 +20,8 @@ test.describe('Display board', () => {
     await expect(page).toHaveURL(BOARD_URL_RE)
   })
 
-  test('board management page is accessible', async ({ page }) => {
-    const response = await page.goto('/board/manage')
-    // Should load (200) or redirect to board, never a 500
+  test('board sections page is accessible', async ({ page }) => {
+    const response = await page.goto('/board/sections')
     expect(response?.status()).toBeLessThan(500)
   })
 
