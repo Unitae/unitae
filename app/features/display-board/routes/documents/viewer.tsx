@@ -49,10 +49,13 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   const pdfUrl = `/board/documents/${document.id}/view`
   const embedUrl = `${pdfUrl}${PDF_VIEWER_PARAMS}`
   const [useFallback, setUseFallback] = useState<boolean | null>(null)
+  const [embedFailed, setEmbedFailed] = useState(false)
 
   useEffect(() => {
     setUseFallback(isAndroidDevice())
   }, [])
+
+  const downloadName = `${document.title}.pdf`
 
   return (
     <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
@@ -66,19 +69,24 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
           <h1 className="truncate font-semibold text-sm">{document.title}</h1>
         </div>
         <Button variant="outline" size="sm" asChild>
-          <a href={pdfUrl} download={`${document.title}.pdf`}>
+          <a href={pdfUrl} download={downloadName}>
             <Download className="mr-2 size-4" />
             <span className="max-sm:sr-only">{m.board_viewer_download()}</span>
           </a>
         </Button>
       </div>
 
-      {useFallback === null ? null : useFallback ? (
-        <PdfViewer url={pdfUrl} />
+      {useFallback === null ? null : useFallback || embedFailed ? (
+        <PdfViewer url={pdfUrl} downloadUrl={pdfUrl} downloadName={downloadName} />
       ) : (
         <div className="flex flex-1 justify-center bg-muted/30 p-4 md:p-6">
-          <object data={embedUrl} type="application/pdf" className="h-full w-full max-w-4xl rounded-md shadow-sm">
-            <PdfViewer url={pdfUrl} />
+          <object
+            data={embedUrl}
+            type="application/pdf"
+            className="h-full w-full max-w-4xl rounded-md shadow-sm"
+            onError={() => setEmbedFailed(true)}
+          >
+            <PdfViewer url={pdfUrl} downloadUrl={pdfUrl} downloadName={downloadName} />
           </object>
         </div>
       )}
