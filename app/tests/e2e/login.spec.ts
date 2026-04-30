@@ -17,9 +17,11 @@ test.describe('Authentication', () => {
   })
 
   test('unauthenticated access to a protected route redirects to login', async ({ page }) => {
+    await page.goto('/login')
+    if (page.url().includes('/setup') || page.url().includes('/register')) test.skip()
+
     await page.goto('/publishers')
-    // Fresh environments redirect to /setup instead of /login — both mean unauthenticated
-    await expect(page).toHaveURL(/\/(login|setup)/)
+    await expect(page).toHaveURL(LOGIN_URL_RE)
   })
 
   test('login with valid credentials navigates away from login page', async ({ page }) => {

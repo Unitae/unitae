@@ -10,11 +10,13 @@ const PLATFORM_ADMIN_PATH = '/platform-admin'
 
 test.describe('Access control', () => {
   test('unauthenticated request to any protected route redirects to login', async ({ page }) => {
+    await page.goto('/login')
+    if (page.url().includes('/setup') || page.url().includes('/register')) test.skip()
+
     for (const route of ['/publishers', '/territories', '/board', '/settings/users']) {
       await page.goto(route)
       await page.waitForLoadState('networkidle')
-      // Fresh environments redirect to /setup instead of /login — both mean unauthenticated
-      await expect(page).toHaveURL(/\/(login|setup)/)
+      await expect(page).toHaveURL(LOGIN_URL_RE)
     }
   })
 
