@@ -5,7 +5,7 @@ import { createTestCongregation, createTestUser } from '~/tests/factories'
 import { LimitService } from './limits.server'
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DB_URL,
+  connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
   max: 5,
   connectionTimeoutMillis: 5000,
 })
