@@ -11,6 +11,7 @@ const USER_NOT_FOUND_RE = /introuvable/
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   auditInTransaction: vi.fn(),
+  // biome-ignore lint/style/useNamingConvention: matches the exported enum name
   AuditAction: {},
 }))
 

@@ -20,6 +20,7 @@ export async function runExport(job: Job<ExportJobData>): Promise<string> {
   await job.updateProgress(0)
 
   const zip = new JsZip()
+  // biome-ignore lint/style/noNonNullAssertion: JsZip.folder() only returns null when called on a file entry, not a new folder
   const dataDir = zip.folder('data')!
   const entityCounts: Record<string, number> = {}
 
@@ -495,6 +496,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
 }
 
 async function exportFiles(zip: JsZip, db: TransactionClient, congregationId: number): Promise<void> {
+  // biome-ignore lint/style/noNonNullAssertion: JsZip.folder() only returns null on file entries
   const filesDir = zip.folder('files')!.folder('board')!
 
   const documents = await db.boardDocument.findMany({

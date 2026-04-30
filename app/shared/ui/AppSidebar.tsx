@@ -1,5 +1,4 @@
 import {
-  Bell,
   Building2,
   CalendarCheck,
   CalendarDays,
