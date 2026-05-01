@@ -55,13 +55,13 @@ function pendingStateFor(
 
 function pinClassesFor(entrance: BboxEntrance, pending: EntrancePendingState) {
   if (pending === 'pending-remove') {
-    return 'border-red-500 bg-white text-red-500 opacity-60'
+    return 'border-destructive bg-destructive text-white'
   }
   if (pending === 'pending-add' || pending === 'pending-reassign') {
-    return 'border-red-700 bg-red-600 text-white ring-2 ring-red-300'
+    return 'border-blue-700 bg-blue-600 text-white ring-2 ring-blue-300'
   }
   if (entrance.status === 'in-this-territory') {
-    return 'border-red-700 bg-red-600 text-white'
+    return 'border-blue-700 bg-blue-600 text-white'
   }
   if (entrance.status === 'available') {
     return 'border-emerald-700 bg-emerald-500 text-white'
@@ -197,7 +197,7 @@ function MapContents({
                 title={`${display.address.number} ${display.address.street}`}
               >
                 {pending === 'pending-add' || pending === 'pending-reassign' ? '+' : null}
-                {pending === 'pending-remove' ? '−' : null}
+                {pending === 'pending-remove' ? '×' : null}
                 {pending === 'none' && display.status === 'in-this-territory' ? '✓' : null}
               </span>
             </AdvancedMarker>
