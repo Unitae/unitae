@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Download, ExternalLink, Trash2, X } from 'lucide-react'
+import { Download, ExternalLink, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -11,7 +11,7 @@ import {
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
-import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
+import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMapEditor, { type EntranceAction } from '~/features/territories/ui/BuildingEntranceMapEditor'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
@@ -69,7 +69,6 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       },
       include: {
         entrances: { include: { buildings: { where: { active: true } } } },
-        attributions: { where: { endDate: null }, include: { publisher: true } },
       },
     })
 
@@ -133,8 +132,6 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 
   const { blocker, markDirty } = useUnsavedChanges()
 
-  const attribution = [...territory.attributions].shift()
-
   const projectedEntranceIds = useMemo(() => {
     const ids = new Set<number>()
     for (const e of savedTerritoryEntrances) {
@@ -145,13 +142,15 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     return ids
   }, [savedTerritoryEntrances, pendingRemovals, pendingAdditions, pendingReassignments])
 
-  const projectedQuantity = useMemo(() => {
-    const projectedEntrances: AggregatedEntrance[] = []
+  const projectedContent = useMemo(() => {
+    const entrances: { homes: number | null; phones: number | null }[] = []
     for (const e of savedTerritoryEntrances) {
-      if (!pendingRemovals.has(e.id)) projectedEntrances.push(e)
+      if (!pendingRemovals.has(e.id)) entrances.push(e)
     }
-    return computeTerritoryQuantity(territory.type, projectedEntrances)
-  }, [savedTerritoryEntrances, pendingRemovals, territory.type])
+    for (const e of pendingAdditions.values()) entrances.push(e)
+    for (const r of pendingReassignments.values()) entrances.push(r.entrance)
+    return territoryContentLabel(territory.type, entrances)
+  }, [savedTerritoryEntrances, pendingRemovals, pendingAdditions, pendingReassignments, territory.type])
 
   const handleAct = useCallback(
     (entrance: BboxEntrance, action: EntranceAction) => {
@@ -313,8 +312,8 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                   </span>
                 </p>
                 <p>
-                  {m.territories_edit_homes_label()}{' '}
-                  <span className="font-medium text-primary">{projectedQuantity}</span>
+                  {m.territories_edit_content_label()}{' '}
+                  <span className="font-medium text-primary">{projectedContent}</span>
                 </p>
                 <p className="pt-2 text-muted-foreground text-sm italic">{m.territories_edit_info_notice()}</p>
               </div>
@@ -344,54 +343,6 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                 />
               </span>
             ))}
-
-            <h2 className="font-semibold text-lg">{m.territories_edit_current_attribution()}</h2>
-            {attribution != null ? (
-              <div className="flex items-center justify-between gap-3 rounded-md border p-3">
-                <div className="flex flex-col">
-                  <span className="font-medium">
-                    {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
-                  </span>
-                  <span className="text-muted-foreground text-sm">
-                    {attribution.startDate.toLocaleDateString('fr-FR')} -{' '}
-                    {attribution.lateDate.toLocaleDateString('fr-FR')}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link
-                      to={`../../../attributions/${attribution.id}/edit`}
-                      relative="path"
-                      title={m.territories_edit_view_attribution_title()}
-                    >
-                      <ExternalLink className="size-4 text-primary" />
-                    </Link>
-                  </Button>
-                  {attribution.endDate == null && (
-                    <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive">
-                      <Link
-                        to={`../../../attributions/${attribution.id}/delete`}
-                        relative="path"
-                        title={m.territories_edit_cancel_attribution_title()}
-                      >
-                        <X className="size-4" />
-                      </Link>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="flex items-center justify-center gap-3 rounded-md border p-3">
-                  <span className="text-muted-foreground italic">{m.territories_edit_no_attribution()}</span>
-                </div>
-                <Button variant="secondary" asChild>
-                  <Link to={`/territories/attributions/new?territory=${territory.id}`}>
-                    {m.territories_edit_assign_button()}
-                  </Link>
-                </Button>
-              </>
-            )}
 
             {!showMap ? (
               <>

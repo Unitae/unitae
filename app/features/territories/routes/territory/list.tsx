@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
+import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -23,27 +24,6 @@ const territoryTypeLabels: Record<string, string> = {
   [TerritoryKind.Phone]: m.territories_type_phone(),
   [TerritoryKind.Hotel]: m.territories_type_hotel(),
   [TerritoryKind.Univ]: m.territories_type_university(),
-}
-
-function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
-  const count = entrances.length
-  if (type === TerritoryKind.Phone) {
-    const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
-    return m.territories_content_phones({ count: phones })
-  }
-  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
-    const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
-    return homes > 1
-      ? m.territories_content_homes_other({ count: homes })
-      : m.territories_content_homes_one({ count: homes })
-  }
-  if (type === TerritoryKind.Commerces) {
-    return count > 1 ? m.territories_content_commerces_other({ count }) : m.territories_content_commerces_one({ count })
-  }
-  if (type === TerritoryKind.Hotel) {
-    return count > 1 ? m.territories_content_hotels_other({ count }) : m.territories_content_hotels_one({ count })
-  }
-  return count > 1 ? m.territories_content_entrances_other({ count }) : m.territories_content_entrances_one({ count })
 }
 
 export const meta: Route.MetaFunction = () => {
