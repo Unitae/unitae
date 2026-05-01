@@ -377,8 +377,31 @@ const TERRITORIES: { number: string; type: TerritoryKind; notes: string }[] = [
   { number: 'T14', type: TerritoryKind.Classical, notes: '' },
   { number: 'P01', type: TerritoryKind.Phone, notes: 'Territoire téléphonique — personnes âgées' },
   { number: 'P02', type: TerritoryKind.Phone, notes: 'Territoire téléphonique' },
-  { number: 'C01', type: TerritoryKind.Classical, notes: 'Commerces rue principale' },
-  { number: 'C02', type: TerritoryKind.Classical, notes: 'Commerces zone commerciale' },
+  { number: 'C01', type: TerritoryKind.Commerces, notes: 'Commerces rue principale' },
+  { number: 'C02', type: TerritoryKind.Commerces, notes: 'Commerces zone commerciale' },
+  { number: 'H01', type: TerritoryKind.Hotel, notes: 'Hôtels du quartier' },
+  { number: 'U01', type: TerritoryKind.Univ, notes: 'Campus universitaire' },
+]
+
+const ENTRANCE_KIND_FOR_TERRITORY: Record<TerritoryKind, EntranceKind> = {
+  [TerritoryKind.Classical]: EntranceKind.Residential,
+  [TerritoryKind.Phone]: EntranceKind.Residential,
+  [TerritoryKind.Commerces]: EntranceKind.Commerce,
+  [TerritoryKind.Hotel]: EntranceKind.Hotel,
+  [TerritoryKind.Univ]: EntranceKind.Campus,
+}
+
+const SHOP_KINDS = [
+  'boulangerie',
+  'pharmacie',
+  'restaurant',
+  'épicerie',
+  'café',
+  'librairie',
+  'tabac',
+  'fleuriste',
+  'coiffeur',
+  'opticien',
 ]
 
 const STREETS = [
@@ -826,8 +849,10 @@ async function main() {
   // ── Buildings & Entrances ─────────────────────────────────────────────
   let buildingCount = 0
 
-  for (let tIdx = 0; tIdx < Math.min(14, createdTerritories.length); tIdx++) {
+  for (let tIdx = 0; tIdx < createdTerritories.length; tIdx++) {
     const territory = createdTerritories[tIdx]
+    const territoryDef = TERRITORIES[tIdx]
+    const entranceKind = ENTRANCE_KIND_FOR_TERRITORY[territoryDef.type]
     const numBuildings = randomInt(4, 10)
 
     for (let b = 0; b < numBuildings; b++) {
@@ -851,12 +876,18 @@ async function main() {
         },
       })
 
+      const isResidential = entranceKind === EntranceKind.Residential
+      const homes = isResidential ? randomInt(4, 35) : null
+      const phones = isResidential ? randomInt(0, 10) : null
+      const liberals = isResidential ? randomInt(0, 3) : null
+
       const entrance = await prisma.buildingEntrance.create({
         data: {
-          kind: EntranceKind.Residential,
-          homes: randomInt(4, 35),
-          phones: randomInt(0, 10),
-          liberals: randomInt(0, 3),
+          kind: entranceKind,
+          shopKind: entranceKind === EntranceKind.Commerce ? pick(SHOP_KINDS) : '',
+          homes,
+          phones,
+          liberals,
           access: Math.random() > 0.5 ? randomInt(1, 3) : null,
           isPMR: Math.random() > 0.8,
           isOpenEarly: Math.random() > 0.7,
@@ -869,16 +900,18 @@ async function main() {
         },
       })
 
-      await prisma.buildingResidentialData.create({
-        data: {
-          buildingId: building.id,
-          entranceId: entrance.id,
-          homes: entrance.homes,
-          phones: entrance.phones,
-          liberals: entrance.liberals,
-          congregationId: congId,
-        },
-      })
+      if (isResidential) {
+        await prisma.buildingResidentialData.create({
+          data: {
+            buildingId: building.id,
+            entranceId: entrance.id,
+            homes: entrance.homes,
+            phones: entrance.phones,
+            liberals: entrance.liberals,
+            congregationId: congId,
+          },
+        })
+      }
 
       buildingCount++
     }

@@ -14,7 +14,10 @@ import {
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
-import BuildingEntranceMapEditor, { type EntranceAction } from '~/features/territories/ui/BuildingEntranceMapEditor'
+import BuildingEntranceMapEditor, {
+  type EntranceAction,
+  type EntranceFocusRequest,
+} from '~/features/territories/ui/BuildingEntranceMapEditor'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import PendingChangesRail from '~/features/territories/ui/PendingChangesRail'
 
@@ -131,6 +134,11 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
   const [pendingReassignments, setPendingReassignments] = useState<
     Map<number, { entrance: BboxEntrance; fromTerritoryId: number; fromTerritoryNumber: string }>
   >(new Map())
+  const [focusRequest, setFocusRequest] = useState<EntranceFocusRequest | null>(null)
+
+  const handleFocusEntrance = useCallback((entranceId: number) => {
+    setFocusRequest(prev => ({ id: entranceId, nonce: (prev?.nonce ?? 0) + 1 }))
+  }, [])
 
   const { blocker, markDirty } = useUnsavedChanges()
 
@@ -291,6 +299,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                 ]),
               )
             }
+            focusRequest={focusRequest}
             onAct={handleAct}
             className="h-[calc(100vh-12rem)] flex-1 max-lg:h-[60vh]"
           />
@@ -330,21 +339,36 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             ) : (
               savedTerritoryEntrances.map(entrance => {
                 const pendingRemoval = pendingRemovals.has(entrance.id)
+                const focusable = showMap && entrance.latitude != null && entrance.longitude != null
+                const labelContent = (
+                  <div className="flex flex-col text-left">
+                    <span className="font-medium">
+                      {entrance.number} {entrance.street}, {entrance.zip}
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      {entranceContentLabel(territory.type, entrance)}
+                    </span>
+                  </div>
+                )
                 return (
                   <div
                     key={entrance.id}
-                    className={`flex items-center justify-between gap-3 rounded-md border p-3 ${
+                    className={`flex items-center justify-between gap-3 rounded-md border p-3 transition ${
                       pendingRemoval ? 'opacity-50 line-through' : ''
-                    }`}
+                    } ${focusable ? 'hover:border-primary' : ''}`}
                   >
-                    <div className="flex flex-col">
-                      <span className="font-medium">
-                        {entrance.number} {entrance.street}, {entrance.zip}
-                      </span>
-                      <span className="text-muted-foreground text-sm">
-                        {entranceContentLabel(territory.type, entrance)}
-                      </span>
-                    </div>
+                    {focusable ? (
+                      <button
+                        type="button"
+                        onClick={() => handleFocusEntrance(entrance.id)}
+                        title={m.territories_edit_focus_on_map_title()}
+                        className="-m-1 flex-1 cursor-pointer rounded p-1 hover:bg-accent/40"
+                      >
+                        {labelContent}
+                      </button>
+                    ) : (
+                      labelContent
+                    )}
                     <div className="flex gap-2">
                       {entrance.buildings[0] != null ? (
                         <Button variant="ghost" size="icon" asChild>

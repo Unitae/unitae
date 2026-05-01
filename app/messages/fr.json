@@ -1299,6 +1299,7 @@
     "territories_edit_type_label": "Type de territoire :",
     "territories_edit_content_label": "Contenu :",
     "territories_edit_no_entrances": "Aucune allée dans ce territoire.",
+    "territories_edit_focus_on_map_title": "Centrer la carte sur cette allée",
     "territories_edit_info_notice": "Si certaines de ces informations ne sont pas bonnes, merci de contacter le service Territoires.",
     "territories_edit_current_attribution": "Attribution en cours",
     "territories_edit_no_attribution": "Aucune attribution en cours pour ce territoire",

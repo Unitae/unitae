@@ -15,6 +15,8 @@ import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
 
 export type EntranceAction = 'add' | 'remove' | 'reassign' | 'undo'
 
+export type EntranceFocusRequest = { id: number; nonce: number }
+
 type Props = {
   apiKey?: string
   territoryId: number
@@ -23,6 +25,7 @@ type Props = {
   pendingAdditions: ReadonlySet<number>
   pendingRemovals: ReadonlySet<number>
   pendingReassignments: ReadonlyMap<number, { fromTerritoryId: number; fromTerritoryNumber: string }>
+  focusRequest?: EntranceFocusRequest | null
   onAct: (entrance: BboxEntrance, action: EntranceAction) => void
   className?: string
 }
@@ -73,6 +76,7 @@ function MapContents({
   pendingAdditions,
   pendingRemovals,
   pendingReassignments,
+  focusRequest,
   onAct,
 }: Omit<Props, 'apiKey' | 'className'>) {
   const map = useMap()
@@ -159,6 +163,20 @@ function MapContents({
     }
   }, [map, handleIdle])
 
+  // Focus a specific entrance on parent request: pan, zoom in if needed, and open its popup.
+  useEffect(() => {
+    if (focusRequest == null || map == null) return
+    const target =
+      ownEntrances.find(e => e.id === focusRequest.id) ?? viewportEntrances.find(e => e.id === focusRequest.id)
+    if (target == null) return
+    map.panTo({ lat: target.latitude, lng: target.longitude })
+    const currentZoom = map.getZoom()
+    if (currentZoom == null || currentZoom < 16) {
+      map.setZoom(17)
+    }
+    setSelected(target)
+  }, [focusRequest, map, ownEntrances, viewportEntrances])
+
   return (
     <>
       {visibleEntrances
@@ -235,6 +253,7 @@ export default function BuildingEntranceMapEditor({
   pendingAdditions,
   pendingRemovals,
   pendingReassignments,
+  focusRequest,
   onAct,
   className,
 }: Props) {
@@ -280,6 +299,7 @@ export default function BuildingEntranceMapEditor({
               pendingAdditions={pendingAdditions}
               pendingRemovals={pendingRemovals}
               pendingReassignments={pendingReassignments}
+              focusRequest={focusRequest}
               onAct={onAct}
             />
           </GoogleMap>
