@@ -1,0 +1,180 @@
+import { X } from 'lucide-react'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { BboxEntrance } from '~/features/territories/server/buildings.server'
+import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
+import * as m from '~/paraglide/messages'
+import type { AggregatedEntrance } from '~/shared/types/entrance'
+import { Button } from '~/shared/ui/button'
+
+type Props = {
+  territoryType: TerritoryKind
+  initialEntrances: AggregatedEntrance[]
+  pendingAdditions: ReadonlyMap<number, BboxEntrance>
+  pendingRemovals: ReadonlyMap<number, BboxEntrance | AggregatedEntrance>
+  pendingReassignments: ReadonlyMap<number, { entrance: BboxEntrance; fromTerritoryNumber: string }>
+  onRevert: (entranceId: number) => void
+}
+
+function bboxToAggregated(entrance: BboxEntrance): AggregatedEntrance {
+  return {
+    id: entrance.id,
+    kind: entrance.kind,
+    homes: entrance.homes,
+    phones: entrance.phones,
+    liberals: entrance.liberals,
+    street: entrance.address.street,
+    zip: entrance.address.zip,
+    number: entrance.address.number,
+    entranceNotes: '',
+    shopKind: '',
+    notes: '',
+    access: null,
+    isPMR: null,
+    isOpenEarly: null,
+    isMailboxOpen: null,
+    latitude: entrance.latitude,
+    longitude: entrance.longitude,
+    congregationId: 0,
+    createdAt: new Date(0),
+    updatedAt: new Date(0),
+    accesses: [],
+    residentialData: [],
+    buildings: [],
+  } as unknown as AggregatedEntrance
+}
+
+function entranceLabel(e: BboxEntrance | AggregatedEntrance) {
+  const isBbox = (entrance: BboxEntrance | AggregatedEntrance): entrance is BboxEntrance =>
+    'address' in entrance && entrance.address != null
+  if (isBbox(e)) {
+    return `${e.address.number} ${e.address.street}, ${e.address.zip}`
+  }
+  return `${e.number} ${e.street}, ${e.zip}`
+}
+
+export default function PendingChangesRail({
+  territoryType,
+  initialEntrances,
+  pendingAdditions,
+  pendingRemovals,
+  pendingReassignments,
+  onRevert,
+}: Props) {
+  const initialQuantity = computeTerritoryQuantity(territoryType, initialEntrances)
+  const projectedEntrances = [
+    ...initialEntrances.filter(e => !pendingRemovals.has(e.id)),
+    ...[...pendingAdditions.values()].map(bboxToAggregated),
+    ...[...pendingReassignments.values()].map(r => bboxToAggregated(r.entrance)),
+  ]
+  const projectedQuantity = computeTerritoryQuantity(territoryType, projectedEntrances)
+  const delta = projectedQuantity - initialQuantity
+  const additionsCount = pendingAdditions.size
+  const removalsCount = pendingRemovals.size
+  const reassignmentsCount = pendingReassignments.size
+  const hasPending = additionsCount + removalsCount + reassignmentsCount > 0
+
+  return (
+    <div className="flex flex-col gap-3 rounded-md border p-3">
+      <h3 className="font-semibold text-sm">{m.territories_map_pending_heading()}</h3>
+      <p className="font-medium text-sm">
+        {delta === 0
+          ? m.territories_map_pending_quantity_unchanged({ count: String(projectedQuantity) })
+          : m.territories_map_pending_quantity({
+              from: String(initialQuantity),
+              to: String(projectedQuantity),
+              delta: delta > 0 ? `+${delta}` : String(delta),
+            })}
+      </p>
+
+      {!hasPending ? (
+        <p className="text-muted-foreground text-sm italic">{m.territories_map_pending_empty()}</p>
+      ) : null}
+
+      {additionsCount > 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs uppercase tracking-wide">
+            {m.territories_map_pending_additions({ count: String(additionsCount) })}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {[...pendingAdditions.values()].map(entrance => (
+              <li
+                key={entrance.id}
+                className="flex items-center justify-between gap-2 rounded border-emerald-200 border-l-2 bg-emerald-50/40 px-2 py-1 text-sm"
+              >
+                <span>+ {entranceLabel(entrance)}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onRevert(entrance.id)}
+                  title={m.territories_map_pending_revert_title()}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {removalsCount > 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs uppercase tracking-wide">
+            {m.territories_map_pending_removals({ count: String(removalsCount) })}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {[...pendingRemovals.values()].map(entrance => (
+              <li
+                key={entrance.id}
+                className="flex items-center justify-between gap-2 rounded border-red-200 border-l-2 bg-red-50/40 px-2 py-1 text-sm"
+              >
+                <span>− {entranceLabel(entrance)}</span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onRevert(entrance.id)}
+                  title={m.territories_map_pending_revert_title()}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {reassignmentsCount > 0 ? (
+        <div className="flex flex-col gap-1">
+          <p className="text-muted-foreground text-xs uppercase tracking-wide">
+            {m.territories_map_pending_reassignments({ count: String(reassignmentsCount) })}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {[...pendingReassignments.values()].map(({ entrance, fromTerritoryNumber }) => (
+              <li
+                key={entrance.id}
+                className="flex items-center justify-between gap-2 rounded border-amber-300 border-l-2 bg-amber-50/40 px-2 py-1 text-sm"
+              >
+                <span className="flex flex-col">
+                  <span>↻ {entranceLabel(entrance)}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {m.territories_map_reassignment_from({ number: fromTerritoryNumber })}
+                  </span>
+                </span>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onRevert(entrance.id)}
+                  title={m.territories_map_pending_revert_title()}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  )
+}

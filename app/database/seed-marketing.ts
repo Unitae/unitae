@@ -400,6 +400,24 @@ const STREETS = [
   { street: 'Impasse des Cerisiers', zip: '75003' },
 ]
 
+// Approximate Paris arrondissement centers for the demo zips. Buildings get a
+// small per-row jitter around their zip's center so markers spread realistically
+// and the territory edit map has something clickable.
+const ZIP_CENTERS: Record<string, { lat: number; lng: number }> = {
+  '75001': { lat: 48.8638, lng: 2.336 },
+  '75002': { lat: 48.8678, lng: 2.3413 },
+  '75003': { lat: 48.8634, lng: 2.3601 },
+}
+
+function jitterCoord(zip: string): { latitude: number; longitude: number } {
+  const center = ZIP_CENTERS[zip] ?? { lat: 48.8566, lng: 2.3522 }
+  // ~330m radius — enough to spread within a neighbourhood, not enough to leave it.
+  return {
+    latitude: center.lat + (Math.random() * 0.006 - 0.003),
+    longitude: center.lng + (Math.random() * 0.006 - 0.003),
+  }
+}
+
 // visibleFrom/visibleUntil control board visibility. null = no bound.
 const BOARD_SECTIONS = [
   {
@@ -817,11 +835,15 @@ async function main() {
       // Use territory index + building index to guarantee unique numbers per street
       const buildingNumber = String(tIdx * 10 + b * 2 + 1)
 
+      const coords = jitterCoord(streetInfo.zip)
+
       const building = await prisma.building.create({
         data: {
           number: buildingNumber,
           street: streetInfo.street,
           zip: streetInfo.zip,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
           active: true,
           inTerritory: true,
           prospectionDate: Math.random() > 0.3 ? randomDate(monthsAgo(6), new Date()) : null,
@@ -839,6 +861,8 @@ async function main() {
           isPMR: Math.random() > 0.8,
           isOpenEarly: Math.random() > 0.7,
           isMailboxOpen: Math.random() > 0.4,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
           territories: { connect: { id: territory.id } },
           buildings: { connect: { id: building.id } },
           congregationId: congId,

@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { territory: { update: vi.fn() } },
+  unscopedDb: {
+    territory: { update: vi.fn(), findUnique: vi.fn() },
+    buildingEntrance: { update: vi.fn(), findFirst: vi.fn() },
+  },
 }))
 
 const { updateTerritory } = await import('./update-territory.server')
@@ -10,6 +13,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.territory.findUnique).mockResolvedValue({ id: 0, type: 'Classical' } as never)
 })
 
 describe('updateTerritory', () => {

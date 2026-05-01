@@ -67,7 +67,12 @@ export async function importOpenData(
             active: isActive,
             inTerritory: isActive,
             entrances: {
-              create: { kind: EntranceKind.Residential, congregation: { connect: { id: congregationId } } },
+              create: {
+                kind: EntranceKind.Residential,
+                latitude: Number(lat),
+                longitude: Number(long),
+                congregation: { connect: { id: congregationId } },
+              },
             },
             congregation: { connect: { id: congregationId } },
           },

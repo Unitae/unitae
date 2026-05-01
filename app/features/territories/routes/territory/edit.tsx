@@ -1,22 +1,25 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Download, ExternalLink, Trash2, X } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { updateTerritorySchema } from '~/features/territories/schemas/territory.schema'
 import {
   aggregateEntrance,
+  type BboxEntrance,
   getAvailableEntrances,
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
-import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
+import BuildingEntranceMapEditor, { type EntranceAction } from '~/features/territories/ui/BuildingEntranceMapEditor'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
+import PendingChangesRail from '~/features/territories/ui/PendingChangesRail'
 
 import * as m from '~/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -33,6 +36,22 @@ import type { Route } from './+types/edit'
 export const meta: Route.MetaFunction = ({ loaderData }) => {
   if (!loaderData) return [{ title: 'Unitae' }]
   return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
+}
+
+function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
+  if (entrance.latitude == null || entrance.longitude == null) return null
+  return {
+    id: entrance.id,
+    latitude: entrance.latitude,
+    longitude: entrance.longitude,
+    kind: entrance.kind,
+    homes: entrance.homes,
+    phones: entrance.phones,
+    liberals: entrance.liberals,
+    address: { number: entrance.number, street: entrance.street, zip: entrance.zip },
+    status: 'in-this-territory',
+    otherTerritory: null,
+  }
 }
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
@@ -69,39 +88,25 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       territory.type,
     )
 
+    const territoryEntrances = territory.entrances.map(aggregateEntrance)
+
+    const baseResponse = {
+      territory,
+      territoryEntrances,
+      entrances: entrances.map(aggregateEntrance),
+      zips,
+      googleMapsApiKey: apiKey,
+    }
+
     if (!url.searchParams.has('zip')) {
-      return {
-        zips,
-        territoryEntrances: territory.entrances.map(aggregateEntrance),
-        entrances: entrances.map(aggregateEntrance),
-        streets: [],
-        territory,
-        googleMapsApiKey: apiKey,
-      }
+      return { ...baseResponse, streets: [] }
     }
 
     const streets = await getAvailableStreets(db, congregationId, String(url.searchParams.get('zip')), territory.type)
-    if (!url.searchParams.has('street')) {
-      return {
-        territory,
-        zips,
-        territoryEntrances: territory.entrances.map(aggregateEntrance),
-        entrances: entrances.map(aggregateEntrance),
-        streets,
-        googleMapsApiKey: apiKey,
-      }
-    }
-
-    return {
-      territory,
-      territoryEntrances: territory.entrances.map(aggregateEntrance),
-      entrances: entrances.map(aggregateEntrance),
-      zips,
-      streets,
-      googleMapsApiKey: apiKey,
-    }
+    return { ...baseResponse, streets }
   })
 }
+
 export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) {
   const {
     entrances,
@@ -111,11 +116,133 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     territory,
     googleMapsApiKey,
   } = loaderData
-  const [territoryEntrances, setTerritoryEntrances] = useState(savedTerritoryEntrances)
+
+  const ownBboxEntrances = useMemo(
+    () =>
+      savedTerritoryEntrances
+        .map(e => ownEntranceToBbox(e))
+        .filter((e): e is BboxEntrance => e != null),
+    [savedTerritoryEntrances],
+  )
+
+  const [pendingAdditions, setPendingAdditions] = useState<Map<number, BboxEntrance>>(new Map())
+  const [pendingRemovals, setPendingRemovals] = useState<Map<number, BboxEntrance | AggregatedEntrance>>(new Map())
+  const [pendingReassignments, setPendingReassignments] = useState<
+    Map<number, { entrance: BboxEntrance; fromTerritoryId: number; fromTerritoryNumber: string }>
+  >(new Map())
+
   const { blocker, markDirty } = useUnsavedChanges()
 
   const attribution = [...territory.attributions].shift()
-  const quantity = computeTerritoryQuantity(territory.type, territoryEntrances)
+
+  const projectedEntranceIds = useMemo(() => {
+    const ids = new Set<number>()
+    for (const e of savedTerritoryEntrances) {
+      if (!pendingRemovals.has(e.id)) ids.add(e.id)
+    }
+    for (const id of pendingAdditions.keys()) ids.add(id)
+    for (const id of pendingReassignments.keys()) ids.add(id)
+    return ids
+  }, [savedTerritoryEntrances, pendingRemovals, pendingAdditions, pendingReassignments])
+
+  const projectedQuantity = useMemo(() => {
+    const projectedEntrances: AggregatedEntrance[] = []
+    for (const e of savedTerritoryEntrances) {
+      if (!pendingRemovals.has(e.id)) projectedEntrances.push(e)
+    }
+    return computeTerritoryQuantity(territory.type, projectedEntrances)
+  }, [savedTerritoryEntrances, pendingRemovals, territory.type])
+
+  const handleAct = useCallback(
+    (entrance: BboxEntrance, action: EntranceAction) => {
+      markDirty()
+      if (action === 'undo') {
+        setPendingAdditions(prev => {
+          const next = new Map(prev)
+          next.delete(entrance.id)
+          return next
+        })
+        setPendingRemovals(prev => {
+          const next = new Map(prev)
+          next.delete(entrance.id)
+          return next
+        })
+        setPendingReassignments(prev => {
+          const next = new Map(prev)
+          next.delete(entrance.id)
+          return next
+        })
+        return
+      }
+      if (action === 'add') {
+        setPendingAdditions(prev => new Map(prev).set(entrance.id, entrance))
+        return
+      }
+      if (action === 'remove') {
+        setPendingRemovals(prev => new Map(prev).set(entrance.id, entrance))
+        return
+      }
+      if (action === 'reassign' && entrance.otherTerritory != null) {
+        const other = entrance.otherTerritory
+        setPendingReassignments(prev =>
+          new Map(prev).set(entrance.id, {
+            entrance,
+            fromTerritoryId: other.id,
+            fromTerritoryNumber: other.number,
+          }),
+        )
+      }
+    },
+    [markDirty],
+  )
+
+  const handleListRemove = useCallback(
+    (entrance: AggregatedEntrance) => {
+      markDirty()
+      setPendingRemovals(prev => new Map(prev).set(entrance.id, entrance))
+    },
+    [markDirty],
+  )
+
+  const handleSelectorChange = useCallback(
+    (selection: AggregatedEntrance[]) => {
+      markDirty()
+      const ownIds = new Set(savedTerritoryEntrances.map(e => e.id))
+      setPendingAdditions(prev => {
+        const next = new Map(prev)
+        for (const entrance of selection) {
+          if (ownIds.has(entrance.id) || next.has(entrance.id)) continue
+          const bbox = ownEntranceToBbox(entrance)
+          if (bbox != null) next.set(entrance.id, bbox)
+        }
+        return next
+      })
+    },
+    [savedTerritoryEntrances, markDirty],
+  )
+
+  const handleRevert = useCallback((entranceId: number) => {
+    setPendingAdditions(prev => {
+      if (!prev.has(entranceId)) return prev
+      const next = new Map(prev)
+      next.delete(entranceId)
+      return next
+    })
+    setPendingRemovals(prev => {
+      if (!prev.has(entranceId)) return prev
+      const next = new Map(prev)
+      next.delete(entranceId)
+      return next
+    })
+    setPendingReassignments(prev => {
+      if (!prev.has(entranceId)) return prev
+      const next = new Map(prev)
+      next.delete(entranceId)
+      return next
+    })
+  }, [])
+
+  const showMap = googleMapsApiKey != null
 
   return (
     <div className="flex flex-col gap-6">
@@ -146,11 +273,31 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <div className="flex gap-10 max-sm:flex-col">
-        <div className="flex flex-1 flex-col gap-6">
+      <div className="flex gap-6 max-lg:flex-col">
+        {showMap ? (
+          <BuildingEntranceMapEditor
+            apiKey={googleMapsApiKey}
+            territoryId={territory.id}
+            ownEntrances={ownBboxEntrances}
+            pendingAdditions={new Set(pendingAdditions.keys())}
+            pendingRemovals={new Set(pendingRemovals.keys())}
+            pendingReassignments={
+              new Map(
+                [...pendingReassignments.entries()].map(([id, value]) => [
+                  id,
+                  { fromTerritoryId: value.fromTerritoryId, fromTerritoryNumber: value.fromTerritoryNumber },
+                ]),
+              )
+            }
+            onAct={handleAct}
+            className="h-[calc(100vh-12rem)] flex-1 max-lg:h-[60vh]"
+          />
+        ) : null}
+
+        <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[420px]' : 'flex-1'}`}>
           <Card>
             <CardContent className="pt-6">
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 <p>
                   {m.territories_edit_number_label()}{' '}
                   <span className="font-medium text-primary">{territory.number}</span>
@@ -166,14 +313,38 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                   </span>
                 </p>
                 <p>
-                  {m.territories_edit_homes_label()} <span className="font-medium text-primary">{quantity}</span>
+                  {m.territories_edit_homes_label()}{' '}
+                  <span className="font-medium text-primary">{projectedQuantity}</span>
                 </p>
-                <p className="pt-3 text-muted-foreground text-sm italic">{m.territories_edit_info_notice()}</p>
+                <p className="pt-2 text-muted-foreground text-sm italic">{m.territories_edit_info_notice()}</p>
               </div>
             </CardContent>
           </Card>
 
-          <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
+          <PendingChangesRail
+            territoryType={territory.type}
+            initialEntrances={savedTerritoryEntrances}
+            pendingAdditions={pendingAdditions}
+            pendingRemovals={pendingRemovals}
+            pendingReassignments={pendingReassignments}
+            onRevert={handleRevert}
+          />
+
+          <Form method="post" className="flex flex-col gap-4">
+            {[...projectedEntranceIds].map(id => (
+              <input key={id} type="hidden" name="entrances" value={id} />
+            ))}
+            {[...pendingReassignments.entries()].map(([entranceId, value], idx) => (
+              <span key={entranceId} className="contents">
+                <input type="hidden" name={`reassignments[${idx}].entranceId`} value={entranceId} />
+                <input
+                  type="hidden"
+                  name={`reassignments[${idx}].fromTerritoryId`}
+                  value={value.fromTerritoryId}
+                />
+              </span>
+            ))}
+
             <h2 className="font-semibold text-lg">{m.territories_edit_current_attribution()}</h2>
             {attribution != null ? (
               <div className="flex items-center justify-between gap-3 rounded-md border p-3">
@@ -222,50 +393,66 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               </>
             )}
 
-            <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
-            {territoryEntrances.map(entrance => (
-              <div key={entrance.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
-                <input type="hidden" name="entrances" value={entrance.id} />
-                <div className="flex flex-col">
-                  <span className="font-medium">
-                    {entrance.number} {entrance.street}, {entrance.zip}
-                  </span>
-                  <span className="text-muted-foreground text-sm">
-                    {m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="ghost" size="icon" asChild>
-                    <Link
-                      to={`/territories/building/${entrance.buildings[0].id}/view`}
-                      title={m.territories_form_view_building_title()}
+            {!showMap ? (
+              <>
+                <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
+                {savedTerritoryEntrances
+                  .filter(e => !pendingRemovals.has(e.id))
+                  .map(entrance => (
+                    <div
+                      key={entrance.id}
+                      className="flex items-center justify-between gap-3 rounded-md border p-3"
                     >
-                      <ExternalLink className="size-4 text-primary" />
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    className="text-destructive hover:text-destructive"
-                    onClick={() => {
-                      const tmpBuilding = territoryEntrances.filter(tb => tb.id !== entrance.id)
-                      setTerritoryEntrances(tmpBuilding)
-                    }}
-                    title={m.territories_form_remove_building_title()}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            <BuildingSelector
-              zips={zips}
-              streets={streets}
-              entrances={entrances ?? []}
-              selection={territoryEntrances}
-              onSelectionChange={selection => setTerritoryEntrances(selection)}
-            />
+                      <div className="flex flex-col">
+                        <span className="font-medium">
+                          {entrance.number} {entrance.street}, {entrance.zip}
+                        </span>
+                        <span className="text-muted-foreground text-sm">
+                          {m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        {entrance.buildings[0] != null ? (
+                          <Button variant="ghost" size="icon" asChild>
+                            <Link
+                              to={`/territories/building/${entrance.buildings[0].id}/view`}
+                              title={m.territories_form_view_building_title()}
+                            >
+                              <ExternalLink className="size-4 text-primary" />
+                            </Link>
+                          </Button>
+                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleListRemove(entrance)}
+                          title={m.territories_form_remove_building_title()}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                <BuildingSelector
+                  zips={zips}
+                  streets={streets}
+                  entrances={entrances ?? []}
+                  selection={[
+                    ...savedTerritoryEntrances.filter(e => !pendingRemovals.has(e.id)),
+                    ...[...pendingAdditions.values()].map(e => ({
+                      id: e.id,
+                      number: e.address.number,
+                      street: e.address.street,
+                      zip: e.address.zip,
+                    })) as unknown as AggregatedEntrance[],
+                  ]}
+                  onSelectionChange={handleSelectorChange}
+                />
+              </>
+            ) : null}
+
             <h2 className="mt-3 font-semibold text-lg">{m.territories_edit_preaching_heading()}</h2>
             <div className="flex flex-col gap-1.5">
               <Label>
@@ -277,13 +464,13 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                 rows={4}
                 name="notes"
                 defaultValue={territory.notes}
+                onChange={markDirty}
               />
             </div>
 
             <SubmitButton className="mt-2">{m.territories_edit_submit()}</SubmitButton>
           </Form>
         </div>
-        <BuildingEntranceMap apiKey={googleMapsApiKey} entrances={territoryEntrances} />
       </div>
     </div>
   )
@@ -299,12 +486,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { entrances, notes } = submission.value
+  const { entrances, reassignments, notes } = submission.value
   const { congregationId, id: actorId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {
     await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, actorId, {
       entranceIds: entrances,
+      reassignments,
       notes,
     })
 

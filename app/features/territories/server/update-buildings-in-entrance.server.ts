@@ -1,5 +1,6 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { computeEntranceCentroid } from './compute-entrance-centroid'
 
 async function recalculateEntranceAggregates(db: TransactionClient, entranceId: number) {
   const aggregates = await db.buildingResidentialData.aggregate({
@@ -12,6 +13,21 @@ async function recalculateEntranceAggregates(db: TransactionClient, entranceId: 
       homes: aggregates._sum.homes,
       phones: aggregates._sum.phones,
       liberals: aggregates._sum.liberals,
+    },
+  })
+}
+
+export async function recalculateEntranceCentroid(db: TransactionClient, entranceId: number) {
+  const buildings = await db.building.findMany({
+    where: { entrances: { some: { id: entranceId } } },
+    select: { latitude: true, longitude: true },
+  })
+  const centroid = computeEntranceCentroid(buildings)
+  await db.buildingEntrance.update({
+    where: { id: entranceId },
+    data: {
+      latitude: centroid?.latitude ?? null,
+      longitude: centroid?.longitude ?? null,
     },
   })
 }
@@ -91,12 +107,14 @@ export async function updateBuildingsInEntrance(
         data: { entranceId: newEntrance.id },
       })
 
-      // Recalculate aggregates on the new entrance
+      // Recalculate aggregates and centroid on the new entrance
       await recalculateEntranceAggregates(db, newEntrance.id)
+      await recalculateEntranceCentroid(db, newEntrance.id)
     }
 
-    // Recalculate aggregates on the original entrance
+    // Recalculate aggregates and centroid on the original entrance
     await recalculateEntranceAggregates(db, entranceId)
+    await recalculateEntranceCentroid(db, entranceId)
 
     logger.info(`Update of entrance ${entranceId} with buildings ${buildingIds.join(', ')} succeed.`)
   } catch (error) {

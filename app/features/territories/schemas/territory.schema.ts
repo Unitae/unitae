@@ -17,6 +17,15 @@ export const updateTerritorySchema = z.object({
     .or(z.coerce.number().transform(v => [v]))
     .optional()
     .default([]),
+  reassignments: z
+    .array(
+      z.object({
+        entranceId: z.coerce.number().int().positive(),
+        fromTerritoryId: z.coerce.number().int().positive(),
+      }),
+    )
+    .optional()
+    .default([]),
   notes: z.string().optional().default(''),
 })
 

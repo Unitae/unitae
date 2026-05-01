@@ -16,6 +16,8 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
     isPMR: null,
     isOpenEarly: null,
     isMailboxOpen: null,
+    latitude: null,
+    longitude: null,
     congregationId: 1,
     street: 'Rue de la Paix',
     zip: '75001',

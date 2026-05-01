@@ -32,7 +32,14 @@ export async function createBuilding(
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
       inTerritory: isInTerritory,
-      entrances: { create: { kind: EntranceKind.Residential, congregation: { connect: { id: congregationId } } } },
+      entrances: {
+        create: {
+          kind: EntranceKind.Residential,
+          latitude: coordinates.latitude,
+          longitude: coordinates.longitude,
+          congregation: { connect: { id: congregationId } },
+        },
+      },
       congregation: { connect: { id: congregationId } },
     },
     include: {
