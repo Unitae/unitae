@@ -1,5 +1,6 @@
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
-import { entranceKindLabels } from '~/features/territories/model/entrance-kind.type'
+import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
@@ -11,6 +12,7 @@ export type EntrancePendingState =
 
 type Props = {
   entrance: BboxEntrance
+  territoryType: TerritoryKind
   pending: EntrancePendingState
   onAct: () => void
 }
@@ -45,18 +47,13 @@ function actionVariant(entrance: BboxEntrance, pending: EntrancePendingState) {
   return 'default' as const
 }
 
-export default function EntrancePopup({ entrance, pending, onAct }: Props) {
-  const labels = entranceKindLabels()
-  const homesOrPhones = entrance.homes > 0 ? entrance.homes : entrance.phones
-
+export default function EntrancePopup({ entrance, territoryType, pending, onAct }: Props) {
   return (
     <div className="flex min-w-[220px] flex-col gap-2">
       <p className="font-medium">
         {entrance.address.number} {entrance.address.street}, {entrance.address.zip}
       </p>
-      <p className="text-muted-foreground text-sm">
-        {m.territories_form_homes_count({ count: String(homesOrPhones) })} · {labels[entrance.kind]}
-      </p>
+      <p className="text-muted-foreground text-sm">{entranceContentLabel(territoryType, entrance)}</p>
       <p className="text-sm">{statusLine(entrance, pending)}</p>
       <Button type="button" size="sm" variant={actionVariant(entrance, pending)} onClick={onAct}>
         {actionLabel(entrance, pending)}

@@ -20,6 +20,7 @@ export type BboxEntrance = {
   latitude: number
   longitude: number
   kind: EntranceKind
+  shopKind: string
   homes: number
   phones: number
   liberals: number
@@ -349,6 +350,7 @@ export async function getEntrancesInBbox(
         // biome-ignore lint/style/noNonNullAssertion: filtered above
         longitude: row.longitude!,
         kind: row.kind,
+        shopKind: row.shopKind,
         homes: row.homes ?? 0,
         phones: row.phones ?? 0,
         liberals: row.liberals ?? 0,

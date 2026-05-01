@@ -11,6 +11,7 @@ import {
   getAvailableStreets,
   getAvailableZips,
 } from '~/features/territories/server/buildings.server'
+import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { updateTerritory } from '~/features/territories/server/update-territory.server'
 import BuildingEntranceMapEditor, { type EntranceAction } from '~/features/territories/ui/BuildingEntranceMapEditor'
@@ -45,6 +46,7 @@ function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
     latitude: entrance.latitude,
     longitude: entrance.longitude,
     kind: entrance.kind,
+    shopKind: entrance.shopKind,
     homes: entrance.homes,
     phones: entrance.phones,
     liberals: entrance.liberals,
@@ -277,6 +279,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
           <BuildingEntranceMapEditor
             apiKey={googleMapsApiKey}
             territoryId={territory.id}
+            territoryType={territory.type}
             ownEntrances={ownBboxEntrances}
             pendingAdditions={new Set(pendingAdditions.keys())}
             pendingRemovals={new Set(pendingRemovals.keys())}
@@ -320,6 +323,68 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             </CardContent>
           </Card>
 
+          <div className="flex flex-col gap-2">
+            <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
+            {savedTerritoryEntrances.length === 0 ? (
+              <p className="text-muted-foreground text-sm italic">{m.territories_edit_no_entrances()}</p>
+            ) : (
+              savedTerritoryEntrances.map(entrance => {
+                const pendingRemoval = pendingRemovals.has(entrance.id)
+                return (
+                  <div
+                    key={entrance.id}
+                    className={`flex items-center justify-between gap-3 rounded-md border p-3 ${
+                      pendingRemoval ? 'opacity-50 line-through' : ''
+                    }`}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">
+                        {entrance.number} {entrance.street}, {entrance.zip}
+                      </span>
+                      <span className="text-muted-foreground text-sm">
+                        {entranceContentLabel(territory.type, entrance)}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      {entrance.buildings[0] != null ? (
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link
+                            to={`/territories/building/${entrance.buildings[0].id}/view`}
+                            title={m.territories_form_view_building_title()}
+                          >
+                            <ExternalLink className="size-4 text-primary" />
+                          </Link>
+                        </Button>
+                      ) : null}
+                      {pendingRemoval ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          type="button"
+                          onClick={() => handleRevert(entrance.id)}
+                          title={m.territories_map_pending_revert_title()}
+                        >
+                          {m.territories_map_action_undo()}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          type="button"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleListRemove(entrance)}
+                          title={m.territories_form_remove_building_title()}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
           <PendingChangesRail
             territoryType={territory.type}
             initialEntrances={savedTerritoryEntrances}
@@ -345,63 +410,21 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             ))}
 
             {!showMap ? (
-              <>
-                <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
-                {savedTerritoryEntrances
-                  .filter(e => !pendingRemovals.has(e.id))
-                  .map(entrance => (
-                    <div
-                      key={entrance.id}
-                      className="flex items-center justify-between gap-3 rounded-md border p-3"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {entrance.number} {entrance.street}, {entrance.zip}
-                        </span>
-                        <span className="text-muted-foreground text-sm">
-                          {m.territories_form_homes_count({ count: String(entrance.homes || entrance.phones) })}
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        {entrance.buildings[0] != null ? (
-                          <Button variant="ghost" size="icon" asChild>
-                            <Link
-                              to={`/territories/building/${entrance.buildings[0].id}/view`}
-                              title={m.territories_form_view_building_title()}
-                            >
-                              <ExternalLink className="size-4 text-primary" />
-                            </Link>
-                          </Button>
-                        ) : null}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          type="button"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => handleListRemove(entrance)}
-                          title={m.territories_form_remove_building_title()}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                <BuildingSelector
-                  zips={zips}
-                  streets={streets}
-                  entrances={entrances ?? []}
-                  selection={[
-                    ...savedTerritoryEntrances.filter(e => !pendingRemovals.has(e.id)),
-                    ...[...pendingAdditions.values()].map(e => ({
-                      id: e.id,
-                      number: e.address.number,
-                      street: e.address.street,
-                      zip: e.address.zip,
-                    })) as unknown as AggregatedEntrance[],
-                  ]}
-                  onSelectionChange={handleSelectorChange}
-                />
-              </>
+              <BuildingSelector
+                zips={zips}
+                streets={streets}
+                entrances={entrances ?? []}
+                selection={[
+                  ...savedTerritoryEntrances.filter(e => !pendingRemovals.has(e.id)),
+                  ...([...pendingAdditions.values()].map(e => ({
+                    id: e.id,
+                    number: e.address.number,
+                    street: e.address.street,
+                    zip: e.address.zip,
+                  })) as unknown as AggregatedEntrance[]),
+                ]}
+                onSelectionChange={handleSelectorChange}
+              />
             ) : null}
 
             <h2 className="mt-3 font-semibold text-lg">{m.territories_edit_preaching_heading()}</h2>

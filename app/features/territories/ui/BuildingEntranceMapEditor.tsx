@@ -6,6 +6,7 @@ import {
   useMap,
 } from '@vis.gl/react-google-maps'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import EntrancePopup, { type EntrancePendingState } from '~/features/territories/ui/EntrancePopup'
 import * as m from '~/paraglide/messages'
@@ -17,6 +18,7 @@ export type EntranceAction = 'add' | 'remove' | 'reassign' | 'undo'
 type Props = {
   apiKey?: string
   territoryId: number
+  territoryType: TerritoryKind
   ownEntrances: BboxEntrance[]
   pendingAdditions: ReadonlySet<number>
   pendingRemovals: ReadonlySet<number>
@@ -66,6 +68,7 @@ function pinClassesFor(entrance: BboxEntrance, pending: EntrancePendingState) {
 
 function MapContents({
   territoryId,
+  territoryType,
   ownEntrances,
   pendingAdditions,
   pendingRemovals,
@@ -191,6 +194,7 @@ function MapContents({
         >
           <EntrancePopup
             entrance={selected}
+            territoryType={territoryType}
             pending={pendingStateFor(selected, pendingAdditions, pendingRemovals, pendingReassignments)}
             onAct={() => {
               const pending = pendingStateFor(selected, pendingAdditions, pendingRemovals, pendingReassignments)
@@ -226,6 +230,7 @@ function MapContents({
 export default function BuildingEntranceMapEditor({
   apiKey,
   territoryId,
+  territoryType,
   ownEntrances,
   pendingAdditions,
   pendingRemovals,
@@ -270,6 +275,7 @@ export default function BuildingEntranceMapEditor({
           >
             <MapContents
               territoryId={territoryId}
+              territoryType={territoryType}
               ownEntrances={ownEntrances}
               pendingAdditions={pendingAdditions}
               pendingRemovals={pendingRemovals}

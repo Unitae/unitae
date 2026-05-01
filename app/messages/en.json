@@ -1298,6 +1298,7 @@
     "territories_edit_number_label": "Number:",
     "territories_edit_type_label": "Territory type:",
     "territories_edit_content_label": "Content:",
+    "territories_edit_no_entrances": "No entrances in this territory yet.",
     "territories_edit_info_notice": "If any of this information is incorrect, please contact the Territory department.",
     "territories_edit_current_attribution": "Current assignment",
     "territories_edit_no_attribution": "No current assignment for this territory",
