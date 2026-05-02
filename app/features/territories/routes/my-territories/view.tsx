@@ -14,7 +14,7 @@ import {
 
 import { EntranceMarkerPin } from '~/features/territories/ui/EntranceMarkerPin'
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'

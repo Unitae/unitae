@@ -10,7 +10,7 @@ import { aggregateEntrance } from '~/features/territories/server/buildings.serve
 import { createTerritory } from '~/features/territories/server/create-territory.server'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 import BuildingSelector from '~/features/territories/ui/BuildingSelector'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

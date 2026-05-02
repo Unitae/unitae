@@ -1,5 +1,5 @@
 import { ChevronRight } from 'lucide-react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { cn } from '~/shared/utils/utils'
 

@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deletePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'

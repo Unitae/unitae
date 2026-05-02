@@ -2,7 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Form, Link } from 'react-router'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'

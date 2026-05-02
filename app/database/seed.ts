@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
-import * as m from '../paraglide/messages'
+import * as m from '../i18n/paraglide/messages'
 import { seedRoles } from '../shared/domain/setup.server'
 import { PrismaClient } from './generated/client'
 

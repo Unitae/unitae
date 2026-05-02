@@ -1,6 +1,6 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { MonthlyCoverage } from '~/features/territories/server/compute-monthly-coverage-evolution.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 const MONTH_LABELS: Record<string, string> = {
   '01': 'Jan',

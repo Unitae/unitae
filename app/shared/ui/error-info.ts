@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import { AlertTriangle, SearchX, ShieldX } from 'lucide-react'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export interface ErrorInfo {
   icon: LucideIcon

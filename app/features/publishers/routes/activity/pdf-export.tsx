@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { renderActivityPdfZip } from '~/features/publishers/server/render-activity-pdf-zip.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

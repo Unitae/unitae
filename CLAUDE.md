@@ -102,7 +102,7 @@ app/
 | File storage (S3/local) | `app/shared/infra/file-storage.server.ts` |
 | Background queue | `app/shared/infra/queues.server.ts` |
 | BullMQ worker | `app/workers/worker.server.ts` |
-| i18n messages | `app/paraglide/messages.js` (generated) |
+| i18n messages | `app/i18n/paraglide/messages.js` (generated) |
 | Route definitions | `app/routes.ts` |
 | Shared UI components | `app/shared/ui/` |
 | AppError classes | `app/shared/errors/app-error.server.ts` |

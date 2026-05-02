@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { Form, NavLink } from "react-router";
 
-import * as m from "~/paraglide/messages";
+import * as m from "~/i18n/paraglide/messages";
 import {
   Collapsible,
   CollapsibleContent,

@@ -3,7 +3,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { deleteBoardDocument } from '~/features/display-board/server/board-document.server'
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import { notify } from '~/features/notifications/server/notify.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

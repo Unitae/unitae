@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [
     tailwindcss(),
     paraglideVitePlugin({
-      project: './project.inlang',
-      outdir: './app/paraglide',
+      project: './app/i18n/project.inlang',
+      outdir: './app/i18n/paraglide',
     }),
     reactRouter(),
   ],

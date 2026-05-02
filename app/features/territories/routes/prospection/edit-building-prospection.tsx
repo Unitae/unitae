@@ -21,7 +21,7 @@ import {
   SimpleEntranceCard,
 } from '~/features/territories/ui/EntranceCard'
 import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

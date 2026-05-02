@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'

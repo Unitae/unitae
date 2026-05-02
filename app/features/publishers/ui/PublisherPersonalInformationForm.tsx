@@ -1,4 +1,4 @@
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { UserInput } from '~/shared/types/user-input'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'

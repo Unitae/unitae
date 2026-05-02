@@ -7,7 +7,7 @@ import { createPublisher } from '~/features/publishers/server/create-publisher.s
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

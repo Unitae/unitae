@@ -5,7 +5,7 @@ import {
 } from '~/features/territories/model/entrance-kind.type'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
 type BuildingWithEntrances = Building & { entrances: BuildingEntrance[] }

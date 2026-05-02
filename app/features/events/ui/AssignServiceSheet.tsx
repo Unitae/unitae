@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useFetcher } from 'react-router'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Label } from '~/shared/ui/label'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'

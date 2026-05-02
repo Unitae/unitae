@@ -1,6 +1,6 @@
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
 import type { PublisherActivity, User } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {

@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse } from '~/shared/infra/pdf.server'

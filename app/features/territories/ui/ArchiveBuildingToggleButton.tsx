@@ -1,7 +1,7 @@
 import { Archive, ArchiveRestore } from 'lucide-react'
 import { Form } from 'react-router'
 import type { Building } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
 export default function ArchiveBuildingToggleButton({ building }: { building: Building }) {

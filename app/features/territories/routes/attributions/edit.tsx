@@ -9,7 +9,7 @@ import { updateAttributionSchema } from '~/features/territories/schemas/attribut
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { updateAttribution } from '~/features/territories/server/update-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'

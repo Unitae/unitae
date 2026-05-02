@@ -3,7 +3,7 @@ import { formatAccessSequence } from '~/features/territories/model/access-format
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 import { Card, CardContent } from '~/shared/ui/card'
 

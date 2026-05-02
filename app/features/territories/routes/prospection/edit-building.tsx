@@ -6,7 +6,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { updateBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { editBuilding } from '~/features/territories/server/edit-building.server'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

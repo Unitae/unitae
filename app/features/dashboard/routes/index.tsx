@@ -11,7 +11,7 @@ import {
 } from '~/features/dashboard/server/dashboard.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

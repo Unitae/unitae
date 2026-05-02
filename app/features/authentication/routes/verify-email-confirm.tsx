@@ -4,7 +4,7 @@ import {
   verifyEmailVerificationToken,
 } from '~/features/authentication/server/email-verification.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 import type { Route } from './+types/verify-email-confirm'
 

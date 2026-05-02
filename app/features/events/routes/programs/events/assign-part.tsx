@@ -8,7 +8,7 @@ import { assignPart, getEventProgramme } from '~/features/events/server/programm
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'

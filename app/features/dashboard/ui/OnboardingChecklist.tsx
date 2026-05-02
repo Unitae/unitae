@@ -1,7 +1,7 @@
 import { CheckCircle2, Circle, FileText, MapPin, Users, X } from 'lucide-react'
 import { Link } from 'react-router'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'

@@ -19,7 +19,7 @@ import EntrancePopup, {
 import { pinVariantFor } from "~/features/territories/ui/entrance-pin-variant";
 import MapSearchBox from "~/features/territories/ui/MapSearchBox";
 import MarkerLegend from "~/features/territories/ui/MarkerLegend";
-import * as m from "~/paraglide/messages";
+import * as m from "~/i18n/paraglide/messages";
 import { Card, CardContent } from "~/shared/ui/card";
 import MapConsentBanner, { useMapConsent } from "~/shared/ui/MapConsentBanner";
 

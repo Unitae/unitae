@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
-vi.mock('~/paraglide/messages', () => ({
+vi.mock('~/i18n/paraglide/messages', () => ({
   dashboard_urgent_territory_overdue: ({ number }: { number: string }) => `Territory ${number} — overdue`,
   dashboard_urgent_territory_due_soon: ({ number }: { number: string }) => `Territory ${number} — due soon`,
   dashboard_urgent_assignment_soon: ({ name, eventName }: { name: string; eventName: string }) =>

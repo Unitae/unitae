@@ -1,4 +1,4 @@
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export type UserNameInfo = {
   firstname: string | null

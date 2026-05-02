@@ -65,7 +65,7 @@ it('should throw NotFoundError when user does not exist', async () => {
 **Mocking Paraglide messages:**
 
 ```typescript
-vi.mock('~/paraglide/messages', () => ({
+vi.mock('~/i18n/paraglide/messages', () => ({
   dashboard_urgent_territory_overdue: ({ number }: { number: string }) =>
     `Territory ${number} — overdue`,
 }))

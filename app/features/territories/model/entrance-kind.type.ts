@@ -1,5 +1,5 @@
 import { EntranceKind } from '~/database/generated/enums'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export { EntranceKind }
 

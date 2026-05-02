@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { TerritoryKind } from "~/features/territories/model/territory-kind.type";
 import type { BboxEntrance } from "~/features/territories/server/buildings.server";
 import { entranceContentLabel } from "~/features/territories/server/entrance-content-label";
-import * as m from "~/paraglide/messages";
+import * as m from "~/i18n/paraglide/messages";
 import { Button } from "~/shared/ui/button";
 
 export type EntrancePendingState =

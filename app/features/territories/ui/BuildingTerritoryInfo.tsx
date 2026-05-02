@@ -1,6 +1,6 @@
 import { Form } from 'react-router'
 import type { Building } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'

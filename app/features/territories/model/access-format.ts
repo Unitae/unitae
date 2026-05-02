@@ -1,6 +1,6 @@
 import type { BuildingAccess } from '~/database/generated/client'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 
 export function formatAccessLabel(accessType: number): string {

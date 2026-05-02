@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'

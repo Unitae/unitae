@@ -13,7 +13,7 @@ import { updateDynamicDocumentSchema } from '~/features/display-board/schemas/bo
 import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

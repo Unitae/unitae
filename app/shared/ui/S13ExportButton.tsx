@@ -1,6 +1,6 @@
 import { FileDown } from 'lucide-react'
 import { Link } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 

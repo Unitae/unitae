@@ -12,8 +12,8 @@ import {
   useRouteLoaderData,
 } from 'react-router'
 
-import * as m from '~/paraglide/messages'
-import { getLocale } from '~/paraglide/runtime'
+import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '~/shared/ui/card'
 import { getErrorInfo } from '~/shared/ui/error-info'

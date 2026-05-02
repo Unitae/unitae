@@ -1,5 +1,5 @@
 import type { Attribution } from '~/database/generated/client'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
 export function AttributionStatus({ attribution }: { attribution: Attribution }) {

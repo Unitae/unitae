@@ -1,6 +1,6 @@
 import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
-import * as m from '~/paraglide/messages'
-import type { locales } from '~/paraglide/runtime'
+import * as m from '~/i18n/paraglide/messages'
+import type { locales } from '~/i18n/paraglide/runtime'
 
 type Locale = (typeof locales)[number]
 

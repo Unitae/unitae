@@ -1,6 +1,6 @@
 import { SlidersHorizontal } from 'lucide-react'
 import { Form, useSearchParams } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'

@@ -1,7 +1,7 @@
 import { AlertTriangle, Clock, Mail, Phone, StickyNote, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Skeleton } from '~/shared/ui/skeleton'
 

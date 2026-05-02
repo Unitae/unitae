@@ -1,5 +1,5 @@
 import { TrendingDown, TrendingUp } from 'lucide-react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 interface YearMetrics {
   coverage: number

@@ -1,6 +1,6 @@
 import type { Attribution } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
 export function TerritoryAvaibilityStatus({ attribution }: { attribution?: Attribution }) {

@@ -8,7 +8,7 @@ import { updatePublisher } from '~/features/publishers/server/update-publisher.s
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'

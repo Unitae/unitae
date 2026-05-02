@@ -1,7 +1,7 @@
 import { Pencil } from 'lucide-react'
 import { Link } from 'react-router'
 import { verifyPlatformAdmin } from '~/features/platform-admin/server/verify-platform-admin.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'

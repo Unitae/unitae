@@ -10,7 +10,7 @@ import {
 } from '~/features/authentication/server/rate-limit.server'
 import { commitSession, destroySession, getSession } from '~/features/authentication/server/session.server'
 import { validateCredentials } from '~/features/authentication/server/validate-credentials.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'

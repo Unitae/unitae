@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/paraglide/messages', () => ({
+vi.mock('~/i18n/paraglide/messages', () => ({
   board_read_status_anonymized_user: () => 'Anonyme',
 }))
 

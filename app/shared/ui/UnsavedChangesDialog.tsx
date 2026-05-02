@@ -1,6 +1,6 @@
 import type { Blocker } from 'react-router'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   AlertDialog,
   AlertDialogAction,

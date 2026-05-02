@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import { consentSchema } from '~/features/authentication/schemas/login.schema'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'

@@ -1,5 +1,5 @@
 import { ExternalLink, SearchX } from 'lucide-react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { Button } from '~/shared/ui/button'

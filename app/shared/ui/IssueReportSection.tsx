@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react'
 import { useState } from 'react'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export function IssueReportSection({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false)

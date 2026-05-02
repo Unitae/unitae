@@ -46,7 +46,7 @@ import { findAvailableTerritoriesPaginated } from '~/features/territories/server
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'

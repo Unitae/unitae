@@ -4,7 +4,7 @@ import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
 import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

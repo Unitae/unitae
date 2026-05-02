@@ -2,7 +2,7 @@ import { Loader2, Search, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigation, useSearchParams } from 'react-router'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { useDebouncedValue } from '~/shared/ui/hooks/use-debounced-value'
 import { Input } from '~/shared/ui/input'

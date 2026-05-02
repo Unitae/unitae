@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'

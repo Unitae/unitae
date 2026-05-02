@@ -5,7 +5,7 @@ import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/t
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { Entrance } from '~/shared/types/entrance'
 
 const fontsDir = path.join(process.cwd(), 'public', 'fonts')

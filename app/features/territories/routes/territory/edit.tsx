@@ -28,7 +28,7 @@ import BuildingEntranceMapEditor, {
 import BuildingSelector from "~/features/territories/ui/BuildingSelector";
 import PendingChangesRail from "~/features/territories/ui/PendingChangesRail";
 
-import * as m from "~/paraglide/messages";
+import * as m from "~/i18n/paraglide/messages";
 import {
   permissionsContext,
   requireRole,

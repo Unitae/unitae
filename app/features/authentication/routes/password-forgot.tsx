@@ -9,7 +9,7 @@ import {
 } from '~/features/authentication/server/rate-limit.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import {
   getBrandingName,
