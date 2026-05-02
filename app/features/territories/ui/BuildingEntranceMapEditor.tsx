@@ -5,11 +5,12 @@ import {
   Map as GoogleMap,
   useMap,
 } from '@vis.gl/react-google-maps'
-import { Check, Info, Loader2, Plus, X } from 'lucide-react'
+import { Check, Info, Loader2, MapPin, Plus, RefreshCw, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import EntrancePopup, { type EntrancePendingState } from '~/features/territories/ui/EntrancePopup'
+import MarkerLegend from '~/features/territories/ui/MarkerLegend'
 import * as m from '~/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
@@ -104,9 +105,13 @@ function MapContents({
   const map = useMap()
   const fetchAbort = useRef<AbortController | null>(null)
   const cacheRef = useRef<Map<string, BboxEntrance[]>>(new Map())
+  const entranceToKeysRef = useRef<Map<number, Set<string>>>(new Map())
+  const lastBboxRef = useRef<{ swLat: number; swLng: number; neLat: number; neLng: number } | null>(null)
   const [viewportEntrances, setViewportEntrances] = useState<BboxEntrance[]>([])
   const [truncated, setTruncated] = useState(false)
+  const [truncatedTotal, setTruncatedTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
   const [selected, setSelected] = useState<BboxEntrance | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -121,11 +126,14 @@ function MapContents({
 
   const loadBbox = useCallback(
     async (bbox: { swLat: number; swLng: number; neLat: number; neLng: number }) => {
+      lastBboxRef.current = bbox
       const key = gridKey(bbox)
       const cached = cacheRef.current.get(key)
       if (cached != null) {
         setViewportEntrances(cached)
         setTruncated(false)
+        setTruncatedTotal(null)
+        setError(false)
         return
       }
 
@@ -133,6 +141,7 @@ function MapContents({
       const ctrl = new AbortController()
       fetchAbort.current = ctrl
       setLoading(true)
+      setError(false)
       try {
         const params = new URLSearchParams({
           bbox: `${bbox.swLat},${bbox.swLng},${bbox.neLat},${bbox.neLng}`,
@@ -145,13 +154,26 @@ function MapContents({
         if (!response.ok) {
           throw new Error(`Bbox request failed: ${response.status}`)
         }
-        const data = (await response.json()) as { entrances: BboxEntrance[]; truncated: boolean }
+        const data = (await response.json()) as {
+          entrances: BboxEntrance[]
+          truncated: boolean
+          total: number | null
+        }
         cacheRef.current.set(key, data.entrances)
+        for (const entrance of data.entrances) {
+          let keys = entranceToKeysRef.current.get(entrance.id)
+          if (keys == null) {
+            keys = new Set()
+            entranceToKeysRef.current.set(entrance.id, keys)
+          }
+          keys.add(key)
+        }
         setViewportEntrances(data.entrances)
         setTruncated(data.truncated)
-      } catch (error) {
-        if ((error as { name?: string }).name === 'AbortError') return
-        // The user can pan again to retry; we don't have a logger client-side.
+        setTruncatedTotal(data.total)
+      } catch (err) {
+        if ((err as { name?: string }).name === 'AbortError') return
+        setError(true)
       } finally {
         if (fetchAbort.current === ctrl) {
           setLoading(false)
@@ -160,6 +182,29 @@ function MapContents({
     },
     [territoryId],
   )
+
+  const invalidateCacheFor = useCallback((entranceId: number) => {
+    const keys = entranceToKeysRef.current.get(entranceId)
+    if (keys == null) return
+    for (const key of keys) cacheRef.current.delete(key)
+    entranceToKeysRef.current.delete(entranceId)
+  }, [])
+
+  // Invalidate cached bbox tiles whenever local pending state mutates an entrance — keeps
+  // status badges accurate if the user pans away and returns to a tile they've already loaded.
+  useEffect(() => {
+    for (const id of pendingAdditions) invalidateCacheFor(id)
+  }, [pendingAdditions, invalidateCacheFor])
+  useEffect(() => {
+    for (const id of pendingRemovals) invalidateCacheFor(id)
+  }, [pendingRemovals, invalidateCacheFor])
+  useEffect(() => {
+    for (const id of pendingReassignments.keys()) invalidateCacheFor(id)
+  }, [pendingReassignments, invalidateCacheFor])
+
+  const retryLastLoad = useCallback(() => {
+    if (lastBboxRef.current != null) loadBbox(lastBboxRef.current)
+  }, [loadBbox])
 
   const handleIdle = useCallback(() => {
     if (map == null) return
@@ -264,10 +309,34 @@ function MapContents({
         {truncated ? (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary shadow-sm backdrop-blur">
             <Info className="size-3" aria-hidden="true" />
-            {m.territories_map_truncated_hint()}
+            {truncatedTotal != null
+              ? m.territories_map_truncated_hint_with_count({ total: String(truncatedTotal) })
+              : m.territories_map_truncated_hint()}
           </span>
         ) : null}
+        {error ? (
+          <button
+            type="button"
+            onClick={retryLastLoad}
+            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full border border-destructive/30 bg-destructive/10 px-2.5 py-1 text-destructive shadow-sm backdrop-blur hover:bg-destructive/20"
+          >
+            <RefreshCw className="size-3" aria-hidden="true" />
+            {m.territories_map_load_error()}
+          </button>
+        ) : null}
       </div>
+
+      {ownEntrances.length === 0 && pendingAdditions.size === 0 ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
+          <div className="pointer-events-auto flex max-w-sm flex-col items-center gap-2 rounded-lg border bg-card/95 p-4 text-center shadow-md backdrop-blur">
+            <MapPin className="size-6 text-primary" aria-hidden="true" />
+            <p className="font-medium text-sm">{m.territories_map_empty_state_title()}</p>
+            <p className="text-muted-foreground text-xs">{m.territories_map_empty_state_body()}</p>
+          </div>
+        </div>
+      ) : null}
+
+      <MarkerLegend />
     </>
   )
 }

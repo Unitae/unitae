@@ -75,9 +75,29 @@ export default function PendingChangesRail({
 
   if (!hasPending) return null
 
+  const revertAll = () => {
+    for (const id of pendingAdditions.keys()) onRevert(id)
+    for (const id of pendingRemovals.keys()) onRevert(id)
+    for (const id of pendingReassignments.keys()) onRevert(id)
+  }
+  const revertAllAdditions = () => {
+    for (const id of pendingAdditions.keys()) onRevert(id)
+  }
+  const revertAllRemovals = () => {
+    for (const id of pendingRemovals.keys()) onRevert(id)
+  }
+  const revertAllReassignments = () => {
+    for (const id of pendingReassignments.keys()) onRevert(id)
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
-      <h3 className="font-semibold text-base">{m.territories_map_pending_heading()}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-semibold text-base">{m.territories_map_pending_heading()}</h3>
+        <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={revertAll}>
+          {m.territories_map_pending_revert_all()}
+        </Button>
+      </div>
       <p className="font-medium text-sm">
         {delta === 0
           ? m.territories_map_pending_quantity_unchanged({ count: String(projectedQuantity) })
@@ -90,9 +110,20 @@ export default function PendingChangesRail({
 
       {additionsCount > 0 ? (
         <div className="flex flex-col gap-1">
-          <p className="text-muted-foreground text-xs uppercase tracking-wide">
-            {m.territories_map_pending_additions({ count: String(additionsCount) })}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+              {m.territories_map_pending_additions({ count: String(additionsCount) })}
+            </p>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs"
+              onClick={revertAllAdditions}
+            >
+              {m.territories_map_pending_revert_section()}
+            </Button>
+          </div>
           <ul className="flex flex-col gap-1">
             {[...pendingAdditions.values()].map(entrance => (
               <li
@@ -120,9 +151,20 @@ export default function PendingChangesRail({
 
       {removalsCount > 0 ? (
         <div className="flex flex-col gap-1">
-          <p className="text-muted-foreground text-xs uppercase tracking-wide">
-            {m.territories_map_pending_removals({ count: String(removalsCount) })}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+              {m.territories_map_pending_removals({ count: String(removalsCount) })}
+            </p>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs"
+              onClick={revertAllRemovals}
+            >
+              {m.territories_map_pending_revert_section()}
+            </Button>
+          </div>
           <ul className="flex flex-col gap-1">
             {[...pendingRemovals.values()].map(entrance => (
               <li
@@ -150,9 +192,20 @@ export default function PendingChangesRail({
 
       {reassignmentsCount > 0 ? (
         <div className="flex flex-col gap-1">
-          <p className="text-muted-foreground text-xs uppercase tracking-wide">
-            {m.territories_map_pending_reassignments({ count: String(reassignmentsCount) })}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+              {m.territories_map_pending_reassignments({ count: String(reassignmentsCount) })}
+            </p>
+            <Button
+              type="button"
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs"
+              onClick={revertAllReassignments}
+            >
+              {m.territories_map_pending_revert_section()}
+            </Button>
+          </div>
           <ul className="flex flex-col gap-1">
             {[...pendingReassignments.values()].map(({ entrance, fromTerritoryNumber }) => (
               <li

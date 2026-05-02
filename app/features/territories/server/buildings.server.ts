@@ -312,16 +312,17 @@ export async function getEntrancesInBbox(
   territoryType: TerritoryKind,
   bbox: { swLat: number; swLng: number; neLat: number; neLng: number },
   limit = 1500,
-): Promise<{ entrances: BboxEntrance[]; truncated: boolean }> {
+): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
   const expectedKind = entranceKindForTerritoryType[territoryType]
+  const where = {
+    congregationId,
+    kind: expectedKind,
+    latitude: { gte: bbox.swLat, lte: bbox.neLat },
+    longitude: { gte: bbox.swLng, lte: bbox.neLng },
+  } satisfies Prisma.BuildingEntranceWhereInput
 
   const rows = await db.buildingEntrance.findMany({
-    where: {
-      congregationId,
-      kind: expectedKind,
-      latitude: { gte: bbox.swLat, lte: bbox.neLat },
-      longitude: { gte: bbox.swLng, lte: bbox.neLng },
-    },
+    where,
     include: {
       territories: { where: { type: territoryType }, select: { id: true, number: true } },
       buildings: { take: 1, select: { number: true, street: true, zip: true } },
@@ -331,6 +332,7 @@ export async function getEntrancesInBbox(
 
   const truncated = rows.length > limit
   const sliced = truncated ? rows.slice(0, limit) : rows
+  const total = truncated ? await db.buildingEntrance.count({ where }) : null
 
   const entrances: BboxEntrance[] = sliced
     .filter(row => row.latitude != null && row.longitude != null && row.buildings[0] != null)
@@ -360,5 +362,5 @@ export async function getEntrancesInBbox(
       }
     })
 
-  return { entrances, truncated }
+  return { entrances, truncated, total }
 }

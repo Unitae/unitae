@@ -240,6 +240,15 @@ describe('getEntrancesInBbox (integration)', () => {
     )
     expect(result.truncated).toBe(true)
     expect(result.entrances).toHaveLength(1)
+    expect(result.total).toBeGreaterThan(1)
+  })
+
+  it('returns total=null when not truncated', async () => {
+    const result = await withScope(primaryCongId, tx =>
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox),
+    )
+    expect(result.truncated).toBe(false)
+    expect(result.total).toBeNull()
   })
 
   it('returns an empty array when no entrance is in the bbox', async () => {
