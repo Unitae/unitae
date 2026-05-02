@@ -5,6 +5,7 @@ import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 export default function BuildingSelector({
   zips = [],
@@ -30,67 +31,69 @@ export default function BuildingSelector({
           <div className="flex gap-3">
             <div className="flex flex-1 flex-col gap-1.5">
               <Label>{m.prospection_selector_zip_label()}</Label>
-              <select
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={event => {
-                  searchParams.set('zip', event.target.value)
+              <Select
+                value={searchParams.get('zip') ?? undefined}
+                onValueChange={value => {
+                  searchParams.set('zip', value)
                   setSearchParams(searchParams)
                 }}
-                defaultValue={searchParams.get('zip') ?? ''}
               >
-                <option disabled selected={!searchParams.has('zip')}>
-                  {m.prospection_selector_zip_placeholder()}
-                </option>
-                {zips.map(el => (
-                  <option key={el.zip} value={el.zip}>
-                    {el.zip}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={m.prospection_selector_zip_placeholder()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {zips.map(el => (
+                    <SelectItem key={el.zip} value={el.zip}>
+                      {el.zip}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {streets.length > 0 && (
               <div className="flex flex-1 flex-col gap-1.5">
                 <Label>{m.prospection_selector_street_label()}</Label>
-                <select
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={event => {
-                    searchParams.set('street', event.target.value)
+                <Select
+                  value={searchParams.get('street') ?? undefined}
+                  onValueChange={value => {
+                    searchParams.set('street', value)
                     setSearchParams(searchParams)
                   }}
-                  defaultValue={searchParams.get('street') ?? ''}
                 >
-                  <option disabled selected={!searchParams.has('street')}>
-                    {m.prospection_selector_street_placeholder()}
-                  </option>
-                  {streets.map(el => (
-                    <option key={el.street} value={el.street}>
-                      {el.street}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={m.prospection_selector_street_placeholder()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {streets.map(el => (
+                      <SelectItem key={el.street} value={el.street}>
+                        {el.street}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
           {entrances.length > 0 && (
             <div className="flex flex-col gap-1.5">
               <Label>{m.prospection_selector_entrance_label()}</Label>
-              <select
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={event => {
-                  selectEntrance(Number(event.target.value))
-                }}
+              <Select
+                value={selectedEntrance != null ? String(selectedEntrance) : undefined}
+                onValueChange={value => selectEntrance(Number(value))}
               >
-                <option disabled selected={selectedEntrance == null}>
-                  {m.prospection_selector_entrance_placeholder()}
-                </option>
-                {entrances
-                  .filter(el => !selection.map(tbuilding => tbuilding.id).includes(el.id))
-                  .map(el => (
-                    <option key={el.id} value={el.id}>
-                      {el.number} {el.street}, {el.zip}
-                    </option>
-                  ))}
-              </select>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={m.prospection_selector_entrance_placeholder()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {entrances
+                    .filter(el => !selection.map(tbuilding => tbuilding.id).includes(el.id))
+                    .map(el => (
+                      <SelectItem key={el.id} value={String(el.id)}>
+                        {el.number} {el.street}, {el.zip}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
           {selectedEntrance != null && (

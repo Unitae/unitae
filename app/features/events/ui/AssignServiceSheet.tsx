@@ -3,8 +3,8 @@ import { useFetcher } from 'react-router'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { Label } from '~/shared/ui/label'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 
 type ServiceAssignment = {
@@ -24,11 +24,11 @@ type AssignServiceSheetProps = {
 export function AssignServiceSheet({ open, onOpenChange, assignment, users, eventId }: AssignServiceSheetProps) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const prevState = useRef(fetcher.state)
-  const [selectedAssignee, setSelectedAssignee] = useState('none')
+  const [selectedAssignee, setSelectedAssignee] = useState('')
 
   useEffect(() => {
     if (assignment) {
-      setSelectedAssignee(assignment.assigneeId?.toString() ?? 'none')
+      setSelectedAssignee(assignment.assigneeId?.toString() ?? '')
     }
   }, [assignment])
 
@@ -56,24 +56,20 @@ export function AssignServiceSheet({ open, onOpenChange, assignment, users, even
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="assigneeId">{m.programs_assign_service_publisher_label()}</Label>
-            <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
-              <SelectTrigger>
-                <SelectValue placeholder={m.programs_assign_service_select_publisher()} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{m.programs_assign_service_none()}</SelectItem>
-                {users.map(user => (
-                  <SelectItem key={user.id} value={user.id.toString()}>
-                    {user.firstname} {user.lastname}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PersonDropdown
+              id="assigneeId"
+              name="assigneeId"
+              people={users}
+              value={selectedAssignee}
+              onValueChange={setSelectedAssignee}
+              placeholder={m.programs_assign_service_select_publisher()}
+              noneLabel={m.programs_assign_service_none()}
+            />
           </div>
 
           <PublisherInfoCard
             eventId={eventId}
-            userId={selectedAssignee !== 'none' ? selectedAssignee : null}
+            userId={selectedAssignee || null}
             partName={assignment.name}
           />
 

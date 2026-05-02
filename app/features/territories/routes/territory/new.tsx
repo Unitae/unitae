@@ -29,6 +29,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
@@ -118,20 +119,20 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor={fields.type.id}>{m.territories_form_type()}</Label>
-                <select
-                  className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  id={fields.type.id}
-                  name={fields.type.name}
-                  required
-                >
-                  <option value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</option>
-                  <option value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</option>
-                  <option value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</option>
-                  {phoneTypeActive && (
-                    <option value={TerritoryKind.Phone}>{m.territories_type_phone_singular()}</option>
-                  )}
-                  <option value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</option>
-                </select>
+                <Select name={fields.type.name} defaultValue={TerritoryKind.Classical}>
+                  <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</SelectItem>
+                    <SelectItem value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</SelectItem>
+                    <SelectItem value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</SelectItem>
+                    {phoneTypeActive && (
+                      <SelectItem value={TerritoryKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
+                    )}
+                    <SelectItem value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</SelectItem>
+                  </SelectContent>
+                </Select>
                 {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
               </div>
               <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>

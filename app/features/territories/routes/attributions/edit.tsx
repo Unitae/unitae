@@ -21,6 +21,8 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -112,41 +114,38 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields.publisher.id}>{m.attributions_new_publisher_label()}</Label>
-              <select
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
+              <PersonDropdown
                 id={fields.publisher.id}
                 name={fields.publisher.name}
-                required
+                people={users}
                 defaultValue={String(attribution.publisherId)}
+                placeholder={m.attributions_new_publisher_placeholder()}
+                allowNone={false}
                 disabled={attribution.endDate !== null}
-              >
-                <option disabled>{m.attributions_new_publisher_placeholder()}</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>
-                    {user.lastname?.toLocaleUpperCase()} {user.firstname}
-                  </option>
-                ))}
-              </select>
+                aria-invalid={fields.publisher.errors !== undefined}
+              />
               {fields.publisher.errors && <p className="text-destructive text-sm">{fields.publisher.errors}</p>}
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields.type.id}>{m.attributions_edit_type_label()}</Label>
-              <select
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                id={fields.type.id}
+              <Select
                 name={fields.type.name}
-                required
                 defaultValue={attribution.type}
                 disabled={attribution.endDate !== null}
               >
-                <option value={TerritoryAttributionKind.Default}>
-                  {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
-                </option>
-                {!phoneTypeActive && (
-                  <option value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</option>
-                )}
-                <option value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</option>
-              </select>
+                <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={TerritoryAttributionKind.Default}>
+                    {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
+                  </SelectItem>
+                  {!phoneTypeActive && (
+                    <SelectItem value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
+                  )}
+                  <SelectItem value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</SelectItem>
+                </SelectContent>
+              </Select>
               {fields.type.errors && <p className="text-destructive text-sm">{fields.type.errors}</p>}
             </div>
             <div className="flex gap-3">

@@ -177,18 +177,22 @@ export default function EditDynamicDocumentPage({ loaderData, actionData }: Rout
 
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.sectionId.id}>{m.board_documents_new_section_label()}</Label>
-              <select
-                id={fields.sectionId.id}
-                name={fields.sectionId.name}
-                defaultValue={settings.sectionId}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-              >
-                {sections.map(section => (
-                  <option key={section.id} value={section.id}>
-                    {section.name}
-                  </option>
-                ))}
-              </select>
+              <Select name={fields.sectionId.name} defaultValue={String(settings.sectionId)}>
+                <SelectTrigger
+                  id={fields.sectionId.id}
+                  className="w-full"
+                  aria-invalid={fields.sectionId.errors !== undefined}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map(section => (
+                    <SelectItem key={section.id} value={String(section.id)}>
+                      {section.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {fields.sectionId.errors && <p className="text-destructive text-sm">{fields.sectionId.errors}</p>}
             </div>
 

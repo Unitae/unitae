@@ -19,6 +19,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 
 import type { Route } from './+types/list'
 
@@ -189,12 +190,10 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                     <TableCell className="text-center">
                       {canViewPublisher ? (
                         <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
-                          {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
+                          {formatPersonName(attribution.publisher)}
                         </Link>
                       ) : (
-                        <>
-                          {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
-                        </>
+                        formatPersonName(attribution.publisher)
                       )}
                     </TableCell>
                     <TableCell className="text-center max-sm:hidden">

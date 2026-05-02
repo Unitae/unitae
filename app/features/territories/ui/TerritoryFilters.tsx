@@ -7,6 +7,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 interface TerritoryFiltersProps {
   action?: string
@@ -34,64 +35,68 @@ export default function TerritoryFilters({
       <span className="font-medium text-muted-foreground text-sm">{m.territories_filter_label()}</span>
       <div className="flex flex-wrap gap-2">
         {showZip && (
-          <select
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
-            name="zip"
-            defaultValue={params.get('zip') ?? undefined}
-          >
-            <option value="none">{m.territories_filter_zip()}</option>
-            {zips.map(el => (
-              <option key={el.zip} value={el.zip}>
-                {el.zip}
-              </option>
-            ))}
-          </select>
+          <Select name="zip" defaultValue={params.get('zip') ?? 'none'}>
+            <SelectTrigger className="max-sm:flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{m.territories_filter_zip()}</SelectItem>
+              {zips.map(el => (
+                <SelectItem key={el.zip} value={el.zip}>
+                  {el.zip}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
         {showType && (
-          <select
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
-            name="type"
-            defaultValue={params.get('type') ?? undefined}
-          >
-            <option value="none">{m.territories_filter_type()}</option>
-            <option value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</option>
-            <option value={TerritoryKind.Commerces}>{m.territories_filter_shops()}</option>
-            <option value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</option>
-            <option value={TerritoryKind.Phone}>{m.territories_type_phone()}</option>
-            <option value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</option>
-          </select>
+          <Select name="type" defaultValue={params.get('type') ?? 'none'}>
+            <SelectTrigger className="max-sm:flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{m.territories_filter_type()}</SelectItem>
+              <SelectItem value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</SelectItem>
+              <SelectItem value={TerritoryKind.Commerces}>{m.territories_filter_shops()}</SelectItem>
+              <SelectItem value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</SelectItem>
+              <SelectItem value={TerritoryKind.Phone}>{m.territories_type_phone()}</SelectItem>
+              <SelectItem value={TerritoryKind.Univ}>{m.territories_type_university_singular()}</SelectItem>
+            </SelectContent>
+          </Select>
         )}
         {showAccess && (
-          <select
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
-            name="access"
-            defaultValue={params.get('access') ?? undefined}
-          >
-            <option value="none">{m.territories_filter_access()}</option>
-            <option value={TerritoryAccess.Code}>{m.territories_filter_access_digicode()}</option>
-            <option value={TerritoryAccess.Doorbell}>{m.territories_filter_access_doorbell()}</option>
-            <option value={TerritoryAccess.Intercom}>{m.territories_filter_access_intercom()}</option>
-          </select>
+          <Select name="access" defaultValue={params.get('access') ?? 'none'}>
+            <SelectTrigger className="max-sm:flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{m.territories_filter_access()}</SelectItem>
+              <SelectItem value={String(TerritoryAccess.Code)}>{m.territories_filter_access_digicode()}</SelectItem>
+              <SelectItem value={String(TerritoryAccess.Doorbell)}>{m.territories_filter_access_doorbell()}</SelectItem>
+              <SelectItem value={String(TerritoryAccess.Intercom)}>{m.territories_filter_access_intercom()}</SelectItem>
+            </SelectContent>
+          </Select>
         )}
         {showShops && (
-          <select
-            className="rounded-md border border-input bg-background px-3 py-2 text-sm max-sm:flex-1"
-            name="shops"
-            defaultValue={params.get('shops') ?? undefined}
-          >
-            <option value="none">{m.territories_filter_shops()}</option>
-            <option value={ShopKind.Food}>{m.shop_kind_food()}</option>
-            <option value={ShopKind.Clothing}>{m.shop_kind_clothing()}</option>
-            <option value={ShopKind.Jewelry}>{m.shop_kind_jewelry()}</option>
-            <option value={ShopKind.Health}>{m.shop_kind_health()}</option>
-            <option value={ShopKind.Home}>{m.shop_kind_home()}</option>
-            <option value={ShopKind.Catering}>{m.shop_kind_catering()}</option>
-            <option value={ShopKind.Cosmetics}>{m.shop_kind_cosmetics()}</option>
-            <option value={ShopKind.Tech}>{m.shop_kind_tech()}</option>
-            <option value={ShopKind.Newspaper}>{m.shop_kind_newspaper()}</option>
-            <option value={ShopKind.GasStation}>{m.shop_kind_gas_station()}</option>
-            <option value={ShopKind.Other}>{m.shop_kind_other()}</option>
-          </select>
+          <Select name="shops" defaultValue={params.get('shops') ?? 'none'}>
+            <SelectTrigger className="max-sm:flex-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{m.territories_filter_shops()}</SelectItem>
+              <SelectItem value={ShopKind.Food}>{m.shop_kind_food()}</SelectItem>
+              <SelectItem value={ShopKind.Clothing}>{m.shop_kind_clothing()}</SelectItem>
+              <SelectItem value={ShopKind.Jewelry}>{m.shop_kind_jewelry()}</SelectItem>
+              <SelectItem value={ShopKind.Health}>{m.shop_kind_health()}</SelectItem>
+              <SelectItem value={ShopKind.Home}>{m.shop_kind_home()}</SelectItem>
+              <SelectItem value={ShopKind.Catering}>{m.shop_kind_catering()}</SelectItem>
+              <SelectItem value={ShopKind.Cosmetics}>{m.shop_kind_cosmetics()}</SelectItem>
+              <SelectItem value={ShopKind.Tech}>{m.shop_kind_tech()}</SelectItem>
+              <SelectItem value={ShopKind.Newspaper}>{m.shop_kind_newspaper()}</SelectItem>
+              <SelectItem value={ShopKind.GasStation}>{m.shop_kind_gas_station()}</SelectItem>
+              <SelectItem value={ShopKind.Other}>{m.shop_kind_other()}</SelectItem>
+            </SelectContent>
+          </Select>
         )}
         {showSearch && (
           <Input

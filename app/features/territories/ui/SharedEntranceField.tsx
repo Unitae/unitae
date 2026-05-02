@@ -6,6 +6,7 @@ import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Label } from '~/shared/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 export default function SharedEntranceField({
   building,
@@ -65,25 +66,29 @@ export default function SharedEntranceField({
                 {m.prospection_shared_entrance_empty()}
               </span>
             )}
-            <select
-              className="rounded-md border border-input bg-background px-3 py-1 text-sm"
-              onChange={e => {
-                const selectedBuilding = avaibleBuildings.find(b => b.id === Number(e.target.value))
+            <Select
+              value={undefined}
+              onValueChange={value => {
+                const selectedBuilding = avaibleBuildings.find(b => b.id === Number(value))
                 if (selectedBuilding == null) {
                   return
                 }
                 setSharedEntranceBuildings([...sharedEntranceBuildings, selectedBuilding])
               }}
             >
-              <option>{m.prospection_shared_entrance_select()}</option>
-              {avaibleBuildings
-                .filter(streetBuilding => !sharedEntranceBuildings.map(el => el.id).includes(streetBuilding.id))
-                .map(building => (
-                  <option key={building.id} value={building.id}>
-                    {building.number} {building.street}
-                  </option>
-                ))}
-            </select>
+              <SelectTrigger className="h-auto py-1 text-sm">
+                <SelectValue placeholder={m.prospection_shared_entrance_select()} />
+              </SelectTrigger>
+              <SelectContent>
+                {avaibleBuildings
+                  .filter(streetBuilding => !sharedEntranceBuildings.map(el => el.id).includes(streetBuilding.id))
+                  .map(building => (
+                    <SelectItem key={building.id} value={String(building.id)}>
+                      {building.number} {building.street}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       )}

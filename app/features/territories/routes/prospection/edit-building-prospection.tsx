@@ -37,6 +37,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -204,22 +205,25 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
         {availableKinds.length > 0 && (
           <div className="flex items-center gap-2">
-            <select
-              className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-              onChange={e => {
-                if (e.target.value) {
-                  addEntrance(e.target.value as EntranceKind)
-                  e.target.value = ''
+            <Select
+              value=""
+              onValueChange={value => {
+                if (value) {
+                  addEntrance(value as EntranceKind)
                 }
               }}
             >
-              <option value="">{m.prospection_edit_prospection_add_entrance()}</option>
-              {availableKinds.map(kind => (
-                <option key={kind} value={kind}>
-                  {getEntranceKindLabels()[kind]}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue placeholder={m.prospection_edit_prospection_add_entrance()} />
+              </SelectTrigger>
+              <SelectContent>
+                {availableKinds.map(kind => (
+                  <SelectItem key={kind} value={kind}>
+                    {getEntranceKindLabels()[kind]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Plus className="size-4 text-muted-foreground" />
           </div>
         )}
