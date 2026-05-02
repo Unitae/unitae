@@ -73,9 +73,11 @@ export default function PendingChangesRail({
   const reassignmentsCount = pendingReassignments.size
   const hasPending = additionsCount + removalsCount + reassignmentsCount > 0
 
+  if (!hasPending) return null
+
   return (
     <div className="flex flex-col gap-3 rounded-md border p-3">
-      <h3 className="font-semibold text-sm">{m.territories_map_pending_heading()}</h3>
+      <h3 className="font-semibold text-base">{m.territories_map_pending_heading()}</h3>
       <p className="font-medium text-sm">
         {delta === 0
           ? m.territories_map_pending_quantity_unchanged({ count: String(projectedQuantity) })
@@ -85,10 +87,6 @@ export default function PendingChangesRail({
               delta: delta > 0 ? `+${delta}` : String(delta),
             })}
       </p>
-
-      {!hasPending ? (
-        <p className="text-muted-foreground text-sm italic">{m.territories_map_pending_empty()}</p>
-      ) : null}
 
       {additionsCount > 0 ? (
         <div className="flex flex-col gap-1">

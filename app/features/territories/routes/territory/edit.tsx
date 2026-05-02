@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Download, ExternalLink, Trash2 } from 'lucide-react'
+import { Download, ExternalLink, MoreHorizontal, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useMemo, useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -26,7 +26,14 @@ import { permissionsContext, requireRole, userContext, withScopeFromContext } fr
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent } from '~/shared/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/shared/ui/dropdown-menu'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -41,6 +48,56 @@ import type { Route } from './+types/edit'
 export const meta: Route.MetaFunction = ({ loaderData }) => {
   if (!loaderData) return [{ title: 'Unitae' }]
   return [{ title: m.territories_edit_meta_title({ number: String(loaderData.territory.number) }) }]
+}
+
+type ListEntryPendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign'
+
+type ListEntry = {
+  id: number
+  number: string
+  street: string
+  zip: string
+  contentLabel: string
+  latitude: number | null
+  longitude: number | null
+  pendingState: ListEntryPendingState
+  fromTerritoryNumber?: string
+  buildingId?: number
+}
+
+function pendingBorderClassFor(state: ListEntryPendingState): string {
+  if (state === 'pending-add') return 'border-l-4 border-l-primary/60'
+  if (state === 'pending-remove') return 'border-l-4 border-l-destructive/60'
+  if (state === 'pending-reassign') return 'border-l-4 border-l-primary/60 border-dashed'
+  return ''
+}
+
+function PendingBadge({ entry }: { entry: ListEntry }) {
+  if (entry.pendingState === 'pending-add') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-primary text-xs">
+        <Plus className="size-3" aria-hidden="true" />
+        {m.territories_edit_badge_add()}
+      </span>
+    )
+  }
+  if (entry.pendingState === 'pending-remove') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-destructive text-xs">
+        <Trash2 className="size-3" aria-hidden="true" />
+        {m.territories_edit_badge_remove()}
+      </span>
+    )
+  }
+  if (entry.pendingState === 'pending-reassign') {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-primary text-xs">
+        <RotateCcw className="size-3" aria-hidden="true" />
+        {m.territories_edit_badge_reassign({ number: entry.fromTerritoryNumber ?? '' })}
+      </span>
+    )
+  }
+  return null
 }
 
 function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
@@ -252,6 +309,61 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     })
   }, [])
 
+  const handleListRemoveById = useCallback(
+    (entranceId: number) => {
+      const entrance = savedTerritoryEntrances.find(e => e.id === entranceId)
+      if (entrance != null) handleListRemove(entrance)
+    },
+    [savedTerritoryEntrances, handleListRemove],
+  )
+
+  const listEntries: ListEntry[] = useMemo(() => {
+    const entries: ListEntry[] = []
+    for (const e of savedTerritoryEntrances) {
+      const pendingState = pendingRemovals.has(e.id) ? 'pending-remove' : 'none'
+      entries.push({
+        id: e.id,
+        number: e.number,
+        street: e.street,
+        zip: e.zip,
+        contentLabel: entranceContentLabel(territory.type, e),
+        latitude: e.latitude,
+        longitude: e.longitude,
+        pendingState,
+        buildingId: e.buildings[0]?.id,
+      })
+    }
+    for (const e of pendingAdditions.values()) {
+      entries.push({
+        id: e.id,
+        number: e.address.number,
+        street: e.address.street,
+        zip: e.address.zip,
+        contentLabel: entranceContentLabel(territory.type, e),
+        latitude: e.latitude,
+        longitude: e.longitude,
+        pendingState: 'pending-add',
+      })
+    }
+    for (const value of pendingReassignments.values()) {
+      const e = value.entrance
+      entries.push({
+        id: e.id,
+        number: e.address.number,
+        street: e.address.street,
+        zip: e.address.zip,
+        contentLabel: entranceContentLabel(territory.type, e),
+        latitude: e.latitude,
+        longitude: e.longitude,
+        pendingState: 'pending-reassign',
+        fromTerritoryNumber: value.fromTerritoryNumber,
+      })
+    }
+    return entries
+  }, [savedTerritoryEntrances, pendingAdditions, pendingRemovals, pendingReassignments, territory.type])
+
+  const pendingChangesCount = pendingAdditions.size + pendingRemovals.size + pendingReassignments.size
+
   const showMap = googleMapsApiKey != null
 
   return (
@@ -274,11 +386,22 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               </a>
             </Button>
 
-            <Button variant="destructive" size="icon" asChild>
-              <Link to={`/territories/territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
-                <Trash2 className="size-4" />
-              </Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" title={m.territories_edit_more_actions_title()}>
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuSeparator className="first:hidden" />
+                <DropdownMenuItem asChild variant="destructive">
+                  <Link to={`/territories/territory/${territory.id}/delete`}>
+                    <Trash2 className="size-4" />
+                    {m.territories_delete_title_attr()}
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </>
         }
       />
@@ -309,106 +432,124 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
         <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[420px]' : 'flex-1'}`}>
           <Card>
             <CardContent className="pt-6">
-              <div className="flex flex-col gap-2">
-                <p>
-                  {m.territories_edit_number_label()}{' '}
-                  <span className="font-medium text-primary">{territory.number}</span>
-                </p>
-                <p>
-                  {m.territories_edit_type_label()}{' '}
-                  <span className="font-medium text-primary">
-                    {territory.type === TerritoryKind.Classical && m.territories_type_classical_capitalized()}
-                    {territory.type === TerritoryKind.Commerces && m.territories_type_commerces()}
-                    {territory.type === TerritoryKind.Hotel && m.territories_type_hotel()}
-                    {territory.type === TerritoryKind.Phone && m.territories_type_phone_singular()}
-                    {territory.type === TerritoryKind.Univ && m.territories_type_university_singular()}
-                  </span>
-                </p>
-                <p>
-                  {m.territories_edit_content_label()}{' '}
-                  <span className="font-medium text-primary">{projectedContent}</span>
-                </p>
-                <p className="pt-2 text-muted-foreground text-sm italic">{m.territories_edit_info_notice()}</p>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt className="text-muted-foreground">{m.territories_edit_number_label()}</dt>
+                <dd className="font-medium">{territory.number}</dd>
+                <dt className="text-muted-foreground">{m.territories_edit_type_label()}</dt>
+                <dd className="font-medium">
+                  {territory.type === TerritoryKind.Classical && m.territories_type_classical_capitalized()}
+                  {territory.type === TerritoryKind.Commerces && m.territories_type_commerces()}
+                  {territory.type === TerritoryKind.Hotel && m.territories_type_hotel()}
+                  {territory.type === TerritoryKind.Phone && m.territories_type_phone_singular()}
+                  {territory.type === TerritoryKind.Univ && m.territories_type_university_singular()}
+                </dd>
+                <dt className="text-muted-foreground">{m.territories_edit_content_label()}</dt>
+                <dd className="font-medium text-primary">{projectedContent}</dd>
+              </dl>
+              <p className="mt-3 text-muted-foreground text-xs italic">{m.territories_edit_info_notice()}</p>
+
+              <div className="mt-4 flex flex-col gap-1.5 border-t pt-4">
+                <Label htmlFor="territory-notes">
+                  {m.territories_edit_notes_label()}{' '}
+                  <span className="text-muted-foreground text-xs">{m.territories_edit_notes_visibility()}</span>
+                </Label>
+                <Textarea
+                  id="territory-notes"
+                  form="territory-edit-form"
+                  rows={4}
+                  name="notes"
+                  defaultValue={territory.notes}
+                  onChange={markDirty}
+                />
               </div>
             </CardContent>
           </Card>
 
-          <div className="flex flex-col gap-2">
-            <h2 className="font-semibold text-lg">{m.territories_form_entrances_heading()}</h2>
-            {savedTerritoryEntrances.length === 0 ? (
-              <p className="text-muted-foreground text-sm italic">{m.territories_edit_no_entrances()}</p>
-            ) : (
-              savedTerritoryEntrances.map(entrance => {
-                const pendingRemoval = pendingRemovals.has(entrance.id)
-                const focusable = showMap && entrance.latitude != null && entrance.longitude != null
-                const labelContent = (
-                  <div className="flex flex-col text-left">
-                    <span className="font-medium">
-                      {entrance.number} {entrance.street}, {entrance.zip}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      {entranceContentLabel(territory.type, entrance)}
-                    </span>
-                  </div>
-                )
-                return (
-                  <div
-                    key={entrance.id}
-                    className={`flex items-center justify-between gap-3 rounded-md border p-3 transition ${
-                      pendingRemoval ? 'opacity-50 line-through' : ''
-                    } ${focusable ? 'hover:border-primary' : ''}`}
-                  >
-                    {focusable ? (
-                      <button
-                        type="button"
-                        onClick={() => handleFocusEntrance(entrance.id)}
-                        title={m.territories_edit_focus_on_map_title()}
-                        className="-m-1 flex-1 cursor-pointer rounded p-1 hover:bg-accent/40"
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between text-base">
+                <span>{m.territories_form_entrances_heading()}</span>
+                <span className="text-muted-foreground text-sm">({listEntries.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-2">
+              {listEntries.length === 0 ? (
+                <p className="text-muted-foreground text-sm italic">{m.territories_edit_no_entrances()}</p>
+              ) : (
+                listEntries.map(entry => {
+                  const focusable = showMap && entry.latitude != null && entry.longitude != null
+                  const labelContent = (
+                    <div className="flex flex-col text-left">
+                      <span
+                        className={`font-medium ${entry.pendingState === 'pending-remove' ? 'line-through opacity-60' : ''}`}
                       >
-                        {labelContent}
-                      </button>
-                    ) : (
-                      labelContent
-                    )}
-                    <div className="flex gap-2">
-                      {entrance.buildings[0] != null ? (
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link
-                            to={`/territories/building/${entrance.buildings[0].id}/view`}
-                            title={m.territories_form_view_building_title()}
-                          >
-                            <ExternalLink className="size-4 text-primary" />
-                          </Link>
-                        </Button>
-                      ) : null}
-                      {pendingRemoval ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          type="button"
-                          onClick={() => handleRevert(entrance.id)}
-                          title={m.territories_map_pending_revert_title()}
-                        >
-                          {m.territories_map_action_undo()}
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          type="button"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => handleListRemove(entrance)}
-                          title={m.territories_form_remove_building_title()}
-                        >
-                          <Trash2 className="size-4" />
-                        </Button>
-                      )}
+                        {entry.number} {entry.street}, {entry.zip}
+                      </span>
+                      <span className="text-muted-foreground text-sm">{entry.contentLabel}</span>
                     </div>
-                  </div>
-                )
-              })
-            )}
-          </div>
+                  )
+                  return (
+                    <div
+                      key={entry.id}
+                      className={`flex items-center justify-between gap-3 rounded-md border p-3 transition ${pendingBorderClassFor(entry.pendingState)} ${focusable ? 'hover:border-primary' : ''}`}
+                    >
+                      <div className="flex flex-1 items-center gap-2">
+                        {focusable ? (
+                          <button
+                            type="button"
+                            onClick={() => handleFocusEntrance(entry.id)}
+                            title={m.territories_edit_focus_on_map_title()}
+                            className="-m-1 flex-1 cursor-pointer rounded p-1 hover:bg-accent/40"
+                          >
+                            {labelContent}
+                          </button>
+                        ) : (
+                          labelContent
+                        )}
+                        {entry.pendingState !== 'none' ? <PendingBadge entry={entry} /> : null}
+                      </div>
+                      <div className="flex gap-2">
+                        {entry.buildingId != null ? (
+                          <Button variant="ghost" size="icon" asChild>
+                            <a
+                              href={`/territories/building/${entry.buildingId}/view`}
+                              target="_blank"
+                              rel="noreferrer"
+                              title={m.territories_form_view_building_title()}
+                            >
+                              <ExternalLink className="size-4 text-primary" />
+                            </a>
+                          </Button>
+                        ) : null}
+                        {entry.pendingState !== 'none' ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            type="button"
+                            onClick={() => handleRevert(entry.id)}
+                            title={m.territories_map_pending_revert_title()}
+                          >
+                            {m.territories_map_action_undo()}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            type="button"
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => handleListRemoveById(entry.id)}
+                            title={m.territories_form_remove_building_title()}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </CardContent>
+          </Card>
 
           <PendingChangesRail
             territoryType={territory.type}
@@ -419,7 +560,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             onRevert={handleRevert}
           />
 
-          <Form method="post" className="flex flex-col gap-4">
+          <Form id="territory-edit-form" method="post" className="flex flex-col gap-4">
             {[...projectedEntranceIds].map(id => (
               <input key={id} type="hidden" name="entrances" value={id} />
             ))}
@@ -452,16 +593,13 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
               />
             ) : null}
 
-            <h2 className="mt-3 font-semibold text-lg">{m.territories_edit_preaching_heading()}</h2>
-            <div className="flex flex-col gap-1.5">
-              <Label>
-                {m.territories_edit_notes_label()}{' '}
-                <span className="text-muted-foreground text-sm">{m.territories_edit_notes_visibility()}</span>
-              </Label>
-              <Textarea rows={4} name="notes" defaultValue={territory.notes} onChange={markDirty} />
+            <div className="-mx-4 sticky bottom-0 z-10 border-t bg-background/95 px-4 py-3 backdrop-blur">
+              <SubmitButton className="w-full" disabled={pendingChangesCount === 0}>
+                {pendingChangesCount === 0
+                  ? m.territories_edit_submit()
+                  : m.territories_edit_submit_with_count({ count: String(pendingChangesCount) })}
+              </SubmitButton>
             </div>
-
-            <SubmitButton className="mt-2">{m.territories_edit_submit()}</SubmitButton>
           </Form>
         </div>
       </div>
