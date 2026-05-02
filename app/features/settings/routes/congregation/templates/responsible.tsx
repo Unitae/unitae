@@ -15,8 +15,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -112,19 +112,14 @@ export default function ResponsiblePage({ loaderData }: Route.ComponentProps) {
           <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor="userId">{m.settings_template_responsible_label()}</Label>
-              <Select name="userId" defaultValue={currentResponsibleId?.toString() ?? 'none'}>
-                <SelectTrigger>
-                  <SelectValue placeholder={m.settings_template_responsible_none()} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{m.settings_template_responsible_none()}</SelectItem>
-                  {users.map(user => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      {user.firstname} {user.lastname}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <PersonDropdown
+                id="userId"
+                name="userId"
+                people={users}
+                defaultValue={currentResponsibleId?.toString() ?? ''}
+                placeholder={m.settings_template_responsible_none()}
+                noneLabel={m.settings_template_responsible_none()}
+              />
             </div>
             <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
           </Form>

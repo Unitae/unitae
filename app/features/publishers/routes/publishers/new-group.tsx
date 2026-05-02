@@ -13,6 +13,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
@@ -37,12 +38,10 @@ export function loader({ context }: Route.LoaderArgs) {
         congregationId: currentUser.congregationId,
         isMale: true,
         OR: [{ isHelder: true }, { isServant: true }],
-        responsibleFor: {
-          is: null,
-        },
-        deputyFor: {
-          is: null,
-        },
+      },
+      include: {
+        responsibleFor: { select: { name: true } },
+        deputyFor: { select: { name: true } },
       },
     })
 
@@ -60,6 +59,14 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
       return parseWithZod(formData, { schema: createGroupSchema })
     },
   })
+
+  const disabledIds = brothers.filter(b => b.responsibleFor || b.deputyFor).map(b => b.id)
+  const disabledReason = (id: number) => {
+    const brother = brothers.find(b => b.id === id)
+    if (brother?.responsibleFor) return m.groups_form_already_responsible({ name: brother.responsibleFor.name })
+    if (brother?.deputyFor) return m.groups_form_already_deputy({ name: brother.deputyFor.name })
+    return undefined
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,35 +103,30 @@ export default function NewGroup({ loaderData, actionData }: Route.ComponentProp
               </div>
               <div className="space-y-2">
                 <Label htmlFor={fields.responsible.id}>{m.groups_form_responsible()}</Label>
-                <select
+                <PersonDropdown
                   id={fields.responsible.id}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                   name={fields.responsible.name}
-                  required
-                >
-                  <option>{m.groups_form_responsible_placeholder()}</option>
-                  {brothers.map(brother => (
-                    <option key={brother.id} value={brother.id}>
-                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                    </option>
-                  ))}
-                </select>
+                  people={brothers}
+                  placeholder={m.groups_form_responsible_placeholder()}
+                  allowNone={false}
+                  disabledIds={disabledIds}
+                  disabledReason={disabledReason}
+                  aria-invalid={fields.responsible.errors !== undefined}
+                />
                 {fields.responsible.errors && <p className="text-destructive text-sm">{fields.responsible.errors}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor={fields.deputy.id}>{m.groups_form_deputy()}</Label>
-                <select
+                <PersonDropdown
                   id={fields.deputy.id}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                   name={fields.deputy.name}
-                >
-                  <option value="">{m.groups_form_no_deputy()}</option>
-                  {brothers.map(brother => (
-                    <option key={brother.id} value={brother.id}>
-                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                    </option>
-                  ))}
-                </select>
+                  people={brothers}
+                  placeholder={m.groups_form_no_deputy()}
+                  noneLabel={m.groups_form_no_deputy()}
+                  disabledIds={disabledIds}
+                  disabledReason={disabledReason}
+                  aria-invalid={fields.deputy.errors !== undefined}
+                />
                 {fields.deputy.errors && <p className="text-destructive text-sm">{fields.deputy.errors}</p>}
               </div>
             </div>

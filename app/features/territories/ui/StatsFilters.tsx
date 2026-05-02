@@ -10,6 +10,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 interface StatsFiltersProps {
   action?: string
@@ -98,18 +99,21 @@ export default function StatsFilters({
 
                 <div className="flex flex-col gap-1.5">
                   <Label>{m.stats_filter_territory_type()}</Label>
-                  <select
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    name="kind"
-                    defaultValue={kind}
-                  >
-                    <option value="none">{m.stats_filter_territory_type_placeholder()}</option>
-                    <option value={TerritoryKind.Classical}>{m.stats_filter_territory_door()}</option>
-                    {phoneTypeActive && <option value={TerritoryKind.Phone}>{m.stats_filter_territory_phone()}</option>}
-                    <option value={TerritoryKind.Commerces}>{m.stats_filter_territory_commerce()}</option>
-                    <option value={TerritoryKind.Hotel}>{m.stats_filter_territory_hotel()}</option>
-                    <option value={TerritoryKind.Univ}>{m.stats_filter_territory_university()}</option>
-                  </select>
+                  <Select name="kind" defaultValue={kind}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{m.stats_filter_territory_type_placeholder()}</SelectItem>
+                      <SelectItem value={TerritoryKind.Classical}>{m.stats_filter_territory_door()}</SelectItem>
+                      {phoneTypeActive && (
+                        <SelectItem value={TerritoryKind.Phone}>{m.stats_filter_territory_phone()}</SelectItem>
+                      )}
+                      <SelectItem value={TerritoryKind.Commerces}>{m.stats_filter_territory_commerce()}</SelectItem>
+                      <SelectItem value={TerritoryKind.Hotel}>{m.stats_filter_territory_hotel()}</SelectItem>
+                      <SelectItem value={TerritoryKind.Univ}>{m.stats_filter_territory_university()}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -150,18 +154,19 @@ export default function StatsFilters({
 
                 <div className="flex flex-col gap-1.5">
                   <Label>{m.stats_filter_group_label()}</Label>
-                  <select
-                    className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    name="group"
-                    defaultValue={params.get('group') ?? undefined}
-                  >
-                    <option value="none">{m.stats_filter_group_placeholder()}</option>
-                    {groups.map(group => (
-                      <option value={group.id} key={group.id}>
-                        {m.stats_filter_by_group({ group: group.name.toLocaleUpperCase() })}
-                      </option>
-                    ))}
-                  </select>
+                  <Select name="group" defaultValue={params.get('group') ?? 'none'}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{m.stats_filter_group_placeholder()}</SelectItem>
+                      {groups.map(group => (
+                        <SelectItem value={String(group.id)} key={group.id}>
+                          {m.stats_filter_by_group({ group: group.name.toLocaleUpperCase() })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Button type="submit" className="w-full gap-1.5">

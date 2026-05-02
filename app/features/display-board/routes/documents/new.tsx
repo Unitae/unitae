@@ -28,6 +28,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
@@ -99,17 +100,18 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="sectionId">{m.board_documents_new_section_label()}</Label>
-              <select
-                id="sectionId"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                name="sectionId"
-              >
-                {sections.map(section => (
-                  <option key={section.id} value={section.id}>
-                    {section.name}
-                  </option>
-                ))}
-              </select>
+              <Select name="sectionId" defaultValue={sections[0] ? String(sections[0].id) : undefined}>
+                <SelectTrigger id="sectionId" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map(section => (
+                    <SelectItem key={section.id} value={String(section.id)}>
+                      {section.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {rights.canManageBoard && (

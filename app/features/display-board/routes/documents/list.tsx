@@ -3,7 +3,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { BarChart3, Eye, FileText, GripVertical, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { useState } from 'react'
-import { Link, Form as RouterForm, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
+import { Link, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -13,6 +13,7 @@ import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SearchInput } from '~/shared/ui/SearchInput'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/list'
@@ -38,7 +39,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const url = new URL(request.url)
   const searchQuery = url.searchParams.get('q') ?? ''
-  const filterSectionId = url.searchParams.get('sectionId')
+  const sectionIdParam = url.searchParams.get('sectionId')
+  const filterSectionId = sectionIdParam && sectionIdParam !== 'all' ? sectionIdParam : null
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -230,7 +232,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
   const fetcher = useFetcher()
   const bulkFetcher = useFetcher()
   const revalidator = useRevalidator()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const items = mergeAndSort(documents, dynamicDocuments)
@@ -332,22 +334,31 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <SearchInput placeholder={m.board_documents_search_placeholder()} />
-        <RouterForm method="get" className="flex gap-3">
-          <input type="hidden" name="q" value={searchParams.get('q') ?? ''} />
-          <select
-            name="sectionId"
-            defaultValue={searchParams.get('sectionId') ?? ''}
-            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:w-48"
-            onChange={e => e.currentTarget.form?.requestSubmit()}
-          >
-            <option value="">{m.board_documents_filter_all_sections()}</option>
+        <Select
+          value={searchParams.get('sectionId') || 'all'}
+          onValueChange={value => {
+            setSearchParams(prev => {
+              if (value === 'all') {
+                prev.delete('sectionId')
+              } else {
+                prev.set('sectionId', value)
+              }
+              return prev
+            })
+          }}
+        >
+          <SelectTrigger className="sm:w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{m.board_documents_filter_all_sections()}</SelectItem>
             {sections.map(section => (
-              <option key={section.id} value={section.id}>
+              <SelectItem key={section.id} value={String(section.id)}>
                 {section.name}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </RouterForm>
+          </SelectContent>
+        </Select>
       </div>
 
       {items.length === 0 ? (
@@ -363,23 +374,23 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
               <span className="text-muted-foreground text-sm">
                 {m.board_documents_bulk_selected({ count: selectedIds.size })}
               </span>
-              <select
-                onChange={e => {
-                  if (e.target.value) handleBulkMove(Number(e.target.value))
-                  e.target.value = ''
+              <Select
+                value=""
+                onValueChange={value => {
+                  if (value) handleBulkMove(Number(value))
                 }}
-                className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-sm"
-                defaultValue=""
               >
-                <option value="" disabled>
-                  {m.board_documents_bulk_move_to()}
-                </option>
-                {sections.map(section => (
-                  <option key={section.id} value={section.id}>
-                    {section.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger size="sm">
+                  <SelectValue placeholder={m.board_documents_bulk_move_to()} />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map(section => (
+                    <SelectItem key={section.id} value={String(section.id)}>
+                      {section.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button variant="destructive" size="sm" onClick={handleBulkDelete}>
                 {m.board_documents_bulk_delete()}
               </Button>

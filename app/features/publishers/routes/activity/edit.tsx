@@ -17,6 +17,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -123,22 +124,22 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="space-y-2">
               <Label htmlFor="type">{m.activity_edit_pioneer_label()}</Label>
-              <select
-                id="type"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
-                name="type"
-                value={type as string}
-                onChange={event => {
-                  setType(event.target.value as PublisherType)
-                }}
-                required
-              >
-                <option value={PublisherType.Normal}>{m.activity_edit_pioneer_none()}</option>
-                <option value={PublisherType.PionnierAuxiliaires}>{m.activity_edit_pioneer_auxiliary()}</option>
-                <option value={PublisherType.PionnierPermanant}>{m.activity_edit_pioneer_permanent()}</option>
-                <option value={PublisherType.PionnierSpecial}>{m.activity_edit_pioneer_special()}</option>
-                <option value={PublisherType.Missionnaire}>{m.activity_edit_pioneer_missionary()}</option>
-              </select>
+              <Select name="type" value={type} onValueChange={value => setType(value as PublisherType)}>
+                <SelectTrigger id="type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={PublisherType.Normal}>{m.activity_edit_pioneer_none()}</SelectItem>
+                  <SelectItem value={PublisherType.PionnierAuxiliaires}>
+                    {m.activity_edit_pioneer_auxiliary()}
+                  </SelectItem>
+                  <SelectItem value={PublisherType.PionnierPermanant}>
+                    {m.activity_edit_pioneer_permanent()}
+                  </SelectItem>
+                  <SelectItem value={PublisherType.PionnierSpecial}>{m.activity_edit_pioneer_special()}</SelectItem>
+                  <SelectItem value={PublisherType.Missionnaire}>{m.activity_edit_pioneer_missionary()}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

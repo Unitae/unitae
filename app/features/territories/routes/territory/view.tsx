@@ -20,6 +20,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { Progress } from '~/shared/ui/progress'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { getOptionalEnv } from '~/shared/utils/env.server'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
@@ -125,11 +126,7 @@ function CurrentAttributionCard({
   const percent = Math.max(0, Math.min(100, rawPercent))
   const isLate = attribution.lateDate < new Date()
 
-  const publisherName = (
-    <>
-      {attribution.publisher.firstname} {attribution.publisher.lastname?.toLocaleUpperCase()}
-    </>
-  )
+  const publisherName = formatPersonName(attribution.publisher)
 
   return (
     <Card>
@@ -242,12 +239,10 @@ function AttributionHistoryCard({
                       <TableCell>
                         {canViewPublisher ? (
                           <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
-                            {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
+                            {formatPersonName(attribution.publisher)}
                           </Link>
                         ) : (
-                          <>
-                            {attribution.publisher.lastname?.toLocaleUpperCase()} {attribution.publisher.firstname}
-                          </>
+                          formatPersonName(attribution.publisher)
                         )}
                       </TableCell>
                       <TableCell className="text-center">

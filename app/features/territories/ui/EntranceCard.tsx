@@ -13,6 +13,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 
 type EntranceWithRelations = BuildingEntrance & {
   accesses: BuildingAccess[]
@@ -60,18 +61,25 @@ export function ResidentialEntranceCard({
         <div className="flex gap-3">
           <div className="flex flex-1 flex-col gap-1.5">
             <Label>{m.prospection_entrance_access_type_label()}</Label>
-            <select
-              className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
+            <Select
               name="access"
-              value={access ?? ''}
-              onChange={e => setAccess(Number(e.target.value))}
+              value={access != null ? String(access) : undefined}
+              onValueChange={value => setAccess(Number(value))}
               disabled={isDisabled}
             >
-              <option>{m.prospection_entrance_access_select_placeholder()}</option>
-              <option value={TerritoryAccess.Intercom}>{m.prospection_entrance_access_intercom()}</option>
-              <option value={TerritoryAccess.Code}>{m.prospection_entrance_access_digicode()}</option>
-              <option value={TerritoryAccess.Doorbell}>{m.prospection_entrance_access_doorbell()}</option>
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={m.prospection_entrance_access_select_placeholder()} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={String(TerritoryAccess.Intercom)}>
+                  {m.prospection_entrance_access_intercom()}
+                </SelectItem>
+                <SelectItem value={String(TerritoryAccess.Code)}>{m.prospection_entrance_access_digicode()}</SelectItem>
+                <SelectItem value={String(TerritoryAccess.Doorbell)}>
+                  {m.prospection_entrance_access_doorbell()}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex flex-1 flex-col gap-1.5">
             <Label>{m.prospection_entrance_homes_label()}</Label>
@@ -199,26 +207,24 @@ export function CommerceEntranceCard({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <Label>{m.prospection_entrance_commerce_category()}</Label>
-          <select
-            className={`rounded-md border border-input bg-background px-3 py-2 text-sm ${disabledStyle}`}
-            defaultValue={entrance?.shopKind ?? ''}
-            name="shopkinds"
-            disabled={isDisabled}
-            required
-          >
-            <option>{m.prospection_entrance_commerce_select()}</option>
-            <option value={ShopKind.Food}>{m.shop_kind_food()}</option>
-            <option value={ShopKind.Clothing}>{m.shop_kind_clothing()}</option>
-            <option value={ShopKind.Jewelry}>{m.shop_kind_jewelry()}</option>
-            <option value={ShopKind.Health}>{m.shop_kind_health()}</option>
-            <option value={ShopKind.Home}>{m.shop_kind_home()}</option>
-            <option value={ShopKind.Catering}>{m.shop_kind_catering()}</option>
-            <option value={ShopKind.Cosmetics}>{m.shop_kind_cosmetics()}</option>
-            <option value={ShopKind.Tech}>{m.shop_kind_tech()}</option>
-            <option value={ShopKind.Newspaper}>{m.shop_kind_newspaper()}</option>
-            <option value={ShopKind.GasStation}>{m.shop_kind_gas_station()}</option>
-            <option value={ShopKind.Other}>{m.shop_kind_other()}</option>
-          </select>
+          <Select name="shopkinds" defaultValue={entrance?.shopKind ?? undefined} disabled={isDisabled}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={m.prospection_entrance_commerce_select()} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ShopKind.Food}>{m.shop_kind_food()}</SelectItem>
+              <SelectItem value={ShopKind.Clothing}>{m.shop_kind_clothing()}</SelectItem>
+              <SelectItem value={ShopKind.Jewelry}>{m.shop_kind_jewelry()}</SelectItem>
+              <SelectItem value={ShopKind.Health}>{m.shop_kind_health()}</SelectItem>
+              <SelectItem value={ShopKind.Home}>{m.shop_kind_home()}</SelectItem>
+              <SelectItem value={ShopKind.Catering}>{m.shop_kind_catering()}</SelectItem>
+              <SelectItem value={ShopKind.Cosmetics}>{m.shop_kind_cosmetics()}</SelectItem>
+              <SelectItem value={ShopKind.Tech}>{m.shop_kind_tech()}</SelectItem>
+              <SelectItem value={ShopKind.Newspaper}>{m.shop_kind_newspaper()}</SelectItem>
+              <SelectItem value={ShopKind.GasStation}>{m.shop_kind_gas_station()}</SelectItem>
+              <SelectItem value={ShopKind.Other}>{m.shop_kind_other()}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label>

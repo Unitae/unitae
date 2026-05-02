@@ -5,6 +5,7 @@ import * as m from '~/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Skeleton } from '~/shared/ui/skeleton'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 
 interface PublisherInfoData {
   profile: {
@@ -69,7 +70,7 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
           <User className="size-4" />
-          {profile.firstname} {profile.lastname}
+          {formatPersonName(profile)}
         </CardTitle>
         <div className="flex flex-wrap gap-1.5">
           {profile.isHelder && <Badge variant="secondary">{m.publisher_info_elder_badge()}</Badge>}

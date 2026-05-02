@@ -17,6 +17,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
@@ -125,8 +126,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const { event, assignment, users, externalSpeakers } = loaderData
   const [params] = useSearchParams()
-  const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
-  const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? 'none')
+  const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? '')
+  const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? '')
   const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState(
     assignment?.externalSpeakerId?.toString() ?? 'none',
   )
@@ -135,8 +136,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   )
   const { blocker, markDirty } = useUnsavedChanges()
 
-  const activeInternalSelection =
-    selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
+  const activeInternalSelection = selectedAssignee || selectedAssistant || null
   const hasRegistry = externalSpeakers.length > 0
 
   return (
@@ -221,36 +221,28 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
                 <>
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
-                    <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                        {users.map(user => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
-                            {user.firstname} {user.lastname}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <PersonDropdown
+                      id="assigneeId"
+                      name="assigneeId"
+                      people={users}
+                      value={selectedAssignee}
+                      onValueChange={setSelectedAssignee}
+                      placeholder={m.programs_assign_part_select_publisher()}
+                      noneLabel={m.programs_assign_part_none()}
+                    />
                   </div>
 
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
-                    <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={m.programs_assign_part_no_reader()} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                        {users.map(user => (
-                          <SelectItem key={user.id} value={user.id.toString()}>
-                            {user.firstname} {user.lastname}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <PersonDropdown
+                      id="assistantId"
+                      name="assistantId"
+                      people={users}
+                      value={selectedAssistant}
+                      onValueChange={setSelectedAssistant}
+                      placeholder={m.programs_assign_part_no_reader()}
+                      noneLabel={m.programs_assign_part_none()}
+                    />
                   </div>
                 </>
               )}

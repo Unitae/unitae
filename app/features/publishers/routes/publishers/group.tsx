@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
@@ -87,7 +88,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
               relative="path"
               className="font-medium text-primary hover:underline"
             >
-              {group.responsible.firstname} {group.responsible.lastname?.toLocaleUpperCase()}
+              {formatPersonName(group.responsible)}
             </Link>
           </p>
           <p className="text-muted-foreground text-sm">
@@ -98,7 +99,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                 relative="path"
                 className="font-medium text-primary hover:underline"
               >
-                {group.deputy.firstname} {group.deputy.lastname?.toLocaleUpperCase()}
+                {formatPersonName(group.deputy)}
               </Link>
             ) : (
               <span className="font-medium text-foreground">{m.groups_view_no_deputy()}</span>

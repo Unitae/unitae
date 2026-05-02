@@ -5,6 +5,7 @@ import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
@@ -43,15 +44,15 @@ export function AssignPartSheet({
 }: AssignPartSheetProps) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const prevState = useRef(fetcher.state)
-  const [selectedAssignee, setSelectedAssignee] = useState('none')
-  const [selectedAssistant, setSelectedAssistant] = useState('none')
+  const [selectedAssignee, setSelectedAssignee] = useState('')
+  const [selectedAssistant, setSelectedAssistant] = useState('')
   const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState('none')
   const [speakerType, setSpeakerType] = useState<'internal' | 'external'>('internal')
 
   useEffect(() => {
     if (assignment) {
-      setSelectedAssignee(assignment.assigneeId?.toString() ?? 'none')
-      setSelectedAssistant(assignment.assistantId?.toString() ?? 'none')
+      setSelectedAssignee(assignment.assigneeId?.toString() ?? '')
+      setSelectedAssistant(assignment.assistantId?.toString() ?? '')
       setSelectedExternalSpeaker(assignment.externalSpeakerId?.toString() ?? 'none')
       setSpeakerType(assignment.externalSpeakerId ? 'external' : 'internal')
     }
@@ -64,8 +65,7 @@ export function AssignPartSheet({
     prevState.current = fetcher.state
   }, [fetcher.state, fetcher.data, onOpenChange])
 
-  const activeInternalSelection =
-    selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
+  const activeInternalSelection = selectedAssignee || selectedAssistant || null
   const hasRegistry = externalSpeakers.length > 0
 
   if (!assignment) return null
@@ -155,36 +155,28 @@ export function AssignPartSheet({
             <>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="assigneeId">{m.programs_assign_part_speaker_label()}</Label>
-                <Select name="assigneeId" value={selectedAssignee} onValueChange={setSelectedAssignee}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={m.programs_assign_part_select_publisher()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.firstname} {user.lastname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PersonDropdown
+                  id="assigneeId"
+                  name="assigneeId"
+                  people={users}
+                  value={selectedAssignee}
+                  onValueChange={setSelectedAssignee}
+                  placeholder={m.programs_assign_part_select_publisher()}
+                  noneLabel={m.programs_assign_part_none()}
+                />
               </div>
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
-                <Select name="assistantId" value={selectedAssistant} onValueChange={setSelectedAssistant}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={m.programs_assign_part_no_reader()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id.toString()}>
-                        {user.firstname} {user.lastname}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <PersonDropdown
+                  id="assistantId"
+                  name="assistantId"
+                  people={users}
+                  value={selectedAssistant}
+                  onValueChange={setSelectedAssistant}
+                  placeholder={m.programs_assign_part_no_reader()}
+                  noneLabel={m.programs_assign_part_none()}
+                />
               </div>
 
               <PublisherInfoCard eventId={eventId} userId={activeInternalSelection} partName={assignment.name} />

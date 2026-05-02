@@ -17,6 +17,8 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import type { Route } from './+types/new'
@@ -130,132 +132,116 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 
             <div className="space-y-2">
               <Label htmlFor="publisher">{m.activity_new_publisher_label()}</Label>
-              <select
+              <PersonDropdown
                 id="publisher"
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                 name="publisher"
-                value={publisher?.id}
-                onChange={event => {
-                  searchParams.set('publisherId', event.target.value)
+                people={publishers}
+                value={publisher?.id != null ? String(publisher.id) : ''}
+                onValueChange={value => {
+                  searchParams.set('publisherId', value)
                   setSearchParams(searchParams)
                 }}
-                required
-              >
-                <option>{m.activity_new_publisher_placeholder()}</option>
-                {publishers.map(p => (
-                  <option key={p.id} value={p?.id}>
-                    {p.firstname} {p.lastname?.toLocaleUpperCase()}
-                  </option>
-                ))}
-              </select>
+                placeholder={m.activity_new_publisher_placeholder()}
+                allowNone={false}
+              />
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="month">{m.activity_new_month_label()}</Label>
-                <select
-                  id="month"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                <Select
                   name="month"
-                  value={selectedMonth.month}
-                  onChange={event => {
-                    searchParams.set('month', event.target.value)
+                  value={String(selectedMonth.month)}
+                  onValueChange={value => {
+                    searchParams.set('month', value)
                     setSearchParams(searchParams)
                   }}
-                  required
                 >
-                  <option>{m.activity_new_month_placeholder()}</option>
-                  <option value={0} disabled={unavailableMonths.includes(0)}>
-                    {m.activity_month_january()}
-                  </option>
-                  <option value={1} disabled={unavailableMonths.includes(1)}>
-                    {m.activity_month_february()}
-                  </option>
-                  <option value={2} disabled={unavailableMonths.includes(2)}>
-                    {m.activity_month_march()}
-                  </option>
-                  <option value={3} disabled={unavailableMonths.includes(3)}>
-                    {m.activity_month_april()}
-                  </option>
-                  <option value={4} disabled={unavailableMonths.includes(4)}>
-                    {m.activity_month_may()}
-                  </option>
-                  <option value={5} disabled={unavailableMonths.includes(5)}>
-                    {m.activity_month_june()}
-                  </option>
-                  <option value={6} disabled={unavailableMonths.includes(6)}>
-                    {m.activity_month_july()}
-                  </option>
-                  <option value={7} disabled={unavailableMonths.includes(7)}>
-                    {m.activity_month_august()}
-                  </option>
-                  <option value={8} disabled={unavailableMonths.includes(8)}>
-                    {m.activity_month_september()}
-                  </option>
-                  <option value={9} disabled={unavailableMonths.includes(9)}>
-                    {m.activity_month_october()}
-                  </option>
-                  <option value={10} disabled={unavailableMonths.includes(10)}>
-                    {m.activity_month_november()}
-                  </option>
-                  <option value={11} disabled={unavailableMonths.includes(11)}>
-                    {m.activity_month_december()}
-                  </option>
-                </select>
+                  <SelectTrigger id="month" className="w-full">
+                    <SelectValue placeholder={m.activity_new_month_placeholder()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0" disabled={unavailableMonths.includes(0)}>
+                      {m.activity_month_january()}
+                    </SelectItem>
+                    <SelectItem value="1" disabled={unavailableMonths.includes(1)}>
+                      {m.activity_month_february()}
+                    </SelectItem>
+                    <SelectItem value="2" disabled={unavailableMonths.includes(2)}>
+                      {m.activity_month_march()}
+                    </SelectItem>
+                    <SelectItem value="3" disabled={unavailableMonths.includes(3)}>
+                      {m.activity_month_april()}
+                    </SelectItem>
+                    <SelectItem value="4" disabled={unavailableMonths.includes(4)}>
+                      {m.activity_month_may()}
+                    </SelectItem>
+                    <SelectItem value="5" disabled={unavailableMonths.includes(5)}>
+                      {m.activity_month_june()}
+                    </SelectItem>
+                    <SelectItem value="6" disabled={unavailableMonths.includes(6)}>
+                      {m.activity_month_july()}
+                    </SelectItem>
+                    <SelectItem value="7" disabled={unavailableMonths.includes(7)}>
+                      {m.activity_month_august()}
+                    </SelectItem>
+                    <SelectItem value="8" disabled={unavailableMonths.includes(8)}>
+                      {m.activity_month_september()}
+                    </SelectItem>
+                    <SelectItem value="9" disabled={unavailableMonths.includes(9)}>
+                      {m.activity_month_october()}
+                    </SelectItem>
+                    <SelectItem value="10" disabled={unavailableMonths.includes(10)}>
+                      {m.activity_month_november()}
+                    </SelectItem>
+                    <SelectItem value="11" disabled={unavailableMonths.includes(11)}>
+                      {m.activity_month_december()}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="year">{m.activity_new_year_label()}</Label>
-                <select
-                  id="year"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                <Select
                   name="year"
-                  value={selectedMonth.year}
-                  onChange={event => {
-                    searchParams.set('year', event.target.value)
+                  value={String(selectedMonth.year)}
+                  onValueChange={value => {
+                    searchParams.set('year', value)
                     setSearchParams(searchParams)
                   }}
-                  required
                 >
-                  <option>{m.activity_new_year_placeholder()}</option>
-                  <option value={2022}>2022</option>
-                  <option value={2023}>2023</option>
-                  <option value={2024}>2024</option>
-                  <option value={2025}>2025</option>
-                  <option value={2026}>2026</option>
-                  <option value={2027}>2027</option>
-                  <option value={2028}>2028</option>
-                  <option value={2029}>2029</option>
-                  <option value={2030}>2030</option>
-                  <option value={2031}>2031</option>
-                  <option value={2032}>2032</option>
-                  <option value={2033}>2033</option>
-                  <option value={2034}>2034</option>
-                  <option value={2035}>2035</option>
-                  <option value={2036}>2036</option>
-                  <option value={2037}>2037</option>
-                  <option value={2038}>2038</option>
-                  <option value={2039}>2039</option>
-                  <option value={2040}>2040</option>
-                </select>
+                  <SelectTrigger id="year" className="w-full">
+                    <SelectValue placeholder={m.activity_new_year_placeholder()} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 19 }, (_, i) => 2022 + i).map(year => (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             {publisher?.type != null && publisher.type === PublisherType.Normal && (
               <div className="space-y-2">
                 <Label htmlFor="type">{m.activity_new_pioneer_label()}</Label>
-                <select
-                  id="type"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
+                <Select
                   name="type"
-                  value={pioneer as string}
-                  onChange={event => {
-                    setPioneer(event.target.value as PublisherType)
-                  }}
-                  required
+                  value={pioneer ?? PublisherType.Normal}
+                  onValueChange={value => setPioneer(value as PublisherType)}
                 >
-                  <option value={PublisherType.Normal}>{m.activity_new_pioneer_none()}</option>
-                  <option value={PublisherType.PionnierAuxiliaires}>{m.activity_new_pioneer_auxiliary()}</option>
-                </select>
+                  <SelectTrigger id="type" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={PublisherType.Normal}>{m.activity_new_pioneer_none()}</SelectItem>
+                    <SelectItem value={PublisherType.PionnierAuxiliaires}>
+                      {m.activity_new_pioneer_auxiliary()}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             )}
 

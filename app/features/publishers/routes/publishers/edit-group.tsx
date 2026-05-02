@@ -15,6 +15,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -40,6 +41,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
         congregationId: currentUser.congregationId,
         isMale: true,
         OR: [{ isHelder: true }, { isServant: true }],
+      },
+      include: {
+        responsibleFor: { select: { id: true, name: true } },
+        deputyFor: { select: { id: true, name: true } },
       },
     })
 
@@ -76,6 +81,22 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
       return parseWithZod(formData, { schema: updateGroupSchema })
     },
   })
+
+  const disabledIds = brothers
+    .filter(b => {
+      const responsibleElsewhere = b.responsibleFor && b.responsibleFor.id !== group.id
+      const deputyElsewhere = b.deputyFor && b.deputyFor.id !== group.id
+      return responsibleElsewhere || deputyElsewhere
+    })
+    .map(b => b.id)
+  const disabledReason = (id: number) => {
+    const brother = brothers.find(b => b.id === id)
+    if (brother?.responsibleFor && brother.responsibleFor.id !== group.id)
+      return m.groups_form_already_responsible({ name: brother.responsibleFor.name })
+    if (brother?.deputyFor && brother.deputyFor.id !== group.id)
+      return m.groups_form_already_deputy({ name: brother.deputyFor.name })
+    return undefined
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -119,37 +140,32 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
               </div>
               <div className="space-y-2">
                 <Label htmlFor={fields.responsible.id}>{m.groups_form_responsible()}</Label>
-                <select
+                <PersonDropdown
                   id={fields.responsible.id}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                   name={fields.responsible.name}
-                  required
+                  people={brothers}
                   defaultValue={fields.responsible.initialValue as string}
-                >
-                  <option disabled>{m.groups_form_responsible_placeholder()}</option>
-                  {brothers.map(brother => (
-                    <option key={brother.id} value={brother.id}>
-                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                    </option>
-                  ))}
-                </select>
+                  placeholder={m.groups_form_responsible_placeholder()}
+                  allowNone={false}
+                  disabledIds={disabledIds}
+                  disabledReason={disabledReason}
+                  aria-invalid={fields.responsible.errors !== undefined}
+                />
                 {fields.responsible.errors && <p className="text-destructive text-sm">{fields.responsible.errors}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor={fields.deputy.id}>{m.groups_form_deputy()}</Label>
-                <select
+                <PersonDropdown
                   id={fields.deputy.id}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs"
                   name={fields.deputy.name}
+                  people={brothers}
                   defaultValue={fields.deputy.initialValue as string}
-                >
-                  <option value="">{m.groups_form_no_deputy()}</option>
-                  {brothers.map(brother => (
-                    <option key={brother.id} value={brother.id}>
-                      {brother.firstname} {brother.lastname?.toLocaleUpperCase()}
-                    </option>
-                  ))}
-                </select>
+                  placeholder={m.groups_form_no_deputy()}
+                  noneLabel={m.groups_form_no_deputy()}
+                  disabledIds={disabledIds}
+                  disabledReason={disabledReason}
+                  aria-invalid={fields.deputy.errors !== undefined}
+                />
                 {fields.deputy.errors && <p className="text-destructive text-sm">{fields.deputy.errors}</p>}
               </div>
             </div>

@@ -6,6 +6,15 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
@@ -21,7 +30,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const congregationId = currentUser.congregationId
 
   const url = new URL(request.url)
-  const action = url.searchParams.get('action') ?? undefined
+  const actionParam = url.searchParams.get('action')
+  const action = actionParam && actionParam !== 'all' ? actionParam : undefined
   const dateFrom = url.searchParams.get('dateFrom') ?? undefined
   const dateTo = url.searchParams.get('dateTo') ?? undefined
 
@@ -136,61 +146,76 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
       <RouterForm method="get" className="flex flex-wrap items-end gap-3">
         <div className="space-y-1">
           <Label htmlFor="action">{m.audit_log_filter_action()}</Label>
-          <select
-            id="action"
-            name="action"
-            defaultValue={searchParams.get('action') ?? ''}
-            className="flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-          >
-            <option value="">{m.audit_log_filter_all_actions()}</option>
-            <optgroup label={m.audit_log_group_auth()}>
-              <option value="user.login">{m.audit_log_action_user_login()}</option>
-              <option value="user.login.failed">{m.audit_log_action_user_login_failed()}</option>
-              <option value="user.logout">{m.audit_log_action_user_logout()}</option>
-              <option value="password.changed">{m.audit_log_action_password_changed()}</option>
-              <option value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</option>
-              <option value="consent.granted">{m.audit_log_action_consent_granted()}</option>
-              <option value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</option>
-            </optgroup>
-            <optgroup label={m.audit_log_group_users()}>
-              <option value="user.created">{m.audit_log_action_user_created()}</option>
-              <option value="user.updated">{m.audit_log_action_user_updated()}</option>
-              <option value="user.anonymized">{m.audit_log_action_user_anonymized()}</option>
-              <option value="user.roles.changed">{m.audit_log_action_user_roles_changed()}</option>
-              <option value="user.data.exported">{m.audit_log_action_user_data_exported()}</option>
-              <option value="publisher.created">{m.audit_log_action_publisher_created()}</option>
-              <option value="publisher.updated">{m.audit_log_action_publisher_updated()}</option>
-              <option value="publisher.status.changed">{m.audit_log_action_publisher_status_changed()}</option>
-              <option value="publisher.group.created">{m.audit_log_action_publisher_group_created()}</option>
-              <option value="publisher.group.deleted">{m.audit_log_action_publisher_group_deleted()}</option>
-              <option value="publisher.activity.created">{m.audit_log_action_publisher_activity_created()}</option>
-              <option value="publisher.activity.updated">{m.audit_log_action_publisher_activity_updated()}</option>
-              <option value="publisher.activity.deleted">{m.audit_log_action_publisher_activity_deleted()}</option>
-            </optgroup>
-            <optgroup label={m.audit_log_group_territories()}>
-              <option value="territory.created">{m.audit_log_action_territory_created()}</option>
-              <option value="territory.updated">{m.audit_log_action_territory_updated()}</option>
-              <option value="territory.deleted">{m.audit_log_action_territory_deleted()}</option>
-              <option value="attribution.created">{m.audit_log_action_attribution_created()}</option>
-              <option value="attribution.updated">{m.audit_log_action_attribution_updated()}</option>
-              <option value="attribution.deleted">{m.audit_log_action_attribution_deleted()}</option>
-            </optgroup>
-            <optgroup label={m.audit_log_group_board()}>
-              <option value="board.document.created">{m.audit_log_action_board_document_created()}</option>
-              <option value="board.document.updated">{m.audit_log_action_board_document_updated()}</option>
-              <option value="board.document.deleted">{m.audit_log_action_board_document_deleted()}</option>
-              <option value="board.section.created">{m.audit_log_action_board_section_created()}</option>
-              <option value="board.section.updated">{m.audit_log_action_board_section_updated()}</option>
-              <option value="board.read_status.viewed">{m.audit_log_action_board_read_status_viewed()}</option>
-            </optgroup>
-            <optgroup label={m.audit_log_group_settings()}>
-              <option value="congregation.settings.updated">
-                {m.audit_log_action_congregation_settings_updated()}
-              </option>
-              <option value="congregation.exported">{m.audit_log_action_congregation_exported()}</option>
-              <option value="congregation.imported">{m.audit_log_action_congregation_imported()}</option>
-            </optgroup>
-          </select>
+          <Select name="action" defaultValue={searchParams.get('action') || 'all'}>
+            <SelectTrigger id="action">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{m.audit_log_filter_all_actions()}</SelectItem>
+              <SelectGroup>
+                <SelectLabel>{m.audit_log_group_auth()}</SelectLabel>
+                <SelectItem value="user.login">{m.audit_log_action_user_login()}</SelectItem>
+                <SelectItem value="user.login.failed">{m.audit_log_action_user_login_failed()}</SelectItem>
+                <SelectItem value="user.logout">{m.audit_log_action_user_logout()}</SelectItem>
+                <SelectItem value="password.changed">{m.audit_log_action_password_changed()}</SelectItem>
+                <SelectItem value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</SelectItem>
+                <SelectItem value="consent.granted">{m.audit_log_action_consent_granted()}</SelectItem>
+                <SelectItem value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</SelectItem>
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>{m.audit_log_group_users()}</SelectLabel>
+                <SelectItem value="user.created">{m.audit_log_action_user_created()}</SelectItem>
+                <SelectItem value="user.updated">{m.audit_log_action_user_updated()}</SelectItem>
+                <SelectItem value="user.anonymized">{m.audit_log_action_user_anonymized()}</SelectItem>
+                <SelectItem value="user.roles.changed">{m.audit_log_action_user_roles_changed()}</SelectItem>
+                <SelectItem value="user.data.exported">{m.audit_log_action_user_data_exported()}</SelectItem>
+                <SelectItem value="publisher.created">{m.audit_log_action_publisher_created()}</SelectItem>
+                <SelectItem value="publisher.updated">{m.audit_log_action_publisher_updated()}</SelectItem>
+                <SelectItem value="publisher.status.changed">
+                  {m.audit_log_action_publisher_status_changed()}
+                </SelectItem>
+                <SelectItem value="publisher.group.created">{m.audit_log_action_publisher_group_created()}</SelectItem>
+                <SelectItem value="publisher.group.deleted">{m.audit_log_action_publisher_group_deleted()}</SelectItem>
+                <SelectItem value="publisher.activity.created">
+                  {m.audit_log_action_publisher_activity_created()}
+                </SelectItem>
+                <SelectItem value="publisher.activity.updated">
+                  {m.audit_log_action_publisher_activity_updated()}
+                </SelectItem>
+                <SelectItem value="publisher.activity.deleted">
+                  {m.audit_log_action_publisher_activity_deleted()}
+                </SelectItem>
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>{m.audit_log_group_territories()}</SelectLabel>
+                <SelectItem value="territory.created">{m.audit_log_action_territory_created()}</SelectItem>
+                <SelectItem value="territory.updated">{m.audit_log_action_territory_updated()}</SelectItem>
+                <SelectItem value="territory.deleted">{m.audit_log_action_territory_deleted()}</SelectItem>
+                <SelectItem value="attribution.created">{m.audit_log_action_attribution_created()}</SelectItem>
+                <SelectItem value="attribution.updated">{m.audit_log_action_attribution_updated()}</SelectItem>
+                <SelectItem value="attribution.deleted">{m.audit_log_action_attribution_deleted()}</SelectItem>
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>{m.audit_log_group_board()}</SelectLabel>
+                <SelectItem value="board.document.created">{m.audit_log_action_board_document_created()}</SelectItem>
+                <SelectItem value="board.document.updated">{m.audit_log_action_board_document_updated()}</SelectItem>
+                <SelectItem value="board.document.deleted">{m.audit_log_action_board_document_deleted()}</SelectItem>
+                <SelectItem value="board.section.created">{m.audit_log_action_board_section_created()}</SelectItem>
+                <SelectItem value="board.section.updated">{m.audit_log_action_board_section_updated()}</SelectItem>
+                <SelectItem value="board.read_status.viewed">
+                  {m.audit_log_action_board_read_status_viewed()}
+                </SelectItem>
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>{m.audit_log_group_settings()}</SelectLabel>
+                <SelectItem value="congregation.settings.updated">
+                  {m.audit_log_action_congregation_settings_updated()}
+                </SelectItem>
+                <SelectItem value="congregation.exported">{m.audit_log_action_congregation_exported()}</SelectItem>
+                <SelectItem value="congregation.imported">{m.audit_log_action_congregation_imported()}</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-1">
           <Label htmlFor="dateFrom">{m.audit_log_filter_from()}</Label>
