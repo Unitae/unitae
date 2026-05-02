@@ -1,4 +1,4 @@
-import { ArchiveRestore, Mail, Pencil, Phone, UserPlus, UsersRound } from 'lucide-react'
+import { ArchiveRestore, Eye, Mail, Pencil, Phone, UserPlus, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import * as m from '~/paraglide/messages'
@@ -21,9 +21,10 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManage = permissions.has(Role.ProgramManager)
+  const canManage = permissions.has(Role.ExternalSpeakerManager)
+  const canView = canManage || permissions.has(Role.ExternalSpeakerViewer)
 
-  if (!canManage) {
+  if (!canView) {
     logger.warn(`Tried to load external speakers. User ID: ${currentUser.id}. Does NOT have rights.`)
     throw redirect('/')
   }
@@ -57,6 +58,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           lastVisitDate: s.lastVisitDate?.toISOString() ?? null,
         })),
       showArchived,
+      canManage,
     }
   })
 }
@@ -71,7 +73,16 @@ function formatRelative(dateString: string | null): string {
 }
 
 export default function ExternalSpeakerListPage({ loaderData }: Route.ComponentProps) {
-  const { speakers, showArchived } = loaderData
+  const { speakers, showArchived, canManage } = loaderData
+
+  const newAction = canManage ? (
+    <Button asChild>
+      <Link to="./new">
+        <UserPlus className="size-4" />
+        {m.external_speakers_new_action()}
+      </Link>
+    </Button>
+  ) : null
 
   if (speakers.length === 0) {
     return (
@@ -81,25 +92,14 @@ export default function ExternalSpeakerListPage({ loaderData }: Route.ComponentP
           subtitle={m.external_speakers_subtitle()}
           breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.external_speakers_page_title() }]}
           backTo="/programs"
-          actions={
-            <Button asChild>
-              <Link to="./new">
-                <UserPlus className="size-4" />
-                {m.external_speakers_new_action()}
-              </Link>
-            </Button>
-          }
+          actions={newAction}
         />
 
         <EmptyState
           icon={UsersRound}
           title={m.external_speakers_empty_title()}
           description={m.external_speakers_empty_description()}
-          action={
-            <Button asChild>
-              <Link to="./new">{m.external_speakers_new_action()}</Link>
-            </Button>
-          }
+          action={newAction ?? undefined}
         />
       </div>
     )
@@ -112,14 +112,7 @@ export default function ExternalSpeakerListPage({ loaderData }: Route.ComponentP
         subtitle={m.external_speakers_subtitle()}
         breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.external_speakers_page_title() }]}
         backTo="/programs"
-        actions={
-          <Button asChild>
-            <Link to="./new">
-              <UserPlus className="size-4" />
-              {m.external_speakers_new_action()}
-            </Link>
-          </Button>
-        }
+        actions={newAction}
       />
 
       <div className="flex flex-wrap items-center gap-3">
@@ -199,7 +192,7 @@ export default function ExternalSpeakerListPage({ loaderData }: Route.ComponentP
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" asChild>
                       <Link to={`./${speaker.id}/edit`}>
-                        <Pencil className="size-4" />
+                        {canManage ? <Pencil className="size-4" /> : <Eye className="size-4" />}
                       </Link>
                     </Button>
                   </TableCell>

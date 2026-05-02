@@ -57,3 +57,10 @@ WHERE pa."externalSpeakerName" IS NOT NULL
 
 -- Drop the now-unused free-text column
 ALTER TABLE "ProgrammePartAssignment" DROP COLUMN "externalSpeakerName";
+
+-- Seed the two new global UserRole rows (idempotent — safe to re-run)
+INSERT INTO "UserRole" ("key", "description")
+VALUES
+  ('external-speaker-viewer', 'Peut consulter le registre des orateurs externes'),
+  ('external-speaker-manager', 'Peut gérer le registre des orateurs externes (créer, modifier, archiver)')
+ON CONFLICT ("key") DO NOTHING;

@@ -46,7 +46,9 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/')
+  const canManage = permissions.has(Role.ExternalSpeakerManager)
+  const canView = canManage || permissions.has(Role.ExternalSpeakerViewer)
+  if (!canView) throw redirect('/')
 
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')
 
@@ -66,6 +68,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         archivedAt: speaker.archivedAt?.toISOString() ?? null,
         isIncomplete: speaker.congregationName === '',
       },
+      canManage,
     }
   })
 }
@@ -74,7 +77,7 @@ const intentSchema = z.object({ intent: z.enum(['update', 'archive', 'unarchive'
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/')
+  if (!permissions.has(Role.ExternalSpeakerManager)) throw redirect('/')
 
   const currentUser = context.get(userContext)
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')
@@ -132,7 +135,7 @@ async function runArchive(operation: () => Promise<unknown>): Promise<void> {
 }
 
 export default function ExternalSpeakerEditPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { speaker } = loaderData
+  const { speaker, canManage } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
@@ -180,39 +183,42 @@ export default function ExternalSpeakerEditPage({ loaderData, actionData }: Rout
         <CardContent>
           <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <input type="hidden" name="intent" value="update" />
-            <div className="space-y-2">
-              <Label htmlFor={fields.name.id}>{m.external_speakers_field_name()}</Label>
-              <Input {...getInputProps(fields.name, { type: 'text' })} />
-              {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={fields.congregationName.id}>{m.external_speakers_field_congregation()}</Label>
-              <Input {...getInputProps(fields.congregationName, { type: 'text' })} />
-              {fields.congregationName.errors && (
-                <p className="text-destructive text-sm">{fields.congregationName.errors}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={fields.phone.id}>{m.external_speakers_field_phone()}</Label>
-              <Input {...getInputProps(fields.phone, { type: 'tel' })} />
-              {fields.phone.errors && <p className="text-destructive text-sm">{fields.phone.errors}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={fields.email.id}>{m.external_speakers_field_email()}</Label>
-              <Input {...getInputProps(fields.email, { type: 'email' })} />
-              {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor={fields.notes.id}>{m.external_speakers_field_notes()}</Label>
-              <Textarea {...getTextareaProps(fields.notes)} />
-              {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
-            </div>
+            <fieldset disabled={!canManage} className="contents">
+              <div className="space-y-2">
+                <Label htmlFor={fields.name.id}>{m.external_speakers_field_name()}</Label>
+                <Input {...getInputProps(fields.name, { type: 'text' })} readOnly={!canManage} />
+                {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={fields.congregationName.id}>{m.external_speakers_field_congregation()}</Label>
+                <Input {...getInputProps(fields.congregationName, { type: 'text' })} readOnly={!canManage} />
+                {fields.congregationName.errors && (
+                  <p className="text-destructive text-sm">{fields.congregationName.errors}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={fields.phone.id}>{m.external_speakers_field_phone()}</Label>
+                <Input {...getInputProps(fields.phone, { type: 'tel' })} readOnly={!canManage} />
+                {fields.phone.errors && <p className="text-destructive text-sm">{fields.phone.errors}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={fields.email.id}>{m.external_speakers_field_email()}</Label>
+                <Input {...getInputProps(fields.email, { type: 'email' })} readOnly={!canManage} />
+                {fields.email.errors && <p className="text-destructive text-sm">{fields.email.errors}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={fields.notes.id}>{m.external_speakers_field_notes()}</Label>
+                <Textarea {...getTextareaProps(fields.notes)} readOnly={!canManage} />
+                {fields.notes.errors && <p className="text-destructive text-sm">{fields.notes.errors}</p>}
+              </div>
+            </fieldset>
             {form.errors && <p className="text-destructive text-sm">{form.errors}</p>}
-            <SubmitButton className="mt-2">{m.common_save()}</SubmitButton>
+            {canManage && <SubmitButton className="mt-2">{m.common_save()}</SubmitButton>}
           </Form>
         </CardContent>
       </Card>
 
+      {canManage && (
       <Card className="border-destructive">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive text-lg">
@@ -262,6 +268,7 @@ export default function ExternalSpeakerEditPage({ loaderData, actionData }: Rout
           )}
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

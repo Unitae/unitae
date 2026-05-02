@@ -54,6 +54,8 @@ export interface AppSidebarPermissions {
   canManageUsers: boolean
   canViewPrograms: boolean
   canViewActivity: boolean
+  canViewExternalSpeakers: boolean
+  canManageExternalSpeakers: boolean
   isPlatformAdmin: boolean
 }
 
@@ -65,7 +67,8 @@ interface AppSidebarProps {
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
 export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
-  const showAssemblee = permissions.canViewPublishers || permissions.canViewPrograms
+  const showAssemblee =
+    permissions.canViewPublishers || permissions.canViewPrograms || permissions.canViewExternalSpeakers
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
   const showReglages = permissions.canManageSettings || permissions.canManageUsers
@@ -148,7 +151,7 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                     {permissions.canViewPrograms && (
                       <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                     )}
-                    {permissions.canViewPrograms && (
+                    {permissions.canViewExternalSpeakers && (
                       <SidebarNavItem
                         to="/programs/external-speakers"
                         icon={UserCog}

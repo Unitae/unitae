@@ -26,13 +26,13 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/')
+  if (!permissions.has(Role.ExternalSpeakerManager)) throw redirect('/')
   return null
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/')
+  if (!permissions.has(Role.ExternalSpeakerManager)) throw redirect('/')
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))

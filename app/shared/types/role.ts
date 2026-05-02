@@ -13,4 +13,6 @@ export enum Role {
   ActivityManager = 'activity-manager',
   ProgramViewer = 'program-viewer',
   ProgramManager = 'program-manager',
+  ExternalSpeakerViewer = 'external-speaker-viewer',
+  ExternalSpeakerManager = 'external-speaker-manager',
 }
