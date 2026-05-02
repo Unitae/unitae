@@ -1,6 +1,7 @@
 import { AlertTriangle, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
@@ -30,7 +31,8 @@ type PartRowAssignment = {
   assigneeId: number | null
   assistantId: number | null
   allowExternalSpeaker: boolean
-  externalSpeakerName: string | null
+  externalSpeakerId: number | null
+  externalSpeaker: { name: string } | null
   hasConflict: boolean
   assignee: { firstname: string | null; lastname: string | null } | null
   assistant: { firstname: string | null; lastname: string | null } | null
@@ -63,14 +65,26 @@ export function loader({ params, context }: Route.LoaderArgs) {
         })
       : []
 
+    const externalSpeakers = canEdit
+      ? (await listExternalSpeakers(db, congregationId, { includeArchived: false }))
+          .slice()
+          .sort((a, b) => {
+            const aTime = a.lastVisitDate?.getTime() ?? -Infinity
+            const bTime = b.lastVisitDate?.getTime() ?? -Infinity
+            if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
+            return aTime - bTime
+          })
+          .map(s => ({ id: s.id, name: s.name }))
+      : []
+
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
-    return { event, canEdit, users }
+    return { event, canEdit, users, externalSpeakers }
   })
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users } = loaderData
+  const { event, canEdit, users, externalSpeakers } = loaderData
 
   const [assignPartTarget, setAssignPartTarget] = useState<{
     id: number
@@ -81,7 +95,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     assigneeId: number | null
     assistantId: number | null
     allowExternalSpeaker: boolean
-    externalSpeakerName: string | null
+    externalSpeakerId: number | null
   } | null>(null)
   const [assignPartOpen, setAssignPartOpen] = useState(false)
 
@@ -101,7 +115,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 
   // Derived values
   const hasAnyTopic = event.partAssignments.some(a => a.topic)
-  const partAssignedCount = event.partAssignments.filter(a => a.assigneeId ?? a.externalSpeakerName).length
+  const partAssignedCount = event.partAssignments.filter(a => a.assigneeId ?? a.externalSpeakerId).length
   const serviceAssignedCount = event.serviceRoleAssignments.filter(a => a.assigneeId).length
 
   // Group parts by section, then by track within each section
@@ -151,7 +165,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
       assigneeId: assignment.assigneeId,
       assistantId: assignment.assistantId,
       allowExternalSpeaker: assignment.allowExternalSpeaker,
-      externalSpeakerName: assignment.externalSpeakerName,
+      externalSpeakerId: assignment.externalSpeakerId,
     })
     setAssignPartOpen(true)
   }
@@ -303,7 +317,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                   >
                     <AssigneeCell
                       assignee={assignment.assignee}
-                      externalSpeakerName={null}
+                      externalSpeaker={null}
                       hasConflict={assignment.hasConflict}
                     />
                   </TableCell>
@@ -359,6 +373,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
         onOpenChange={setAssignPartOpen}
         assignment={assignPartTarget}
         users={users}
+        externalSpeakers={externalSpeakers}
         eventId={event.id}
       />
 
@@ -420,7 +435,7 @@ function PartRow({
       >
         <AssigneeCell
           assignee={assignment.assignee}
-          externalSpeakerName={assignment.externalSpeakerName}
+          externalSpeaker={assignment.externalSpeaker}
           hasConflict={assignment.hasConflict}
         />
       </TableCell>
@@ -442,7 +457,7 @@ function PartRow({
             <Button variant="ghost" size="icon" className="size-7" onClick={() => openPartAssign(assignment)}>
               <UserPlus className="size-3" />
             </Button>
-            {(assignment.assigneeId ?? assignment.externalSpeakerName) && (
+            {(assignment.assigneeId ?? assignment.externalSpeakerId) && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -453,7 +468,7 @@ function PartRow({
                     id: assignment.id,
                     name: assignment.name,
                     assigneeName:
-                      assignment.externalSpeakerName ??
+                      assignment.externalSpeaker?.name ??
                       `${assignment.assignee?.firstname ?? ''} ${assignment.assignee?.lastname ?? ''}`.trim(),
                   })
                 }
@@ -470,17 +485,17 @@ function PartRow({
 
 function AssigneeCell({
   assignee,
-  externalSpeakerName,
+  externalSpeaker,
   hasConflict,
 }: {
   assignee: { firstname: string | null; lastname: string | null } | null
-  externalSpeakerName: string | null
+  externalSpeaker: { name: string } | null
   hasConflict: boolean
 }) {
-  if (externalSpeakerName) {
+  if (externalSpeaker) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-sm">{externalSpeakerName}</span>
+        <span className="text-sm">{externalSpeaker.name}</span>
         <Badge variant="secondary" className="text-xs">
           {m.programs_view_external_badge()}
         </Badge>

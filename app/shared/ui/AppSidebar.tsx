@@ -148,6 +148,13 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                     {permissions.canViewPrograms && (
                       <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                     )}
+                    {permissions.canViewPrograms && (
+                      <SidebarNavItem
+                        to="/programs/external-speakers"
+                        icon={UserCog}
+                        label={m.sidebar_external_speakers()}
+                      />
+                    )}
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>

@@ -92,6 +92,7 @@ model Congregation {
   programmePartAssignments        ProgrammePartAssignment[]
   programmeServiceRoleAssignments ProgrammeServiceRoleAssignment[]
   programmeTemplateResponsibles   ProgrammeTemplateResponsible[]
+  externalSpeakers                ExternalSpeaker[]
 
   notificationEvents      NotificationEvent[]
   notificationPreferences NotificationPreference[]
@@ -569,7 +570,9 @@ model ProgrammePartAssignment {
   assistantId Int?
 
   allowExternalSpeaker Boolean @default(false)
-  externalSpeakerName  String?
+
+  externalSpeaker   ExternalSpeaker? @relation(fields: [externalSpeakerId], references: [id], onDelete: SetNull)
+  externalSpeakerId Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -578,6 +581,28 @@ model ProgrammePartAssignment {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([externalSpeakerId])
+}
+
+model ExternalSpeaker {
+  id               Int       @id @default(autoincrement())
+  name             String
+  congregationName String    @default("")
+  phone            String?
+  email            String?
+  notes            String?
+  archivedAt       DateTime?
+
+  partAssignments ProgrammePartAssignment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
+
+  @@unique([id, congregationId])
+  @@index([congregationId, archivedAt])
 }
 
 model ProgrammeServiceRoleAssignment {

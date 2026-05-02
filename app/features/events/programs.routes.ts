@@ -16,7 +16,13 @@ export const programsRoutes = [
       route('remove-assignment', 'features/events/routes/programs/events/remove-assignment.tsx'),
       route('delete', 'features/events/routes/programs/events/delete.tsx'),
       route('publisher-info', 'features/events/routes/programs/events/publisher-info.tsx'),
+      route('external-speaker-info', 'features/events/routes/programs/events/external-speaker-info.tsx'),
       route('reorder-parts', 'features/events/routes/programs/events/reorder-parts.tsx'),
+    ]),
+    ...prefix('external-speakers', [
+      index('features/events/routes/programs/external-speakers/list.tsx'),
+      route('new', 'features/events/routes/programs/external-speakers/new.tsx'),
+      ...prefix(':externalSpeakerId', [route('edit', 'features/events/routes/programs/external-speakers/edit.tsx')]),
     ]),
   ]),
 ] satisfies RouteConfig

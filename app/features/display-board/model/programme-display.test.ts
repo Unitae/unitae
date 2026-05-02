@@ -13,12 +13,12 @@ function makeUser(firstname: string | null, lastname: string | null, anonymizedA
 }
 
 function makePart(overrides: {
-  externalSpeakerName?: string | null
+  externalSpeaker?: { name: string } | null
   assignee?: ReturnType<typeof makeUser> | null
   assistant?: ReturnType<typeof makeUser> | null
 }) {
   return {
-    externalSpeakerName: overrides.externalSpeakerName ?? null,
+    externalSpeaker: overrides.externalSpeaker ?? null,
     assignee: overrides.assignee ?? null,
     assistant: overrides.assistant ?? null,
   }
@@ -80,13 +80,16 @@ describe('nameMatches', () => {
 
 describe('getPartDisplay', () => {
   it('returns the external speaker name with isExternal=true when set', () => {
-    const part = makePart({ externalSpeakerName: 'Pierre Martin', assignee: makeUser('Jean', 'Dupont') })
+    const part = makePart({
+      externalSpeaker: { name: 'Pierre Martin' },
+      assignee: makeUser('Jean', 'Dupont'),
+    })
     expect(getPartDisplay(part)).toEqual({ text: 'Pierre Martin', isExternal: true })
   })
 
   it('prefers external speaker over internal assignee even when both are set', () => {
     const part = makePart({
-      externalSpeakerName: 'Pierre Martin',
+      externalSpeaker: { name: 'Pierre Martin' },
       assignee: makeUser('Jean', 'Dupont'),
       assistant: makeUser('Marie', 'Curie'),
     })
@@ -106,16 +109,11 @@ describe('getPartDisplay', () => {
   it('returns null text when nothing is set', () => {
     expect(getPartDisplay(makePart({}))).toEqual({ text: null, isExternal: false })
   })
-
-  it('treats empty external speaker name as not external', () => {
-    const part = makePart({ externalSpeakerName: '', assignee: makeUser('Jean', 'Dupont') })
-    expect(getPartDisplay(part)).toEqual({ text: 'Jean Dupont', isExternal: false })
-  })
 })
 
 describe('partMatchesQuery', () => {
   it('matches the external speaker name (caller is expected to lowercase the query)', () => {
-    const part = makePart({ externalSpeakerName: 'Pierre Martin' })
+    const part = makePart({ externalSpeaker: { name: 'Pierre Martin' } })
     expect(partMatchesQuery(part, 'pierre')).toBe(true)
     expect(partMatchesQuery(part, 'martin')).toBe(true)
     expect(partMatchesQuery(part, 'paul')).toBe(false)
@@ -133,7 +131,7 @@ describe('partMatchesQuery', () => {
 
   it('returns false when no name matches', () => {
     const part = makePart({
-      externalSpeakerName: 'Pierre Martin',
+      externalSpeaker: { name: 'Pierre Martin' },
       assignee: makeUser('Jean', 'Dupont'),
       assistant: makeUser('Marie', 'Curie'),
     })

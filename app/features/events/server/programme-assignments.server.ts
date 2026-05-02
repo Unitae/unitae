@@ -11,6 +11,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
         include: {
           assignee: true,
           assistant: true,
+          externalSpeaker: true,
         },
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
       },
@@ -29,7 +30,7 @@ export async function assignPart(
   assignmentId: number,
   assigneeId: number | null,
   assistantId: number | null,
-  externalSpeakerName: string | null,
+  externalSpeakerId: number | null,
   topic: string,
   congregationId: number,
 ) {
@@ -39,12 +40,17 @@ export async function assignPart(
   })
   if (!existing) return { error: "L'attribution n'existe pas." }
 
-  if (externalSpeakerName) {
+  if (externalSpeakerId != null) {
+    const speaker = await db.externalSpeaker.findFirst({
+      where: { id: externalSpeakerId, congregationId, archivedAt: null },
+    })
+    if (!speaker) return { error: "Cet orateur externe n'existe pas ou a été archivé." }
+
     const assignment = await db.programmePartAssignment.update({
       where: {
         id_congregationId: { id: assignmentId, congregationId },
       },
-      data: { assigneeId: null, assistantId: null, externalSpeakerName, topic, hasConflict: false },
+      data: { assigneeId: null, assistantId: null, externalSpeakerId, topic, hasConflict: false },
     })
     return { assignment }
   }
@@ -75,7 +81,7 @@ export async function assignPart(
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, assistantId, externalSpeakerName: null, topic, hasConflict: false },
+    data: { assigneeId, assistantId, externalSpeakerId: null, topic, hasConflict: false },
   })
 
   return { assignment }
@@ -119,7 +125,7 @@ export function unassignPart(db: TransactionClient, assignmentId: number, congre
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId: null, assistantId: null, externalSpeakerName: null, hasConflict: false },
+    data: { assigneeId: null, assistantId: null, externalSpeakerId: null, hasConflict: false },
   })
 }
 
