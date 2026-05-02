@@ -51,6 +51,8 @@ GOOGLE_MAPS_API_KEY=""                  # Enables maps on territory pages and PD
 GOOGLE_MAPS_MAP_ID=""                   # Enables custom styled maps
 ```
 
+> **Running integration tests?** Add `DB_RUNTIME_URL="postgresql://unitae_app:unitae_app@localhost:5432/unitae_dev"` to `.env`. Without it, RLS isolation tests fail with cryptic auth errors because they connect as the superuser instead of the policy-bound `unitae_app` role.
+
 ### 4. Initialize the Database
 
 ```bash
@@ -79,21 +81,33 @@ The worker processes three job queues: territory data sync, email notifications,
 
 ## Commands
 
+### Run
+
 | Command | Description |
 |---------|-------------|
 | `pnpm start:dev` | Development server with HMR |
+| `pnpm start:worker` | Multi-queue background worker (sync, email, thumbnail) |
+| `pnpm start:emails` | Email template dev server |
+
+### Build
+
+| Command | Description |
+|---------|-------------|
 | `pnpm build` | Production build |
 | `pnpm build:format` | Format and lint with Biome |
+
+### Test
+
+| Command | Description |
+|---------|-------------|
 | `pnpm test:unit` | Run unit tests |
 | `pnpm test:unit:watch` | Run tests in watch mode |
 | `pnpm test:unit:coverage` | Run tests with coverage |
-| `pnpm test:integration` | Run integration tests (requires running PostgreSQL) |
+| `pnpm test:integration` | Run integration tests (requires running PostgreSQL and `DB_RUNTIME_URL`) |
 | `pnpm test:e2e` | Run E2E tests with Playwright (requires running app) |
 | `pnpm test:e2e:headed` | Run E2E tests with browser visible |
 | `pnpm test:lint` | Check linting only |
 | `pnpm test:typecheck` | Generate types + TypeScript check |
-| `pnpm start:worker` | Multi-queue background worker (sync, email, thumbnail) |
-| `pnpm start:emails` | Email template dev server |
 
 ## Before Submitting a PR
 

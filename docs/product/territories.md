@@ -6,11 +6,11 @@ The territory module manages the congregation's geographic areas, assigns them t
 
 Unitae supports several territory types to match different kinds of field ministry:
 
-- **Porte à Porte** — Standard residential territories
-- **Université** — University or educational institution territories
-- **Commerces** — Commercial area territories
-- **Téléphone** — Phone witnessing territories (can be toggled on/off in settings)
-- **Hôtels** — Hotel territories
+- **Door to door** — Standard residential territories
+- **Universities** — University or educational institution territories
+- **Businesses** — Commercial area territories
+- **Phones** — Phone witnessing territories (can be toggled on/off in settings)
+- **Hotels** — Hotel territories
 
 Each territory has a number, a type, and optional notes.
 
@@ -23,7 +23,7 @@ Every authenticated member can view their own assigned territories at `/me/terri
 The personal list shows all territories currently attributed to the member as a card grid:
 
 - **Territory number** and **type badge** (color-coded)
-- **Quantity label** — e.g., *42 foyers*, *12 téléphones*, *8 commerces*
+- **Quantity label** — e.g., *42 households*, *12 phones*, *8 businesses*
 - **Status badge** — On time / due soon / overdue
 - **Due date** — Displayed as relative time
 - **PDF download** — Download the territory card directly from the list
@@ -32,109 +32,113 @@ The personal list shows all territories currently attributed to the member as a 
 
 Clicking a territory opens a detail page with two tabs:
 
-- **Territoire** — HTML entrance cards adapted by territory type:
-  - *Porte à porte / Université*: address, access sequence (interphone → digicode → sonnette), home count, open-morning/mailbox flags, notes
-  - *Téléphone*: address, phone count, notes
-  - *Commerces*: address, shop kind label, notes
+- **Territory** — Address cards adapted to the territory type:
+  - *Door to door / Universities*: address, access sequence (intercom → keypad → doorbell), household count, open-morning and mailbox flags, notes
+  - *Phones*: address, phone count, notes
+  - *Businesses*: address, shop type label, notes
   - PDF download button for offline use
-- **Carte** — Full-width interactive Google Map with building markers (when configured). Shows a consent banner before loading the map. If no API key is configured, a message indicates the map is unavailable. Markers use the same blue + check pin as the admin views (see [Map Marker Design](#map-marker-design)).
+- **Map** — Full-width interactive Google Map with markers for each address (when configured). Shows a consent banner before loading the map. If no API key is set, a message indicates the map is unavailable. Markers use the same blue check pin as the admin views (see [Map markers](#map-markers)).
 
-Attribution info (start date, return date with relative time, status) is shown above the tabs.
+Assignment info (start date, return date with relative time, status) is shown above the tabs.
 
-The personal territory view is security-scoped: the server only returns territory data if the current user has an active attribution for it.
+The personal territory view is security-scoped: the server only returns territory data if the current user has an active assignment for it.
 
 ## Admin Territory View
 
-The admin territory detail page (`/territories/territory/:id/view`) is the read-only counterpart to the editor. It is laid out as stacked cards on the left with a sticky map sidebar on the right (full width on mobile, ~40% on `lg:`, ~50% on `xl:`).
+The admin territory detail page (`/territories/territory/:id/view`) is the read-only counterpart to the editor. It is laid out as stacked cards on the left with the map on the right. On large screens the map sticks to the top of the viewport while the cards scroll past it.
 
 Cards, top to bottom:
 
-- **Informations** — Territory number, type, and a kind-aware quantity label (foyers / téléphones / commerces / hôtels / campus) rendered as a `<dl>` grid.
-- **Notes** — Only rendered when the territory has notes. Uses a `StickyNote` icon so long notes are not buried as a small grey paragraph.
-- **Allées** — Single list of every entrance with the kind-aware content label (shop kind for Commerces, count for residential). Each row carries an external-link icon that opens the building detail in a new tab.
-- **Attribution en cours** — Either an empty state with an "Attribuer ce territoire" CTA, or the current attribution rendered with the publisher's initials chip, name + dates, a progress bar showing % of the duration elapsed (turning destructive when overdue), and the status badge. Edit and cancel actions are surfaced as icon buttons for `TerritoriesManager` users.
-- **Historique** — Table of all past attributions with publisher name, start/end dates, duration, and type, or a friendly empty state.
+- **Information** — Territory number, type, and the right kind of quantity for that type (households / phones / businesses / hotels / campuses).
+- **Notes** — Only shown when the territory has notes; gets its own card so longer notes stay readable.
+- **Entrances** — One row per address. Each row shows the address and a kind-appropriate label (shop type for *Businesses* territories, household count elsewhere) and links to the building detail in a new tab.
+- **Current assignment** — Either an empty state with an *Assign this territory* button, or the current assignment shown with the publisher's initials, name and dates, and a progress bar tracking how much of the loan period has elapsed (the bar turns red when overdue). Edit and cancel buttons appear for managers.
+- **History** — Table of past assignments with publisher name, start/end dates, duration, and type — or a friendly empty state when there is no history yet.
 
-The page header carries `←` / `→` arrows to step through territories of the same type ordered by number, plus a Download PDF button and (for managers) an Edit button. List filters are preserved across the round-trip: list → view → edit → view → list keeps the user's `?type=&zip=&search=` intact via a `?from=...` query param.
+The page header carries previous/next arrows to step through territories of the same type ordered by number, a *Download PDF* button, and (for managers) an *Edit* button. The current filters from the list page are preserved as you navigate: list → view → edit → view → list keeps your selected type, postal code, and search visible.
 
 ## Territory Editor
 
-When `GOOGLE_MAPS_API_KEY` is configured, `/territories/territory/:id/edit` becomes a **map-driven** editor — a full-bleed map fills the left column and the right rail summarises the territory and pending changes. Without an API key, the page silently falls back to a dropdown selector (zip → street → entrance cascade) so the editor remains fully usable.
+When a Google Maps API key is configured, `/territories/territory/:id/edit` opens a map-driven editor. The map fills most of the page and a summary panel on the right tracks the changes you have not yet saved. Without an API key, the page falls back to a dropdown selector (postal code → street → address) so the editor stays fully usable.
 
-### Map marker palette
+### Map markers
 
-| Marker | Meaning | Click action |
+Each address shown on the map is a marker, color-coded so you can tell at a glance what state it is in.
+
+| Marker | Meaning | What clicking does |
 |---|---|---|
-| **Blue + check** | Entrance currently in this territory | Mark for removal (turns red) |
-| **Blue + plus, with ring** | Pending addition or reassignment | Undo (returns to previous state) |
-| **Green + plus** | Available — not on any territory of this type | Add to this territory |
-| **Grey hollow** | On another territory of the same type | Reassign (two-step inline confirmation) |
-| **Red + ×** | Pending removal | Undo |
+| **Blue with a check** | Already in this territory | Mark for removal |
+| **Blue with a plus and a ring** | Will be added when you save | Undo |
+| **Green with a plus** | Available — not on any other territory of this type | Add to this territory |
+| **Grey hollow** | On another territory of the same type | Start a reassignment (you confirm before it is applied) |
+| **Red with an ×** | Marked for removal when you save | Undo |
 
-Reserving red exclusively for destructive intent (pending removal) keeps the visual language predictable. Cross-territory reassignment requires an explicit confirm step inside the popup, since clicking a grey marker silently steals an entrance from another manager's work.
+Red is reserved for "this will be removed", so you always know what is destructive. Reassignment asks for a confirmation because it takes the address away from another manager's territory.
 
-### Surfaces around the map
+### Tools around the map
 
-- **Address search** (top-left) — Locale-aware substring match against the union of own + viewport-loaded entrances; arrow-key navigation, Enter pans + opens the popup.
-- **Marker legend** (top-left, collapsible) — Five-row reference matching the palette. Open/closed state persists in `localStorage`.
-- **Loading / truncation / retry chips** (top-right) — A spinner while bbox loads, a "Zoomez pour voir plus d'adresses" hint when results exceed 1500, a retry chip when a load fails.
-- **Empty-state overlay** — Centered card on the map for territories with no entrances yet, prompting the user to pan and click a green marker.
-- **Marker clustering** — `@googlemaps/markerclusterer` collapses dense groups at low zoom; clicking a cluster zooms in.
+- **Address search** (top-left) — Type a number, street, or postal code to find an address. Use ↑/↓ to highlight a suggestion and Enter to jump to it.
+- **Legend** (top-left, collapsible) — A reminder of what each marker color means. Stays collapsed if you close it.
+- **Status hints** (top-right) — A spinner while addresses load, a *Zoom in to see more addresses* hint when there are too many to show at once, and a *Retry* button if a load fails.
+- **Empty state** — When a territory has no addresses yet, an overlay invites you to pan the map and click a green marker.
+- **Marker grouping** — When you zoom out, nearby markers are grouped into clusters so the map stays readable. Click a cluster to zoom into it.
 
-### Pending-changes flow
+### Pending changes
 
-Clicks on the map accumulate in a right-rail summary (additions, removals, reassignments) until the user presses Save. Save commits everything atomically: a single `updateTerritory` transaction validates and audits each cross-territory reassignment as `EntranceReassigned`, then applies the territory's new entrance set. The list also surfaces inline pending badges on each row (`+ ajout`, `− retrait`, `↻ depuis #N`) so the saved-list and pending-rail tell the same story.
+Map clicks build up in the right-side panel (additions, removals, reassignments) until you click *Save*. Saving applies everything in one shot — partial saves are not possible. The address list on the right also shows the same pending state inline (a *Pending addition* / *Pending removal* / *From territory #N* badge), so the saved list and the pending panel always agree.
 
-Bulk-revert links per section and a top-level "Tout annuler" recover from many pending changes in one click.
+If you change your mind, each row has its own undo. You can also revert a whole section, or all pending changes at once with the *Revert all* link at the top of the panel.
 
-### Geocoding gaps
+Every cross-territory reassignment is recorded in the audit log so you can later trace who moved which address and when.
 
-Entrances without `latitude/longitude` (rare in production, but possible if open-data import is incomplete) cannot render on the map. The editor surfaces them in a collapsed `<details>` block titled "Adresses sans coordonnées (n)" so they remain manageable in map mode.
+### Addresses without coordinates
 
-## Attributions
+Some addresses may not have geographic coordinates yet (for example if the address sync from open data has not run). They cannot appear on the map, so the editor lists them in a collapsible *Addresses without coordinates* section in the right panel. You can still remove them from the territory from there.
 
-An **attribution** is when a territory is assigned to a publisher for a period of time.
+## Assignments
 
-### Attribution Data
+An **assignment** is when a territory is given to a publisher for a period of time.
 
-- **Proclamateur** — The person assigned to work the territory
-- **Territoire** — The territory being assigned
-- **Date de sortie** — When the attribution begins
-- **Date de rentrée** — When the territory was returned (blank while active)
-- **À rentrer le** — The expected return date, after which the attribution is considered overdue
-- **Type de sortie** — The kind of outreach (see below)
-- **Notes** — Optional notes about the attribution
+### Assignment data
 
-### Attribution Types
+- **Publisher** — The person assigned to work the territory
+- **Territory** — The territory being assigned
+- **Checkout date** — When the assignment begins
+- **Return date** — When the territory was returned (blank while active)
+- **Due date** — When the territory is expected back; past this date the assignment is considered overdue
+- **Assignment type** — The kind of outreach (see below)
+- **Notes** — Optional notes about the assignment
 
-The *Type de sortie* field offers:
+### Assignment types
 
-- **Porte à Porte** (or **Classique**) — Standard territory assignment
-- **Téléphone** — Phone witnessing assignment
-- **Campagne de distribution** — Special campaign assignment (e.g., memorial invitations)
+The *Assignment type* field offers:
 
-### Overdue Tracking
+- **Door to door** — Standard territory assignment
+- **Phones** — Phone witnessing assignment
+- **Distribution campaign** — Special campaign assignment (e.g. memorial invitations)
 
-When an attribution passes its *À rentrer le* date without being returned, it is marked as overdue. The territories list highlights overdue attributions so managers can follow up.
+### Overdue tracking
 
-### S-13 Export
+When an assignment passes its due date without being returned, it is marked overdue. The territories list highlights overdue assignments so managers can follow up.
 
-Attributions can be exported in the **S-13 format**, the standard territory record used by congregations. This export is available as PDF.
+### S-13 export
+
+Assignments can be exported in the **S-13 format**, the standard territory record used by congregations. The export is available as PDF.
 
 ## Building Prospection
 
 Each territory contains **buildings** — individual addresses that publishers visit during field ministry.
 
-### Building Data
+### Building data
 
 Each building record includes:
 
 - **Address** — Number, street, and postal code
 - **Coordinates** — Latitude and longitude (for map display)
-- **Type d'accès** — Access type (interphone, digicode, sonnette extérieur)
-- **Porte à Porte** section — Nombre de logements (homes), nombre de téléphones, nombre de libéraux (self-employed professionals)
-- **Autres informations** section — Whether the address has commerces, résidences universitaires, hôtels, laveries automatiques, or is accessible for persons with reduced mobility
-- **Date de prospection** — When the building was last surveyed
+- **Access type** — How you get into the building (intercom, keypad, exterior doorbell)
+- **Door-to-door section** — Number of households, number of phones, number of self-employed professionals
+- **Other information** — Whether the address contains businesses, university residences, hotels, laundromats, or is accessible for persons with reduced mobility
+- **Prospecting date** — When the building was last surveyed
 - **Notes** — Additional information about the building
 
 ### Open Data Sync
@@ -149,17 +153,17 @@ The split tool helps administrators create new territories from prospected build
 
 | Category | Selects entrances with |
 |----------|----------------------|
-| **Porte à Porte** | Interphone, doorbell, or early-opening access code entrances |
-| **Commerces** | Commercial building entrances |
-| **Université** | Campus or university entrances |
-| **Téléphone** | Buildings with phone numbers or late-opening access codes |
-| **Hôtels** | Hotel entrances |
+| **Door to door** | Intercom, doorbell, or early-opening access code entrances |
+| **Businesses** | Commercial building entrances |
+| **Universities** | Campus or university entrances |
+| **Phones** | Buildings with phone numbers or late-opening access codes |
+| **Hotels** | Hotel entrances |
 
-The Téléphone category is only visible if phone territories are enabled in settings.
+The *Phones* category is only visible if phone territories are enabled in settings.
 
 ### Workflow
 
-1. Navigate to **Territoires > Prospection > Outil de découpage**
+1. Navigate to **Territories > Prospecting > Splitting tool**
 2. A dashboard shows the number of available entrances per category
 3. Click a category to see the matching entrances
 4. Select the entrances to include
@@ -176,23 +180,23 @@ When a Google Maps API key is configured, Unitae displays:
 
 Maps are optional — all territory features work without them. See [Environment Variables](../self-hosting/environment-variables.md) for configuration.
 
-### Map Marker Design
+### Map markers
 
-A single visual language is reused across every on-screen map:
+A single visual language is shared across every on-screen map:
 
-- **Read-only displays** (personal view, admin view, split-tool previews, my-territories, new-territory preview) all use a **blue circle with a checkmark** — "this entrance is part of the territory you are looking at." No green/grey/red, since these surfaces show only the territory's own entrances.
+- **Read-only views** (personal view, admin view, split tool previews, new-territory preview) use a **blue circle with a checkmark** — "this address belongs to the territory you are looking at." Green / grey / red are not used here because these views show only the territory's own addresses.
 - **The map editor** adds the full state palette (blue / green / grey / red) — see [Territory Editor](#territory-editor) above.
-- **PDF territory cards** keep their **yellow** Static Maps marker. The on-screen blue identity does not apply to print: yellow is more legible on photocopy and stays distinct from the pink/green/blue district-boundary overlays that are baked into the printed page.
+- **PDF territory cards** keep their **yellow** marker. The on-screen blue identity does not apply to print: yellow is more readable on photocopies and stays distinct from the pink, green, and blue district-boundary overlays printed on the same page.
 
 ## Statistics
 
 The territories module provides analytics on territory coverage:
 
 - **Coverage metrics** — Which territories are assigned and which are available
-- **Attribution frequency** — How often each territory is worked
-- **Overdue rate** — Percentage of attributions that exceeded their late date
+- **Assignment frequency** — How often each territory is worked
+- **Overdue rate** — Percentage of assignments that exceeded their due date
 - **Monthly evolution** — Coverage trends over time
-- **Rest period utilization** — Time between attributions for each territory
+- **Rest period utilization** — Time between assignments for each territory
 - **Ranked territories** — Territories ordered by activity level
 
 Statistics follow the **theocratic year** (September to August).
@@ -207,8 +211,8 @@ Statistics follow the **theocratic year** (September to August).
 
 | Role | Can do |
 |------|--------|
-| `TerritoriesViewer` | View territory list, attributions, and statistics |
-| `TerritoriesManager` | Create, edit, and delete territories. Manage attributions. Trigger open data sync. Cross-territory reassignments via the map editor are audited as `EntranceReassigned` |
+| `TerritoriesViewer` | View territory list, assignments, and statistics |
+| `TerritoriesManager` | Create, edit, and delete territories. Manage assignments. Trigger open data sync. Cross-territory reassignments performed in the map editor are recorded in the audit log |
 | `ProspectionViewer` | View building prospection data |
 | `ProspectionManager` | Edit buildings, update prospection data, manage building status |
 | `Admin` | Everything |

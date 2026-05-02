@@ -6,46 +6,46 @@ The publishers module manages congregation member profiles, organizes them into 
 
 A **publisher** is a congregation member who participates in field ministry. User accounts can be marked as publishers to enable activity tracking and group assignment.
 
-### Profile Information
+### Profile information
 
 Each publisher profile includes:
 
-- **Prénom / Nom** — First and last name
-- **Email / Téléphone / Adresse** — Contact details
-- **Date de naissance** — Birth date
-- **Date de baptême** — Baptism date
-- **Genre** — Homme or Femme, used for gender-specific assignments
-- **Profil du proclamateur** — Publisher type (see below)
-- **Nomination** — Whether the publisher is an ancien (elder) or assistant (ministerial servant) in the congregation
-- **Le proclamateur est oint** — Anointed status
+- **First name / Last name**
+- **Email / Phone / Address** — Contact details
+- **Date of birth**
+- **Baptism date**
+- **Gender** — Male or female, used for gender-specific assignments
+- **Publisher type** — See below
+- **Appointment** — Whether the publisher is an elder or ministerial servant in the congregation
+- **Anointed** — Anointed status
 
-### Publisher Types
+### Publisher types
 
-The *Profil du proclamateur* field offers:
+The *Publisher type* field offers:
 
-- **Proclamateur** — Regular publisher (default)
-- **Pionnier auxiliaire** — Temporary full-time minister (can be toggled on/off in congregation settings)
-- **Pionnier permanent** — Full-time minister
-- **Pionnier spécial** — Special pioneer
-- **Missionnaire** — Missionary
+- **Publisher** — Regular publisher (default)
+- **Auxiliary pioneer** — Temporary full-time minister (can be toggled on/off in congregation settings)
+- **Regular pioneer** — Full-time minister
+- **Special pioneer**
+- **Missionary**
 
-### Territory Attributions
+### Territory assignments
 
-The publisher profile displays the list of territories currently attributed to the publisher. For each active attribution, the view shows:
+The publisher profile displays the list of territories currently assigned to the publisher. For each active assignment, the view shows:
 
-- **Nº** — The territory number (links to the territory view if the user has the `TerritoriesViewer` role)
-- **Type** — The territory type (Porte à Porte, Commerces, etc.)
-- **Date de sortie** — When the attribution started
-- **Statut** — Whether the attribution is on time or overdue
+- **Number** — The territory number (links to the territory view if the user has the `TerritoriesViewer` role)
+- **Type** — The territory type (Door to door, Businesses, etc.)
+- **Checkout date** — When the assignment started
+- **Status** — Whether the assignment is on time or overdue
 
 ## Publisher Groups
 
 Publishers are organized into **groups** (field service groups). Each group has:
 
-- **Nom** — The group's display name
-- **Adresse** — Meeting location for the group
-- **Responsable** — The group leader (typically an elder)
-- **Adjoint** — The assistant group leader
+- **Name** — The group's display name
+- **Address** — Meeting location for the group
+- **Responsible** — The group leader (typically an elder)
+- **Deputy** — The assistant group leader
 - **Members** — Publishers assigned to the group
 
 Groups help organize field service and track activity at the group level.
@@ -58,12 +58,12 @@ Monthly field service reports are recorded for each publisher.
 
 Each monthly record includes:
 
-- **Mois concerné / Année** — The reporting period
-- **Heures** — Hours spent in field ministry
-- **Études** — Number of Bible studies conducted
-- **Service de pionnier** — Type of pioneer service performed that month
-- **Le proclamateur a préché ce mois** — Whether the person was active that month
-- **Observations** — Optional notes
+- **Month / Year** — The reporting period
+- **Hours** — Hours spent in field ministry
+- **Studies** — Number of Bible studies conducted
+- **Pioneer service** — Type of pioneer service performed that month
+- **Publisher was active this month** — Whether the person was active that month
+- **Notes** — Optional notes
 
 ### Theocratic Year
 

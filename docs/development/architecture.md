@@ -247,7 +247,22 @@ Bulk operations (`bulkDeleteBoardItems`, `bulkMoveBoardItems`) and high-frequenc
 
 ### Covered actions
 
-Authentication (login, logout, failed login), consent (granted, withdrawn), passwords, territories (created, updated, deleted), entrance reassignments (`EntranceReassigned` — when the map editor moves an entrance from one territory to another), attributions (created, updated, deleted), publishers (created, updated, status changed), publisher groups (created, deleted), publisher activity (created, updated, deleted), board documents (created, updated, deleted), board sections (created, updated), congregation settings, data export/import, platform admin operations.
+| Domain | When fired |
+|---|---|
+| Authentication | Login, logout, failed login |
+| Consent | Granted, withdrawn |
+| Passwords | Reset requested, changed |
+| Territories | Created, updated, deleted |
+| Entrances | Reassigned (`EntranceReassigned` — when the map editor moves an entrance from one territory to another) |
+| Attributions | Created, updated, deleted |
+| Publishers | Created, updated, status changed |
+| Publisher groups | Created, deleted |
+| Publisher activity | Created, updated, deleted |
+| Board documents | Created, updated, deleted |
+| Board sections | Created, updated |
+| Congregation settings | Updated |
+| Data transfer | Export, import |
+| Platform admin | All cross-congregation operations |
 
 ## Testing
 
