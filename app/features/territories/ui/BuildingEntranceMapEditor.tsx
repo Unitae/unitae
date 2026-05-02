@@ -12,13 +12,11 @@ import { Info, Loader2, MapPin, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TerritoryKind } from "~/features/territories/model/territory-kind.type";
 import type { BboxEntrance } from "~/features/territories/server/buildings.server";
-import {
-  EntranceMarkerPin,
-  type EntrancePinVariant,
-} from "~/features/territories/ui/EntranceMarkerPin";
+import { EntranceMarkerPin } from "~/features/territories/ui/EntranceMarkerPin";
 import EntrancePopup, {
   type EntrancePendingState,
 } from "~/features/territories/ui/EntrancePopup";
+import { pinVariantFor } from "~/features/territories/ui/entrance-pin-variant";
 import MapSearchBox from "~/features/territories/ui/MapSearchBox";
 import MarkerLegend from "~/features/territories/ui/MarkerLegend";
 import * as m from "~/paraglide/messages";
@@ -71,14 +69,6 @@ function pendingStateFor(
   if (pendingReassignments.has(entrance.id)) return "pending-reassign";
   if (pendingAdditions.has(entrance.id)) return "pending-add";
   return "none";
-}
-
-function pinVariantFor(entrance: BboxEntrance, pending: EntrancePendingState): EntrancePinVariant {
-  if (pending === 'pending-remove') return 'pending-remove'
-  if (pending === 'pending-add' || pending === 'pending-reassign') return 'pending-add'
-  if (entrance.status === 'in-this-territory') return 'in-territory'
-  if (entrance.status === 'available') return 'available'
-  return 'on-other'
 }
 
 function markerAriaLabelFor(
