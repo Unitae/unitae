@@ -1388,6 +1388,7 @@
     "territories_view_prev_title": "Previous territory",
     "territories_view_next_title": "Next territory",
     "territories_view_edit_label": "Edit",
+    "territories_view_row_link": "View territory {number}",
     "territories_view_empty_history_title": "No assignment history",
     "territories_view_empty_history_description": "This territory has never been assigned before.",
     "territories_view_table_publisher": "Publisher",

@@ -183,6 +183,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     );
 
     const territoryEntrances = territory.entrances.map(aggregateEntrance);
+    const from = url.searchParams.get("from");
 
     const baseResponse = {
       territory,
@@ -190,6 +191,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       entrances: entrances.map(aggregateEntrance),
       zips,
       googleMapsApiKey: apiKey,
+      from,
     };
 
     if (!url.searchParams.has("zip")) {
@@ -216,7 +218,11 @@ export default function EditTerritoryPage({
     streets,
     territory,
     googleMapsApiKey,
+    from,
   } = loaderData;
+  const fromQuery =
+    from != null && from.length > 0 ? `?from=${encodeURIComponent(from)}` : "";
+  const viewBackTo = `/territories/territory/${territory.id}/view${fromQuery}`;
 
   const ownBboxEntrances = useMemo(
     () =>
@@ -459,11 +465,11 @@ export default function EditTerritoryPage({
           { label: m.sidebar_territories(), to: "/territories" },
           {
             label: territory.number,
-            to: `/territories/territory/${territory.id}/view`,
+            to: viewBackTo,
           },
           { label: m.territories_edit_title() },
         ]}
-        backTo={`/territories/territory/${territory.id}/view`}
+        backTo={viewBackTo}
         actions={
           <>
             <Button

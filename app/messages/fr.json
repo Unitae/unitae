@@ -1388,6 +1388,7 @@
     "territories_view_prev_title": "Territoire précédent",
     "territories_view_next_title": "Territoire suivant",
     "territories_view_edit_label": "Modifier",
+    "territories_view_row_link": "Voir le territoire {number}",
     "territories_view_empty_history_title": "Aucun historique d'attribution",
     "territories_view_empty_history_description": "Ce territoire n'a pas encore été attribué par le passé.",
     "territories_view_table_publisher": "Proclamateur",

@@ -1,9 +1,9 @@
-import { CalendarCheck, Download, ExternalLink, Pencil, StickyNote, UserPlus, X } from 'lucide-react'
+import { CalendarCheck, ChevronLeft, ChevronRight, Download, ExternalLink, Pencil, StickyNote, UserPlus, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
+import { findAdjacentTerritories, findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
@@ -29,7 +29,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
   return [{ title: m.territories_view_meta_title({ number: String(loaderData.territory.number) }) }]
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requireRole(permissions, Role.TerritoriesViewer)
@@ -37,6 +37,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canManageTerritories = permissions.has(Role.TerritoriesManager)
   const canViewPublisher = permissions.has(Role.PublisherViewer)
   const { congregationId } = context.get(userContext)
+  const from = new URL(request.url).searchParams.get('from')
 
   return withScopeFromContext(context, async db => {
     const territory = await findTerritoryWithHistory(
@@ -50,6 +51,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
+    const adjacent = await findAdjacentTerritories(db, territory.number, territory.type, congregationId)
 
     return {
       territory,
@@ -57,6 +59,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       googleMapsApiKey: apiKey,
       canManageTerritories,
       canViewPublisher,
+      adjacent,
+      from,
     }
   })
 }
@@ -276,21 +280,46 @@ function AttributionHistoryCard({
 }
 
 export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) {
-  const { territory, territoryEntrances, googleMapsApiKey, canManageTerritories, canViewPublisher } = loaderData
+  const { territory, territoryEntrances, googleMapsApiKey, canManageTerritories, canViewPublisher, adjacent, from } =
+    loaderData
 
   const currentAttribution = territory.attributions.find(a => a.endDate == null)
   const pastAttributions = territory.attributions.filter(a => a.endDate != null)
   const contentLabel = territoryContentLabel(territory.type, territoryEntrances)
+  const fromQuery = from != null && from.length > 0 ? `?from=${encodeURIComponent(from)}` : ''
+  const backTo = from != null && from.length > 0 ? `/territories?${from}` : '/territories'
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={m.territories_view_title({ number: String(territory.number) })}
         subtitle={m.territories_view_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_territories(), to: '/territories' }, { label: territory.number }]}
-        backTo="/territories"
+        breadcrumbs={[{ label: m.sidebar_territories(), to: backTo }, { label: territory.number }]}
+        backTo={backTo}
         actions={
           <>
+            {adjacent.prev != null ? (
+              <Button asChild variant="ghost" size="icon" title={m.territories_view_prev_title()}>
+                <Link to={`/territories/territory/${adjacent.prev.id}/view${fromQuery}`}>
+                  <ChevronLeft className="size-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" disabled title={m.territories_view_prev_title()}>
+                <ChevronLeft className="size-4" />
+              </Button>
+            )}
+            {adjacent.next != null ? (
+              <Button asChild variant="ghost" size="icon" title={m.territories_view_next_title()}>
+                <Link to={`/territories/territory/${adjacent.next.id}/view${fromQuery}`}>
+                  <ChevronRight className="size-4" />
+                </Link>
+              </Button>
+            ) : (
+              <Button variant="ghost" size="icon" disabled title={m.territories_view_next_title()}>
+                <ChevronRight className="size-4" />
+              </Button>
+            )}
             <Button asChild variant="outline" size="icon" title={m.territories_download_pdf_title()}>
               <a href={`/territories/territory/${territory.id}/pdf`}>
                 <Download className="size-4" />
@@ -299,7 +328,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
 
             {canManageTerritories && (
               <Button asChild variant="outline" title={m.territories_edit_title_attr()}>
-                <Link to="../edit" relative="path">
+                <Link to={`../edit${fromQuery}`} relative="path">
                   <Pencil className="size-4" />
                   <span className="max-lg:sr-only">{m.territories_view_edit_label()}</span>
                 </Link>
