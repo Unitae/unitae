@@ -8,10 +8,14 @@ import {
   Map as GoogleMap,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { Check, Info, Loader2, MapPin, Plus, RefreshCw, X } from "lucide-react";
+import { Info, Loader2, MapPin, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { TerritoryKind } from "~/features/territories/model/territory-kind.type";
 import type { BboxEntrance } from "~/features/territories/server/buildings.server";
+import {
+  EntranceMarkerPin,
+  type EntrancePinVariant,
+} from "~/features/territories/ui/EntranceMarkerPin";
 import EntrancePopup, {
   type EntrancePendingState,
 } from "~/features/territories/ui/EntrancePopup";
@@ -69,38 +73,12 @@ function pendingStateFor(
   return "none";
 }
 
-function pinClassesFor(entrance: BboxEntrance, pending: EntrancePendingState) {
-  if (pending === "pending-remove") {
-    return "border-destructive bg-destructive text-white";
-  }
-  if (pending === "pending-add" || pending === "pending-reassign") {
-    return "border-blue-700 bg-blue-600 text-white ring-2 ring-blue-300 ring-offset-2 ring-offset-white";
-  }
-  if (entrance.status === "in-this-territory") {
-    return "border-blue-700 bg-blue-600 text-white";
-  }
-  if (entrance.status === "available") {
-    return "border-emerald-700 bg-emerald-500 text-white";
-  }
-  return "border-slate-400 bg-white text-slate-500";
-}
-
-function MarkerIcon({
-  entrance,
-  pending,
-}: {
-  entrance: BboxEntrance;
-  pending: EntrancePendingState;
-}) {
-  if (pending === "pending-remove")
-    return <X className="size-3.5" strokeWidth={2.5} aria-hidden="true" />;
-  if (pending === "pending-add" || pending === "pending-reassign") {
-    return <Plus className="size-3.5" strokeWidth={2.5} aria-hidden="true" />;
-  }
-  if (entrance.status === "in-this-territory") {
-    return <Check className="size-3.5" strokeWidth={2.5} aria-hidden="true" />;
-  }
-  return null;
+function pinVariantFor(entrance: BboxEntrance, pending: EntrancePendingState): EntrancePinVariant {
+  if (pending === 'pending-remove') return 'pending-remove'
+  if (pending === 'pending-add' || pending === 'pending-reassign') return 'pending-add'
+  if (entrance.status === 'in-this-territory') return 'in-territory'
+  if (entrance.status === 'available') return 'available'
+  return 'on-other'
 }
 
 function markerAriaLabelFor(
@@ -375,9 +353,9 @@ function MapContents({
                 type="button"
                 aria-label={markerAriaLabelFor(display, pending)}
                 title={`${display.address.number} ${display.address.street}`}
-                className={`flex size-7 items-center justify-center rounded-full border-2 shadow-md transition motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${pinClassesFor(display, pending)}`}
+                className="rounded-full transition motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
-                <MarkerIcon entrance={display} pending={pending} />
+                <EntranceMarkerPin variant={pinVariantFor(display, pending)} />
               </button>
             </AdvancedMarker>
           );
