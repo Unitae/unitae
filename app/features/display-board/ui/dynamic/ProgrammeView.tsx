@@ -9,7 +9,7 @@ import {
   partMatchesQuery,
 } from '~/features/display-board/model/programme-display'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { usePersistedState } from '~/shared/ui/hooks/use-persisted-state'

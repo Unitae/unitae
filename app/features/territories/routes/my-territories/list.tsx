@@ -7,7 +7,7 @@ import {
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'

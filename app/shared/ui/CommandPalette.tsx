@@ -21,7 +21,7 @@ import {
 import { type ComponentType, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { AppSidebarPermissions } from '~/shared/ui/AppSidebar'
 import { Dialog, DialogContent, DialogOverlay, DialogPortal } from '~/shared/ui/dialog'
 import { Input } from '~/shared/ui/input'

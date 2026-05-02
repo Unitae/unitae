@@ -6,7 +6,7 @@ import {
 } from '~/features/events/server/programme-export.server'
 import { ProgrammeBoardDocument } from '~/features/events/ui/ProgrammeBoardDocument'
 import { ProgrammeDocument } from '~/features/events/ui/ProgrammeDocument'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

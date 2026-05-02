@@ -10,7 +10,7 @@ import { territoryContentLabel } from '~/features/territories/server/territory-c
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

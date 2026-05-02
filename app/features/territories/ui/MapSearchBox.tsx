@@ -1,7 +1,7 @@
 import { Search } from 'lucide-react'
 import { type KeyboardEvent, useId, useMemo, useState } from 'react'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 
 type Props = {

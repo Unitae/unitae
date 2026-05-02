@@ -4,7 +4,7 @@ import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createBuildingSchema } from '~/features/territories/schemas/building.schema'
 import { createBuilding } from '~/features/territories/server/create-building.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

@@ -1,6 +1,6 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {

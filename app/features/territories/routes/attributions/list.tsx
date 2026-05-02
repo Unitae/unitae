@@ -7,7 +7,7 @@ import { findActiveAttributionsPaginated } from '~/features/territories/server/a
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import logger from '~/shared/infra/logger.server'

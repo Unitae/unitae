@@ -8,7 +8,7 @@ import { setBuildingNotes } from '~/features/territories/server/set-building-not
 import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildingToggleButton'
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

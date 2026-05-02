@@ -6,7 +6,7 @@ import { createAttributionSchema } from '~/features/territories/schemas/attribut
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { createAttribution } from '~/features/territories/server/create-attribution.server'
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

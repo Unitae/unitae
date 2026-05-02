@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { congregationSettingsSchema } from '~/features/settings/schemas/congregation-settings.schema'
 import { updateCongregationSettings } from '~/features/settings/server/congregation-settings.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

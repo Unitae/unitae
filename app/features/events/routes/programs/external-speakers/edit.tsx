@@ -11,7 +11,7 @@ import {
   unarchiveExternalSpeaker,
   updateExternalSpeaker,
 } from '~/features/events/server/external-speakers.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { Role } from '~/shared/types/role'

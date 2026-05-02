@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

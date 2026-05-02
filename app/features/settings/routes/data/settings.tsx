@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

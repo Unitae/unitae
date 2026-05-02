@@ -1,7 +1,7 @@
 import { ArchiveRestore, Eye, Mail, Pencil, Phone, UserPlus, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

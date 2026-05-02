@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 import type { Route } from './+types/privacy'
 

@@ -7,7 +7,7 @@ import {
   getTemplateById,
   isTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

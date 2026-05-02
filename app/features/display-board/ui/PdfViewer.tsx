@@ -1,6 +1,6 @@
 import { AlertCircle, Download, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Skeleton } from '~/shared/ui/skeleton'
 

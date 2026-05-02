@@ -1,7 +1,7 @@
 import { LogOut, ShieldAlert } from 'lucide-react'
 import { Link } from 'react-router'
 import { getSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { unscopedDb } from '~/shared/infra/db.server'

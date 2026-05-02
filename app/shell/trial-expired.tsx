@@ -1,6 +1,6 @@
 import { Clock, LogOut } from 'lucide-react'
 import { Link } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 import { getHostSettings } from '~/shared/domain/host-settings.server'
 import { Button } from '~/shared/ui/button'

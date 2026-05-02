@@ -12,7 +12,7 @@ import {
   serializeTerritoryPolygon,
   serializeZips,
 } from '~/features/territories/server/settings.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'

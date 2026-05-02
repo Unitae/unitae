@@ -1,5 +1,5 @@
 import type { Job } from 'bullmq'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { PublisherGroup } from '~/database/generated/client'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 import type { UserInput } from '~/shared/types/user-input'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'

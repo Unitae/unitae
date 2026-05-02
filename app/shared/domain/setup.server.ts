@@ -1,6 +1,6 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import * as m from '~/paraglide/messages'
-import type { locales } from '~/paraglide/runtime'
+import * as m from '~/i18n/paraglide/messages'
+import type { locales } from '~/i18n/paraglide/runtime'
 import { Role } from '~/shared/types/role'
 
 type Locale = (typeof locales)[number]

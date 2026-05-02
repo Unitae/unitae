@@ -1,5 +1,5 @@
 import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Tailwind, Text } from 'react-email'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export default function BuildingSyncDone({
   email = 'test@email.com',

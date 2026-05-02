@@ -1,6 +1,6 @@
 import { Moon, Sun } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
 export function ThemeToggle() {

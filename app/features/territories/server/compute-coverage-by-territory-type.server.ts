@@ -1,5 +1,5 @@
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { TerritoryCountByType } from './territory-count-by-type.type'
 

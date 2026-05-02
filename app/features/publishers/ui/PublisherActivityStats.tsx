@@ -1,4 +1,4 @@
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 
 export default function PublisherActivityStats({

@@ -1,7 +1,7 @@
 import { CalendarOff, ChevronRight, FileDown, Loader2, MoreHorizontal, Trash2, UserCog } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

@@ -5,7 +5,7 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { findBuildingsWithEntrancePaginated } from '~/features/territories/server/buildings.server'
 import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReason'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import { Role } from '~/shared/types/role'

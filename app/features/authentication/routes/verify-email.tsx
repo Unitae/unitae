@@ -6,7 +6,7 @@ import {
 } from '~/features/authentication/server/email-verification.server'
 import { sendVerificationEmail } from '~/features/authentication/server/send-verification-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 

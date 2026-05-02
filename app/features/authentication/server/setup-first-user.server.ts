@@ -1,5 +1,5 @@
 import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
-import type { locales } from '~/paraglide/runtime'
+import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
 import { seedCongregationDefaults, seedRoles } from '~/shared/domain/setup.server'

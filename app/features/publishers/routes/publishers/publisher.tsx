@@ -4,7 +4,7 @@ import { getPublisherById } from '~/features/publishers/server/publishers.server
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import logger from '~/shared/infra/logger.server'

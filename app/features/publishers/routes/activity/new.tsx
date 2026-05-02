@@ -6,7 +6,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { PublisherType } from '~/shared/types/publisher-type'

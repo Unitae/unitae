@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
-import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/paraglide/runtime'
+import { baseLocale, isLocale, type Locale, overwriteGetLocale } from '~/i18n/paraglide/runtime'
 
 const workerLocaleStore = new AsyncLocalStorage<Locale>()
 

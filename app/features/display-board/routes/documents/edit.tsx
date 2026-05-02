@@ -7,7 +7,7 @@ import { updateDocumentSchema } from '~/features/display-board/schemas/board-doc
 import { updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

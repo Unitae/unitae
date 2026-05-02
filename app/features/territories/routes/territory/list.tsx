@@ -7,7 +7,7 @@ import { territoryContentLabel } from '~/features/territories/server/territory-c
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

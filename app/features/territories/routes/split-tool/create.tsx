@@ -4,7 +4,7 @@ import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

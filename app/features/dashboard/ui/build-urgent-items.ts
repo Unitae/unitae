@@ -5,7 +5,7 @@ import type {
   getUpcomingAbsences,
   getUserTerritories,
 } from '~/features/dashboard/server/dashboard.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export type UrgentItem = {
   key: string

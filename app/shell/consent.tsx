@@ -1,6 +1,6 @@
 import { Form, Link, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConsentPurpose, hasDataProcessingConsent, recordConsentUnscoped } from '~/shared/domain/consent.server'
 import { Button } from '~/shared/ui/button'

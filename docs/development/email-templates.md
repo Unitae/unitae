@@ -23,7 +23,7 @@ Every template follows the same structure:
 
 ```tsx
 import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Tailwind, Text } from 'react-email'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 export default function TemplateName({
   email = 'test@email.com',
@@ -104,7 +104,7 @@ The sender address is per-congregation (`congregation.emailFrom`) with a fallbac
    app/emails/notifications/my-new-email.tsx
    ```
 
-2. **Add i18n messages** for subject, body, etc. in `app/messages/en.json` and `app/messages/fr.json`
+2. **Add i18n messages** for subject, body, etc. in `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`
 
 3. **Add the job type** to `EmailJobData` in `app/shared/infra/email-queue.server.ts`:
    ```typescript

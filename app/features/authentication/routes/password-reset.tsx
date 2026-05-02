@@ -8,7 +8,7 @@ import {
 } from '~/features/authentication/server/invalidate-user-password.server'
 import { resetUserPassword } from '~/features/authentication/server/reset-user-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader } from '~/shared/ui/card'

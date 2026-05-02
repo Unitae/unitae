@@ -1,6 +1,6 @@
 import { Calendar, FileText, Star, Users } from 'lucide-react'
 import { Link } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { RelativeTime } from '~/shared/ui/RelativeTime'
 import { cn } from '~/shared/utils/utils'

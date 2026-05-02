@@ -1,7 +1,7 @@
 import { Form, Link, redirect } from 'react-router'
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, userContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'

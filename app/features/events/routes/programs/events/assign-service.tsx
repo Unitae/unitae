@@ -6,7 +6,7 @@ import { assignServiceSchema } from '~/features/events/schemas/assign-service.sc
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Role } from '~/shared/types/role'

@@ -5,7 +5,7 @@ import { BarChart3, Eye, FileText, GripVertical, Pencil, Sparkles, Trash2 } from
 import { useState } from 'react'
 import { Link, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

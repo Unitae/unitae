@@ -1,6 +1,6 @@
 import { Check, ChevronDown, ChevronUp, Plus, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 const LEGEND_KEY = 'unitae_map_legend_open'
 

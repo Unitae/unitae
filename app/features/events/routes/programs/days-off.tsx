@@ -11,7 +11,7 @@ import {
   groupEventsByWeek,
 } from '~/features/events/ui/days-off-helpers'
 import EventFilters from '~/features/events/ui/EventFilters'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Role } from '~/shared/types/role'

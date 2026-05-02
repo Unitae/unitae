@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 
 const CONSENT_KEY = 'unitae_map_consent'
 

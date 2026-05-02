@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { redirect } from 'react-router'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Role } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'

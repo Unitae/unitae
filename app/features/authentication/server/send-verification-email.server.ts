@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'

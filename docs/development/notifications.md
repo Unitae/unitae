@@ -159,7 +159,7 @@ Wildcard preferences (e.g., `board.*`) disable all notifications in a category.
      }
    ```
 
-4. **Add i18n messages** for the subject and template content in `app/messages/en.json` and `app/messages/fr.json`
+4. **Add i18n messages** for the subject and template content in `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`
 
 5. **Call `notify()`** from the relevant service function
 

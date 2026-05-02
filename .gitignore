@@ -8,7 +8,7 @@ node_modules/
 # Generated code
 .react-router/
 app/database/generated/
-app/paraglide/
+app/i18n/paraglide/
 
 # Environment
 .env

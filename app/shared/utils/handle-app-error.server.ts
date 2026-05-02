@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { commitSession } from '~/features/authentication/server/session.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   AppError,
   ConflictError,

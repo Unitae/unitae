@@ -13,7 +13,7 @@ import {
 } from '~/features/display-board/server/file-validation.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
 import { notify } from '~/features/notifications/server/notify.server'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,

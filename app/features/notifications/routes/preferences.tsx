@@ -1,6 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, useFetcher } from 'react-router'
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
