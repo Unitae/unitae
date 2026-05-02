@@ -59,7 +59,7 @@ interface PartAssignment {
   order: number
   topic: string
   durationMin: number | null
-  externalSpeakerName: string | null
+  externalSpeaker: { name: string } | null
   assignee: {
     id: number
     firstname: string | null

@@ -336,6 +336,7 @@ function fetchProgrammeByIds(
         include: {
           assignee: { select: userSelect },
           assistant: { select: userSelect },
+          externalSpeaker: { select: { name: true } },
         },
       },
       serviceRoleAssignments: includeServices ? { include: { assignee: { select: userSelect } } } : false,
@@ -364,6 +365,7 @@ function fetchProgrammeByKey(
         include: {
           assignee: { select: userSelect },
           assistant: { select: userSelect },
+          externalSpeaker: { select: { name: true } },
         },
       },
       serviceRoleAssignments: showServices ? { include: { assignee: { select: userSelect } } } : false,

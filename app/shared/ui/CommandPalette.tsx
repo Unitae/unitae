@@ -13,6 +13,7 @@ import {
   PieChart,
   Search,
   User,
+  UserCog,
   UserRoundCog,
   Users,
   UsersRound,
@@ -52,6 +53,14 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   if (permissions.canViewPrograms) {
     items.push({ id: 'programs', label: m.sidebar_programs(), icon: CalendarDays, to: '/programs' })
     items.push({ id: 'absences', label: m.sidebar_absences(), icon: CalendarOff, to: '/programs/days-off' })
+  }
+  if (permissions.canViewExternalSpeakers) {
+    items.push({
+      id: 'external-speakers',
+      label: m.sidebar_external_speakers(),
+      icon: UserCog,
+      to: '/programs/external-speakers',
+    })
   }
   if (permissions.canViewTerritories) {
     items.push({

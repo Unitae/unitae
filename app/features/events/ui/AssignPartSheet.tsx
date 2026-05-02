@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useFetcher } from 'react-router'
+import { Link, useFetcher } from 'react-router'
+import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { Input } from '~/shared/ui/input'
@@ -18,29 +19,41 @@ type PartAssignment = {
   assigneeId: number | null
   assistantId: number | null
   allowExternalSpeaker: boolean
-  externalSpeakerName: string | null
+  externalSpeakerId: number | null
 }
+
+type ExternalSpeakerOption = { id: number; name: string }
 
 type AssignPartSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   assignment: PartAssignment | null
   users: Array<{ id: number; firstname: string | null; lastname: string | null }>
+  externalSpeakers: ExternalSpeakerOption[]
   eventId: number
 }
 
-export function AssignPartSheet({ open, onOpenChange, assignment, users, eventId }: AssignPartSheetProps) {
+export function AssignPartSheet({
+  open,
+  onOpenChange,
+  assignment,
+  users,
+  externalSpeakers,
+  eventId,
+}: AssignPartSheetProps) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const prevState = useRef(fetcher.state)
   const [selectedAssignee, setSelectedAssignee] = useState('none')
   const [selectedAssistant, setSelectedAssistant] = useState('none')
+  const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState('none')
   const [speakerType, setSpeakerType] = useState<'internal' | 'external'>('internal')
 
   useEffect(() => {
     if (assignment) {
       setSelectedAssignee(assignment.assigneeId?.toString() ?? 'none')
       setSelectedAssistant(assignment.assistantId?.toString() ?? 'none')
-      setSpeakerType(assignment.externalSpeakerName ? 'external' : 'internal')
+      setSelectedExternalSpeaker(assignment.externalSpeakerId?.toString() ?? 'none')
+      setSpeakerType(assignment.externalSpeakerId ? 'external' : 'internal')
     }
   }, [assignment])
 
@@ -51,8 +64,9 @@ export function AssignPartSheet({ open, onOpenChange, assignment, users, eventId
     prevState.current = fetcher.state
   }, [fetcher.state, fetcher.data, onOpenChange])
 
-  const activeSelection =
+  const activeInternalSelection =
     selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
+  const hasRegistry = externalSpeakers.length > 0
 
   if (!assignment) return null
 
@@ -97,15 +111,46 @@ export function AssignPartSheet({ open, onOpenChange, assignment, users, eventId
           )}
 
           {speakerType === 'external' ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="externalSpeakerName">{m.programs_assign_part_external_name_label()}</Label>
-              <Input
-                id="externalSpeakerName"
-                name="externalSpeakerName"
-                defaultValue={assignment.externalSpeakerName ?? ''}
-                placeholder={m.programs_assign_part_external_name_placeholder()}
+            <>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="externalSpeakerId">{m.programs_assign_part_speaker_label()}</Label>
+                <Select
+                  name="externalSpeakerId"
+                  value={selectedExternalSpeaker}
+                  onValueChange={setSelectedExternalSpeaker}
+                  disabled={!hasRegistry}
+                >
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        hasRegistry
+                          ? m.programs_assign_part_external_select_placeholder()
+                          : m.programs_assign_part_external_empty()
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
+                    {externalSpeakers.map(speaker => (
+                      <SelectItem key={speaker.id} value={speaker.id.toString()}>
+                        {speaker.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!hasRegistry && (
+                  <Link to="/programs/external-speakers/new" className="text-primary text-sm hover:underline">
+                    {m.programs_assign_part_external_manage_link()}
+                  </Link>
+                )}
+              </div>
+
+              <ExternalSpeakerInfoCard
+                eventId={eventId}
+                externalSpeakerId={selectedExternalSpeaker}
+                partName={assignment.name}
               />
-            </div>
+            </>
           ) : (
             <>
               <div className="flex flex-col gap-2">
@@ -142,7 +187,7 @@ export function AssignPartSheet({ open, onOpenChange, assignment, users, eventId
                 </Select>
               </div>
 
-              <PublisherInfoCard eventId={eventId} userId={activeSelection} partName={assignment.name} />
+              <PublisherInfoCard eventId={eventId} userId={activeInternalSelection} partName={assignment.name} />
             </>
           )}
 

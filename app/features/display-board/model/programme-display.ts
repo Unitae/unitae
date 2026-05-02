@@ -7,7 +7,7 @@ export type UserNameInfo = {
 } | null
 
 export interface PartDisplayLike {
-  externalSpeakerName: string | null
+  externalSpeaker: { name: string } | null
   assignee: UserNameInfo
   assistant: UserNameInfo
 }
@@ -37,13 +37,13 @@ export function nameMatches(user: UserNameInfo, query: string): boolean {
 }
 
 export function getPartDisplay(part: PartDisplayLike): PartDisplay {
-  if (part.externalSpeakerName) return { text: part.externalSpeakerName, isExternal: true }
+  if (part.externalSpeaker) return { text: part.externalSpeaker.name, isExternal: true }
   const assigneeName = formatName(part.assignee)
   const assistantName = formatName(part.assistant)
   return { text: formatAssigneeWithAssistant(assigneeName, assistantName), isExternal: false }
 }
 
 export function partMatchesQuery(part: PartDisplayLike, query: string): boolean {
-  if (part.externalSpeakerName?.toLowerCase().includes(query)) return true
+  if (part.externalSpeaker?.name.toLowerCase().includes(query)) return true
   return nameMatches(part.assignee, query) || nameMatches(part.assistant, query)
 }

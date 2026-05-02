@@ -60,6 +60,12 @@ export const AuditAction = {
   CongregationExported: 'congregation.exported',
   CongregationImported: 'congregation.imported',
 
+  // External speakers
+  ExternalSpeakerCreated: 'external_speaker.created',
+  ExternalSpeakerUpdated: 'external_speaker.updated',
+  ExternalSpeakerArchived: 'external_speaker.archived',
+  ExternalSpeakerUnarchived: 'external_speaker.unarchived',
+
   // Platform admin
   PlatformCongregationUpdated: 'platform.congregation.updated',
   PlatformUsersListed: 'platform.users.listed',

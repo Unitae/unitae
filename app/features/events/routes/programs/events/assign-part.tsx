@@ -1,10 +1,12 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { data, Form, redirect, useSearchParams } from 'react-router'
+import { data, Form, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
+import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -52,7 +54,19 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
 
-    return { event, assignment, users }
+    const externalSpeakers = assignment?.allowExternalSpeaker
+      ? await listExternalSpeakers(db, congregationId, { includeArchived: false })
+      : []
+    const sortedExternalSpeakers = externalSpeakers
+      .slice()
+      .sort((a, b) => {
+        const aTime = a.lastVisitDate?.getTime() ?? -Infinity
+        const bTime = b.lastVisitDate?.getTime() ?? -Infinity
+        if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
+        return aTime - bTime
+      })
+
+    return { event, assignment, users, externalSpeakers: sortedExternalSpeakers }
   })
 }
 
@@ -67,9 +81,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerName, topic } = submission.value
+  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerId, topic } = submission.value
 
-  const resolvedExternalName = speakerType === 'external' && externalSpeakerName ? externalSpeakerName : null
+  const resolvedExternalSpeakerId = speakerType === 'external' ? externalSpeakerId : null
   const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
   const resolvedAssistantId = speakerType === 'external' ? null : assistantId
 
@@ -88,7 +102,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       assignmentId,
       resolvedAssigneeId,
       resolvedAssistantId,
-      resolvedExternalName,
+      resolvedExternalSpeakerId,
       topic,
       congregationId,
     )
@@ -109,17 +123,21 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
-  const { event, assignment, users } = loaderData
+  const { event, assignment, users, externalSpeakers } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? 'none')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? 'none')
+  const [selectedExternalSpeaker, setSelectedExternalSpeaker] = useState(
+    assignment?.externalSpeakerId?.toString() ?? 'none',
+  )
   const [speakerType, setSpeakerType] = useState<'internal' | 'external'>(
-    assignment?.externalSpeakerName ? 'external' : 'internal',
+    assignment?.externalSpeakerId ? 'external' : 'internal',
   )
   const { blocker, markDirty } = useUnsavedChanges()
 
-  const activeSelection =
+  const activeInternalSelection =
     selectedAssignee !== 'none' ? selectedAssignee : selectedAssistant !== 'none' ? selectedAssistant : null
+  const hasRegistry = externalSpeakers.length > 0
 
   return (
     <div className="flex flex-col gap-6">
@@ -168,13 +186,36 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
 
               {speakerType === 'external' ? (
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="externalSpeakerName">{m.programs_assign_part_external_name_label()}</Label>
-                  <Input
-                    id="externalSpeakerName"
-                    name="externalSpeakerName"
-                    defaultValue={assignment?.externalSpeakerName ?? ''}
-                    placeholder={m.programs_assign_part_external_name_placeholder()}
-                  />
+                  <Label htmlFor="externalSpeakerId">{m.programs_assign_part_speaker_label()}</Label>
+                  <Select
+                    name="externalSpeakerId"
+                    value={selectedExternalSpeaker}
+                    onValueChange={setSelectedExternalSpeaker}
+                    disabled={!hasRegistry}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          hasRegistry
+                            ? m.programs_assign_part_external_select_placeholder()
+                            : m.programs_assign_part_external_empty()
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{m.programs_assign_part_none()}</SelectItem>
+                      {externalSpeakers.map(speaker => (
+                        <SelectItem key={speaker.id} value={speaker.id.toString()}>
+                          {speaker.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {!hasRegistry && (
+                    <Link to="/programs/external-speakers/new" className="text-primary text-sm hover:underline">
+                      {m.programs_assign_part_external_manage_link()}
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <>
@@ -220,7 +261,14 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
         </Card>
 
         {speakerType === 'internal' && (
-          <PublisherInfoCard eventId={event.id} userId={activeSelection} partName={assignment?.name} />
+          <PublisherInfoCard eventId={event.id} userId={activeInternalSelection} partName={assignment?.name} />
+        )}
+        {speakerType === 'external' && (
+          <ExternalSpeakerInfoCard
+            eventId={event.id}
+            externalSpeakerId={selectedExternalSpeaker}
+            partName={assignment?.name}
+          />
         )}
       </div>
     </div>

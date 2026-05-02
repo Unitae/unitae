@@ -1,4 +1,4 @@
-import { CalendarOff, ChevronRight, FileDown, Loader2, Trash2 } from 'lucide-react'
+import { CalendarOff, ChevronRight, FileDown, Loader2, MoreHorizontal, Trash2, UserCog } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import * as m from '~/paraglide/messages'
@@ -17,6 +17,7 @@ import {
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 
@@ -56,6 +57,8 @@ export function loader({ context }: Route.LoaderArgs) {
       upcomingEvents,
       roles: {
         canManagePrograms: permissions.has(Role.ProgramManager),
+        canViewExternalSpeakers:
+          permissions.has(Role.ExternalSpeakerViewer) || permissions.has(Role.ExternalSpeakerManager),
       },
     }
   })
@@ -204,9 +207,29 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                 {m.programs_export_pdf_button()}
               </Link>
             </Button>
-            <Button variant="outline" asChild>
-              <Link to="./days-off">{m.programs_days_off_button()}</Link>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" aria-label={m.common_more_actions()}>
+                  <MoreHorizontal className="size-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {roles.canViewExternalSpeakers && (
+                  <DropdownMenuItem asChild>
+                    <Link to="./external-speakers">
+                      <UserCog className="size-4" />
+                      {m.sidebar_external_speakers()}
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem asChild>
+                  <Link to="./days-off">
+                    <CalendarOff className="size-4" />
+                    {m.programs_days_off_button()}
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         }
       />

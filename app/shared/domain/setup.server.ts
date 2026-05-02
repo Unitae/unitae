@@ -20,6 +20,8 @@ const ROLE_DESCRIPTIONS: Record<Role, string> = {
   [Role.ActivityManager]: `Peut gérer l'activité des proclamateurs (modifier)`,
   [Role.ProgramViewer]: `Peut voir les programmes de l'assemblée`,
   [Role.ProgramManager]: `Peut gérer les programmes de l'assemblée (modifier)`,
+  [Role.ExternalSpeakerViewer]: 'Peut consulter le registre des orateurs externes',
+  [Role.ExternalSpeakerManager]: 'Peut gérer le registre des orateurs externes (créer, modifier, archiver)',
 }
 
 /**

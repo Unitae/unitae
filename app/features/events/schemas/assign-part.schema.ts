@@ -13,7 +13,11 @@ export const assignPartSchema = z.object({
     .optional()
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
-  externalSpeakerName: z.string().optional().default(''),
+  externalSpeakerId: z
+    .string()
+    .optional()
+    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
+    .pipe(z.number().nullable()),
   topic: z.string().optional().default(''),
 })
 
