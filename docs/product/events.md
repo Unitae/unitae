@@ -4,24 +4,24 @@ The events module manages congregation meeting programmes, event scheduling, and
 
 ## Programme Templates
 
-Programme templates (*Modèles de programme*) define the recurring structure of meetings. Each template contains:
+Programme templates define the recurring structure of meetings. Each template contains:
 
-- **Nom** — The template name (e.g., "Réunion de semaine")
-- **Clé unique** — An internal identifier
-- **Jour de la semaine** — The recurring weekday (null for one-time events like the Memorial)
-- **Type d'événement** — An optional event kind (see [Event Kinds](#event-kinds)) that is automatically applied to all events generated from this template
-- **Parties** — Ordered list of programme parts (spiritual content), each with a name, section grouping, order, optional duration, and a variable flag
-- **Piste / Salle** (`track`) — Optional label for parts happening simultaneously. Parts sharing the same order number with different tracks run in parallel (e.g., an adult class in the main hall while children have a separate activity). Leave empty for normal sequential parts
-- **Rôles de service** — Service attributions needed during the event (Sono, Estrade, Accueil, Nettoyage)
-- **Responsable** — An optional user designated as manager for this template's programmes
+- **Name** — The template name (e.g., "Midweek meeting")
+- **Unique key** — An internal identifier
+- **Day of week** — The recurring weekday (left empty for one-time events like the Memorial)
+- **Event type** — An optional event kind (see [Event Kinds](#event-kinds)) automatically applied to all events generated from this template
+- **Parts** — Ordered list of programme parts (spiritual content), each with a name, section grouping, order, optional duration, and a variable flag
+- **Track / Room** — Optional label for parts happening simultaneously. Parts sharing the same order number with different tracks run in parallel (e.g., an adult class in the main hall while children have a separate activity). Leave empty for normal sequential parts
+- **Service roles** — Service attributions needed during the event (Sound, Stage, Welcome, Cleaning)
+- **Manager** — An optional user designated as manager for this template's programmes
 
 Three default templates are shipped with every congregation:
 
-1. **Réunion de semaine** (Tuesday) — 12 parts covering Joyaux spirituels, Appliquons-nous au ministère, and Vie chrétienne
-2. **Réunion du week-end** (Saturday) — 5 parts: public talk, Watchtower study, songs and prayers
-3. **Mémorial** (non-recurring) — 5 parts: memorial talk, prayers over emblems
+1. **Midweek meeting** (Tuesday) — 12 parts covering Spiritual gems, Apply yourself to the field ministry, and Living as Christians
+2. **Weekend meeting** (Saturday) — 5 parts: public talk, Watchtower study, songs and prayers
+3. **Memorial** (non-recurring) — 5 parts: memorial talk, prayers over emblems
 
-Templates are managed in **Réglages > Réglages assemblée > Modèles de programme**. Admins can create new templates, duplicate existing ones, and edit their structure.
+Templates are managed in **Settings > Congregation settings > Programme templates**. Admins can create new templates, duplicate existing ones, and edit their structure.
 
 ## Events
 
@@ -33,10 +33,10 @@ Events are concrete occurrences on the congregation calendar. They can be create
 
 Each event has:
 
-- **Nom** — The event title (inherited from template or custom)
-- **Type d'événement** — An optional kind that controls the color accent shown in the programme list
-- **Date, début, fin** — Date and time range (editable after creation)
-- **Programme spirituel** — Ordered list of parts with speaker/reader assignments and topics
+- **Name** — The event title (inherited from template or custom)
+- **Event type** — An optional kind that controls the color accent shown in the programme list
+- **Date, start, end** — Date and time range (editable after creation)
+- **Spiritual program** — Ordered list of parts with speaker/reader assignments and topics
 - **Services** — List of service role assignments
 
 Events are accessible at **Programmes** in the sidebar. The list is grouped by week, with each week showing a header and all events for that week. Events planned several months ahead are visible. Each event card shows a left color bar matching its kind for quick visual identification.
@@ -55,17 +55,17 @@ Parts and service roles are stored inline on each event (with name, section, ord
 
 ## Event Kinds
 
-Event kinds (*Types d'événements*) are congregation-defined categories used to visually distinguish events in the programme list. Each kind has a name and a color.
+Event kinds are congregation-defined categories used to visually distinguish events in the programme list. Each kind has a name and a color.
 
 - A **color bar** on the left edge of each event card reflects its kind
 - Kinds are optional — events with no kind show no color bar
-- The built-in **Absence** kind (key `off`) is reserved for days off and is not shown in user-facing kind selectors
+- The built-in **Absence** kind is reserved for days off and is not shown in user-facing kind selectors
 
 Kinds can be assigned to events in two ways:
 - **On the template** — all events generated from that template inherit the kind automatically
 - **On individual events** — can be set or changed on the event edit page
 
-Event kinds are managed by admins at **Réglages > Réglages assemblée > Types d'événements**.
+Event kinds are managed by admins at **Settings > Congregation settings > Event types**.
 
 ## PDF Export
 
@@ -80,13 +80,13 @@ Programme managers assign publishers to parts and service roles for each event.
 1. From the event view, click the assign icon next to a part or service role
 2. Select a publisher from the dropdown
 3. A **publisher info card** loads dynamically, showing:
-   - **Profile** — Name, role badges (Ancien, Serviteur ministériel), publisher group
+   - **Profile** — Name, role badges (Elder, Ministerial servant), publisher group
    - **Availability** — Warning if the publisher has a day-off overlapping this event
    - **Same-event load** — Warning if already assigned to another part or service on this event
    - **Recent history** — Last 5 times this publisher was assigned to the same type of part (for rotation tracking)
 4. Submit to save the assignment
 
-For parts with a student/householder format (ministry school), both an **Intervenant** and a **Lecteur** can be assigned.
+For parts with a student/householder format (ministry school), both a **Speaker** and a **Reader** can be assigned.
 
 ### Conflict detection
 
@@ -97,8 +97,8 @@ For parts with a student/householder format (ministry school), both an **Interve
 
 Any authenticated member can record their **days off** — periods when they will be unavailable.
 
-- **Date de début** — First day of absence
-- **Date de fin** — Last day of absence
+- **Start date** — First day of absence
+- **End date** — Last day of absence
 
 Days off feed into the programme conflict detection system. When a day-off is created or deleted, conflict flags on existing programme assignments are automatically updated.
 
@@ -106,7 +106,7 @@ Programme managers can see all congregation absences at **Programmes > Absences*
 
 ## Per-Template Responsibility
 
-A **responsable** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full `ProgramManager` role.
+A **manager** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full `ProgramManager` role.
 
 This is useful for delegating: "this elder manages the midweek meeting programme, that one manages the weekend programme."
 

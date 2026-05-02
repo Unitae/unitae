@@ -48,7 +48,7 @@ REDIS_PORT=6379
 UNITAE_CRON_SECRET=your-cron-secret-at-least-32-characters
 ```
 
-By default, `DB_RUNTIME_PASSWORD` matches `DB_PASSWORD`. If you set a different password, update the connection string in `DB_RUNTIME_URL` accordingly.
+`DB_RUNTIME_URL` connects as the `unitae_app` role (created by `init-db.sql`), which is bound by Row-Level Security policies. `DB_URL` connects as the superuser and is used only for migrations and one-time setup. Make sure both connection strings carry the right password for their respective role.
 
 ### 3. Start the Services
 

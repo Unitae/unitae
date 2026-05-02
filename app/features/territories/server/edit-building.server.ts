@@ -4,6 +4,7 @@ import { getTerritoryPolygon } from '~/features/territories/server/get-territory
 
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
+import { recalculateEntranceCentroid } from './update-buildings-in-entrance.server'
 
 export async function editBuilding(
   db: TransactionClient,
@@ -24,7 +25,7 @@ export async function editBuilding(
     }
   }
 
-  return db.building.update({
+  const building = await db.building.update({
     where: {
       id: buildingId,
     },
@@ -36,5 +37,12 @@ export async function editBuilding(
       longitude: coordinates.longitude,
       inTerritory: isInTerritory,
     },
+    include: { entrances: { select: { id: true } } },
   })
+
+  for (const entrance of building.entrances) {
+    await recalculateEntranceCentroid(db, entrance.id)
+  }
+
+  return building
 }

@@ -1,8 +1,9 @@
 import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
+import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -23,27 +24,6 @@ const territoryTypeLabels: Record<string, string> = {
   [TerritoryKind.Phone]: m.territories_type_phone(),
   [TerritoryKind.Hotel]: m.territories_type_hotel(),
   [TerritoryKind.Univ]: m.territories_type_university(),
-}
-
-function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
-  const count = entrances.length
-  if (type === TerritoryKind.Phone) {
-    const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
-    return m.territories_content_phones({ count: phones })
-  }
-  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
-    const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
-    return homes > 1
-      ? m.territories_content_homes_other({ count: homes })
-      : m.territories_content_homes_one({ count: homes })
-  }
-  if (type === TerritoryKind.Commerces) {
-    return count > 1 ? m.territories_content_commerces_other({ count }) : m.territories_content_commerces_one({ count })
-  }
-  if (type === TerritoryKind.Hotel) {
-    return count > 1 ? m.territories_content_hotels_other({ count }) : m.territories_content_hotels_one({ count })
-  }
-  return count > 1 ? m.territories_content_entrances_other({ count }) : m.territories_content_entrances_one({ count })
 }
 
 export const meta: Route.MetaFunction = () => {
@@ -80,6 +60,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
   const { pagination, territories, canManageTerritories, zips } = loaderData
+  const [searchParams] = useSearchParams()
+  const fromQuery = searchParams.toString()
+  const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
 
   if (territories.length < 1) {
     return (
@@ -142,38 +125,44 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
             <TableBody>
               {territories.map(territory => {
                 const attribution = [...territory.attributions].shift()
+                const viewHref = `./territory/${territory.id}/view${viewSuffix}`
 
                 return (
-                  <TableRow key={territory.id}>
+                  <TableRow key={territory.id} className="group relative cursor-pointer hover:bg-accent/30">
                     <TableCell>
-                      <Link to={`./territory/${territory.id}/view`} className="hover:text-primary">
-                        {territory.number}
-                      </Link>
+                      <Link
+                        to={viewHref}
+                        className="absolute inset-0 z-0"
+                        aria-label={m.territories_view_row_link({ number: territory.number })}
+                      />
+                      <span className="relative font-medium">{territory.number}</span>
                     </TableCell>
                     <TableCell className="text-center">
-                      {territoryTypeLabels[territory.type] ?? territory.type}
+                      <span className="relative">{territoryTypeLabels[territory.type] ?? territory.type}</span>
                     </TableCell>
                     <TableCell className="text-center">
-                      {territoryContentLabel(territory.type, territory.entrances)}
+                      <span className="relative">{territoryContentLabel(territory.type, territory.entrances)}</span>
                     </TableCell>
                     <TableCell>
-                      {attribution ? (
-                        <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
-                          {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
-                          {' — '}
-                          {m.territories_assigned_until({
-                            date: attribution.lateDate.toLocaleDateString('fr-FR', {
-                              day: '2-digit',
-                              month: '2-digit',
-                            }),
-                          })}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">{m.territories_available()}</span>
-                      )}
+                      <span className="relative">
+                        {attribution ? (
+                          <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
+                            {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
+                            {' — '}
+                            {m.territories_assigned_until({
+                              date: attribution.lateDate.toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                              }),
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">{m.territories_available()}</span>
+                        )}
+                      </span>
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="relative z-10 flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" asChild>
                           <a
                             href={`/territories/territory/${territory.id}/pdf`}
@@ -185,7 +174,10 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         {canManageTerritories && (
                           <>
                             <Button variant="ghost" size="icon" asChild>
-                              <Link to={`./territory/${territory.id}/edit`} title={m.territories_edit_title_attr()}>
+                              <Link
+                                to={`./territory/${territory.id}/edit`}
+                                title={m.territories_edit_title_attr()}
+                              >
                                 <Pencil className="size-4" />
                               </Link>
                             </Button>
@@ -195,7 +187,10 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                               asChild
                               className="text-destructive hover:text-destructive max-sm:hidden"
                             >
-                              <Link to={`./territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
+                              <Link
+                                to={`./territory/${territory.id}/delete`}
+                                title={m.territories_delete_title_attr()}
+                              >
                                 <Trash2 className="size-4" />
                               </Link>
                             </Button>

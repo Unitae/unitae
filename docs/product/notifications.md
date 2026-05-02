@@ -23,7 +23,7 @@ Some actions cancel pending notifications. When a document is deleted shortly af
 
 ## Notification Preferences
 
-Users can manage their notification preferences at **Profil > Préférences de notification**. Each notification type can be individually enabled or disabled. Preferences can also be set by category (e.g., disabling all board-related notifications at once).
+Users can manage their notification preferences at **Profile > Notification preferences**. Each notification type can be individually enabled or disabled. Preferences can also be set by category (e.g., disabling all board-related notifications at once).
 
 Disabled notifications are never sent — they are filtered out during recipient resolution.
 

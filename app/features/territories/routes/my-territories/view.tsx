@@ -1,7 +1,7 @@
 import {
+  AdvancedMarker,
   Map as GoogleMap,
   APIProvider as GoogleMapApiProvider,
-  Marker as GoogleMapMarker,
 } from '@vis.gl/react-google-maps'
 import { Download, MapPin } from 'lucide-react'
 import { redirect } from 'react-router'
@@ -12,6 +12,7 @@ import {
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
 
+import { EntranceMarkerPin } from '~/features/territories/ui/EntranceMarkerPin'
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
 import * as m from '~/paraglide/messages'
 import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -167,6 +168,7 @@ function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggr
     <div className="overflow-hidden rounded-lg border">
       <GoogleMapApiProvider apiKey={apiKey}>
         <GoogleMap
+          mapId="unitae-territory-display"
           defaultCenter={mapCenter}
           defaultZoom={17}
           className="h-[500px] w-full sm:h-[600px]"
@@ -176,10 +178,12 @@ function TerritoryMap({ entrances, apiKey }: { entrances: ReturnType<typeof aggr
             entrance.buildings
               .filter(b => b.latitude != null && b.longitude != null)
               .map(building => (
-                <GoogleMapMarker
+                <AdvancedMarker
                   key={building.id}
                   position={{ lat: building.latitude ?? 0, lng: building.longitude ?? 0 }}
-                />
+                >
+                  <EntranceMarkerPin />
+                </AdvancedMarker>
               )),
           )}
         </GoogleMap>

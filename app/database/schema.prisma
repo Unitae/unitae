@@ -311,6 +311,10 @@ model BuildingEntrance {
   phones   Int?
   liberals Int?
 
+  // Centroid of the entrance's buildings; recomputed on building add/remove and on building coord change
+  latitude  Float?
+  longitude Float?
+
   access        Int?
   accesses      BuildingAccess[]
   isPMR         Boolean?
@@ -328,6 +332,7 @@ model BuildingEntrance {
   congregationId Int
 
   @@unique([id, congregationId])
+  @@index([congregationId, latitude, longitude])
 }
 
 model BuildingAccess {

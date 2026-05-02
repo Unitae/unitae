@@ -6,11 +6,11 @@ Unitae allows administrators to export and import entire congregation data as `.
 
 ### How to export
 
-1. Navigate to **Réglages > Données > Exporter**
+1. Navigate to **Settings > Data > Export**
 2. Choose export options:
    - **Include files** — Include uploaded documents (board PDFs, territory cards). Makes the archive larger.
    - **Include audit logs** — Include the full audit trail history.
-3. Click **Exporter**
+3. Click **Export**
 4. The export runs in the background. A progress page shows the current status.
 5. When complete, download the `.unitae` archive file.
 
@@ -41,14 +41,14 @@ The `.unitae` file is a ZIP archive containing:
 
 ### How to import
 
-1. Navigate to **Réglages > Données > Importer**
+1. Navigate to **Settings > Data > Import**
 2. Upload a `.unitae` archive file (max 500 MB)
 3. The system validates the archive and detects conflicts:
    - **User email conflicts** — Users with matching email addresses
    - **Territory number conflicts** — Territories with matching numbers
    - **Event kind conflicts** — Event kinds with matching keys
 4. Review the conflict summary, entity counts, and warnings
-5. Click **Confirmer l'importation**
+5. Click **Confirm import**
 6. The import runs in the background. A progress page shows the current status.
 
 ### Conflict resolution

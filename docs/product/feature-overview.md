@@ -1,6 +1,6 @@
 # Feature Overview
 
-> Unitae's interface is in French. UI labels in this documentation are shown as they appear in the application.
+> Unitae's interface is available in French and English. UI labels in this documentation are shown in English.
 
 ## Dashboard
 
@@ -8,10 +8,10 @@ The dashboard is the personal homepage every member sees after logging in. It is
 
 - **Hero greeting** — Large personalized welcome with the member's name and current date, plus quick action buttons (plan absence, assign territory for managers)
 - **Urgent strip** — Conditional section surfacing up to 3 time-sensitive items: imminent assignments, overdue/due-soon territories, day-off conflicts, and unread documents — sorted by priority, hidden when nothing is urgent
-- **Mes territoires** — Currently assigned territories with color-coded due-date status (on time, due soon, overdue). Clickable — links to personal territory view
-- **Prochaine réunion** — Next scheduled meeting with the member's highlighted programme parts and service roles
-- **Derniers documents** — Most recent display board documents with unread indicators
-- **Mes absences** — Upcoming days off with a nudge when nothing is planned, a quick `+` button, and clickable rows
+- **My territories** — Currently assigned territories with color-coded due-date status (on time, due soon, overdue). Clickable — links to personal territory view
+- **Next meeting** — Next scheduled meeting with the member's highlighted programme parts and service roles
+- **Latest documents** — Most recent display board documents with unread indicators
+- **My absences** — Upcoming absences with a nudge when nothing is planned, a quick `+` button, and clickable rows
 - **Admin onboarding checklist** — Getting started card for administrators with setup progress tracking
 - **Error resilience** — Each widget loads independently; a failure in one does not affect the others
 
@@ -22,9 +22,9 @@ See [Dashboard](dashboard.md) for details.
 The display board is a digital notice board where congregation administrators can share PDF documents and live data views with all members.
 
 - **Collapsible sections** — Organize documents into named sections with custom ordering; sections collapse/expand with persisted state
-- **Visibility scheduling** — Set *Visible à partir du* and *Visible jusqu'au* dates to control when documents appear
-- **Highlighting** — Pin important documents to a distinct "À la une" section at the top of the board
-- **Status badges** — Nouveau, Non lu, and Mis à jour badges on document thumbnails to communicate freshness at a glance
+- **Visibility scheduling** — Set *Visible from* and *Visible until* dates to control when documents appear
+- **Highlighting** — Pin important documents to a distinct "Featured" section at the top of the board
+- **Status badges** — New, Unread, and Updated badges on document thumbnails to communicate freshness at a glance
 - **View tracking** — See which members have viewed each document
 - **Dynamic documents** — Live views of publisher groups, pioneer lists, and meeting programmes alongside uploaded PDFs, with preview summaries on cards
 - **In-app PDF viewer** — Embedded viewer with native rendering on desktop and PDF.js fallback on Android
@@ -38,7 +38,8 @@ See [Display Board](display-board.md) for details.
 Manage the congregation's geographic territories and track assignments to publishers.
 
 - **Personal territory view** — Every member can view their assigned territories at `/me/territories` with HTML entrance cards, PDF download, and interactive map — no special role required
-- **Territory types** — Porte à Porte, Université, Commerces, Téléphone, Hôtels
+- **Territory types** — Door to door, Universities, Businesses, Phones, Hotels
+- **Map-driven territory editing** — When a Google Maps API key is set, managers edit a territory by clicking markers on the map (add green, remove blue, reassign grey) with an in-place address search, marker clustering, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
 - **Open data sync** — Automatically import building addresses from the French national address database (BANO) — see [Open Data Sync](../self-hosting/open-data-sync.md)
@@ -52,9 +53,9 @@ See [Territories](territories.md) for details.
 
 Track publisher profiles, organize them into groups, and record field service activity.
 
-- **Profiles** — Personal information, profil du proclamateur (proclamateur, pionnier auxiliaire, pionnier permanent, etc.), nomination status
-- **Groupes de prédication** — Organize publishers into field service groups with a responsable and adjoint
-- **Activity tracking** — Monthly records of heures, études, and service de pionnier
+- **Profiles** — Personal information, publisher type (publisher, auxiliary pioneer, regular pioneer, etc.), appointment status
+- **Field service groups** — Organize publishers into groups with a responsible and a deputy
+- **Activity tracking** — Monthly records of hours, studies, and pioneer service
 - **Reports** — Yearly activity Excel export, individual PDF reports, batch ZIP export
 
 See [Publishers](publishers.md) for details.
@@ -97,9 +98,9 @@ See [Data Transfer](data-transfer.md) for details.
 
 Configure the congregation and manage users.
 
-- **Utilisateurs** — Create, edit, and deactivate user accounts and assign roles
-- **Réglages assemblée** — Display name, publisher profile options, programme template management
-- **Réglages territoires** — Allowed postal codes for open data sync, phone territory toggle
+- **Users** — Create, edit, and deactivate user accounts and assign roles
+- **Congregation settings** — Display name, publisher profile options, programme template management
+- **Territory settings** — Allowed postal codes for open data sync, phone territory toggle
 
 See [Roles and Permissions](roles-and-permissions.md) for how access control works.
 
@@ -129,7 +130,7 @@ Unitae includes several features to make the app feel responsive and polished:
 - **Unsaved changes warning** — Edit forms warn before navigating away with unsaved modifications
 - **Debounced search** — Live search-as-you-type with clear button on list pages (publishers, board sections, documents)
 - **Offline indicator** — Banner appears when the network connection drops
-- **Relative time** — Dates shown as *il y a 3 jours* or *dans 2 semaines* with absolute date on hover
+- **Relative time** — Dates shown as *3 days ago* or *in 2 weeks* with absolute date on hover
 - **Sticky table headers** — Column headers stay visible when scrolling long tables
 - **Persisted page size** — Table pagination remembers the preferred number of rows per page
 - **Entrance animations** — Subtle fade-in animations on page headers and dashboard cards

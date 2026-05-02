@@ -377,8 +377,31 @@ const TERRITORIES: { number: string; type: TerritoryKind; notes: string }[] = [
   { number: 'T14', type: TerritoryKind.Classical, notes: '' },
   { number: 'P01', type: TerritoryKind.Phone, notes: 'Territoire téléphonique — personnes âgées' },
   { number: 'P02', type: TerritoryKind.Phone, notes: 'Territoire téléphonique' },
-  { number: 'C01', type: TerritoryKind.Classical, notes: 'Commerces rue principale' },
-  { number: 'C02', type: TerritoryKind.Classical, notes: 'Commerces zone commerciale' },
+  { number: 'C01', type: TerritoryKind.Commerces, notes: 'Commerces rue principale' },
+  { number: 'C02', type: TerritoryKind.Commerces, notes: 'Commerces zone commerciale' },
+  { number: 'H01', type: TerritoryKind.Hotel, notes: 'Hôtels du quartier' },
+  { number: 'U01', type: TerritoryKind.Univ, notes: 'Campus universitaire' },
+]
+
+const ENTRANCE_KIND_FOR_TERRITORY: Record<TerritoryKind, EntranceKind> = {
+  [TerritoryKind.Classical]: EntranceKind.Residential,
+  [TerritoryKind.Phone]: EntranceKind.Residential,
+  [TerritoryKind.Commerces]: EntranceKind.Commerce,
+  [TerritoryKind.Hotel]: EntranceKind.Hotel,
+  [TerritoryKind.Univ]: EntranceKind.Campus,
+}
+
+const SHOP_KINDS = [
+  'boulangerie',
+  'pharmacie',
+  'restaurant',
+  'épicerie',
+  'café',
+  'librairie',
+  'tabac',
+  'fleuriste',
+  'coiffeur',
+  'opticien',
 ]
 
 const STREETS = [
@@ -399,6 +422,24 @@ const STREETS = [
   { street: 'Rue des Écoles', zip: '75003' },
   { street: 'Impasse des Cerisiers', zip: '75003' },
 ]
+
+// Approximate Paris arrondissement centers for the demo zips. Buildings get a
+// small per-row jitter around their zip's center so markers spread realistically
+// and the territory edit map has something clickable.
+const ZIP_CENTERS: Record<string, { lat: number; lng: number }> = {
+  '75001': { lat: 48.8638, lng: 2.336 },
+  '75002': { lat: 48.8678, lng: 2.3413 },
+  '75003': { lat: 48.8634, lng: 2.3601 },
+}
+
+function jitterCoord(zip: string): { latitude: number; longitude: number } {
+  const center = ZIP_CENTERS[zip] ?? { lat: 48.8566, lng: 2.3522 }
+  // ~330m radius — enough to spread within a neighbourhood, not enough to leave it.
+  return {
+    latitude: center.lat + (Math.random() * 0.006 - 0.003),
+    longitude: center.lng + (Math.random() * 0.006 - 0.003),
+  }
+}
 
 // visibleFrom/visibleUntil control board visibility. null = no bound.
 const BOARD_SECTIONS = [
@@ -808,8 +849,10 @@ async function main() {
   // ── Buildings & Entrances ─────────────────────────────────────────────
   let buildingCount = 0
 
-  for (let tIdx = 0; tIdx < Math.min(14, createdTerritories.length); tIdx++) {
+  for (let tIdx = 0; tIdx < createdTerritories.length; tIdx++) {
     const territory = createdTerritories[tIdx]
+    const territoryDef = TERRITORIES[tIdx]
+    const entranceKind = ENTRANCE_KIND_FOR_TERRITORY[territoryDef.type]
     const numBuildings = randomInt(4, 10)
 
     for (let b = 0; b < numBuildings; b++) {
@@ -817,11 +860,15 @@ async function main() {
       // Use territory index + building index to guarantee unique numbers per street
       const buildingNumber = String(tIdx * 10 + b * 2 + 1)
 
+      const coords = jitterCoord(streetInfo.zip)
+
       const building = await prisma.building.create({
         data: {
           number: buildingNumber,
           street: streetInfo.street,
           zip: streetInfo.zip,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
           active: true,
           inTerritory: true,
           prospectionDate: Math.random() > 0.3 ? randomDate(monthsAgo(6), new Date()) : null,
@@ -829,32 +876,42 @@ async function main() {
         },
       })
 
+      const isResidential = entranceKind === EntranceKind.Residential
+      const homes = isResidential ? randomInt(4, 35) : null
+      const phones = isResidential ? randomInt(0, 10) : null
+      const liberals = isResidential ? randomInt(0, 3) : null
+
       const entrance = await prisma.buildingEntrance.create({
         data: {
-          kind: EntranceKind.Residential,
-          homes: randomInt(4, 35),
-          phones: randomInt(0, 10),
-          liberals: randomInt(0, 3),
+          kind: entranceKind,
+          shopKind: entranceKind === EntranceKind.Commerce ? pick(SHOP_KINDS) : '',
+          homes,
+          phones,
+          liberals,
           access: Math.random() > 0.5 ? randomInt(1, 3) : null,
           isPMR: Math.random() > 0.8,
           isOpenEarly: Math.random() > 0.7,
           isMailboxOpen: Math.random() > 0.4,
+          latitude: coords.latitude,
+          longitude: coords.longitude,
           territories: { connect: { id: territory.id } },
           buildings: { connect: { id: building.id } },
           congregationId: congId,
         },
       })
 
-      await prisma.buildingResidentialData.create({
-        data: {
-          buildingId: building.id,
-          entranceId: entrance.id,
-          homes: entrance.homes,
-          phones: entrance.phones,
-          liberals: entrance.liberals,
-          congregationId: congId,
-        },
-      })
+      if (isResidential) {
+        await prisma.buildingResidentialData.create({
+          data: {
+            buildingId: building.id,
+            entranceId: entrance.id,
+            homes: entrance.homes,
+            phones: entrance.phones,
+            liberals: entrance.liberals,
+            congregationId: congId,
+          },
+        })
+      }
 
       buildingCount++
     }
