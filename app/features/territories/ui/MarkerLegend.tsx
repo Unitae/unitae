@@ -59,7 +59,7 @@ export default function MarkerLegend() {
   }
 
   return (
-    <div className="pointer-events-auto absolute top-3 left-3 flex flex-col gap-1.5 rounded-md border bg-card/95 p-2 text-xs shadow-sm backdrop-blur">
+    <div className="pointer-events-auto flex w-fit flex-col gap-1.5 rounded-md border bg-card/95 p-2 text-xs shadow-sm backdrop-blur">
       <button
         type="button"
         onClick={toggle}

@@ -1,5 +1,7 @@
+import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import {
   AdvancedMarker,
+  type AdvancedMarkerRef,
   APIProvider as GoogleMapApiProvider,
   InfoWindow,
   Map as GoogleMap,
@@ -10,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import EntrancePopup, { type EntrancePendingState } from '~/features/territories/ui/EntrancePopup'
+import MapSearchBox from '~/features/territories/ui/MapSearchBox'
 import MarkerLegend from '~/features/territories/ui/MarkerLegend'
 import * as m from '~/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -103,6 +106,9 @@ function MapContents({
   onAct,
 }: Omit<Props, 'apiKey' | 'className'>) {
   const map = useMap()
+  const clustererRef = useRef<MarkerClusterer | null>(null)
+  const markerRefs = useRef<Map<number, AdvancedMarkerRef>>(new Map())
+  const refCallbacks = useRef<Map<number, (marker: AdvancedMarkerRef) => void>>(new Map())
   const fetchAbort = useRef<AbortController | null>(null)
   const cacheRef = useRef<Map<string, BboxEntrance[]>>(new Map())
   const entranceToKeysRef = useRef<Map<number, Set<string>>>(new Map())
@@ -230,19 +236,63 @@ function MapContents({
     }
   }, [map, handleIdle])
 
+  // Initialize the clusterer once we have a map. Cleanup clears all markers.
+  useEffect(() => {
+    if (map == null) return
+    const clusterer = new MarkerClusterer({ map })
+    clustererRef.current = clusterer
+    // Re-register any markers that mounted before the clusterer was ready.
+    for (const marker of markerRefs.current.values()) {
+      if (marker != null) clusterer.addMarker(marker, true)
+    }
+    clusterer.render()
+    return () => {
+      clusterer.clearMarkers()
+      if (clustererRef.current === clusterer) clustererRef.current = null
+    }
+  }, [map])
+
+  const getRefCallback = useCallback((id: number) => {
+    const cached = refCallbacks.current.get(id)
+    if (cached != null) return cached
+    const cb = (marker: AdvancedMarkerRef) => {
+      const previous = markerRefs.current.get(id) ?? null
+      if (marker === previous) return
+      const clusterer = clustererRef.current
+      if (previous != null && clusterer != null) clusterer.removeMarker(previous, true)
+      if (marker != null) {
+        markerRefs.current.set(id, marker)
+        if (clusterer != null) clusterer.addMarker(marker, true)
+      } else {
+        markerRefs.current.delete(id)
+      }
+      clusterer?.render()
+    }
+    refCallbacks.current.set(id, cb)
+    return cb
+  }, [])
+
+  const focusEntranceById = useCallback(
+    (entranceId: number) => {
+      if (map == null) return
+      const target =
+        ownEntrances.find(e => e.id === entranceId) ?? viewportEntrances.find(e => e.id === entranceId)
+      if (target == null) return
+      map.panTo({ lat: target.latitude, lng: target.longitude })
+      const currentZoom = map.getZoom()
+      if (currentZoom == null || currentZoom < 16) {
+        map.setZoom(17)
+      }
+      setSelected(target)
+    },
+    [map, ownEntrances, viewportEntrances],
+  )
+
   // Focus a specific entrance on parent request: pan, zoom in if needed, and open its popup.
   useEffect(() => {
-    if (focusRequest == null || map == null) return
-    const target =
-      ownEntrances.find(e => e.id === focusRequest.id) ?? viewportEntrances.find(e => e.id === focusRequest.id)
-    if (target == null) return
-    map.panTo({ lat: target.latitude, lng: target.longitude })
-    const currentZoom = map.getZoom()
-    if (currentZoom == null || currentZoom < 16) {
-      map.setZoom(17)
-    }
-    setSelected(target)
-  }, [focusRequest, map, ownEntrances, viewportEntrances])
+    if (focusRequest == null) return
+    focusEntranceById(focusRequest.id)
+  }, [focusRequest, focusEntranceById])
 
   return (
     <>
@@ -256,6 +306,7 @@ function MapContents({
           return (
             <AdvancedMarker
               key={display.id}
+              ref={getRefCallback(display.id)}
               position={{ lat: display.latitude, lng: display.longitude }}
               onClick={() => setSelected(display)}
             >
@@ -336,7 +387,10 @@ function MapContents({
         </div>
       ) : null}
 
-      <MarkerLegend />
+      <div className="pointer-events-none absolute top-3 left-3 flex flex-col gap-2">
+        <MapSearchBox candidates={[...ownEntrances, ...viewportEntrances]} onSelect={focusEntranceById} />
+        <MarkerLegend />
+      </div>
     </>
   )
 }

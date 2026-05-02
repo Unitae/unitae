@@ -366,6 +366,11 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 
   const showMap = googleMapsApiKey != null
 
+  const noCoordsEntrances = useMemo(
+    () => savedTerritoryEntrances.filter(e => e.latitude == null || e.longitude == null),
+    [savedTerritoryEntrances],
+  )
+
   return (
     <div className="flex flex-col gap-6">
       <UnsavedChangesDialog blocker={blocker} />
@@ -429,7 +434,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
           />
         ) : null}
 
-        <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[420px]' : 'flex-1'}`}>
+        <div className={`flex flex-col gap-4 ${showMap ? 'lg:w-[380px] xl:w-[420px]' : 'flex-1'}`}>
           <Card>
             <CardContent className="pt-6">
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
@@ -559,6 +564,51 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             pendingReassignments={pendingReassignments}
             onRevert={handleRevert}
           />
+
+          {showMap && noCoordsEntrances.length > 0 ? (
+            <details className="rounded-md border bg-muted/30 p-3 text-sm">
+              <summary className="cursor-pointer font-medium">
+                {m.territories_edit_no_coords_heading({ count: String(noCoordsEntrances.length) })}
+              </summary>
+              <p className="mt-2 text-muted-foreground text-xs">{m.territories_edit_no_coords_body()}</p>
+              <ul className="mt-2 flex flex-col gap-1.5">
+                {noCoordsEntrances.map(entrance => (
+                  <li key={entrance.id} className="flex items-center justify-between gap-2 rounded border p-2">
+                    <span className="flex flex-col">
+                      <span className="font-medium">
+                        {entrance.number} {entrance.street}, {entrance.zip}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {entranceContentLabel(territory.type, entrance)}
+                      </span>
+                    </span>
+                    {!pendingRemovals.has(entrance.id) ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        type="button"
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        onClick={() => handleListRemove(entrance)}
+                        title={m.territories_form_remove_building_title()}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={() => handleRevert(entrance.id)}
+                        title={m.territories_map_pending_revert_title()}
+                      >
+                        {m.territories_map_action_undo()}
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
 
           <Form id="territory-edit-form" method="post" className="flex flex-col gap-4">
             {[...projectedEntranceIds].map(id => (
