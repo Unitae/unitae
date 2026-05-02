@@ -425,7 +425,7 @@ export default function ViewTerritoryPage({ loaderData }: Route.ComponentProps) 
           <BuildingEntranceMap
             apiKey={googleMapsApiKey}
             entrances={territory.entrances}
-            className="h-[calc(100vh-12rem)] min-h-[320px] w-full lg:sticky lg:top-4 lg:w-[320px] xl:w-[360px]"
+            className="h-[calc(100vh-12rem)] min-h-[320px] w-full lg:sticky lg:top-4 lg:w-2/5 xl:w-1/2"
             mapClassName="h-full w-full rounded-lg"
           />
         )}
