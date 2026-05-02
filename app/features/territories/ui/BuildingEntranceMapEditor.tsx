@@ -5,6 +5,7 @@ import {
   Map as GoogleMap,
   useMap,
 } from '@vis.gl/react-google-maps'
+import { Check, Info, Loader2, Plus, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
@@ -58,7 +59,7 @@ function pinClassesFor(entrance: BboxEntrance, pending: EntrancePendingState) {
     return 'border-destructive bg-destructive text-white'
   }
   if (pending === 'pending-add' || pending === 'pending-reassign') {
-    return 'border-blue-700 bg-blue-600 text-white ring-2 ring-blue-300'
+    return 'border-blue-700 bg-blue-600 text-white ring-2 ring-blue-300 ring-offset-2 ring-offset-white'
   }
   if (entrance.status === 'in-this-territory') {
     return 'border-blue-700 bg-blue-600 text-white'
@@ -67,6 +68,27 @@ function pinClassesFor(entrance: BboxEntrance, pending: EntrancePendingState) {
     return 'border-emerald-700 bg-emerald-500 text-white'
   }
   return 'border-slate-400 bg-white text-slate-500'
+}
+
+function MarkerIcon({ entrance, pending }: { entrance: BboxEntrance; pending: EntrancePendingState }) {
+  if (pending === 'pending-remove') return <X className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+  if (pending === 'pending-add' || pending === 'pending-reassign') {
+    return <Plus className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+  }
+  if (entrance.status === 'in-this-territory') {
+    return <Check className="size-3.5" strokeWidth={2.5} aria-hidden="true" />
+  }
+  return null
+}
+
+function markerAriaLabelFor(entrance: BboxEntrance, pending: EntrancePendingState): string {
+  const address = `${entrance.address.number} ${entrance.address.street}, ${entrance.address.zip}`
+  if (pending === 'pending-remove') return `${address} — ${m.territories_map_aria_pending_remove()}`
+  if (pending === 'pending-add') return `${address} — ${m.territories_map_aria_pending_add()}`
+  if (pending === 'pending-reassign') return `${address} — ${m.territories_map_aria_pending_reassign()}`
+  if (entrance.status === 'in-this-territory') return `${address} — ${m.territories_map_aria_in_territory()}`
+  if (entrance.status === 'available') return `${address} — ${m.territories_map_aria_available()}`
+  return `${address} — ${m.territories_map_aria_on_other()}`
 }
 
 function MapContents({
@@ -192,14 +214,14 @@ function MapContents({
               position={{ lat: display.latitude, lng: display.longitude }}
               onClick={() => setSelected(display)}
             >
-              <span
-                className={`flex h-7 w-7 items-center justify-center rounded-full border-2 font-bold text-xs shadow-md transition ${pinClassesFor(display, pending)}`}
+              <button
+                type="button"
+                aria-label={markerAriaLabelFor(display, pending)}
                 title={`${display.address.number} ${display.address.street}`}
+                className={`flex size-7 items-center justify-center rounded-full border-2 shadow-md transition motion-safe:hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ${pinClassesFor(display, pending)}`}
               >
-                {pending === 'pending-add' || pending === 'pending-reassign' ? '+' : null}
-                {pending === 'pending-remove' ? '×' : null}
-                {pending === 'none' && display.status === 'in-this-territory' ? '✓' : null}
-              </span>
+                <MarkerIcon entrance={display} pending={pending} />
+              </button>
             </AdvancedMarker>
           )
         })}
@@ -232,12 +254,16 @@ function MapContents({
         </InfoWindow>
       ) : null}
 
-      <div className="pointer-events-none absolute top-2 right-2 flex flex-col gap-1 text-xs">
+      <div className="pointer-events-none absolute top-3 right-3 flex flex-col items-end gap-1.5 text-xs">
         {loading ? (
-          <span className="rounded-md bg-white/90 px-2 py-1 shadow">{m.territories_map_loading()}</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border bg-card/95 px-2.5 py-1 text-foreground shadow-sm backdrop-blur">
+            <Loader2 className="size-3 animate-spin" aria-hidden="true" />
+            {m.territories_map_loading()}
+          </span>
         ) : null}
         {truncated ? (
-          <span className="rounded-md bg-amber-100/90 px-2 py-1 text-amber-900 shadow">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-primary shadow-sm backdrop-blur">
+            <Info className="size-3" aria-hidden="true" />
             {m.territories_map_truncated_hint()}
           </span>
         ) : null}

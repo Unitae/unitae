@@ -31,6 +31,7 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Textarea } from '~/shared/ui/textarea'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -395,7 +396,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                           variant="ghost"
                           size="icon"
                           type="button"
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => handleListRemove(entrance)}
                           title={m.territories_form_remove_building_title()}
                         >
@@ -457,13 +458,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
                 {m.territories_edit_notes_label()}{' '}
                 <span className="text-muted-foreground text-sm">{m.territories_edit_notes_visibility()}</span>
               </Label>
-              <textarea
-                className="rounded-md border border-input bg-background px-3 py-2 text-sm"
-                rows={4}
-                name="notes"
-                defaultValue={territory.notes}
-                onChange={markDirty}
-              />
+              <Textarea rows={4} name="notes" defaultValue={territory.notes} onChange={markDirty} />
             </div>
 
             <SubmitButton className="mt-2">{m.territories_edit_submit()}</SubmitButton>

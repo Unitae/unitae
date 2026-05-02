@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { Minus, Plus, RotateCcw, X } from 'lucide-react'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { computeTerritoryQuantity } from '~/features/territories/server/compute-territory-quantity'
@@ -99,9 +99,12 @@ export default function PendingChangesRail({
             {[...pendingAdditions.values()].map(entrance => (
               <li
                 key={entrance.id}
-                className="flex items-center justify-between gap-2 rounded border-emerald-200 border-l-2 bg-emerald-50/40 px-2 py-1 text-sm"
+                className="flex items-center justify-between gap-2 rounded border-l-2 border-primary/40 bg-primary/5 px-2 py-1 text-sm"
               >
-                <span>+ {entranceLabel(entrance)}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Plus className="size-3 shrink-0 text-primary" aria-hidden="true" />
+                  {entranceLabel(entrance)}
+                </span>
                 <Button
                   type="button"
                   size="icon"
@@ -126,9 +129,12 @@ export default function PendingChangesRail({
             {[...pendingRemovals.values()].map(entrance => (
               <li
                 key={entrance.id}
-                className="flex items-center justify-between gap-2 rounded border-red-200 border-l-2 bg-red-50/40 px-2 py-1 text-sm"
+                className="flex items-center justify-between gap-2 rounded border-l-2 border-destructive/40 bg-destructive/5 px-2 py-1 text-sm"
               >
-                <span>− {entranceLabel(entrance)}</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <Minus className="size-3 shrink-0 text-destructive" aria-hidden="true" />
+                  {entranceLabel(entrance)}
+                </span>
                 <Button
                   type="button"
                   size="icon"
@@ -153,10 +159,13 @@ export default function PendingChangesRail({
             {[...pendingReassignments.values()].map(({ entrance, fromTerritoryNumber }) => (
               <li
                 key={entrance.id}
-                className="flex items-center justify-between gap-2 rounded border-amber-300 border-l-2 bg-amber-50/40 px-2 py-1 text-sm"
+                className="flex items-center justify-between gap-2 rounded border-primary/40 border-l-2 border-dashed bg-primary/5 px-2 py-1 text-sm"
               >
                 <span className="flex flex-col">
-                  <span>↻ {entranceLabel(entrance)}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <RotateCcw className="size-3 shrink-0 text-primary" aria-hidden="true" />
+                    {entranceLabel(entrance)}
+                  </span>
                   <span className="text-muted-foreground text-xs">
                     {m.territories_map_reassignment_from({ number: fromTerritoryNumber })}
                   </span>
