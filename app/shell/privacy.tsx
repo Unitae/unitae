@@ -10,22 +10,22 @@ export const meta: Route.MetaFunction = () => {
 export default function PrivacyPolicyPage() {
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
-      <Link to="/" className="mb-8 inline-block text-blue-600 text-sm hover:text-blue-800">
+      <Link to="/" className="mb-8 inline-block text-primary text-sm hover:underline">
         &larr; {m.privacy_back()}
       </Link>
 
-      <h1 className="mb-8 font-bold text-3xl text-gray-900">{m.privacy_title()}</h1>
-      <p className="mb-6 text-gray-500 text-sm">{m.privacy_last_updated()}</p>
+      <h1 className="mb-8 font-bold text-3xl text-foreground">{m.privacy_title()}</h1>
+      <p className="mb-6 text-muted-foreground text-sm">{m.privacy_last_updated()}</p>
 
-      <div className="space-y-8 text-gray-700 leading-relaxed">
+      <div className="space-y-8 text-foreground leading-relaxed">
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s1_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s1_title()}</h2>
           <p>{m.privacy_s1_p1()}</p>
           <p className="mt-2">{m.privacy_s1_p2()}</p>
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s2_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s2_title()}</h2>
           <p>{m.privacy_s2_intro()}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>
@@ -50,13 +50,13 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s3_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s3_title()}</h2>
           <p>{m.privacy_s3_p1()}</p>
           <p className="mt-2">{m.privacy_s3_p2()}</p>
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s4_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s4_title()}</h2>
           <ul className="list-inside list-disc space-y-1">
             <li>
               <strong>{m.privacy_s4_contract()}</strong> : {m.privacy_s4_contract_details()}
@@ -74,7 +74,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s5_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s5_title()}</h2>
           <ul className="list-inside list-disc space-y-1">
             <li>{m.privacy_s5_purpose_1()}</li>
             <li>{m.privacy_s5_purpose_2()}</li>
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s6_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s6_title()}</h2>
           <ul className="list-inside list-disc space-y-1">
             <li>{m.privacy_s6_users()}</li>
             <li>{m.privacy_s6_activity()}</li>
@@ -101,7 +101,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s7_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s7_title()}</h2>
           <p>{m.privacy_s7_intro()}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>
@@ -124,7 +124,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s8_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s8_title()}</h2>
           <p>{m.privacy_s8_intro()}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>
@@ -153,7 +153,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s9_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s9_title()}</h2>
           <p>{m.privacy_s9_intro()}</p>
           <ul className="mt-2 list-inside list-disc space-y-1">
             <li>{m.privacy_s9_tls()}</li>
@@ -166,18 +166,18 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s10_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s10_title()}</h2>
           <p>{m.privacy_s10_p1()}</p>
           <p className="mt-2">{m.privacy_s10_p2()}</p>
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s11_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s11_title()}</h2>
           <p>{m.privacy_s11_text()}</p>
         </section>
 
         <section>
-          <h2 className="mb-3 font-semibold text-gray-900 text-xl">{m.privacy_s12_title()}</h2>
+          <h2 className="mb-3 font-semibold text-foreground text-xl">{m.privacy_s12_title()}</h2>
           <p>{m.privacy_s12_text()}</p>
         </section>
       </div>
