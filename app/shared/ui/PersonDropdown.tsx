@@ -1,7 +1,7 @@
 import { ChevronDownIcon, Search } from 'lucide-react'
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useMemo, useRef, useState } from 'react'
 
-import * as m from '~/paraglide/messages'
+import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/popover'
 import { comparePersonName, formatPersonName } from '~/shared/utils/format-person-name'
