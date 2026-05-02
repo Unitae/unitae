@@ -15,4 +15,9 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  // @googlemaps/markerclusterer ships a CommonJS main entry; bundle it for SSR so
+  // Vite picks the ESM `module` field and named imports resolve correctly.
+  ssr: {
+    noExternal: ['@googlemaps/markerclusterer'],
+  },
 })
