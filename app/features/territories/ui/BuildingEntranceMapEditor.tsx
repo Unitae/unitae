@@ -326,6 +326,7 @@ function MapContents({
         <InfoWindow
           position={{ lat: selected.latitude, lng: selected.longitude }}
           pixelOffset={[0, -24]}
+          maxWidth={380}
           onCloseClick={() => setSelected(null)}
           headerDisabled
         >
