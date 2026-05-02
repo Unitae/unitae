@@ -39,6 +39,7 @@ Manage the congregation's geographic territories and track assignments to publis
 
 - **Personal territory view** — Every member can view their assigned territories at `/me/territories` with HTML entrance cards, PDF download, and interactive map — no special role required
 - **Territory types** — Porte à Porte, Université, Commerces, Téléphone, Hôtels
+- **Map-driven territory editing** — When a Google Maps API key is set, managers edit a territory by clicking markers on the map (add green, remove blue, reassign grey) with an in-place address search, marker clustering, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
 - **Open data sync** — Automatically import building addresses from the French national address database (BANO) — see [Open Data Sync](../self-hosting/open-data-sync.md)

@@ -37,7 +37,7 @@ Clicking a territory opens a detail page with two tabs:
   - *Téléphone*: address, phone count, notes
   - *Commerces*: address, shop kind label, notes
   - PDF download button for offline use
-- **Carte** — Full-width interactive Google Map with building markers (when configured). Shows a consent banner before loading the map. If no API key is configured, a message indicates the map is unavailable.
+- **Carte** — Full-width interactive Google Map with building markers (when configured). Shows a consent banner before loading the map. If no API key is configured, a message indicates the map is unavailable. Markers use the same blue + check pin as the admin views (see [Map Marker Design](#map-marker-design)).
 
 Attribution info (start date, return date with relative time, status) is shown above the tabs.
 
@@ -45,15 +45,51 @@ The personal territory view is security-scoped: the server only returns territor
 
 ## Admin Territory View
 
-The admin territory detail page shows comprehensive information for users with the `TerritoriesViewer` role:
+The admin territory detail page (`/territories/territory/:id/view`) is the read-only counterpart to the editor. It is laid out as stacked cards on the left with a sticky map sidebar on the right (full width on mobile, ~40% on `lg:`, ~50% on `xl:`).
 
-- **Territory info** — Number, type, household/phone count, and notes
-- **Type-specific details** — Commerce territories list each entrance with its shop type; other types show entrances with household counts
-- **Current attribution** — The publisher currently working the territory, with start date, expected return date, and status
-- **Attribution history** — A table of all past attributions with publisher name, start/end dates, duration, and type
-- **Map** — Building locations displayed on a map (when Google Maps is configured)
+Cards, top to bottom:
 
-Editing and attribution management actions are only shown to `TerritoriesManager` users.
+- **Informations** — Territory number, type, and a kind-aware quantity label (foyers / téléphones / commerces / hôtels / campus) rendered as a `<dl>` grid.
+- **Notes** — Only rendered when the territory has notes. Uses a `StickyNote` icon so long notes are not buried as a small grey paragraph.
+- **Allées** — Single list of every entrance with the kind-aware content label (shop kind for Commerces, count for residential). Each row carries an external-link icon that opens the building detail in a new tab.
+- **Attribution en cours** — Either an empty state with an "Attribuer ce territoire" CTA, or the current attribution rendered with the publisher's initials chip, name + dates, a progress bar showing % of the duration elapsed (turning destructive when overdue), and the status badge. Edit and cancel actions are surfaced as icon buttons for `TerritoriesManager` users.
+- **Historique** — Table of all past attributions with publisher name, start/end dates, duration, and type, or a friendly empty state.
+
+The page header carries `←` / `→` arrows to step through territories of the same type ordered by number, plus a Download PDF button and (for managers) an Edit button. List filters are preserved across the round-trip: list → view → edit → view → list keeps the user's `?type=&zip=&search=` intact via a `?from=...` query param.
+
+## Territory Editor
+
+When `GOOGLE_MAPS_API_KEY` is configured, `/territories/territory/:id/edit` becomes a **map-driven** editor — a full-bleed map fills the left column and the right rail summarises the territory and pending changes. Without an API key, the page silently falls back to a dropdown selector (zip → street → entrance cascade) so the editor remains fully usable.
+
+### Map marker palette
+
+| Marker | Meaning | Click action |
+|---|---|---|
+| **Blue + check** | Entrance currently in this territory | Mark for removal (turns red) |
+| **Blue + plus, with ring** | Pending addition or reassignment | Undo (returns to previous state) |
+| **Green + plus** | Available — not on any territory of this type | Add to this territory |
+| **Grey hollow** | On another territory of the same type | Reassign (two-step inline confirmation) |
+| **Red + ×** | Pending removal | Undo |
+
+Reserving red exclusively for destructive intent (pending removal) keeps the visual language predictable. Cross-territory reassignment requires an explicit confirm step inside the popup, since clicking a grey marker silently steals an entrance from another manager's work.
+
+### Surfaces around the map
+
+- **Address search** (top-left) — Locale-aware substring match against the union of own + viewport-loaded entrances; arrow-key navigation, Enter pans + opens the popup.
+- **Marker legend** (top-left, collapsible) — Five-row reference matching the palette. Open/closed state persists in `localStorage`.
+- **Loading / truncation / retry chips** (top-right) — A spinner while bbox loads, a "Zoomez pour voir plus d'adresses" hint when results exceed 1500, a retry chip when a load fails.
+- **Empty-state overlay** — Centered card on the map for territories with no entrances yet, prompting the user to pan and click a green marker.
+- **Marker clustering** — `@googlemaps/markerclusterer` collapses dense groups at low zoom; clicking a cluster zooms in.
+
+### Pending-changes flow
+
+Clicks on the map accumulate in a right-rail summary (additions, removals, reassignments) until the user presses Save. Save commits everything atomically: a single `updateTerritory` transaction validates and audits each cross-territory reassignment as `EntranceReassigned`, then applies the territory's new entrance set. The list also surfaces inline pending badges on each row (`+ ajout`, `− retrait`, `↻ depuis #N`) so the saved-list and pending-rail tell the same story.
+
+Bulk-revert links per section and a top-level "Tout annuler" recover from many pending changes in one click.
+
+### Geocoding gaps
+
+Entrances without `latitude/longitude` (rare in production, but possible if open-data import is incomplete) cannot render on the map. The editor surfaces them in a collapsed `<details>` block titled "Adresses sans coordonnées (n)" so they remain manageable in map mode.
 
 ## Attributions
 
@@ -135,10 +171,18 @@ Only building entrances that are active, prospected, and not already assigned to
 
 When a Google Maps API key is configured, Unitae displays:
 
-- **Interactive maps** on territory pages showing building entrance locations
+- **Interactive maps** on the personal territory view, the admin view, the map editor, the split tool previews, and the territory creation preview
 - **Map images** in PDF territory card exports
 
 Maps are optional — all territory features work without them. See [Environment Variables](../self-hosting/environment-variables.md) for configuration.
+
+### Map Marker Design
+
+A single visual language is reused across every on-screen map:
+
+- **Read-only displays** (personal view, admin view, split-tool previews, my-territories, new-territory preview) all use a **blue circle with a checkmark** — "this entrance is part of the territory you are looking at." No green/grey/red, since these surfaces show only the territory's own entrances.
+- **The map editor** adds the full state palette (blue / green / grey / red) — see [Territory Editor](#territory-editor) above.
+- **PDF territory cards** keep their **yellow** Static Maps marker. The on-screen blue identity does not apply to print: yellow is more legible on photocopy and stays distinct from the pink/green/blue district-boundary overlays that are baked into the printed page.
 
 ## Statistics
 
@@ -164,7 +208,7 @@ Statistics follow the **theocratic year** (September to August).
 | Role | Can do |
 |------|--------|
 | `TerritoriesViewer` | View territory list, attributions, and statistics |
-| `TerritoriesManager` | Create, edit, and delete territories. Manage attributions. Trigger open data sync |
+| `TerritoriesManager` | Create, edit, and delete territories. Manage attributions. Trigger open data sync. Cross-territory reassignments via the map editor are audited as `EntranceReassigned` |
 | `ProspectionViewer` | View building prospection data |
 | `ProspectionManager` | Edit buildings, update prospection data, manage building status |
 | `Admin` | Everything |

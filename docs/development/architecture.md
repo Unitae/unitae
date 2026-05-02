@@ -150,6 +150,23 @@ Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
 When not set, map features are silently disabled.
 
+### Components
+
+- **`app/features/territories/ui/BuildingEntranceMap.tsx`** — read-only Google Map (`@vis.gl/react-google-maps`) used by the territory view, the new-territory preview, the five split-tool variants, and the publisher dashboard. Renders `<AdvancedMarker>` + the shared `<EntranceMarkerPin>` (defaults to the in-territory blue + check variant). Accepts `className` / `mapClassName` overrides so the territory view can shrink the map to a 40/50% sticky sidebar without affecting other call sites.
+- **`app/features/territories/ui/BuildingEntranceMapEditor.tsx`** — the interactive map-driven territory editor. Uses the same `<EntranceMarkerPin>` with the relevant variant per state (in-territory / available / on-other / pending-add / pending-remove). Wires `@googlemaps/markerclusterer` for clustering, fetches viewport entrances on map idle (debounced + cached by a coarse 0.01° grid), and surfaces a search box, legend, retry chip, and empty-state overlay.
+- **`app/features/territories/ui/EntranceMarkerPin.tsx`** — single source of truth for the marker visual. Five variants. Used everywhere on screen.
+- **`app/features/territories/ui/TerritoryDocument.tsx`** — uses Google's Static Maps API for the printable territory card. Marker stays yellow on print intentionally — see the comment in the file.
+
+### Bbox endpoint
+
+`GET /territories/api/entrances-in-bbox?bbox=swLat,swLng,neLat,neLng&territoryId=:id` returns `{ entrances, truncated, total }`. `entrances` is capped at 1500; `truncated` flags when the cap is hit and `total` carries the unfiltered count for the truncation hint. Source: `app/features/territories/server/buildings.server.ts → getEntrancesInBbox`. Routed via `app/features/territories/routes/api/entrances-in-bbox.tsx`. RLS-scoped via `withScopeFromContext`.
+
+### Notes
+
+- `BuildingEntrance` carries a stored centroid (`latitude` / `longitude`) recomputed on building add/remove and on a building's coord change. Maintained by `recalculateEntranceCentroid` in `update-buildings-in-entrance.server.ts` and called by `createBuilding`, `editBuilding`, `importOpenData`, and `updateBuildingsInEntrance`.
+- Vite's SSR pipeline must bundle `@googlemaps/markerclusterer` (it ships a CommonJS main entry) — `vite.config.ts` has it in `ssr.noExternal`.
+- The editor's reassignment flow validates source territory + entrance link before disconnect/connect, runs everything in a single Prisma transaction, and audits each move as `EntranceReassigned` (see [Audit Logging](#audit-logging)).
+
 ## PDF Generation
 
 All PDF generation runs **server-side only** using `@react-pdf/renderer`. The library references Node.js globals (`process.env`) that are unavailable in the browser — never use `PDFDownloadLink` or `PDFViewer` in client components.
@@ -230,7 +247,7 @@ Bulk operations (`bulkDeleteBoardItems`, `bulkMoveBoardItems`) and high-frequenc
 
 ### Covered actions
 
-Authentication (login, logout, failed login), consent (granted, withdrawn), passwords, territories (created, updated, deleted), attributions (created, updated, deleted), publishers (created, updated, status changed), publisher groups (created, deleted), publisher activity (created, updated, deleted), board documents (created, updated, deleted), board sections (created, updated), congregation settings, data export/import, platform admin operations.
+Authentication (login, logout, failed login), consent (granted, withdrawn), passwords, territories (created, updated, deleted), entrance reassignments (`EntranceReassigned` — when the map editor moves an entrance from one territory to another), attributions (created, updated, deleted), publishers (created, updated, status changed), publisher groups (created, deleted), publisher activity (created, updated, deleted), board documents (created, updated, deleted), board sections (created, updated), congregation settings, data export/import, platform admin operations.
 
 ## Testing
 
