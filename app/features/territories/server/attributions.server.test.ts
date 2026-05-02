@@ -66,12 +66,26 @@ describe('findTerritoryWithHistory', () => {
         id_congregationId: { id: 10, congregationId: 1 },
       },
       include: {
-        entrances: { include: { buildings: { where: { active: true } } } },
+        entrances: {
+          where: { buildings: { some: { active: true } } },
+          include: { buildings: { where: { active: true } } },
+        },
         attributions: {
           include: { publisher: true },
           orderBy: [{ startDate: 'desc' }],
         },
       },
+    })
+  })
+
+  it('exclut les allées dont toutes les adresses sont désactivées dans la prospection', async () => {
+    vi.mocked(db.territory.findUnique).mockResolvedValue({ id: 10, entrances: [], attributions: [] } as never)
+
+    await findTerritoryWithHistory(db as never, 10, 1)
+
+    const call = vi.mocked(db.territory.findUnique).mock.calls[0]?.[0]
+    expect(call?.include?.entrances).toMatchObject({
+      where: { buildings: { some: { active: true } } },
     })
   })
 

@@ -36,7 +36,10 @@ export function findTerritoryWithHistory(db: TransactionClient, territoryId: num
       id_congregationId: { id: territoryId, congregationId },
     },
     include: {
-      entrances: { include: { buildings: { where: { active: true } } } },
+      entrances: {
+        where: { buildings: { some: { active: true } } },
+        include: { buildings: { where: { active: true } } },
+      },
       attributions: {
         include: { publisher: true },
         orderBy: [{ startDate: 'desc' }],
