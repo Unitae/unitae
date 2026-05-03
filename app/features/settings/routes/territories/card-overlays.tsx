@@ -637,15 +637,18 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                         {m.settings_territories_card_overlays_perimeter_delete_confirm_description()}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <fetcher.Form method="post">
-                      <input type="hidden" name="intent" value="clear-perimeter" />
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
-                        <AlertDialogAction type="submit" variant="destructive">
-                          {m.settings_territories_card_overlays_perimeter_delete_button()}
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </fetcher.Form>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={() => {
+                          // Programmatic submit — see the zone delete handler for the rationale.
+                          fetcher.submit({ intent: 'clear-perimeter' }, { method: 'post' })
+                        }}
+                      >
+                        {m.settings_territories_card_overlays_perimeter_delete_button()}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
@@ -846,16 +849,19 @@ function OverlayRow({
                 : m.settings_territories_card_overlays_delete_confirm_description_unnamed()}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="delete" />
-            <input type="hidden" name="id" value={overlay.id} />
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
-              <AlertDialogAction type="submit" variant="destructive">
-                {m.settings_territories_card_overlays_delete_confirm_action()}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </fetcher.Form>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                // Submit programmatically — AlertDialog.Action auto-closes (and unmounts) the
+                // dialog content, which would race against a `<fetcher.Form type="submit">` inside.
+                fetcher.submit({ intent: 'delete', id: String(overlay.id) }, { method: 'post' })
+              }}
+            >
+              {m.settings_territories_card_overlays_delete_confirm_action()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>
