@@ -3,14 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Form, redirect, useFetcher, useNavigation } from 'react-router'
 import { z } from 'zod'
 import {
+  buildGeoJsonExport,
   type CardOverlay,
   type CardOverlayPath,
   cardOverlayColorSchema,
   cardOverlayNameSchema,
   cardOverlayPathsSchema,
-  cardOverlaysToGeoJson,
   GeoJsonValidationError,
-  geoJsonToCardOverlays,
+  parseGeoJsonImport,
 } from '~/features/territories/model/card-overlay'
 import {
   createCardOverlay,
@@ -18,6 +18,7 @@ import {
   listCardOverlays,
   updateCardOverlay,
 } from '~/features/territories/server/card-overlays.server'
+import { clearPerimeter, getPerimeter, setPerimeter } from '~/features/territories/server/perimeter.server'
 import CardOverlayMap from '~/features/territories/ui/CardOverlayMap'
 import { ColorPicker } from '~/features/territories/ui/ColorPicker'
 import * as m from '~/i18n/paraglide/messages'
@@ -64,6 +65,7 @@ import { getOptionalEnv } from '~/shared/utils/env.server'
 import type { Route } from './+types/card-overlays'
 
 const DEFAULT_OVERLAY_COLOR = '#C2175B'
+const PERIMETER_DRAFT_COLOR = '#6B7280'
 
 function verticesCount(count: number): string {
   return count === 1
@@ -83,9 +85,10 @@ export function loader({ context }: Route.LoaderArgs) {
   const congregation = context.get(congregationContext)
 
   return withScopeFromContext(context, async db => {
-    const overlays = await listCardOverlays(db)
+    const [overlays, perimeter] = await Promise.all([listCardOverlays(db), getPerimeter(db)])
     return {
       overlays,
+      perimeter,
       googleMapsApiKey: getOptionalEnv('GOOGLE_MAPS_API_KEY'),
       maxOverlays: congregation.maxCardOverlays,
     }
@@ -138,7 +141,30 @@ const importSchema = z.object({
   geojson: z.string().min(1),
 })
 
-const actionSchema = z.discriminatedUnion('intent', [createSchema, updateSchema, deleteSchema, importSchema])
+const setPerimeterSchema = z.object({
+  intent: z.literal('set-perimeter'),
+  paths: z.string().transform((value, ctx) => {
+    try {
+      return cardOverlayPathsSchema.parse(JSON.parse(value))
+    } catch {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Polygone invalide' })
+      return z.NEVER
+    }
+  }),
+})
+
+const clearPerimeterSchema = z.object({
+  intent: z.literal('clear-perimeter'),
+})
+
+const actionSchema = z.discriminatedUnion('intent', [
+  createSchema,
+  updateSchema,
+  deleteSchema,
+  importSchema,
+  setPerimeterSchema,
+  clearPerimeterSchema,
+])
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
@@ -184,14 +210,36 @@ export async function action({ request, context }: Route.ActionArgs) {
       return redirect('/settings/territories/card-overlays')
     }
 
-    // import-geojson
-    let drafts: ReturnType<typeof geoJsonToCardOverlays>
+    if (parsed.data.intent === 'set-perimeter') {
+      await setPerimeter(db, {
+        paths: parsed.data.paths,
+        congregationId: congregation.id,
+        actorId: currentUser.id,
+      })
+      return redirect('/settings/territories/card-overlays')
+    }
+
+    if (parsed.data.intent === 'clear-perimeter') {
+      await clearPerimeter(db, congregation.id, currentUser.id)
+      return redirect('/settings/territories/card-overlays')
+    }
+
+    // import-geojson — accepts both zones (appended to the existing list) and an optional perimeter
+    // (replaces any existing one; setPerimeter is upsert by congregationId).
+    let imported: ReturnType<typeof parseGeoJsonImport>
     try {
-      drafts = geoJsonToCardOverlays(JSON.parse(parsed.data.geojson))
+      imported = parseGeoJsonImport(JSON.parse(parsed.data.geojson))
     } catch (error) {
       return { error: error instanceof GeoJsonValidationError ? error.message : 'GeoJSON invalide' }
     }
-    for (const draft of drafts) {
+    if (imported.perimeter != null) {
+      await setPerimeter(db, {
+        paths: imported.perimeter,
+        congregationId: congregation.id,
+        actorId: currentUser.id,
+      })
+    }
+    for (const draft of imported.zones) {
       await limits.errorIfWouldGoOverLimit('cardOverlays')
       await createCardOverlay(db, {
         name: draft.name,
@@ -206,11 +254,12 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function CardOverlaysSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { overlays, googleMapsApiKey, maxOverlays } = loaderData
+  const { overlays, perimeter, googleMapsApiKey, maxOverlays } = loaderData
   const atLimit = maxOverlays != null && overlays.length >= maxOverlays
   const fetcher = useFetcher()
   const [editingId, setEditingId] = useState<number | null>(null)
   const [isDrawing, setIsDrawing] = useState(false)
+  const [perimeterMode, setPerimeterMode] = useState<'new' | 'edit' | null>(null)
   const [draftPaths, setDraftPaths] = useState<CardOverlayPath[] | null>(null)
   const [draftName, setDraftName] = useState('')
   const [draftColor, setDraftColor] = useState(DEFAULT_OVERLAY_COLOR)
@@ -221,14 +270,20 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
   const { blocker, markDirty } = useUnsavedChanges()
 
   const hasMapApiKey = googleMapsApiKey != null && googleMapsApiKey.length > 0
+  const hasPerimeter = perimeter != null
   const editingOverlay = editingId == null ? null : (overlays.find(o => o.id === editingId) ?? null)
-  const isDraftActive = isDrawing || editingId != null
+  const isDraftActive = isDrawing || editingId != null || perimeterMode != null
+  const editingPerimeter = perimeterMode != null
   const initialCenter =
-    editingOverlay?.paths[0] != null
-      ? { lat: editingOverlay.paths[0].lat, lng: editingOverlay.paths[0].lng }
-      : overlays[0]?.paths[0] != null
-        ? { lat: overlays[0].paths[0].lat, lng: overlays[0].paths[0].lng }
-        : undefined
+    perimeterMode === 'edit' && perimeter?.paths[0] != null
+      ? { lat: perimeter.paths[0].lat, lng: perimeter.paths[0].lng }
+      : editingOverlay?.paths[0] != null
+        ? { lat: editingOverlay.paths[0].lat, lng: editingOverlay.paths[0].lng }
+        : perimeter?.paths[0] != null
+          ? { lat: perimeter.paths[0].lat, lng: perimeter.paths[0].lng }
+          : overlays[0]?.paths[0] != null
+            ? { lat: overlays[0].paths[0].lat, lng: overlays[0].paths[0].lng }
+            : undefined
 
   function markDraftDirty() {
     setDraftDirty(true)
@@ -237,6 +292,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
 
   function startDrawing() {
     setEditingId(null)
+    setPerimeterMode(null)
     setDraftPaths(null)
     setDraftName('')
     setDraftColor(DEFAULT_OVERLAY_COLOR)
@@ -247,15 +303,38 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
   function startEditing(overlay: CardOverlay) {
     setEditingId(overlay.id)
     setIsDrawing(false)
+    setPerimeterMode(null)
     setDraftPaths(overlay.paths)
     setDraftName(overlay.name ?? '')
     setDraftColor(overlay.color)
     setDraftDirty(false)
   }
 
+  function startEditingPerimeter() {
+    if (perimeter == null) return
+    setEditingId(null)
+    setIsDrawing(false)
+    setPerimeterMode('edit')
+    setDraftPaths(perimeter.paths)
+    setDraftName('')
+    setDraftColor(PERIMETER_DRAFT_COLOR)
+    setDraftDirty(false)
+  }
+
+  function startNewPerimeter() {
+    setEditingId(null)
+    setIsDrawing(false)
+    setPerimeterMode('new')
+    setDraftPaths(null)
+    setDraftName('')
+    setDraftColor(PERIMETER_DRAFT_COLOR)
+    setDraftDirty(false)
+  }
+
   function exitDraftMode() {
     setIsDrawing(false)
     setEditingId(null)
+    setPerimeterMode(null)
     setDraftPaths(null)
     setDraftName('')
     setDraftColor(DEFAULT_OVERLAY_COLOR)
@@ -293,6 +372,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
       wasSubmittingRef.current = false
       setIsDrawing(false)
       setEditingId(null)
+      setPerimeterMode(null)
       setDraftPaths(null)
       setDraftName('')
       setDraftColor(DEFAULT_OVERLAY_COLOR)
@@ -301,7 +381,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
   }, [navigation.state, navigation.formMethod, navigation.formAction])
 
   function downloadExport() {
-    const collection = cardOverlaysToGeoJson(overlays)
+    const collection = buildGeoJsonExport(overlays, perimeter?.paths ?? null)
     const blob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/geo+json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -335,7 +415,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                 variant="outline"
                 size="sm"
                 onClick={downloadExport}
-                disabled={overlays.length === 0}
+                disabled={overlays.length === 0 && perimeter == null}
               >
                 <Download aria-hidden className="size-4" />
                 {m.settings_territories_card_overlays_export_button()}
@@ -395,7 +475,9 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
               apiKey={googleMapsApiKey}
               overlays={overlays}
               excludeOverlayId={editingId}
-              drawingEnabled={isDrawing && draftPaths == null}
+              perimeter={perimeter?.paths ?? null}
+              excludePerimeter={editingPerimeter}
+              drawingEnabled={(isDrawing || perimeterMode === 'new') && draftPaths == null}
               draftPaths={draftPaths}
               draftColor={draftColor}
               onDraftChange={handleDraftChange}
@@ -416,15 +498,19 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
           <Card>
             <CardHeader>
               <CardTitle>
-                {editingId != null
-                  ? editingOverlay?.name != null && editingOverlay.name.length > 0
-                    ? m.settings_territories_card_overlays_editing_banner_named({ name: editingOverlay.name })
-                    : m.settings_territories_card_overlays_editing_banner_unnamed()
-                  : m.settings_territories_card_overlays_new_button()}
+                {perimeterMode != null
+                  ? perimeterMode === 'edit'
+                    ? m.settings_territories_card_overlays_perimeter_editing_banner()
+                    : m.settings_territories_card_overlays_perimeter_drawing_title()
+                  : editingId != null
+                    ? editingOverlay?.name != null && editingOverlay.name.length > 0
+                      ? m.settings_territories_card_overlays_editing_banner_named({ name: editingOverlay.name })
+                      : m.settings_territories_card_overlays_editing_banner_unnamed()
+                    : m.settings_territories_card_overlays_new_button()}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              {editingId == null ? (
+              {editingId == null && perimeterMode !== 'edit' ? (
                 <p className="text-muted-foreground text-sm">{m.settings_territories_card_overlays_drawing_hint()}</p>
               ) : null}
               {draftPaths == null ? (
@@ -437,40 +523,154 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                   className="flex flex-wrap items-end gap-4"
                   onChange={markDirty}
                 >
-                  <input type="hidden" name="intent" value={editingId == null ? 'create' : 'update'} />
-                  {editingId != null ? <input type="hidden" name="id" value={editingId} /> : null}
+                  <input
+                    type="hidden"
+                    name="intent"
+                    value={
+                      perimeterMode != null ? 'set-perimeter' : editingId == null ? 'create' : 'update'
+                    }
+                  />
+                  {editingId != null && perimeterMode == null ? (
+                    <input type="hidden" name="id" value={editingId} />
+                  ) : null}
                   <input type="hidden" name="paths" value={JSON.stringify(draftPaths)} />
-                  <input type="hidden" name="color" value={draftColor} />
-                  <div className="min-w-[200px] flex-1 space-y-2">
-                    <Label htmlFor="card-overlay-name">{m.settings_territories_card_overlays_name_label()}</Label>
-                    <Input
-                      id="card-overlay-name"
-                      name="name"
-                      value={draftName}
-                      onChange={e => {
-                        setDraftName(e.target.value)
-                        markDirty()
-                      }}
-                      placeholder={m.settings_territories_card_overlays_name_placeholder()}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="card-overlay-color">{m.settings_territories_card_overlays_color_label()}</Label>
-                    <ColorPicker
-                      id="card-overlay-color"
-                      value={draftColor}
-                      onChange={value => {
-                        setDraftColor(value)
-                        markDraftDirty()
-                      }}
-                    />
-                  </div>
+                  {perimeterMode == null ? (
+                    <>
+                      <input type="hidden" name="color" value={draftColor} />
+                      <div className="min-w-[200px] flex-1 space-y-2">
+                        <Label htmlFor="card-overlay-name">
+                          {m.settings_territories_card_overlays_name_label()}
+                        </Label>
+                        <Input
+                          id="card-overlay-name"
+                          name="name"
+                          value={draftName}
+                          onChange={e => {
+                            setDraftName(e.target.value)
+                            markDirty()
+                          }}
+                          placeholder={m.settings_territories_card_overlays_name_placeholder()}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="card-overlay-color">
+                          {m.settings_territories_card_overlays_color_label()}
+                        </Label>
+                        <ColorPicker
+                          id="card-overlay-color"
+                          value={draftColor}
+                          onChange={value => {
+                            setDraftColor(value)
+                            markDraftDirty()
+                          }}
+                        />
+                      </div>
+                    </>
+                  ) : null}
                   <Button type="submit">{m.settings_territories_card_overlays_save()}</Button>
                 </Form>
               )}
             </CardContent>
           </Card>
         ) : null}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>{m.settings_territories_card_overlays_perimeter_section_title()}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <p className="text-muted-foreground text-sm">
+              {m.settings_territories_card_overlays_perimeter_section_subtitle()}
+            </p>
+            {hasPerimeter && perimeter != null ? (
+              <div
+                className="flex flex-wrap items-center gap-3 rounded-md border-l-4 bg-card py-2 pr-2 pl-3 shadow-sm"
+                style={{ borderLeftColor: PERIMETER_DRAFT_COLOR }}
+              >
+                <div
+                  className="size-6 rounded-full border"
+                  style={{ backgroundColor: PERIMETER_DRAFT_COLOR }}
+                  role="img"
+                  aria-label={m.settings_territories_card_overlays_perimeter_section_title()}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">
+                    {m.settings_territories_card_overlays_perimeter_section_title()}
+                  </p>
+                </div>
+                <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+                  {verticesCount(perimeter.paths.length)}
+                </span>
+                {hasMapApiKey ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={startEditingPerimeter}
+                    disabled={perimeterMode === 'edit'}
+                    aria-label={m.settings_territories_card_overlays_perimeter_edit_button()}
+                  >
+                    <Spline aria-hidden className="size-4" />
+                    <span className="sr-only sm:not-sr-only">
+                      {m.settings_territories_card_overlays_perimeter_edit_button()}
+                    </span>
+                  </Button>
+                ) : null}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      aria-label={m.settings_territories_card_overlays_perimeter_delete_button()}
+                    >
+                      <Trash2 aria-hidden className="size-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        {m.settings_territories_card_overlays_perimeter_delete_confirm_title()}
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {m.settings_territories_card_overlays_perimeter_delete_confirm_description()}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
+                      <AlertDialogAction
+                        variant="destructive"
+                        onClick={() => {
+                          // Programmatic submit — see the zone delete handler for the rationale.
+                          fetcher.submit({ intent: 'clear-perimeter' }, { method: 'post' })
+                        }}
+                      >
+                        {m.settings_territories_card_overlays_perimeter_delete_button()}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                <p className="text-muted-foreground text-sm italic">
+                  {m.settings_territories_card_overlays_perimeter_undefined()}
+                </p>
+                {hasMapApiKey ? (
+                  <Button
+                    type="button"
+                    onClick={startNewPerimeter}
+                    disabled={perimeterMode === 'new'}
+                    className="self-start"
+                  >
+                    {m.settings_territories_card_overlays_perimeter_set_button()}
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -649,16 +849,19 @@ function OverlayRow({
                 : m.settings_territories_card_overlays_delete_confirm_description_unnamed()}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <fetcher.Form method="post">
-            <input type="hidden" name="intent" value="delete" />
-            <input type="hidden" name="id" value={overlay.id} />
-            <AlertDialogFooter>
-              <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
-              <AlertDialogAction type="submit" variant="destructive">
-                {m.settings_territories_card_overlays_delete_confirm_action()}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </fetcher.Form>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.settings_territories_card_overlays_cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={() => {
+                // Submit programmatically — AlertDialog.Action auto-closes (and unmounts) the
+                // dialog content, which would race against a `<fetcher.Form type="submit">` inside.
+                fetcher.submit({ intent: 'delete', id: String(overlay.id) }, { method: 'post' })
+              }}
+            >
+              {m.settings_territories_card_overlays_delete_confirm_action()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

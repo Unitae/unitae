@@ -107,6 +107,7 @@ interface TerritoryDocumentProps {
   googleMapId: string | undefined
   googleMapKey: string | undefined
   overlays?: CardOverlay[]
+  perimeter?: { lat: number; lng: number }[] | null
   showPhone?: boolean
   owner?: string
   restitutionDate?: Date
@@ -120,6 +121,7 @@ export function TerritoryDocument({
   googleMapKey,
   googleMapId,
   overlays = [],
+  perimeter = null,
   showPhone = false,
   owner,
   restitutionDate,
@@ -146,7 +148,9 @@ export function TerritoryDocument({
     firstBuilding?.latitude != null && firstBuilding.longitude != null
       ? { lat: firstBuilding.latitude, lng: firstBuilding.longitude }
       : null
-  const showMapPage = googleMapKey != null && googleMapKey.length > 0 && (marker != null || overlays.length > 0)
+  const hasPerimeterFallback = perimeter != null && perimeter.length >= 3
+  const showMapPage =
+    googleMapKey != null && googleMapKey.length > 0 && (marker != null || overlays.length > 0 || hasPerimeterFallback)
 
   return (
     <Document>
@@ -187,6 +191,7 @@ export function TerritoryDocument({
               scale: 2,
               marker,
               overlays,
+              perimeter,
             })}
           />
           <View style={styles.footerMap}>

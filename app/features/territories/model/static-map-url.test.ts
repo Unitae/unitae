@@ -67,4 +67,47 @@ describe('buildTerritoryStaticMapUrl', () => {
     expect(url).not.toContain('0x0E9A6C')
     expect(url).not.toContain('0x2289BC')
   })
+
+  it("dessine le périmètre en gris quand aucune zone n'est définie", () => {
+    const url = buildTerritoryStaticMapUrl({
+      apiKey: 'KEY',
+      size: '300x450',
+      scale: 2,
+      marker: { lat: 45.7, lng: 4.8 },
+      overlays: [],
+      perimeter: SAMPLE_OVERLAY.paths,
+    })
+    expect(url).not.toContain('zoom=')
+    expect(url).toContain('path=')
+    expect(url).toContain(encodeURIComponent('color:0x6B7280ff'))
+    expect(url).toContain(encodeURIComponent('fillcolor:0x6B728020'))
+  })
+
+  it('omet le périmètre dès lors qu’une zone est dessinée', () => {
+    const url = buildTerritoryStaticMapUrl({
+      apiKey: 'KEY',
+      size: '300x450',
+      scale: 2,
+      marker: { lat: 45.7, lng: 4.8 },
+      overlays: [SAMPLE_OVERLAY],
+      perimeter: SAMPLE_OVERLAY.paths,
+    })
+    const pathSegments = url.split('path=').slice(1)
+    expect(pathSegments).toHaveLength(1)
+    expect(url).not.toContain('0x6B7280')
+    expect(url).toContain('0xC2175B')
+  })
+
+  it('refuse un périmètre invalide (moins de 3 sommets)', () => {
+    const url = buildTerritoryStaticMapUrl({
+      apiKey: 'KEY',
+      size: '300x450',
+      scale: 2,
+      marker: { lat: 45.7, lng: 4.8 },
+      overlays: [],
+      perimeter: [{ lat: 45.7, lng: 4.8 }, { lat: 45.71, lng: 4.81 }],
+    })
+    expect(url).not.toContain('0x6B7280')
+    expect(url).toContain('zoom=15')
+  })
 })

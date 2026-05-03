@@ -53,6 +53,8 @@ const geoJsonMultiPolygonSchema = z.object({
   coordinates: z.array(z.array(z.array(geoJsonPositionSchema)).min(1)).min(1),
 })
 
+const PERIMETER_ROLE = 'perimeter'
+
 const geoJsonFeatureSchema = z.object({
   type: z.literal('Feature'),
   properties: z
@@ -61,6 +63,7 @@ const geoJsonFeatureSchema = z.object({
       color: z.string().optional(),
       stroke: z.string().optional(),
       fill: z.string().optional(),
+      role: z.string().optional(),
     })
     .nullable()
     .optional(),
@@ -105,22 +108,54 @@ export class GeoJsonValidationError extends Error {
   }
 }
 
-export function geoJsonToCardOverlays(input: unknown): CardOverlayDraft[] {
+export type GeoJsonImport = {
+  zones: CardOverlayDraft[]
+  perimeter: CardOverlayPath[] | null
+}
+
+/**
+ * Parses a GeoJSON Feature/FeatureCollection into our internal split between zones and the
+ * congregation perimeter. A feature is treated as the perimeter when `properties.role === "perimeter"`
+ * (the marker `buildGeoJsonExport` writes); everything else becomes a card-overlay zone draft.
+ *
+ * Constraints:
+ * - At most one perimeter feature is allowed (extras throw).
+ * - The perimeter must be a Polygon (a MultiPolygon there throws — the perimeter is a single ring).
+ * - The result must contain at least one zone or one perimeter; otherwise the import is rejected.
+ */
+export function parseGeoJsonImport(input: unknown): GeoJsonImport {
   const parsed = geoJsonInputSchema.safeParse(input)
   if (!parsed.success) {
     throw new GeoJsonValidationError('Le GeoJSON est invalide ou ne contient pas de polygones exploitables')
   }
 
   const features = parsed.data.type === 'Feature' ? [parsed.data] : parsed.data.features
-  const drafts: CardOverlayDraft[] = []
+  const zones: CardOverlayDraft[] = []
+  let perimeter: CardOverlayPath[] | null = null
 
   for (const feature of features) {
-    const name = pickName(feature.properties ?? null)
-    const color = pickColor(feature.properties ?? null)
+    const properties = feature.properties ?? null
+    const isPerimeter = properties?.role === PERIMETER_ROLE
+    const name = pickName(properties)
+
+    if (isPerimeter) {
+      if (perimeter != null) {
+        throw new GeoJsonValidationError('Le fichier contient plusieurs périmètres — un seul est autorisé')
+      }
+      if (feature.geometry.type !== 'Polygon') {
+        throw new GeoJsonValidationError('Le périmètre doit être un Polygon (et non un MultiPolygon)')
+      }
+      const paths = cardOverlayPathsSchema.safeParse(ringToPaths(feature.geometry.coordinates[0]))
+      if (!paths.success) {
+        throw new GeoJsonValidationError(`Périmètre : ${paths.error.issues[0]?.message ?? 'invalide'}`)
+      }
+      perimeter = paths.data
+      continue
+    }
+
+    const color = pickColor(properties)
     const rings: [number, number][][] =
-      feature.geometry.type === 'Polygon'
-        ? [feature.geometry.coordinates[0]]
-        : feature.geometry.coordinates.map(p => p[0])
+      feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates[0]] : feature.geometry.coordinates.map(p => p[0])
 
     for (const ring of rings) {
       const paths = cardOverlayPathsSchema.safeParse(ringToPaths(ring))
@@ -129,36 +164,58 @@ export function geoJsonToCardOverlays(input: unknown): CardOverlayDraft[] {
           `Polygone "${name ?? 'sans nom'}" : ${paths.error.issues[0]?.message ?? 'invalide'}`,
         )
       }
-      drafts.push({ name, color, paths: paths.data })
+      zones.push({ name, color, paths: paths.data })
     }
   }
 
-  if (drafts.length === 0) {
+  if (zones.length === 0 && perimeter == null) {
     throw new GeoJsonValidationError('Le GeoJSON ne contient aucun polygone valide')
   }
 
-  return drafts
+  return { zones, perimeter }
+}
+
+type GeoJsonZoneFeature = {
+  type: 'Feature'
+  properties: { name: string | null; color: string }
+  geometry: { type: 'Polygon'; coordinates: [number, number][][] }
+}
+
+type GeoJsonPerimeterFeature = {
+  type: 'Feature'
+  properties: { role: 'perimeter' }
+  geometry: { type: 'Polygon'; coordinates: [number, number][][] }
 }
 
 export type GeoJsonFeatureCollection = {
   type: 'FeatureCollection'
-  features: {
-    type: 'Feature'
-    properties: { name: string | null; color: string }
-    geometry: { type: 'Polygon'; coordinates: [number, number][][] }
-  }[]
+  features: (GeoJsonZoneFeature | GeoJsonPerimeterFeature)[]
 }
 
-export function cardOverlaysToGeoJson(overlays: CardOverlay[]): GeoJsonFeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: overlays.map(overlay => ({
+function pathsToRing(paths: CardOverlayPath[]): [number, number][] {
+  return paths.map(({ lat, lng }) => [lng, lat] as [number, number])
+}
+
+/**
+ * Serializes the assembly map (zones + optional perimeter) to a single GeoJSON FeatureCollection
+ * suitable for round-tripping through `parseGeoJsonImport`. Zone features carry `name` + `color`;
+ * the perimeter feature carries `properties.role: "perimeter"` so the importer knows where to put it.
+ */
+export function buildGeoJsonExport(
+  overlays: CardOverlay[],
+  perimeter: CardOverlayPath[] | null = null,
+): GeoJsonFeatureCollection {
+  const features: (GeoJsonZoneFeature | GeoJsonPerimeterFeature)[] = overlays.map(overlay => ({
+    type: 'Feature',
+    properties: { name: overlay.name, color: overlay.color },
+    geometry: { type: 'Polygon', coordinates: [pathsToRing(overlay.paths)] },
+  }))
+  if (perimeter != null && perimeter.length >= 3) {
+    features.push({
       type: 'Feature',
-      properties: { name: overlay.name, color: overlay.color },
-      geometry: {
-        type: 'Polygon',
-        coordinates: [overlay.paths.map(({ lat, lng }) => [lng, lat] as [number, number])],
-      },
-    })),
+      properties: { role: 'perimeter' },
+      geometry: { type: 'Polygon', coordinates: [pathsToRing(perimeter)] },
+    })
   }
+  return { type: 'FeatureCollection', features }
 }

@@ -2,7 +2,7 @@ import type { DetailedBuilding } from '~/features/territories/model/detailed-bui
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
-import { getTerritoryPolygon } from './get-territory-polygon.server'
+import { getPerimeterPaths } from './perimeter.server'
 
 export async function createBuilding(
   db: TransactionClient,
@@ -18,9 +18,12 @@ export async function createBuilding(
 ): Promise<DetailedBuilding> {
   let isInTerritory = true
   if (coordinates.latitude != null && coordinates.longitude != null) {
-    const polygon = await getTerritoryPolygon(db)
-    if (polygon.length > 0) {
-      isInTerritory = pointInPolygon([coordinates.latitude, coordinates.longitude], polygon)
+    const perimeter = await getPerimeterPaths(db)
+    if (perimeter != null) {
+      isInTerritory = pointInPolygon(
+        [coordinates.latitude, coordinates.longitude],
+        perimeter.map(p => [p.lat, p.lng]),
+      )
     }
   }
 
