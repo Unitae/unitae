@@ -746,6 +746,7 @@
     "settings_territories_card_overlays_import_success": "{count} polygone(s) importé(s).",
     "settings_territories_card_overlays_drawing_hint": "Cliquez sur la carte pour ajouter des sommets, double-cliquez pour fermer le polygone. Vous pourrez ensuite ajuster ses sommets en les faisant glisser.",
     "settings_territories_card_overlays_no_polygon_drawn": "Aucun polygone dessiné — utilisez l'outil sur la carte pour en créer un.",
+    "settings_territories_card_overlays_no_api_key_notice": "L'éditeur visuel et le dessin de polygones nécessitent une clé Google Maps configurée (GOOGLE_MAPS_API_KEY). Vous pouvez tout de même importer ou exporter des polygones au format GeoJSON.",
     "settings_territories_meta_title": "Paramètres des Territoires - Unitae",
     "settings_territories_title": "Territoires",
     "settings_territories_subtitle": "Paramètres du module \"Territoire\"",

@@ -169,6 +169,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
 
+  const hasMapApiKey = googleMapsApiKey != null && googleMapsApiKey.length > 0
   const initialCenter =
     overlays[0]?.paths[0] != null ? { lat: overlays[0].paths[0].lat, lng: overlays[0].paths[0].lng } : undefined
 
@@ -216,15 +217,17 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
       ) : null}
 
       <div className="flex flex-wrap gap-2">
-        {!isDrawing ? (
-          <Button type="button" onClick={startDrawing}>
-            {m.settings_territories_card_overlays_new_button()}
-          </Button>
-        ) : (
-          <Button type="button" variant="outline" onClick={cancelDrawing}>
-            {m.settings_territories_card_overlays_cancel()}
-          </Button>
-        )}
+        {hasMapApiKey ? (
+          !isDrawing ? (
+            <Button type="button" onClick={startDrawing}>
+              {m.settings_territories_card_overlays_new_button()}
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={cancelDrawing}>
+              {m.settings_territories_card_overlays_cancel()}
+            </Button>
+          )
+        ) : null}
         <Button type="button" variant="outline" onClick={() => setImportOpen(true)}>
           {m.settings_territories_card_overlays_import_button()}
         </Button>
@@ -233,19 +236,27 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
         </Button>
       </div>
 
-      <CardOverlayMap
-        apiKey={googleMapsApiKey}
-        overlays={overlays}
-        drawingEnabled={isDrawing && draftPaths == null}
-        draftPaths={draftPaths}
-        draftColor={draftColor}
-        onDraftChange={setDraftPaths}
-        initialCenter={initialCenter}
-        initialZoom={initialCenter == null ? undefined : 13}
-        className="h-[480px] w-full overflow-hidden rounded-lg border"
-      />
+      {hasMapApiKey ? (
+        <CardOverlayMap
+          apiKey={googleMapsApiKey}
+          overlays={overlays}
+          drawingEnabled={isDrawing && draftPaths == null}
+          draftPaths={draftPaths}
+          draftColor={draftColor}
+          onDraftChange={setDraftPaths}
+          initialCenter={initialCenter}
+          initialZoom={initialCenter == null ? undefined : 13}
+          className="h-[480px] w-full overflow-hidden rounded-lg border"
+        />
+      ) : (
+        <Card>
+          <CardContent className="p-4 text-muted-foreground text-sm">
+            {m.settings_territories_card_overlays_no_api_key_notice()}
+          </CardContent>
+        </Card>
+      )}
 
-      {isDrawing ? (
+      {hasMapApiKey && isDrawing ? (
         <Card>
           <CardHeader>
             <CardTitle>{m.settings_territories_card_overlays_new_button()}</CardTitle>
