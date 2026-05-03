@@ -4,7 +4,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
 
 import { fetchOpenData } from './fetch-open-data.server'
-import { getTerritoryPolygon } from './get-territory-polygon.server'
+import { getPerimeterPaths } from './perimeter.server'
 
 export async function importOpenData(
   db: TransactionClient,
@@ -12,7 +12,8 @@ export async function importOpenData(
   progressCallback: (percent: number) => void = () => {},
 ) {
   const wantedZips = await getAllowedZips(db)
-  const territory = await getTerritoryPolygon(db)
+  const perimeter = await getPerimeterPaths(db)
+  const perimeterAsPairs: [number, number][] | null = perimeter == null ? null : perimeter.map(p => [p.lat, p.lng])
   await db.building.updateMany({
     where: {
       inOpenData: true,
@@ -47,7 +48,7 @@ export async function importOpenData(
           return
         }
 
-        const isActive = territory.length > 0 ? pointInPolygon([Number(lat), Number(long)], territory) : true
+        const isActive = perimeterAsPairs != null ? pointInPolygon([Number(lat), Number(long)], perimeterAsPairs) : true
         await db.building.upsert({
           where: {
             address: {

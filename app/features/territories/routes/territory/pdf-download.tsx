@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 import { findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import { listCardOverlays } from '~/features/territories/server/card-overlays.server'
+import { getPerimeterPaths } from '~/features/territories/server/perimeter.server'
 import { showPhoneOnTerritoryCard } from '~/features/territories/server/territory-pdf.server'
 import { TerritoryDocument } from '~/features/territories/ui/TerritoryDocument'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -44,6 +45,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
     const mapId = getOptionalEnv('GOOGLE_MAPS_MAP_ID')
     const overlays = await listCardOverlays(db)
+    const perimeter = await getPerimeterPaths(db)
 
     const entrances = territory.entrances.map(aggregateEntrance)
     const currentAttribution = territory.attributions.find(a => a.endDate == null)
@@ -61,6 +63,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         googleMapKey={apiKey}
         googleMapId={mapId}
         overlays={overlays}
+        perimeter={perimeter}
         showPhone={showPhoneOnTerritoryCard(phoneTypeActive ?? false)}
         owner={owner}
         restitutionDate={currentAttribution?.lateDate ?? undefined}

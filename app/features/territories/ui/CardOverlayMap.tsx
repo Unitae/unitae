@@ -12,6 +12,8 @@ type Props = {
   apiKey?: string
   overlays: CardOverlay[]
   excludeOverlayId?: number | null
+  perimeter?: CardOverlayPath[] | null
+  excludePerimeter?: boolean
   drawingEnabled: boolean
   draftPaths: CardOverlayPath[] | null
   draftColor: string
@@ -20,6 +22,8 @@ type Props = {
   initialZoom?: number
   className?: string
 }
+
+const PERIMETER_COLOR = '#6B7280'
 
 const DEFAULT_CENTER = { lat: 46.6, lng: 1.9 }
 const DEFAULT_ZOOM = 6
@@ -31,16 +35,53 @@ function pathFromCardOverlay(paths: CardOverlayPath[]): google.maps.LatLngLitera
 function MapContents({
   overlays,
   excludeOverlayId,
+  perimeter,
+  excludePerimeter,
   drawingEnabled,
   draftPaths,
   draftColor,
   onDraftChange,
-}: Pick<Props, 'overlays' | 'excludeOverlayId' | 'drawingEnabled' | 'draftPaths' | 'draftColor' | 'onDraftChange'>) {
+}: Pick<
+  Props,
+  | 'overlays'
+  | 'excludeOverlayId'
+  | 'perimeter'
+  | 'excludePerimeter'
+  | 'drawingEnabled'
+  | 'draftPaths'
+  | 'draftColor'
+  | 'onDraftChange'
+>) {
   const map = useMap()
   const drawingLib = useMapsLibrary('drawing')
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null)
   const draftPolygonRef = useRef<google.maps.Polygon | null>(null)
   const overlayPolygonsRef = useRef<google.maps.Polygon[]>([])
+  const perimeterPolygonRef = useRef<google.maps.Polygon | null>(null)
+
+  // Render the read-only perimeter polygon (gray) under the zones, unless we're editing it.
+  useEffect(() => {
+    if (map == null) return
+    perimeterPolygonRef.current?.setMap(null)
+    if (perimeter == null || excludePerimeter || perimeter.length < 3) {
+      perimeterPolygonRef.current = null
+      return
+    }
+    perimeterPolygonRef.current = new google.maps.Polygon({
+      paths: pathFromCardOverlay(perimeter),
+      strokeColor: PERIMETER_COLOR,
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: PERIMETER_COLOR,
+      fillOpacity: 0.05,
+      clickable: false,
+      map,
+    })
+    return () => {
+      perimeterPolygonRef.current?.setMap(null)
+      perimeterPolygonRef.current = null
+    }
+  }, [map, perimeter, excludePerimeter])
 
   // Render existing overlays as read-only polygons (skip the one currently being edited so it
   // doesn't draw on top of the editable draft polygon).
@@ -147,6 +188,8 @@ export default function CardOverlayMap({
   apiKey,
   overlays,
   excludeOverlayId,
+  perimeter,
+  excludePerimeter,
   drawingEnabled,
   draftPaths,
   draftColor,
@@ -179,6 +222,8 @@ export default function CardOverlayMap({
           <MapContents
             overlays={overlays}
             excludeOverlayId={excludeOverlayId}
+            perimeter={perimeter}
+            excludePerimeter={excludePerimeter}
             drawingEnabled={drawingEnabled}
             draftPaths={draftPaths}
             draftColor={draftColor}
