@@ -77,6 +77,7 @@ export default [
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),
+      route('territories/card-overlays', 'features/settings/routes/territories/card-overlays.tsx'),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
       route('congregation/event-kinds', 'features/settings/routes/congregation/event-kinds.tsx'),

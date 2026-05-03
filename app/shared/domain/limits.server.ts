@@ -8,6 +8,7 @@ const LIMIT_COLUMN_MAP = {
   territories: 'maxTerritories',
   users: 'maxUsers',
   boardDocuments: 'maxBoardDocuments',
+  cardOverlays: 'maxCardOverlays',
 } as const
 
 type LimitName = keyof typeof LIMIT_COLUMN_MAP
@@ -19,6 +20,7 @@ const LIMIT_COUNTERS: Record<LimitName, CounterFn> = {
   territories: db => db.territory.count(),
   users: db => db.user.count(),
   boardDocuments: db => db.boardDocument.count(),
+  cardOverlays: db => db.territoryCardOverlay.count(),
 }
 
 type CongregationLimits = {
@@ -27,6 +29,7 @@ type CongregationLimits = {
   maxUsers: number | null
   maxStorageBytes: bigint | null
   maxBoardDocuments: number | null
+  maxCardOverlays: number | null
 }
 
 export class LimitService {

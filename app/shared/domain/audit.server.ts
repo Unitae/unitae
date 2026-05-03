@@ -61,6 +61,11 @@ export const AuditAction = {
   CongregationExported: 'congregation.exported',
   CongregationImported: 'congregation.imported',
 
+  // Territory card overlays
+  CardOverlayCreated: 'card_overlay.created',
+  CardOverlayUpdated: 'card_overlay.updated',
+  CardOverlayDeleted: 'card_overlay.deleted',
+
   // External speakers
   ExternalSpeakerCreated: 'external_speaker.created',
   ExternalSpeakerUpdated: 'external_speaker.updated',
