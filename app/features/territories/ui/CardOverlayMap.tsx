@@ -12,6 +12,7 @@ import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
 type Props = {
   apiKey?: string
   overlays: CardOverlay[]
+  excludeOverlayId?: number | null
   drawingEnabled: boolean
   draftPaths: CardOverlayPath[] | null
   draftColor: string
@@ -30,37 +31,41 @@ function pathFromCardOverlay(paths: CardOverlayPath[]): google.maps.LatLngLitera
 
 function MapContents({
   overlays,
+  excludeOverlayId,
   drawingEnabled,
   draftPaths,
   draftColor,
   onDraftChange,
-}: Pick<Props, 'overlays' | 'drawingEnabled' | 'draftPaths' | 'draftColor' | 'onDraftChange'>) {
+}: Pick<Props, 'overlays' | 'excludeOverlayId' | 'drawingEnabled' | 'draftPaths' | 'draftColor' | 'onDraftChange'>) {
   const map = useMap()
   const drawingLib = useMapsLibrary('drawing')
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null)
   const draftPolygonRef = useRef<google.maps.Polygon | null>(null)
   const overlayPolygonsRef = useRef<google.maps.Polygon[]>([])
 
-  // Render existing overlays as read-only polygons
+  // Render existing overlays as read-only polygons (skip the one currently being edited so it
+  // doesn't draw on top of the editable draft polygon).
   useEffect(() => {
     if (map == null) return
     for (const polygon of overlayPolygonsRef.current) polygon.setMap(null)
-    overlayPolygonsRef.current = overlays.map(overlay => {
-      return new google.maps.Polygon({
-        paths: pathFromCardOverlay(overlay.paths),
-        strokeColor: overlay.color,
-        strokeWeight: 1,
-        fillColor: overlay.color,
-        fillOpacity: 0.5,
-        clickable: false,
-        map,
+    overlayPolygonsRef.current = overlays
+      .filter(overlay => overlay.id !== excludeOverlayId)
+      .map(overlay => {
+        return new google.maps.Polygon({
+          paths: pathFromCardOverlay(overlay.paths),
+          strokeColor: overlay.color,
+          strokeWeight: 1,
+          fillColor: overlay.color,
+          fillOpacity: 0.5,
+          clickable: false,
+          map,
+        })
       })
-    })
     return () => {
       for (const polygon of overlayPolygonsRef.current) polygon.setMap(null)
       overlayPolygonsRef.current = []
     }
-  }, [map, overlays])
+  }, [map, overlays, excludeOverlayId])
 
   // Render the in-progress draft polygon (controlled by parent state)
   useEffect(() => {
@@ -142,6 +147,7 @@ function MapContents({
 export default function CardOverlayMap({
   apiKey,
   overlays,
+  excludeOverlayId,
   drawingEnabled,
   draftPaths,
   draftColor,
@@ -180,6 +186,7 @@ export default function CardOverlayMap({
         >
           <MapContents
             overlays={overlays}
+            excludeOverlayId={excludeOverlayId}
             drawingEnabled={drawingEnabled}
             draftPaths={draftPaths}
             draftColor={draftColor}

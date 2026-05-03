@@ -111,6 +111,33 @@ describe('updateCardOverlay', () => {
     expect(audit).not.toHaveBeenCalled()
   })
 
+  it("accepte un nouveau jeu de sommets quand l'on modifie la forme", async () => {
+    vi.mocked(db.territoryCardOverlay.findFirst).mockResolvedValue({
+      id: 4,
+      name: 'Avant',
+      color: '#111111',
+      paths: SAMPLE_PATHS,
+    } as never)
+    vi.mocked(db.territoryCardOverlay.update).mockResolvedValue({
+      id: 4,
+      name: 'Avant',
+      color: '#111111',
+      paths: [...SAMPLE_PATHS, { lat: 45.78, lng: 4.86 }],
+    } as never)
+
+    const newPaths = [...SAMPLE_PATHS.slice(0, 3), { lat: 45.78, lng: 4.86 }, SAMPLE_PATHS[0]]
+    await updateCardOverlay(db as never, 4, {
+      paths: newPaths,
+      congregationId: 1,
+      actorId: 9,
+    })
+
+    expect(db.territoryCardOverlay.update).toHaveBeenCalledWith({
+      where: { id: 4 },
+      data: { paths: newPaths },
+    })
+  })
+
   it('met à jour seulement les champs fournis et journalise', async () => {
     vi.mocked(db.territoryCardOverlay.findFirst).mockResolvedValue({
       id: 3,
