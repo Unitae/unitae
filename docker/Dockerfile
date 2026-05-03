@@ -41,6 +41,7 @@ RUN addgroup -g 1001 -S unitae && \
     adduser -u 1001 -S unitae -G unitae -s /sbin/nologin -H
 RUN mkdir -p /app/content/uploads && chown -R 1001:1001 /app/content
 COPY --from=build --chown=1001:1001 /app/build ./build
+COPY --from=build --chown=1001:1001 /app/public ./public
 COPY --from=build --chown=1001:1001 /app/package.json ./
 COPY --from=prod-deps --chown=1001:1001 /app/node_modules ./node_modules
 USER 1001
