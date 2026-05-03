@@ -723,6 +723,7 @@
     "settings_territories_card_overlays_import_success": "{count} polygon(s) imported.",
     "settings_territories_card_overlays_drawing_hint": "Click on the map to add vertices, double-click to close the polygon. You can then adjust its vertices by dragging them.",
     "settings_territories_card_overlays_no_polygon_drawn": "No polygon drawn yet — use the tool on the map to create one.",
+    "settings_territories_card_overlays_no_api_key_notice": "The visual editor and polygon drawing require a Google Maps API key (GOOGLE_MAPS_API_KEY). You can still import or export polygons via GeoJSON.",
     "settings_territories_meta_title": "Territory settings - Unitae",
     "settings_territories_title": "Territories",
     "settings_territories_subtitle": "Territory module settings",
