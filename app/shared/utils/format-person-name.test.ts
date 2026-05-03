@@ -60,7 +60,10 @@ describe('comparePersonName', () => {
   })
 
   it('handles missing last names without throwing', () => {
-    const list = [{ firstname: 'Bob', lastname: null }, { firstname: 'Alice', lastname: 'Albert' }]
+    const list = [
+      { firstname: 'Bob', lastname: null },
+      { firstname: 'Alice', lastname: 'Albert' },
+    ]
     expect(() => [...list].sort(comparePersonName)).not.toThrow()
   })
 })

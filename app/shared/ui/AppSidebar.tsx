@@ -21,15 +21,11 @@ import {
   UserRoundCog,
   Users,
   UsersRound,
-} from "lucide-react";
-import { Form, NavLink } from "react-router";
+} from 'lucide-react'
+import { Form, NavLink } from 'react-router'
 
-import * as m from "~/i18n/paraglide/messages";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "~/shared/ui/collapsible";
+import * as m from '~/i18n/paraglide/messages'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
@@ -43,55 +39,46 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
   useSidebar,
-} from "~/shared/ui/sidebar";
-import { ThemeToggle } from "~/shared/ui/ThemeToggle";
+} from '~/shared/ui/sidebar'
+import { ThemeToggle } from '~/shared/ui/ThemeToggle'
 
 export interface AppSidebarPermissions {
-  canViewBoard: boolean;
-  canUploadDocument: boolean;
-  canManageBoard: boolean;
-  canViewPublishers: boolean;
-  canViewTerritories: boolean;
-  canViewProspection: boolean;
-  canManageTerritories: boolean;
-  canManageSettings: boolean;
-  canManageUsers: boolean;
-  canViewPrograms: boolean;
-  canViewActivity: boolean;
-  canViewExternalSpeakers: boolean;
-  canManageExternalSpeakers: boolean;
-  isPlatformAdmin: boolean;
+  canViewBoard: boolean
+  canUploadDocument: boolean
+  canManageBoard: boolean
+  canViewPublishers: boolean
+  canViewTerritories: boolean
+  canViewProspection: boolean
+  canManageTerritories: boolean
+  canManageSettings: boolean
+  canManageUsers: boolean
+  canViewPrograms: boolean
+  canViewActivity: boolean
+  canViewExternalSpeakers: boolean
+  canManageExternalSpeakers: boolean
+  isPlatformAdmin: boolean
 }
 
 interface AppSidebarProps {
-  permissions: AppSidebarPermissions;
-  congregationName?: string;
-  onSearchClick?: () => void;
+  permissions: AppSidebarPermissions
+  congregationName?: string
+  onSearchClick?: () => void
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
-export function AppSidebar({
-  permissions,
-  congregationName,
-  onSearchClick,
-}: AppSidebarProps) {
+export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
   const showAssemblee =
-    permissions.canViewPublishers ||
-    permissions.canViewPrograms ||
-    permissions.canViewExternalSpeakers;
+    permissions.canViewPublishers || permissions.canViewPrograms || permissions.canViewExternalSpeakers
   const showTerritories =
-    permissions.canViewTerritories ||
-    permissions.canViewProspection ||
-    permissions.canManageTerritories;
-  const showReglages =
-    permissions.canManageSettings || permissions.canManageUsers;
+    permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
+  const showReglages = permissions.canManageSettings || permissions.canManageUsers
 
   return (
     <Sidebar>
       <SidebarHeader>
         <div className="flex items-center justify-between gap-2 border-sidebar-border border-b px-3 py-4">
           <span className="truncate font-bold font-display text-foreground text-lg">
-            {congregationName || "Unitae"}
+            {congregationName || 'Unitae'}
           </span>
           <div className="flex items-center gap-1">
             <ThemeToggle />
@@ -104,12 +91,8 @@ export function AppSidebar({
           className="mx-2 mt-3 mb-1 flex items-center gap-2 rounded-md border border-sidebar-border px-2 py-1 text-muted-foreground text-xs hover:bg-sidebar-accent"
         >
           <Search className="size-3.5 shrink-0" />
-          <span className="flex-1 truncate text-left">
-            {m.sidebar_search()}
-          </span>
-          <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">
-            ⌘K
-          </kbd>
+          <span className="flex-1 truncate text-left">{m.sidebar_search()}</span>
+          <kbd className="rounded border bg-muted px-1 py-0.5 font-mono text-[10px]">⌘K</kbd>
         </button>
       </SidebarHeader>
 
@@ -119,11 +102,7 @@ export function AppSidebar({
             <SidebarMenu>
               <SidebarNavItem to="/" icon={Home} label={m.sidebar_home()} end />
               {permissions.canViewBoard && !permissions.canManageBoard && (
-                <SidebarNavItem
-                  to="/board"
-                  icon={LayoutGrid}
-                  label={m.sidebar_board()}
-                />
+                <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />
               )}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -141,22 +120,9 @@ export function AppSidebar({
               <CollapsibleContent>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarNavItem
-                      to="/board"
-                      icon={LayoutGrid}
-                      label={m.sidebar_board()}
-                      end
-                    />
-                    <SidebarNavItem
-                      to="/board/sections"
-                      icon={FolderOpen}
-                      label={m.sidebar_sections()}
-                    />
-                    <SidebarNavItem
-                      to="/board/documents"
-                      icon={FileText}
-                      label={m.sidebar_documents()}
-                    />
+                    <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} end />
+                    <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
+                    <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
@@ -177,26 +143,13 @@ export function AppSidebar({
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {permissions.canViewPublishers && (
-                      <SidebarNavItem
-                        to="/publishers"
-                        icon={Users}
-                        label={m.sidebar_publishers()}
-                      />
+                      <SidebarNavItem to="/publishers" icon={Users} label={m.sidebar_publishers()} />
                     )}
                     {permissions.canViewPublishers && (
-                      <SidebarNavItem
-                        to="/groups"
-                        icon={UsersRound}
-                        label={m.sidebar_publisher_groups()}
-                      />
+                      <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
                     )}
                     {permissions.canViewPrograms && (
-                      <SidebarNavItem
-                        to="/programs"
-                        icon={CalendarDays}
-                        label={m.sidebar_programs()}
-                        end
-                      />
+                      <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                     )}
                   </SidebarMenu>
                 </SidebarGroupContent>
@@ -225,26 +178,13 @@ export function AppSidebar({
                       />
                     )}
                     {permissions.canViewTerritories && (
-                      <SidebarNavItem
-                        to="/territories"
-                        icon={MapIcon}
-                        label={m.sidebar_territories()}
-                        end
-                      />
+                      <SidebarNavItem to="/territories" icon={MapIcon} label={m.sidebar_territories()} end />
                     )}
                     {permissions.canViewProspection && (
-                      <SidebarNavItem
-                        to="/territories/buildings"
-                        icon={Building2}
-                        label={m.sidebar_prospection()}
-                      />
+                      <SidebarNavItem to="/territories/buildings" icon={Building2} label={m.sidebar_prospection()} />
                     )}
                     {permissions.canManageTerritories && (
-                      <SidebarNavItem
-                        to="/territories/stats"
-                        icon={PieChart}
-                        label={m.sidebar_statistics()}
-                      />
+                      <SidebarNavItem to="/territories/stats" icon={PieChart} label={m.sidebar_statistics()} />
                     )}
                   </SidebarMenu>
                 </SidebarGroupContent>
@@ -266,18 +206,10 @@ export function AppSidebar({
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {permissions.canManageSettings && (
-                      <SidebarNavItem
-                        to="/settings/general"
-                        icon={Settings}
-                        label={m.sidebar_settings_general()}
-                      />
+                      <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
                     )}
                     {permissions.canManageUsers && (
-                      <SidebarNavItem
-                        to="/settings/users"
-                        icon={UserCog}
-                        label={m.sidebar_users()}
-                      />
+                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
                     )}
                     {permissions.canManageSettings && (
                       <>
@@ -291,16 +223,8 @@ export function AppSidebar({
                           icon={MapIcon}
                           label={m.sidebar_settings_territories()}
                         />
-                        <SidebarNavItem
-                          to="/settings/data"
-                          icon={HardDrive}
-                          label={m.sidebar_settings_data()}
-                        />
-                        <SidebarNavItem
-                          to="/settings/audit-log"
-                          icon={ClipboardList}
-                          label={m.sidebar_audit_log()}
-                        />
+                        <SidebarNavItem to="/settings/data" icon={HardDrive} label={m.sidebar_settings_data()} />
+                        <SidebarNavItem to="/settings/audit-log" icon={ClipboardList} label={m.sidebar_audit_log()} />
                       </>
                     )}
                   </SidebarMenu>
@@ -322,11 +246,7 @@ export function AppSidebar({
               <CollapsibleContent>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    <SidebarNavItem
-                      to="/platform-admin"
-                      icon={UserRoundCog}
-                      label={m.sidebar_administration()}
-                    />
+                    <SidebarNavItem to="/platform-admin" icon={UserRoundCog} label={m.sidebar_administration()} />
                   </SidebarMenu>
                 </SidebarGroupContent>
               </CollapsibleContent>
@@ -337,27 +257,12 @@ export function AppSidebar({
 
       <SidebarFooter className="border-sidebar-border border-t">
         <SidebarMenu>
-          <SidebarNavItem
-            to="/me/profile"
-            icon={User}
-            label={m.sidebar_my_profile()}
-          />
-          <SidebarNavItem
-            to="/me/territories"
-            icon={MapPin}
-            label={m.sidebar_my_territories()}
-          />
-          <SidebarNavItem
-            to="/me/days-off"
-            icon={CalendarOff}
-            label={m.sidebar_my_absences()}
-          />
+          <SidebarNavItem to="/me/profile" icon={User} label={m.sidebar_my_profile()} />
+          <SidebarNavItem to="/me/territories" icon={MapPin} label={m.sidebar_my_territories()} />
+          <SidebarNavItem to="/me/days-off" icon={CalendarOff} label={m.sidebar_my_absences()} />
           <SidebarMenuItem>
             <Form action="/logout" method="post">
-              <SidebarMenuButton
-                type="submit"
-                className="text-muted-foreground hover:text-destructive"
-              >
+              <SidebarMenuButton type="submit" className="text-muted-foreground hover:text-destructive">
                 <LogOut className="size-4" />
                 <span>{m.sidebar_logout()}</span>
               </SidebarMenuButton>
@@ -366,7 +271,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
 
 function SidebarNavItem({
@@ -375,12 +280,12 @@ function SidebarNavItem({
   label,
   end,
 }: {
-  to: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  end?: boolean;
+  to: string
+  icon: React.ComponentType<{ className?: string }>
+  label: string
+  end?: boolean
 }) {
-  const { isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar()
 
   return (
     <SidebarMenuItem>
@@ -389,7 +294,7 @@ function SidebarNavItem({
           to={to}
           end={end}
           onClick={() => {
-            if (isMobile) setOpenMobile(false);
+            if (isMobile) setOpenMobile(false)
           }}
         >
           <Icon className="size-4" />
@@ -397,5 +302,5 @@ function SidebarNavItem({
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>
-  );
+  )
 }

@@ -24,8 +24,8 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
 import type { Route } from './+types/new'
@@ -131,7 +131,9 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
                     {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                   </SelectItem>
                   {!phoneTypeActive && (
-                    <SelectItem value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
+                    <SelectItem value={TerritoryAttributionKind.Phone}>
+                      {m.territories_type_phone_singular()}
+                    </SelectItem>
                   )}
                   <SelectItem value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</SelectItem>
                 </SelectContent>
