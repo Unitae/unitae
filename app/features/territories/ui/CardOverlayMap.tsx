@@ -6,7 +6,6 @@ import {
 } from '@vis.gl/react-google-maps'
 import { useEffect, useRef } from 'react'
 import type { CardOverlay, CardOverlayPath } from '~/features/territories/model/card-overlay'
-import { Card, CardContent } from '~/shared/ui/card'
 import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
 
 type Props = {
@@ -158,16 +157,9 @@ export default function CardOverlayMap({
 }: Props) {
   const { consented, grantConsent } = useMapConsent()
 
-  if (apiKey == null || apiKey.length === 0) {
-    return (
-      <Card className={className}>
-        <CardContent className="p-6 text-sm text-muted-foreground">
-          La configuration Google Maps n’est pas active. L’éditeur visuel est désactivé, mais l’import/export GeoJSON
-          reste disponible.
-        </CardContent>
-      </Card>
-    )
-  }
+  // The page is responsible for hiding this component entirely when no API key is configured —
+  // we still guard here to avoid crashing if it ever gets rendered without one.
+  if (apiKey == null || apiKey.length === 0) return null
 
   if (!consented) {
     return <MapConsentBanner onAccept={grantConsent} />
