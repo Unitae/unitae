@@ -10,14 +10,18 @@ vi.mock('~/shared/utils/point-in-polygon.server', () => ({
   pointInPolygon: vi.fn(),
 }))
 
-vi.mock('./get-territory-polygon.server', () => ({
-  getTerritoryPolygon: vi.fn(),
+vi.mock('./perimeter.server', () => ({
+  getPerimeterPaths: vi.fn(),
+}))
+
+vi.mock('./update-buildings-in-entrance.server', () => ({
+  recalculateEntranceCentroid: vi.fn(),
 }))
 
 const { editBuilding } = await import('./edit-building.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { pointInPolygon } = await import('~/shared/utils/point-in-polygon.server')
-const { getTerritoryPolygon } = await import('./get-territory-polygon.server')
+const { getPerimeterPaths } = await import('./perimeter.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -37,11 +41,11 @@ describe('editBuilding', () => {
   })
 
   it('vérifie les coordonnées contre le polygone du territoire', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([
-      [0, 0],
-      [0, 10],
-      [10, 10],
-      [10, 0],
+    vi.mocked(getPerimeterPaths).mockResolvedValue([
+      { lat: 0, lng: 0 },
+      { lat: 0, lng: 10 },
+      { lat: 10, lng: 10 },
+      { lat: 10, lng: 0 },
     ] as never)
     vi.mocked(pointInPolygon).mockReturnValue(true as never)
     vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true, entrances: [] } as never)
@@ -66,8 +70,8 @@ describe('editBuilding', () => {
     expect(callArgs.data.inTerritory).toBe(true)
   })
 
-  it('considère le bâtiment dans le territoire quand le polygone est vide (non configuré)', async () => {
-    vi.mocked(getTerritoryPolygon).mockResolvedValue([] as never)
+  it("considère le bâtiment dans le territoire quand aucun périmètre n'est configuré", async () => {
+    vi.mocked(getPerimeterPaths).mockResolvedValue(null as never)
     vi.mocked(db.building.update).mockResolvedValue({ id: 1, inTerritory: true, entrances: [] } as never)
 
     await editBuilding(db, 1, {

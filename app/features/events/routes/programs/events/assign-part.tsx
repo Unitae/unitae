@@ -58,14 +58,12 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     const externalSpeakers = assignment?.allowExternalSpeaker
       ? await listExternalSpeakers(db, congregationId, { includeArchived: false })
       : []
-    const sortedExternalSpeakers = externalSpeakers
-      .slice()
-      .sort((a, b) => {
-        const aTime = a.lastVisitDate?.getTime() ?? -Infinity
-        const bTime = b.lastVisitDate?.getTime() ?? -Infinity
-        if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
-        return aTime - bTime
-      })
+    const sortedExternalSpeakers = externalSpeakers.slice().sort((a, b) => {
+      const aTime = a.lastVisitDate?.getTime() ?? -Infinity
+      const bTime = b.lastVisitDate?.getTime() ?? -Infinity
+      if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
+      return aTime - bTime
+    })
 
     return { event, assignment, users, externalSpeakers: sortedExternalSpeakers }
   })

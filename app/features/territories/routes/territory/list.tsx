@@ -174,10 +174,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         {canManageTerritories && (
                           <>
                             <Button variant="ghost" size="icon" asChild>
-                              <Link
-                                to={`./territory/${territory.id}/edit`}
-                                title={m.territories_edit_title_attr()}
-                              >
+                              <Link to={`./territory/${territory.id}/edit`} title={m.territories_edit_title_attr()}>
                                 <Pencil className="size-4" />
                               </Link>
                             </Button>
@@ -187,10 +184,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                               asChild
                               className="text-destructive hover:text-destructive max-sm:hidden"
                             >
-                              <Link
-                                to={`./territory/${territory.id}/delete`}
-                                title={m.territories_delete_title_attr()}
-                              >
+                              <Link to={`./territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
                                 <Trash2 className="size-4" />
                               </Link>
                             </Button>

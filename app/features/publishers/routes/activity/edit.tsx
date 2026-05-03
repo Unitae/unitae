@@ -17,8 +17,8 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -133,9 +133,7 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
                   <SelectItem value={PublisherType.PionnierAuxiliaires}>
                     {m.activity_edit_pioneer_auxiliary()}
                   </SelectItem>
-                  <SelectItem value={PublisherType.PionnierPermanant}>
-                    {m.activity_edit_pioneer_permanent()}
-                  </SelectItem>
+                  <SelectItem value={PublisherType.PionnierPermanant}>{m.activity_edit_pioneer_permanent()}</SelectItem>
                   <SelectItem value={PublisherType.PionnierSpecial}>{m.activity_edit_pioneer_special()}</SelectItem>
                   <SelectItem value={PublisherType.Missionnaire}>{m.activity_edit_pioneer_missionary()}</SelectItem>
                 </SelectContent>

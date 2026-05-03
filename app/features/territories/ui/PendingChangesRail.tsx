@@ -114,13 +114,7 @@ export default function PendingChangesRail({
             <p className="text-muted-foreground text-xs uppercase tracking-wide">
               {m.territories_map_pending_additions({ count: String(additionsCount) })}
             </p>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs"
-              onClick={revertAllAdditions}
-            >
+            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={revertAllAdditions}>
               {m.territories_map_pending_revert_section()}
             </Button>
           </div>
@@ -155,13 +149,7 @@ export default function PendingChangesRail({
             <p className="text-muted-foreground text-xs uppercase tracking-wide">
               {m.territories_map_pending_removals({ count: String(removalsCount) })}
             </p>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs"
-              onClick={revertAllRemovals}
-            >
+            <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={revertAllRemovals}>
               {m.territories_map_pending_revert_section()}
             </Button>
           </div>

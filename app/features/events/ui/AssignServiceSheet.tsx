@@ -67,11 +67,7 @@ export function AssignServiceSheet({ open, onOpenChange, assignment, users, even
             />
           </div>
 
-          <PublisherInfoCard
-            eventId={eventId}
-            userId={selectedAssignee || null}
-            partName={assignment.name}
-          />
+          <PublisherInfoCard eventId={eventId} userId={selectedAssignee || null} partName={assignment.name} />
 
           <SheetFooter>
             <SubmitButton>{m.common_save()}</SubmitButton>

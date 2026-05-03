@@ -66,9 +66,7 @@ export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }
           <User className="size-4" />
           {profile.name}
         </CardTitle>
-        {profile.congregationName ? (
-          <p className="text-muted-foreground text-sm">{profile.congregationName}</p>
-        ) : null}
+        {profile.congregationName ? <p className="text-muted-foreground text-sm">{profile.congregationName}</p> : null}
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         {profile.isIncomplete && (

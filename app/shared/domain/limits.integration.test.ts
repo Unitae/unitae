@@ -45,6 +45,7 @@ describe('LimitService', () => {
         maxUsers: null,
         maxStorageBytes: null,
         maxBoardDocuments: null,
+        maxCardOverlays: null,
       })
       await expect(limits.errorIfWouldGoOverLimit('publishers')).resolves.toBeUndefined()
     })
@@ -58,6 +59,7 @@ describe('LimitService', () => {
         maxUsers: null,
         maxStorageBytes: null,
         maxBoardDocuments: null,
+        maxCardOverlays: null,
       })
       await expect(limits.errorIfWouldGoOverLimit('publishers')).rejects.toThrow()
     })
@@ -71,6 +73,7 @@ describe('LimitService', () => {
         maxUsers: null,
         maxStorageBytes: null,
         maxBoardDocuments: null,
+        maxCardOverlays: null,
       })
       await expect(limits.errorIfWouldGoOverLimit('publishers')).resolves.toBeUndefined()
     })

@@ -72,12 +72,12 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables maps on territory pages and in PDF exports |
+| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables maps on territory pages, in PDF exports, and the visual drawing editor on the *Carte de l'assemblée* settings page |
 | `GOOGLE_MAPS_MAP_ID` | — | Google Maps Map ID for custom styled maps. Requires `GOOGLE_MAPS_API_KEY` |
 
-The API key needs the **Maps JavaScript API** and **Maps Static API** enabled in the Google Cloud Console.
+The API key needs the **Maps JavaScript API**, **Maps Static API**, and **Drawing Library** enabled in the Google Cloud Console.
 
-When `GOOGLE_MAPS_API_KEY` is not set, map features are silently disabled.
+When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result.
 
 ## Docker Compose
 

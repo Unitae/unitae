@@ -6,6 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     user: { count: vi.fn() },
     territory: { count: vi.fn() },
     boardDocument: { count: vi.fn() },
+    territoryCardOverlay: { count: vi.fn() },
   },
 }))
 
@@ -18,6 +19,7 @@ function makeLimits(overrides: Partial<ConstructorParameters<typeof LimitService
     maxUsers: null,
     maxStorageBytes: null,
     maxBoardDocuments: null,
+    maxCardOverlays: null,
     ...overrides,
   }
 }

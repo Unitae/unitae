@@ -57,6 +57,7 @@ model Congregation {
   maxUsers          Int?
   maxStorageBytes   BigInt?
   maxBoardDocuments Int?
+  maxCardOverlays   Int?
   trialEndsAt       DateTime?
   suspendedAt       DateTime?
   suspendedReason   String?
@@ -96,6 +97,9 @@ model Congregation {
 
   notificationEvents      NotificationEvent[]
   notificationPreferences NotificationPreference[]
+
+  territoryCardOverlays TerritoryCardOverlay[]
+  territoryPerimeter    TerritoryPerimeter?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -276,6 +280,30 @@ model Territory {
   congregationId Int
 
   @@unique([id, congregationId])
+}
+
+model TerritoryPerimeter {
+  id        Int      @id @default(autoincrement())
+  paths     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int          @unique
+}
+
+model TerritoryCardOverlay {
+  id        Int      @id @default(autoincrement())
+  name      String?
+  color     String
+  paths     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@index([congregationId])
 }
 
 model Attribution {

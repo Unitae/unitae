@@ -22,8 +22,8 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -128,11 +128,7 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={fields.type.id}>{m.attributions_edit_type_label()}</Label>
-              <Select
-                name={fields.type.name}
-                defaultValue={attribution.type}
-                disabled={attribution.endDate !== null}
-              >
+              <Select name={fields.type.name} defaultValue={attribution.type} disabled={attribution.endDate !== null}>
                 <SelectTrigger id={fields.type.id} className="w-full" aria-invalid={fields.type.errors !== undefined}>
                   <SelectValue />
                 </SelectTrigger>
@@ -141,7 +137,9 @@ export default function EditAttributionPage({ loaderData, actionData }: Route.Co
                     {phoneTypeActive ? m.attributions_new_type_default() : m.territories_type_classical_capitalized()}
                   </SelectItem>
                   {!phoneTypeActive && (
-                    <SelectItem value={TerritoryAttributionKind.Phone}>{m.territories_type_phone_singular()}</SelectItem>
+                    <SelectItem value={TerritoryAttributionKind.Phone}>
+                      {m.territories_type_phone_singular()}
+                    </SelectItem>
                   )}
                   <SelectItem value={TerritoryAttributionKind.Campaign}>{m.attributions_type_campaign()}</SelectItem>
                 </SelectContent>

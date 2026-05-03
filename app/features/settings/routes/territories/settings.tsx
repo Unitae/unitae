@@ -1,17 +1,10 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
-import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
-import {
-  getAllowedZips,
-  parseTerritoryPolygon,
-  parseZips,
-  serializeTerritoryPolygon,
-  serializeZips,
-} from '~/features/territories/server/settings.server'
+import { getAllowedZips, parseZips, serializeZips } from '~/features/territories/server/settings.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
@@ -95,8 +88,7 @@ export function loader({ context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const [territory, zips, settings] = await Promise.all([
-      getTerritoryPolygon(db),
+    const [zips, settings] = await Promise.all([
       getAllowedZips(db),
       loadTerritorySettings(db, currentUser.congregationId),
     ])
@@ -116,7 +108,6 @@ export function loader({ context }: Route.LoaderArgs) {
     }
 
     return {
-      territory: serializeTerritoryPolygon(territory),
       zips: serializeZips(zips),
       banoUrl: settings[TerritorySettingKey.BanoUrl] ?? '',
       prospectionValidity: Number(settings[TerritorySettingKey.ProspectionValidity] ?? '24'),
@@ -132,7 +123,6 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function TerritorySettingsPage({ loaderData, actionData }: Route.ComponentProps) {
   const {
-    territory,
     zips,
     banoUrl,
     prospectionValidity,
@@ -161,6 +151,21 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
         subtitle={m.settings_territories_subtitle()}
         breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_territories() }]}
       />
+
+      <Card>
+        <CardContent className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-medium">{m.settings_territories_card_overlays_link_label()}</p>
+            <p className="text-muted-foreground text-sm">{m.settings_territories_card_overlays_link_description()}</p>
+          </div>
+          <Link
+            to="/settings/territories/card-overlays"
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            {m.settings_territories_card_overlays_link_label()}
+          </Link>
+        </CardContent>
+      </Card>
 
       <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
         <Card>
@@ -250,20 +255,6 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
             <CardTitle>{m.settings_territories_territory_title()}</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <Label htmlFor={fields.territory.id}>{m.settings_territories_polygon_label()}</Label>
-              <Input
-                {...getInputProps(fields.territory, { type: 'text' })}
-                key={fields.territory.id}
-                placeholder={m.settings_territories_polygon_placeholder()}
-                defaultValue={territory}
-              />
-              {fields.territory.errors && <p className="text-destructive text-sm">{fields.territory.errors}</p>}
-              <p className="text-muted-foreground text-xs">{m.settings_territories_polygon_hint()}</p>
-            </div>
-
-            <Separator />
-
             <p className="font-medium text-sm">{m.settings_territories_types_title()}</p>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -315,7 +306,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   const zips = parseZips(submission.value.zips)
-  const territory = parseTerritoryPolygon(submission.value.territory)
   const banoUrl = submission.value['bano-url']
   const prospectionValidity = submission.value['prospection-validity']
   const phoneTypeActivated = String(submission.value['phone-territory-active'])
@@ -326,7 +316,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   const attributionCommerceDuration = submission.value['attribution-commerce-duration']
 
   return withScopeFromContext(context, async db => {
-    await setSetting(db, TerritorySettingKey.TerritoryPolygone, JSON.stringify(territory), currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.TerritoryZipCodes, JSON.stringify(zips), currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.BanoUrl, banoUrl, currentUser.congregationId)
     await setSetting(db, TerritorySettingKey.ProspectionValidity, prospectionValidity, currentUser.congregationId)

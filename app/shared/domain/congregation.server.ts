@@ -19,6 +19,7 @@ export type CongregationInfo = {
   maxUsers: number | null
   maxStorageBytes: bigint | null
   maxBoardDocuments: number | null
+  maxCardOverlays: number | null
   suspendedAt: Date | null
   suspendedReason: string | null
   trialEndsAt: Date | null
@@ -57,6 +58,7 @@ export async function resolveCongregation(congregationId: number): Promise<Congr
     maxUsers: congregation.maxUsers,
     maxStorageBytes: congregation.maxStorageBytes,
     maxBoardDocuments: congregation.maxBoardDocuments,
+    maxCardOverlays: congregation.maxCardOverlays,
     suspendedAt: congregation.suspendedAt,
     suspendedReason: congregation.suspendedReason,
     trialEndsAt: congregation.trialEndsAt,

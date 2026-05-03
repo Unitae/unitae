@@ -40,9 +40,7 @@ test.describe('Territory edit page', () => {
     const goto = await page.goto('/territories')
     if ((goto?.status() ?? 500) >= 500) test.skip()
 
-    const response = await page.request.get(
-      '/territories/api/entrances-in-bbox?bbox=0,0,1,1&territoryId=1',
-    )
+    const response = await page.request.get('/territories/api/entrances-in-bbox?bbox=0,0,1,1&territoryId=1')
     expect(response.status()).toBeLessThan(500)
     if (response.ok()) {
       const body = await response.json()

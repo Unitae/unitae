@@ -1,8 +1,4 @@
-import {
-  AdvancedMarker,
-  Map as GoogleMap,
-  APIProvider as GoogleMapApiProvider,
-} from '@vis.gl/react-google-maps'
+import { AdvancedMarker, Map as GoogleMap, APIProvider as GoogleMapApiProvider } from '@vis.gl/react-google-maps'
 import { Download, MapPin } from 'lucide-react'
 import { redirect } from 'react-router'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'

@@ -29,8 +29,8 @@ import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
@@ -124,7 +124,9 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={TerritoryKind.Classical}>{m.territories_type_classical_capitalized()}</SelectItem>
+                    <SelectItem value={TerritoryKind.Classical}>
+                      {m.territories_type_classical_capitalized()}
+                    </SelectItem>
                     <SelectItem value={TerritoryKind.Commerces}>{m.territories_type_commerces()}</SelectItem>
                     <SelectItem value={TerritoryKind.Hotel}>{m.territories_type_hotel()}</SelectItem>
                     {phoneTypeActive && (

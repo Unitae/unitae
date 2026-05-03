@@ -18,6 +18,7 @@ const LIMIT_NAME_LABELS: Record<string, () => string> = {
   users: () => m.limit_resource_users(),
   boardDocuments: () => m.limit_resource_board_documents(),
   storage: () => m.limit_resource_storage(),
+  cardOverlays: () => m.limit_resource_card_overlays(),
 }
 
 function appErrorToFlashMessage(error: AppError): string {

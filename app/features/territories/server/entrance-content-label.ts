@@ -31,5 +31,7 @@ export function entranceContentLabel(territoryType: TerritoryKind, entrance: Ent
     return m.territories_content_phones({ count: entrance.phones ?? 0 })
   }
   const homes = entrance.homes ?? entrance.phones ?? 0
-  return homes > 1 ? m.territories_content_homes_other({ count: homes }) : m.territories_content_homes_one({ count: homes })
+  return homes > 1
+    ? m.territories_content_homes_other({ count: homes })
+    : m.territories_content_homes_one({ count: homes })
 }

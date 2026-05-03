@@ -6,6 +6,7 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
+import { SubmitButton } from '~/shared/ui/SubmitButton'
 import {
   Select,
   SelectContent,
@@ -15,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/shared/ui/select'
-import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
 
@@ -158,7 +158,9 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
                 <SelectItem value="user.login.failed">{m.audit_log_action_user_login_failed()}</SelectItem>
                 <SelectItem value="user.logout">{m.audit_log_action_user_logout()}</SelectItem>
                 <SelectItem value="password.changed">{m.audit_log_action_password_changed()}</SelectItem>
-                <SelectItem value="password.reset.requested">{m.audit_log_action_password_reset_requested()}</SelectItem>
+                <SelectItem value="password.reset.requested">
+                  {m.audit_log_action_password_reset_requested()}
+                </SelectItem>
                 <SelectItem value="consent.granted">{m.audit_log_action_consent_granted()}</SelectItem>
                 <SelectItem value="consent.withdrawn">{m.audit_log_action_consent_withdrawn()}</SelectItem>
               </SelectGroup>
