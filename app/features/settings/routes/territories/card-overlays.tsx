@@ -3,14 +3,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Form, redirect, useFetcher, useNavigation } from 'react-router'
 import { z } from 'zod'
 import {
+  buildGeoJsonExport,
   type CardOverlay,
   type CardOverlayPath,
   cardOverlayColorSchema,
   cardOverlayNameSchema,
   cardOverlayPathsSchema,
-  cardOverlaysToGeoJson,
   GeoJsonValidationError,
-  geoJsonToCardOverlays,
+  parseGeoJsonImport,
 } from '~/features/territories/model/card-overlay'
 import {
   createCardOverlay,
@@ -224,14 +224,22 @@ export async function action({ request, context }: Route.ActionArgs) {
       return redirect('/settings/territories/card-overlays')
     }
 
-    // import-geojson
-    let drafts: ReturnType<typeof geoJsonToCardOverlays>
+    // import-geojson — accepts both zones (appended to the existing list) and an optional perimeter
+    // (replaces any existing one; setPerimeter is upsert by congregationId).
+    let imported: ReturnType<typeof parseGeoJsonImport>
     try {
-      drafts = geoJsonToCardOverlays(JSON.parse(parsed.data.geojson))
+      imported = parseGeoJsonImport(JSON.parse(parsed.data.geojson))
     } catch (error) {
       return { error: error instanceof GeoJsonValidationError ? error.message : 'GeoJSON invalide' }
     }
-    for (const draft of drafts) {
+    if (imported.perimeter != null) {
+      await setPerimeter(db, {
+        paths: imported.perimeter,
+        congregationId: congregation.id,
+        actorId: currentUser.id,
+      })
+    }
+    for (const draft of imported.zones) {
       await limits.errorIfWouldGoOverLimit('cardOverlays')
       await createCardOverlay(db, {
         name: draft.name,
@@ -373,7 +381,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
   }, [navigation.state, navigation.formMethod, navigation.formAction])
 
   function downloadExport() {
-    const collection = cardOverlaysToGeoJson(overlays)
+    const collection = buildGeoJsonExport(overlays, perimeter?.paths ?? null)
     const blob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/geo+json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -407,7 +415,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                 variant="outline"
                 size="sm"
                 onClick={downloadExport}
-                disabled={overlays.length === 0}
+                disabled={overlays.length === 0 && perimeter == null}
               >
                 <Download aria-hidden className="size-4" />
                 {m.settings_territories_card_overlays_export_button()}

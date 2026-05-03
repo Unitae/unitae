@@ -721,7 +721,7 @@
     "settings_territories_card_overlays_import_button": "Importer un fichier",
     "settings_territories_card_overlays_export_button": "Télécharger une sauvegarde",
     "settings_territories_card_overlays_import_dialog_title": "Importer des zones depuis un fichier",
-    "settings_territories_card_overlays_import_dialog_description": "Importez un fichier .geojson exporté depuis Unitae ou un autre outil cartographique. Les zones existantes ne seront pas remplacées : tout sera ajouté.",
+    "settings_territories_card_overlays_import_dialog_description": "Importez un fichier .geojson exporté depuis Unitae ou un autre outil cartographique. Les zones du fichier seront ajoutées (les zones existantes ne sont pas remplacées). Si le fichier contient un périmètre (propriété role: \"perimeter\"), il remplace celui actuellement défini.",
     "settings_territories_card_overlays_import_paste_label": "Contenu du fichier",
     "settings_territories_card_overlays_import_success": "{count} zone(s) importée(s).",
     "settings_territories_card_overlays_drawing_hint": "Cliquez sur la carte pour ajouter des sommets, double-cliquez pour fermer la zone. Vous pourrez ensuite ajuster ses sommets en les faisant glisser.",

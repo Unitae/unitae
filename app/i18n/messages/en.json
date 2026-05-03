@@ -719,7 +719,7 @@
     "settings_territories_card_overlays_import_button": "Import a file",
     "settings_territories_card_overlays_export_button": "Download a backup",
     "settings_territories_card_overlays_import_dialog_title": "Import zones from a file",
-    "settings_territories_card_overlays_import_dialog_description": "Import a .geojson file exported from Unitae or another mapping tool. Existing zones won't be replaced — everything is added.",
+    "settings_territories_card_overlays_import_dialog_description": "Import a .geojson file exported from Unitae or another mapping tool. Zones from the file are added (existing zones aren't replaced). If the file includes a perimeter (property role: \"perimeter\"), it replaces the current one.",
     "settings_territories_card_overlays_import_paste_label": "File content",
     "settings_territories_card_overlays_import_success": "{count} zone(s) imported.",
     "settings_territories_card_overlays_drawing_hint": "Click on the map to add vertices, double-click to close the zone. You can then adjust its vertices by dragging them.",
