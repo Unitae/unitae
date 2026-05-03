@@ -302,7 +302,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
       </Card>
 
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
-        <DialogContent>
+        <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>{m.settings_territories_card_overlays_import_dialog_title()}</DialogTitle>
             <DialogDescription>{m.settings_territories_card_overlays_import_dialog_description()}</DialogDescription>
@@ -313,20 +313,21 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
               setImportOpen(false)
               setImportText('')
             }}
+            className="flex min-h-0 flex-1 flex-col gap-4"
           >
             <input type="hidden" name="intent" value="import-geojson" />
-            <Label htmlFor="card-overlay-geojson" className="mb-2 block">
+            <Label htmlFor="card-overlay-geojson">
               {m.settings_territories_card_overlays_import_paste_label()}
             </Label>
             <Textarea
               id="card-overlay-geojson"
               name="geojson"
-              rows={10}
               value={importText}
               onChange={e => setImportText(e.target.value)}
               required
+              className="min-h-[200px] flex-1 resize-none font-mono text-xs"
             />
-            <DialogFooter className="mt-4">
+            <DialogFooter className="mt-2 flex-shrink-0">
               <Button type="button" variant="outline" onClick={() => setImportOpen(false)}>
                 {m.settings_territories_card_overlays_cancel()}
               </Button>
