@@ -102,7 +102,7 @@ Configure the congregation and manage users.
 - **Users** — Create, edit, and deactivate user accounts and assign roles
 - **Congregation settings** — Display name, publisher profile options, programme template management
 - **Territory settings** — Allowed postal codes for open data sync, phone territory toggle
-- **Carte de l'assemblée** — Visual editor (Google Map + GeoJSON import/export) for the assembly's perimeter polygon (drives the prospection in-territory check) and named/colored zones printed on every territory PDF
+- **Carte de l'assemblée** — Draw your assembly's overall preaching territory and its named/colored zones on a Google Map (or import them from a GeoJSON file). The perimeter decides which addresses are inside the assembly's territory; the zones are printed on every territory card to help publishers locate themselves
 
 See [Roles and Permissions](roles-and-permissions.md) for how access control works.
 
