@@ -102,6 +102,7 @@ Configure the congregation and manage users.
 - **Users** — Create, edit, and deactivate user accounts and assign roles
 - **Congregation settings** — Display name, publisher profile options, programme template management
 - **Territory settings** — Allowed postal codes for open data sync, phone territory toggle
+- **Carte de l'assemblée** — Visual editor (Google Map + GeoJSON import/export) for the assembly's perimeter polygon (drives the prospection in-territory check) and named/colored zones printed on every territory PDF
 
 See [Roles and Permissions](roles-and-permissions.md) for how access control works.
 

@@ -101,10 +101,10 @@ When to use each:
 | Background workers | `withScope(congregationId, ...)` or `unscopedDb` | Sync jobs use `withScope`, email jobs use `unscopedDb` with explicit `where` |
 | Platform admin | `unscopedDb` | Cross-congregation queries |
 
-**Scoped models** (28 — all carry `congregationId` and are isolated by RLS):
+**Scoped models** (30 — all carry `congregationId` and are isolated by RLS):
 - **Auth**: User, CongregationUserRole
 - **Board**: BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
-- **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData
+- **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, TerritoryCardOverlay, TerritoryPerimeter
 - **Publishers**: PublisherGroup, PublisherActivity
 - **Events**: Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible
 - **Settings**: Setting
@@ -157,17 +157,19 @@ Key structure: `{congregationId}/{feature}/{uuid}.pdf`
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `GOOGLE_MAPS_API_KEY` | No | Enables map rendering on territory pages and static maps in PDF exports |
+| `GOOGLE_MAPS_API_KEY` | No | Enables map rendering on territory pages, static maps in PDF exports, and the *Carte de l'assemblée* drawing editor |
 | `GOOGLE_MAPS_MAP_ID` | No | Enables custom styled maps (requires API key) |
 
-When not set, map features are silently disabled.
+When not set, on-screen interactive maps are hidden, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only (no visual editor).
 
 ### Components
 
 - **`app/features/territories/ui/BuildingEntranceMap.tsx`** — read-only Google Map (`@vis.gl/react-google-maps`) used by the territory view, the new-territory preview, the five split-tool variants, and the publisher dashboard. Renders `<AdvancedMarker>` + the shared `<EntranceMarkerPin>` (defaults to the in-territory blue + check variant). Accepts `className` / `mapClassName` overrides so the territory view can shrink the map to a 40/50% sticky sidebar without affecting other call sites.
 - **`app/features/territories/ui/BuildingEntranceMapEditor.tsx`** — the interactive map-driven territory editor. Uses the same `<EntranceMarkerPin>` with the relevant variant per state (in-territory / available / on-other / pending-add / pending-remove). Wires `@googlemaps/markerclusterer` for clustering, fetches viewport entrances on map idle (debounced + cached by a coarse 0.01° grid), and surfaces a search box, legend, retry chip, and empty-state overlay.
 - **`app/features/territories/ui/EntranceMarkerPin.tsx`** — single source of truth for the marker visual. Five variants. Used everywhere on screen.
-- **`app/features/territories/ui/TerritoryDocument.tsx`** — uses Google's Static Maps API for the printable territory card. Marker stays yellow on print intentionally — see the comment in the file.
+- **`app/features/territories/ui/TerritoryDocument.tsx`** — uses Google's Static Maps API for the printable territory card. Marker stays yellow on print intentionally. The map page renders the congregation's `TerritoryCardOverlay` zones (each a colored Polygon path) and falls back to the `TerritoryPerimeter` (drawn as a thin gray outline) when no zone is configured. The Static Maps URL is built by the pure `app/features/territories/model/static-map-url.ts` helper — there are zero hardcoded coordinates anywhere in the file (a snapshot test enforces this).
+- **`app/features/territories/ui/CardOverlayMap.tsx`** — the drawing-enabled Google Map shared by the *Carte de l'assemblée* settings page (`/settings/territories/card-overlays`). Loads the `drawing` library, instantiates a `google.maps.drawing.DrawingManager` for new polygons, and renders existing zones + perimeter as read-only polygons (with an `excludeOverlayId` / `excludePerimeter` prop to hide whichever shape is currently being dragged in the editable draft).
+- **`app/features/territories/ui/ColorPicker.tsx`** — small Popover with a curated 8-swatch palette + a custom-color tile. Used in the new-zone draft form and the per-zone metadata edit dialog.
 
 ### Bbox endpoint
 
@@ -251,7 +253,7 @@ return withScopeFromContext(context, async db => {
 
 ### entityType convention
 
-Always use the Prisma model name as the `entityType` string: `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`.
+Always use the Prisma model name as the `entityType` string: `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`, `'TerritoryCardOverlay'`, `'TerritoryPerimeter'`.
 
 ### What is not audited
 

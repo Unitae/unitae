@@ -127,7 +127,7 @@ Assignments can be exported in the **S-13 format**, the standard territory recor
 
 ## Building Prospection
 
-Each territory contains **buildings** — individual addresses that publishers visit during field ministry.
+Each territory contains **buildings** — individual addresses that publishers visit during field ministry. New addresses (manually created, edited, or bulk-imported from open data) are automatically classified as **inside or outside the assembly's territory** based on the perimeter polygon configured on the [Carte de l'assemblée](#carte-de-lassemblée) page. Without a perimeter, every address with coordinates is considered in-territory by default.
 
 ### Building data
 
@@ -176,7 +176,7 @@ Only building entrances that are active, prospected, and not already assigned to
 When a Google Maps API key is configured, Unitae displays:
 
 - **Interactive maps** on the personal territory view, the admin view, the map editor, the split tool previews, and the territory creation preview
-- **Map images** in PDF territory card exports
+- **Map images** in PDF territory card exports — overlaid with the assembly's perimeter and zones (see [Carte de l'assemblée](#carte-de-lassemblée))
 
 Maps are optional — all territory features work without them. See [Environment Variables](../self-hosting/environment-variables.md) for configuration.
 
@@ -186,7 +186,37 @@ A single visual language is shared across every on-screen map:
 
 - **Read-only views** (personal view, admin view, split tool previews, new-territory preview) use a **blue circle with a checkmark** — "this address belongs to the territory you are looking at." Green / grey / red are not used here because these views show only the territory's own addresses.
 - **The map editor** adds the full state palette (blue / green / grey / red) — see [Territory Editor](#territory-editor) above.
-- **PDF territory cards** keep their **yellow** marker. The on-screen blue identity does not apply to print: yellow is more readable on photocopies and stays distinct from the pink, green, and blue district-boundary overlays printed on the same page.
+- **PDF territory cards** keep their **yellow** marker. The on-screen blue identity does not apply to print: yellow is more readable on photocopies and stays distinct from the colored zones drawn on the same page.
+
+## Carte de l'assemblée
+
+Each congregation defines its own **assembly map** at `/settings/territories/card-overlays`. This single page hosts two related concepts:
+
+### Perimeter (`Périmètre`)
+
+A single closed polygon describing the **complete preaching territory of the assembly**. It drives the prospection module's `inTerritory` flag: when an address is added or imported, its coordinates are tested against this polygon and the building is marked as in/out of the assembly's territory.
+
+When set, the perimeter is also drawn in light gray on the printed PDF map page **as a fallback when no zones are configured**, so simple-perimeter assemblies still get a useful "you are here" view.
+
+### Zones
+
+A list of named, colored polygons that **subdivide the assembly's territory** (e.g., neighborhoods, districts, the three Lyon zones). Each zone has a name, a color, and a closed ring. Zones are drawn on the printed territory PDF so a publisher can locate their assigned territory inside the larger assembly map at a glance. When the assembly has at least one zone defined, the perimeter is omitted from the PDF (zones already cover the same area).
+
+### Editor
+
+A unified Google Map drives both:
+
+- **Drawing**: click on the map to place vertices, double-click to close. Existing shapes are editable — drag a vertex to adjust.
+- **Color picker** with 8 curated swatches plus a custom-color tile.
+- **AlertDialog** confirmations on every destructive action (delete a zone, delete the perimeter).
+- **Unsaved-changes guard**: in-progress drafts can't be lost by accidental navigation or a stray Cancel click.
+- **GeoJSON import** (`.geojson` file picker or paste): a single file backs up + restores the entire assembly map. Features become zones; a feature with `properties.role: "perimeter"` becomes the perimeter (replacement, not append). Multiple perimeter features are rejected.
+- **GeoJSON export** ("Télécharger une sauvegarde"): one `.geojson` containing every zone + the perimeter, suitable for backup or moving to another congregation.
+- **Without `GOOGLE_MAPS_API_KEY`**: the visual editor is hidden, but the GeoJSON import/export workflow still works — assemblies can author their assembly map externally and paste it in.
+
+### Limit
+
+Hosted plans cap the number of zones per congregation (`maxCardOverlays` — `null` for self-hosters, no cap). The perimeter is a separate singleton and doesn't count against this limit.
 
 ## Statistics
 
