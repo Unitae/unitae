@@ -1,7 +1,9 @@
 import path from 'node:path'
 import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { formatAccessSequence } from '~/features/territories/model/access-format'
+import type { CardOverlay } from '~/features/territories/model/card-overlay'
 import { shopKindLabels as getShopKindLabels, type ShopKind } from '~/features/territories/model/shop-kind.type'
+import { buildTerritoryStaticMapUrl } from '~/features/territories/model/static-map-url'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -104,6 +106,7 @@ interface TerritoryDocumentProps {
   entrances: Entrance[]
   googleMapId: string | undefined
   googleMapKey: string | undefined
+  overlays?: CardOverlay[]
   showPhone?: boolean
   owner?: string
   restitutionDate?: Date
@@ -116,6 +119,7 @@ export function TerritoryDocument({
   entrances = [],
   googleMapKey,
   googleMapId,
+  overlays = [],
   showPhone = false,
   owner,
   restitutionDate,
@@ -137,16 +141,12 @@ export function TerritoryDocument({
     quantity = entrances.reduce((acc, entrance) => acc + ((entrance.homes ?? 0) || (entrance.phones ?? 0)), 0)
   }
 
-  const size = '300x450'
-  const scale = 2
-  const zoom = 13
-  const center = '45.7259019,4.8346763'
-  const marker = entrances
-    .map(entrance => {
-      const firstBuilding = entrance.buildings[0]
-      return `${firstBuilding.latitude},${firstBuilding.longitude}`
-    })
-    .shift()
+  const firstBuilding = entrances[0]?.buildings[0]
+  const marker =
+    firstBuilding?.latitude != null && firstBuilding.longitude != null
+      ? { lat: firstBuilding.latitude, lng: firstBuilding.longitude }
+      : null
+  const showMapPage = googleMapKey != null && googleMapKey.length > 0 && (marker != null || overlays.length > 0)
 
   return (
     <Document>
@@ -177,14 +177,17 @@ export function TerritoryDocument({
         </View>
         <DocumentWaterMark type={attributionType} />
       </Page>
-      {googleMapKey != null && googleMapKey.length > 0 && (
+      {showMapPage && googleMapKey != null && (
         <Page size={{ width: 270, height: 425 }} style={styles.map}>
-          {/* Marker stays yellow on the printed card: better legibility on
-              photocopy and stays distinct from the pink/green/blue district
-              boundary overlays below. The on-screen blue+check identity does
-              not apply to print. */}
           <Image
-            src={`https://maps.googleapis.com/maps/api/staticmap?center=${center}&zoom=${zoom}&size=${size}&maptype=roadmap&markers=color:yellow|${marker}&key=${googleMapKey}${googleMapId ? `&map_id=${googleMapId}` : ''}&scale=${scale}&path=color:0xC2175Bff%7Cweight:1%7Cfillcolor:0xC2175B80%7C45.7511927,4.8229874%7C45.7492189,4.820051%7C45.7482237,4.8185312%7C45.7471537,4.8172046%7C45.7460151,4.8160314%7C45.745176,4.8154805%7C45.7443374,4.8147885%7C45.7437534,4.8146115%7C45.7429036,4.8142842%7C45.7420538,4.8141286%7C45.7408039,4.8139071%7C45.7395241,4.8139859%7C45.7371204,4.8145009%7C45.733144,4.8153485%7C45.7322229,4.8156059%7C45.7316987,4.8167754%7C45.7309123,4.8176338%7C45.7299943,4.8181235%7C45.7282001,4.8184738%7C45.7282001,4.8186455%7C45.7292635,4.818624%7C45.7308587,4.8186562%7C45.7324689,4.8189244%7C45.7348652,4.8197398%7C45.7371417,4.82092%7C45.7486574,4.8310051%7C45.7511927,4.8229874&path=color:0x0E9A6Cff%7Cweight:1%7Cfillcolor:0x0E9A6C80%7C45.7479761,4.8330435%7C45.7422258,4.8278771%7C45.7392832,4.8254337%7C45.7372203,4.8237079%7C45.7363405,4.8232052%7C45.7346855,4.8218963%7C45.7318922,4.8211882%7C45.7301622,4.8207483%7C45.7284173,4.8206518%7C45.7259682,4.8205016%7C45.7196252,4.8218287%7C45.716357,4.8238275%7C45.7141344,4.8253692%7C45.7126511,4.8278154%7C45.7105684,4.8335983%7C45.7089277,4.8376752%7C45.7041776,4.8399818%7C45.7034957,4.8407758%7C45.7019222,4.8420311%7C45.7022969,4.8428787%7C45.7027315,4.8447991%7C45.7036231,4.8443807%7C45.705279,4.8439408%7C45.7151981,4.8432005%7C45.7156701,4.8434366%7C45.7160072,4.8443378%7C45.716524,4.849831%7C45.7246115,4.8484931%7C45.7262315,4.8479856%7C45.7278792,4.8481143%7C45.7293284,4.8485113%7C45.7390651,4.8475275%7C45.7416859,4.8469052%7C45.7440219,4.8453603%7C45.7479761,4.8330435&path=color:0x2289BCff%7Cweight:1%7Cfillcolor:0x2289BC80%7C45.7440219,4.8453603%7C45.7416859,4.8469052%7C45.7390651,4.8475275%7C45.7293284,4.8485113%7C45.7293771,4.8521913%7C45.7297665,4.8537417%7C45.7358961,4.8531194%7C45.7374207,4.8525264%7C45.7405681,4.8514579%7C45.7423277,4.8507337%7C45.7440219,4.8453603`}
+            src={buildTerritoryStaticMapUrl({
+              apiKey: googleMapKey,
+              mapId: googleMapId,
+              size: '300x450',
+              scale: 2,
+              marker,
+              overlays,
+            })}
           />
           <View style={styles.footerMap}>
             <Image src={path.join(publicDir, 'marker-google.jpg')} style={{ height: 20 }} />

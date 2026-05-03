@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, Link, redirect } from 'react-router'
 import { territorySettingsSchema } from '~/features/settings/schemas/territory-settings.schema'
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
 import { getTerritoryPolygon } from '~/features/territories/server/get-territory-polygon.server'
@@ -161,6 +161,21 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
         subtitle={m.settings_territories_subtitle()}
         breadcrumbs={[{ label: m.sidebar_settings(), to: '/settings' }, { label: m.sidebar_settings_territories() }]}
       />
+
+      <Card>
+        <CardContent className="flex flex-col gap-1 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-medium">{m.settings_territories_card_overlays_link_label()}</p>
+            <p className="text-muted-foreground text-sm">{m.settings_territories_card_overlays_link_description()}</p>
+          </div>
+          <Link
+            to="/settings/territories/card-overlays"
+            className="text-primary text-sm underline-offset-4 hover:underline"
+          >
+            {m.settings_territories_card_overlays_link_label()}
+          </Link>
+        </CardContent>
+      </Card>
 
       <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
         <Card>
