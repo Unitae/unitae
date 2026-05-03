@@ -32,6 +32,17 @@ Users can request a password reset link via email:
 - Tokens are single-use — consumed immediately when the password is changed
 - Tokens are generated using `crypto.randomBytes(32)`
 
+### Calendar Feed Tokens
+
+Users can subscribe their personal calendar app to their assignments via a private iCalendar URL (see [Events — Personal Calendar Feed](events.md#personal-calendar-feed)). The URL is authenticated by a per-user token:
+
+- Tokens are 32 random bytes encoded as base64url, generated with `crypto.randomBytes(32)` (the same primitive as password reset)
+- Each user has at most one active token; regenerating revokes the previous token immediately
+- Tokens do **not** expire automatically — users revoke or regenerate them manually
+- The token grants read-only access to the user's own programme assignments, service roles, and days off — nothing else
+- Because calendar apps cannot send authentication cookies, the bearer token must travel in the URL; users should treat the URL as a personal secret
+- Both creation and revocation are recorded in the audit log (`calendar_feed.token.created`, `calendar_feed.token.revoked`)
+
 ## Data Isolation
 
 ### Congregation Scoping

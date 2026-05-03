@@ -25,6 +25,10 @@ export const AuditAction = {
   PasswordChanged: 'password.changed',
   PasswordResetRequested: 'password.reset.requested',
 
+  // Calendar feed
+  CalendarFeedTokenCreated: 'calendar_feed.token.created',
+  CalendarFeedTokenRevoked: 'calendar_feed.token.revoked',
+
   // Board
   BoardReadStatusViewed: 'board.read_status.viewed',
   BoardDocumentCreated: 'board.document.created',

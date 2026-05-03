@@ -144,6 +144,7 @@ model User {
   dynamicDocumentViews      BoardDynamicDocumentView[]
   passwordResetTokens        PasswordResetToken[]
   emailVerificationTokens    EmailVerificationToken[]
+  calendarFeedTokens         CalendarFeedToken[]
   consentRecords          ConsentRecord[]
   notificationPreferences NotificationPreference[]
 
@@ -668,6 +669,15 @@ model EmailVerificationToken {
   userId    Int
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model CalendarFeedToken {
+  id         Int       @id @default(autoincrement())
+  token      String    @unique
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int       @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
 }
 
 model AuditLog {

@@ -76,7 +76,7 @@ Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocument
 
 **Global (no RLS):**
 
-Congregation, UserRole, PasswordResetToken, EmailVerificationToken, BoardDynamicDocumentView
+Congregation, UserRole, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView
 
 ## Application Integration
 

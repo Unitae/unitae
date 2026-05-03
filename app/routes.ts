@@ -15,6 +15,7 @@ export default [
   route('cron/retention', 'shell/cron.retention.tsx'),
   route('cron/board-expirations', 'shell/cron.board-expirations.tsx'),
   route('cron/process-notifications', 'shell/cron.process-notifications.tsx'),
+  route('feed/:token/calendar.ics', 'features/events/routes/calendar-feed.ics.tsx'),
   ...authenticationRoutes,
   route('', 'shell/_authenticated-layout.tsx', [
     index('features/dashboard/routes/index.tsx'),
@@ -25,6 +26,8 @@ export default [
       route('notifications', 'features/notifications/routes/preferences.tsx'),
       route('territories', 'features/territories/routes/my-territories/list.tsx'),
       route('territories/:territoryId', 'features/territories/routes/my-territories/view.tsx'),
+      route('calendar-feed/regenerate', 'features/authentication/routes/user/calendar-feed-regenerate.tsx'),
+      route('calendar-feed/revoke', 'features/authentication/routes/user/calendar-feed-revoke.tsx'),
       ...daysOffRoutes,
     ]),
     route('board', 'features/display-board/routes/_layout.tsx', [

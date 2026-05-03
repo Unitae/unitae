@@ -71,6 +71,7 @@ Manage congregation meeting programmes, event scheduling, and publisher assignme
 - **Conflict detection** — Days-off conflicts block assignments in real time and retroactively flag existing ones
 - **Per-template responsibility** — Delegate programme management to specific elders without granting full `ProgramManager` role
 - **Days off** — Members record their upcoming absences so programme organizers can plan accordingly
+- **Personal calendar feed** — Each member can subscribe to their own assignments and absences from any calendar app (Apple Calendar, Google Calendar, Outlook…) via a private iCalendar URL managed from their profile
 
 See [Events](events.md) for details.
 
