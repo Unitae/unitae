@@ -163,7 +163,10 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         },
       },
       include: {
-        entrances: { include: { buildings: { where: { active: true } } } },
+        entrances: {
+          where: { buildings: { some: { active: true } } },
+          include: { buildings: { where: { active: true } } },
+        },
       },
     });
 
