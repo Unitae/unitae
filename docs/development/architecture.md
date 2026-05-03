@@ -44,7 +44,8 @@
 │  └─────────────────┘  └──────────────────┘              │
 │                                                         │
 │  Global: UserRole (14 role definitions)                 │
-│  Global: PasswordResetToken, EmailVerificationToken     │
+│  Global: PasswordResetToken, EmailVerificationToken,    │
+│          CalendarFeedToken                              │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -71,6 +72,17 @@ Route     → context.get(userContext)             // read current user
           → db is a TransactionClient scoped by RLS
           → service functions receive db as first parameter
 ```
+
+### Token-resolved public routes
+
+A small number of routes are reachable without a Unitae session because the client (e.g. a calendar app) cannot send our authentication cookie. These routes authenticate the request with an opaque per-user token in the URL instead. The flow:
+
+1. The route is registered **outside** the authenticated layout in `app/routes.ts` — no `requireAuth` middleware runs.
+2. The loader looks up the token via `unscopedDb` (token tables have no `congregationId` and no RLS).
+3. The loader resolves `congregationId` from the token's user record.
+4. The loader wraps data queries in `withScope(congregationId, ...)`, exactly like authenticated routes — RLS enforces tenant isolation in the same way.
+
+Currently used by `/feed/:token/calendar.ics` (personal calendar subscription). Reusable for any future read-only personal feed.
 
 ## Data Isolation
 
@@ -99,7 +111,7 @@ When to use each:
 - **Notifications**: NotificationEvent, NotificationPreference
 - **GDPR / Audit**: AuditLog, DataDeletionRecord, ConsentRecord
 
-**Global models** (5 — no `congregationId`, not scoped by RLS): Congregation, UserRole, PasswordResetToken, EmailVerificationToken, BoardDynamicDocumentView
+**Global models** (6 — no `congregationId`, not scoped by RLS): Congregation, UserRole, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView
 
 ## Authentication & Role Flow
 

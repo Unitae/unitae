@@ -104,6 +104,41 @@ Days off feed into the programme conflict detection system. When a day-off is cr
 
 Programme managers can see all congregation absences at **Programmes > Absences**.
 
+## Personal Calendar Feed
+
+Each member can subscribe to a private iCalendar (`.ics`) feed containing their own programme assignments and absences. The feed is read-only and lives at a unique, per-user URL — no Unitae login required for the calendar app to fetch it.
+
+**What's in the feed**
+
+- Programme part assignments where the member is the speaker or the reader
+- Service role assignments where the member is the assignee
+- Days off the member has recorded
+
+The feed includes events from the last 3 months and all future events. Past events older than 3 months are excluded to keep calendar apps responsive.
+
+**Subscribing**
+
+The feed URL is a `text/calendar` resource that any standard calendar app can subscribe to:
+
+- **Apple Calendar** — File → New Calendar Subscription → paste the URL
+- **Google Calendar** — Other calendars → From URL → paste the URL
+- **Outlook** — Add calendar → Subscribe from web → paste the URL
+
+Most calendar apps refresh subscribed feeds every few hours automatically; the user does not need to take any action when assignments change.
+
+**Privacy**
+
+The URL contains a long random token that authenticates the request. Anyone with the URL can read the user's assignments and absences, so it should be treated as a personal secret — not posted publicly or shared.
+
+**Managing the link**
+
+The feed is managed from `/me/profile` → **My calendar**:
+
+- **Generate link** — Creates the feed URL on first use.
+- **Copy** — Copies the URL to the clipboard for pasting into the calendar app.
+- **Regenerate link** — Creates a new URL and breaks any existing subscription using the previous URL. Use this if the URL has been accidentally shared.
+- **Revoke** — Deletes the URL completely; calendar apps subscribed to it stop receiving updates.
+
 ## Per-Template Responsibility
 
 A **manager** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full `ProgramManager` role.
@@ -116,7 +151,7 @@ If no responsible is set, only users with `ProgramManager` or `Admin` role can e
 
 | Role | Can do |
 |------|--------|
-| Any authenticated user | View and manage their own days off |
+| Any authenticated user | View and manage their own days off; generate, copy, regenerate, and revoke their personal calendar feed |
 | `ProgramViewer` | View events, programmes, and template list |
 | `ProgramManager` | Create, edit, and delete events. Assign publishers. Manage templates |
 | Template responsible | Edit events and assign publishers for their template only |
