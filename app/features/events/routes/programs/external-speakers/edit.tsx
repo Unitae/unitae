@@ -1,8 +1,8 @@
 import { getFormProps, getInputProps, getTextareaProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Archive, ArchiveRestore, ShieldAlert } from 'lucide-react'
-import { z } from 'zod'
 import { data, Form, redirect } from 'react-router'
+import { z } from 'zod'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { externalSpeakerSchema } from '~/features/events/schemas/external-speaker.schema'
 import {
@@ -219,55 +219,55 @@ export default function ExternalSpeakerEditPage({ loaderData, actionData }: Rout
       </Card>
 
       {canManage && (
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive text-lg">
-            <ShieldAlert className="size-5" />
-            {m.external_speakers_danger_zone()}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex items-center justify-between gap-4">
-          <p className="text-muted-foreground text-sm">
-            {isArchived ? m.external_speakers_unarchive_description() : m.external_speakers_archive_description()}
-          </p>
-          {isArchived ? (
-            <Form method="post" className="shrink-0">
-              <input type="hidden" name="intent" value="unarchive" />
-              <Button type="submit" variant="outline">
-                <ArchiveRestore className="size-4" />
-                {m.external_speakers_unarchive_action()}
-              </Button>
-            </Form>
-          ) : (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="shrink-0">
-                  <Archive className="size-4" />
-                  {m.external_speakers_archive_action()}
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive text-lg">
+              <ShieldAlert className="size-5" />
+              {m.external_speakers_danger_zone()}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-4">
+            <p className="text-muted-foreground text-sm">
+              {isArchived ? m.external_speakers_unarchive_description() : m.external_speakers_archive_description()}
+            </p>
+            {isArchived ? (
+              <Form method="post" className="shrink-0">
+                <input type="hidden" name="intent" value="unarchive" />
+                <Button type="submit" variant="outline">
+                  <ArchiveRestore className="size-4" />
+                  {m.external_speakers_unarchive_action()}
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{m.external_speakers_archive_confirm_title()}</AlertDialogTitle>
-                  <AlertDialogDescription>{m.external_speakers_archive_confirm_body()}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="archive" />
-                    <AlertDialogAction
-                      type="submit"
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {m.external_speakers_archive_action()}
-                    </AlertDialogAction>
-                  </Form>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </CardContent>
-      </Card>
+              </Form>
+            ) : (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="shrink-0">
+                    <Archive className="size-4" />
+                    {m.external_speakers_archive_action()}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.external_speakers_archive_confirm_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>{m.external_speakers_archive_confirm_body()}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="archive" />
+                      <AlertDialogAction
+                        type="submit"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {m.external_speakers_archive_action()}
+                      </AlertDialogAction>
+                    </Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   )

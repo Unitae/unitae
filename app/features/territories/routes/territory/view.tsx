@@ -1,4 +1,14 @@
-import { CalendarCheck, ChevronLeft, ChevronRight, Download, ExternalLink, Pencil, StickyNote, UserPlus, X } from 'lucide-react'
+import {
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  ExternalLink,
+  Pencil,
+  StickyNote,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import type { Attribution, User } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -156,8 +166,7 @@ function CurrentAttributionCard({
                 )}
               </span>
               <span className="text-muted-foreground text-sm">
-                {attribution.startDate.toLocaleDateString('fr-FR')} —{' '}
-                {attribution.lateDate.toLocaleDateString('fr-FR')}
+                {attribution.startDate.toLocaleDateString('fr-FR')} — {attribution.lateDate.toLocaleDateString('fr-FR')}
               </span>
             </div>
           </div>
@@ -245,14 +254,10 @@ function AttributionHistoryCard({
                           formatPersonName(attribution.publisher)
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {attribution.startDate.toLocaleDateString('fr-FR')}
-                      </TableCell>
+                      <TableCell className="text-center">{attribution.startDate.toLocaleDateString('fr-FR')}</TableCell>
                       <TableCell className="text-center">{attribution.endDate?.toLocaleDateString('fr-FR')}</TableCell>
                       <TableCell className="text-center max-sm:hidden">
-                        {durationDays != null
-                          ? m.territories_view_duration_days({ days: String(durationDays) })
-                          : '-'}
+                        {durationDays != null ? m.territories_view_duration_days({ days: String(durationDays) }) : '-'}
                       </TableCell>
                       <TableCell className="text-center max-sm:hidden">
                         {attribution.type === TerritoryAttributionKind.Default &&

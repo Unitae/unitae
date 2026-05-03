@@ -1,8 +1,4 @@
-import {
-  AdvancedMarker,
-  Map as GoogleMap,
-  APIProvider as GoogleMapApiProvider,
-} from '@vis.gl/react-google-maps'
+import { AdvancedMarker, Map as GoogleMap, APIProvider as GoogleMapApiProvider } from '@vis.gl/react-google-maps'
 import { EntranceMarkerPin } from '~/features/territories/ui/EntranceMarkerPin'
 import type { Entrance } from '~/shared/types/entrance'
 import { Card, CardContent } from '~/shared/ui/card'

@@ -32,10 +32,7 @@ export async function updateTerritory(
 
   for (const reassignment of reassignments) {
     if (reassignment.fromTerritoryId === id) {
-      throw new ValidationError(
-        'reassignments',
-        `Reassignment source must differ from target territory ${id}`,
-      )
+      throw new ValidationError('reassignments', `Reassignment source must differ from target territory ${id}`)
     }
 
     const source = await db.territory.findUnique({
@@ -43,10 +40,7 @@ export async function updateTerritory(
       select: { id: true, type: true },
     })
     if (source == null) {
-      throw new ValidationError(
-        'reassignments',
-        `Source territory not found: ${reassignment.fromTerritoryId}`,
-      )
+      throw new ValidationError('reassignments', `Source territory not found: ${reassignment.fromTerritoryId}`)
     }
     if (source.type !== target.type) {
       throw new ValidationError(

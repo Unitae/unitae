@@ -1,11 +1,6 @@
 import { Check, Plus, X } from 'lucide-react'
 
-export type EntrancePinVariant =
-  | 'in-territory'
-  | 'available'
-  | 'on-other'
-  | 'pending-add'
-  | 'pending-remove'
+export type EntrancePinVariant = 'in-territory' | 'available' | 'on-other' | 'pending-add' | 'pending-remove'
 
 const PIN_BASE = 'flex size-7 items-center justify-center rounded-full border-2 shadow-md transition'
 
