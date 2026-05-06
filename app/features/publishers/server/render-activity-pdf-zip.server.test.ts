@@ -1,3 +1,4 @@
+import JsZip from 'jszip'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -72,6 +73,19 @@ describe('buildActivityPdfZip', () => {
 
     expect(buffer).toBeInstanceOf(ArrayBuffer)
     expect(toBuffer).toHaveBeenCalledTimes(2)
+  })
+
+  it('writes one entry per publisher named "{firstname}-{lastname}.pdf"', async () => {
+    const publishers = [
+      { id: 1, firstname: 'Alice', lastname: 'Martin', activities: [] },
+      { id: 2, firstname: 'Bob', lastname: 'Durand', activities: [] },
+      { id: 3, firstname: 'Claire', lastname: "O'Connor", activities: [] },
+    ]
+
+    const buffer = await buildActivityPdfZip(publishers as never)
+    const zip = await JsZip.loadAsync(buffer)
+
+    expect(Object.keys(zip.files).sort()).toEqual(['Alice-Martin.pdf', 'Bob-Durand.pdf', "Claire-O'Connor.pdf"])
   })
 
   it('does not query the database', async () => {

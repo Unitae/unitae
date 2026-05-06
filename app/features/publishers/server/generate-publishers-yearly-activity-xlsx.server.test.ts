@@ -134,4 +134,62 @@ describe('buildPublishersYearlyActivityXlsx', () => {
 
     expect(dataRow.getCell(3).value).toBe('120')
   })
+
+  it('writes one row per activity with the group name uppercased', async () => {
+    const activities = [
+      {
+        ...makeActivity(PublisherType.Normal, { isPublisher: true }),
+        publisher: {
+          id: 1,
+          firstname: 'Alice',
+          lastname: 'Martin',
+          publisherGroup: { id: 1, name: 'Groupe A' },
+        },
+      },
+      {
+        ...makeActivity(PublisherType.PionnierPermanant, { hours: 60 }),
+        publisher: {
+          id: 2,
+          firstname: 'Bob',
+          lastname: 'Durand',
+          publisherGroup: { id: 2, name: 'Groupe B' },
+        },
+      },
+    ]
+    const workbook = await buildFromActivities(activities)
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(2).getCell(1).value).toBe('Alice Martin')
+    expect(sheet.getRow(2).getCell(2).value).toBe('GROUPE A')
+    expect(sheet.getRow(3).getCell(1).value).toBe('Bob Durand')
+    expect(sheet.getRow(3).getCell(2).value).toBe('GROUPE B')
+    expect(sheet.getRow(3).getCell(3).value).toBe('60')
+  })
+
+  it('puts each month in its own sheet with the right activities', async () => {
+    vi.mocked(db.publisherActivity.findMany).mockImplementation(((args: { where: { month: number; year: number } }) => {
+      const { where } = args
+      if (where.month === 8 && where.year === 2025) {
+        return Promise.resolve([{ ...makeActivity(PublisherType.Normal, { isPublisher: true }) }])
+      }
+      if (where.month === 0 && where.year === 2026) {
+        return Promise.resolve([
+          { ...makeActivity(PublisherType.Normal, { isPublisher: true }) },
+          { ...makeActivity(PublisherType.PionnierAuxiliaires, { hours: 30 }) },
+        ])
+      }
+      return Promise.resolve([])
+    }) as never)
+
+    const months = await getPublishersYearlyActivities(db, 1, 2025)
+    const workbook = await readWorkbook(await buildPublishersYearlyActivityXlsx(months))
+
+    const september2025 = workbook.worksheets.find(sheet => sheet.name === 'SEPTEMBRE 2025')
+    const january2026 = workbook.worksheets.find(sheet => sheet.name === 'JANVIER 2026')
+    const february2026 = workbook.worksheets.find(sheet => sheet.name === 'FÉVRIER 2026')
+
+    expect(september2025?.actualRowCount).toBe(2)
+    expect(january2026?.actualRowCount).toBe(3)
+    expect(february2026?.actualRowCount).toBe(1)
+  })
 })
