@@ -8,7 +8,9 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { generatePublishersYearlyActivityXlsx } = await import('./generate-publishers-yearly-activity-xlsx.server')
+const { buildPublishersYearlyActivityXlsx, getPublishersYearlyActivities } = await import(
+  './generate-publishers-yearly-activity-xlsx.server'
+)
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -38,70 +40,96 @@ async function readWorkbook(buffer: excelJs.Buffer) {
   return workbook
 }
 
-describe('generatePublishersYearlyActivityXlsx', () => {
-  it('génère 12 feuilles pour une année théocratique', async () => {
-    const buffer = await generatePublishersYearlyActivityXlsx(db, 1, 2025)
-    const workbook = await readWorkbook(buffer)
+async function buildFromActivities(activities: ReturnType<typeof makeActivity>[]) {
+  vi.mocked(db.publisherActivity.findMany).mockResolvedValue(activities as never)
+  const months = await getPublishersYearlyActivities(db, 1, 2025)
+  return readWorkbook(await buildPublishersYearlyActivityXlsx(months))
+}
+
+describe('getPublishersYearlyActivities', () => {
+  it('queries the 12 months of the theocratic year (September to August)', async () => {
+    await getPublishersYearlyActivities(db, 1, 2025)
+
+    const calls = vi.mocked(db.publisherActivity.findMany).mock.calls
+    const monthYearPairs = calls
+      .map(call => {
+        const where = (call[0] as { where: { month: number; year: number } }).where
+        return { month: where.month, year: where.year }
+      })
+      .sort((a, b) => a.year - b.year || a.month - b.month)
+
+    expect(monthYearPairs).toEqual([
+      { month: 8, year: 2025 },
+      { month: 9, year: 2025 },
+      { month: 10, year: 2025 },
+      { month: 11, year: 2025 },
+      { month: 0, year: 2026 },
+      { month: 1, year: 2026 },
+      { month: 2, year: 2026 },
+      { month: 3, year: 2026 },
+      { month: 4, year: 2026 },
+      { month: 5, year: 2026 },
+      { month: 6, year: 2026 },
+      { month: 7, year: 2026 },
+    ])
+  })
+
+  it('scopes every query to the given congregation', async () => {
+    await getPublishersYearlyActivities(db, 42, 2025)
+
+    const calls = vi.mocked(db.publisherActivity.findMany).mock.calls
+    for (const call of calls) {
+      const where = (call[0] as { where: { congregationId: number } }).where
+      expect(where.congregationId).toBe(42)
+    }
+  })
+})
+
+describe('buildPublishersYearlyActivityXlsx', () => {
+  it('does not query the database', async () => {
+    await buildPublishersYearlyActivityXlsx([])
+
+    expect(db.publisherActivity.findMany).not.toHaveBeenCalled()
+  })
+
+  it('produces 12 sheets for a theocratic year', async () => {
+    const workbook = await buildFromActivities([])
 
     expect(workbook.worksheets).toHaveLength(12)
   })
 
-  it('affiche "A préché" pour un proclamateur normal', async () => {
-    vi.mocked(db.publisherActivity.findMany).mockResolvedValue([
+  it('shows "A préché" for a normal publisher', async () => {
+    const workbook = await buildFromActivities([
       makeActivity(PublisherType.Normal, { isPublisher: true, hours: 0, studies: 1 }),
-    ] as never)
-
-    const buffer = await generatePublishersYearlyActivityXlsx(db, 1, 2025)
-    const workbook = await readWorkbook(buffer)
-    const firstSheet = workbook.worksheets[0]
-    const dataRow = firstSheet.getRow(2)
+    ])
+    const dataRow = workbook.worksheets[0].getRow(2)
 
     expect(dataRow.getCell(3).value).toBe('A préché')
   })
 
-  it('affiche les heures pour un pionnier permanent', async () => {
-    vi.mocked(db.publisherActivity.findMany).mockResolvedValue([
-      makeActivity(PublisherType.PionnierPermanant, { hours: 50 }),
-    ] as never)
-
-    const buffer = await generatePublishersYearlyActivityXlsx(db, 1, 2025)
-    const workbook = await readWorkbook(buffer)
+  it('shows hours for a permanent pioneer', async () => {
+    const workbook = await buildFromActivities([makeActivity(PublisherType.PionnierPermanant, { hours: 50 })])
     const dataRow = workbook.worksheets[0].getRow(2)
 
     expect(dataRow.getCell(3).value).toBe('50')
   })
 
-  it('affiche les heures pour un pionnier auxiliaire', async () => {
-    vi.mocked(db.publisherActivity.findMany).mockResolvedValue([
-      makeActivity(PublisherType.PionnierAuxiliaires, { hours: 30 }),
-    ] as never)
-
-    const buffer = await generatePublishersYearlyActivityXlsx(db, 1, 2025)
-    const workbook = await readWorkbook(buffer)
+  it('shows hours for an auxiliary pioneer', async () => {
+    const workbook = await buildFromActivities([makeActivity(PublisherType.PionnierAuxiliaires, { hours: 30 })])
     const dataRow = workbook.worksheets[0].getRow(2)
 
     expect(dataRow.getCell(3).value).toBe('30')
   })
 
-  it('affiche les heures pour un pionnier spécial', async () => {
-    vi.mocked(db.publisherActivity.findMany).mockResolvedValue([
-      makeActivity(PublisherType.PionnierSpecial, { hours: 130 }),
-    ] as never)
-
-    const buffer = await generatePublishersYearlyActivityXlsx(db, 1, 2025)
-    const workbook = await readWorkbook(buffer)
+  it('shows hours for a special pioneer', async () => {
+    const workbook = await buildFromActivities([makeActivity(PublisherType.PionnierSpecial, { hours: 130 })])
     const dataRow = workbook.worksheets[0].getRow(2)
 
     expect(dataRow.getCell(3).value).toBe('130')
   })
 
-  it('affiche les heures pour un missionnaire', async () => {
-    vi.mocked(db.publisherActivity.findMany).mockResolvedValue([
-      makeActivity(PublisherType.Missionnaire, { hours: 120 }),
-    ] as never)
-
-    const buffer = await generatePublishersYearlyActivityXlsx(db, 1, 2025)
-    const workbook = await readWorkbook(buffer)
+  it('shows hours for a missionary', async () => {
+    const workbook = await buildFromActivities([makeActivity(PublisherType.Missionnaire, { hours: 120 })])
     const dataRow = workbook.worksheets[0].getRow(2)
 
     expect(dataRow.getCell(3).value).toBe('120')
