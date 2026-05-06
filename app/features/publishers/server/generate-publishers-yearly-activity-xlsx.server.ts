@@ -3,21 +3,36 @@ import excelJs from 'exceljs'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic
-export async function generatePublishersYearlyActivityXlsx(
+type MonthlyActivities = {
+  month: number
+  year: number
+  activities: Awaited<ReturnType<typeof getPublishersMonthlyActivity>>
+}
+
+const THEOCRATIC_YEAR_MONTHS = Array.from({ length: 12 }, (_, i) => (i + 8 > 11 ? i - 4 : i + 8))
+
+export function getPublishersYearlyActivities(
   db: TransactionClient,
   congregationId: number,
   year: number,
-) {
-  const months = Array.from({ length: 12 }, (_, i) => (i + 8 > 11 ? i - 4 : i + 8))
+): Promise<MonthlyActivities[]> {
+  return Promise.all(
+    THEOCRATIC_YEAR_MONTHS.map(async month => {
+      const yearMonth = month < 8 ? year + 1 : year
+      const activities = await getPublishersMonthlyActivity(db, congregationId, month, yearMonth)
+      return { month, year: yearMonth, activities }
+    }),
+  )
+}
+
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex report generation logic
+export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivities[]) {
   const workbook = new excelJs.Workbook()
 
-  for (const month of months) {
-    const yearMonth = month < 8 ? year + 1 : year
+  for (const { month, year: yearMonth, activities } of months) {
     const date = new Date(yearMonth, month, 1)
     const monthName = date.toLocaleString('fr', { month: 'long' })
     const sheetName = `${monthName} ${yearMonth}`.toUpperCase()
-    const activities = await getPublishersMonthlyActivity(db, congregationId, month, yearMonth)
 
     const worksheet = workbook.addWorksheet(sheetName)
     worksheet.columns = [

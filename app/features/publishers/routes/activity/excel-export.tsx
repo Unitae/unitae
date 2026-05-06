@@ -1,5 +1,8 @@
 import { redirect } from 'react-router'
-import { generatePublishersYearlyActivityXlsx } from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
+import {
+  buildPublishersYearlyActivityXlsx,
+  getPublishersYearlyActivities,
+} from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -11,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_excel_export_meta_title() }]
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewActivities = permissions.has(Role.ActivityViewer)
@@ -27,15 +30,17 @@ export function loader({ params, context }: Route.LoaderArgs) {
     currentUser,
   })
 
-  return withScopeFromContext(context, async db => {
-    const file = await generatePublishersYearlyActivityXlsx(db, currentUser.congregationId, Number(params.year))
+  const months = await withScopeFromContext(context, db =>
+    getPublishersYearlyActivities(db, currentUser.congregationId, Number(params.year)),
+  )
 
-    return new Response(file, {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/vnd.ms-excel',
-        'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${params.year}.xlsx"`,
-      },
-    })
+  const file = await buildPublishersYearlyActivityXlsx(months)
+
+  return new Response(file, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/vnd.ms-excel',
+      'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${params.year}.xlsx"`,
+    },
   })
 }
