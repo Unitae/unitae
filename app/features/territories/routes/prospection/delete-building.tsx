@@ -3,8 +3,8 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deleteBuilding } from '~/features/territories/server/delete-building.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.ProspectionManager)
+  requirePermission(permissions, Permission.ProspectionManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -55,7 +55,7 @@ export default function DeleteBuilding({ loaderData }: Route.ComponentProps) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const { congregationId } = context.get(userContext)
 

@@ -4,7 +4,7 @@ import { Link, redirect, useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +31,7 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.ProgramViewer)) {
+  if (!permissions.has(Permission.ProgramViewer)) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)
     throw redirect('/')
   }
@@ -56,9 +56,9 @@ export function loader({ context }: Route.LoaderArgs) {
     return {
       upcomingEvents,
       roles: {
-        canManagePrograms: permissions.has(Role.ProgramManager),
+        canManagePrograms: permissions.has(Permission.ProgramManager),
         canViewExternalSpeakers:
-          permissions.has(Role.ExternalSpeakerViewer) || permissions.has(Role.ExternalSpeakerManager),
+          permissions.has(Permission.ExternalSpeakerViewer) || permissions.has(Permission.ExternalSpeakerManager),
       },
     }
   })

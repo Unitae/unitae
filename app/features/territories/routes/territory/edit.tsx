@@ -22,9 +22,9 @@ import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import PendingChangesRail from '~/features/territories/ui/PendingChangesRail'
 
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import {
@@ -132,7 +132,7 @@ function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(userContext)
@@ -696,7 +696,7 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), {
     schema: updateTerritorySchema,

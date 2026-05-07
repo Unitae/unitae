@@ -2,8 +2,8 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { reorderSection } from '~/features/display-board/server/document.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/move-down'
@@ -14,7 +14,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.BoardValidator)
+  requirePermission(permissions, Permission.BoardValidator)
 
   const session = await getSession(request.headers.get('Cookie'))
 

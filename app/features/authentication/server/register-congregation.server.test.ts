@@ -9,8 +9,8 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { findUnique: vi.fn(), create: vi.fn() },
     user: { findUnique: vi.fn(), create: vi.fn() },
-    userRole: { findUnique: vi.fn(), upsert: vi.fn() },
-    congregationUserRole: { create: vi.fn() },
+    permission: { findUnique: vi.fn(), upsert: vi.fn() },
+    congregationUserPermission: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
   },
   withScope: vi.fn((_id: number, fn: (db: unknown) => Promise<unknown>) => fn(scopedDb)),
@@ -29,8 +29,8 @@ beforeEach(() => {
   vi.mocked(db.user.findUnique).mockResolvedValue(null as never)
   vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test-congre' } as never)
   vi.mocked(db.user.create).mockResolvedValue({ id: 10 } as never)
-  vi.mocked(db.userRole.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
-  vi.mocked(db.congregationUserRole.create).mockResolvedValue({} as never)
+  vi.mocked(db.permission.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
+  vi.mocked(db.congregationUserPermission.create).mockResolvedValue({} as never)
   scopedDb.eventKind.upsert.mockResolvedValue({} as never)
   scopedDb.programmeTemplate.findFirst.mockResolvedValue(null as never)
   scopedDb.programmeTemplate.create.mockResolvedValue({} as never)
@@ -71,7 +71,7 @@ describe('registerCongregation', () => {
   })
 
   it("fonctionne même si le rôle admin n'existe pas", async () => {
-    vi.mocked(db.userRole.findUnique).mockResolvedValue(null as never)
+    vi.mocked(db.permission.findUnique).mockResolvedValue(null as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 

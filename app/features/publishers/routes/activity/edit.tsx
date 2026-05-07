@@ -9,7 +9,7 @@ import { updatePublisherActivity } from '~/features/publishers/server/publisher-
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
@@ -31,7 +31,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   const userWithRelations = currentUser as typeof currentUser & {
     responsibleFor?: { id: number }
@@ -210,7 +210,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   const userWithRelations = currentUser as typeof currentUser & {
     responsibleFor?: { id: number }

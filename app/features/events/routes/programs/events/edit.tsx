@@ -35,7 +35,7 @@ import { SortableRow } from '~/features/events/ui/SortableRow'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import type { Role } from '~/shared/types/role'
+import type { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -60,7 +60,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
@@ -89,7 +89,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 

@@ -1,8 +1,8 @@
 import { redirect } from 'react-router'
 import { bulkDeleteEvents } from '~/features/events/server/programme-events.server'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/bulk-delete'
 
@@ -12,7 +12,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.ProgramManager)
+  requirePermission(permissions, Permission.ProgramManager)
 
   const { ids } = (await request.json()) as { ids: number[] }
 

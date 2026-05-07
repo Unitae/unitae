@@ -8,8 +8,8 @@ import { createDynamicDocumentSchema } from '~/features/display-board/schemas/bo
 import { createDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { listAvailableDynamicTypes } from '~/features/display-board/server/dynamic-documents.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.BoardValidator)
+  requirePermission(permissions, Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -104,7 +104,7 @@ function AvailableCard({ item, disabled }: { item: AvailableDynamicType; disable
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.BoardValidator)
+  requirePermission(permissions, Permission.BoardValidator)
 
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: createDynamicDocumentSchema })

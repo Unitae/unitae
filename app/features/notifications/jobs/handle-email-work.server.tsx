@@ -5,7 +5,7 @@ import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { runWithLocale } from '~/shared/utils/worker-locale.server'
 import DocumentsExpiring from '../emails/documents-expiring'
 import NewDocumentInBoard from '../emails/new-document-in-board'
@@ -41,8 +41,8 @@ async function handleNewDocumentNotification(data: Extract<EmailJobData, { type:
     where: {
       congregationId: data.congregationId,
       active: true,
-      congregationRoles: {
-        some: { role: { key: Role.BoardValidator } },
+      congregationPermissions: {
+        some: { permission: { key: Permission.BoardValidator } },
       },
     },
   })

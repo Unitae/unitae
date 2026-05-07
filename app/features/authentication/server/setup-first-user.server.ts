@@ -2,7 +2,7 @@ import { seedDefaultTemplates } from '~/features/events/server/seed-templates.se
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
-import { seedCongregationDefaults, seedRoles } from '~/shared/domain/setup.server'
+import { seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
 
 type Locale = (typeof locales)[number]
 
@@ -15,7 +15,7 @@ export async function setupFirstUser(
   congregationSlug: string,
   locale: Locale,
 ) {
-  await seedRoles(db)
+  await seedPermissions(db)
 
   const hashedPassword = await hash(password)
 
@@ -41,12 +41,12 @@ export async function setupFirstUser(
     },
   })
 
-  const adminRole = await db.userRole.findUnique({ where: { key: 'admin' } })
-  if (adminRole) {
-    await db.congregationUserRole.create({
+  const adminPermission = await db.permission.findUnique({ where: { key: 'admin' } })
+  if (adminPermission) {
+    await db.congregationUserPermission.create({
       data: {
         userId: user.id,
-        roleId: adminRole.id,
+        permissionId: adminPermission.id,
         congregationId: congregation.id,
       },
     })

@@ -1,39 +1,39 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 type Locale = (typeof locales)[number]
 
-const ROLE_DESCRIPTIONS: Record<Role, string> = {
-  [Role.Admin]: "Peut administrer l'application",
-  [Role.BoardUploader]: "Peut téléverser de nouveaux documents sur le tableau d'affichage",
-  [Role.BoardValidator]: "Peut valider les documents sur le tableau d'affichage et les rendre visibles",
-  [Role.TerritoriesViewer]: 'Peut voir les listes de territoires et les attributations',
-  [Role.TerritoriesManager]: 'Peut gérer les territoires (créer, modifier, supprimer)',
-  [Role.ProspectionViewer]: 'Peut voir les données de prospection du territoires',
-  [Role.ProspectionManager]: 'Peut gérer les données de prospection du territoires (modifier)',
-  [Role.SettingsUserManager]: 'Peut gérer les utilisateurs (créer, modifier, supprimer)',
-  [Role.PublisherViewer]: 'Peut voir les proclamateurs',
-  [Role.PublisherManager]: 'Peut gérer les proclamateurs (créer, modifier, supprimer)',
-  [Role.ActivityViewer]: `Peut voir l'activité des proclamateurs`,
-  [Role.ActivityManager]: `Peut gérer l'activité des proclamateurs (modifier)`,
-  [Role.ProgramViewer]: `Peut voir les programmes de l'assemblée`,
-  [Role.ProgramManager]: `Peut gérer les programmes de l'assemblée (modifier)`,
-  [Role.ExternalSpeakerViewer]: 'Peut consulter le registre des orateurs externes',
-  [Role.ExternalSpeakerManager]: 'Peut gérer le registre des orateurs externes (créer, modifier, archiver)',
+const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
+  [Permission.Admin]: "Peut administrer l'application",
+  [Permission.BoardUploader]: "Peut téléverser de nouveaux documents sur le tableau d'affichage",
+  [Permission.BoardValidator]: "Peut valider les documents sur le tableau d'affichage et les rendre visibles",
+  [Permission.TerritoriesViewer]: 'Peut voir les listes de territoires et les attributations',
+  [Permission.TerritoriesManager]: 'Peut gérer les territoires (créer, modifier, supprimer)',
+  [Permission.ProspectionViewer]: 'Peut voir les données de prospection du territoires',
+  [Permission.ProspectionManager]: 'Peut gérer les données de prospection du territoires (modifier)',
+  [Permission.SettingsUserManager]: 'Peut gérer les utilisateurs (créer, modifier, supprimer)',
+  [Permission.PublisherViewer]: 'Peut voir les proclamateurs',
+  [Permission.PublisherManager]: 'Peut gérer les proclamateurs (créer, modifier, supprimer)',
+  [Permission.ActivityViewer]: `Peut voir l'activité des proclamateurs`,
+  [Permission.ActivityManager]: `Peut gérer l'activité des proclamateurs (modifier)`,
+  [Permission.ProgramViewer]: `Peut voir les programmes de l'assemblée`,
+  [Permission.ProgramManager]: `Peut gérer les programmes de l'assemblée (modifier)`,
+  [Permission.ExternalSpeakerViewer]: 'Peut consulter le registre des orateurs externes',
+  [Permission.ExternalSpeakerManager]: 'Peut gérer le registre des orateurs externes (créer, modifier, archiver)',
 }
 
 /**
- * Ensure all 14 UserRole rows exist. Uses upsert so it is safe to call on every
- * setup / registration — existing roles are updated, missing ones are created.
+ * Ensure all Permission rows exist. Uses upsert so it is safe to call on every
+ * setup / registration — existing permissions are updated, missing ones are created.
  *
  * Called from setup (single-tenant), registration (multi-tenant), and the seed script.
  */
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
-export async function seedRoles(db: any) {
-  for (const [key, description] of Object.entries(ROLE_DESCRIPTIONS)) {
-    await db.userRole.upsert({
+export async function seedPermissions(db: any) {
+  for (const [key, description] of Object.entries(PERMISSION_DESCRIPTIONS)) {
+    await db.permission.upsert({
       where: { key },
       update: { description },
       create: { key, description },

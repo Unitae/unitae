@@ -25,12 +25,12 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  requireRole,
+  requirePermission,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -49,9 +49,9 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
-  requireRole(permissions, Role.ProspectionManager)
+  requirePermission(permissions, Permission.ProspectionManager)
 
   const { congregationId } = context.get(userContext)
 
@@ -236,9 +236,9 @@ export default function EditBuildingPage({ loaderData }: Route.ComponentProps) {
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
-  requireRole(permissions, Role.ProspectionManager)
+  requirePermission(permissions, Permission.ProspectionManager)
 
   const previousPage = request.headers.get('referer') ?? '/territories/buildings'
   const congregation = context.get(congregationContext)

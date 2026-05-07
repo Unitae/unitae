@@ -7,7 +7,7 @@ const mockDb = {
   user: { findUnique: vi.fn(), update: vi.fn() },
   publisherGroup: { updateMany: vi.fn() },
   attribution: { updateMany: vi.fn() },
-  congregationUserRole: { deleteMany: vi.fn() },
+  congregationUserPermission: { deleteMany: vi.fn() },
   passwordResetToken: { deleteMany: vi.fn() },
   boardDocumentVersion: { updateMany: vi.fn() },
   dataDeletionRecord: { create: vi.fn() },
@@ -29,7 +29,7 @@ describe('anonymizeUser', () => {
     mockDb.user.update.mockResolvedValue({} as never)
     mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.attribution.updateMany.mockResolvedValue({ count: 1 } as never)
-    mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 2 } as never)
+    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 2 } as never)
     mockDb.passwordResetToken.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.boardDocumentVersion.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.dataDeletionRecord.create.mockResolvedValue({} as never)
@@ -54,7 +54,7 @@ describe('anonymizeUser', () => {
       where: { publisherId: 1, endDate: null },
       data: { endDate: expect.any(Date) },
     })
-    expect(mockDb.congregationUserRole.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
+    expect(mockDb.congregationUserPermission.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
     expect(mockDb.passwordResetToken.deleteMany).toHaveBeenCalledWith({ where: { userId: 1 } })
     expect(mockDb.boardDocumentVersion.updateMany).toHaveBeenCalledWith({
       where: { uploadedById: 1 },

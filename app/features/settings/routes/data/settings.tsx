@@ -2,7 +2,7 @@ import { ArrowRight } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canManageSettings = permissions.has(Role.Admin)
+  const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')

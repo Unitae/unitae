@@ -8,7 +8,7 @@ import { getAllowedZips, parseZips, serializeZips } from '~/features/territories
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -81,7 +81,7 @@ function DurationInput({
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')
@@ -293,7 +293,7 @@ export default function TerritorySettingsPage({ loaderData, actionData }: Route.
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
   if (!canManageTerritories) {
     throw redirect('/')

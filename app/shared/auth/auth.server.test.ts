@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 vi.mock('~/features/authentication/server/session.server', () => ({
   verifySession: vi.fn(),
 }))
 
 vi.mock('~/shared/auth/permissions.server', () => ({
-  verifyRole: vi.fn(),
+  verifyPermission: vi.fn(),
 }))
 
 const { authenticateAndAuthorize } = await import('./auth.server')
 const { verifySession } = await import('~/features/authentication/server/session.server')
-const { verifyRole } = await import('~/shared/auth/permissions.server')
+const { verifyPermission } = await import('~/shared/auth/permissions.server')
 
 function makeRequest() {
   return new Request('http://localhost/')
@@ -44,29 +44,29 @@ describe('authenticateAndAuthorize', () => {
     expect(result.congregationId).toBe(5)
   })
 
-  it('résout les permissions via verifyRole', async () => {
-    vi.mocked(verifyRole).mockImplementation((_req, role) => {
-      return Promise.resolve(role === Role.Admin)
+  it('résout les permissions via verifyPermission', async () => {
+    vi.mocked(verifyPermission).mockImplementation((_req, role) => {
+      return Promise.resolve(role === Permission.Admin)
     })
 
-    const result = await authenticateAndAuthorize(makeRequest(), [Role.Admin, Role.BoardUploader])
+    const result = await authenticateAndAuthorize(makeRequest(), [Permission.Admin, Permission.BoardUploader])
 
-    expect(result.can(Role.Admin)).toBe(true)
-    expect(result.can(Role.BoardUploader)).toBe(false)
+    expect(result.can(Permission.Admin)).toBe(true)
+    expect(result.can(Permission.BoardUploader)).toBe(false)
   })
 
   it('retourne false pour un rôle non demandé', async () => {
-    vi.mocked(verifyRole).mockResolvedValue(true as never)
+    vi.mocked(verifyPermission).mockResolvedValue(true as never)
 
-    const result = await authenticateAndAuthorize(makeRequest(), [Role.Admin])
+    const result = await authenticateAndAuthorize(makeRequest(), [Permission.Admin])
 
-    expect(result.can(Role.TerritoriesViewer)).toBe(false)
+    expect(result.can(Permission.TerritoriesViewer)).toBe(false)
   })
 
   it('fonctionne sans rôles', async () => {
     const result = await authenticateAndAuthorize(makeRequest())
 
-    expect(verifyRole).not.toHaveBeenCalled()
-    expect(result.can(Role.Admin)).toBe(false)
+    expect(verifyPermission).not.toHaveBeenCalled()
+    expect(result.can(Permission.Admin)).toBe(false)
   })
 })

@@ -8,9 +8,9 @@ import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
 import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -46,13 +46,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  requireRole(permissions, Role.ProgramViewer)
+  requirePermission(permissions, Permission.ProgramViewer)
 
   const eventId = requireParamId(params.eventId, '/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 

@@ -6,7 +6,7 @@ import {
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/excel-export'
 
@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewActivities = permissions.has(Role.ActivityViewer)
+  const canViewActivities = permissions.has(Permission.ActivityViewer)
 
   if (!canViewActivities) {
     logger.warn(

@@ -11,7 +11,7 @@ import {
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -29,7 +29,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canManageUser = permissions.has(Role.SettingsUserManager)
+  const canManageUser = permissions.has(Permission.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')

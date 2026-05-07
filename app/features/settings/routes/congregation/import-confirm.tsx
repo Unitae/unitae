@@ -3,8 +3,8 @@ import { Form, Link, redirect, useSearchParams } from 'react-router'
 import type { ImportSummary } from '~/features/settings/server/data-transfer.type'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription, AlertTitle } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +19,7 @@ const ENTITY_LABELS: Record<string, () => string> = {
   settings: () => m.data_transfer_entity_settings(),
   'event-kinds': () => m.data_transfer_entity_event_kinds(),
   users: () => m.data_transfer_entity_users(),
-  'congregation-user-roles': () => m.data_transfer_entity_roles(),
+  'congregation-user-permissions': () => m.data_transfer_entity_permissions(),
   'publisher-groups': () => m.data_transfer_entity_publisher_groups(),
   'publisher-activities': () => m.data_transfer_entity_publisher_activities(),
   territories: () => m.data_transfer_entity_territories(),
@@ -52,7 +52,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.Admin)
+  requirePermission(permissions, Permission.Admin)
   return null
 }
 
@@ -184,7 +184,7 @@ export default function ImportConfirmPage() {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.Admin)
+  requirePermission(permissions, Permission.Admin)
 
   const currentUser = context.get(userContext)
   const formData = await request.formData()

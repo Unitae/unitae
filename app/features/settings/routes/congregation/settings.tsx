@@ -13,7 +13,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -31,7 +31,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManageSettings = permissions.has(Role.Admin)
+  const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
@@ -126,7 +126,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
   const { id: actorId } = context.get(userContext)
-  const canManageSettings = permissions.has(Role.Admin)
+  const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')

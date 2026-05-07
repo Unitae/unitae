@@ -31,7 +31,7 @@ export const ENTITY_FILES = [
   'settings',
   'event-kinds',
   'users',
-  'congregation-user-roles',
+  'congregation-user-permissions',
   'publisher-groups',
   'publisher-activities',
   'territories',

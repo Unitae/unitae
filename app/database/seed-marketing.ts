@@ -23,7 +23,7 @@ import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '../features/territories/model/territory-kind.type'
 import { PublisherType } from '../shared/types/publisher-type'
-import { Role } from '../shared/types/role'
+import { Permission } from '../shared/types/permission'
 import { PrismaClient } from './generated/client'
 
 const adapter = new PrismaPg({ connectionString: process.env.DB_URL })
@@ -552,7 +552,7 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.buildingEntrance.deleteMany({ where: { congregationId } })
   await prisma.building.deleteMany({ where: { congregationId } })
   await prisma.territory.deleteMany({ where: { congregationId } })
-  await prisma.congregationUserRole.deleteMany({ where: { congregationId } })
+  await prisma.congregationUserPermission.deleteMany({ where: { congregationId } })
   await prisma.user.updateMany({
     where: { congregationId },
     data: { publisherGroupId: null },
@@ -709,32 +709,32 @@ async function main() {
   console.log(`  ✓ ${createdUsers.length} publishers`)
 
   // ── Roles ─────────────────────────────────────────────────────────────
-  const adminRole = await prisma.userRole.findUnique({
-    where: { key: Role.Admin },
+  const adminRole = await prisma.permission.findUnique({
+    where: { key: Permission.Admin },
   })
-  const terrManagerRole = await prisma.userRole.findUnique({
-    where: { key: Role.TerritoriesManager },
+  const terrManagerRole = await prisma.permission.findUnique({
+    where: { key: Permission.TerritoriesManager },
   })
-  const terrViewerRole = await prisma.userRole.findUnique({
-    where: { key: Role.TerritoriesViewer },
+  const terrViewerRole = await prisma.permission.findUnique({
+    where: { key: Permission.TerritoriesViewer },
   })
-  const boardUploaderRole = await prisma.userRole.findUnique({
-    where: { key: Role.BoardUploader },
+  const boardUploaderRole = await prisma.permission.findUnique({
+    where: { key: Permission.BoardUploader },
   })
-  const boardValidatorRole = await prisma.userRole.findUnique({
-    where: { key: Role.BoardValidator },
+  const boardValidatorRole = await prisma.permission.findUnique({
+    where: { key: Permission.BoardValidator },
   })
-  const pubManagerRole = await prisma.userRole.findUnique({
-    where: { key: Role.PublisherManager },
+  const pubManagerRole = await prisma.permission.findUnique({
+    where: { key: Permission.PublisherManager },
   })
-  const activityManagerRole = await prisma.userRole.findUnique({
-    where: { key: Role.ActivityManager },
+  const activityManagerRole = await prisma.permission.findUnique({
+    where: { key: Permission.ActivityManager },
   })
-  const programManagerRole = await prisma.userRole.findUnique({
-    where: { key: Role.ProgramManager },
+  const programManagerRole = await prisma.permission.findUnique({
+    where: { key: Permission.ProgramManager },
   })
-  const settingsUserManagerRole = await prisma.userRole.findUnique({
-    where: { key: Role.SettingsUserManager },
+  const settingsUserManagerRole = await prisma.permission.findUnique({
+    where: { key: Permission.SettingsUserManager },
   })
 
   // First elder = admin with all management roles
@@ -752,16 +752,16 @@ async function main() {
 
   for (const role of rolesToAssign) {
     if (!role) continue
-    await prisma.congregationUserRole.upsert({
+    await prisma.congregationUserPermission.upsert({
       where: {
-        userId_roleId_congregationId: {
+        userId_permissionId_congregationId: {
           userId: mainAdmin.id,
-          roleId: role.id,
+          permissionId: role.id,
           congregationId: congId,
         },
       },
       update: {},
-      create: { userId: mainAdmin.id, roleId: role.id, congregationId: congId },
+      create: { userId: mainAdmin.id, permissionId: role.id, congregationId: congId },
     })
   }
 
@@ -769,25 +769,25 @@ async function main() {
   for (let i = 1; i < 5; i++) {
     for (const role of [terrViewerRole, boardValidatorRole]) {
       if (!role) continue
-      await prisma.congregationUserRole.upsert({
+      await prisma.congregationUserPermission.upsert({
         where: {
-          userId_roleId_congregationId: {
+          userId_permissionId_congregationId: {
             userId: createdUsers[i].id,
-            roleId: role.id,
+            permissionId: role.id,
             congregationId: congId,
           },
         },
         update: {},
         create: {
           userId: createdUsers[i].id,
-          roleId: role.id,
+          permissionId: role.id,
           congregationId: congId,
         },
       })
     }
   }
 
-  console.log('  ✓ Role assignments')
+  console.log('  ✓ Permission assignments')
 
   // ── Publisher Groups ──────────────────────────────────────────────────
   const groupNames = [

@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { isTemplateResponsible, reorderTemplateParts } from '~/features/events/server/programme-templates.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/reorder-parts'
@@ -24,7 +24,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, congregationId)
-    if (!permissions.has(Role.ProgramManager) && !responsible) {
+    if (!permissions.has(Permission.ProgramManager) && !responsible) {
       throw redirect('/settings/congregation/templates')
     }
 

@@ -1,13 +1,13 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramViewer)) return Response.json(null, { status: 403 })
+  if (!permissions.has(Permission.ProgramViewer)) return Response.json(null, { status: 403 })
 
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)

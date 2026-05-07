@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { reorderBoardItems } from '~/features/display-board/server/board-document.server'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/reorder'
 
@@ -13,7 +13,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.BoardValidator)
+  requirePermission(permissions, Permission.BoardValidator)
 
   const { orderedItems } = (await request.json()) as { orderedItems: OrderedItem[] }
 

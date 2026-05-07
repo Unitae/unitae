@@ -1,7 +1,7 @@
 import { ExternalLink, Send } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 function getTerritoryTypeLabel(type: string): string {
   const labels: Record<string, () => string> = {
@@ -64,7 +64,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.TerritoriesManager)) {
+  if (!permissions.has(Permission.TerritoriesManager)) {
     logger.warn(
       `Tried to load territories available for attribution. User ID: ${currentUser.id}. Does NOT have rights to manage territories.`,
     )
@@ -73,7 +73,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   logger.info(`Loading territories available for attribution. User ID: ${currentUser.id}.`)
 
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {

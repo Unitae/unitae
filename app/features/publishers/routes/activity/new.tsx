@@ -10,7 +10,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -30,7 +30,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   const userWithRelations = currentUser as typeof currentUser & {
     responsibleFor?: { id: number }
@@ -302,7 +302,7 @@ export default function NewActivity({ loaderData, actionData }: Route.ComponentP
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   const userWithRelations = currentUser as typeof currentUser & {
     responsibleFor?: { id: number }

@@ -7,8 +7,8 @@ vi.mock('~/shared/domain/audit.server', () => ({
 
 const mockDb = {
   user: { update: vi.fn() },
-  congregationUserRole: { deleteMany: vi.fn(), createMany: vi.fn() },
-  userRole: { findMany: vi.fn() },
+  congregationUserPermission: { deleteMany: vi.fn(), createMany: vi.fn() },
+  permission: { findMany: vi.fn() },
 }
 
 const { updateUser } = await import('./update-user.server')
@@ -21,15 +21,15 @@ beforeEach(() => {
 describe('updateUser', () => {
   it('updates user data', async () => {
     mockDb.user.update.mockResolvedValue({} as never)
-    mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 0 } as never)
-    mockDb.userRole.findMany.mockResolvedValue([] as never)
+    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
+    mockDb.permission.findMany.mockResolvedValue([] as never)
 
     await updateUser(mockDb as never, 1, 10, 99, {
       firstname: 'Marie',
       lastname: 'Martin',
       email: 'Marie.Martin@Example.COM',
       active: true,
-      roles: [],
+      permissions: [],
     })
 
     const call = mockDb.user.update.mock.calls[0][0]
@@ -39,46 +39,46 @@ describe('updateUser', () => {
     expect(call.data.active).toBe(true)
   })
 
-  it('deletes existing roles and creates new ones', async () => {
+  it('deletes existing permissions and creates new ones', async () => {
     mockDb.user.update.mockResolvedValue({} as never)
-    mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 2 } as never)
-    mockDb.userRole.findMany.mockResolvedValue([
+    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 2 } as never)
+    mockDb.permission.findMany.mockResolvedValue([
       { id: 100, key: 'admin' },
       { id: 101, key: 'board-uploader' },
     ] as never)
-    mockDb.congregationUserRole.createMany.mockResolvedValue({ count: 2 } as never)
+    mockDb.congregationUserPermission.createMany.mockResolvedValue({ count: 2 } as never)
 
     await updateUser(mockDb as never, 5, 10, 99, {
       firstname: 'Paul',
       lastname: 'Durand',
       email: 'paul@example.com',
       active: true,
-      roles: ['admin', 'board-uploader'],
+      permissions: ['admin', 'board-uploader'],
     })
 
-    expect(mockDb.congregationUserRole.deleteMany).toHaveBeenCalledWith({
+    expect(mockDb.congregationUserPermission.deleteMany).toHaveBeenCalledWith({
       where: { userId: 5, congregationId: 10 },
     })
 
-    expect(mockDb.congregationUserRole.createMany).toHaveBeenCalledWith({
+    expect(mockDb.congregationUserPermission.createMany).toHaveBeenCalledWith({
       data: [
-        { userId: 5, roleId: 100, congregationId: 10 },
-        { userId: 5, roleId: 101, congregationId: 10 },
+        { userId: 5, permissionId: 100, congregationId: 10 },
+        { userId: 5, permissionId: 101, congregationId: 10 },
       ],
     })
   })
 
   it('calls audit with correct action', async () => {
     mockDb.user.update.mockResolvedValue({} as never)
-    mockDb.congregationUserRole.deleteMany.mockResolvedValue({ count: 0 } as never)
-    mockDb.userRole.findMany.mockResolvedValue([] as never)
+    mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
+    mockDb.permission.findMany.mockResolvedValue([] as never)
 
     await updateUser(mockDb as never, 7, 10, 99, {
       firstname: 'Luc',
       lastname: 'Bernard',
       email: 'luc@example.com',
       active: false,
-      roles: ['admin'],
+      permissions: ['admin'],
     })
 
     expect(vi.mocked(audit)).toHaveBeenCalledWith({
@@ -87,7 +87,7 @@ describe('updateUser', () => {
       actorId: 99,
       entityType: 'User',
       entityId: 7,
-      metadata: { roles: ['admin'] },
+      metadata: { permissions: ['admin'] },
     })
   })
 })

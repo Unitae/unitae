@@ -6,7 +6,7 @@ import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -32,8 +32,8 @@ const visibleNow = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canUploadDocument = permissions.has(Role.BoardUploader)
-  const canManageBoard = permissions.has(Role.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
     const congregationId = currentUser.congregationId

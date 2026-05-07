@@ -1,9 +1,9 @@
 import { type RouterContext, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
-import { verifyRole } from '~/shared/auth/permissions.server'
+import { verifyPermission } from '~/shared/auth/permissions.server'
 import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
 import { hasDataProcessingConsent } from '~/shared/domain/consent.server'
-import type { Role } from '~/shared/types/role'
+import type { Permission } from '~/shared/types/permission'
 
 interface MiddlewareArgs {
   request: Request
@@ -23,13 +23,13 @@ async function enforceGdprConsent(userId: number): Promise<void> {
  *
  * Apply to the authenticated layout route — it cascades to all child routes.
  */
-export function requireAuth(roles: Role[] = []) {
+export function requireAuth(roles: Permission[] = []) {
   return async ({ request, context }: MiddlewareArgs, next: () => Promise<Response>) => {
     const { currentUser, congregation } = await verifySession(request)
 
     // Resolve all role permissions in parallel
-    const resolved = await Promise.all(roles.map(async role => [role, await verifyRole(request, role)] as const))
-    const permissions = new Set<Role>(resolved.filter(([, granted]) => granted).map(([role]) => role))
+    const resolved = await Promise.all(roles.map(async role => [role, await verifyPermission(request, role)] as const))
+    const permissions = new Set<Permission>(resolved.filter(([, granted]) => granted).map(([role]) => role))
 
     await enforceGdprConsent(currentUser.id)
 

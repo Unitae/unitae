@@ -9,9 +9,9 @@ import ArchiveBuildingToggleButton from '~/features/territories/ui/ArchiveBuildi
 import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspectionInfo'
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -27,10 +27,10 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewProspection = permissions.has(Role.ProspectionViewer)
-  const canManageProspection = permissions.has(Role.ProspectionManager)
-  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canManageProspection = permissions.has(Permission.ProspectionManager)
+  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
   if (!canViewProspection) {
     logger.warn(
@@ -131,7 +131,7 @@ export default function BuildingPage({ loaderData }: Route.ComponentProps) {
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: buildingNotesSchema })
   if (submission.status !== 'success') {

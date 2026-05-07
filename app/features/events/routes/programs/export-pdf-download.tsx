@@ -15,13 +15,13 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse } from '~/shared/infra/pdf.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/export-pdf-download'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramViewer)) throw redirect('/programs')
+  if (!permissions.has(Permission.ProgramViewer)) throw redirect('/programs')
 
   const currentUser = context.get(userContext)
   const congregation = context.get(congregationContext)

@@ -4,7 +4,7 @@ import { data, Form, redirect, useFetcher } from 'react-router'
 import { z } from 'zod'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -31,7 +31,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) throw redirect('/settings/congregation')
+  if (!permissions.has(Permission.Admin)) throw redirect('/settings/congregation')
 
   const { congregationId } = context.get(userContext)
   return withScopeFromContext(context, async db => {
@@ -45,7 +45,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.Admin)) throw redirect('/settings/congregation')
+  if (!permissions.has(Permission.Admin)) throw redirect('/settings/congregation')
 
   const { congregationId } = context.get(userContext)
   const formData = await request.formData()

@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { requireAuth } from '~/shared/auth/middleware.server'
 import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
 
@@ -12,22 +12,22 @@ import type { Route } from './+types/_authenticated-layout'
 
 export const middleware: Route.MiddlewareFunction[] = [
   requireAuth([
-    Role.Admin,
-    Role.BoardUploader,
-    Role.BoardValidator,
-    Role.PublisherViewer,
-    Role.PublisherManager,
-    Role.TerritoriesViewer,
-    Role.TerritoriesManager,
-    Role.ProspectionViewer,
-    Role.ProspectionManager,
-    Role.SettingsUserManager,
-    Role.ProgramViewer,
-    Role.ProgramManager,
-    Role.ActivityViewer,
-    Role.ActivityManager,
-    Role.ExternalSpeakerViewer,
-    Role.ExternalSpeakerManager,
+    Permission.Admin,
+    Permission.BoardUploader,
+    Permission.BoardValidator,
+    Permission.PublisherViewer,
+    Permission.PublisherManager,
+    Permission.TerritoriesViewer,
+    Permission.TerritoriesManager,
+    Permission.ProspectionViewer,
+    Permission.ProspectionManager,
+    Permission.SettingsUserManager,
+    Permission.ProgramViewer,
+    Permission.ProgramManager,
+    Permission.ActivityViewer,
+    Permission.ActivityManager,
+    Permission.ExternalSpeakerViewer,
+    Permission.ExternalSpeakerManager,
   ]),
 ]
 
@@ -37,25 +37,25 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const session = await getSession(request.headers.get('Cookie'))
 
-  const can = (role: Role) => permissions.has(role)
+  const can = (role: Permission) => permissions.has(role)
   const messages = { success: session.get('success'), error: session.get('error') }
 
   return data(
     {
       permissions: {
         canViewBoard: true,
-        canUploadDocument: can(Role.BoardUploader),
-        canManageBoard: can(Role.BoardValidator),
-        canViewPublishers: can(Role.PublisherViewer),
-        canViewTerritories: can(Role.TerritoriesViewer),
-        canViewProspection: can(Role.ProspectionViewer),
-        canManageTerritories: can(Role.TerritoriesManager),
-        canManageSettings: can(Role.Admin),
-        canManageUsers: can(Role.SettingsUserManager),
-        canViewPrograms: can(Role.ProgramViewer),
-        canViewActivity: can(Role.ActivityViewer),
-        canViewExternalSpeakers: can(Role.ExternalSpeakerViewer) || can(Role.ExternalSpeakerManager),
-        canManageExternalSpeakers: can(Role.ExternalSpeakerManager),
+        canUploadDocument: can(Permission.BoardUploader),
+        canManageBoard: can(Permission.BoardValidator),
+        canViewPublishers: can(Permission.PublisherViewer),
+        canViewTerritories: can(Permission.TerritoriesViewer),
+        canViewProspection: can(Permission.ProspectionViewer),
+        canManageTerritories: can(Permission.TerritoriesManager),
+        canManageSettings: can(Permission.Admin),
+        canManageUsers: can(Permission.SettingsUserManager),
+        canViewPrograms: can(Permission.ProgramViewer),
+        canViewActivity: can(Permission.ActivityViewer),
+        canViewExternalSpeakers: can(Permission.ExternalSpeakerViewer) || can(Permission.ExternalSpeakerManager),
+        canManageExternalSpeakers: can(Permission.ExternalSpeakerManager),
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,

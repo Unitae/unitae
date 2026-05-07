@@ -11,7 +11,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -30,11 +30,11 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
-  const canViewPublisher = permissions.has(Role.PublisherViewer)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
-  const canViewProspection = permissions.has(Role.ProspectionViewer)
+  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canViewPublisher = permissions.has(Permission.PublisherViewer)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canViewProspection = permissions.has(Permission.ProspectionViewer)
 
   if (!canViewTerritories) {
     if (canViewProspection) {

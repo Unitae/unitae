@@ -143,15 +143,15 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
-      name: 'congregation-user-roles',
+      name: 'congregation-user-permissions',
       export: async () => {
-        const roles = await db.congregationUserRole.findMany({
+        const permissions = await db.congregationUserPermission.findMany({
           select: {
             userId: true,
-            role: { select: { key: true } },
+            permission: { select: { key: true } },
           },
         })
-        return roles.map(r => ({ userId: r.userId, roleKey: r.role.key }))
+        return permissions.map(p => ({ userId: p.userId, permissionKey: p.permission.key }))
       },
     },
     {

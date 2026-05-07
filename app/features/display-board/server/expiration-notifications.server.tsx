@@ -2,7 +2,7 @@ import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { emailQueue } from '~/shared/infra/email-queue.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 /**
  * Checks all documents whose visibility expires within the next 48 hours
@@ -58,9 +58,9 @@ export async function checkExpiringDocuments(): Promise<{
         where: {
           congregationId,
           active: true,
-          congregationRoles: {
+          congregationPermissions: {
             some: {
-              role: { key: Role.BoardValidator },
+              permission: { key: Permission.BoardValidator },
             },
           },
         },

@@ -14,13 +14,13 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  requireRole,
+  requirePermission,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -44,7 +44,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
   const { congregationId } = context.get(userContext)
@@ -196,7 +196,7 @@ export default function NewTerritoryPage({ loaderData, actionData }: Route.Compo
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: createTerritorySchema })
   if (submission.status !== 'success') {

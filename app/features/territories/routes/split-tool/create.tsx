@@ -8,12 +8,12 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  requireRole,
+  requirePermission,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { handleAppError } from '~/shared/utils/handle-app-error.server'
 import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 
@@ -26,7 +26,7 @@ export function loader(_args: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
   if (submission.status !== 'success') {

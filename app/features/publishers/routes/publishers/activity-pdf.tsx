@@ -7,7 +7,7 @@ import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
 import type { CongregationId, UserId } from '~/shared/types/branded'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/activity-pdf'
@@ -22,7 +22,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.ActivityManager)) {
+  if (!permissions.has(Permission.ActivityManager)) {
     logger.warn(
       `Tried to download publisher S-21. User ID: ${currentUser.id}. Does NOT have rights to manage activity.`,
     )
