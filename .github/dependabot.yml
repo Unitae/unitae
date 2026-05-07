@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    labels:
+      - "type: dependencies"
+      - "area: infra"
     groups:
       github-actions:
         patterns:
@@ -17,6 +20,8 @@ updates:
       day: "monday"
     cooldown:
       default-days: 5
+    labels:
+      - "type: dependencies"
     groups:
       patch-and-minor:
         update-types:
@@ -30,3 +35,6 @@ updates:
       day: "monday"
     cooldown:
       default-days: 8
+    labels:
+      - "type: dependencies"
+      - "area: infra"
