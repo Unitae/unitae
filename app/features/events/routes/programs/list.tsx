@@ -1,6 +1,7 @@
 import { CalendarOff, ChevronRight, FileDown, Loader2, MoreHorizontal, Trash2, UserCog } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
+import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -43,7 +44,13 @@ export function loader({ context }: Route.LoaderArgs) {
     const now = new Date()
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const upcomingEvents = await db.event.findMany({
+    const isProgramManager = permissions.has(Permission.ProgramManager)
+    const responsibleTemplateIds = isProgramManager
+      ? []
+      : await getResponsibleTemplateIds(db, currentUser.id, congregationId)
+    const responsibleTemplateIdSet = new Set(responsibleTemplateIds)
+
+    const events = await db.event.findMany({
       where: {
         congregationId,
         startDate: { gte: startOfCurrentMonth },
@@ -53,10 +60,15 @@ export function loader({ context }: Route.LoaderArgs) {
       orderBy: { startDate: 'asc' },
     })
 
+    const upcomingEvents = events.map(event => ({
+      ...event,
+      canEdit: isProgramManager || (event.templateId != null && responsibleTemplateIdSet.has(event.templateId)),
+    }))
+
     return {
       upcomingEvents,
       roles: {
-        canManagePrograms: permissions.has(Permission.ProgramManager),
+        canCreatePrograms: isProgramManager || responsibleTemplateIds.length > 0,
         canViewExternalSpeakers:
           permissions.has(Permission.ExternalSpeakerViewer) || permissions.has(Permission.ExternalSpeakerManager),
       },
@@ -143,7 +155,8 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const bulkFetcher = useFetcher<{ ok: boolean }>()
 
   const weekGroups = groupByWeek(upcomingEvents)
-  const allIds = upcomingEvents.map(e => e.id)
+  const editableIds = upcomingEvents.filter(e => e.canEdit).map(e => e.id)
+  const hasEditableEvents = editableIds.length > 0
   const isDeleting = bulkFetcher.state !== 'idle'
 
   useEffect(() => {
@@ -162,10 +175,10 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   }
 
   function toggleAll() {
-    if (selectedIds.size === allIds.length) {
+    if (selectedIds.size === editableIds.length) {
       setSelectedIds(new Set())
     } else {
-      setSelectedIds(new Set(allIds))
+      setSelectedIds(new Set(editableIds))
     }
   }
 
@@ -196,7 +209,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_programs() }]}
         actions={
           <div className="flex gap-2">
-            {roles.canManagePrograms && (
+            {roles.canCreatePrograms && (
               <Button asChild>
                 <Link to="./new">{m.programs_new_event_button()}</Link>
               </Button>
@@ -236,11 +249,11 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
 
       {upcomingEvents.length > 0 ? (
         <div className="flex flex-col gap-6">
-          {roles.canManagePrograms && selectedIds.size > 0 && (
+          {hasEditableEvents && selectedIds.size > 0 && (
             <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg border bg-background/95 px-4 py-2 backdrop-blur">
               <input
                 type="checkbox"
-                checked={selectedIds.size === allIds.length}
+                checked={selectedIds.size === editableIds.length}
                 onChange={toggleAll}
                 className="size-4 rounded border border-input accent-primary"
               />
@@ -257,61 +270,68 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
             </div>
           )}
 
-          {weekGroups.map(({ weekKey, weekMonday, events }) => (
-            <div key={weekKey} className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
-                {roles.canManagePrograms && (
-                  <WeekCheckbox events={events} selectedIds={selectedIds} onToggleWeek={toggleWeek} />
-                )}
-                <div className="flex flex-1 items-center gap-3">
-                  <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
-                    {m.programs_week_header_count({
-                      date: weekMonday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }),
-                      count: events.length,
-                    })}
-                  </span>
-                  <div className="flex-1 border-border border-t" />
-                </div>
-              </div>
-
-              {events.map(event => {
-                const weekday = new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long' })
-                const time = formatEventTime(new Date(event.startDate))
-
-                return (
-                  <div key={event.id} className="flex items-center gap-3">
-                    {roles.canManagePrograms && (
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(event.id)}
-                        onChange={() => toggleSelection(event.id)}
-                        className="size-4 rounded border border-input accent-primary"
-                        onClick={e => e.stopPropagation()}
-                      />
-                    )}
-                    <Link to={`./events/${event.id}`} className="flex-1 no-underline">
-                      <Card
-                        className="overflow-hidden transition-colors hover:bg-muted/50"
-                        style={event.kind?.color ? { borderLeftColor: event.kind.color, borderLeftWidth: '4px' } : {}}
-                      >
-                        <CardContent className="flex items-center justify-between py-3">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-medium text-sm">{event.name}</span>
-                            <span className="text-muted-foreground text-xs capitalize">
-                              {weekday}
-                              {time ? ` · ${time}` : ''}
-                              {event.kind ? ` · ${event.kind.name}` : ''}
-                            </span>
-                          </div>
-                          <ChevronRight className="size-4 text-muted-foreground" />
-                        </CardContent>
-                      </Card>
-                    </Link>
+          {weekGroups.map(({ weekKey, weekMonday, events }) => {
+            const editableWeekEvents = events.filter(e => e.canEdit)
+            return (
+              <div key={weekKey} className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  {editableWeekEvents.length > 0 && (
+                    <WeekCheckbox events={editableWeekEvents} selectedIds={selectedIds} onToggleWeek={toggleWeek} />
+                  )}
+                  <div className="flex flex-1 items-center gap-3">
+                    <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
+                      {m.programs_week_header_count({
+                        date: weekMonday.toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        }),
+                        count: events.length,
+                      })}
+                    </span>
+                    <div className="flex-1 border-border border-t" />
                   </div>
-                )
-              })}
-            </div>
-          ))}
+                </div>
+
+                {events.map(event => {
+                  const weekday = new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long' })
+                  const time = formatEventTime(new Date(event.startDate))
+
+                  return (
+                    <div key={event.id} className="flex items-center gap-3">
+                      {event.canEdit && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(event.id)}
+                          onChange={() => toggleSelection(event.id)}
+                          className="size-4 rounded border border-input accent-primary"
+                          onClick={e => e.stopPropagation()}
+                        />
+                      )}
+                      <Link to={`./events/${event.id}`} className="flex-1 no-underline">
+                        <Card
+                          className="overflow-hidden transition-colors hover:bg-muted/50"
+                          style={event.kind?.color ? { borderLeftColor: event.kind.color, borderLeftWidth: '4px' } : {}}
+                        >
+                          <CardContent className="flex items-center justify-between py-3">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="font-medium text-sm">{event.name}</span>
+                              <span className="text-muted-foreground text-xs capitalize">
+                                {weekday}
+                                {time ? ` · ${time}` : ''}
+                                {event.kind ? ` · ${event.kind.name}` : ''}
+                              </span>
+                            </div>
+                            <ChevronRight className="size-4 text-muted-foreground" />
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </div>
+                  )
+                })}
+              </div>
+            )
+          })}
         </div>
       ) : (
         <EmptyState icon={CalendarOff} title={m.programs_empty_title()} description={m.programs_empty_description()} />

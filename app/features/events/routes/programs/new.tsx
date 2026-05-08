@@ -9,6 +9,7 @@ import {
   recurringEventSchema,
   singleEventSchema,
 } from '~/features/events/schemas/program-new.schema'
+import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import { createFreeformEvent } from '~/features/events/server/programme-events.server'
 import {
   createSingleEventFromTemplate,
@@ -47,18 +48,30 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ProgramManager)) throw redirect('/programs')
+  const currentUser = context.get(userContext)
+  const isProgramManager = permissions.has(Permission.ProgramManager)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
-    const [templates, eventKinds] = await Promise.all([
+    const { congregationId } = currentUser
+
+    const responsibleTemplateIds = isProgramManager
+      ? []
+      : await getResponsibleTemplateIds(db, currentUser.id, congregationId)
+    if (!isProgramManager && responsibleTemplateIds.length === 0) throw redirect('/programs')
+
+    const [allTemplates, eventKinds] = await Promise.all([
       getTemplates(db, congregationId),
-      db.eventKind.findMany({
-        where: { congregationId, NOT: { key: 'off' } },
-        orderBy: { name: 'asc' },
-      }),
+      isProgramManager
+        ? db.eventKind.findMany({
+            where: { congregationId, NOT: { key: 'off' } },
+            orderBy: { name: 'asc' },
+          })
+        : Promise.resolve([]),
     ])
-    return { templates, eventKinds }
+
+    const templates = isProgramManager ? allTemplates : allTemplates.filter(t => responsibleTemplateIds.includes(t.id))
+
+    return { templates, eventKinds, isProgramManager }
   })
 }
 
@@ -121,26 +134,48 @@ async function handleFreeformMode({ db, formData, currentUser, congregationId, s
   return null
 }
 
+async function assertCanSubmit(
+  db: TransactionClient,
+  can: (p: Permission) => boolean,
+  isProgramManager: boolean,
+  userId: number,
+  congregationId: number,
+  mode: FormDataEntryValue | null,
+  formData: FormData,
+): Promise<void> {
+  if (!(await canManageAnyProgram(db, can, userId, congregationId))) throw redirect('/programs')
+  if (isProgramManager) return
+  if (mode === 'freeform') throw redirect('/programs')
+
+  const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
+  const submittedTemplateId = Number(formData.get('templateId'))
+  if (!Number.isFinite(submittedTemplateId) || !responsibleTemplateIds.includes(submittedTemplateId)) {
+    throw redirect('/programs')
+  }
+}
+
+function dispatchMode(mode: FormDataEntryValue | null, ctx: ActionCtx) {
+  if (mode === 'recurring') return handleRecurringMode(ctx)
+  if (mode === 'single') return handleSingleMode(ctx)
+  if (mode === 'freeform') return handleFreeformMode(ctx)
+  return Promise.resolve(null)
+}
+
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Permission.ProgramManager)) throw redirect('/programs')
-
   const currentUser = context.get(userContext)
+  const isProgramManager = permissions.has(Permission.ProgramManager)
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const mode = formData.get('mode')
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {
+    const can = (p: Permission) => permissions.has(p)
+    await assertCanSubmit(db, can, isProgramManager, currentUser.id, congregationId, mode, formData)
+
     const ctx: ActionCtx = { db, formData, currentUser, congregationId, session }
-    const modeResult =
-      mode === 'recurring'
-        ? await handleRecurringMode(ctx)
-        : mode === 'single'
-          ? await handleSingleMode(ctx)
-          : mode === 'freeform'
-            ? await handleFreeformMode(ctx)
-            : null
+    const modeResult = await dispatchMode(mode, ctx)
     if (modeResult) return modeResult
     return redirect('/programs', { headers: { 'Set-Cookie': await commitSession(session) } })
   })
@@ -295,14 +330,62 @@ function SingleFields({ alreadyExists }: { alreadyExists: boolean }) {
   )
 }
 
+type Template = { id: number; name: string; weekDay: number | null }
+
+function TemplateSelectField({
+  templates,
+  selectedValue,
+  selectedTemplate,
+  isNoTemplate,
+  isRecurring,
+  isProgramManager,
+  onSelect,
+}: {
+  templates: Template[]
+  selectedValue: string
+  selectedTemplate: Template | null | undefined
+  isNoTemplate: boolean
+  isRecurring: boolean
+  isProgramManager: boolean
+  onSelect: (value: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
+      {templates.length === 0 && <p className="text-muted-foreground text-xs">{m.programs_new_no_templates_hint()}</p>}
+      <Select name={isNoTemplate ? undefined : 'templateId'} value={selectedValue} onValueChange={onSelect}>
+        <SelectTrigger>
+          <SelectValue placeholder={m.programs_new_select_template()} />
+        </SelectTrigger>
+        <SelectContent>
+          {isProgramManager && <SelectItem value={NO_TEMPLATE}>{m.programs_new_no_template_option()}</SelectItem>}
+          {templates.map(template => (
+            <SelectItem key={template.id} value={template.id.toString()}>
+              {template.name}
+              {template.weekDay != null ? ` (${dayLabel(template.weekDay)})` : ''}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {selectedTemplate && (
+        <p className="text-muted-foreground text-xs">
+          {isRecurring
+            ? `Modèle récurrent · ${dayLabel(selectedTemplate.weekDay ?? 0)}s · 19h00–21h00`
+            : 'Modèle unique'}
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function NewEventPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { templates, eventKinds } = loaderData
+  const { templates, eventKinds, isProgramManager } = loaderData
   const [selectedValue, setSelectedValue] = useState<string>('')
   const [occurrences, setOccurrences] = useState(8)
   const [startDate, setStartDate] = useState('')
   const { blocker, markDirty } = useUnsavedChanges()
 
-  const isNoTemplate = selectedValue === NO_TEMPLATE
+  const isNoTemplate = isProgramManager && selectedValue === NO_TEMPLATE
   const selectedTemplate = !isNoTemplate ? templates.find(t => t.id === Number(selectedValue)) : null
   const isRecurring = selectedTemplate?.weekDay != null
   const showForm = isNoTemplate || selectedTemplate != null
@@ -342,40 +425,18 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
         </CardHeader>
         <CardContent>
           <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="templateId">{m.programs_new_template_label()}</Label>
-              {templates.length === 0 && (
-                <p className="text-muted-foreground text-xs">{m.programs_new_no_templates_hint()}</p>
-              )}
-              <Select
-                name={isNoTemplate ? undefined : 'templateId'}
-                value={selectedValue}
-                onValueChange={v => {
-                  setSelectedValue(v)
-                  markDirty()
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={m.programs_new_select_template()} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={NO_TEMPLATE}>{m.programs_new_no_template_option()}</SelectItem>
-                  {templates.map(template => (
-                    <SelectItem key={template.id} value={template.id.toString()}>
-                      {template.name}
-                      {template.weekDay != null ? ` (${dayLabel(template.weekDay)})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {selectedTemplate && (
-                <p className="text-muted-foreground text-xs">
-                  {isRecurring
-                    ? `Modèle récurrent · ${dayLabel(selectedTemplate.weekDay ?? 0)}s · 19h00–21h00`
-                    : 'Modèle unique'}
-                </p>
-              )}
-            </div>
+            <TemplateSelectField
+              templates={templates}
+              selectedValue={selectedValue}
+              selectedTemplate={selectedTemplate}
+              isNoTemplate={isNoTemplate}
+              isRecurring={Boolean(isRecurring)}
+              isProgramManager={isProgramManager}
+              onSelect={v => {
+                setSelectedValue(v)
+                markDirty()
+              }}
+            />
 
             {isNoTemplate && <FreeformFields eventKinds={eventKinds} />}
             {selectedTemplate && isRecurring && (
