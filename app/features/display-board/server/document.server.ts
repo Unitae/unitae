@@ -10,6 +10,13 @@ export function saveFile(congregationId: number, file: File): Promise<string> {
   return saveBoardFile(congregationId, file)
 }
 
+function buildContentDisposition(title: string): string {
+  const filename = `${title}.pdf`
+  const asciiFallback = filename.replace(/[^\x20-\x7E]/g, '_').replace(/"/g, '')
+  const utf8Encoded = encodeURIComponent(filename)
+  return `inline; filename="${asciiFallback}"; filename*=UTF-8''${utf8Encoded}`
+}
+
 export async function getFileStream(document: BoardDocument): Promise<Response | null> {
   const key = document.uri ?? ''
   const file = await getBoardFile(key)
@@ -19,7 +26,7 @@ export async function getFileStream(document: BoardDocument): Promise<Response |
     status: 200,
     headers: {
       'Content-Type': file.contentType,
-      'Content-Disposition': `inline; filename="${document.title}.pdf"`,
+      'Content-Disposition': buildContentDisposition(document.title),
     },
   })
 }
