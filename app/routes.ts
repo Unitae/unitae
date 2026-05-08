@@ -82,13 +82,9 @@ export default [
       route('territories', 'features/settings/routes/territories/settings.tsx'),
       route('territories/card-overlays', 'features/settings/routes/territories/card-overlays.tsx'),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
-      ...prefix('congregation/roles', [
-        index('features/settings/routes/congregation/roles/role-list.tsx'),
-        route('new', 'features/settings/routes/congregation/roles/new-role.tsx'),
-        ...prefix(':roleId', [
-          route('edit', 'features/settings/routes/congregation/roles/edit-role.tsx'),
-          route('delete', 'features/settings/routes/congregation/roles/delete-role.tsx'),
-        ]),
+      ...prefix('permissions', [
+        index('features/settings/routes/permissions/permission-list.tsx'),
+        route(':roleId/edit', 'features/settings/routes/permissions/edit-permission.tsx'),
       ]),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
       route('congregation/event-kinds', 'features/settings/routes/congregation/event-kinds.tsx'),
@@ -109,6 +105,14 @@ export default [
       route('data/import', 'features/settings/routes/congregation/import.tsx'),
       route('data/import/confirm', 'features/settings/routes/congregation/import-confirm.tsx'),
       route('data/import/:jobId/status', 'features/settings/routes/congregation/import-status.tsx'),
+    ]),
+    ...prefix('congregation/roles', [
+      index('features/congregation/routes/roles/role-list.tsx'),
+      route('new', 'features/congregation/routes/roles/new-role.tsx'),
+      ...prefix(':roleId', [
+        route('edit', 'features/congregation/routes/roles/edit-role.tsx'),
+        route('delete', 'features/congregation/routes/roles/delete-role.tsx'),
+      ]),
     ]),
     route('publishers', 'features/publishers/routes/_layout.tsx', [
       index('features/publishers/routes/publishers/publisher-list.tsx'),

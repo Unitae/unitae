@@ -124,40 +124,25 @@ export async function createRole(
   return role
 }
 
-export interface UpdateRoleParams {
+export interface UpdateRoleIdentityParams {
   name?: string
   description?: string | null
-  permissionKeys: string[]
 }
 
-export async function updateRole(
+export async function updateRoleIdentity(
   db: TransactionClient,
   id: number,
   congregationId: number,
   actorId: number,
-  params: UpdateRoleParams,
+  params: UpdateRoleIdentityParams,
 ): Promise<void> {
-  const role = await db.role.findFirst({
-    where: { id, congregationId },
-    include: { permissions: { include: { permission: true } } },
-  })
+  const role = await db.role.findFirst({ where: { id, congregationId } })
   if (!role) return
 
-  if (!role.isBuiltIn) {
-    await applyCustomRoleFieldChanges(db, role, params, congregationId, actorId)
+  if (role.isBuiltIn) {
+    throw new ForbiddenError('Built-in role identity is sourced from i18n and cannot be edited')
   }
 
-  const previousKeys = role.permissions.map(rp => rp.permission.key)
-  await syncRolePermissions(db, id, congregationId, previousKeys, params.permissionKeys, actorId)
-}
-
-async function applyCustomRoleFieldChanges(
-  db: TransactionClient,
-  role: { id: number; name: string | null; description: string | null },
-  params: UpdateRoleParams,
-  congregationId: number,
-  actorId: number,
-): Promise<void> {
   const fieldsChanged: string[] = []
   const data: { name?: string; description?: string | null } = {}
 
@@ -181,14 +166,95 @@ async function applyCustomRoleFieldChanges(
 
   if (fieldsChanged.length === 0) return
 
-  await db.role.update({ where: { id: role.id }, data })
+  await db.role.update({ where: { id }, data })
   audit({
     action: AuditAction.RoleUpdated,
     congregationId,
     actorId,
     entityType: 'Role',
-    entityId: role.id,
+    entityId: id,
     metadata: { fieldsChanged },
+  })
+}
+
+export async function updateRolePermissions(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+  permissionKeys: string[],
+): Promise<void> {
+  const role = await db.role.findFirst({
+    where: { id, congregationId },
+    include: { permissions: { include: { permission: true } } },
+  })
+  if (!role) return
+
+  const previousKeys = role.permissions.map(rp => rp.permission.key)
+  await syncRolePermissions(db, id, congregationId, previousKeys, permissionKeys, actorId)
+}
+
+export async function addUserToRole(
+  db: TransactionClient,
+  userId: number,
+  roleId: number,
+  congregationId: number,
+  actorId: number,
+): Promise<void> {
+  const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
+  if (!role) return
+
+  if (role.isBuiltIn) {
+    throw new ForbiddenError('Built-in role memberships are managed automatically')
+  }
+
+  const existing = await db.userRoleAssignment.findFirst({
+    where: { userId, roleId },
+    select: { userId: true },
+  })
+  if (existing) return
+
+  await db.userRoleAssignment.create({ data: { userId, roleId, congregationId } })
+
+  audit({
+    action: AuditAction.UserRoleAssignmentChanged,
+    congregationId,
+    actorId,
+    entityType: 'User',
+    entityId: userId,
+    metadata: { added: [role.key], removed: [] },
+  })
+}
+
+export async function removeUserFromRole(
+  db: TransactionClient,
+  userId: number,
+  roleId: number,
+  congregationId: number,
+  actorId: number,
+): Promise<void> {
+  const role = await db.role.findFirst({ where: { id: roleId, congregationId } })
+  if (!role) return
+
+  if (role.isBuiltIn) {
+    throw new ForbiddenError('Built-in role memberships are managed automatically')
+  }
+
+  const existing = await db.userRoleAssignment.findFirst({
+    where: { userId, roleId },
+    select: { userId: true },
+  })
+  if (!existing) return
+
+  await db.userRoleAssignment.deleteMany({ where: { userId, roleId } })
+
+  audit({
+    action: AuditAction.UserRoleAssignmentChanged,
+    congregationId,
+    actorId,
+    entityType: 'User',
+    entityId: userId,
+    metadata: { added: [], removed: [role.key] },
   })
 }
 

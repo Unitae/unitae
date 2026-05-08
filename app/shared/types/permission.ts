@@ -17,4 +17,5 @@ export enum Permission {
   ExternalSpeakerManager = 'external-speaker-manager',
   RolesViewer = 'roles-viewer',
   RolesManager = 'roles-manager',
+  PermissionsManager = 'permissions-manager',
 }

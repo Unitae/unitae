@@ -83,10 +83,18 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   }
   if (permissions.canViewRoles) {
     items.push({
-      id: 'settings-roles',
-      label: m.sidebar_settings_roles(),
+      id: 'congregation-roles',
+      label: m.sidebar_assembly_roles(),
       icon: Shield,
-      to: '/settings/congregation/roles',
+      to: '/congregation/roles',
+    })
+  }
+  if (permissions.canManagePermissions) {
+    items.push({
+      id: 'settings-permissions',
+      label: m.sidebar_settings_permissions(),
+      icon: Shield,
+      to: '/settings/permissions',
     })
   }
   if (permissions.canManageSettings) {

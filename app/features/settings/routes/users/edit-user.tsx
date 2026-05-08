@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
-import { setUserCustomRoleAssignments } from '~/features/settings/server/roles.server'
+import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
@@ -268,7 +268,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                     {canManageRoles && (
                       <>
                         {' '}
-                        <Link to="/settings/congregation/roles/new" className="text-primary underline">
+                        <Link to="/congregation/roles/new" className="text-primary underline">
                           {m.settings_user_edit_roles_create_link()}
                         </Link>
                       </>

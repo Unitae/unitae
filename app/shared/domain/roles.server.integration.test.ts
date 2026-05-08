@@ -16,7 +16,16 @@ vi.mock('~/shared/domain/audit.server', () => ({
 }))
 
 const { seedBuiltInRoles, seedPermissions } = await import('~/shared/domain/setup.server')
-const { createRole, updateRole, deleteRole, listRoles, setUserCustomRoleAssignments } = await import('./roles.server')
+const {
+  createRole,
+  updateRoleIdentity,
+  updateRolePermissions,
+  deleteRole,
+  listRoles,
+  setUserCustomRoleAssignments,
+  addUserToRole,
+  removeUserFromRole,
+} = await import('./roles.server')
 const { resolveEffectivePermissions } = await import('~/shared/auth/permissions.server')
 
 const adapter = new PrismaPg({
@@ -34,6 +43,8 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
     return fn(tx)
   })
 }
+
+const BUILT_IN_MESSAGE_PATTERN = /Built-in role memberships/i
 
 const ts = Date.now()
 let congregationId: number
@@ -115,9 +126,7 @@ describe('roles.server (integration)', () => {
     expect(beforeGrant.has(Permission.ExternalSpeakerManager)).toBe(false)
 
     await withScope(congregationId, tx =>
-      updateRole(tx, role.id, congregationId, userId, {
-        permissionKeys: [Permission.ExternalSpeakerManager],
-      }),
+      updateRolePermissions(tx, role.id, congregationId, userId, [Permission.ExternalSpeakerManager]),
     )
 
     const afterGrant = await resolveEffectivePermissions(userId, congregationId)
@@ -197,6 +206,55 @@ describe('roles.server (integration)', () => {
     expect(afterKeys).not.toContain(customRole.key)
 
     await withScope(congregationId, tx => deleteRole(tx, customRole.id, congregationId, userId))
+  })
+
+  it('addUserToRole and removeUserFromRole toggle a single membership idempotently', async () => {
+    const role = await withScope(congregationId, tx =>
+      createRole(tx, congregationId, userId, { name: `Toggle ${ts}`, description: null, permissionKeys: [] }),
+    )
+
+    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId))
+    await withScope(congregationId, tx => addUserToRole(tx, userId, role.id, congregationId, userId))
+
+    const afterAdd = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
+    expect(afterAdd).toHaveLength(1)
+
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId))
+    await withScope(congregationId, tx => removeUserFromRole(tx, userId, role.id, congregationId, userId))
+
+    const afterRemove = await testDb.userRoleAssignment.findMany({ where: { userId, roleId: role.id } })
+    expect(afterRemove).toHaveLength(0)
+
+    await withScope(congregationId, tx => deleteRole(tx, role.id, congregationId, userId))
+  })
+
+  it('addUserToRole rejects built-in role assignment with ForbiddenError', async () => {
+    const elder = await testDb.role.findFirst({ where: { congregationId, key: 'elder' } })
+    if (!elder) throw new Error('elder role not seeded')
+
+    let caught: unknown = null
+    try {
+      await withScope(congregationId, tx => addUserToRole(tx, userId, elder.id, congregationId, userId))
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(Error)
+    expect((caught as Error).message).toMatch(BUILT_IN_MESSAGE_PATTERN)
+  })
+
+  it('updateRoleIdentity rejects built-in roles', async () => {
+    const elder = await testDb.role.findFirst({ where: { congregationId, key: 'elder' } })
+    if (!elder) throw new Error('elder role not seeded')
+
+    let caught: unknown = null
+    try {
+      await withScope(congregationId, tx =>
+        updateRoleIdentity(tx, elder.id, congregationId, userId, { name: 'Anciens locaux' }),
+      )
+    } catch (error) {
+      caught = error
+    }
+    expect(caught).toBeInstanceOf(Error)
   })
 
   it('listRoles orders built-ins before custom roles', async () => {

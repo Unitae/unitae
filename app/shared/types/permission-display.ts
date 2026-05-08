@@ -20,6 +20,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, () => string> = {
   [Permission.ExternalSpeakerManager]: () => m.permission_desc_external_speaker_manager(),
   [Permission.RolesViewer]: () => m.permission_desc_roles_viewer(),
   [Permission.RolesManager]: () => m.permission_desc_roles_manager(),
+  [Permission.PermissionsManager]: () => m.permission_desc_permissions_manager(),
 }
 
 export function getPermissionDescription(key: string): string {
@@ -56,6 +57,7 @@ const PERMISSION_TO_CATEGORY: Record<Permission, PermissionCategory> = {
   [Permission.SettingsUserManager]: 'settings',
   [Permission.RolesViewer]: 'settings',
   [Permission.RolesManager]: 'settings',
+  [Permission.PermissionsManager]: 'settings',
 }
 
 export function getPermissionCategory(key: string): PermissionCategory | null {
