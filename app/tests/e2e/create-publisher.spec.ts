@@ -9,6 +9,8 @@ const NEW_PUBLISHER_URL_RE = /\/publishers\/new/
 const FIRSTNAME_FIELD_RE = /prénom/i
 const LASTNAME_FIELD_RE = /^nom$/i
 const SUBMIT_BUTTON_RE = /enregistrer|sauvegarder|créer|ajouter/i
+const SEARCH_PLACEHOLDER_RE = /rechercher un proclamateur/i
+const NO_MATCH_TITLE_RE = /aucun proclamateur trouvé/i
 
 test.describe('Publishers', () => {
   test.beforeEach(async ({ page }) => {
@@ -71,5 +73,35 @@ test.describe('Publishers', () => {
     await page.goto('/publishers')
     await page.waitForLoadState('networkidle')
     await expect(page.getByText(lastname)).toBeVisible()
+  })
+
+  test('search input stays visible when no publishers match the query (#133)', async ({ page }) => {
+    await page.goto('/publishers')
+    await page.waitForLoadState('networkidle')
+
+    const searchInput = page.getByPlaceholder(SEARCH_PLACEHOLDER_RE)
+    // The search input is only rendered when at least one publisher exists.
+    // In a fully-empty congregation the bug cannot reproduce — skip.
+    if (!(await searchInput.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
+
+    const query = `zzz-no-match-${Date.now()}`
+    await searchInput.fill(query)
+
+    // SearchInput debounces URL updates by 300ms
+    await page.waitForURL(url => url.searchParams.get('q') === query, { timeout: 5_000 })
+    await page.waitForLoadState('networkidle')
+
+    // Bug: the search input used to disappear together with the results.
+    // Fix: it must remain in the DOM so the user can correct the typo.
+    await expect(searchInput).toBeVisible()
+    await expect(searchInput).toHaveValue(query)
+    await expect(page.getByText(NO_MATCH_TITLE_RE)).toBeVisible()
+    await expect(page.getByText(query)).toBeVisible()
+
+    // Clearing the input restores the previous list view
+    await searchInput.fill('')
+    await page.waitForURL(url => !url.searchParams.has('q'), { timeout: 5_000 })
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(NO_MATCH_TITLE_RE)).not.toBeVisible()
   })
 })
