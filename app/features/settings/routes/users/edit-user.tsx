@@ -5,10 +5,10 @@ import { data, Form, Link, redirect } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { setUserCustomRoleAssignments } from '~/features/settings/server/roles.server'
 import { updateUser } from '~/features/settings/server/update-user.server'
+import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { getPermissionDescription } from '~/shared/types/permission-display'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -31,7 +31,6 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Separator } from '~/shared/ui/separator'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -178,9 +177,12 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
         }
       />
 
-      <Card>
-        <CardContent>
-          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
+      <Form method="post" {...getFormProps(form)} className="flex flex-col gap-6" onChange={markDirty}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{m.settings_user_edit_info_title()}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             <div className="flex gap-4 max-sm:flex-col">
               <div className="flex-1 space-y-2">
                 <Label htmlFor={fields.firstname.id}>{m.settings_user_edit_firstname_label()}</Label>
@@ -226,109 +228,100 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                 {m.settings_user_edit_active_label()}
               </Label>
             </div>
+          </CardContent>
+        </Card>
 
-            <Separator />
-
-            <CardHeader className="p-0">
-              <CardTitle className="text-lg">{m.settings_user_edit_rights_title()}</CardTitle>
+        {!publisherNotUser && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">{m.settings_user_edit_roles_title()}</CardTitle>
             </CardHeader>
-            <div className="flex flex-wrap gap-4 max-sm:flex-col">
-              {publisherNotUser ? (
-                <p className="text-center text-muted-foreground text-sm">
-                  {m.settings_user_edit_publisher_only_notice()}
-                  <br />
-                  {m.settings_user_edit_publisher_only_hint()}
+            <CardContent className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <p className="font-medium text-muted-foreground text-sm">
+                  {m.settings_user_edit_roles_built_in_label()}
                 </p>
-              ) : (
-                permissionList.map(permission => (
-                  <div
-                    key={permission.id}
-                    className={`flex flex-1 basis-5/12 items-center gap-2 ${permission.key === 'admin' && !isAdmin ? 'pointer-events-none opacity-50' : ''}`}
-                  >
-                    <Checkbox
-                      id={`permission-${permission.id}`}
-                      name="permissions"
-                      value={permission.key}
-                      defaultChecked={user.permissions.map(el => el.key).includes(permission.key)}
-                    />
-                    <Label htmlFor={`permission-${permission.id}`} className="font-normal">
-                      {getPermissionDescription(permission.key)}
-                    </Label>
-                  </div>
-                ))
-              )}
-            </div>
+                <p className="text-muted-foreground text-xs">{m.settings_user_edit_roles_built_in_hint()}</p>
+                <div className="flex flex-wrap gap-2">
+                  {builtInRoles.map(role => (
+                    <span
+                      key={role.id}
+                      className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm ${
+                        role.isAssigned
+                          ? 'border-primary/40 bg-primary/10 text-primary'
+                          : 'border-border bg-muted/40 text-muted-foreground'
+                      }`}
+                    >
+                      {getRoleDisplayName(role)}
+                    </span>
+                  ))}
+                </div>
+              </div>
 
-            {!publisherNotUser && (
-              <>
-                <Separator />
-
-                <CardHeader className="p-0">
-                  <CardTitle className="text-lg">{m.settings_user_edit_roles_title()}</CardTitle>
-                </CardHeader>
-
-                <div className="flex flex-col gap-2">
-                  <p className="font-medium text-muted-foreground text-sm">
-                    {m.settings_user_edit_roles_built_in_label()}
+              <div className="flex flex-col gap-2">
+                <p className="font-medium text-muted-foreground text-sm">
+                  {m.settings_user_edit_roles_custom_label()}
+                </p>
+                {customRoles.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    {m.settings_user_edit_roles_empty()}
+                    {canManageRoles && (
+                      <>
+                        {' '}
+                        <Link to="/settings/congregation/roles/new" className="text-primary underline">
+                          {m.settings_user_edit_roles_create_link()}
+                        </Link>
+                      </>
+                    )}
                   </p>
-                  <p className="text-muted-foreground text-xs">{m.settings_user_edit_roles_built_in_hint()}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {builtInRoles.map(role => (
-                      <span
-                        key={role.id}
-                        className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm ${
-                          role.isAssigned
-                            ? 'border-primary/40 bg-primary/10 text-primary'
-                            : 'border-border bg-muted/40 text-muted-foreground'
-                        }`}
-                      >
-                        {getRoleDisplayName(role)}
-                      </span>
+                ) : (
+                  <div className="flex flex-wrap gap-4 max-sm:flex-col">
+                    {customRoles.map(role => (
+                      <div key={role.id} className="flex flex-1 basis-5/12 items-center gap-2">
+                        <Checkbox
+                          id={`custom-role-${role.id}`}
+                          name="customRoleIds"
+                          value={String(role.id)}
+                          defaultChecked={role.isAssigned}
+                        />
+                        <Label htmlFor={`custom-role-${role.id}`} className="font-normal">
+                          {getRoleDisplayName(role)}
+                        </Label>
+                      </div>
                     ))}
                   </div>
-                </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-                <div className="flex flex-col gap-2">
-                  <p className="font-medium text-muted-foreground text-sm">
-                    {m.settings_user_edit_roles_custom_label()}
-                  </p>
-                  {customRoles.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">
-                      {m.settings_user_edit_roles_empty()}
-                      {canManageRoles && (
-                        <>
-                          {' '}
-                          <Link to="/settings/congregation/roles/new" className="text-primary underline">
-                            {m.settings_user_edit_roles_create_link()}
-                          </Link>
-                        </>
-                      )}
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-4 max-sm:flex-col">
-                      {customRoles.map(role => (
-                        <div key={role.id} className="flex flex-1 basis-5/12 items-center gap-2">
-                          <Checkbox
-                            id={`custom-role-${role.id}`}
-                            name="customRoleIds"
-                            value={String(role.id)}
-                            defaultChecked={role.isAssigned}
-                          />
-                          <Label htmlFor={`custom-role-${role.id}`} className="font-normal">
-                            {getRoleDisplayName(role)}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">{m.settings_user_edit_rights_title()}</CardTitle>
+            <CardDescription>{m.settings_user_edit_rights_subtitle()}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {publisherNotUser ? (
+              <p className="text-center text-muted-foreground text-sm">
+                {m.settings_user_edit_publisher_only_notice()}
+                <br />
+                {m.settings_user_edit_publisher_only_hint()}
+              </p>
+            ) : (
+              <RolePermissionPicker
+                permissions={permissionList}
+                selectedKeys={user.permissions.map(p => p.key)}
+                name="permissions"
+                showHeader={false}
+                disabledKeys={isAdmin ? [] : [Permission.Admin]}
+              />
             )}
+          </CardContent>
+        </Card>
 
-            <SubmitButton className="mt-2">{m.settings_user_edit_submit()}</SubmitButton>
-          </Form>
-        </CardContent>
-      </Card>
+        <SubmitButton className="self-start">{m.settings_user_edit_submit()}</SubmitButton>
+      </Form>
 
       {canAnonymize && (
         <Card className="border-destructive">
