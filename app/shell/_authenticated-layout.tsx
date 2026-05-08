@@ -28,6 +28,8 @@ export const middleware: Route.MiddlewareFunction[] = [
     Permission.ActivityManager,
     Permission.ExternalSpeakerViewer,
     Permission.ExternalSpeakerManager,
+    Permission.RolesViewer,
+    Permission.RolesManager,
   ]),
 ]
 
@@ -56,6 +58,8 @@ export async function loader({ request, context }: Route.LoaderArgs) {
         canViewActivity: can(Permission.ActivityViewer),
         canViewExternalSpeakers: can(Permission.ExternalSpeakerViewer) || can(Permission.ExternalSpeakerManager),
         canManageExternalSpeakers: can(Permission.ExternalSpeakerManager),
+        canViewRoles: can(Permission.RolesViewer) || can(Permission.RolesManager),
+        canManageRoles: can(Permission.RolesManager),
         isPlatformAdmin: currentUser.platformAdmin ?? false,
       },
       congregationName: congregation.displayName ?? congregation.name,

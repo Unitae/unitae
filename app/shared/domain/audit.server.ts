@@ -14,6 +14,13 @@ export const AuditAction = {
   UserAnonymized: 'user.anonymized',
   UserPermissionsChanged: 'user.permissions.changed',
   RoleAssignmentsSynced: 'role.assignments.synced',
+  UserRoleAssignmentChanged: 'user.role_assignment.changed',
+
+  // Roles
+  RoleCreated: 'role.created',
+  RoleUpdated: 'role.updated',
+  RoleDeleted: 'role.deleted',
+  RolePermissionChanged: 'role.permission.changed',
 
   // Data export
   UserDataExported: 'user.data.exported',

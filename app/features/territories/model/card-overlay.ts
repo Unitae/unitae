@@ -155,7 +155,9 @@ export function parseGeoJsonImport(input: unknown): GeoJsonImport {
 
     const color = pickColor(properties)
     const rings: [number, number][][] =
-      feature.geometry.type === 'Polygon' ? [feature.geometry.coordinates[0]] : feature.geometry.coordinates.map(p => p[0])
+      feature.geometry.type === 'Polygon'
+        ? [feature.geometry.coordinates[0]]
+        : feature.geometry.coordinates.map(p => p[0])
 
     for (const ring of rings) {
       const paths = cardOverlayPathsSchema.safeParse(ringToPaths(ring))

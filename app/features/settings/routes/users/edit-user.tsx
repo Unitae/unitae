@@ -3,10 +3,13 @@ import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
+import { setUserCustomRoleAssignments } from '~/features/settings/server/roles.server'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { getPermissionDescription } from '~/shared/types/permission-display'
+import { getRoleDisplayName } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
   AlertDialog,
@@ -34,30 +37,6 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
 
-// Exhaustive over Permission so TypeScript flags any new value missing a description.
-const PERMISSION_DESCRIPTIONS: Record<Permission, () => string> = {
-  [Permission.Admin]: () => m.permission_desc_admin(),
-  [Permission.BoardUploader]: () => m.permission_desc_board_uploader(),
-  [Permission.BoardValidator]: () => m.permission_desc_board_validator(),
-  [Permission.TerritoriesViewer]: () => m.permission_desc_territories_viewer(),
-  [Permission.TerritoriesManager]: () => m.permission_desc_territories_manager(),
-  [Permission.SettingsUserManager]: () => m.permission_desc_settings_user_manager(),
-  [Permission.PublisherViewer]: () => m.permission_desc_publisher_viewer(),
-  [Permission.PublisherManager]: () => m.permission_desc_publisher_manager(),
-  [Permission.ActivityManager]: () => m.permission_desc_activity_manager(),
-  [Permission.ActivityViewer]: () => m.permission_desc_activity_viewer(),
-  [Permission.ProgramViewer]: () => m.permission_desc_program_viewer(),
-  [Permission.ProgramManager]: () => m.permission_desc_program_manager(),
-  [Permission.ProspectionViewer]: () => m.permission_desc_prospection_viewer(),
-  [Permission.ProspectionManager]: () => m.permission_desc_prospection_manager(),
-  [Permission.ExternalSpeakerViewer]: () => m.permission_desc_external_speaker_viewer(),
-  [Permission.ExternalSpeakerManager]: () => m.permission_desc_external_speaker_manager(),
-}
-
-function getPermissionDescription(key: string): string {
-  return PERMISSION_DESCRIPTIONS[key as Permission]?.() ?? key
-}
-
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.settings_users_meta_title() }]
 }
@@ -72,6 +51,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
+  const canManageRoles = permissions.has(Permission.RolesManager)
+
   return withScopeFromContext(context, async db => {
     const user = await db.user.findUnique({
       where: {
@@ -82,12 +63,18 @@ export function loader({ params, context }: Route.LoaderArgs) {
       },
       include: {
         congregationPermissions: { include: { permission: true } },
+        roleAssignments: { include: { role: true } },
       },
     })
 
     if (user == null) throw redirect('/settings/users')
 
     const permissionList = await db.permission.findMany()
+    const allRoles = await db.role.findMany({
+      where: { congregationId: currentUser.congregationId },
+      orderBy: [{ isBuiltIn: 'desc' }, { name: 'asc' }, { key: 'asc' }],
+    })
+    const assignedRoleIds = new Set(user.roleAssignments.map(a => a.roleId))
     const missEmail = user.email.includes('@placeholder.unitae.app')
 
     return {
@@ -98,6 +85,25 @@ export function loader({ params, context }: Route.LoaderArgs) {
       lastname: user.lastname,
       permissions: user.congregationPermissions.map(cp => cp.permission),
       permissionList,
+      builtInRoles: allRoles
+        .filter(r => r.isBuiltIn)
+        .map(r => ({
+          id: r.id,
+          key: r.key,
+          name: r.name,
+          description: r.description,
+          isAssigned: assignedRoleIds.has(r.id),
+        })),
+      customRoles: allRoles
+        .filter(r => !r.isBuiltIn)
+        .map(r => ({
+          id: r.id,
+          key: r.key,
+          name: r.name,
+          description: r.description,
+          isAssigned: assignedRoleIds.has(r.id),
+        })),
+      canManageRoles,
       isPublisher: user.isPublisher,
       isAdmin,
       anonymizedAt: user.anonymizedAt,
@@ -107,7 +113,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
-  const { permissionList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
+  const { permissionList, builtInRoles, customRoles, canManageRoles, isAdmin, canAnonymize, anonymizedAt, ...user } =
+    loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -251,6 +258,73 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                 ))
               )}
             </div>
+
+            {!publisherNotUser && (
+              <>
+                <Separator />
+
+                <CardHeader className="p-0">
+                  <CardTitle className="text-lg">{m.settings_user_edit_roles_title()}</CardTitle>
+                </CardHeader>
+
+                <div className="flex flex-col gap-2">
+                  <p className="font-medium text-muted-foreground text-sm">
+                    {m.settings_user_edit_roles_built_in_label()}
+                  </p>
+                  <p className="text-muted-foreground text-xs">{m.settings_user_edit_roles_built_in_hint()}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {builtInRoles.map(role => (
+                      <span
+                        key={role.id}
+                        className={`inline-flex items-center gap-2 rounded-md border px-3 py-1 text-sm ${
+                          role.isAssigned
+                            ? 'border-primary/40 bg-primary/10 text-primary'
+                            : 'border-border bg-muted/40 text-muted-foreground'
+                        }`}
+                      >
+                        {getRoleDisplayName(role)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <p className="font-medium text-muted-foreground text-sm">
+                    {m.settings_user_edit_roles_custom_label()}
+                  </p>
+                  {customRoles.length === 0 ? (
+                    <p className="text-muted-foreground text-sm">
+                      {m.settings_user_edit_roles_empty()}
+                      {canManageRoles && (
+                        <>
+                          {' '}
+                          <Link to="/settings/congregation/roles/new" className="text-primary underline">
+                            {m.settings_user_edit_roles_create_link()}
+                          </Link>
+                        </>
+                      )}
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-4 max-sm:flex-col">
+                      {customRoles.map(role => (
+                        <div key={role.id} className="flex flex-1 basis-5/12 items-center gap-2">
+                          <Checkbox
+                            id={`custom-role-${role.id}`}
+                            name="customRoleIds"
+                            value={String(role.id)}
+                            defaultChecked={role.isAssigned}
+                          />
+                          <Label htmlFor={`custom-role-${role.id}`} className="font-normal">
+                            {getRoleDisplayName(role)}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
             <SubmitButton className="mt-2">{m.settings_user_edit_submit()}</SubmitButton>
           </Form>
         </CardContent>
@@ -321,7 +395,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { firstname, lastname, email, active, permissions: selectedPermissions } = submission.value
+  const { firstname, lastname, email, active, permissions: selectedPermissions, customRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
     await updateUser(db, userId, currentUser.congregationId, currentUser.id, {
@@ -331,6 +405,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       active,
       permissions: selectedPermissions,
     })
+
+    await setUserCustomRoleAssignments(db, userId, currentUser.congregationId, currentUser.id, customRoleIds)
 
     return redirect('/settings/users')
   })

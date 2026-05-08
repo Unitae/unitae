@@ -82,6 +82,14 @@ export default [
       route('territories', 'features/settings/routes/territories/settings.tsx'),
       route('territories/card-overlays', 'features/settings/routes/territories/card-overlays.tsx'),
       route('audit-log', 'features/settings/routes/audit-log.tsx'),
+      ...prefix('congregation/roles', [
+        index('features/settings/routes/congregation/roles/role-list.tsx'),
+        route('new', 'features/settings/routes/congregation/roles/new-role.tsx'),
+        ...prefix(':roleId', [
+          route('edit', 'features/settings/routes/congregation/roles/edit-role.tsx'),
+          route('delete', 'features/settings/routes/congregation/roles/delete-role.tsx'),
+        ]),
+      ]),
       route('congregation', 'features/settings/routes/congregation/settings.tsx'),
       route('congregation/event-kinds', 'features/settings/routes/congregation/event-kinds.tsx'),
       ...prefix('congregation/templates', [

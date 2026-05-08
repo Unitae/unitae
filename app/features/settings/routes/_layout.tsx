@@ -17,8 +17,10 @@ export function loader({ context }: Route.LoaderArgs) {
   const canViewPublishers = permissions.has(Permission.PublisherViewer)
   const canManageSettings = permissions.has(Permission.Admin)
   const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canViewRoles = permissions.has(Permission.RolesViewer) || permissions.has(Permission.RolesManager)
+  const canManageRoles = permissions.has(Permission.RolesManager)
 
-  if (!canManageUsers && !canManageSettings) {
+  if (!canManageUsers && !canManageSettings && !canViewRoles) {
     throw redirect('/')
   }
 
@@ -29,6 +31,8 @@ export function loader({ context }: Route.LoaderArgs) {
     canViewPublishers,
     canManageSettings,
     canViewProspection,
+    canViewRoles,
+    canManageRoles,
   }
 }
 

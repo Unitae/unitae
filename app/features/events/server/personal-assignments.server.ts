@@ -1,8 +1,4 @@
-import type {
-  Event,
-  ProgrammePartAssignment,
-  ProgrammeServiceRoleAssignment,
-} from '~/database/generated/client'
+import type { Event, ProgrammePartAssignment, ProgrammeServiceRoleAssignment } from '~/database/generated/client'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'

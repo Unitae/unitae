@@ -105,7 +105,10 @@ describe('buildTerritoryStaticMapUrl', () => {
       scale: 2,
       marker: { lat: 45.7, lng: 4.8 },
       overlays: [],
-      perimeter: [{ lat: 45.7, lng: 4.8 }, { lat: 45.71, lng: 4.81 }],
+      perimeter: [
+        { lat: 45.7, lng: 4.8 },
+        { lat: 45.71, lng: 4.81 },
+      ],
     })
     expect(url).not.toContain('0x6B7280')
     expect(url).toContain('zoom=15')

@@ -19,6 +19,17 @@ export const editUserSchema = z.object({
     .or(z.string().transform(v => [v]))
     .optional()
     .default([]),
+  customRoleIds: z
+    .array(z.coerce.number().int().positive())
+    .or(
+      z.coerce
+        .number()
+        .int()
+        .positive()
+        .transform(v => [v]),
+    )
+    .optional()
+    .default([]),
 })
 
 export type CreateUserInput = z.infer<typeof createUserSchema>

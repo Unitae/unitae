@@ -41,9 +41,7 @@ describe('exportUserData', () => {
     }
 
     mockDb.user.findUnique.mockResolvedValue(fakeUser as never)
-    mockDb.congregationUserPermission.findMany.mockResolvedValue([
-      { permission: { key: 'Admin' } },
-    ] as never)
+    mockDb.congregationUserPermission.findMany.mockResolvedValue([{ permission: { key: 'Admin' } }] as never)
     mockDb.publisherActivity.findMany.mockResolvedValue([
       { month: 3, year: 2025, hours: 10, studies: 1, type: 'normal', isPublisher: true, notes: '' },
     ] as never)

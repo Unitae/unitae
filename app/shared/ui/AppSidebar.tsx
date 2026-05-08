@@ -16,6 +16,7 @@ import {
   PieChart,
   Search,
   Settings,
+  Shield,
   User,
   UserCog,
   UserRoundCog,
@@ -56,6 +57,8 @@ export interface AppSidebarPermissions {
   canViewActivity: boolean
   canViewExternalSpeakers: boolean
   canManageExternalSpeakers: boolean
+  canViewRoles: boolean
+  canManageRoles: boolean
   isPlatformAdmin: boolean
 }
 
@@ -206,18 +209,32 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {permissions.canManageSettings && (
-                      <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
-                    )}
-                    {permissions.canManageUsers && (
-                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
-                    )}
-                    {permissions.canManageSettings && (
                       <>
+                        <SidebarNavItem
+                          to="/settings/general"
+                          icon={Settings}
+                          label={m.sidebar_settings_general()}
+                        />
                         <SidebarNavItem
                           to="/settings/congregation"
                           icon={Building2}
                           label={m.sidebar_settings_assembly()}
+                          end
                         />
+                      </>
+                    )}
+                    {permissions.canManageUsers && (
+                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
+                    )}
+                    {permissions.canViewRoles && (
+                      <SidebarNavItem
+                        to="/settings/congregation/roles"
+                        icon={Shield}
+                        label={m.sidebar_settings_roles()}
+                      />
+                    )}
+                    {permissions.canManageSettings && (
+                      <>
                         <SidebarNavItem
                           to="/settings/territories"
                           icon={MapIcon}

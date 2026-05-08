@@ -2,9 +2,9 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
+  buildGeoJsonExport,
   type CardOverlay,
   cardOverlayPathsSchema,
-  buildGeoJsonExport,
   GeoJsonValidationError,
   parseGeoJsonImport,
 } from './card-overlay'
@@ -139,12 +139,32 @@ describe('parseGeoJsonImport', () => {
         {
           type: 'Feature',
           properties: { role: 'perimeter' },
-          geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 1], [2, 0], [0, 0]]] },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [0, 0],
+                [1, 1],
+                [2, 0],
+                [0, 0],
+              ],
+            ],
+          },
         },
         {
           type: 'Feature',
           properties: { name: 'Zone A', color: '#C2175B' },
-          geometry: { type: 'Polygon', coordinates: [[[10, 10], [11, 11], [12, 10], [10, 10]]] },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [10, 10],
+                [11, 11],
+                [12, 10],
+                [10, 10],
+              ],
+            ],
+          },
         },
       ],
     }
@@ -163,12 +183,32 @@ describe('parseGeoJsonImport', () => {
         {
           type: 'Feature',
           properties: { role: 'perimeter' },
-          geometry: { type: 'Polygon', coordinates: [[[0, 0], [1, 1], [2, 0], [0, 0]]] },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [0, 0],
+                [1, 1],
+                [2, 0],
+                [0, 0],
+              ],
+            ],
+          },
         },
         {
           type: 'Feature',
           properties: { role: 'perimeter' },
-          geometry: { type: 'Polygon', coordinates: [[[10, 10], [11, 11], [12, 10], [10, 10]]] },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [10, 10],
+                [11, 11],
+                [12, 10],
+                [10, 10],
+              ],
+            ],
+          },
         },
       ],
     }
@@ -182,8 +222,22 @@ describe('parseGeoJsonImport', () => {
       geometry: {
         type: 'MultiPolygon',
         coordinates: [
-          [[[0, 0], [1, 1], [2, 0], [0, 0]]],
-          [[[10, 10], [11, 11], [12, 10], [10, 10]]],
+          [
+            [
+              [0, 0],
+              [1, 1],
+              [2, 0],
+              [0, 0],
+            ],
+          ],
+          [
+            [
+              [10, 10],
+              [11, 11],
+              [12, 10],
+              [10, 10],
+            ],
+          ],
         ],
       },
     }
@@ -247,7 +301,13 @@ describe('buildGeoJsonExport', () => {
   })
 
   it('omet le périmètre quand il est invalide (moins de 3 sommets)', () => {
-    const collection = buildGeoJsonExport([], [{ lat: 0, lng: 0 }, { lat: 1, lng: 1 }])
+    const collection = buildGeoJsonExport(
+      [],
+      [
+        { lat: 0, lng: 0 },
+        { lat: 1, lng: 1 },
+      ],
+    )
     expect(collection.features).toHaveLength(0)
   })
 })

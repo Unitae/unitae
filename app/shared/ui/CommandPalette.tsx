@@ -12,6 +12,7 @@ import {
   MapPin,
   PieChart,
   Search,
+  Shield,
   User,
   UserCog,
   UserRoundCog,
@@ -79,6 +80,14 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   }
   if (permissions.canManageUsers) {
     items.push({ id: 'users', label: m.sidebar_users(), icon: Users, to: '/settings/users' })
+  }
+  if (permissions.canViewRoles) {
+    items.push({
+      id: 'settings-roles',
+      label: m.sidebar_settings_roles(),
+      icon: Shield,
+      to: '/settings/congregation/roles',
+    })
   }
   if (permissions.canManageSettings) {
     items.push({

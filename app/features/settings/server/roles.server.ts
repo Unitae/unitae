@@ -1,0 +1,337 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
+import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
+import type { TransactionClient } from '~/shared/infra/db.server'
+import { getRoleDisplayName } from '~/shared/types/role'
+
+const BUILT_IN_ORDER = new Map<string, number>(BUILT_IN_ROLE_KEYS.map((key, index) => [key, index]))
+
+export interface RoleListItem {
+  id: number
+  key: string
+  name: string | null
+  description: string | null
+  isBuiltIn: boolean
+  permissionCount: number
+  memberCount: number
+}
+
+export async function listRoles(db: TransactionClient, congregationId: number): Promise<RoleListItem[]> {
+  const roles = await db.role.findMany({
+    where: { congregationId },
+    include: {
+      _count: { select: { permissions: true, members: true } },
+    },
+  })
+
+  return roles
+    .map(role => ({
+      id: role.id,
+      key: role.key,
+      name: role.name,
+      description: role.description,
+      isBuiltIn: role.isBuiltIn,
+      permissionCount: role._count.permissions,
+      memberCount: role._count.members,
+    }))
+    .sort((a, b) => {
+      if (a.isBuiltIn && b.isBuiltIn) {
+        return (BUILT_IN_ORDER.get(a.key) ?? 0) - (BUILT_IN_ORDER.get(b.key) ?? 0)
+      }
+      if (a.isBuiltIn) return -1
+      if (b.isBuiltIn) return 1
+      return getRoleDisplayName(a).localeCompare(getRoleDisplayName(b))
+    })
+}
+
+export interface RoleDetail {
+  id: number
+  key: string
+  name: string | null
+  description: string | null
+  isBuiltIn: boolean
+  permissionKeys: string[]
+  memberCount: number
+}
+
+export async function getRole(db: TransactionClient, id: number, congregationId: number): Promise<RoleDetail | null> {
+  const role = await db.role.findFirst({
+    where: { id, congregationId },
+    include: {
+      permissions: { include: { permission: true } },
+      _count: { select: { members: true } },
+    },
+  })
+
+  if (!role) return null
+
+  return {
+    id: role.id,
+    key: role.key,
+    name: role.name,
+    description: role.description,
+    isBuiltIn: role.isBuiltIn,
+    permissionKeys: role.permissions.map(rp => rp.permission.key),
+    memberCount: role._count.members,
+  }
+}
+
+export interface CreateRoleParams {
+  name: string
+  description: string | null
+  permissionKeys: string[]
+}
+
+export async function createRole(
+  db: TransactionClient,
+  congregationId: number,
+  actorId: number,
+  params: CreateRoleParams,
+): Promise<{ id: number; key: string }> {
+  const trimmedName = params.name.trim()
+  if (trimmedName.length === 0) throw new ValidationError('name', 'Name is required')
+
+  const key = slugifyRoleKey(trimmedName)
+  if (key.length === 0) throw new ValidationError('name', 'Name must contain at least one alphanumeric character')
+
+  const existing = await db.role.findFirst({ where: { key, congregationId }, select: { id: true } })
+  if (existing) throw new ConflictError(`A role with key "${key}" already exists`)
+
+  const role = await db.role.create({
+    data: {
+      key,
+      name: trimmedName,
+      description: params.description?.trim() || null,
+      isBuiltIn: false,
+      congregationId,
+    },
+    select: { id: true, key: true },
+  })
+
+  if (params.permissionKeys.length > 0) {
+    await syncRolePermissions(db, role.id, congregationId, [], params.permissionKeys)
+  }
+
+  audit({
+    action: AuditAction.RoleCreated,
+    congregationId,
+    actorId,
+    entityType: 'Role',
+    entityId: role.id,
+    metadata: { key, name: trimmedName, permissionKeys: params.permissionKeys },
+  })
+
+  return role
+}
+
+export interface UpdateRoleParams {
+  name?: string
+  description?: string | null
+  permissionKeys: string[]
+}
+
+export async function updateRole(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+  params: UpdateRoleParams,
+): Promise<void> {
+  const role = await db.role.findFirst({
+    where: { id, congregationId },
+    include: { permissions: { include: { permission: true } } },
+  })
+  if (!role) return
+
+  if (!role.isBuiltIn) {
+    await applyCustomRoleFieldChanges(db, role, params, congregationId, actorId)
+  }
+
+  const previousKeys = role.permissions.map(rp => rp.permission.key)
+  await syncRolePermissions(db, id, congregationId, previousKeys, params.permissionKeys, actorId)
+}
+
+async function applyCustomRoleFieldChanges(
+  db: TransactionClient,
+  role: { id: number; name: string | null; description: string | null },
+  params: UpdateRoleParams,
+  congregationId: number,
+  actorId: number,
+): Promise<void> {
+  const fieldsChanged: string[] = []
+  const data: { name?: string; description?: string | null } = {}
+
+  if (params.name !== undefined) {
+    const trimmed = params.name.trim()
+    if (trimmed.length === 0) throw new ValidationError('name', 'Name is required')
+    if (trimmed !== role.name) {
+      data.name = trimmed
+      fieldsChanged.push('name')
+    }
+  }
+
+  if (params.description !== undefined) {
+    const trimmed = params.description?.trim() || null
+    const previous = role.description?.trim() || null
+    if (trimmed !== previous) {
+      data.description = trimmed
+      fieldsChanged.push('description')
+    }
+  }
+
+  if (fieldsChanged.length === 0) return
+
+  await db.role.update({ where: { id: role.id }, data })
+  audit({
+    action: AuditAction.RoleUpdated,
+    congregationId,
+    actorId,
+    entityType: 'Role',
+    entityId: role.id,
+    metadata: { fieldsChanged },
+  })
+}
+
+export async function deleteRole(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  actorId: number,
+): Promise<void> {
+  const role = await db.role.findFirst({
+    where: { id, congregationId },
+    include: { _count: { select: { members: true } } },
+  })
+  if (!role) return
+
+  if (role.isBuiltIn) {
+    throw new ForbiddenError('Built-in roles cannot be deleted')
+  }
+
+  await db.role.delete({ where: { id } })
+
+  audit({
+    action: AuditAction.RoleDeleted,
+    congregationId,
+    actorId,
+    entityType: 'Role',
+    entityId: id,
+    metadata: { key: role.key, name: role.name, memberCount: role._count.members },
+  })
+}
+
+export async function setUserCustomRoleAssignments(
+  db: TransactionClient,
+  userId: number,
+  congregationId: number,
+  actorId: number,
+  customRoleIds: number[],
+): Promise<void> {
+  const customRoles = await db.role.findMany({
+    where: { congregationId, isBuiltIn: false },
+    select: { id: true, key: true },
+  })
+  const customRoleIdSet = new Set(customRoles.map(r => r.id))
+  const desired = new Set(customRoleIds.filter(id => customRoleIdSet.has(id)))
+
+  const existing = await db.userRoleAssignment.findMany({
+    where: { userId, role: { isBuiltIn: false } },
+    select: { roleId: true },
+  })
+  const existingIds = new Set(existing.map(a => a.roleId))
+
+  const added: number[] = []
+  const removed: number[] = []
+  for (const id of desired) {
+    if (!existingIds.has(id)) added.push(id)
+  }
+  for (const id of existingIds) {
+    if (!desired.has(id)) removed.push(id)
+  }
+
+  if (added.length === 0 && removed.length === 0) return
+
+  if (added.length > 0) {
+    await db.userRoleAssignment.createMany({
+      data: added.map(roleId => ({ userId, roleId, congregationId })),
+    })
+  }
+
+  if (removed.length > 0) {
+    await db.userRoleAssignment.deleteMany({
+      where: { userId, roleId: { in: removed } },
+    })
+  }
+
+  const keyById = new Map(customRoles.map(r => [r.id, r.key]))
+  audit({
+    action: AuditAction.UserRoleAssignmentChanged,
+    congregationId,
+    actorId,
+    entityType: 'User',
+    entityId: userId,
+    metadata: {
+      added: added.map(id => keyById.get(id)).filter(Boolean),
+      removed: removed.map(id => keyById.get(id)).filter(Boolean),
+    },
+  })
+}
+
+async function syncRolePermissions(
+  db: TransactionClient,
+  roleId: number,
+  congregationId: number,
+  previousKeys: string[],
+  desiredKeys: string[],
+  actorId?: number,
+): Promise<void> {
+  const previous = new Set(previousKeys)
+  const desired = new Set(desiredKeys)
+
+  const added = [...desired].filter(k => !previous.has(k))
+  const removed = [...previous].filter(k => !desired.has(k))
+
+  if (added.length === 0 && removed.length === 0) return
+
+  const permissions = await db.permission.findMany({
+    where: { key: { in: [...added, ...removed] } },
+    select: { id: true, key: true },
+  })
+  const idByKey = new Map(permissions.map(p => [p.key, p.id]))
+
+  const addedIds = added.map(key => idByKey.get(key)).filter((id): id is number => typeof id === 'number')
+  const removedIds = removed.map(key => idByKey.get(key)).filter((id): id is number => typeof id === 'number')
+
+  if (addedIds.length > 0) {
+    await db.rolePermission.createMany({
+      data: addedIds.map(permissionId => ({ roleId, permissionId, congregationId })),
+      skipDuplicates: true,
+    })
+  }
+
+  if (removedIds.length > 0) {
+    await db.rolePermission.deleteMany({
+      where: { roleId, permissionId: { in: removedIds } },
+    })
+  }
+
+  if (actorId !== undefined) {
+    audit({
+      action: AuditAction.RolePermissionChanged,
+      congregationId,
+      actorId,
+      entityType: 'Role',
+      entityId: roleId,
+      metadata: { added, removed },
+    })
+  }
+}
+
+function slugifyRoleKey(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}

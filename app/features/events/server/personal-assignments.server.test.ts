@@ -1,11 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getPersonalAssignments } from './personal-assignments.server'
 
-function makeDb(rows: {
-  parts?: unknown[]
-  serviceRoles?: unknown[]
-  daysOff?: unknown[]
-}) {
+function makeDb(rows: { parts?: unknown[]; serviceRoles?: unknown[]; daysOff?: unknown[] }) {
   return {
     programmePartAssignment: { findMany: vi.fn().mockResolvedValue(rows.parts ?? []) },
     programmeServiceRoleAssignment: { findMany: vi.fn().mockResolvedValue(rows.serviceRoles ?? []) },
@@ -35,8 +31,8 @@ describe('getPersonalAssignments', () => {
       event: { startDate: { gte: since } },
     })
 
-    const eventsCall = (db as never as { event: { findMany: { mock: { calls: unknown[][] } } } }).event.findMany
-      .mock.calls[0][0] as { where: Record<string, unknown> }
+    const eventsCall = (db as never as { event: { findMany: { mock: { calls: unknown[][] } } } }).event.findMany.mock
+      .calls[0][0] as { where: Record<string, unknown> }
     expect(eventsCall.where).toMatchObject({
       createdById: 42,
       kind: { key: 'off' },
@@ -128,9 +124,7 @@ describe('getPersonalAssignments', () => {
           event,
         },
       ],
-      serviceRoles: [
-        { id: 2, assigneeId: 42, name: 'Sono', note: '', updatedAt: new Date(), event },
-      ],
+      serviceRoles: [{ id: 2, assigneeId: 42, name: 'Sono', note: '', updatedAt: new Date(), event }],
       daysOff: [
         {
           id: 3,

@@ -14,7 +14,12 @@ import { updateDynamicDocument } from '~/features/display-board/server/board-doc
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
