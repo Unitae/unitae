@@ -7,12 +7,12 @@ vi.mock('~/features/authentication/server/session.server', () => ({
 }))
 
 vi.mock('~/shared/auth/permissions.server', () => ({
-  verifyPermission: vi.fn(),
+  resolveEffectivePermissions: vi.fn(),
 }))
 
 const { authenticateAndAuthorize } = await import('./auth.server')
 const { verifySession } = await import('~/features/authentication/server/session.server')
-const { verifyPermission } = await import('~/shared/auth/permissions.server')
+const { resolveEffectivePermissions } = await import('~/shared/auth/permissions.server')
 
 function makeRequest() {
   return new Request('http://localhost/')
@@ -27,10 +27,11 @@ const fakeSessionResult = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(verifySession).mockResolvedValue(fakeSessionResult as never)
+  vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set())
 })
 
 describe('authenticateAndAuthorize', () => {
-  it('retourne les données de verifySession', async () => {
+  it('returns the data from verifySession', async () => {
     const result = await authenticateAndAuthorize(makeRequest())
 
     expect(result.currentUser).toBe(fakeSessionResult.currentUser)
@@ -38,16 +39,14 @@ describe('authenticateAndAuthorize', () => {
     expect(result.session).toBe(fakeSessionResult.session)
   })
 
-  it('retourne congregationId from currentUser', async () => {
+  it('returns congregationId from currentUser', async () => {
     const result = await authenticateAndAuthorize(makeRequest())
 
     expect(result.congregationId).toBe(5)
   })
 
-  it('résout les permissions via verifyPermission', async () => {
-    vi.mocked(verifyPermission).mockImplementation((_req, role) => {
-      return Promise.resolve(role === Permission.Admin)
-    })
+  it('grants only requested roles that the user actually holds', async () => {
+    vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set([Permission.Admin]))
 
     const result = await authenticateAndAuthorize(makeRequest(), [Permission.Admin, Permission.BoardUploader])
 
@@ -55,18 +54,17 @@ describe('authenticateAndAuthorize', () => {
     expect(result.can(Permission.BoardUploader)).toBe(false)
   })
 
-  it('retourne false pour un rôle non demandé', async () => {
-    vi.mocked(verifyPermission).mockResolvedValue(true as never)
+  it('returns false for a role that was not requested even when granted', async () => {
+    vi.mocked(resolveEffectivePermissions).mockResolvedValue(new Set([Permission.TerritoriesViewer]))
 
     const result = await authenticateAndAuthorize(makeRequest(), [Permission.Admin])
 
     expect(result.can(Permission.TerritoriesViewer)).toBe(false)
   })
 
-  it('fonctionne sans rôles', async () => {
+  it('works without roles', async () => {
     const result = await authenticateAndAuthorize(makeRequest())
 
-    expect(verifyPermission).not.toHaveBeenCalled()
     expect(result.can(Permission.Admin)).toBe(false)
   })
 })

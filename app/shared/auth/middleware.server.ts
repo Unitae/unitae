@@ -1,6 +1,6 @@
 import { type RouterContext, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
-import { verifyPermission } from '~/shared/auth/permissions.server'
+import { resolveEffectivePermissions } from '~/shared/auth/permissions.server'
 import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
 import { hasDataProcessingConsent } from '~/shared/domain/consent.server'
 import type { Permission } from '~/shared/types/permission'
@@ -22,18 +22,20 @@ async function enforceGdprConsent(userId: number): Promise<void> {
  * checks GDPR consent, and sets typed context for downstream loaders/actions.
  *
  * Apply to the authenticated layout route — it cascades to all child routes.
+ *
+ * The optional `_required` parameter is retained for call-site compatibility
+ * but no longer used for filtering: `permissionsContext` is the user's full
+ * granted set, so `permissions.has(Permission.X)` answers honestly regardless
+ * of which permissions a layout route happened to list.
  */
-export function requireAuth(roles: Permission[] = []) {
+export function requireAuth(_required: Permission[] = []) {
   return async ({ request, context }: MiddlewareArgs, next: () => Promise<Response>) => {
     const { currentUser, congregation } = await verifySession(request)
 
-    // Resolve all role permissions in parallel
-    const resolved = await Promise.all(roles.map(async role => [role, await verifyPermission(request, role)] as const))
-    const permissions = new Set<Permission>(resolved.filter(([, granted]) => granted).map(([role]) => role))
+    const permissions = await resolveEffectivePermissions(currentUser.id, currentUser.congregationId)
 
     await enforceGdprConsent(currentUser.id)
 
-    // Set typed context for downstream loaders/actions
     context.set(userContext, currentUser)
     context.set(congregationContext, congregation)
     context.set(permissionsContext, permissions)

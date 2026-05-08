@@ -4,6 +4,9 @@ vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { UserUpdated: 'UserUpdated' },
   audit: vi.fn(),
 }))
+vi.mock('~/shared/domain/built-in-roles.server', () => ({
+  syncBuiltInRoleAssignments: vi.fn(),
+}))
 
 const mockDb = {
   user: { update: vi.fn() },

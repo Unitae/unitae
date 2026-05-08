@@ -1,6 +1,7 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
+import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { Permission } from '~/shared/types/permission'
 
 type Locale = (typeof locales)[number]
@@ -49,4 +50,22 @@ export async function seedCongregationDefaults(
   })
 
   await seedTemplates(db, congregationId, locale)
+
+  await seedBuiltInRoles(db, congregationId)
+}
+
+/**
+ * Idempotently upsert the seven built-in roles for a congregation. Built-ins have
+ * null name/description — display strings are sourced from Paraglide via
+ * `getRoleDisplayName` / `getRoleDescription` so locale switches don't require DB writes.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
+export async function seedBuiltInRoles(db: any, congregationId: number) {
+  for (const key of BUILT_IN_ROLE_KEYS) {
+    await db.role.upsert({
+      where: { key_congregationId: { key, congregationId } },
+      update: { isBuiltIn: true },
+      create: { key, isBuiltIn: true, congregationId },
+    })
+  }
 }

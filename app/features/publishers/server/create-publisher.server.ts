@@ -1,4 +1,5 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -57,6 +58,8 @@ export async function createPublisher(
       address: params.address,
     },
   })
+
+  await syncBuiltInRoleAssignments(db, publisher.id, params.congregationId, params.actorId)
 
   audit({
     action: AuditAction.PublisherCreated,

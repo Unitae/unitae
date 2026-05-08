@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserId } from '~/shared/types/branded'
 
+vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignments: vi.fn() }))
+
 const ANONYMIZED_EMAIL_PATTERN = /^deleted-.*@anonymized\.local$/
 
 const mockDb = {

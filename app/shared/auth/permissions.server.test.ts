@@ -1,87 +1,69 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/features/authentication/server/session.server', () => ({
-  getSession: vi.fn(),
-}))
-
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { findUnique: vi.fn() },
-    congregationUserPermission: { findFirst: vi.fn() },
+    congregationUserPermission: { findMany: vi.fn() },
+    rolePermission: { findMany: vi.fn() },
   },
 }))
 
-const { verifyPermission } = await import('./permissions.server')
-const { getSession } = await import('~/features/authentication/server/session.server')
+const { resolveEffectivePermissions } = await import('./permissions.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
-
-function makeRequest() {
-  return new Request('http://localhost/', {
-    headers: { Cookie: 'session=abc' },
-  })
-}
-
-function makeSession(userId: string | undefined) {
-  return {
-    get: vi.fn((key: string) => (key === 'userId' ? userId : undefined)),
-  }
-}
 
 beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('verifyPermission', () => {
-  it("retourne false quand userId n'est pas dans la session", async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession(undefined) as never)
+describe('resolveEffectivePermissions', () => {
+  it('returns the union of direct grants and role-mediated grants', async () => {
+    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
+      { permission: { key: 'territories-manager' } },
+    ] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([
+      { permission: { key: 'publisher-viewer' } },
+    ] as never)
 
-    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
-    expect(result).toBe(false)
+    const result = await resolveEffectivePermissions(42, 1)
+
+    expect(result).toEqual(new Set(['territories-manager', 'publisher-viewer']))
   })
 
-  it("retourne false quand userId n'est pas un nombre", async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('abc') as never)
+  it('deduplicates when the same permission is granted directly and via a role', async () => {
+    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
+      { permission: { key: 'admin' } },
+    ] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([{ permission: { key: 'admin' } }] as never)
 
-    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
-    expect(result).toBe(false)
+    const result = await resolveEffectivePermissions(42, 1)
+
+    expect([...result]).toEqual(['admin'])
   })
 
-  it("retourne true quand l'utilisateur a le rôle admin", async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
-    // Premier findFirst: admin role → trouvé
-    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValueOnce({ id: 1 } as never)
+  it('returns an empty set when the user has no grants', async () => {
+    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([] as never)
 
-    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
-    expect(result).toBe(true)
+    const result = await resolveEffectivePermissions(42, 1)
+
+    expect(result.size).toBe(0)
   })
 
-  it("retourne true quand l'utilisateur a le rôle demandé (pas admin)", async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
-    // Premier findFirst: admin role → pas trouvé
-    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValueOnce(null as never)
-    // Deuxième findFirst: rôle demandé → trouvé
-    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValueOnce({ id: 2 } as never)
+  it('scopes both queries to the requested congregation', async () => {
+    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([] as never)
 
-    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
-    expect(result).toBe(true)
-  })
+    await resolveEffectivePermissions(42, 7)
 
-  it("retourne false quand l'utilisateur n'a ni admin ni le rôle demandé", async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
-    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValue(null as never)
-
-    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
-    expect(result).toBe(false)
-  })
-
-  it("retourne false quand l'utilisateur n'existe pas", async () => {
-    vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null as never)
-
-    const result = await verifyPermission(makeRequest(), 'territories-manager' as never)
-    expect(result).toBe(false)
+    expect(unscopedDb.congregationUserPermission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: 42, congregationId: 7 }) }),
+    )
+    expect(unscopedDb.rolePermission.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          congregationId: 7,
+          role: { members: { some: { userId: 42 } } },
+        }),
+      }),
+    )
   })
 })

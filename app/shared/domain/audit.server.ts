@@ -13,6 +13,7 @@ export const AuditAction = {
   UserUpdated: 'user.updated',
   UserAnonymized: 'user.anonymized',
   UserPermissionsChanged: 'user.permissions.changed',
+  RoleAssignmentsSynced: 'role.assignments.synced',
 
   // Data export
   UserDataExported: 'user.data.exported',

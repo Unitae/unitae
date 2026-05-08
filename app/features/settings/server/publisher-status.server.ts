@@ -1,4 +1,5 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function togglePublisherStatus(
@@ -14,6 +15,8 @@ export async function togglePublisherStatus(
     },
     data: { isPublisher },
   })
+
+  await syncBuiltInRoleAssignments(db, userId, congregationId, actorId)
 
   audit({
     action: AuditAction.PublisherStatusChanged,

@@ -4,6 +4,7 @@ import type { EntranceKind } from '~/features/territories/model/entrance-kind.ty
 import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { type TransactionClient, unscopedDb, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -421,6 +422,7 @@ export async function importUsers(
           },
         })
         idMap.set('users', record.id, existing.id)
+        await syncBuiltInRoleAssignments(db, existing.id, congregationId, null)
       } else {
         // User exists in different congregation — skip
         logger.warn(`Skipping user ${record.email}: exists in another congregation`, { congregationId })
@@ -449,6 +451,7 @@ export async function importUsers(
         },
       })
       idMap.set('users', record.id, created.id)
+      await syncBuiltInRoleAssignments(db, created.id, congregationId, null)
     }
   }
 }

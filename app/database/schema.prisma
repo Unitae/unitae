@@ -81,6 +81,9 @@ model Congregation {
   eventKinds         EventKind[]
   settings           Setting[]
   userPermissions         CongregationUserPermission[]
+  roles                   Role[]
+  rolePermissions         RolePermission[]
+  userRoleAssignments     UserRoleAssignment[]
   buildingAccesses        BuildingAccess[]
   buildingResidentialData BuildingResidentialData[]
   dataDeletionRecords     DataDeletionRecord[]
@@ -114,6 +117,7 @@ model User {
   active        Boolean    @default(true)
   platformAdmin Boolean    @default(false)
   congregationPermissions CongregationUserPermission[]
+  roleAssignments         UserRoleAssignment[]
 
   isPublisher Boolean       @default(false)
   type        PublisherType @default(Normal)
@@ -165,6 +169,53 @@ model Permission {
   id                      Int                          @id @default(autoincrement())
   key                     String                       @unique
   congregationPermissions CongregationUserPermission[]
+  rolePermissions         RolePermission[]
+}
+
+model Role {
+  id             Int      @id @default(autoincrement())
+  key            String
+  name           String?
+  description    String?
+  isBuiltIn      Boolean  @default(false)
+
+  permissions    RolePermission[]
+  members        UserRoleAssignment[]
+
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, congregationId])
+  @@unique([id, congregationId])
+}
+
+model RolePermission {
+  role           Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId         Int
+  permission     Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId   Int
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([roleId, permissionId])
+  @@index([congregationId])
+  @@index([permissionId])
+}
+
+model UserRoleAssignment {
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         Int
+  role           Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId         Int
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([userId, roleId])
+  @@index([congregationId])
+  @@index([roleId])
 }
 
 model CongregationUserPermission {

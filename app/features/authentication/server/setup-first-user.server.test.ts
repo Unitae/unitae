@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const scopedDb = {
   eventKind: { upsert: vi.fn() },
   programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
+  role: { upsert: vi.fn() },
 }
 
 vi.mock('~/shared/infra/db.server', () => ({
@@ -18,6 +19,11 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('hashed-password' as never),
+}))
+
+vi.mock('~/shared/domain/built-in-roles.server', () => ({
+  syncBuiltInRoleAssignments: vi.fn(),
+  BUILT_IN_ROLE_KEYS: ['male', 'female', 'publisher', 'baptized', 'anointed', 'elder', 'assistant-servant'],
 }))
 
 const { setupFirstUser } = await import('./setup-first-user.server')

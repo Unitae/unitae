@@ -1,4 +1,5 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface UpdateUserParams {
@@ -46,6 +47,8 @@ export async function updateUser(
       })),
     })
   }
+
+  await syncBuiltInRoleAssignments(db, userId, congregationId, actorId)
 
   audit({
     action: AuditAction.UserUpdated,
