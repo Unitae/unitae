@@ -80,7 +80,7 @@ export async function assignPart(
     const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'reader', congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
     if (!eligible.includes(assistantId)) {
-      return { error: 'Le lecteur sélectionné ne fait pas partie des rôles autorisés pour cette partie.' }
+      return { error: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.' }
     }
     const conflict = await checkDayOffConflict(
       db,
@@ -89,7 +89,7 @@ export async function assignPart(
       existing.event.endDate,
       congregationId,
     )
-    if (conflict) return { error: 'Le lecteur a une absence durant cette date.' }
+    if (conflict) return { error: 'Le deuxième orateur a une absence durant cette date.' }
   }
 
   const assignment = await db.programmePartAssignment.update({
