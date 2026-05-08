@@ -17,8 +17,12 @@ export function computeAutoFitScale(page: PageSize, viewport: ViewportSize, isMo
   if (page.width <= 0 || page.height <= 0) return 1
   const widthRatio = viewport.width / page.width
   if (isMobile) return widthRatio
+
+  const isLandscape = page.width > page.height
+  if (!isLandscape) return Math.min(widthRatio, MAX_AUTO_FIT_SCALE)
+
   const heightRatio = viewport.height / page.height
-  return Math.min(Math.max(widthRatio, heightRatio), MAX_AUTO_FIT_SCALE)
+  return Math.min(widthRatio, heightRatio, MAX_AUTO_FIT_SCALE)
 }
 
 export function clampUserZoom(zoom: number): number {

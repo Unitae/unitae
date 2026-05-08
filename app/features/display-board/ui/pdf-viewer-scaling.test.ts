@@ -12,17 +12,25 @@ describe('computeAutoFitScale', () => {
   const mobileViewport = { width: 360, height: 640 }
 
   describe('on desktop', () => {
-    it('scales portrait pages by width (width ratio dominates)', () => {
+    it('scales portrait pages to fit the viewport width (matches today)', () => {
       const portraitA4 = { width: 595, height: 842 }
       const scale = computeAutoFitScale(portraitA4, desktopViewport, false)
       expect(scale).toBeCloseTo(desktopViewport.width / portraitA4.width)
     })
 
-    it('scales landscape pages by height to use available vertical space', () => {
+    it('scales landscape pages to fit-to-page so the height is used without overflowing the width', () => {
       const landscapeA4 = { width: 842, height: 595 }
-      const scale = computeAutoFitScale(landscapeA4, desktopViewport, false)
-      expect(scale).toBeCloseTo(desktopViewport.height / landscapeA4.height)
-      expect(scale).toBeGreaterThan(desktopViewport.width / landscapeA4.width)
+      const wideViewport = { width: 1700, height: 900 }
+      const scale = computeAutoFitScale(landscapeA4, wideViewport, false)
+      expect(scale).toBeCloseTo(wideViewport.height / landscapeA4.height)
+      expect(scale).toBeLessThan(wideViewport.width / landscapeA4.width)
+    })
+
+    it('falls back to fit-to-width for landscape pages when the viewport is too narrow for fit-to-page', () => {
+      const landscapeA4 = { width: 842, height: 595 }
+      const narrowViewport = { width: 600, height: 900 }
+      const scale = computeAutoFitScale(landscapeA4, narrowViewport, false)
+      expect(scale).toBeCloseTo(narrowViewport.width / landscapeA4.width)
     })
 
     it('clamps the scale at MAX_AUTO_FIT_SCALE for very small pages', () => {
