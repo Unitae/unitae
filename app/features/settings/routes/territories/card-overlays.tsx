@@ -462,10 +462,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
         ) : null}
 
         {hasMapApiKey ? (
-          <div
-            className="relative"
-            data-drawing={isDraftActive ? 'true' : undefined}
-          >
+          <div className="relative" data-drawing={isDraftActive ? 'true' : undefined}>
             {isDraftActive ? (
               <span className="pointer-events-none absolute top-3 left-3 z-10 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1 font-medium text-primary-foreground text-xs shadow">
                 {m.settings_territories_card_overlays_drawing_chip()}
@@ -518,17 +515,11 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                   {m.settings_territories_card_overlays_no_polygon_drawn()}
                 </p>
               ) : (
-                <Form
-                  method="post"
-                  className="flex flex-wrap items-end gap-4"
-                  onChange={markDirty}
-                >
+                <Form method="post" className="flex flex-wrap items-end gap-4" onChange={markDirty}>
                   <input
                     type="hidden"
                     name="intent"
-                    value={
-                      perimeterMode != null ? 'set-perimeter' : editingId == null ? 'create' : 'update'
-                    }
+                    value={perimeterMode != null ? 'set-perimeter' : editingId == null ? 'create' : 'update'}
                   />
                   {editingId != null && perimeterMode == null ? (
                     <input type="hidden" name="id" value={editingId} />
@@ -538,9 +529,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                     <>
                       <input type="hidden" name="color" value={draftColor} />
                       <div className="min-w-[200px] flex-1 space-y-2">
-                        <Label htmlFor="card-overlay-name">
-                          {m.settings_territories_card_overlays_name_label()}
-                        </Label>
+                        <Label htmlFor="card-overlay-name">{m.settings_territories_card_overlays_name_label()}</Label>
                         <Input
                           id="card-overlay-name"
                           name="name"
@@ -553,9 +542,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="card-overlay-color">
-                          {m.settings_territories_card_overlays_color_label()}
-                        </Label>
+                        <Label htmlFor="card-overlay-color">{m.settings_territories_card_overlays_color_label()}</Label>
                         <ColorPicker
                           id="card-overlay-color"
                           value={draftColor}
@@ -594,9 +581,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                   aria-label={m.settings_territories_card_overlays_perimeter_section_title()}
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium">
-                    {m.settings_territories_card_overlays_perimeter_section_title()}
-                  </p>
+                  <p className="font-medium">{m.settings_territories_card_overlays_perimeter_section_title()}</p>
                 </div>
                 <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">
                   {verticesCount(perimeter.paths.length)}
@@ -719,9 +704,7 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
           <DialogContent className="flex max-h-[85vh] flex-col overflow-hidden">
             <DialogHeader>
               <DialogTitle>{m.settings_territories_card_overlays_import_dialog_title()}</DialogTitle>
-              <DialogDescription>
-                {m.settings_territories_card_overlays_import_dialog_description()}
-              </DialogDescription>
+              <DialogDescription>{m.settings_territories_card_overlays_import_dialog_description()}</DialogDescription>
             </DialogHeader>
             <Form
               method="post"
@@ -747,7 +730,9 @@ export default function CardOverlaysSettingsPage({ loaderData, actionData }: Rou
                     setImportText(text)
                   }}
                 />
-                <p className="text-muted-foreground text-xs">{m.settings_territories_card_overlays_import_or_paste()}</p>
+                <p className="text-muted-foreground text-xs">
+                  {m.settings_territories_card_overlays_import_or_paste()}
+                </p>
               </div>
               <Label htmlFor="card-overlay-geojson" className="sr-only">
                 {m.settings_territories_card_overlays_import_paste_label()}
@@ -806,9 +791,7 @@ function OverlayRow({
         {displayName != null ? (
           <p className="truncate font-medium">{displayName}</p>
         ) : (
-          <p className="truncate text-muted-foreground italic">
-            {m.settings_territories_card_overlays_unnamed_zone()}
-          </p>
+          <p className="truncate text-muted-foreground italic">{m.settings_territories_card_overlays_unnamed_zone()}</p>
         )}
       </div>
       <span className="rounded-full bg-muted px-2 py-0.5 text-muted-foreground text-xs">

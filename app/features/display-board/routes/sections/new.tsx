@@ -5,7 +5,12 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { createSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { createBoardSection } from '~/features/display-board/server/board-section.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'

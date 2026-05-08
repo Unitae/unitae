@@ -53,8 +53,7 @@ export function buildTerritoryStaticMapUrl(params: BuildStaticMapUrlParams): str
     search.set('markers', `color:yellow|${params.marker.lat},${params.marker.lng}`)
   }
 
-  const perimeterIsDrawn =
-    params.overlays.length === 0 && params.perimeter != null && params.perimeter.length >= 3
+  const perimeterIsDrawn = params.overlays.length === 0 && params.perimeter != null && params.perimeter.length >= 3
 
   // Auto-fit when at least one marker, overlay, or fallback perimeter is present; otherwise fall
   // back to the marker alone with a sane default zoom. With no marker, no overlays, and no

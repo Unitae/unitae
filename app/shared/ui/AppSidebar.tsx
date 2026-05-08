@@ -16,6 +16,7 @@ import {
   PieChart,
   Search,
   Settings,
+  Shield,
   User,
   UserCog,
   UserRoundCog,
@@ -56,6 +57,9 @@ export interface AppSidebarPermissions {
   canViewActivity: boolean
   canViewExternalSpeakers: boolean
   canManageExternalSpeakers: boolean
+  canViewRoles: boolean
+  canManageRoles: boolean
+  canManagePermissions: boolean
   isPlatformAdmin: boolean
 }
 
@@ -68,10 +72,14 @@ interface AppSidebarProps {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: sidebar with many permission-based conditional sections
 export function AppSidebar({ permissions, congregationName, onSearchClick }: AppSidebarProps) {
   const showAssemblee =
-    permissions.canViewPublishers || permissions.canViewPrograms || permissions.canViewExternalSpeakers
+    permissions.canViewPublishers ||
+    permissions.canViewPrograms ||
+    permissions.canViewExternalSpeakers ||
+    permissions.canViewRoles
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
-  const showReglages = permissions.canManageSettings || permissions.canManageUsers
+  const showReglages =
+    permissions.canManageSettings || permissions.canManageUsers || permissions.canManagePermissions
 
   return (
     <Sidebar>
@@ -148,6 +156,9 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                     {permissions.canViewPublishers && (
                       <SidebarNavItem to="/groups" icon={UsersRound} label={m.sidebar_publisher_groups()} />
                     )}
+                    {permissions.canViewRoles && (
+                      <SidebarNavItem to="/congregation/roles" icon={Shield} label={m.sidebar_assembly_roles()} />
+                    )}
                     {permissions.canViewPrograms && (
                       <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
                     )}
@@ -206,18 +217,32 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                 <SidebarGroupContent>
                   <SidebarMenu>
                     {permissions.canManageSettings && (
-                      <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
-                    )}
-                    {permissions.canManageUsers && (
-                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
-                    )}
-                    {permissions.canManageSettings && (
                       <>
+                        <SidebarNavItem
+                          to="/settings/general"
+                          icon={Settings}
+                          label={m.sidebar_settings_general()}
+                        />
                         <SidebarNavItem
                           to="/settings/congregation"
                           icon={Building2}
                           label={m.sidebar_settings_assembly()}
+                          end
                         />
+                      </>
+                    )}
+                    {permissions.canManageUsers && (
+                      <SidebarNavItem to="/settings/users" icon={UserCog} label={m.sidebar_users()} />
+                    )}
+                    {permissions.canManagePermissions && (
+                      <SidebarNavItem
+                        to="/settings/permissions"
+                        icon={Shield}
+                        label={m.sidebar_settings_permissions()}
+                      />
+                    )}
+                    {permissions.canManageSettings && (
+                      <>
                         <SidebarNavItem
                           to="/settings/territories"
                           icon={MapIcon}

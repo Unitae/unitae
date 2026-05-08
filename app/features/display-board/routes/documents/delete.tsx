@@ -4,7 +4,12 @@ import { deleteBoardDocument } from '~/features/display-board/server/board-docum
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import { notify } from '~/features/notifications/server/notify.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'

@@ -1,0 +1,34 @@
+import { z } from 'zod'
+
+export const createRoleSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(500).optional().default(''),
+})
+
+export const editRoleSchema = z.object({
+  name: z.string().trim().min(1).max(100),
+  description: z.string().trim().max(500).optional().default(''),
+})
+
+export const toggleSchema = z.object({
+  userId: z.coerce.number().int().positive(),
+  roleId: z.coerce.number().int().positive(),
+  intent: z.enum(['add', 'remove']),
+})
+
+export type CreateRoleInput = z.infer<typeof createRoleSchema>
+export type EditRoleInput = z.infer<typeof editRoleSchema>
+export type ToggleInput = z.infer<typeof toggleSchema>
+
+export const BUILT_IN_FILTER_KEYS = [
+  'all',
+  'male',
+  'female',
+  'publisher',
+  'baptized',
+  'anointed',
+  'elder',
+  'assistant-servant',
+] as const
+
+export type BuiltInFilterKey = (typeof BUILT_IN_FILTER_KEYS)[number]

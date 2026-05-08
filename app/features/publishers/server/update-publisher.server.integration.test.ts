@@ -89,9 +89,7 @@ describe('updatePublisher (integration) — built-in role wiring', () => {
       }),
     )
 
-    const keys = (
-      await testDb.userRoleAssignment.findMany({ where: { userId: publisherId }, include: { role: true } })
-    )
+    const keys = (await testDb.userRoleAssignment.findMany({ where: { userId: publisherId }, include: { role: true } }))
       .map(a => a.role.key)
       .sort()
     expect(keys).toContain('elder')
@@ -116,9 +114,7 @@ describe('updatePublisher (integration) — built-in role wiring', () => {
       }),
     )
 
-    const keys = (
-      await testDb.userRoleAssignment.findMany({ where: { userId: publisherId }, include: { role: true } })
-    )
+    const keys = (await testDb.userRoleAssignment.findMany({ where: { userId: publisherId }, include: { role: true } }))
       .map(a => a.role.key)
       .sort()
     expect(keys).not.toContain('elder')

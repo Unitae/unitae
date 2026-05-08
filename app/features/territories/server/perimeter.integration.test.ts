@@ -64,7 +64,7 @@ describe('TerritoryPerimeter', () => {
     expect(fetched).toEqual(SAMPLE_PATHS)
   })
 
-  it("isole les périmètres par congrégation (RLS)", async () => {
+  it('isole les périmètres par congrégation (RLS)', async () => {
     const seen = await withScope(bId, tx => getPerimeter(tx as never))
     expect(seen).toBeNull()
 

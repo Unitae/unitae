@@ -44,11 +44,7 @@ export async function setPerimeter(db: TransactionClient, params: SetPerimeterPa
   return { id: upserted.id, paths: upserted.paths as CardOverlayPath[] }
 }
 
-export async function clearPerimeter(
-  db: TransactionClient,
-  congregationId: number,
-  actorId: number,
-): Promise<boolean> {
+export async function clearPerimeter(db: TransactionClient, congregationId: number, actorId: number): Promise<boolean> {
   const existing = await db.territoryPerimeter.findFirst()
   if (existing == null) return false
 

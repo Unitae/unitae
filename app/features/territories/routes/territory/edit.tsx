@@ -22,7 +22,12 @@ import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import PendingChangesRail from '~/features/territories/ui/PendingChangesRail'
 
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'

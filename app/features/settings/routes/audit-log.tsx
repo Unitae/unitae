@@ -169,7 +169,9 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
                 <SelectItem value="user.created">{m.audit_log_action_user_created()}</SelectItem>
                 <SelectItem value="user.updated">{m.audit_log_action_user_updated()}</SelectItem>
                 <SelectItem value="user.anonymized">{m.audit_log_action_user_anonymized()}</SelectItem>
-                <SelectItem value="user.permissions.changed">{m.audit_log_action_user_permissions_changed()}</SelectItem>
+                <SelectItem value="user.permissions.changed">
+                  {m.audit_log_action_user_permissions_changed()}
+                </SelectItem>
                 <SelectItem value="user.data.exported">{m.audit_log_action_user_data_exported()}</SelectItem>
                 <SelectItem value="publisher.created">{m.audit_log_action_publisher_created()}</SelectItem>
                 <SelectItem value="publisher.updated">{m.audit_log_action_publisher_updated()}</SelectItem>
