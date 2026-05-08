@@ -38,7 +38,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   const downloadName = `${document.title}.pdf`
 
   return (
-    <div className="-m-4 flex h-[calc(100vh-2rem)] flex-col md:-m-6 md:h-[calc(100vh-3rem)]">
+    <div className="-m-4 flex h-[calc(100%+2rem)] flex-col md:-m-6 md:h-[calc(100%+3rem)]">
       <div className="flex items-center justify-between gap-2 border-b bg-background px-4 py-3 md:px-6">
         <div className="flex min-w-0 items-center gap-2">
           <Button variant="ghost" size="icon" asChild>
