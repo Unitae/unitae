@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+const roleIdsField = z.preprocess(
+  v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]),
+  z.array(z.coerce.number().int().positive()),
+)
+
 export const updateEventSchema = z.object({
   intent: z.literal('update-event'),
   name: z.string().min(1),
@@ -25,6 +30,8 @@ export const addPartSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  allowedSpeakerRoleIds: roleIdsField.default([]),
+  allowedReaderRoleIds: roleIdsField.default([]),
 })
 
 export const deletePartSchema = z.object({
@@ -35,6 +42,7 @@ export const deletePartSchema = z.object({
 export const addServiceSchema = z.object({
   intent: z.literal('add-service'),
   serviceName: z.string().min(1),
+  allowedRoleIds: roleIdsField.default([]),
 })
 
 export const deleteServiceSchema = z.object({
@@ -55,12 +63,15 @@ export const updatePartSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  allowedSpeakerRoleIds: roleIdsField.default([]),
+  allowedReaderRoleIds: roleIdsField.default([]),
 })
 
 export const updateServiceSchema = z.object({
   intent: z.literal('update-service'),
   serviceAssignmentId: z.coerce.number(),
   serviceName: z.string().min(1),
+  allowedRoleIds: roleIdsField.default([]),
 })
 
 export const applyTemplateSchema = z.object({

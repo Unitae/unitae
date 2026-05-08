@@ -34,6 +34,7 @@ import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
 import { SortableRow } from '~/features/events/ui/SortableRow'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -68,14 +69,50 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const [templates, eventKinds] = await Promise.all([
+    const [templates, eventKinds, allRoles] = await Promise.all([
       getTemplates(db, congregationId),
       db.eventKind.findMany({
         where: { congregationId, NOT: { key: 'off' } },
         orderBy: { name: 'asc' },
       }),
+      listRoles(db, congregationId),
     ])
-    return { event, templates, eventKinds }
+
+    const partAllowed = await db.programmePartAssignmentAllowedRole.findMany({
+      where: { assignmentId: { in: event.partAssignments.map(p => p.id) }, congregationId },
+      select: { assignmentId: true, roleId: true, asKind: true },
+    })
+    const serviceAllowed = await db.programmeServiceRoleAssignmentAllowedRole.findMany({
+      where: { assignmentId: { in: event.serviceRoleAssignments.map(s => s.id) }, congregationId },
+      select: { assignmentId: true, roleId: true },
+    })
+
+    const partAssignmentsWithRoles = event.partAssignments.map(p => ({
+      ...p,
+      allowedSpeakerRoleIds: partAllowed
+        .filter(r => r.assignmentId === p.id && r.asKind === 'speaker')
+        .map(r => r.roleId),
+      allowedReaderRoleIds: partAllowed
+        .filter(r => r.assignmentId === p.id && r.asKind === 'reader')
+        .map(r => r.roleId),
+    }))
+    const serviceAssignmentsWithRoles = event.serviceRoleAssignments.map(s => ({
+      ...s,
+      allowedRoleIds: serviceAllowed.filter(r => r.assignmentId === s.id).map(r => r.roleId),
+    }))
+
+    const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
+
+    return {
+      event: {
+        ...event,
+        partAssignments: partAssignmentsWithRoles,
+        serviceRoleAssignments: serviceAssignmentsWithRoles,
+      },
+      templates,
+      eventKinds,
+      roles,
+    }
   })
 }
 
@@ -117,11 +154,11 @@ function handleEditIntent(
 ): Promise<IntentResult | null> {
   const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
     'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId),
-    'add-part': () => handleAddPart(formData, db, eventId, congregationId),
-    'update-part': () => handleUpdatePart(formData, db, congregationId),
+    'add-part': () => handleAddPart(formData, db, eventId, congregationId, userId),
+    'update-part': () => handleUpdatePart(formData, db, congregationId, userId),
     'delete-part': () => handleDeletePart(formData, db, congregationId),
-    'add-service': () => handleAddService(formData, db, eventId, congregationId),
-    'update-service': () => handleUpdateService(formData, db, congregationId),
+    'add-service': () => handleAddService(formData, db, eventId, congregationId, userId),
+    'update-service': () => handleUpdateService(formData, db, congregationId, userId),
     'delete-service': () => handleDeleteService(formData, db, congregationId),
     'apply-template': () => handleApplyTemplate(formData, db, eventId, congregationId, userId),
   }
@@ -158,23 +195,39 @@ async function handleAddPart(
   db: TransactionClient,
   eventId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: addPartSchema })
   if (submission.status !== 'success') return submission
 
-  const { partName, partSection, partTrack, partTrackOrder, partOrder, partDuration, partAllowExternalSpeaker } =
-    submission.value
-  await addPartAssignment(db, {
-    eventId,
-    name: partName,
-    section: partSection,
-    track: partTrack,
-    trackOrder: partTrackOrder ?? null,
-    order: partOrder,
-    durationMin: partDuration ?? null,
-    allowExternalSpeaker: partAllowExternalSpeaker,
-    congregationId,
-  })
+  const {
+    partName,
+    partSection,
+    partTrack,
+    partTrackOrder,
+    partOrder,
+    partDuration,
+    partAllowExternalSpeaker,
+    allowedSpeakerRoleIds,
+    allowedReaderRoleIds,
+  } = submission.value
+  await addPartAssignment(
+    db,
+    {
+      eventId,
+      name: partName,
+      section: partSection,
+      track: partTrack,
+      trackOrder: partTrackOrder ?? null,
+      order: partOrder,
+      durationMin: partDuration ?? null,
+      allowExternalSpeaker: partAllowExternalSpeaker,
+      allowedSpeakerRoleIds,
+      allowedReaderRoleIds,
+      congregationId,
+    },
+    actorId,
+  )
   return { message: m.programs_edit_part_added() }
 }
 
@@ -182,6 +235,7 @@ async function handleUpdatePart(
   formData: FormData,
   db: TransactionClient,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updatePartSchema })
   if (submission.status !== 'success') return submission
@@ -195,6 +249,8 @@ async function handleUpdatePart(
     partOrder,
     partDuration,
     partAllowExternalSpeaker,
+    allowedSpeakerRoleIds,
+    allowedReaderRoleIds,
   } = submission.value
   await updatePartAssignment(
     db,
@@ -207,8 +263,11 @@ async function handleUpdatePart(
       order: partOrder,
       durationMin: partDuration ?? null,
       allowExternalSpeaker: partAllowExternalSpeaker,
+      allowedSpeakerRoleIds,
+      allowedReaderRoleIds,
     },
     congregationId,
+    actorId,
   )
   return { message: m.programs_edit_event_updated() }
 }
@@ -217,6 +276,7 @@ async function handleUpdateService(
   formData: FormData,
   db: TransactionClient,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updateServiceSchema })
   if (submission.status !== 'success') return submission
@@ -224,8 +284,9 @@ async function handleUpdateService(
   await updateServiceRoleAssignment(
     db,
     submission.value.serviceAssignmentId,
-    { name: submission.value.serviceName },
+    { name: submission.value.serviceName, allowedRoleIds: submission.value.allowedRoleIds },
     congregationId,
+    actorId,
   )
   return { message: m.programs_edit_event_updated() }
 }
@@ -247,11 +308,21 @@ async function handleAddService(
   db: TransactionClient,
   eventId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: addServiceSchema })
   if (submission.status !== 'success') return submission
 
-  await addServiceRoleAssignment(db, { eventId, name: submission.value.serviceName, congregationId })
+  await addServiceRoleAssignment(
+    db,
+    {
+      eventId,
+      name: submission.value.serviceName,
+      allowedRoleIds: submission.value.allowedRoleIds,
+      congregationId,
+    },
+    actorId,
+  )
   return { message: m.programs_edit_service_added() }
 }
 
@@ -283,7 +354,7 @@ async function handleApplyTemplate(
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates, eventKinds } = loaderData
+  const { event, templates, eventKinds, roles } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -301,10 +372,14 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    allowedSpeakerRoleIds: number[]
+    allowedReaderRoleIds: number[]
   } | null>(null)
   const [partSheetOpen, setPartSheetOpen] = useState(false)
 
-  const [editingService, setEditingService] = useState<{ id: number; name: string } | null>(null)
+  const [editingService, setEditingService] = useState<{ id: number; name: string; allowedRoleIds: number[] } | null>(
+    null,
+  )
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'part' | 'service'; id: number; name: string } | null>(null)
@@ -541,6 +616,8 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                                       order: assignment.order,
                                       durationMin: assignment.durationMin,
                                       allowExternalSpeaker: assignment.allowExternalSpeaker,
+                                      allowedSpeakerRoleIds: assignment.allowedSpeakerRoleIds,
+                                      allowedReaderRoleIds: assignment.allowedReaderRoleIds,
                                     })
                                     setPartSheetOpen(true)
                                   }}
@@ -610,7 +687,11 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                           size="icon"
                           className="size-7"
                           onClick={() => {
-                            setEditingService({ id: assignment.id, name: assignment.name })
+                            setEditingService({
+                              id: assignment.id,
+                              name: assignment.name,
+                              allowedRoleIds: assignment.allowedRoleIds,
+                            })
                             setServiceSheetOpen(true)
                           }}
                         >
@@ -644,6 +725,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         mode="event"
         fetcher={partFetcher}
         defaultOrder={event.partAssignments.length + 1}
+        roles={roles}
       />
 
       <ServiceEditSheet
@@ -652,6 +734,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         service={editingService}
         mode="event"
         fetcher={serviceFetcher}
+        roles={roles}
       />
 
       {/* Delete confirmation */}

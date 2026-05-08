@@ -3,11 +3,11 @@ import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
-import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -259,9 +259,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
               </div>
 
               <div className="flex flex-col gap-2">
-                <p className="font-medium text-muted-foreground text-sm">
-                  {m.settings_user_edit_roles_custom_label()}
-                </p>
+                <p className="font-medium text-muted-foreground text-sm">{m.settings_user_edit_roles_custom_label()}</p>
                 {customRoles.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
                     {m.settings_user_edit_roles_empty()}

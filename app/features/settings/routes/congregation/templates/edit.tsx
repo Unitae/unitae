@@ -27,6 +27,7 @@ import {
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -53,19 +54,50 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   return withScopeFromContext(context, async db => {
-    const [template, eventKinds] = await Promise.all([
+    const [template, eventKinds, allRoles] = await Promise.all([
       getTemplateById(db, templateId, currentUser.congregationId),
       db.eventKind.findMany({
         where: { congregationId: currentUser.congregationId, NOT: { key: 'off' } },
         orderBy: { name: 'asc' },
       }),
+      listRoles(db, currentUser.congregationId),
     ])
     if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
-    return { template, eventKinds }
+    const partAllowedRoles = await db.programmeTemplatePartAllowedRole.findMany({
+      where: { partId: { in: template.parts.map(p => p.id) }, congregationId: currentUser.congregationId },
+      select: { partId: true, roleId: true, asKind: true },
+    })
+    const serviceRoleAllowed = await db.programmeTemplateServiceRoleAllowedRole.findMany({
+      where: {
+        serviceRoleId: { in: template.serviceRoles.map(r => r.id) },
+        congregationId: currentUser.congregationId,
+      },
+      select: { serviceRoleId: true, roleId: true },
+    })
+
+    const partsWithRoles = template.parts.map(p => ({
+      ...p,
+      allowedSpeakerRoleIds: partAllowedRoles
+        .filter(r => r.partId === p.id && r.asKind === 'speaker')
+        .map(r => r.roleId),
+      allowedReaderRoleIds: partAllowedRoles.filter(r => r.partId === p.id && r.asKind === 'reader').map(r => r.roleId),
+    }))
+    const serviceRolesWithRoles = template.serviceRoles.map(r => ({
+      ...r,
+      allowedRoleIds: serviceRoleAllowed.filter(s => s.serviceRoleId === r.id).map(s => s.roleId),
+    }))
+
+    const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
+
+    return {
+      template: { ...template, parts: partsWithRoles, serviceRoles: serviceRolesWithRoles },
+      eventKinds,
+      roles,
+    }
   })
 }
 
@@ -93,11 +125,25 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }
 
-    const partResult = await handlePartIntent(intent, formData, db, templateId, currentUser.congregationId)
+    const partResult = await handlePartIntent(
+      intent,
+      formData,
+      db,
+      templateId,
+      currentUser.congregationId,
+      currentUser.id,
+    )
     if (partResult && 'reply' in partResult) return data(partResult.reply(), { status: 400 })
     if (partResult?.message) session.flash('success', partResult.message)
 
-    const serviceResult = await handleServiceRoleIntent(intent, formData, db, templateId, currentUser.congregationId)
+    const serviceResult = await handleServiceRoleIntent(
+      intent,
+      formData,
+      db,
+      templateId,
+      currentUser.congregationId,
+      currentUser.id,
+    )
     if (serviceResult && 'reply' in serviceResult) return data(serviceResult.reply(), { status: 400 })
     if (serviceResult?.message) session.flash('success', serviceResult.message)
 
@@ -113,6 +159,7 @@ async function handlePartIntent(
   db: TransactionClient,
   templateId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult | null> {
   if (intent === 'upsert-part') {
     const submission = parseWithZod(formData, { schema: upsertPartSchema })
@@ -127,6 +174,8 @@ async function handlePartIntent(
       partOrder,
       partDuration,
       partAllowExternalSpeaker,
+      allowedSpeakerRoleIds,
+      allowedReaderRoleIds,
     } = submission.value
     await upsertTemplatePart(
       db,
@@ -140,8 +189,11 @@ async function handlePartIntent(
         order: partOrder,
         durationMin: partDuration ?? null,
         allowExternalSpeaker: partAllowExternalSpeaker,
+        allowedSpeakerRoleIds,
+        allowedReaderRoleIds,
       },
       congregationId,
+      actorId,
     )
     return { message: partId ? m.settings_template_edit_part_updated() : m.settings_template_edit_part_added() }
   }
@@ -161,19 +213,26 @@ async function handleServiceRoleIntent(
   db: TransactionClient,
   templateId: number,
   congregationId: number,
+  actorId: number,
 ): Promise<IntentResult | null> {
   if (intent === 'upsert-service-role') {
     const submission = parseWithZod(formData, { schema: upsertServiceRoleSchema })
     if (submission.status !== 'success') return submission
 
-    const { roleId, roleName, roleKey } = submission.value
+    const { roleId, roleName, roleKey, allowedRoleIds } = submission.value
     const key =
       roleKey ||
       roleName
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '')
-    await upsertTemplateServiceRole(db, templateId, { id: roleId, name: roleName, key }, congregationId)
+    await upsertTemplateServiceRole(
+      db,
+      templateId,
+      { id: roleId, name: roleName, key, allowedRoleIds },
+      congregationId,
+      actorId,
+    )
     return {
       message: roleId ? m.settings_template_edit_service_role_updated() : m.settings_template_edit_service_role_added(),
     }
@@ -189,7 +248,7 @@ async function handleServiceRoleIntent(
 }
 
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
-  const { template, eventKinds } = loaderData
+  const { template, eventKinds, roles } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -206,10 +265,16 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    allowedSpeakerRoleIds: number[]
+    allowedReaderRoleIds: number[]
   } | null>(null)
   const [partSheetOpen, setPartSheetOpen] = useState(false)
 
-  const [editingService, setEditingService] = useState<{ id: number; name: string } | null>(null)
+  const [editingService, setEditingService] = useState<{
+    id: number
+    name: string
+    allowedRoleIds: number[]
+  } | null>(null)
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<{
@@ -402,6 +467,8 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                                       order: part.order,
                                       durationMin: part.durationMin,
                                       allowExternalSpeaker: part.allowExternalSpeaker,
+                                      allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
+                                      allowedReaderRoleIds: part.allowedReaderRoleIds,
                                     })
                                     setPartSheetOpen(true)
                                   }}
@@ -469,7 +536,11 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                           size="icon"
                           className="size-7"
                           onClick={() => {
-                            setEditingService({ id: role.id, name: role.name })
+                            setEditingService({
+                              id: role.id,
+                              name: role.name,
+                              allowedRoleIds: role.allowedRoleIds,
+                            })
                             setServiceSheetOpen(true)
                           }}
                         >
@@ -505,6 +576,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
         mode="template"
         fetcher={partFetcher}
         defaultOrder={template.parts.length + 1}
+        roles={roles}
       />
 
       <ServiceEditSheet
@@ -513,6 +585,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
         service={editingService}
         mode="template"
         fetcher={serviceFetcher}
+        roles={roles}
       />
 
       {/* Delete confirmation */}

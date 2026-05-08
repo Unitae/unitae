@@ -74,10 +74,10 @@ describe('generateEventsFromTemplate', () => {
       weekDay: 2,
       kindId: null,
       parts: [
-        { id: 10, order: 1 },
-        { id: 11, order: 2 },
+        { id: 10, order: 1, allowedRoles: [] },
+        { id: 11, order: 2, allowedRoles: [] },
       ],
-      serviceRoles: [{ id: 20 }],
+      serviceRoles: [{ id: 20, allowedRoles: [] }],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     let eventCounter = 0
@@ -135,7 +135,16 @@ describe('generateEventsFromTemplate', () => {
       weekDay: 0,
       kindId: null,
       parts: [
-        { id: 10, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 30, allowExternalSpeaker: true },
+        {
+          id: 10,
+          name: 'Discours',
+          section: '',
+          track: 'A',
+          order: 1,
+          durationMin: 30,
+          allowExternalSpeaker: true,
+          allowedRoles: [],
+        },
       ],
       serviceRoles: [],
     } as never)
@@ -223,8 +232,8 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
-      parts: [{ id: 30 }],
-      serviceRoles: [{ id: 40 }],
+      parts: [{ id: 30, allowedRoles: [] }],
+      serviceRoles: [{ id: 40, allowedRoles: [] }],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1, name: 'Mémorial' } as never)
@@ -258,7 +267,16 @@ describe('createSingleEventFromTemplate', () => {
       name: 'Mémorial',
       kindId: null,
       parts: [
-        { id: 30, name: 'Discours', section: '', track: 'A', order: 1, durationMin: 45, allowExternalSpeaker: true },
+        {
+          id: 30,
+          name: 'Discours',
+          section: '',
+          track: 'A',
+          order: 1,
+          durationMin: 45,
+          allowExternalSpeaker: true,
+          allowedRoles: [],
+        },
       ],
       serviceRoles: [],
     } as never)

@@ -9,6 +9,11 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
+vi.mock('~/features/events/server/allowed-roles.server', () => ({
+  setTemplatePartAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+  setTemplateServiceRoleAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+}))
+
 const {
   getTemplates,
   getTemplateById,
@@ -22,9 +27,12 @@ const {
   isTemplateResponsible,
 } = await import('./programme-templates.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const allowedRoles = await import('~/features/events/server/allowed-roles.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  vi.mocked(allowedRoles.setTemplateServiceRoleAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })
 
 describe('getTemplates', () => {
@@ -90,8 +98,18 @@ describe('upsertTemplatePart', () => {
     const result = await upsertTemplatePart(
       db,
       1,
-      { name: 'New Part', section: '', track: '', order: 1, durationMin: 10, allowExternalSpeaker: false },
+      {
+        name: 'New Part',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 10,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
       1,
+      99,
     )
     expect(result).toEqual(newPart)
   })
@@ -103,8 +121,19 @@ describe('upsertTemplatePart', () => {
     const result = await upsertTemplatePart(
       db,
       1,
-      { id: 5, name: 'Updated Part', section: '', track: '', order: 1, durationMin: 10, allowExternalSpeaker: false },
+      {
+        id: 5,
+        name: 'Updated Part',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 10,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
       1,
+      99,
     )
     expect(result).toEqual(updatedPart)
   })
@@ -125,7 +154,7 @@ describe('upsertTemplateServiceRole', () => {
     const newRole = { id: 10, name: 'Sono', key: 'sono' }
     vi.mocked(db.programmeTemplateServiceRole.create).mockResolvedValue(newRole as never)
 
-    const result = await upsertTemplateServiceRole(db, 1, { name: 'Sono', key: 'sono' }, 1)
+    const result = await upsertTemplateServiceRole(db, 1, { name: 'Sono', key: 'sono', allowedRoleIds: [] }, 1, 99)
     expect(result).toEqual(newRole)
   })
 
@@ -133,7 +162,13 @@ describe('upsertTemplateServiceRole', () => {
     const updatedRole = { id: 3, name: 'Updated' }
     vi.mocked(db.programmeTemplateServiceRole.update).mockResolvedValue(updatedRole as never)
 
-    const result = await upsertTemplateServiceRole(db, 1, { id: 3, name: 'Updated', key: 'updated' }, 1)
+    const result = await upsertTemplateServiceRole(
+      db,
+      1,
+      { id: 3, name: 'Updated', key: 'updated', allowedRoleIds: [] },
+      1,
+      99,
+    )
     expect(result).toEqual(updatedRole)
   })
 })

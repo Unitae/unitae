@@ -4,6 +4,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { type RoleOption, RolePicker } from '~/shared/ui/RolePicker'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 
@@ -16,6 +17,8 @@ type PartData = {
   order: number
   durationMin: number | null
   allowExternalSpeaker?: boolean
+  allowedSpeakerRoleIds: number[]
+  allowedReaderRoleIds: number[]
 }
 
 type PartEditSheetProps = {
@@ -25,9 +28,10 @@ type PartEditSheetProps = {
   mode: 'event' | 'template'
   fetcher: ReturnType<typeof useFetcher>
   defaultOrder: number
+  roles: RoleOption[]
 }
 
-export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, defaultOrder }: PartEditSheetProps) {
+export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, defaultOrder, roles }: PartEditSheetProps) {
   const isEditing = part != null
   const prevState = useRef(fetcher.state)
   const [trackValue, setTrackValue] = useState(part?.track ?? '')
@@ -44,6 +48,7 @@ export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, default
   }, [fetcher.state, onOpenChange])
 
   const intent = mode === 'template' ? 'upsert-part' : isEditing ? 'update-part' : 'add-part'
+  const pickerKey = `${mode}-${part?.id ?? 'new'}`
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -105,6 +110,30 @@ export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, default
               defaultChecked={part?.allowExternalSpeaker ?? false}
             />
             <Label htmlFor="partAllowExternalSpeaker">{m.programs_edit_allow_external_speaker()}</Label>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>{m.programs_edit_part_allowed_speaker_label()}</Label>
+            <RolePicker
+              key={`speaker-${pickerKey}`}
+              roles={roles}
+              selectedIds={part?.allowedSpeakerRoleIds ?? []}
+              name="allowedSpeakerRoleIds"
+              idPrefix={`part-speaker-${pickerKey}`}
+              helpText={m.programs_edit_allowed_roles_help()}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
+            <RolePicker
+              key={`reader-${pickerKey}`}
+              roles={roles}
+              selectedIds={part?.allowedReaderRoleIds ?? []}
+              name="allowedReaderRoleIds"
+              idPrefix={`part-reader-${pickerKey}`}
+              helpText={m.programs_edit_allowed_roles_help()}
+            />
           </div>
 
           <SheetFooter>

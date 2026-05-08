@@ -25,6 +25,11 @@ export const updateTemplateSchema = z.object({
     .pipe(z.number().nullable()),
 })
 
+const roleIdsField = z.preprocess(
+  v => (Array.isArray(v) ? v : v == null || v === '' ? [] : [v]),
+  z.array(z.coerce.number().int().positive()),
+)
+
 export const upsertPartSchema = z.object({
   intent: z.literal('upsert-part'),
   partId: z.coerce.number().optional(),
@@ -38,6 +43,8 @@ export const upsertPartSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  allowedSpeakerRoleIds: roleIdsField.default([]),
+  allowedReaderRoleIds: roleIdsField.default([]),
 })
 
 export const deletePartSchema = z.object({
@@ -50,6 +57,7 @@ export const upsertServiceRoleSchema = z.object({
   roleId: z.coerce.number().optional(),
   roleName: z.string().min(1),
   roleKey: z.string().optional().default(''),
+  allowedRoleIds: roleIdsField.default([]),
 })
 
 export const deleteServiceRoleSchema = z.object({

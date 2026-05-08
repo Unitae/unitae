@@ -22,8 +22,8 @@ import { seedDefaultTemplates } from '../features/events/server/seed-templates.s
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '../features/territories/model/territory-kind.type'
-import { PublisherType } from '../shared/types/publisher-type'
 import { Permission } from '../shared/types/permission'
+import { PublisherType } from '../shared/types/publisher-type'
 import { PrismaClient } from './generated/client'
 
 const adapter = new PrismaPg({ connectionString: process.env.DB_URL })

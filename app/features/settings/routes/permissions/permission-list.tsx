@@ -64,7 +64,9 @@ export default function PermissionListPage({ loaderData }: Route.ComponentProps)
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground text-sm max-md:hidden">{getRoleDescription(role)}</TableCell>
+                <TableCell className="text-muted-foreground text-sm max-md:hidden">
+                  {getRoleDescription(role)}
+                </TableCell>
                 <TableCell className="text-center">{role.permissionCount}</TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" asChild>

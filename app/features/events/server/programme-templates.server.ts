@@ -1,3 +1,8 @@
+import {
+  setTemplatePartAllowedRoles,
+  setTemplateServiceRoleAllowedRoles,
+} from '~/features/events/server/allowed-roles.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
@@ -36,7 +41,7 @@ export function updateTemplate(
   })
 }
 
-export function upsertTemplatePart(
+export async function upsertTemplatePart(
   db: TransactionClient,
   templateId: number,
   partData: {
@@ -48,39 +53,63 @@ export function upsertTemplatePart(
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    allowedSpeakerRoleIds: number[]
+    allowedReaderRoleIds: number[]
   },
   congregationId: number,
+  actorId: number,
 ) {
-  if (partData.id) {
-    return db.programmeTemplatePart.update({
-      where: {
-        id_congregationId: { id: partData.id, congregationId },
-      },
-      data: {
-        name: partData.name,
-        section: partData.section,
-        track: partData.track,
-        trackOrder: partData.trackOrder,
-        order: partData.order,
-        durationMin: partData.durationMin,
-        allowExternalSpeaker: partData.allowExternalSpeaker,
-      },
+  const baseData = {
+    name: partData.name,
+    section: partData.section,
+    track: partData.track,
+    trackOrder: partData.trackOrder,
+    order: partData.order,
+    durationMin: partData.durationMin,
+    allowExternalSpeaker: partData.allowExternalSpeaker,
+  }
+
+  const part = partData.id
+    ? await db.programmeTemplatePart.update({
+        where: { id_congregationId: { id: partData.id, congregationId } },
+        data: baseData,
+      })
+    : await db.programmeTemplatePart.create({
+        data: { ...baseData, templateId, congregationId },
+      })
+
+  const speakerDiff = await setTemplatePartAllowedRoles(
+    db,
+    part.id,
+    'speaker',
+    partData.allowedSpeakerRoleIds,
+    congregationId,
+  )
+  const readerDiff = await setTemplatePartAllowedRoles(
+    db,
+    part.id,
+    'reader',
+    partData.allowedReaderRoleIds,
+    congregationId,
+  )
+
+  if (
+    speakerDiff.added.length > 0 ||
+    speakerDiff.removed.length > 0 ||
+    readerDiff.added.length > 0 ||
+    readerDiff.removed.length > 0
+  ) {
+    audit({
+      action: AuditAction.PartAllowedRolesChanged,
+      congregationId,
+      actorId,
+      entityType: 'ProgrammeTemplatePart',
+      entityId: part.id,
+      metadata: { speaker: speakerDiff, reader: readerDiff },
     })
   }
 
-  return db.programmeTemplatePart.create({
-    data: {
-      name: partData.name,
-      section: partData.section,
-      track: partData.track,
-      trackOrder: partData.trackOrder,
-      order: partData.order,
-      durationMin: partData.durationMin,
-      allowExternalSpeaker: partData.allowExternalSpeaker,
-      templateId,
-      congregationId,
-    },
-  })
+  return part
 }
 
 export function deleteTemplatePart(db: TransactionClient, partId: number, congregationId: number) {
@@ -91,32 +120,36 @@ export function deleteTemplatePart(db: TransactionClient, partId: number, congre
   })
 }
 
-export function upsertTemplateServiceRole(
+export async function upsertTemplateServiceRole(
   db: TransactionClient,
   templateId: number,
-  roleData: { id?: number; name: string; key: string },
+  roleData: { id?: number; name: string; key: string; allowedRoleIds: number[] },
   congregationId: number,
+  actorId: number,
 ) {
-  if (roleData.id) {
-    return db.programmeTemplateServiceRole.update({
-      where: {
-        id_congregationId: { id: roleData.id, congregationId },
-      },
-      data: {
-        name: roleData.name,
-        key: roleData.key,
-      },
+  const serviceRole = roleData.id
+    ? await db.programmeTemplateServiceRole.update({
+        where: { id_congregationId: { id: roleData.id, congregationId } },
+        data: { name: roleData.name, key: roleData.key },
+      })
+    : await db.programmeTemplateServiceRole.create({
+        data: { name: roleData.name, key: roleData.key, templateId, congregationId },
+      })
+
+  const diff = await setTemplateServiceRoleAllowedRoles(db, serviceRole.id, roleData.allowedRoleIds, congregationId)
+
+  if (diff.added.length > 0 || diff.removed.length > 0) {
+    audit({
+      action: AuditAction.ServiceRoleAllowedRolesChanged,
+      congregationId,
+      actorId,
+      entityType: 'ProgrammeTemplateServiceRole',
+      entityId: serviceRole.id,
+      metadata: { added: diff.added, removed: diff.removed },
     })
   }
 
-  return db.programmeTemplateServiceRole.create({
-    data: {
-      name: roleData.name,
-      key: roleData.key,
-      templateId,
-      congregationId,
-    },
-  })
+  return serviceRole
 }
 
 export function deleteTemplateServiceRole(db: TransactionClient, roleId: number, congregationId: number) {
@@ -183,11 +216,17 @@ export function isTemplateResponsible(
 export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number) {
   const source = await db.programmeTemplate.findFirst({
     where: { id: templateId, congregationId },
-    include: { parts: { orderBy: { order: 'asc' } }, serviceRoles: true },
+    include: {
+      parts: {
+        orderBy: { order: 'asc' },
+        include: { allowedRoles: true },
+      },
+      serviceRoles: { include: { allowedRoles: true } },
+    },
   })
   if (!source) return null
 
-  return db.programmeTemplate.create({
+  const duplicated = await db.programmeTemplate.create({
     data: {
       name: `${source.name} (copie)`,
       key: `${source.key}-copy-${Date.now()}`,
@@ -214,5 +253,42 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
         })),
       },
     },
+    include: {
+      parts: { orderBy: { order: 'asc' } },
+      serviceRoles: { orderBy: { name: 'asc' } },
+    },
   })
+
+  const sourcePartsByOrder = new Map(source.parts.map(p => [p.order, p]))
+  const sourceServiceRolesByName = new Map(source.serviceRoles.map(r => [r.name, r]))
+
+  for (const newPart of duplicated.parts) {
+    const sourcePart = sourcePartsByOrder.get(newPart.order)
+    if (!sourcePart) continue
+    const speakerRoleIds = sourcePart.allowedRoles.filter(r => r.asKind === 'speaker').map(r => r.roleId)
+    const readerRoleIds = sourcePart.allowedRoles.filter(r => r.asKind === 'reader').map(r => r.roleId)
+    if (speakerRoleIds.length > 0) {
+      await db.programmeTemplatePartAllowedRole.createMany({
+        data: speakerRoleIds.map(roleId => ({ partId: newPart.id, roleId, asKind: 'speaker', congregationId })),
+        skipDuplicates: true,
+      })
+    }
+    if (readerRoleIds.length > 0) {
+      await db.programmeTemplatePartAllowedRole.createMany({
+        data: readerRoleIds.map(roleId => ({ partId: newPart.id, roleId, asKind: 'reader', congregationId })),
+        skipDuplicates: true,
+      })
+    }
+  }
+
+  for (const newRole of duplicated.serviceRoles) {
+    const sourceRole = sourceServiceRolesByName.get(newRole.name)
+    if (!sourceRole || sourceRole.allowedRoles.length === 0) continue
+    await db.programmeTemplateServiceRoleAllowedRole.createMany({
+      data: sourceRole.allowedRoles.map(r => ({ serviceRoleId: newRole.id, roleId: r.roleId, congregationId })),
+      skipDuplicates: true,
+    })
+  }
+
+  return duplicated
 }

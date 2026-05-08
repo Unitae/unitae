@@ -20,9 +20,7 @@ export function getCalendarFeedToken(userId: number): Promise<CalendarFeedToken 
   return db.calendarFeedToken.findUnique({ where: { userId } })
 }
 
-export async function findUserByCalendarFeedToken(
-  token: string,
-): Promise<{ tokenId: number; user: User } | null> {
+export async function findUserByCalendarFeedToken(token: string): Promise<{ tokenId: number; user: User } | null> {
   const record = await db.calendarFeedToken.findUnique({
     where: { token },
     include: { user: true },
@@ -32,9 +30,7 @@ export async function findUserByCalendarFeedToken(
 }
 
 export function touchCalendarFeedToken(tokenId: number): void {
-  db.calendarFeedToken
-    .update({ where: { id: tokenId }, data: { lastUsedAt: new Date() } })
-    .catch(error => {
-      logger.warn(`Failed to update calendar feed token lastUsedAt for id=${tokenId}: ${String(error)}`)
-    })
+  db.calendarFeedToken.update({ where: { id: tokenId }, data: { lastUsedAt: new Date() } }).catch(error => {
+    logger.warn(`Failed to update calendar feed token lastUsedAt for id=${tokenId}: ${String(error)}`)
+  })
 }

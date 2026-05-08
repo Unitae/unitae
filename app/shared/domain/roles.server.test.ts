@@ -130,9 +130,9 @@ describe('updateRoleIdentity', () => {
       isBuiltIn: true,
     } as never)
 
-    await expect(
-      updateRoleIdentity(mockDb as never, 1, 10, 1, { name: 'Anciens locaux' }),
-    ).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(updateRoleIdentity(mockDb as never, 1, 10, 1, { name: 'Anciens locaux' })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    )
     expect(mockDb.role.update).not.toHaveBeenCalled()
   })
 

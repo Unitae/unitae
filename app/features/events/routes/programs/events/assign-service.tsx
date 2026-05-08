@@ -3,6 +3,10 @@ import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
+import {
+  getServiceRoleAssignmentAllowedRoleIds,
+  resolveEligibleUserIds,
+} from '~/features/events/server/allowed-roles.server'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
@@ -49,8 +53,16 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       where: { congregationId, active: true },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
+    const userById = new Map(users.map(u => [u.id, u]))
 
-    return { event, assignment, users }
+    let assigneeCandidates = users
+    if (assignment) {
+      const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignment.id, congregationId)
+      const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
+      assigneeCandidates = eligible.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
+    }
+
+    return { event, assignment, assigneeCandidates }
   })
 }
 
@@ -95,7 +107,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function AssignServicePage({ loaderData }: Route.ComponentProps) {
-  const { event, assignment, users } = loaderData
+  const { event, assignment, assigneeCandidates } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? '')
   const { blocker, markDirty } = useUnsavedChanges()
@@ -127,7 +139,7 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
                 <PersonDropdown
                   id="assigneeId"
                   name="assigneeId"
-                  people={users}
+                  people={assigneeCandidates}
                   value={selectedAssignee}
                   onValueChange={setSelectedAssignee}
                   placeholder={m.programs_assign_service_select_publisher()}

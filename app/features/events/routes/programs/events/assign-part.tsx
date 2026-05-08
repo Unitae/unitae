@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { data, Form, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
+import { getPartAssignmentAllowedRoleIds, resolveEligibleUserIds } from '~/features/events/server/allowed-roles.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
@@ -54,6 +55,18 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       where: { congregationId, active: true },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
+    const userById = new Map(users.map(u => [u.id, u]))
+
+    let speakerCandidates = users
+    let readerCandidates = users
+    if (assignment) {
+      const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
+      const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
+      const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
+      const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
+      speakerCandidates = speakerIds.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
+      readerCandidates = readerIds.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
+    }
 
     const externalSpeakers = assignment?.allowExternalSpeaker
       ? await listExternalSpeakers(db, congregationId, { includeArchived: false })
@@ -65,7 +78,13 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       return aTime - bTime
     })
 
-    return { event, assignment, users, externalSpeakers: sortedExternalSpeakers }
+    return {
+      event,
+      assignment,
+      speakerCandidates,
+      readerCandidates,
+      externalSpeakers: sortedExternalSpeakers,
+    }
   })
 }
 
@@ -122,7 +141,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
-  const { event, assignment, users, externalSpeakers } = loaderData
+  const { event, assignment, speakerCandidates, readerCandidates, externalSpeakers } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? '')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? '')
@@ -222,7 +241,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
                     <PersonDropdown
                       id="assigneeId"
                       name="assigneeId"
-                      people={users}
+                      people={speakerCandidates}
                       value={selectedAssignee}
                       onValueChange={setSelectedAssignee}
                       placeholder={m.programs_assign_part_select_publisher()}
@@ -235,7 +254,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
                     <PersonDropdown
                       id="assistantId"
                       name="assistantId"
-                      people={users}
+                      people={readerCandidates}
                       value={selectedAssistant}
                       onValueChange={setSelectedAssistant}
                       placeholder={m.programs_assign_part_no_reader()}

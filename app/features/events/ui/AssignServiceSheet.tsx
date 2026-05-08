@@ -17,11 +17,17 @@ type AssignServiceSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   assignment: ServiceAssignment | null
-  users: Array<{ id: number; firstname: string | null; lastname: string | null }>
+  assigneeCandidates: Array<{ id: number; firstname: string | null; lastname: string | null }>
   eventId: number
 }
 
-export function AssignServiceSheet({ open, onOpenChange, assignment, users, eventId }: AssignServiceSheetProps) {
+export function AssignServiceSheet({
+  open,
+  onOpenChange,
+  assignment,
+  assigneeCandidates,
+  eventId,
+}: AssignServiceSheetProps) {
   const fetcher = useFetcher<{ ok: boolean }>()
   const prevState = useRef(fetcher.state)
   const [selectedAssignee, setSelectedAssignee] = useState('')
@@ -59,7 +65,7 @@ export function AssignServiceSheet({ open, onOpenChange, assignment, users, even
             <PersonDropdown
               id="assigneeId"
               name="assigneeId"
-              people={users}
+              people={assigneeCandidates}
               value={selectedAssignee}
               onValueChange={setSelectedAssignee}
               placeholder={m.programs_assign_service_select_publisher()}

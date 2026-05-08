@@ -3,12 +3,14 @@ import type { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { type RoleOption, RolePicker } from '~/shared/ui/RolePicker'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '~/shared/ui/sheet'
 
 type ServiceData = {
   id?: number
   name: string
+  allowedRoleIds: number[]
 }
 
 type ServiceEditSheetProps = {
@@ -17,9 +19,10 @@ type ServiceEditSheetProps = {
   service: ServiceData | null
   mode: 'event' | 'template'
   fetcher: ReturnType<typeof useFetcher>
+  roles: RoleOption[]
 }
 
-export function ServiceEditSheet({ open, onOpenChange, service, mode, fetcher }: ServiceEditSheetProps) {
+export function ServiceEditSheet({ open, onOpenChange, service, mode, fetcher, roles }: ServiceEditSheetProps) {
   const isEditing = service != null
   const prevState = useRef(fetcher.state)
 
@@ -32,6 +35,7 @@ export function ServiceEditSheet({ open, onOpenChange, service, mode, fetcher }:
 
   const intent = mode === 'template' ? 'upsert-service-role' : isEditing ? 'update-service' : 'add-service'
   const nameField = mode === 'template' ? 'roleName' : 'serviceName'
+  const pickerKey = `${mode}-${service?.id ?? 'new'}`
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -49,6 +53,18 @@ export function ServiceEditSheet({ open, onOpenChange, service, mode, fetcher }:
           <div className="flex flex-col gap-2">
             <Label htmlFor={nameField}>{m.programs_edit_part_name_label()}</Label>
             <Input id={nameField} name={nameField} defaultValue={service?.name ?? ''} required />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>{m.programs_edit_service_allowed_roles_label()}</Label>
+            <RolePicker
+              key={pickerKey}
+              roles={roles}
+              selectedIds={service?.allowedRoleIds ?? []}
+              name="allowedRoleIds"
+              idPrefix={`service-allowed-${pickerKey}`}
+              helpText={m.programs_edit_allowed_roles_help()}
+            />
           </div>
 
           <SheetFooter>

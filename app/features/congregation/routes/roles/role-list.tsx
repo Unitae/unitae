@@ -1,11 +1,12 @@
+import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Plus, Shield } from 'lucide-react'
 import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { type BuiltInFilterKey, toggleSchema } from '~/features/congregation/schemas/role.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { addUserToRole, removeUserFromRole } from '~/shared/domain/roles.server'
+import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Button } from '~/shared/ui/button'
@@ -14,9 +15,7 @@ import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
-
 import type { Route } from './+types/role-list'
-import { parseWithZod } from '@conform-to/zod'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.congregation_roles_meta_title() }]

@@ -4,6 +4,11 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn() },
 }))
 
+vi.mock('~/features/events/server/allowed-roles.server', () => ({
+  setPartAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+  setServiceRoleAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+}))
+
 const {
   createFreeformEvent,
   deleteEvent,
@@ -29,13 +34,23 @@ const mockDb = {
     create: vi.fn(),
     delete: vi.fn(),
   },
+  programmePartAssignmentAllowedRole: {
+    createMany: vi.fn(),
+  },
+  programmeServiceRoleAssignmentAllowedRole: {
+    createMany: vi.fn(),
+  },
   programmeTemplate: {
     findFirst: vi.fn(),
   },
 }
 
+const allowedRoles = await import('~/features/events/server/allowed-roles.server')
+
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })
 
 describe('createFreeformEvent', () => {
@@ -97,15 +112,18 @@ describe('addPartAssignment', () => {
       order: 1,
       durationMin: 30,
       allowExternalSpeaker: false,
+      allowedSpeakerRoleIds: [],
+      allowedReaderRoleIds: [],
       congregationId: 10,
     }
-    const expected = { id: 1, ...data }
+    const { allowedSpeakerRoleIds: _s, allowedReaderRoleIds: _r, ...createData } = data
+    const expected = { id: 1, ...createData }
     mockDb.programmePartAssignment.create.mockResolvedValue(expected)
 
-    const result = await addPartAssignment(mockDb as never, data)
+    const result = await addPartAssignment(mockDb as never, data, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({ data })
+    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({ data: createData })
   })
 })
 
@@ -124,14 +142,15 @@ describe('deletePartAssignment', () => {
 
 describe('addServiceRoleAssignment', () => {
   it('creates a service role assignment', async () => {
-    const data = { eventId: 1, name: 'Son', congregationId: 10 }
-    const expected = { id: 1, ...data }
+    const data = { eventId: 1, name: 'Son', allowedRoleIds: [], congregationId: 10 }
+    const { allowedRoleIds: _a, ...createData } = data
+    const expected = { id: 1, ...createData }
     mockDb.programmeServiceRoleAssignment.create.mockResolvedValue(expected)
 
-    const result = await addServiceRoleAssignment(mockDb as never, data)
+    const result = await addServiceRoleAssignment(mockDb as never, data, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({ data })
+    expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({ data: createData })
   })
 })
 
@@ -163,15 +182,15 @@ describe('applyTemplateToEvent', () => {
       id: 5,
       name: 'Reunion vie',
       parts: [
-        { id: 10, name: 'Cantique', section: 'intro', track: 'A', order: 1, durationMin: 5 },
-        { id: 11, name: 'Discours', section: 'main', track: 'A', order: 2, durationMin: 30 },
+        { id: 10, name: 'Cantique', section: 'intro', track: 'A', order: 1, durationMin: 5, allowedRoles: [] },
+        { id: 11, name: 'Discours', section: 'main', track: 'A', order: 2, durationMin: 30, allowedRoles: [] },
       ],
-      serviceRoles: [{ id: 20, name: 'Son' }],
+      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
     mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.programmePartAssignment.create.mockResolvedValue({})
-    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 999 })
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 998 })
 
     const result = await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 

@@ -5,15 +5,27 @@ vi.mock('~/shared/infra/db.server', () => ({
     event: { findFirst: vi.fn(), findMany: vi.fn() },
     programmePartAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     programmeServiceRoleAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    externalSpeaker: { findFirst: vi.fn() },
   },
+}))
+
+vi.mock('~/features/events/server/allowed-roles.server', () => ({
+  getPartAssignmentAllowedRoleIds: vi.fn().mockResolvedValue([]),
+  getServiceRoleAssignmentAllowedRoleIds: vi.fn().mockResolvedValue([]),
+  resolveEligibleUserIds: vi.fn().mockResolvedValue([5]),
 }))
 
 const { assignPart, assignServiceRole, unassignPart, unassignServiceRole, checkDayOffConflict, refreshConflictFlags } =
   await import('./programme-assignments.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
+const allowedRoles = await import('~/features/events/server/allowed-roles.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValue([])
+  vi.mocked(allowedRoles.getServiceRoleAssignmentAllowedRoleIds).mockResolvedValue([])
+  // Default eligibility list contains user 5 — the user used by most existing tests.
+  vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5])
 })
 
 describe('checkDayOffConflict', () => {
@@ -70,6 +82,51 @@ describe('assignPart', () => {
     const result = await assignPart(db, 1, null, null, null, '', 1)
     expect(result).toHaveProperty('assignment')
   })
+
+  it('rejects when speaker is not in the eligible role set', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValueOnce([99])
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValueOnce([42]) // not user 5
+
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
+    expect(result).toHaveProperty('error')
+    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+  })
+
+  it('rejects when reader is not in the eligible role set', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    // Speaker fetch (asKind: 'speaker') → empty allowed → publisher fallback returning [5]
+    // Reader fetch (asKind: 'reader')  → restrictive list, eligible = [42]
+    vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValueOnce([]).mockResolvedValueOnce([99])
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValueOnce([5]).mockResolvedValueOnce([42])
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+
+    const result = await assignPart(db, 1, 5, 7, null, 'Topic', 1)
+    expect(result).toHaveProperty('error')
+  })
+
+  it('skips eligibility checks for external speakers', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.externalSpeaker.findFirst).mockResolvedValue({
+      id: 99,
+      name: 'External Bob',
+    } as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, externalSpeakerId: 99 } as never)
+
+    const result = await assignPart(db, 1, null, null, 99, 'Topic', 1)
+
+    expect(result).toHaveProperty('assignment')
+    expect(allowedRoles.resolveEligibleUserIds).not.toHaveBeenCalled()
+  })
 })
 
 describe('assignServiceRole', () => {
@@ -100,6 +157,19 @@ describe('assignServiceRole', () => {
 
     const result = await assignServiceRole(db, 1, 5, 1)
     expect(result).toHaveProperty('assignment')
+  })
+
+  it('rejects when assignee is not in the eligible role set', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(allowedRoles.getServiceRoleAssignmentAllowedRoleIds).mockResolvedValueOnce([99])
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValueOnce([42])
+
+    const result = await assignServiceRole(db, 1, 5, 1)
+    expect(result).toHaveProperty('error')
+    expect(db.programmeServiceRoleAssignment.update).not.toHaveBeenCalled()
   })
 })
 
