@@ -48,4 +48,32 @@ describe('getPublishersWithGroup', () => {
     const result = await getPublishersWithGroup(db, 1)
     expect(result).toEqual(fakePublishers)
   })
+
+  it('applies a case-insensitive OR filter on firstname and lastname when search is provided', async () => {
+    vi.mocked(db.user.findMany).mockResolvedValue([] as never)
+    await getPublishersWithGroup(db, 1, { search: 'jean' })
+
+    const where = vi.mocked(db.user.findMany).mock.calls[0]?.[0]?.where
+    expect(where).toMatchObject({
+      OR: [
+        { firstname: { contains: 'jean', mode: 'insensitive' } },
+        { lastname: { contains: 'jean', mode: 'insensitive' } },
+      ],
+    })
+  })
+
+  it('does not apply an OR filter when search is absent', async () => {
+    vi.mocked(db.user.findMany).mockResolvedValue([] as never)
+    await getPublishersWithGroup(db, 1)
+
+    const where = vi.mocked(db.user.findMany).mock.calls[0]?.[0]?.where
+    expect(where).not.toHaveProperty('OR')
+  })
+
+  it('returns an empty array when no publisher matches the search', async () => {
+    vi.mocked(db.user.findMany).mockResolvedValue([] as never)
+
+    const result = await getPublishersWithGroup(db, 1, { search: 'zzz-no-match' })
+    expect(result).toEqual([])
+  })
 })

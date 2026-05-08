@@ -868,6 +868,8 @@
     "publishers_create_button": "Create publisher",
     "publishers_empty_title": "There are no publishers yet!",
     "publishers_empty_description": "To add publishers use the &laquo; Create publisher &raquo; button at the top right of this page or create publisher cards from users.",
+    "publishers_empty_no_match_title": "No publishers found",
+    "publishers_empty_no_match_description": "No publisher matches \"{query}\". Try another search term.",
     "publishers_search_placeholder": "Search for a publisher...",
     "publishers_search_button": "Search",
     "publishers_view_activity_title": "View publisher activity",

@@ -870,6 +870,8 @@
     "publishers_create_button": "Créer proclamateur",
     "publishers_empty_title": "Il n'y a aucun proclamateur pour le moment !",
     "publishers_empty_description": "Pour ajouter des proclamateurs utilisez le bouton &laquo; Créer proclamateur &raquo; en haut à droite de cette page ou créez des fiches de proclamateur à partir des utilisateurs.",
+    "publishers_empty_no_match_title": "Aucun proclamateur trouvé",
+    "publishers_empty_no_match_description": "Aucun proclamateur ne correspond à « {query} ». Essayez un autre terme de recherche.",
     "publishers_search_placeholder": "Rechercher un proclamateur...",
     "publishers_search_button": "Rechercher",
     "publishers_view_activity_title": "Consulter l'activité des proclamateurs",
