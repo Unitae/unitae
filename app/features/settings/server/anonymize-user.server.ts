@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { UserId } from '~/shared/types/branded'
 
@@ -65,6 +66,10 @@ export async function anonymizeUser(db: TransactionClient, userId: UserId, reque
   await db.congregationUserPermission.deleteMany({
     where: { userId },
   })
+
+  // Resynchroniser les rôles intégrés — l'utilisateur n'a plus aucun fanion booléen,
+  // donc l'opération supprimera toutes les assignations de rôles intégrés.
+  await syncBuiltInRoleAssignments(db, userId, user.congregationId, null)
 
   // Supprimer les tokens de reinitialisation
   await db.passwordResetToken.deleteMany({

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 const mockUpdate = vi.fn()
+const mockSync = vi.fn()
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -10,6 +11,9 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('~/shared/domain/built-in-roles.server', () => ({
+  syncBuiltInRoleAssignments: mockSync,
+}))
 
 const { updatePublisher } = await import('./update-publisher.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -111,5 +115,13 @@ describe('updatePublisher', () => {
 
     const callData = mockUpdate.mock.calls[0][0].data
     expect(callData).not.toHaveProperty('email')
+  })
+
+  it('syncs built-in role assignments after the update', async () => {
+    mockUpdate.mockResolvedValue({ id: 1 } as never)
+
+    await updatePublisher(db, 1, 10, 99, baseParams)
+
+    expect(mockSync).toHaveBeenCalledWith(db, 1, 10, 99)
   })
 })

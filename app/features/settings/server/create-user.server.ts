@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
@@ -49,6 +50,8 @@ export async function createUser(
       congregationId: params.congregationId,
     },
   })
+
+  await syncBuiltInRoleAssignments(db, user.id, params.congregationId, actorId)
 
   const token = await createPasswordResetToken(user.id)
   const emailSent = await sendResetUserPasswordEmail(user.id, renderEmail(user.id, token))

@@ -2,6 +2,7 @@ import { seedDefaultTemplates } from '~/features/events/server/seed-templates.se
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { ConsentPurpose, recordConsentUnscoped } from '~/shared/domain/consent.server'
 import { seedCongregationDefaults, seedPermissions } from '~/shared/domain/setup.server'
 
@@ -63,6 +64,7 @@ export async function registerCongregation(
   // transaction so PostgreSQL RLS allows the inserts.
   await withScope(congregation.id, async scopedDb => {
     await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates)
+    await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
   })
 
   // Enregistrer le consentement RGPD initial

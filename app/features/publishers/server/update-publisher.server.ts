@@ -1,4 +1,5 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { PublisherType } from '~/shared/types/publisher-type'
 
@@ -45,6 +46,8 @@ export async function updatePublisher(
       phone: params.phone,
     },
   })
+
+  await syncBuiltInRoleAssignments(db, id, congregationId, actorId)
 
   audit({
     action: AuditAction.PublisherUpdated,

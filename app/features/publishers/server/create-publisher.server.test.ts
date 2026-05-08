@@ -9,6 +9,7 @@ vi.mock('~/shared/domain/limits.server', () => ({
   },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
+vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignments: vi.fn() }))
 
 const mockDb = {
   user: { create: vi.fn() },

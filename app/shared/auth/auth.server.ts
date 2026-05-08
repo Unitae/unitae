@@ -1,5 +1,5 @@
 import { verifySession } from '~/features/authentication/server/session.server'
-import { verifyPermission } from '~/shared/auth/permissions.server'
+import { resolveEffectivePermissions } from '~/shared/auth/permissions.server'
 import type { Permission } from '~/shared/types/permission'
 
 /**
@@ -10,15 +10,14 @@ import type { Permission } from '~/shared/types/permission'
  */
 export async function authenticateAndAuthorize(request: Request, roles: Permission[] = []) {
   const { currentUser, congregation, session } = await verifySession(request)
-
-  const resolved = await Promise.all(roles.map(async role => [role, await verifyPermission(request, role)] as const))
-  const permissions = new Set(resolved.filter(([, granted]) => granted).map(([role]) => role))
+  const granted = await resolveEffectivePermissions(currentUser.id, currentUser.congregationId)
+  const requested = new Set(roles.filter(role => granted.has(role)))
 
   return {
     currentUser,
     congregation,
     congregationId: currentUser.congregationId,
     session,
-    can: (role: Permission) => permissions.has(role),
+    can: (role: Permission) => requested.has(role),
   }
 }
