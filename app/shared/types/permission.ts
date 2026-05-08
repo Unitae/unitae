@@ -1,4 +1,4 @@
-export enum Role {
+export enum Permission {
   Admin = 'admin',
   BoardUploader = 'board-uploader',
   BoardValidator = 'board-validator',

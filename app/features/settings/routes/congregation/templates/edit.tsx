@@ -29,7 +29,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -63,7 +63,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     return { template, eventKinds }
   })
@@ -80,7 +80,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles multiple form intents in a single transaction
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     const session = await getSession(request.headers.get('Cookie'))
     if (intent === 'update-template') {

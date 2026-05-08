@@ -29,7 +29,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription, AlertTitle } from '~/shared/ui/alert'
 import {
   AlertDialog,
@@ -79,7 +79,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.TerritoriesManager)) {
+  if (!permissions.has(Permission.TerritoriesManager)) {
     throw redirect('/')
   }
   const congregation = context.get(congregationContext)
@@ -168,7 +168,7 @@ const actionSchema = z.discriminatedUnion('intent', [
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.TerritoriesManager)) {
+  if (!permissions.has(Permission.TerritoriesManager)) {
     throw redirect('/')
   }
   const currentUser = context.get(userContext)

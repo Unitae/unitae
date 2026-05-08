@@ -10,7 +10,7 @@ import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -30,8 +30,8 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canUploadDocument = permissions.has(Role.BoardUploader)
-  const canManageBoard = permissions.has(Role.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
 
   if (!canUploadDocument) {
     throw redirect('/')
@@ -217,7 +217,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const canManageBoard = permissions.has(Role.BoardValidator)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
 
   let formResult: Awaited<ReturnType<typeof parseMultipartForm>>
   try {

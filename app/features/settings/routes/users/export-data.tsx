@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { exportUserData } from '~/features/settings/server/export-user-data.server'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/export-data'
@@ -16,7 +16,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   // Seul un admin/gestionnaire peut exporter, ou l'utilisateur lui-meme
   const isSelf = currentUser.id === userId
-  const canManageUsers = permissions.has(Role.SettingsUserManager) || permissions.has(Role.Admin)
+  const canManageUsers = permissions.has(Permission.SettingsUserManager) || permissions.has(Permission.Admin)
 
   if (!isSelf && !canManageUsers) {
     throw redirect('/')

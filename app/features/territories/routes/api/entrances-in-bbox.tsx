@@ -1,7 +1,7 @@
 import { data } from 'react-router'
 import { getEntrancesInBbox } from '~/features/territories/server/buildings.server'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/entrances-in-bbox'
 
@@ -15,7 +15,7 @@ function parseBbox(value: string | null): { swLat: number; swLng: number; neLat:
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const url = new URL(request.url)
   const bbox = parseBbox(url.searchParams.get('bbox'))

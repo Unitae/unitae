@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDb = {
   user: { findUnique: vi.fn() },
-  congregationUserRole: { findMany: vi.fn() },
+  congregationUserPermission: { findMany: vi.fn() },
   publisherActivity: { findMany: vi.fn() },
   attribution: { findMany: vi.fn() },
   publisherGroup: { findFirst: vi.fn() },
@@ -41,8 +41,8 @@ describe('exportUserData', () => {
     }
 
     mockDb.user.findUnique.mockResolvedValue(fakeUser as never)
-    mockDb.congregationUserRole.findMany.mockResolvedValue([
-      { role: { key: 'Admin', description: 'Administrateur' } },
+    mockDb.congregationUserPermission.findMany.mockResolvedValue([
+      { permission: { key: 'Admin', description: 'Administrateur' } },
     ] as never)
     mockDb.publisherActivity.findMany.mockResolvedValue([
       { month: 3, year: 2025, hours: 10, studies: 1, type: 'normal', isPublisher: true, notes: '' },
@@ -71,7 +71,7 @@ describe('exportUserData', () => {
     const result = await exportUserData(mockDb as never, 1)
 
     expect(result.user).toEqual(fakeUser)
-    expect(result.roles).toEqual([{ key: 'Admin', description: 'Administrateur' }])
+    expect(result.permissions).toEqual([{ key: 'Admin', description: 'Administrateur' }])
     expect(result.publisherActivities).toHaveLength(1)
     expect(result.attributions).toHaveLength(1)
     expect(result.publisherGroup).not.toBeNull()

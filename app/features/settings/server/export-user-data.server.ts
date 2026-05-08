@@ -4,7 +4,7 @@ interface UserDataExport {
   exportDate: string
   exportVersion: string
   user: Record<string, unknown>
-  roles: Record<string, unknown>[]
+  permissions: Record<string, unknown>[]
   publisherActivities: Record<string, unknown>[]
   attributions: Record<string, unknown>[]
   publisherGroup: Record<string, unknown> | null
@@ -47,12 +47,12 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
     throw new Error(`Utilisateur introuvable : ${userId}`)
   }
 
-  const [roles, activities, attributions, group, events, documentsViewed, documentVersionUploads, consentRecords] =
+  const [permissions, activities, attributions, group, events, documentsViewed, documentVersionUploads, consentRecords] =
     await Promise.all([
-      db.congregationUserRole.findMany({
+      db.congregationUserPermission.findMany({
         where: { userId },
         select: {
-          role: { select: { key: true, description: true } },
+          permission: { select: { key: true, description: true } },
         },
       }),
       db.publisherActivity.findMany({
@@ -138,7 +138,7 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
     exportDate: new Date().toISOString(),
     exportVersion: '1.0',
     user,
-    roles: roles.map(r => r.role),
+    permissions: permissions.map(p => p.permission),
     publisherActivities: activities,
     attributions: attributions.map(a => ({
       territory: a.territory,

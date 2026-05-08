@@ -28,12 +28,12 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 const ts = Date.now()
 let sourceId: number
 let targetId: number
-let adminRoleId: number
+let adminPermissionId: number
 
 beforeAll(async () => {
-  const adminRole = await testDb.userRole.findFirst({ where: { key: 'admin' } })
-  if (!adminRole) throw new Error('UserRole "admin" not found — run pnpm prisma db seed first')
-  adminRoleId = adminRole.id
+  const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })
+  if (!adminPermission) throw new Error('Permission "admin" not found — run pnpm prisma db seed first')
+  adminPermissionId = adminPermission.id
 
   const source = await testDb.congregation.create({
     data: { name: `Source ${ts}`, slug: `source-${ts}`, active: true },
@@ -68,8 +68,8 @@ beforeAll(async () => {
       },
     })
 
-    await tx.congregationUserRole.create({
-      data: { userId: alice.id, roleId: adminRoleId, congregationId: sourceId },
+    await tx.congregationUserPermission.create({
+      data: { userId: alice.id, permissionId: adminPermissionId, congregationId: sourceId },
     })
 
     await tx.setting.create({
@@ -267,7 +267,7 @@ afterAll(async () => {
       await tx.building.deleteMany({})
       await tx.territory.deleteMany({})
       await tx.setting.deleteMany({})
-      await tx.congregationUserRole.deleteMany({})
+      await tx.congregationUserPermission.deleteMany({})
       // Clear publisherGroupId FK on users before deleting groups
       await tx.user.updateMany({ data: { publisherGroupId: null } })
       await tx.publisherGroup.deleteMany({})
@@ -319,14 +319,14 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
 
   const zip = await JsZip.loadAsync(buffer)
   const idMap = new EntityIdMap()
-  const allRoles = await testDb.userRole.findMany({ select: { id: true, key: true } })
-  const roleKeyToId = new Map(allRoles.map(r => [r.key, r.id]))
+  const allPermissions = await testDb.permission.findMany({ select: { id: true, key: true } })
+  const permissionKeyToId = new Map(allPermissions.map(p => [p.key, p.id]))
 
   await withScope(congregationId, async db => {
     await mod.importSettings(zip, db, congregationId)
     await mod.importEventKinds(zip, db, idMap, congregationId)
     await mod.importUsers(zip, db, idMap, congregationId)
-    await mod.importCongregationUserRoles(zip, db, idMap, roleKeyToId, congregationId)
+    await mod.importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
     await mod.importPublisherGroups(zip, db, idMap, congregationId)
     await mod.updateUserPublisherGroups(zip, db, idMap)
     await mod.importPublisherActivities(zip, db, idMap, congregationId)
@@ -378,7 +378,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['board-documents']).toBe(1)
     expect(entityCounts['consent-records']).toBe(1)
     expect(entityCounts.settings).toBe(1)
-    expect(entityCounts['congregation-user-roles']).toBe(1)
+    expect(entityCounts['congregation-user-permissions']).toBe(1)
   })
 
   it('exported users do not contain passwords or sensitive fields', async () => {
@@ -396,19 +396,19 @@ describe('Export/Import round-trip', () => {
     }
   })
 
-  it('exported roles use key instead of numeric roleId', async () => {
+  it('exported permissions use key instead of numeric permissionId', async () => {
     const { zip } = await exportToZip(sourceId)
-    const content = await zip.file('data/congregation-user-roles.ndjson')!.async('string')
-    const roles = content
+    const content = await zip.file('data/congregation-user-permissions.ndjson')!.async('string')
+    const records = content
       .split('\n')
       .filter(l => l.trim())
       .map(l => JSON.parse(l))
 
-    expect(roles.length).toBeGreaterThan(0)
-    for (const role of roles) {
-      expect(role).toHaveProperty('roleKey')
-      expect(role).toHaveProperty('userId')
-      expect(role).not.toHaveProperty('roleId')
+    expect(records.length).toBeGreaterThan(0)
+    for (const record of records) {
+      expect(record).toHaveProperty('permissionKey')
+      expect(record).toHaveProperty('userId')
+      expect(record).not.toHaveProperty('permissionId')
     }
   })
 
@@ -446,7 +446,7 @@ describe('Export/Import round-trip', () => {
       await tx.building.deleteMany({})
       await tx.territory.deleteMany({})
       await tx.setting.deleteMany({})
-      await tx.congregationUserRole.deleteMany({})
+      await tx.congregationUserPermission.deleteMany({})
       await tx.user.updateMany({ data: { publisherGroupId: null } })
       await tx.publisherGroup.deleteMany({})
       await tx.user.deleteMany({})
@@ -465,11 +465,11 @@ describe('Export/Import round-trip', () => {
       expect(alice.password).toBe('$IMPORTED$')
       expect(alice.platformAdmin).toBe(false)
 
-      // Roles
-      const roles = await tx.congregationUserRole.findMany({})
-      expect(roles).toHaveLength(1)
-      expect(roles[0].roleId).toBe(adminRoleId)
-      expect(roles[0].userId).toBe(alice.id)
+      // Permissions
+      const assignments = await tx.congregationUserPermission.findMany({})
+      expect(assignments).toHaveLength(1)
+      expect(assignments[0].permissionId).toBe(adminPermissionId)
+      expect(assignments[0].userId).toBe(alice.id)
 
       // Settings
       const settings = await tx.setting.findMany({})

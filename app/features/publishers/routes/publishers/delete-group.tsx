@@ -4,7 +4,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { deletePublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
@@ -58,7 +58,7 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')

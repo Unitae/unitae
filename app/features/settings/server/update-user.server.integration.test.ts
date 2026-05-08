@@ -30,14 +30,14 @@ let primaryCongId: number
 let otherCongId: number
 let primaryUserId: number
 let otherUserId: number
-let adminRoleId: number
+let adminPermissionId: number
 
 const { updateUser } = await import('./update-user.server')
 
 beforeAll(async () => {
-  const adminRole = await testDb.userRole.findFirst({ where: { key: 'admin' } })
-  if (!adminRole) throw new Error('UserRole "admin" not found — run pnpm prisma db seed first')
-  adminRoleId = adminRole.id
+  const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })
+  if (!adminPermission) throw new Error('Permission "admin" not found — run pnpm prisma db seed first')
+  adminPermissionId = adminPermission.id
 
   const primaryCong = await testDb.congregation.create({
     data: { name: `UpdateUser Primary ${ts}`, slug: `update-user-primary-${ts}`, active: true },
@@ -64,8 +64,8 @@ beforeAll(async () => {
     })
     primaryUserId = user.id
 
-    await tx.congregationUserRole.create({
-      data: { userId: user.id, roleId: adminRoleId, congregationId: primaryCongId },
+    await tx.congregationUserPermission.create({
+      data: { userId: user.id, permissionId: adminPermissionId, congregationId: primaryCongId },
     })
   })
 
@@ -84,8 +84,8 @@ beforeAll(async () => {
     })
     otherUserId = user.id
 
-    await tx.congregationUserRole.create({
-      data: { userId: user.id, roleId: adminRoleId, congregationId: otherCongId },
+    await tx.congregationUserPermission.create({
+      data: { userId: user.id, permissionId: adminPermissionId, congregationId: otherCongId },
     })
   })
 })
@@ -94,7 +94,7 @@ afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
-      await tx.congregationUserRole.deleteMany({})
+      await tx.congregationUserPermission.deleteMany({})
       await tx.user.deleteMany({})
     })
   }
@@ -110,7 +110,7 @@ describe('updateUser (integration)', () => {
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: false,
-        roles: ['admin'],
+        permissions: ['admin'],
       }),
     )
 
@@ -127,31 +127,31 @@ describe('updateUser (integration)', () => {
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: true,
-        roles: ['board-uploader'],
+        permissions: ['board-uploader'],
       }),
     )
 
-    const roles = await testDb.congregationUserRole.findMany({
+    const assignments = await testDb.congregationUserPermission.findMany({
       where: { userId: primaryUserId, congregationId: primaryCongId },
-      include: { role: true },
+      include: { permission: true },
     })
-    const roleKeys = roles.map(r => r.role.key)
-    expect(roleKeys).not.toContain('admin')
-    expect(roleKeys).toContain('board-uploader')
+    const assignedKeys = assignments.map(a => a.permission.key)
+    expect(assignedKeys).not.toContain('admin')
+    expect(assignedKeys).toContain('board-uploader')
   })
 
-  it('removes all roles when empty roles array is given', async () => {
+  it('removes all permissions when empty permissions array is given', async () => {
     await withScope(primaryCongId, tx =>
       updateUser(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: true,
-        roles: [],
+        permissions: [],
       }),
     )
 
-    const roles = await testDb.congregationUserRole.findMany({
+    const roles = await testDb.congregationUserPermission.findMany({
       where: { userId: primaryUserId, congregationId: primaryCongId },
     })
     expect(roles).toHaveLength(0)
@@ -159,7 +159,7 @@ describe('updateUser (integration)', () => {
 
   it('role deleteMany does not touch other congregation user roles — RLS isolation', async () => {
     // Ensure other congregation user has their admin role
-    const otherRolesBefore = await testDb.congregationUserRole.findMany({
+    const otherRolesBefore = await testDb.congregationUserPermission.findMany({
       where: { userId: otherUserId, congregationId: otherCongId },
     })
     expect(otherRolesBefore.length).toBeGreaterThan(0)
@@ -171,12 +171,12 @@ describe('updateUser (integration)', () => {
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
         active: true,
-        roles: ['admin'],
+        permissions: ['admin'],
       }),
     )
 
     // Other congregation user's roles must be intact
-    const otherRolesAfter = await testDb.congregationUserRole.findMany({
+    const otherRolesAfter = await testDb.congregationUserPermission.findMany({
       where: { userId: otherUserId, congregationId: otherCongId },
     })
     expect(otherRolesAfter).toHaveLength(otherRolesBefore.length)
@@ -189,7 +189,7 @@ describe('updateUser (integration)', () => {
         lastname: 'After',
         email: `Update-User-PRIMARY-${ts}@TEST.COM`,
         active: true,
-        roles: [],
+        permissions: [],
       }),
     )
 

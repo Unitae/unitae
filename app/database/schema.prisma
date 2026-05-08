@@ -80,7 +80,7 @@ model Congregation {
   events                        Event[]
   eventKinds         EventKind[]
   settings           Setting[]
-  userRoles               CongregationUserRole[]
+  userPermissions         CongregationUserPermission[]
   buildingAccesses        BuildingAccess[]
   buildingResidentialData BuildingResidentialData[]
   dataDeletionRecords     DataDeletionRecord[]
@@ -113,7 +113,7 @@ model User {
   password  String
   active        Boolean    @default(true)
   platformAdmin Boolean    @default(false)
-  congregationRoles CongregationUserRole[]
+  congregationPermissions CongregationUserPermission[]
 
   isPublisher Boolean       @default(false)
   type        PublisherType @default(Normal)
@@ -161,23 +161,23 @@ model User {
   @@unique([id, congregationId])
 }
 
-model UserRole {
+model Permission {
   id          Int    @id @default(autoincrement())
   key         String @unique
   description String @default("")
-  congregationRoles CongregationUserRole[]
+  congregationPermissions CongregationUserPermission[]
 }
 
-model CongregationUserRole {
+model CongregationUserPermission {
   id             Int          @id @default(autoincrement())
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         Int
-  role           UserRole     @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId         Int
+  permission     Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId   Int
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@unique([userId, roleId, congregationId])
+  @@unique([userId, permissionId, congregationId])
   @@unique([id, congregationId])
 }
 

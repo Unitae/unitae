@@ -4,7 +4,7 @@ import { listExternalSpeakers } from '~/features/events/server/external-speakers
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -21,8 +21,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManage = permissions.has(Role.ExternalSpeakerManager)
-  const canView = canManage || permissions.has(Role.ExternalSpeakerViewer)
+  const canManage = permissions.has(Permission.ExternalSpeakerManager)
+  const canView = canManage || permissions.has(Permission.ExternalSpeakerViewer)
 
   if (!canView) {
     logger.warn(`Tried to load external speakers. User ID: ${currentUser.id}. Does NOT have rights.`)

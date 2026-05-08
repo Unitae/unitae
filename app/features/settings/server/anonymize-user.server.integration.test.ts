@@ -35,14 +35,14 @@ let primaryCongId: number
 let otherCongId: number
 let primaryUserId: number
 let otherUserId: number
-let adminRoleId: number
+let adminPermissionId: number
 
 const { anonymizeUser } = await import('./anonymize-user.server')
 
 beforeAll(async () => {
-  const adminRole = await testDb.userRole.findFirst({ where: { key: 'admin' } })
-  if (!adminRole) throw new Error('UserRole "admin" not found — run pnpm prisma db seed first')
-  adminRoleId = adminRole.id
+  const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })
+  if (!adminPermission) throw new Error('Permission "admin" not found — run pnpm prisma db seed first')
+  adminPermissionId = adminPermission.id
 
   const primaryCong = await testDb.congregation.create({
     data: { name: `Anonymize Primary ${ts}`, slug: `anon-primary-${ts}`, active: true },
@@ -70,8 +70,8 @@ beforeAll(async () => {
     })
     primaryUserId = user.id
 
-    await tx.congregationUserRole.create({
-      data: { userId: user.id, roleId: adminRoleId, congregationId: primaryCongId },
+    await tx.congregationUserPermission.create({
+      data: { userId: user.id, permissionId: adminPermissionId, congregationId: primaryCongId },
     })
   })
 
@@ -98,7 +98,7 @@ afterAll(async () => {
     await withScope(congId, async tx => {
       await tx.dataDeletionRecord.deleteMany({})
       await tx.attribution.deleteMany({})
-      await tx.congregationUserRole.deleteMany({})
+      await tx.congregationUserPermission.deleteMany({})
       await tx.publisherGroup.deleteMany({})
       await tx.user.deleteMany({})
       await tx.territory.deleteMany({})
@@ -123,7 +123,7 @@ describe('anonymizeUser (integration)', () => {
   })
 
   it('deletes congregation roles for the anonymized user', async () => {
-    const roles = await testDb.congregationUserRole.findMany({ where: { userId: primaryUserId } })
+    const roles = await testDb.congregationUserPermission.findMany({ where: { userId: primaryUserId } })
     expect(roles).toHaveLength(0)
   })
 

@@ -5,8 +5,8 @@ import { Form, redirect } from 'react-router'
 import { exportOptionsSchema } from '~/features/settings/schemas/data-transfer.schema'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  requireRole(permissions, Role.Admin)
+  requirePermission(permissions, Permission.Admin)
 
   const jobs = await dataTransferQueue.getJobs(['completed'])
   const completedExports = jobs
@@ -132,7 +132,7 @@ export default function ExportPage({ loaderData, actionData }: Route.ComponentPr
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.Admin)
+  requirePermission(permissions, Permission.Admin)
 
   const currentUser = context.get(userContext)
   const formData = await request.formData()

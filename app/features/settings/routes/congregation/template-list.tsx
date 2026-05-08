@@ -4,7 +4,7 @@ import { dayLabelShort } from '~/features/events/model/day-label'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -20,7 +20,7 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.ProgramViewer) && !permissions.has(Role.Admin)) throw redirect('/')
+  if (!permissions.has(Permission.ProgramViewer) && !permissions.has(Permission.Admin)) throw redirect('/')
 
   return withScopeFromContext(context, async db => {
     const templates = await getTemplates(db, currentUser.congregationId)

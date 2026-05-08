@@ -6,7 +6,7 @@ import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -19,9 +19,9 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canViewProspection = permissions.has(Role.ProspectionViewer)
-  const canManageProspection = permissions.has(Role.ProspectionManager)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canViewProspection = permissions.has(Permission.ProspectionViewer)
+  const canManageProspection = permissions.has(Permission.ProspectionManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
   if (!canViewProspection) {
     throw redirect('/')

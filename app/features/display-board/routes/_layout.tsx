@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router'
 import { permissionsContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import type { Route } from './+types/_layout'
 
 export const meta: Route.MetaFunction = () => {
@@ -10,12 +10,12 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  const canUploadDocument = permissions.has(Role.BoardUploader)
-  const canViewTerritories = permissions.has(Role.TerritoriesViewer)
-  const canManageSettings = permissions.has(Role.SettingsUserManager)
-  const canViewPublishers = permissions.has(Role.PublisherViewer)
-  const canManageBoard = permissions.has(Role.BoardValidator)
-  const canViewProspection = permissions.has(Role.ProspectionViewer)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
+  const canManageSettings = permissions.has(Permission.SettingsUserManager)
+  const canViewPublishers = permissions.has(Permission.PublisherViewer)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+  const canViewProspection = permissions.has(Permission.ProspectionViewer)
 
   return {
     canManageSettings,

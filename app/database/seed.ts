@@ -2,13 +2,13 @@ import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
 import * as m from '../i18n/paraglide/messages'
-import { seedRoles } from '../shared/domain/setup.server'
+import { seedPermissions } from '../shared/domain/setup.server'
 import { PrismaClient } from './generated/client'
 
 const adapter = new PrismaPg({ connectionString: process.env.DB_URL })
 const prisma = new PrismaClient({ adapter })
 async function main() {
-  await seedRoles(prisma)
+  await seedPermissions(prisma)
 
   // Single-tenant installations: pre-create a default congregation with its
   // EventKind and programme templates. In multi-tenant mode, congregations

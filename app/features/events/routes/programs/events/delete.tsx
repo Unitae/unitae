@@ -5,7 +5,7 @@ import { deleteEvent } from '~/features/events/server/programme-events.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Role } from '~/shared/types/role'
+import type { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -23,7 +23,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 
@@ -44,7 +44,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 

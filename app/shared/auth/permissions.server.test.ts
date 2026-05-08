@@ -7,11 +7,11 @@ vi.mock('~/features/authentication/server/session.server', () => ({
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     user: { findUnique: vi.fn() },
-    congregationUserRole: { findFirst: vi.fn() },
+    congregationUserPermission: { findFirst: vi.fn() },
   },
 }))
 
-const { verifyRole } = await import('./permissions.server')
+const { verifyPermission } = await import('./permissions.server')
 const { getSession } = await import('~/features/authentication/server/session.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
 
@@ -31,18 +31,18 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('verifyRole', () => {
+describe('verifyPermission', () => {
   it("retourne false quand userId n'est pas dans la session", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession(undefined) as never)
 
-    const result = await verifyRole(makeRequest(), 'board-uploader' as never)
+    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(false)
   })
 
   it("retourne false quand userId n'est pas un nombre", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('abc') as never)
 
-    const result = await verifyRole(makeRequest(), 'board-uploader' as never)
+    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(false)
   })
 
@@ -50,9 +50,9 @@ describe('verifyRole', () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
     // Premier findFirst: admin role → trouvé
-    vi.mocked(unscopedDb.congregationUserRole.findFirst).mockResolvedValueOnce({ id: 1 } as never)
+    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValueOnce({ id: 1 } as never)
 
-    const result = await verifyRole(makeRequest(), 'board-uploader' as never)
+    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(true)
   })
 
@@ -60,20 +60,20 @@ describe('verifyRole', () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
     // Premier findFirst: admin role → pas trouvé
-    vi.mocked(unscopedDb.congregationUserRole.findFirst).mockResolvedValueOnce(null as never)
+    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValueOnce(null as never)
     // Deuxième findFirst: rôle demandé → trouvé
-    vi.mocked(unscopedDb.congregationUserRole.findFirst).mockResolvedValueOnce({ id: 2 } as never)
+    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValueOnce({ id: 2 } as never)
 
-    const result = await verifyRole(makeRequest(), 'board-uploader' as never)
+    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(true)
   })
 
   it("retourne false quand l'utilisateur n'a ni admin ni le rôle demandé", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
-    vi.mocked(unscopedDb.congregationUserRole.findFirst).mockResolvedValue(null as never)
+    vi.mocked(unscopedDb.congregationUserPermission.findFirst).mockResolvedValue(null as never)
 
-    const result = await verifyRole(makeRequest(), 'board-uploader' as never)
+    const result = await verifyPermission(makeRequest(), 'board-uploader' as never)
     expect(result).toBe(false)
   })
 
@@ -81,7 +81,7 @@ describe('verifyRole', () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
     vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null as never)
 
-    const result = await verifyRole(makeRequest(), 'territories-manager' as never)
+    const result = await verifyPermission(makeRequest(), 'territories-manager' as never)
     expect(result).toBe(false)
   })
 })

@@ -10,12 +10,12 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  requireRole,
+  requirePermission,
   userContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
@@ -37,7 +37,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const url = new URL(request.url)
   if (!url.searchParams.has('territory')) {
@@ -173,7 +173,7 @@ export default function CreateAttributionPage({ loaderData, actionData }: Route.
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesManager)
+  requirePermission(permissions, Permission.TerritoriesManager)
 
   const submission = parseWithZod(await request.formData(), { schema: createAttributionSchema })
   if (submission.status !== 'success') {

@@ -3,12 +3,12 @@ import type { SanitizedUser } from '~/shared/auth/sanitize-user.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { withScope } from '~/shared/infra/db.server'
-import type { Role } from '~/shared/types/role'
+import type { Permission } from '~/shared/types/permission'
 
 // Typed context keys for auth middleware → loader/action communication
 export const userContext = createContext<SanitizedUser>()
 export const congregationContext = createContext<CongregationInfo>()
-export const permissionsContext = createContext<Set<Role>>()
+export const permissionsContext = createContext<Set<Permission>>()
 
 interface RouteContext {
   get<T>(context: RouterContext<T>): T
@@ -23,6 +23,6 @@ export function withScopeFromContext<T>(context: RouteContext, fn: (db: Transact
   return withScope(user.congregationId, fn)
 }
 
-export function requireRole(permissions: Set<Role>, role: Role): void {
-  if (!permissions.has(role)) throw redirect('/')
+export function requirePermission(permissions: Set<Permission>, permission: Permission): void {
+  if (!permissions.has(permission)) throw redirect('/')
 }

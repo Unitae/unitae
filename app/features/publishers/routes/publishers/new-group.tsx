@@ -6,7 +6,7 @@ import { createGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { createPublisherGroup } from '~/features/publishers/server/publisher-group-mutations.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -26,7 +26,7 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect('/')
@@ -143,7 +143,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')

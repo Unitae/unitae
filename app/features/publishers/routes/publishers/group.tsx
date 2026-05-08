@@ -7,7 +7,7 @@ import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -25,9 +25,9 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewPublishers = permissions.has(Role.PublisherViewer)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
-  const canManageActivity = permissions.has(Role.ActivityManager)
+  const canViewPublishers = permissions.has(Permission.PublisherViewer)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
+  const canManageActivity = permissions.has(Permission.ActivityManager)
 
   if (!canViewPublishers) {
     throw redirect('/')
@@ -237,7 +237,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const previousPage = request.headers.get('referer')
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
     throw redirect(previousPage ?? '/')

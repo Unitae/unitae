@@ -5,7 +5,7 @@ import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 export async function sendNewDocumentNotificationEmail(
   congregation: CongregationInfo,
@@ -14,9 +14,9 @@ export async function sendNewDocumentNotificationEmail(
   const users = await unscopedDb.user.findMany({
     where: {
       congregationId: congregation.id,
-      congregationRoles: {
+      congregationPermissions: {
         some: {
-          role: { key: Role.BoardValidator },
+          permission: { key: Permission.BoardValidator },
         },
       },
     },

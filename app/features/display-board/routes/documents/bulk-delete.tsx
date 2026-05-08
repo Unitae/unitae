@@ -1,8 +1,8 @@
 import { redirect } from 'react-router'
 import { bulkDeleteBoardItems } from '~/features/display-board/server/board-document.server'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/bulk-delete'
 
@@ -14,7 +14,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requireRole(permissions, Role.BoardValidator)
+  requirePermission(permissions, Permission.BoardValidator)
 
   const { items } = (await request.json()) as { items: BulkItem[] }
 

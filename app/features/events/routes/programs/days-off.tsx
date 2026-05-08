@@ -14,7 +14,7 @@ import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -31,8 +31,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewPrograms = permissions.has(Role.ProgramViewer)
-  const canManagePrograms = permissions.has(Role.ProgramManager)
+  const canViewPrograms = permissions.has(Permission.ProgramViewer)
+  const canManagePrograms = permissions.has(Permission.ProgramManager)
 
   if (!canViewPrograms) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)

@@ -19,7 +19,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -47,7 +47,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/programs')
+  if (!permissions.has(Permission.ProgramManager)) throw redirect('/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -123,7 +123,7 @@ async function handleFreeformMode({ db, formData, currentUser, congregationId, s
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramManager)) throw redirect('/programs')
+  if (!permissions.has(Permission.ProgramManager)) throw redirect('/programs')
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))

@@ -6,7 +6,7 @@ export interface UpdateUserParams {
   lastname: string
   email: string
   active: boolean
-  roles: string[]
+  permissions: string[]
 }
 
 export async function updateUser(
@@ -28,20 +28,20 @@ export async function updateUser(
     },
   })
 
-  // Update congregation-scoped roles: delete existing, create new
-  await db.congregationUserRole.deleteMany({
+  // Update congregation-scoped permissions: delete existing, create new
+  await db.congregationUserPermission.deleteMany({
     where: { userId, congregationId },
   })
 
-  const roleRecords = await db.userRole.findMany({
-    where: { key: { in: params.roles } },
+  const permissionRecords = await db.permission.findMany({
+    where: { key: { in: params.permissions } },
   })
 
-  if (roleRecords.length > 0) {
-    await db.congregationUserRole.createMany({
-      data: roleRecords.map(role => ({
+  if (permissionRecords.length > 0) {
+    await db.congregationUserPermission.createMany({
+      data: permissionRecords.map(permission => ({
         userId,
-        roleId: role.id,
+        permissionId: permission.id,
         congregationId,
       })),
     })
@@ -53,6 +53,6 @@ export async function updateUser(
     actorId,
     entityType: 'User',
     entityId: userId,
-    metadata: { roles: params.roles },
+    metadata: { permissions: params.permissions },
   })
 }

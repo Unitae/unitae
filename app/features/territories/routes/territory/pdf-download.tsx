@@ -9,7 +9,7 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -28,7 +28,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/territories', { status: 404 })
     }
 
-    const canViewTerritories = permissions.has(Role.TerritoriesViewer)
+    const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
     const isCurrentlyAttributed = territory.attributions.some(
       a => a.endDate == null && a.publisherId === currentUser.id,
     )

@@ -6,7 +6,7 @@ import { updateGeneralSettings } from '~/features/settings/server/general-settin
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, permissionsContext } from '~/shared/auth/route-context.server'
 import { unscopedDb } from '~/shared/infra/db.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
-  const canManageSettings = permissions.has(Role.Admin)
+  const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')
@@ -128,7 +128,7 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
-  const canManageSettings = permissions.has(Role.Admin)
+  const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
     throw redirect('/')

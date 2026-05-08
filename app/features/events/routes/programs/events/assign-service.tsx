@@ -9,7 +9,7 @@ import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { Role } from '~/shared/types/role'
+import type { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Label } from '~/shared/ui/label'
@@ -35,7 +35,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await getEventProgramme(db, eventId, congregationId)
     if (!event) throw redirect('/programs')
 
@@ -69,7 +69,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const can = (role: Role) => permissions.has(role)
+    const can = (role: Permission) => permissions.has(role)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) throw redirect('/programs')
 

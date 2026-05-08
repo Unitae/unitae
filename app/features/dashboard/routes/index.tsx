@@ -14,7 +14,7 @@ import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
@@ -40,8 +40,8 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 export function loader({ context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   const permissions = context.get(permissionsContext)
-  const isAdmin = permissions.has(Role.Admin)
-  const isTerritoriesManager = permissions.has(Role.TerritoriesManager)
+  const isAdmin = permissions.has(Permission.Admin)
+  const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
 
   return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting] = await Promise.all([

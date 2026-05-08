@@ -8,7 +8,7 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import logger from '~/shared/infra/logger.server'
 import { PublisherType } from '~/shared/types/publisher-type'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
@@ -24,8 +24,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewActivities = permissions.has(Role.ActivityViewer)
-  const canManageActivities = permissions.has(Role.ActivityManager)
+  const canViewActivities = permissions.has(Permission.ActivityViewer)
+  const canManageActivities = permissions.has(Permission.ActivityManager)
 
   if (!canViewActivities) {
     logger.warn(

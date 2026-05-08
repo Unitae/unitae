@@ -6,7 +6,7 @@ import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateUser } from '~/features/settings/server/update-user.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
 import {
   AlertDialog,
@@ -34,22 +34,22 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
 
-function getRoleDescription(key: string): string {
+function getPermissionDescription(key: string): string {
   const descriptions: Record<string, () => string> = {
-    admin: () => m.role_desc_admin(),
-    'board-uploader': () => m.role_desc_board_uploader(),
-    'board-validator': () => m.role_desc_board_validator(),
-    'territories-viewer': () => m.role_desc_territories_viewer(),
-    'territories-manager': () => m.role_desc_territories_manager(),
-    'settings-user-manager': () => m.role_desc_settings_user_manager(),
-    'publisher-viewer': () => m.role_desc_publisher_viewer(),
-    'publisher-manager': () => m.role_desc_publisher_manager(),
-    'activity-manager': () => m.role_desc_activity_manager(),
-    'activity-viewer': () => m.role_desc_activity_viewer(),
-    'program-viewer': () => m.role_desc_program_viewer(),
-    'program-manager': () => m.role_desc_program_manager(),
-    'prospection-viewer': () => m.role_desc_prospection_viewer(),
-    'prospection-manager': () => m.role_desc_prospection_manager(),
+    admin: () => m.permission_desc_admin(),
+    'board-uploader': () => m.permission_desc_board_uploader(),
+    'board-validator': () => m.permission_desc_board_validator(),
+    'territories-viewer': () => m.permission_desc_territories_viewer(),
+    'territories-manager': () => m.permission_desc_territories_manager(),
+    'settings-user-manager': () => m.permission_desc_settings_user_manager(),
+    'publisher-viewer': () => m.permission_desc_publisher_viewer(),
+    'publisher-manager': () => m.permission_desc_publisher_manager(),
+    'activity-manager': () => m.permission_desc_activity_manager(),
+    'activity-viewer': () => m.permission_desc_activity_viewer(),
+    'program-viewer': () => m.permission_desc_program_viewer(),
+    'program-manager': () => m.permission_desc_program_manager(),
+    'prospection-viewer': () => m.permission_desc_prospection_viewer(),
+    'prospection-manager': () => m.permission_desc_prospection_manager(),
   }
   return descriptions[key]?.() ?? key
 }
@@ -61,8 +61,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManageUser = permissions.has(Role.SettingsUserManager)
-  const isAdmin = permissions.has(Role.Admin)
+  const canManageUser = permissions.has(Permission.SettingsUserManager)
+  const isAdmin = permissions.has(Permission.Admin)
 
   if (!canManageUser) {
     throw redirect('/')
@@ -77,13 +77,13 @@ export function loader({ params, context }: Route.LoaderArgs) {
         },
       },
       include: {
-        congregationRoles: { include: { role: true } },
+        congregationPermissions: { include: { permission: true } },
       },
     })
 
     if (user == null) throw redirect('/settings/users')
 
-    const roleList = await db.userRole.findMany()
+    const permissionList = await db.permission.findMany()
     const missEmail = user.email.includes('@placeholder.unitae.app')
 
     return {
@@ -92,8 +92,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       active: user.active,
       firstname: user.firstname,
       lastname: user.lastname,
-      roles: user.congregationRoles.map(cr => cr.role),
-      roleList,
+      permissions: user.congregationPermissions.map(cp => cp.permission),
+      permissionList,
       isPublisher: user.isPublisher,
       isAdmin,
       anonymizedAt: user.anonymizedAt,
@@ -103,7 +103,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 }
 
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
-  const { roleList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
+  const { permissionList, isAdmin, canAnonymize, anonymizedAt, ...user } = loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
@@ -229,19 +229,19 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                   {m.settings_user_edit_publisher_only_hint()}
                 </p>
               ) : (
-                roleList.map(role => (
+                permissionList.map(permission => (
                   <div
-                    key={role.id}
-                    className={`flex flex-1 basis-5/12 items-center gap-2 ${role.key === 'admin' && !isAdmin ? 'pointer-events-none opacity-50' : ''}`}
+                    key={permission.id}
+                    className={`flex flex-1 basis-5/12 items-center gap-2 ${permission.key === 'admin' && !isAdmin ? 'pointer-events-none opacity-50' : ''}`}
                   >
                     <Checkbox
-                      id={`role-${role.id}`}
-                      name="roles"
-                      value={role.key}
-                      defaultChecked={user.roles.map(el => el.key).includes(role.key)}
+                      id={`permission-${permission.id}`}
+                      name="permissions"
+                      value={permission.key}
+                      defaultChecked={user.permissions.map(el => el.key).includes(permission.key)}
                     />
-                    <Label htmlFor={`role-${role.id}`} className="font-normal">
-                      {getRoleDescription(role.key)}
+                    <Label htmlFor={`permission-${permission.id}`} className="font-normal">
+                      {getPermissionDescription(permission.key)}
                     </Label>
                   </div>
                 ))
@@ -304,7 +304,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManageUser = permissions.has(Role.SettingsUserManager)
+  const canManageUser = permissions.has(Permission.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
@@ -317,7 +317,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { firstname, lastname, email, active, roles } = submission.value
+  const { firstname, lastname, email, active, permissions: selectedPermissions } = submission.value
 
   return withScopeFromContext(context, async db => {
     await updateUser(db, userId, currentUser.congregationId, currentUser.id, {
@@ -325,7 +325,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       lastname,
       email,
       active,
-      roles,
+      permissions: selectedPermissions,
     })
 
     return redirect('/settings/users')

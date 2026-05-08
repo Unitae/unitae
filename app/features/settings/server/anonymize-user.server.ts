@@ -62,7 +62,7 @@ export async function anonymizeUser(db: TransactionClient, userId: UserId, reque
   })
 
   // Supprimer les roles de l'utilisateur
-  await db.congregationUserRole.deleteMany({
+  await db.congregationUserPermission.deleteMany({
     where: { userId },
   })
 

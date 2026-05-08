@@ -8,9 +8,9 @@ import {
   isTemplateResponsible,
 } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -28,7 +28,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  requireRole(permissions, Role.ProgramViewer)
+  requirePermission(permissions, Permission.ProgramViewer)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
@@ -37,7 +37,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     if (!template) throw redirect('/settings/congregation/templates')
 
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    const canEdit = permissions.has(Role.ProgramManager) || responsible != null
+    const canEdit = permissions.has(Permission.ProgramManager) || responsible != null
 
     logger.info(`Loading template view. User ID: ${currentUser.id}. Template: ${template.name}.`)
 
@@ -53,7 +53,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
-    if (!permissions.has(Role.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+    if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     const session = await getSession(request.headers.get('Cookie'))
     const copy = await duplicateTemplate(db, templateId, currentUser.congregationId)

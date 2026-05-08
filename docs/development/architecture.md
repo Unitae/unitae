@@ -43,7 +43,7 @@
 │  │  Board Docs     │  │  Board Docs      │              │
 │  └─────────────────┘  └──────────────────┘              │
 │                                                         │
-│  Global: UserRole (14 role definitions)                 │
+│  Global: Permission (16 permission definitions)         │
 │  Global: PasswordResetToken, EmailVerificationToken,    │
 │          CalendarFeedToken                              │
 └─────────────────────────────────────────────────────────┘
@@ -53,16 +53,16 @@
 
 1. **Reverse Proxy** (Traefik/Nginx) routes incoming requests to web pods
 2. **React Router** matches route, runs middleware then loader/action
-3. **`requireAuth(roles)`** middleware (from `app/shared/middleware/auth.server.ts`) authenticates user, resolves permissions, checks GDPR consent, and sets typed context
+3. **`requireAuth(permissions)`** middleware (from `app/shared/middleware/auth.server.ts`) authenticates user, resolves permissions, checks GDPR consent, and sets typed context
 4. **Loader/action** reads context via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
 5. **`withScopeFromContext(context, fn)`** opens a PostgreSQL transaction with `SET LOCAL` for Row-Level Security
 6. **Service functions** (`features/*/server/`) receive the scoped `TransactionClient` and handle business logic
 7. **Route component** renders with loader data
 
 ```
-Middleware → requireAuth([Role.X, Role.Y])
-           → verifySession(request)     // authenticates user, returns congregation
-           → verifyRole(request, role)  // checks permissions (via Promise.all)
+Middleware → requireAuth([Permission.X, Permission.Y])
+           → verifySession(request)              // authenticates user, returns congregation
+           → verifyPermission(request, perm)     // checks permissions (via Promise.all)
            → context.set(userContext, currentUser)
            → context.set(congregationContext, congregation)
            → context.set(permissionsContext, permissions)
@@ -102,7 +102,7 @@ When to use each:
 | Platform admin | `unscopedDb` | Cross-congregation queries |
 
 **Scoped models** (30 — all carry `congregationId` and are isolated by RLS):
-- **Auth**: User, CongregationUserRole
+- **Auth**: User, CongregationUserPermission
 - **Board**: BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
 - **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, TerritoryCardOverlay, TerritoryPerimeter
 - **Publishers**: PublisherGroup, PublisherActivity
@@ -111,24 +111,24 @@ When to use each:
 - **Notifications**: NotificationEvent, NotificationPreference
 - **GDPR / Audit**: AuditLog, DataDeletionRecord, ConsentRecord
 
-**Global models** (6 — no `congregationId`, not scoped by RLS): Congregation, UserRole, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView
+**Global models** (6 — no `congregationId`, not scoped by RLS): Congregation, Permission, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView
 
-## Authentication & Role Flow
+## Authentication & Permission Flow
 
 ```
 Login → validateCredentials(email, password)
       → set session cookie (userId)
       → redirect to /
 
-Protected Route → requireAuth([roles]) middleware on layout route
+Protected Route → requireAuth([permissions]) middleware on layout route
                 → verifySession: fetch user (unscopedDb), check suspension/trial/email
-                → verifyRole: check CongregationUserRole (unscopedDb, via Promise.all)
+                → verifyPermission: check CongregationUserPermission (unscopedDb, via Promise.all)
                 → context.set(userContext, currentUser)
                 → context.set(congregationContext, congregation)
-                → context.set(permissionsContext, Set<Role>)
+                → context.set(permissionsContext, Set<Permission>)
 
-Role Check → context.get(permissionsContext).has(Role.TerritoriesViewer) → boolean
-           (resolved during requireAuth middleware, no extra DB query)
+Permission Check → context.get(permissionsContext).has(Permission.TerritoriesViewer) → boolean
+                (resolved during requireAuth middleware, no extra DB query)
 ```
 
 ## Redis Architecture
@@ -295,7 +295,7 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 - **Passwords**: scrypt hashed with random salt, reset via 24h time-limited tokens
 - **Email verification**: Required before accessing the app, 24h token expiry
 - **Rate limiting**: Login (5/15min), password reset (3/15min) per email via Redis
-- **Roles**: 14 congregation-scoped roles via CongregationUserRole
+- **Permissions**: 16 congregation-scoped permissions via CongregationUserPermission
 - **Files**: Congregation-scoped storage keys, UUID filenames
 - **RLS**: PostgreSQL Row-Level Security for tenant data isolation
 

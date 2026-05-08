@@ -3,7 +3,7 @@ import { redirect } from 'react-router'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -20,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ProgramViewer)) throw redirect('/programs')
+  if (!permissions.has(Permission.ProgramViewer)) throw redirect('/programs')
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)

@@ -4,7 +4,7 @@ import { getTerritoriesExportData } from '~/features/territories/server/territor
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/excel-export'
 
@@ -16,7 +16,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
 
-  if (!permissions.has(Role.TerritoriesViewer)) {
+  if (!permissions.has(Permission.TerritoriesViewer)) {
     logger.warn(
       `Try to generate S-13 XLSX report. User ID: ${currentUser.id}. Does NOT have rights to access territories.`,
     )

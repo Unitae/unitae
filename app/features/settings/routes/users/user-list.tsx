@@ -3,7 +3,7 @@ import { Form, Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 
@@ -20,9 +20,9 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canManageUser = permissions.has(Role.SettingsUserManager)
-  const canViewPublishers = permissions.has(Role.PublisherViewer)
-  const canManagePublishers = permissions.has(Role.PublisherManager)
+  const canManageUser = permissions.has(Permission.SettingsUserManager)
+  const canViewPublishers = permissions.has(Permission.PublisherViewer)
+  const canManagePublishers = permissions.has(Permission.PublisherManager)
 
   if (!canManageUser) {
     logger.warn(`Tried to load users. User ID: ${currentUser.id}. Does NOT have rights to manage users.`)
@@ -52,7 +52,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           : {}),
       },
       include: {
-        congregationRoles: { include: { role: true } },
+        congregationPermissions: { include: { permission: true } },
       },
       orderBy: [
         {
@@ -67,12 +67,12 @@ export function loader({ request, context }: Route.LoaderArgs) {
     return {
       users: users.map(user => ({
         email: user.email.includes('@placeholder.unitae.app') ? null : user.email,
-        roles: user.congregationRoles.map(cr => cr.role),
+        permissions: user.congregationPermissions.map(cp => cp.permission),
         id: user.id,
         active: user.active,
         firstname: user.firstname,
         lastname: user.lastname,
-        isAdmin: user.congregationRoles.some(cr => cr.role.key === 'admin'),
+        isAdmin: user.congregationPermissions.some(cp => cp.permission.key === 'admin'),
         isPublisher: user.isPublisher,
       })),
       roles: {
@@ -155,7 +155,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                     <Badge variant="default" title={m.settings_users_admin_badge_title()}>
                       <BadgeCheck className="mr-1 size-3" /> {m.settings_users_admin_badge()}
                     </Badge>
-                  ) : user.roles.length > 0 ? (
+                  ) : user.permissions.length > 0 ? (
                     <Badge variant="secondary" title={m.settings_users_rights_badge_title()}>
                       <BadgeMinus className="mr-1 size-3" /> {m.settings_users_rights_badge()}
                     </Badge>

@@ -1,9 +1,9 @@
 // Cross-module import: permissions resolution depends on authentication for session management
 import { getSession } from '~/features/authentication/server/session.server'
 import { unscopedDb } from '~/shared/infra/db.server'
-import type { Role } from '~/shared/types/role'
+import type { Permission } from '~/shared/types/permission'
 
-export async function verifyRole(request: Request, roleKey: Role) {
+export async function verifyPermission(request: Request, permissionKey: Permission) {
   const session = await getSession(request.headers.get('Cookie'))
   const rawUserId = session.get('userId')
   const userId = Number(rawUserId)
@@ -18,25 +18,25 @@ export async function verifyRole(request: Request, roleKey: Role) {
 
   const { congregationId } = user
 
-  const adminRole = await unscopedDb.congregationUserRole.findFirst({
+  const adminPermission = await unscopedDb.congregationUserPermission.findFirst({
     where: {
       userId,
       congregationId,
-      role: { key: 'admin' },
+      permission: { key: 'admin' },
     },
   })
 
-  if (adminRole != null) {
+  if (adminPermission != null) {
     return true
   }
 
-  const role = await unscopedDb.congregationUserRole.findFirst({
+  const permission = await unscopedDb.congregationUserPermission.findFirst({
     where: {
       userId,
       congregationId,
-      role: { key: roleKey },
+      permission: { key: permissionKey },
     },
   })
 
-  return role != null
+  return permission != null
 }

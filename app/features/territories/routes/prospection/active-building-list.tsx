@@ -3,8 +3,8 @@ import { Link } from 'react-router'
 import { findBuildingsPaginated, getProspectionStaleDate } from '~/features/territories/server/buildings.server'
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -18,11 +18,11 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.ProspectionViewer)
+  requirePermission(permissions, Permission.ProspectionViewer)
 
-  const canManageProspection = permissions.has(Role.ProspectionManager)
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
-  const canViewProspection = permissions.has(Role.ProspectionViewer)
+  const canManageProspection = permissions.has(Permission.ProspectionManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canViewProspection = permissions.has(Permission.ProspectionViewer)
   const { congregationId } = context.get(userContext)
 
   return withScopeFromContext(context, async db => {

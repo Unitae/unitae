@@ -22,7 +22,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
@@ -42,8 +42,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canUploadDocument = permissions.has(Role.BoardUploader)
-  const canManageBoard = permissions.has(Role.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(
@@ -174,8 +174,8 @@ export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const congregation = context.get(congregationContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const canUploadDocument = permissions.has(Role.BoardUploader)
-  const canManageBoard = permissions.has(Role.BoardValidator)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
 
   if (!canUploadDocument) {
     logger.warn(

@@ -21,8 +21,8 @@ import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
 
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -43,10 +43,10 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesViewer)
+  requirePermission(permissions, Permission.TerritoriesViewer)
 
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
-  const canViewPublisher = permissions.has(Role.PublisherViewer)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
+  const canViewPublisher = permissions.has(Permission.PublisherViewer)
   const { congregationId } = context.get(userContext)
   const from = new URL(request.url).searchParams.get('from')
 

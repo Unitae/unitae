@@ -7,7 +7,7 @@ import { createExternalSpeaker } from '~/features/events/server/external-speaker
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -26,13 +26,13 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ExternalSpeakerManager)) throw redirect('/')
+  if (!permissions.has(Permission.ExternalSpeakerManager)) throw redirect('/')
   return null
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ExternalSpeakerManager)) throw redirect('/')
+  if (!permissions.has(Permission.ExternalSpeakerManager)) throw redirect('/')
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))

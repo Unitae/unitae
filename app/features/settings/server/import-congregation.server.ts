@@ -154,9 +154,9 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
 
   const idMap = new EntityIdMap()
 
-  // Resolve global UserRole keys -> ids upfront (these are shared, not per-congregation)
-  const allRoles = await unscopedDb.userRole.findMany({ select: { id: true, key: true } })
-  const roleKeyToId = new Map(allRoles.map(r => [r.key, r.id]))
+  // Resolve global Permission keys -> ids upfront (these are shared, not per-congregation)
+  const allPermissions = await unscopedDb.permission.findMany({ select: { id: true, key: true } })
+  const permissionKeyToId = new Map(allPermissions.map(p => [p.key, p.id]))
 
   await withScope(congregationId, async db => {
     const totalSteps = 27
@@ -180,7 +180,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
     await progress()
 
     // 4. Congregation user roles
-    await importCongregationUserRoles(zip, db, idMap, roleKeyToId, congregationId)
+    await importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
     await progress()
 
     // 5. Publisher groups (depends on users)
@@ -453,25 +453,25 @@ export async function importUsers(
   }
 }
 
-export async function importCongregationUserRoles(
+export async function importCongregationUserPermissions(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
-  roleKeyToId: Map<string, number>,
+  permissionKeyToId: Map<string, number>,
   congregationId: number,
 ): Promise<void> {
-  const records = await readNdjsonFile<{ userId: number; roleKey: string }>(zip, 'congregation-user-roles')
+  const records = await readNdjsonFile<{ userId: number; permissionKey: string }>(zip, 'congregation-user-permissions')
   for (const record of records) {
     const userId = idMap.getOptional('users', record.userId)
-    const roleId = roleKeyToId.get(record.roleKey)
-    if (!userId || !roleId) continue
+    const permissionId = permissionKeyToId.get(record.permissionKey)
+    if (!userId || !permissionId) continue
 
-    const existing = await db.congregationUserRole.findFirst({
-      where: { userId, roleId },
+    const existing = await db.congregationUserPermission.findFirst({
+      where: { userId, permissionId },
     })
     if (!existing) {
-      await db.congregationUserRole.create({
-        data: { userId, roleId, congregationId },
+      await db.congregationUserPermission.create({
+        data: { userId, permissionId, congregationId },
       })
     }
   }

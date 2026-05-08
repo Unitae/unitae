@@ -3,7 +3,7 @@ import { Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -20,8 +20,8 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
-  const canViewPublishers = permissions.has(Role.PublisherViewer)
-  const canManagePublisher = permissions.has(Role.PublisherManager)
+  const canViewPublishers = permissions.has(Permission.PublisherViewer)
+  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canViewPublishers) {
     logger.warn(

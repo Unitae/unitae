@@ -20,8 +20,8 @@ export async function resolveRecipients(
     where: {
       congregationId,
       active: true,
-      congregationRoles: {
-        some: { role: { key: recipientRole } },
+      congregationPermissions: {
+        some: { permission: { key: recipientRole } },
       },
     },
     select: { id: true, email: true, firstname: true },

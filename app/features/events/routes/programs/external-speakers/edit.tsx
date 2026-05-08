@@ -14,7 +14,7 @@ import {
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
-import { Role } from '~/shared/types/role'
+import { Permission } from '~/shared/types/permission'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -46,8 +46,8 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canManage = permissions.has(Role.ExternalSpeakerManager)
-  const canView = canManage || permissions.has(Role.ExternalSpeakerViewer)
+  const canManage = permissions.has(Permission.ExternalSpeakerManager)
+  const canView = canManage || permissions.has(Permission.ExternalSpeakerViewer)
   if (!canView) throw redirect('/')
 
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')
@@ -77,7 +77,7 @@ const intentSchema = z.object({ intent: z.enum(['update', 'archive', 'unarchive'
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  if (!permissions.has(Role.ExternalSpeakerManager)) throw redirect('/')
+  if (!permissions.has(Permission.ExternalSpeakerManager)) throw redirect('/')
 
   const currentUser = context.get(userContext)
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')

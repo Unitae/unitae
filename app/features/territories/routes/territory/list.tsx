@@ -8,8 +8,8 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requireRole, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { Role } from '~/shared/types/role'
+import { permissionsContext, requirePermission, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -33,9 +33,9 @@ export const meta: Route.MetaFunction = () => {
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
-  requireRole(permissions, Role.TerritoriesViewer)
+  requirePermission(permissions, Permission.TerritoriesViewer)
 
-  const canManageTerritories = permissions.has(Role.TerritoriesManager)
+  const canManageTerritories = permissions.has(Permission.TerritoriesManager)
 
   const { congregationId } = context.get(userContext)
 
