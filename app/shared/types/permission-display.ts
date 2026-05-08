@@ -33,7 +33,6 @@ export const PERMISSION_CATEGORIES = [
   'publishers',
   'programs',
   'settings',
-  'roles',
 ] as const
 
 export type PermissionCategory = (typeof PERMISSION_CATEGORIES)[number]
@@ -55,8 +54,8 @@ const PERMISSION_TO_CATEGORY: Record<Permission, PermissionCategory> = {
   [Permission.ExternalSpeakerViewer]: 'programs',
   [Permission.ExternalSpeakerManager]: 'programs',
   [Permission.SettingsUserManager]: 'settings',
-  [Permission.RolesViewer]: 'roles',
-  [Permission.RolesManager]: 'roles',
+  [Permission.RolesViewer]: 'settings',
+  [Permission.RolesManager]: 'settings',
 }
 
 export function getPermissionCategory(key: string): PermissionCategory | null {
@@ -70,7 +69,6 @@ const CATEGORY_LABELS: Record<PermissionCategory, () => string> = {
   publishers: () => m.permission_category_publishers(),
   programs: () => m.permission_category_programs(),
   settings: () => m.permission_category_settings(),
-  roles: () => m.permission_category_roles(),
 }
 
 export function getPermissionCategoryLabel(category: PermissionCategory): string {
