@@ -1,10 +1,9 @@
-import { BadgeCheck, BadgeMinus, IdCard, Pencil, UserPlus } from 'lucide-react'
+import { IdCard, Pencil, UserPlus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -52,7 +51,12 @@ export function loader({ request, context }: Route.LoaderArgs) {
           : {}),
       },
       include: {
-        congregationPermissions: { include: { permission: true } },
+        roleAssignments: { select: { role: { select: { isBuiltIn: true } } } },
+        _count: {
+          select: {
+            congregationPermissions: true,
+          },
+        },
       },
       orderBy: [
         {
@@ -65,16 +69,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
     })
 
     return {
-      users: users.map(user => ({
-        email: user.email.includes('@placeholder.unitae.app') ? null : user.email,
-        permissions: user.congregationPermissions.map(cp => cp.permission),
-        id: user.id,
-        active: user.active,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        isAdmin: user.congregationPermissions.some(cp => cp.permission.key === 'admin'),
-        isPublisher: user.isPublisher,
-      })),
+      users: users.map(user => {
+        const builtInRoleCount = user.roleAssignments.filter(a => a.role.isBuiltIn).length
+        const customRoleCount = user.roleAssignments.length - builtInRoleCount
+        return {
+          email: user.email.includes('@placeholder.unitae.app') ? null : user.email,
+          id: user.id,
+          active: user.active,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          isPublisher: user.isPublisher,
+          builtInRoleCount,
+          customRoleCount,
+          directPermissionCount: user._count.congregationPermissions,
+        }
+      }),
       roles: {
         canViewPublishers,
         canManageUser,
@@ -110,7 +119,10 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
               <TableHead>{m.settings_users_table_lastname()}</TableHead>
               <TableHead className="max-sm:hidden">{m.settings_users_table_email()}</TableHead>
               <TableHead className="text-center">{m.settings_users_table_publisher()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.settings_users_table_rights()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_users_table_roles()}</TableHead>
+              <TableHead className="text-center max-sm:hidden">
+                {m.settings_users_table_custom_permissions()}
+              </TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
               </TableHead>
@@ -151,15 +163,38 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {user.isAdmin ? (
-                    <Badge variant="default" title={m.settings_users_admin_badge_title()}>
-                      <BadgeCheck className="mr-1 size-3" /> {m.settings_users_admin_badge()}
-                    </Badge>
-                  ) : user.permissions.length > 0 ? (
-                    <Badge variant="secondary" title={m.settings_users_rights_badge_title()}>
-                      <BadgeMinus className="mr-1 size-3" /> {m.settings_users_rights_badge()}
-                    </Badge>
-                  ) : null}
+                  <div
+                    className="inline-flex items-baseline justify-center gap-2"
+                    title={m.settings_users_roles_breakdown({
+                      builtIn: user.builtInRoleCount,
+                      custom: user.customRoleCount,
+                    })}
+                  >
+                    {user.customRoleCount > 0 ? (
+                      <Link
+                        to={`/congregation/roles?q=${encodeURIComponent(user.lastname ?? user.firstname ?? '')}`}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {m.settings_users_roles_custom_count({ count: user.customRoleCount })}
+                      </Link>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {m.settings_users_roles_custom_count({ count: 0 })}
+                      </span>
+                    )}
+                    {user.builtInRoleCount > 0 && (
+                      <span className="text-muted-foreground text-xs">
+                        {m.settings_users_roles_builtin_count({ count: user.builtInRoleCount })}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell className="text-center max-sm:hidden">
+                  {user.directPermissionCount > 0 ? (
+                    <span>{user.directPermissionCount}</span>
+                  ) : (
+                    <span className="text-muted-foreground">0</span>
+                  )}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
