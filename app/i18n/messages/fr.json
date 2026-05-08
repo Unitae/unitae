@@ -1966,6 +1966,8 @@
     "permission_desc_program_manager": "Peut gérer les programmes de l'assemblée (modifier)",
     "permission_desc_prospection_viewer": "Peut voir les données de prospection du territoires",
     "permission_desc_prospection_manager": "Peut gérer les données de prospection du territoires (modifier)",
+    "permission_desc_external_speaker_viewer": "Peut consulter le registre des orateurs externes",
+    "permission_desc_external_speaker_manager": "Peut gérer le registre des orateurs externes (créer, modifier, archiver)",
     "seed_event_kind_absence": "Absence",
     "seed_template_midweek": "Réunion de semaine",
     "seed_template_weekend": "Réunion du week-end",
