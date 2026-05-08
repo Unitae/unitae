@@ -161,7 +161,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
   return (
     <div className="flex flex-1 flex-col bg-muted/30">
       {!error && (
-        <div className="sticky top-0 z-10 flex items-center justify-end gap-1 border-b bg-background px-4 py-2">
+        <div className="sticky top-[60px] z-10 flex items-center justify-end gap-1 border-b bg-background px-4 py-2">
           <Button
             variant="ghost"
             size="icon"
