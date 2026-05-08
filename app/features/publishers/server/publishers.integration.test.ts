@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { CongregationId, UserId } from '~/shared/types/branded'
 import { createTestCongregation, createTestUser } from '~/tests/factories'
-import { getPublisherById } from './publishers.server'
+import { getPublisherById, getPublishersWithGroup } from './publishers.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -62,5 +62,76 @@ describe('getPublisherById', () => {
     )
 
     expect(publisher).toBeNull()
+  })
+})
+
+describe('getPublishersWithGroup search filter', () => {
+  let searchCongregationId: number
+  const searchSuffix = Date.now()
+  const expectedFirstname = `SearchableFirst-${searchSuffix}`
+  const expectedLastname = `SearchableLast-${searchSuffix}`
+  const otherFirstname = `OtherFirst-${searchSuffix}`
+  const otherLastname = `OtherLast-${searchSuffix}`
+
+  beforeAll(async () => {
+    const cong = await createTestCongregation(testDb)
+    searchCongregationId = cong.id
+
+    await createTestUser(testDb, searchCongregationId, {
+      isPublisher: true,
+      firstname: expectedFirstname,
+      lastname: expectedLastname,
+    })
+    await createTestUser(testDb, searchCongregationId, {
+      isPublisher: true,
+      firstname: otherFirstname,
+      lastname: otherLastname,
+    })
+  })
+
+  afterAll(async () => {
+    await testDb.user.deleteMany({ where: { congregationId: searchCongregationId } })
+    await testDb.congregation.deleteMany({ where: { id: searchCongregationId } })
+  })
+
+  it('returns only publishers whose firstname matches', async () => {
+    const result = await withScope(searchCongregationId, tx =>
+      getPublishersWithGroup(tx, searchCongregationId, { search: expectedFirstname }),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.firstname).toBe(expectedFirstname)
+  })
+
+  it('returns only publishers whose lastname matches', async () => {
+    const result = await withScope(searchCongregationId, tx =>
+      getPublishersWithGroup(tx, searchCongregationId, { search: expectedLastname }),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.lastname).toBe(expectedLastname)
+  })
+
+  it('matches case-insensitively', async () => {
+    const result = await withScope(searchCongregationId, tx =>
+      getPublishersWithGroup(tx, searchCongregationId, { search: expectedLastname.toLowerCase() }),
+    )
+
+    expect(result).toHaveLength(1)
+    expect(result[0]?.lastname).toBe(expectedLastname)
+  })
+
+  it('returns an empty array when no publisher matches (bug #133)', async () => {
+    const result = await withScope(searchCongregationId, tx =>
+      getPublishersWithGroup(tx, searchCongregationId, { search: `zzz-no-match-${searchSuffix}` }),
+    )
+
+    expect(result).toEqual([])
+  })
+
+  it('returns all publishers when search is absent', async () => {
+    const result = await withScope(searchCongregationId, tx => getPublishersWithGroup(tx, searchCongregationId))
+
+    expect(result).toHaveLength(2)
   })
 })
