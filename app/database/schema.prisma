@@ -162,9 +162,8 @@ model User {
 }
 
 model Permission {
-  id          Int    @id @default(autoincrement())
-  key         String @unique
-  description String @default("")
+  id                      Int                          @id @default(autoincrement())
+  key                     String                       @unique
   congregationPermissions CongregationUserPermission[]
 }
 

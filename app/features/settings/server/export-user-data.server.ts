@@ -52,7 +52,7 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
       db.congregationUserPermission.findMany({
         where: { userId },
         select: {
-          permission: { select: { key: true, description: true } },
+          permission: { select: { key: true } },
         },
       }),
       db.publisherActivity.findMany({

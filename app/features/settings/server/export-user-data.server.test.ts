@@ -42,7 +42,7 @@ describe('exportUserData', () => {
 
     mockDb.user.findUnique.mockResolvedValue(fakeUser as never)
     mockDb.congregationUserPermission.findMany.mockResolvedValue([
-      { permission: { key: 'Admin', description: 'Administrateur' } },
+      { permission: { key: 'Admin' } },
     ] as never)
     mockDb.publisherActivity.findMany.mockResolvedValue([
       { month: 3, year: 2025, hours: 10, studies: 1, type: 'normal', isPublisher: true, notes: '' },
@@ -71,7 +71,7 @@ describe('exportUserData', () => {
     const result = await exportUserData(mockDb as never, 1)
 
     expect(result.user).toEqual(fakeUser)
-    expect(result.permissions).toEqual([{ key: 'Admin', description: 'Administrateur' }])
+    expect(result.permissions).toEqual([{ key: 'Admin' }])
     expect(result.publisherActivities).toHaveLength(1)
     expect(result.attributions).toHaveLength(1)
     expect(result.publisherGroup).not.toBeNull()

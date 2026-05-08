@@ -34,24 +34,28 @@ import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit-user'
 
+// Exhaustive over Permission so TypeScript flags any new value missing a description.
+const PERMISSION_DESCRIPTIONS: Record<Permission, () => string> = {
+  [Permission.Admin]: () => m.permission_desc_admin(),
+  [Permission.BoardUploader]: () => m.permission_desc_board_uploader(),
+  [Permission.BoardValidator]: () => m.permission_desc_board_validator(),
+  [Permission.TerritoriesViewer]: () => m.permission_desc_territories_viewer(),
+  [Permission.TerritoriesManager]: () => m.permission_desc_territories_manager(),
+  [Permission.SettingsUserManager]: () => m.permission_desc_settings_user_manager(),
+  [Permission.PublisherViewer]: () => m.permission_desc_publisher_viewer(),
+  [Permission.PublisherManager]: () => m.permission_desc_publisher_manager(),
+  [Permission.ActivityManager]: () => m.permission_desc_activity_manager(),
+  [Permission.ActivityViewer]: () => m.permission_desc_activity_viewer(),
+  [Permission.ProgramViewer]: () => m.permission_desc_program_viewer(),
+  [Permission.ProgramManager]: () => m.permission_desc_program_manager(),
+  [Permission.ProspectionViewer]: () => m.permission_desc_prospection_viewer(),
+  [Permission.ProspectionManager]: () => m.permission_desc_prospection_manager(),
+  [Permission.ExternalSpeakerViewer]: () => m.permission_desc_external_speaker_viewer(),
+  [Permission.ExternalSpeakerManager]: () => m.permission_desc_external_speaker_manager(),
+}
+
 function getPermissionDescription(key: string): string {
-  const descriptions: Record<string, () => string> = {
-    admin: () => m.permission_desc_admin(),
-    'board-uploader': () => m.permission_desc_board_uploader(),
-    'board-validator': () => m.permission_desc_board_validator(),
-    'territories-viewer': () => m.permission_desc_territories_viewer(),
-    'territories-manager': () => m.permission_desc_territories_manager(),
-    'settings-user-manager': () => m.permission_desc_settings_user_manager(),
-    'publisher-viewer': () => m.permission_desc_publisher_viewer(),
-    'publisher-manager': () => m.permission_desc_publisher_manager(),
-    'activity-manager': () => m.permission_desc_activity_manager(),
-    'activity-viewer': () => m.permission_desc_activity_viewer(),
-    'program-viewer': () => m.permission_desc_program_viewer(),
-    'program-manager': () => m.permission_desc_program_manager(),
-    'prospection-viewer': () => m.permission_desc_prospection_viewer(),
-    'prospection-manager': () => m.permission_desc_prospection_manager(),
-  }
-  return descriptions[key]?.() ?? key
+  return PERMISSION_DESCRIPTIONS[key as Permission]?.() ?? key
 }
 
 export const meta: Route.MetaFunction = () => {
