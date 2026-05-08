@@ -32,7 +32,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canViewPrograms = permissions.has(Permission.ProgramViewer)
-  const canManagePrograms = permissions.has(Permission.ProgramManager)
 
   if (!canViewPrograms) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)
@@ -40,9 +39,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  logger.info(
-    `Loading program list. User ID: ${currentUser.id}. ${canManagePrograms ? 'Has' : 'Does NOT have'} rights to manage programs.`,
-  )
+  logger.info(`Loading program list. User ID: ${currentUser.id}.`)
 
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
@@ -131,7 +128,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
       totalConflicts,
       hasAnyDaysOff,
       defaults: { from: defaultFrom, to: defaultTo },
-      roles: { canManagePrograms },
     }
   })
 }
