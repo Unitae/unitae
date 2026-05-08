@@ -54,14 +54,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
       })),
       canManagePublisher,
       canViewActivities,
+      searchQuery: search ?? '',
     }
   })
 }
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
-  const { users, canManagePublisher, canViewActivities } = loaderData
+  const { users, canManagePublisher, canViewActivities, searchQuery } = loaderData
 
-  if (users.length < 1) {
+  if (users.length < 1 && searchQuery.length < 1) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
@@ -108,67 +109,75 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
 
       <SearchInput placeholder={m.publishers_search_placeholder()} />
 
-      <div className="overflow-hidden rounded-xl border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
-              <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
-              <TableHead className="text-center">{m.publishers_table_group()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
-              <TableHead className="w-0">
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map(user => (
-              <TableRow key={user.email}>
-                <TableCell className="text-center max-sm:text-left">
-                  <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
-                    {user.firstname}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-center">
-                  <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
-                    {user.lastname?.toLocaleUpperCase()}
-                  </Link>
-                </TableCell>
-                <TableCell className="text-center">
-                  {user.publisherGroup != null && (
-                    <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
-                      {user.publisherGroup.name}
+      {users.length < 1 ? (
+        <EmptyState
+          icon={Users}
+          title={m.publishers_empty_no_match_title()}
+          description={m.publishers_empty_no_match_description({ query: searchQuery })}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center max-sm:text-left">{m.publishers_table_firstname()}</TableHead>
+                <TableHead className="text-center">{m.publishers_table_lastname()}</TableHead>
+                <TableHead className="text-center">{m.publishers_table_group()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
+                <TableHead className="w-0">
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {users.map(user => (
+                <TableRow key={user.email}>
+                  <TableCell className="text-center max-sm:text-left">
+                    <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
+                      {user.firstname}
                     </Link>
-                  )}
-                </TableCell>
-                <TableCell className="text-center max-sm:hidden">
-                  {user.email.includes('@placeholder.unitae.app') === false && (
-                    <Link to={`mailto:${user.email}`} className="hover:text-primary">
-                      <Mail className="inline size-4" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
+                      {user.lastname?.toLocaleUpperCase()}
                     </Link>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
-                    <Button asChild variant="ghost" size="icon">
-                      <Link to={`/publishers/${user.id}/view`}>
-                        <Eye className="size-4" />
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {user.publisherGroup != null && (
+                      <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
+                        {user.publisherGroup.name}
                       </Link>
-                    </Button>
-                    {canManagePublisher && (
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center max-sm:hidden">
+                    {user.email.includes('@placeholder.unitae.app') === false && (
+                      <Link to={`mailto:${user.email}`} className="hover:text-primary">
+                        <Mail className="inline size-4" />
+                      </Link>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <Button asChild variant="ghost" size="icon">
-                        <Link to={`./${user.id}/edit`}>
-                          <Pencil className="size-4" />
+                        <Link to={`/publishers/${user.id}/view`}>
+                          <Eye className="size-4" />
                         </Link>
                       </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+                      {canManagePublisher && (
+                        <Button asChild variant="ghost" size="icon">
+                          <Link to={`./${user.id}/edit`}>
+                            <Pencil className="size-4" />
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   )
 }
