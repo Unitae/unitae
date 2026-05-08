@@ -159,7 +159,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
   }, [pdf, zoom, isMobile])
 
   return (
-    <div className="flex flex-1 flex-col bg-muted/30">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/30">
       {!error && (
         <div className="flex items-center justify-end gap-1 border-b bg-background px-4 py-2">
           <Button
@@ -194,7 +194,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
           </Button>
         </div>
       )}
-      <div ref={scrollRef} className="flex flex-1 flex-col overflow-auto p-4">
+      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
         {loading && (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-96 w-full" />
