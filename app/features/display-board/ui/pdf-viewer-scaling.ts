@@ -18,9 +18,6 @@ export function computeAutoFitScale(page: PageSize, viewport: ViewportSize, isMo
   const widthRatio = viewport.width / page.width
   if (isMobile) return widthRatio
 
-  const isLandscape = page.width > page.height
-  if (!isLandscape) return Math.min(widthRatio, MAX_AUTO_FIT_SCALE)
-
   const heightRatio = viewport.height / page.height
   return Math.min(widthRatio, heightRatio, MAX_AUTO_FIT_SCALE)
 }
