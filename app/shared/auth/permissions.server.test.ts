@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { Permission } from '~/shared/types/permission'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -28,15 +29,31 @@ describe('resolveEffectivePermissions', () => {
     expect(result).toEqual(new Set(['territories-manager', 'publisher-viewer']))
   })
 
-  it('deduplicates when the same permission is granted directly and via a role', async () => {
+  it('deduplicates when the same non-admin permission is granted directly and via a role', async () => {
     vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
-      { permission: { key: 'admin' } },
+      { permission: { key: 'territories-manager' } },
     ] as never)
-    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([{ permission: { key: 'admin' } }] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([
+      { permission: { key: 'territories-manager' } },
+    ] as never)
 
     const result = await resolveEffectivePermissions(42, 1)
 
-    expect([...result]).toEqual(['admin'])
+    expect([...result]).toEqual(['territories-manager'])
+  })
+
+  it('expands admin to every permission so feature checks pass without explicit grants', async () => {
+    vi.mocked(unscopedDb.congregationUserPermission.findMany).mockResolvedValue([
+      { permission: { key: 'admin' } },
+    ] as never)
+    vi.mocked(unscopedDb.rolePermission.findMany).mockResolvedValue([] as never)
+
+    const result = await resolveEffectivePermissions(42, 1)
+
+    // Every Permission enum value must be present.
+    for (const value of Object.values(Permission)) {
+      expect(result.has(value)).toBe(true)
+    }
   })
 
   it('returns an empty set when the user has no grants', async () => {
