@@ -60,6 +60,10 @@ Yes. The interface ships in both French and English; users can switch language f
 
 Currently the sync only supports the French national address dataset. Congregations in other countries can still use Unitae fully — they just enter building addresses manually. See [Open Data Sync](../self-hosting/open-data-sync.md).
 
+### Is my personal calendar feed private?
+
+The link is per-user and protected by a long random token. Only people you give the link to can read your assignments and absences. Regenerate or revoke the link from your profile if it leaks. See [Calendar Feed](../product/calendar-feed.md).
+
 ### Do I need a Google Maps API key?
 
 No. Maps are optional. Without an API key, territory management works normally — you just won't see interactive maps or map images in PDF exports. See [Environment Variables](../self-hosting/environment-variables.md).

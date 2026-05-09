@@ -20,6 +20,12 @@ Compression is `DEFLATE` via [`jszip`](https://stuk.github.io/jszip/). Buffers a
 
 Entities are exported in dependency order so an import can replay them top-down without missing references. The list lives in `buildExportSteps` (`export-congregation.server.ts`). Order matters: territories before attributions, board sections before board documents, etc.
 
+## What's not yet exported
+
+Several feature tables added since the export was first written are **not** yet enumerated in `ENTITY_FILES` and therefore not included in the archive — custom roles and their permission bundles, user role memberships, role gating on board sections, allowed-roles on programme parts/service roles, the external-speakers registry, territory card overlays, and the territory perimeter. An export+import round-trip on a congregation that uses these features silently drops them on the target side.
+
+Tracked in [#170](https://github.com/Unitae/unitae/issues/170). When extending `ENTITY_FILES`, also bump `ARCHIVE_VERSION` so older archives are rejected (or handled with an explicit "this archive predates feature X" warning) on import.
+
 ## Conflict resolution on import
 
 The validator scans for natural-key collisions before any write. Decisions per entity type:
