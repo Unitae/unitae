@@ -189,7 +189,7 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export default function BoardLayout({ loaderData }: Route.ComponentProps) {
-  const { folders, highlighted, canManageBoard } = loaderData
+  const { folders, highlighted, canUploadDocument, canManageBoard } = loaderData
   const [collapsed, setCollapsed] = usePersistedState<Record<number, boolean>>('board-collapsed', {})
 
   const visibleFolders = canManageBoard ? folders : folders.filter(f => f.items.length > 0)
@@ -224,14 +224,16 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.board_page_title()}
         actions={
-          canManageBoard ? (
+          canUploadDocument || canManageBoard ? (
             <>
-              <Button variant="outline" size="sm" asChild>
-                <Link to="./sections">
-                  <FolderOpen className="size-4" />
-                  {m.board_manage_sections()}
-                </Link>
-              </Button>
+              {canManageBoard && (
+                <Button variant="outline" size="sm" asChild>
+                  <Link to="./sections">
+                    <FolderOpen className="size-4" />
+                    {m.board_manage_sections()}
+                  </Link>
+                </Button>
+              )}
               <Button variant="outline" size="sm" asChild>
                 <Link to="./documents">
                   <FileText className="size-4" />

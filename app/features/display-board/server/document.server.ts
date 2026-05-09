@@ -2,7 +2,7 @@ import type { BoardDocument } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { deleteBoardFile, getBoardFile, getBoardFileBuffer, saveBoardFile } from './document-storage.server'
-import { createVersionFromCurrent } from './document-versions.server'
+import { createVersionForUpload } from './document-versions.server'
 import { FileValidationError, validateBoardFile } from './file-validation.server'
 import { thumbnailQueue } from './thumbnail-queue.server'
 
@@ -74,8 +74,6 @@ export async function replaceDocumentFile(
     throw error
   }
 
-  await createVersionFromCurrent(db, documentId, congregationId, uploadedById)
-
   const uri = await saveFile(congregationId, file)
 
   // Fetch old document to clean up files after update
@@ -85,6 +83,8 @@ export async function replaceDocumentFile(
     },
     select: { uri: true, thumbnailUri: true },
   })
+
+  await createVersionForUpload(db, documentId, congregationId, uploadedById, uri)
 
   await db.boardDocument.update({
     where: {

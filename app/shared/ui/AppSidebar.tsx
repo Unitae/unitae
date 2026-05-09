@@ -108,14 +108,14 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarNavItem to="/" icon={Home} label={m.sidebar_home()} end />
-              {permissions.canViewBoard && !permissions.canManageBoard && (
+              {permissions.canViewBoard && !permissions.canUploadDocument && !permissions.canManageBoard && (
                 <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} />
               )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {permissions.canManageBoard && (
+        {(permissions.canUploadDocument || permissions.canManageBoard) && (
           <Collapsible defaultOpen className="group/collapsible">
             <SidebarGroup>
               <SidebarGroupLabel asChild>
@@ -128,7 +128,9 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                 <SidebarGroupContent>
                   <SidebarMenu>
                     <SidebarNavItem to="/board" icon={LayoutGrid} label={m.sidebar_board()} end />
-                    <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
+                    {permissions.canManageBoard && (
+                      <SidebarNavItem to="/board/sections" icon={FolderOpen} label={m.sidebar_sections()} />
+                    )}
                     <SidebarNavItem to="/board/documents" icon={FileText} label={m.sidebar_documents()} />
                   </SidebarMenu>
                 </SidebarGroupContent>

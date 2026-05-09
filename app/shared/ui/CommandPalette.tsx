@@ -45,6 +45,8 @@ function getNavigationItems(permissions: AppSidebarPermissions): CommandItem[] {
   }
   if (permissions.canManageBoard) {
     items.push({ id: 'sections', label: m.sidebar_sections(), icon: FolderOpen, to: '/board/sections' })
+  }
+  if (permissions.canUploadDocument || permissions.canManageBoard) {
     items.push({ id: 'documents', label: m.sidebar_documents(), icon: FileText, to: '/board/documents' })
   }
   if (permissions.canViewPublishers) {

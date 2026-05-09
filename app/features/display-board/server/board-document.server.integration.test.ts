@@ -39,7 +39,8 @@ let secondDocId: number
 let otherDocId: number
 let dynamicDocId: number
 
-const { bulkDeleteBoardItems, bulkMoveBoardItems, reorderBoardItems } = await import('./board-document.server')
+const { bulkDeleteBoardItems, bulkMoveBoardItems, createBoardDocument, isDocumentOwnedByUploader, reorderBoardItems } =
+  await import('./board-document.server')
 
 beforeAll(async () => {
   const primaryCong = await testDb.congregation.create({
@@ -210,5 +211,105 @@ describe('reorderBoardItems (integration)', () => {
 
     const otherDocAfter = await withScope(otherCongId, tx => tx.boardDocument.findUnique({ where: { id: otherDocId } }))
     expect(otherDocAfter?.order).toBe(otherDocBefore?.order)
+  })
+})
+
+describe('createBoardDocument (integration)', () => {
+  it('writes a v1 BoardDocumentVersion attributing the creator', async () => {
+    const uploaderId = await withScope(primaryCongId, async tx => {
+      const user = await tx.user.create({
+        data: {
+          email: `board-doc-uploader-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Carla',
+          lastname: 'Uploader',
+          active: true,
+          isPublisher: true,
+          type: PublisherType.Normal,
+          congregationId: primaryCongId,
+        },
+      })
+      return user.id
+    })
+
+    const created = await withScope(primaryCongId, tx =>
+      createBoardDocument(tx, {
+        title: `v1 Anchor Doc ${ts}`,
+        sectionId: primarySectionId,
+        uri: 'storage/key.pdf',
+        congregationId: primaryCongId,
+        actorId: uploaderId,
+      }),
+    )
+
+    const v1 = await withScope(primaryCongId, tx =>
+      tx.boardDocumentVersion.findFirst({
+        where: { documentId: created.id, versionNumber: 1 },
+        select: { uploadedById: true, uri: true },
+      }),
+    )
+
+    expect(v1).not.toBeNull()
+    expect(v1?.uploadedById).toBe(uploaderId)
+    expect(v1?.uri).toBe('storage/key.pdf')
+
+    // Cleanup the user we created — versions cascade with the document.
+    await testDb.user.delete({ where: { id: uploaderId } })
+  })
+})
+
+describe('isDocumentOwnedByUploader (integration)', () => {
+  it('returns true when v1 was uploaded by the user', async () => {
+    const ownerId = await withScope(primaryCongId, async tx => {
+      const user = await tx.user.create({
+        data: {
+          email: `board-doc-owner-${ts}@test.com`,
+          password: 'hashed',
+          firstname: 'Owen',
+          lastname: 'Owner',
+          active: true,
+          isPublisher: true,
+          type: PublisherType.Normal,
+          congregationId: primaryCongId,
+        },
+      })
+      return user.id
+    })
+
+    const created = await withScope(primaryCongId, tx =>
+      createBoardDocument(tx, {
+        title: `Owned Doc ${ts}`,
+        sectionId: primarySectionId,
+        uri: 'storage/owned.pdf',
+        congregationId: primaryCongId,
+        actorId: ownerId,
+      }),
+    )
+
+    const owned = await withScope(primaryCongId, tx => isDocumentOwnedByUploader(tx, created.id, ownerId))
+    expect(owned).toBe(true)
+
+    const notOwned = await withScope(primaryCongId, tx => isDocumentOwnedByUploader(tx, created.id, -1))
+    expect(notOwned).toBe(false)
+
+    await testDb.user.delete({ where: { id: ownerId } })
+  })
+
+  it('returns false for legacy docs without a v1 row', async () => {
+    const docId = await withScope(primaryCongId, async tx => {
+      const doc = await tx.boardDocument.create({
+        data: {
+          title: `Legacy Doc ${ts}`,
+          type: 'pdf',
+          sectionId: primarySectionId,
+          order: 0,
+          congregationId: primaryCongId,
+        },
+      })
+      return doc.id
+    })
+
+    const owned = await withScope(primaryCongId, tx => isDocumentOwnedByUploader(tx, docId, 1))
+    expect(owned).toBe(false)
   })
 })
