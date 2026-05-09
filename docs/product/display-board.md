@@ -4,7 +4,7 @@ The display board is a digital notice board for sharing documents with congregat
 
 ## Board View
 
-The main board page (`/board`) shows all visible documents organized by section. A page header displays the title and, for board validators, quick-access buttons to the section and document management pages.
+The main board page (`/board`) shows all visible documents organized by section. A page header displays the title and quick-access buttons to the management pages: validators see both the *Manage sections* and *Manage documents* buttons; uploaders see only the *Manage documents* button (their entry point to the upload form).
 
 ### Highlighted Section
 
@@ -69,11 +69,13 @@ Documents are stored in the configured file storage backend (local filesystem or
 
 ### File Replacement
 
-Existing documents can have their PDF file replaced from the edit page. The previous file is automatically saved as a version — see "Version History" below.
+Existing documents can have their PDF file replaced from the edit page. Each upload creates a version row — see "Version History" below.
 
 ### Version History
 
-When a document's file is replaced, the previous version is preserved. Access version history from the edit page (clock icon). Previous versions can be downloaded or restored. Restoring a version saves the current file as a new version first.
+Every upload — including the original — is recorded as a `BoardDocumentVersion` row attributing the uploader. Replacements append a new version, and the latest row always matches the document's current file. Restoring a previous version is recorded as a fresh version pointing at the restored file. Access the history from the edit page (clock icon); previous versions can be downloaded or restored.
+
+The original uploader attribution from the v1 row is also what determines whether an uploader can edit or delete a given document (see Permissions below).
 
 ### Visibility Scheduling
 
@@ -127,10 +129,12 @@ For PDFs, the unread badge disappears once a member opens the document. For dyna
 
 | Role | Can do |
 |------|--------|
-| `BoardUploader` | Upload documents to the board |
-| `BoardValidator` | Upload, edit, delete documents. Manage sections. Set visibility and highlighting. Quick-access buttons on the board view |
+| `BoardUploader` | Upload new documents. On documents they uploaded: edit title/section/file, delete, view and restore versions. **Cannot** set visibility window or highlight (those stay validator-controlled, even on the uploader's own documents) |
+| `BoardValidator` | Everything an uploader can do, on any document. Manage sections. Set visibility window and highlighting. Add and configure dynamic documents |
 | `Admin` | Everything |
 | Any authenticated user | View the board, its visible documents, and dynamic documents |
+
+Ownership is anchored on the original uploader recorded in the document's v1 version row. Documents created before this attribution existed have no original uploader and are validator-only editable.
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
 

@@ -7,8 +7,8 @@ Unitae uses a fine-grained role system to control who can access and manage each
 | Role | Access granted |
 |------|---------------|
 | `Admin` | Full access to all features within the congregation |
-| `BoardUploader` | Upload documents to the display board |
-| `BoardValidator` | Manage board documents: edit, delete, set visibility, highlight. Manage sections |
+| `BoardUploader` | Upload documents to the display board, and edit/delete/restore versions of documents they themselves uploaded (cannot set visibility or highlight) |
+| `BoardValidator` | Manage any board document: edit, delete, set visibility, highlight. Manage sections. Add dynamic documents |
 | `TerritoriesViewer` | View territory list, attributions, and statistics |
 | `TerritoriesManager` | Create, edit, and delete territories. Manage attributions. Trigger open data sync |
 | `ProspectionViewer` | View building prospection data |
