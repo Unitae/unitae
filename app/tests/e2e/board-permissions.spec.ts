@@ -54,14 +54,18 @@ test.describe('Board permissions — BoardUploader (upload-only)', () => {
 
     // Validator-only affordances are absent
     await expect(page.getByRole('link', { name: ADD_DYNAMIC_RE })).toHaveCount(0)
-    // Bulk action bar is rendered on selection only — its container has no checkboxes for uploaders
+    // Bulk-select checkboxes (and the table header position cell) are validator-only
     await expect(page.locator('input[type="checkbox"]')).toHaveCount(0)
   })
 
-  test('upload form is reachable and submission redirects back to documents list', async ({ page }) => {
+  test('upload form is reachable', async ({ page }) => {
     await page.goto('/board/documents/new')
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveURL(BOARD_DOCUMENTS_NEW_URL_RE)
+    // Uploader's create form must not expose visibility-window inputs
+    await expect(page.locator('input[name="visible-from"]')).toHaveCount(0)
+    await expect(page.locator('input[name="visible-until"]')).toHaveCount(0)
+    await expect(page.locator('input[name="hightlighted"]')).toHaveCount(0)
   })
 
   test('cannot reach /board/sections — redirected away', async ({ page }) => {
@@ -76,19 +80,21 @@ test.describe('Board permissions — BoardUploader (upload-only)', () => {
     expect(page.url()).not.toContain('/board/documents/new-dynamic')
   })
 
-  test('cannot reach a document edit page — redirected away', async ({ page }) => {
+  // For docs the uploader didn't upload (here: a phantom id), the ownership
+  // predicate fails, so edit/delete/versions all redirect away.
+  test('cannot reach the edit page for a doc they do not own', async ({ page }) => {
     await page.goto(`/board/documents/${PHANTOM_ID}/edit`)
     await page.waitForLoadState('networkidle')
     expect(page.url()).not.toContain('/edit')
   })
 
-  test('cannot reach a document delete page — redirected away', async ({ page }) => {
+  test('cannot reach the delete page for a doc they do not own', async ({ page }) => {
     await page.goto(`/board/documents/${PHANTOM_ID}/delete`)
     await page.waitForLoadState('networkidle')
     expect(page.url()).not.toContain('/delete')
   })
 
-  test('cannot reach a document versions page — redirected away', async ({ page }) => {
+  test('cannot reach the versions page for a doc they do not own', async ({ page }) => {
     await page.goto(`/board/documents/${PHANTOM_ID}/versions`)
     await page.waitForLoadState('networkidle')
     expect(page.url()).not.toContain('/versions')

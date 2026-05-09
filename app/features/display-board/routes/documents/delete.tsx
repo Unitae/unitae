@@ -1,15 +1,10 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { deleteBoardDocument } from '~/features/display-board/server/board-document.server'
+import { deleteBoardDocument, isDocumentOwnedByUploader } from '~/features/display-board/server/board-document.server'
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import { notify } from '~/features/notifications/server/notify.server'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  permissionsContext,
-  requirePermission,
-  userContext,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
@@ -23,19 +18,28 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+
+  if (!canUploadDocument && !canManageBoard) {
+    throw redirect('/')
+  }
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const documentId = requireParamId(params.documentId, '/board')
     const document = await db.boardDocument.findUnique({
       where: {
-        id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
+        id_congregationId: { id: documentId, congregationId: currentUser.congregationId },
       },
     })
 
     if (document == null) {
       throw redirect('/board/sections')
     }
+
+    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
+    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
 
     return { document }
   })
@@ -57,14 +61,22 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
-
   const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+
+  if (!canUploadDocument && !canManageBoard) {
+    throw redirect('/')
+  }
+
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
     const documentId = requireParamId(params.documentId, '/board')
+
+    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
+    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
 
     // Delete version files before cascade removes the rows
     await deleteAllVersionFiles(db, documentId)

@@ -306,8 +306,7 @@ export async function action({ request, context }: Route.ActionArgs) {
         })
       }
 
-      const postUploadRedirect = canManageBoard ? `/board/documents/${document.id}/edit` : '/board/documents'
-      return redirect(postUploadRedirect, {
+      return redirect(`/board/documents/${document.id}/edit`, {
         headers: {
           'Set-Cookie': await commitSession(session),
         },

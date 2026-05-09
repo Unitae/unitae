@@ -35,6 +35,19 @@ export async function createBoardDocument(
     },
   })
 
+  // v1 anchors original-uploader attribution: ownership checks and the version
+  // history page both read the v1 row's uploadedById to identify the creator.
+  await db.boardDocumentVersion.create({
+    data: {
+      documentId: document.id,
+      uri: data.uri,
+      thumbnailUri: null,
+      versionNumber: 1,
+      uploadedById: data.actorId,
+      congregationId: data.congregationId,
+    },
+  })
+
   audit({
     action: AuditAction.BoardDocumentCreated,
     congregationId: data.congregationId,
@@ -44,6 +57,22 @@ export async function createBoardDocument(
   })
 
   return document
+}
+
+/**
+ * The original uploader is the v1 BoardDocumentVersion's uploadedById.
+ * Returns false for legacy docs without a v1 row (no recorded creator).
+ */
+export async function isDocumentOwnedByUploader(
+  db: TransactionClient,
+  documentId: number,
+  userId: number,
+): Promise<boolean> {
+  const v1 = await db.boardDocumentVersion.findFirst({
+    where: { documentId, versionNumber: 1 },
+    select: { uploadedById: true },
+  })
+  return v1?.uploadedById === userId
 }
 
 export async function deleteBoardDocument(
@@ -184,7 +213,7 @@ export async function updateBoardDocument(
     sectionId: number
     visibleFrom: Date | null | undefined
     visibleUntil: Date | null | undefined
-    isHighlighted: boolean
+    isHighlighted: boolean | undefined
   },
 ) {
   const document = await db.boardDocument.update({

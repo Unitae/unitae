@@ -4,16 +4,11 @@ import { History, Trash2 } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updateDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
-import { updateBoardDocument } from '~/features/display-board/server/board-document.server'
+import { isDocumentOwnedByUploader, updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  permissionsContext,
-  requirePermission,
-  userContext,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -35,26 +30,35 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+
+  if (!canUploadDocument && !canManageBoard) {
+    throw redirect('/')
+  }
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const documentId = requireParamId(params.documentId, '/board')
     const document = await db.boardDocument.findUnique({
       where: {
-        id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },
+        id_congregationId: { id: documentId, congregationId: currentUser.congregationId },
       },
     })
 
-    const sections = await db.boardSection.findMany({ where: { congregationId } })
-
     if (document == null) throw redirect('/board/documents')
 
-    return { document, sections }
+    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
+    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
+
+    const sections = await db.boardSection.findMany({ where: { congregationId: currentUser.congregationId } })
+
+    return { document, sections, canManageBoard }
   })
 }
 
 export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
-  const { document, sections } = loaderData
+  const { document, sections, canManageBoard } = loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
 
@@ -130,28 +134,30 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
               </Select>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
-                <Input
-                  id="visible-from"
-                  name="visible-from"
-                  type="datetime-local"
-                  placeholder={m.board_documents_new_visible_from_placeholder()}
-                  defaultValue={formattedVisibleFrom}
-                />
+            {canManageBoard && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
+                  <Input
+                    id="visible-from"
+                    name="visible-from"
+                    type="datetime-local"
+                    placeholder={m.board_documents_new_visible_from_placeholder()}
+                    defaultValue={formattedVisibleFrom}
+                  />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
+                  <Input
+                    id="visible-until"
+                    name="visible-until"
+                    type="datetime-local"
+                    placeholder={m.board_documents_new_visible_until_placeholder()}
+                    defaultValue={formattedVisibleUntil}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
-                <Input
-                  id="visible-until"
-                  name="visible-until"
-                  type="datetime-local"
-                  placeholder={m.board_documents_new_visible_until_placeholder()}
-                  defaultValue={formattedVisibleUntil}
-                />
-              </div>
-            </div>
+            )}
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="document">{m.board_documents_edit_replace_file_label()}</Label>
@@ -159,22 +165,24 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
               <p className="text-muted-foreground text-xs">{m.board_documents_edit_replace_file_hint()}</p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <input
-                id="hightlighted"
-                className="size-4 rounded border border-input accent-primary"
-                name="hightlighted"
-                type="checkbox"
-                defaultChecked={document.isHighlighted}
-              />
-              <Label
-                htmlFor="hightlighted"
-                className="cursor-pointer font-normal"
-                title={m.board_documents_new_highlight_tooltip()}
-              >
-                {m.board_documents_new_highlight_label()}
-              </Label>
-            </div>
+            {canManageBoard && (
+              <div className="flex items-center gap-2">
+                <input
+                  id="hightlighted"
+                  className="size-4 rounded border border-input accent-primary"
+                  name="hightlighted"
+                  type="checkbox"
+                  defaultChecked={document.isHighlighted}
+                />
+                <Label
+                  htmlFor="hightlighted"
+                  className="cursor-pointer font-normal"
+                  title={m.board_documents_new_highlight_tooltip()}
+                >
+                  {m.board_documents_new_highlight_label()}
+                </Label>
+              </div>
+            )}
 
             <SubmitButton className="w-fit">{m.board_documents_edit_submit()}</SubmitButton>
           </Form>
@@ -182,6 +190,22 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
       </Card>
     </div>
   )
+}
+
+type ResolvedVisibility = {
+  visibleFrom: Date | null | undefined
+  visibleUntil: Date | null | undefined
+  rangeIsValid: boolean
+}
+
+function resolveVisibility(rawFrom: Date, rawUntil: Date, canManageBoard: boolean): ResolvedVisibility {
+  if (!canManageBoard) {
+    // Uploader edits never touch visibility — undefined skips the column.
+    return { visibleFrom: undefined, visibleUntil: undefined, rangeIsValid: true }
+  }
+  const visibleFrom = rawFrom.getTime() > 0 ? rawFrom : null
+  const visibleUntil = rawUntil.getTime() > 0 ? rawUntil : null
+  return { visibleFrom, visibleUntil, rangeIsValid: validateVisibilityDates(visibleFrom, visibleUntil) }
 }
 
 async function parseMultipartForm(request: Request) {
@@ -211,9 +235,14 @@ async function parseMultipartForm(request: Request) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
-
   const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+
+  if (!canUploadDocument && !canManageBoard) {
+    throw redirect('/')
+  }
+
   const session = await getSession(request.headers.get('Cookie'))
 
   let formResult: Awaited<ReturnType<typeof parseMultipartForm>>
@@ -236,26 +265,29 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const { title, sectionId } = submission.value
-  const visibleFrom = new Date(submission.value['visible-from'])
-  const visibleUntil = new Date(submission.value['visible-until'])
-  const isHighlighted = submission.value.hightlighted === 'on'
+  const visibility = resolveVisibility(
+    new Date(submission.value['visible-from']),
+    new Date(submission.value['visible-until']),
+    canManageBoard,
+  )
 
-  const parsedFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
-  const parsedUntil = visibleUntil.getTime() > 0 ? visibleUntil : null
-  if (!validateVisibilityDates(parsedFrom, parsedUntil)) {
+  if (!visibility.rangeIsValid) {
     session.flash('error', m.board_documents_date_range_error())
     return redirect(`/board/documents/${params.documentId}/edit`, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
 
-  const resolvedVisibleFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
-  const resolvedVisibleUntil = visibleUntil.getTime() > 0 ? visibleUntil : null
+  // Highlight is validator-controlled too; uploader edits skip the column.
+  const resolvedIsHighlighted = canManageBoard ? submission.value.hightlighted === 'on' : undefined
 
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {
     const documentId = requireParamId(params.documentId, '/board')
+
+    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
+    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
 
     // Handle file replacement if a new file was uploaded
     if (file) {
@@ -272,9 +304,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const document = await updateBoardDocument(db, documentId, congregationId, currentUser.id, {
       title: String(title),
       sectionId,
-      visibleFrom: resolvedVisibleFrom,
-      visibleUntil: resolvedVisibleUntil,
-      isHighlighted,
+      visibleFrom: visibility.visibleFrom,
+      visibleUntil: visibility.visibleUntil,
+      isHighlighted: resolvedIsHighlighted,
     })
 
     if (document == null) {

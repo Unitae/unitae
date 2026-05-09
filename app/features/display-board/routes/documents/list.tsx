@@ -59,6 +59,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       include: {
         section: true,
         viewedBy: { select: { id: true } },
+        // v1 anchors original-uploader attribution; missing on legacy docs.
+        versions: { where: { versionNumber: 1 }, select: { uploadedById: true }, take: 1 },
       },
     })
 
@@ -71,7 +73,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       include: { section: true },
     })
 
-    return { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard }
+    return { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard, currentUserId: currentUser.id }
   })
 }
 
@@ -90,6 +92,7 @@ type UnifiedItem = {
   visibleUntil: Date | null
   isHighlighted: boolean
   viewsCount: number | null
+  ownedByUser: boolean
 }
 
 function buildDndId(kind: Kind, id: number): string {
@@ -104,6 +107,7 @@ function parseDndId(dndId: string): { kind: Kind; id: number } {
 function mergeAndSort(
   pdfs: Awaited<ReturnType<typeof loader>>['documents'],
   dyns: Awaited<ReturnType<typeof loader>>['dynamicDocuments'],
+  currentUserId: number,
 ): UnifiedItem[] {
   const items: UnifiedItem[] = [
     ...pdfs.map<UnifiedItem>(d => ({
@@ -119,6 +123,7 @@ function mergeAndSort(
       visibleUntil: d.visibleUntil,
       isHighlighted: d.isHighlighted,
       viewsCount: d.viewedBy.length,
+      ownedByUser: d.versions[0]?.uploadedById === currentUserId,
     })),
     ...dyns.map<UnifiedItem>(d => ({
       kind: 'dyn',
@@ -133,6 +138,7 @@ function mergeAndSort(
       visibleUntil: d.visibleUntil,
       isHighlighted: d.isHighlighted,
       viewsCount: null,
+      ownedByUser: false,
     })),
   ]
   items.sort((a, b) => {
@@ -151,12 +157,15 @@ function SortableItemRow({
   selected,
   onToggle,
   canManageBoard,
+  canEditOwnDocument,
 }: {
   item: UnifiedItem
   selected: boolean
   onToggle: (dndId: string) => void
   canManageBoard: boolean
+  canEditOwnDocument: boolean
 }) {
+  const canEditThisRow = canManageBoard || (canEditOwnDocument && item.kind === 'pdf' && item.ownedByUser)
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.dndId,
     disabled: !canManageBoard,
@@ -219,14 +228,14 @@ function SortableItemRow({
               </Link>
             </Button>
           )}
-          {canManageBoard && (
+          {canEditThisRow && (
             <Button variant="ghost" size="icon" asChild>
               <Link to={editHref}>
                 <Pencil className="size-4" />
               </Link>
             </Button>
           )}
-          {canManageBoard && (
+          {canEditThisRow && (
             <Button
               variant="ghost"
               size="icon"
@@ -245,14 +254,14 @@ function SortableItemRow({
 }
 
 export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
-  const { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard } = loaderData
+  const { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard, currentUserId } = loaderData
   const fetcher = useFetcher()
   const bulkFetcher = useFetcher()
   const revalidator = useRevalidator()
   const [searchParams, setSearchParams] = useSearchParams()
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
-  const items = mergeAndSort(documents, dynamicDocuments)
+  const items = mergeAndSort(documents, dynamicDocuments, currentUserId)
   const sectionsWithItems = sections
     .map(section => ({
       section,
@@ -430,6 +439,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
                 onToggle={toggleSelection}
                 onDragEnd={handleDragEnd}
                 canManageBoard={canManageBoard}
+                canEditOwnDocument={canUploadDocument}
               />
             ))}
           </div>
@@ -448,6 +458,7 @@ function SectionBlock({
   onToggle,
   onDragEnd,
   canManageBoard,
+  canEditOwnDocument,
 }: {
   section: { id: number; name: string }
   items: UnifiedItem[]
@@ -457,6 +468,7 @@ function SectionBlock({
   onToggle: (dndId: string) => void
   onDragEnd: (event: DragEndEvent) => void
   canManageBoard: boolean
+  canEditOwnDocument: boolean
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -503,6 +515,7 @@ function SectionBlock({
                     selected={selectedIds.has(item.dndId)}
                     onToggle={onToggle}
                     canManageBoard={canManageBoard}
+                    canEditOwnDocument={canEditOwnDocument}
                   />
                 ))}
               </TableBody>

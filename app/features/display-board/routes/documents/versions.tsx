@@ -3,14 +3,10 @@ import { Download, History, RotateCcw } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { restoreVersionSchema } from '~/features/display-board/schemas/board-document.schema'
+import { isDocumentOwnedByUploader } from '~/features/display-board/server/board-document.server'
 import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/i18n/paraglide/messages'
-import {
-  permissionsContext,
-  requirePermission,
-  userContext,
-  withScopeFromContext,
-} from '~/shared/auth/route-context.server'
+import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -27,12 +23,18 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
+  const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+
+  if (!canUploadDocument && !canManageBoard) {
+    throw redirect('/')
+  }
 
   const documentId = requireParamId(params.documentId, '/board/documents')
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = currentUser
     const document = await db.boardDocument.findUnique({
       where: {
         id_congregationId: { id: documentId, congregationId },
@@ -41,6 +43,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
     })
 
     if (document == null) throw redirect('/board/documents')
+
+    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
+    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
 
     const versions = await db.boardDocumentVersion.findMany({
       where: { documentId },
@@ -138,9 +143,14 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardValidator)
-
   const currentUser = context.get(userContext)
+  const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
+
+  if (!canUploadDocument && !canManageBoard) {
+    throw redirect('/')
+  }
+
   const session = await getSession(request.headers.get('Cookie'))
   const documentId = requireParamId(params.documentId, '/board/documents')
   const submission = parseWithZod(await request.formData(), { schema: restoreVersionSchema })
@@ -152,6 +162,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
+
+    const ownsDocument = canUploadDocument && (await isDocumentOwnedByUploader(db, documentId, currentUser.id))
+    if (!canManageBoard && !ownsDocument) throw redirect('/board/documents')
+
     const result = await restoreDocumentVersion(db, documentId, versionId, congregationId, currentUser.id)
 
     if (result == null) {
