@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const scopedDb = {
   eventKind: { upsert: vi.fn() },
   programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
-  role: { upsert: vi.fn() },
+  role: { upsert: vi.fn(), findUnique: vi.fn() },
+  permission: { findUnique: vi.fn() },
+  rolePermission: { upsert: vi.fn() },
 }
 
 vi.mock('~/shared/infra/db.server', () => ({

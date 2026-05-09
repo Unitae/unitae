@@ -1,0 +1,221 @@
+import { PrismaPg } from '@prisma/adapter-pg'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { PrismaClient } from '~/database/generated/client'
+import {
+  getSectionVisibilityRoleIds,
+  getViewerRoleIds,
+  setSectionVisibilityRoles,
+} from '~/features/display-board/server/section-visibility.server'
+import { PublisherType } from '~/shared/types/publisher-type'
+
+const adapter = new PrismaPg({
+  connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
+  max: 5,
+  connectionTimeoutMillis: 5000,
+})
+const testDb = new PrismaClient({ adapter })
+
+type Tx = Parameters<Parameters<typeof testDb.$transaction>[0]>[0]
+
+function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promise<T> {
+  return testDb.$transaction(async tx => {
+    await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congregationId)}'`)
+    return fn(tx)
+  })
+}
+
+const ts = Date.now()
+let primaryCongId: number
+let foreignCongId: number
+let primaryElderRoleId: number
+let primaryPublisherRoleId: number
+let foreignElderRoleId: number
+let elderUserId: number
+let publisherUserId: number
+let primarySectionId: number
+let foreignSectionId: number
+
+beforeAll(async () => {
+  const primary = await testDb.congregation.create({
+    data: { name: `SectionVisibility Primary ${ts}`, slug: `sv-primary-${ts}`, active: true },
+  })
+  primaryCongId = primary.id
+
+  const foreign = await testDb.congregation.create({
+    data: { name: `SectionVisibility Foreign ${ts}`, slug: `sv-foreign-${ts}`, active: true },
+  })
+  foreignCongId = foreign.id
+
+  await withScope(primaryCongId, async tx => {
+    const elder = await tx.role.create({
+      data: { key: 'elder', isBuiltIn: true, congregationId: primaryCongId },
+    })
+    primaryElderRoleId = elder.id
+
+    const publisher = await tx.role.create({
+      data: { key: 'publisher', isBuiltIn: true, congregationId: primaryCongId },
+    })
+    primaryPublisherRoleId = publisher.id
+
+    const elderUser = await tx.user.create({
+      data: {
+        email: `sv-elder-${ts}@test.com`,
+        password: 'h',
+        firstname: 'Elder',
+        lastname: 'Person',
+        active: true,
+        isPublisher: true,
+        type: PublisherType.Normal,
+        congregationId: primaryCongId,
+      },
+    })
+    elderUserId = elderUser.id
+    await tx.userRoleAssignment.create({
+      data: { userId: elderUser.id, roleId: elder.id, congregationId: primaryCongId },
+    })
+    await tx.userRoleAssignment.create({
+      data: { userId: elderUser.id, roleId: publisher.id, congregationId: primaryCongId },
+    })
+
+    const publisherUser = await tx.user.create({
+      data: {
+        email: `sv-pub-${ts}@test.com`,
+        password: 'h',
+        firstname: 'Publisher',
+        lastname: 'Person',
+        active: true,
+        isPublisher: true,
+        type: PublisherType.Normal,
+        congregationId: primaryCongId,
+      },
+    })
+    publisherUserId = publisherUser.id
+    await tx.userRoleAssignment.create({
+      data: { userId: publisherUser.id, roleId: publisher.id, congregationId: primaryCongId },
+    })
+
+    const section = await tx.boardSection.create({
+      data: { name: `Letters to Elders ${ts}`, congregationId: primaryCongId },
+    })
+    primarySectionId = section.id
+  })
+
+  await withScope(foreignCongId, async tx => {
+    const foreignElder = await tx.role.create({
+      data: { key: 'elder', isBuiltIn: true, congregationId: foreignCongId },
+    })
+    foreignElderRoleId = foreignElder.id
+
+    const section = await tx.boardSection.create({
+      data: { name: `Foreign Letters ${ts}`, congregationId: foreignCongId },
+    })
+    foreignSectionId = section.id
+
+    await tx.boardSectionVisibilityRole.create({
+      data: { sectionId: section.id, roleId: foreignElder.id, congregationId: foreignCongId },
+    })
+  })
+})
+
+afterAll(async () => {
+  await testDb.boardSectionVisibilityRole.deleteMany({
+    where: { congregationId: { in: [primaryCongId, foreignCongId] } },
+  })
+  await testDb.boardSection.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.userRoleAssignment.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.user.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.role.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.auditLog.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.$disconnect()
+})
+
+describe('setSectionVisibilityRoles (integration)', () => {
+  it('persists role assignments and is idempotent', async () => {
+    await withScope(primaryCongId, async tx => {
+      const first = await setSectionVisibilityRoles(
+        tx,
+        primarySectionId,
+        [primaryElderRoleId],
+        primaryCongId,
+        elderUserId,
+      )
+      expect(first.added).toEqual([primaryElderRoleId])
+
+      const stored = await getSectionVisibilityRoleIds(tx, primarySectionId, primaryCongId)
+      expect(stored).toEqual([primaryElderRoleId])
+
+      const repeat = await setSectionVisibilityRoles(
+        tx,
+        primarySectionId,
+        [primaryElderRoleId],
+        primaryCongId,
+        elderUserId,
+      )
+      expect(repeat).toEqual({ added: [], removed: [] })
+    })
+  })
+
+  it('replaces the role list with diff semantics', async () => {
+    await withScope(primaryCongId, async tx => {
+      const result = await setSectionVisibilityRoles(
+        tx,
+        primarySectionId,
+        [primaryPublisherRoleId],
+        primaryCongId,
+        elderUserId,
+      )
+      expect(result.added).toEqual([primaryPublisherRoleId])
+      expect(result.removed).toEqual([primaryElderRoleId])
+
+      const stored = await getSectionVisibilityRoleIds(tx, primarySectionId, primaryCongId)
+      expect(stored).toEqual([primaryPublisherRoleId])
+    })
+  })
+})
+
+describe('Row-Level Security on BoardSectionVisibilityRole', () => {
+  it('isolates rows across congregations', async () => {
+    const fromPrimary = await withScope(primaryCongId, tx =>
+      tx.boardSectionVisibilityRole.findMany({ select: { sectionId: true } }),
+    )
+    expect(fromPrimary.every(r => r.sectionId === primarySectionId)).toBe(true)
+
+    const fromForeign = await withScope(foreignCongId, tx =>
+      tx.boardSectionVisibilityRole.findMany({ select: { sectionId: true, roleId: true } }),
+    )
+    expect(fromForeign).toEqual([{ sectionId: foreignSectionId, roleId: foreignElderRoleId }])
+  })
+})
+
+describe('getViewerRoleIds (integration)', () => {
+  it('returns the user effective role IDs in the current congregation', async () => {
+    const elderRoles = await withScope(primaryCongId, tx => getViewerRoleIds(tx, elderUserId, primaryCongId))
+    expect(elderRoles.sort()).toEqual([primaryElderRoleId, primaryPublisherRoleId].sort())
+
+    const publisherRoles = await withScope(primaryCongId, tx => getViewerRoleIds(tx, publisherUserId, primaryCongId))
+    expect(publisherRoles).toEqual([primaryPublisherRoleId])
+  })
+})
+
+describe('Cascade delete on BoardSection', () => {
+  it('removes orphan visibility rows when the section is deleted', async () => {
+    let tempSectionId = 0
+    await withScope(primaryCongId, async tx => {
+      const section = await tx.boardSection.create({
+        data: { name: `Temp Cascade ${ts}`, congregationId: primaryCongId },
+      })
+      tempSectionId = section.id
+      await tx.boardSectionVisibilityRole.create({
+        data: { sectionId: section.id, roleId: primaryElderRoleId, congregationId: primaryCongId },
+      })
+    })
+
+    await withScope(primaryCongId, tx => tx.boardSection.delete({ where: { id: tempSectionId } }))
+
+    const orphans = await withScope(primaryCongId, tx =>
+      tx.boardSectionVisibilityRole.findMany({ where: { sectionId: tempSectionId } }),
+    )
+    expect(orphans).toEqual([])
+  })
+})

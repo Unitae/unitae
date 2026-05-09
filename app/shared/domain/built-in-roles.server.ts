@@ -22,14 +22,18 @@ interface BooleanFields {
   isServant: boolean
 }
 
+// Built-in roles model congregation-domain identities (elder, sister, baptized, …).
+// Anyone who isn't an active publisher cannot occupy these domain roles, so every
+// predicate but `publisher` itself gates on `isPublisher` first. This keeps non-
+// publisher accounts (e.g. dedicated admin/validator users) out of the role matrix.
 export const BUILT_IN_ROLE_PREDICATES: Record<BuiltInRoleKey, (u: BooleanFields) => boolean> = {
-  male: u => u.isMale === true,
-  female: u => u.isMale === false,
+  male: u => u.isPublisher && u.isMale === true,
+  female: u => u.isPublisher && u.isMale === false,
   publisher: u => u.isPublisher,
-  baptized: u => u.baptismDate != null,
-  anointed: u => u.isAnointed,
-  elder: u => u.isHelder,
-  'assistant-servant': u => u.isServant,
+  baptized: u => u.isPublisher && u.baptismDate != null,
+  anointed: u => u.isPublisher && u.isAnointed,
+  elder: u => u.isPublisher && u.isHelder,
+  'assistant-servant': u => u.isPublisher && u.isServant,
 }
 
 export async function syncBuiltInRoleAssignments(

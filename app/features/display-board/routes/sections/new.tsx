@@ -1,9 +1,14 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
+import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { createBoardSection } from '~/features/display-board/server/board-section.server'
+import {
+  getViewerRoleIds,
+  setSectionVisibilityRoles,
+} from '~/features/display-board/server/section-visibility.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
@@ -12,12 +17,14 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { Alert, AlertDescription } from '~/shared/ui/alert'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { type RoleOption, RolePicker } from '~/shared/ui/RolePicker'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 
@@ -31,10 +38,22 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.BoardValidator)
 
-  return null
+  return withScopeFromContext(context, async db => {
+    const { congregationId, id: userId } = context.get(userContext)
+    const [roles, viewerRoleIds] = await Promise.all([
+      db.role.findMany({
+        where: { congregationId },
+        select: { id: true, key: true, name: true, isBuiltIn: true },
+        orderBy: [{ isBuiltIn: 'desc' }, { key: 'asc' }],
+      }),
+      getViewerRoleIds(db, userId, congregationId),
+    ])
+    return { roles, viewerRoleIds }
+  })
 }
 
-export default function NewSectionPage({ actionData }: Route.ComponentProps) {
+export default function NewSectionPage({ loaderData, actionData }: Route.ComponentProps) {
+  const { roles, viewerRoleIds } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
   useFocusError(actionData)
   const [form, fields] = useForm({
@@ -43,6 +62,9 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
       return parseWithZod(formData, { schema: createSectionSchema })
     },
   })
+  const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
+  const showLockoutWarning =
+    selectedRoleIds.length > 0 && selectedRoleIds.every(id => !viewerRoleIds.includes(id))
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,6 +87,14 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
               />
               {fields.name.errors && <p className="text-destructive text-sm">{fields.name.errors}</p>}
             </div>
+
+            <VisibilityField
+              roles={roles}
+              selectedIds={selectedRoleIds}
+              onChange={setSelectedRoleIds}
+              showLockoutWarning={showLockoutWarning}
+            />
+
             <SubmitButton className="w-fit">{m.board_sections_new_submit()}</SubmitButton>
           </Form>
         </CardContent>
@@ -73,14 +103,47 @@ export default function NewSectionPage({ actionData }: Route.ComponentProps) {
   )
 }
 
+interface VisibilityFieldProps {
+  roles: RoleOption[]
+  selectedIds: number[]
+  onChange: (next: number[]) => void
+  showLockoutWarning: boolean
+}
+
+export function VisibilityField({ roles, selectedIds, onChange, showLockoutWarning }: VisibilityFieldProps) {
+  return (
+    <div className="flex flex-col gap-2">
+      <Label id="visibility-label">{m.board_sections_visibility_label()}</Label>
+      <RolePicker
+        roles={roles}
+        selectedIds={selectedIds}
+        name="visibilityRoleIds"
+        idPrefix="visibility"
+        defaultLabel={m.board_sections_visibility_default()}
+        onChange={onChange}
+        labelledBy="visibility-label"
+      />
+      <p className="text-muted-foreground text-xs">{m.board_sections_visibility_hint()}</p>
+      {showLockoutWarning && (
+        <Alert>
+          <AlertDescription>{m.board_sections_visibility_self_lockout_warning()}</AlertDescription>
+        </Alert>
+      )}
+    </div>
+  )
+}
+
 export async function action({ request, context }: Route.ActionArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.BoardValidator)
+
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: createSectionSchema })
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { name } = submission.value
+  const { name, visibilityRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
     const { congregationId, id: actorId } = context.get(userContext)
@@ -94,6 +157,10 @@ export async function action({ request, context }: Route.ActionArgs) {
           'Set-Cookie': await commitSession(session),
         },
       })
+    }
+
+    if (visibilityRoleIds.length > 0) {
+      await setSectionVisibilityRoles(db, section.id, visibilityRoleIds, congregationId, actorId)
     }
 
     session.flash('success', m.board_sections_new_success({ name: section.name }))

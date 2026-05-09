@@ -3,6 +3,7 @@ import { Permission } from '~/shared/types/permission'
 
 const PERMISSION_DESCRIPTIONS: Record<Permission, () => string> = {
   [Permission.Admin]: () => m.permission_desc_admin(),
+  [Permission.BoardViewer]: () => m.permission_desc_board_viewer(),
   [Permission.BoardUploader]: () => m.permission_desc_board_uploader(),
   [Permission.BoardValidator]: () => m.permission_desc_board_validator(),
   [Permission.TerritoriesViewer]: () => m.permission_desc_territories_viewer(),
@@ -33,6 +34,7 @@ export type PermissionCategory = (typeof PERMISSION_CATEGORIES)[number]
 
 const PERMISSION_TO_CATEGORY: Record<Permission, PermissionCategory> = {
   [Permission.Admin]: 'admin',
+  [Permission.BoardViewer]: 'board',
   [Permission.BoardUploader]: 'board',
   [Permission.BoardValidator]: 'board',
   [Permission.TerritoriesViewer]: 'territories',

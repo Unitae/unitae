@@ -74,6 +74,7 @@ model Congregation {
   publisherGroups              PublisherGroup[]
   publisherActivities          PublisherActivity[]
   boardSections                BoardSection[]
+  boardSectionVisibilityRoles  BoardSectionVisibilityRole[]
   boardDocuments               BoardDocument[]
   boardDocumentVersions        BoardDocumentVersion[]
   boardDynamicDocumentSettings BoardDynamicDocumentSettings[]
@@ -190,6 +191,7 @@ model Role {
   allowedForPartAssignments        ProgrammePartAssignmentAllowedRole[]
   allowedForTemplateServiceRoles   ProgrammeTemplateServiceRoleAllowedRole[]
   allowedForServiceRoleAssignments ProgrammeServiceRoleAssignmentAllowedRole[]
+  allowedForBoardSections          BoardSectionVisibilityRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
@@ -246,11 +248,25 @@ model BoardSection {
   order            Int?
   documents        BoardDocument[]
   dynamicDocuments BoardDynamicDocumentSettings[]
+  visibilityRoles  BoardSectionVisibilityRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
 
   @@unique([id, congregationId])
+}
+
+model BoardSectionVisibilityRole {
+  section        BoardSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  sectionId      Int
+  role           Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId         Int
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([sectionId, roleId])
+  @@index([roleId])
+  @@index([congregationId])
 }
 
 model BoardDocument {

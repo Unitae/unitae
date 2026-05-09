@@ -1,10 +1,16 @@
 import { FileText, FolderOpen, Megaphone } from 'lucide-react'
 import { Link } from 'react-router'
 import { getContentVersion, getDynamicPreview } from '~/features/display-board/server/dynamic-documents.server'
+import { getViewerRoleIds } from '~/features/display-board/server/section-visibility.server'
 import { BoardSection } from '~/features/display-board/ui/BoardSection'
 import { DocumentCard, type DocumentCardItem } from '~/features/display-board/ui/DocumentCard'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
@@ -31,14 +37,28 @@ const visibleNow = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.BoardViewer)
+
   const currentUser = context.get(userContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
     const congregationId = currentUser.congregationId
+
+    const viewerRoleIds = await getViewerRoleIds(db, currentUser.id, congregationId)
+    // Empty visibilityRoles list = visible to everyone with BoardViewer.
+    // Non-empty list = visible only when at least one of the viewer's roles intersects.
+    // No manager bypass: validators/uploaders/admins see exactly what their roles allow here.
+    const sectionVisibility = {
+      OR: [
+        { visibilityRoles: { none: {} } },
+        { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } },
+      ],
+    }
+
     const folders = await db.boardSection.findMany({
-      where: { congregationId },
+      where: { congregationId, ...sectionVisibility },
       include: {
         documents: {
           orderBy: { order: 'asc' },
@@ -61,6 +81,7 @@ export function loader({ context }: Route.LoaderArgs) {
       where: {
         congregationId,
         ...visibleNow(),
+        section: sectionVisibility,
       },
       include: {
         views: {
@@ -75,6 +96,7 @@ export function loader({ context }: Route.LoaderArgs) {
         congregationId,
         isHighlighted: true,
         ...visibleNow(),
+        section: sectionVisibility,
       },
       orderBy: { order: 'asc' },
       include: {
@@ -90,6 +112,7 @@ export function loader({ context }: Route.LoaderArgs) {
         congregationId,
         isHighlighted: true,
         ...visibleNow(),
+        section: sectionVisibility,
       },
       include: {
         views: {
@@ -192,7 +215,7 @@ export default function BoardLayout({ loaderData }: Route.ComponentProps) {
   const { folders, highlighted, canUploadDocument, canManageBoard } = loaderData
   const [collapsed, setCollapsed] = usePersistedState<Record<number, boolean>>('board-collapsed', {})
 
-  const visibleFolders = canManageBoard ? folders : folders.filter(f => f.items.length > 0)
+  const visibleFolders = folders.filter(f => f.items.length > 0)
 
   const toggleCollapse = (folderId: number) => {
     setCollapsed({ ...collapsed, [folderId]: !collapsed[folderId] })

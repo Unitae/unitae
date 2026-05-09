@@ -51,39 +51,48 @@ beforeEach(() => {
 })
 
 describe('BUILT_IN_ROLE_PREDICATES', () => {
-  it('male requires isMale === true (null is not male)', () => {
-    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isMale: true })).toBe(true)
-    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isMale: false })).toBe(false)
-    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isMale: null })).toBe(false)
+  it('male requires isPublisher AND isMale === true', () => {
+    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isPublisher: true, isMale: true })).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isPublisher: true, isMale: false })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isPublisher: true, isMale: null })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.male({ ...BASE, isPublisher: false, isMale: true })).toBe(false)
   })
 
-  it('female requires isMale === false (null is not female)', () => {
-    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isMale: false })).toBe(true)
-    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isMale: true })).toBe(false)
-    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isMale: null })).toBe(false)
+  it('female requires isPublisher AND isMale === false', () => {
+    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isPublisher: true, isMale: false })).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isPublisher: true, isMale: true })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isPublisher: true, isMale: null })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.female({ ...BASE, isPublisher: false, isMale: false })).toBe(false)
   })
 
-  it('baptized requires a non-null baptismDate', () => {
-    expect(BUILT_IN_ROLE_PREDICATES.baptized({ ...BASE, baptismDate: new Date() })).toBe(true)
-    expect(BUILT_IN_ROLE_PREDICATES.baptized({ ...BASE, baptismDate: null })).toBe(false)
+  it('baptized requires isPublisher AND a non-null baptismDate', () => {
+    expect(BUILT_IN_ROLE_PREDICATES.baptized({ ...BASE, isPublisher: true, baptismDate: new Date() })).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES.baptized({ ...BASE, isPublisher: true, baptismDate: null })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.baptized({ ...BASE, isPublisher: false, baptismDate: new Date() })).toBe(false)
   })
 
-  it('publisher / elder / assistant-servant / anointed read their boolean fields', () => {
+  it('publisher / elder / assistant-servant / anointed all require isPublisher', () => {
     expect(BUILT_IN_ROLE_PREDICATES.publisher({ ...BASE, isPublisher: true })).toBe(true)
-    expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, isHelder: true })).toBe(true)
-    expect(BUILT_IN_ROLE_PREDICATES['assistant-servant']({ ...BASE, isServant: true })).toBe(true)
-    expect(BUILT_IN_ROLE_PREDICATES.anointed({ ...BASE, isAnointed: true })).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, isPublisher: true, isHelder: true })).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES['assistant-servant']({ ...BASE, isPublisher: true, isServant: true })).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES.anointed({ ...BASE, isPublisher: true, isAnointed: true })).toBe(true)
+
+    // Non-publisher accounts never match the domain roles, even if their boolean is set.
+    expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, isPublisher: false, isHelder: true })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES['assistant-servant']({ ...BASE, isPublisher: false, isServant: true })).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.anointed({ ...BASE, isPublisher: false, isAnointed: true })).toBe(false)
   })
 })
 
 describe('syncBuiltInRoleAssignments', () => {
   it('adds missing assignments and skips audit when nothing was assigned before', async () => {
     const db = makeDb({
-      user: { ...BASE, isMale: true, isHelder: true },
+      user: { ...BASE, isPublisher: true, isMale: true, isHelder: true },
       builtInRoles: [
         { id: 10, key: 'male' },
         { id: 11, key: 'female' },
         { id: 12, key: 'elder' },
+        { id: 13, key: 'publisher' },
       ],
       existingAssignments: [],
     })
@@ -94,6 +103,7 @@ describe('syncBuiltInRoleAssignments', () => {
       data: [
         { userId: 42, roleId: 10, congregationId: 7 },
         { userId: 42, roleId: 12, congregationId: 7 },
+        { userId: 42, roleId: 13, congregationId: 7 },
       ],
     })
     expect(db.userRoleAssignment.deleteMany).not.toHaveBeenCalled()
@@ -104,14 +114,14 @@ describe('syncBuiltInRoleAssignments', () => {
         actorId: 99,
         entityType: 'User',
         entityId: 42,
-        metadata: { added: ['male', 'elder'], removed: [] },
+        metadata: { added: ['male', 'elder', 'publisher'], removed: [] },
       }),
     )
   })
 
   it('removes stale assignments and audits the diff', async () => {
     const db = makeDb({
-      user: { ...BASE, isMale: false }, // female only
+      user: { ...BASE, isPublisher: true, isMale: false }, // female publisher only
       builtInRoles: [
         { id: 10, key: 'male' },
         { id: 11, key: 'female' },
@@ -135,14 +145,39 @@ describe('syncBuiltInRoleAssignments', () => {
     )
   })
 
-  it('returns without writing or auditing when assignments already match', async () => {
+  it('strips every domain role when isPublisher flips to false', async () => {
     const db = makeDb({
-      user: { ...BASE, isMale: true, isHelder: true },
+      user: { ...BASE, isPublisher: false, isMale: true, isHelder: true },
       builtInRoles: [
         { id: 10, key: 'male' },
         { id: 12, key: 'elder' },
+        { id: 13, key: 'publisher' },
       ],
-      existingAssignments: [{ roleId: 10 }, { roleId: 12 }],
+      existingAssignments: [{ roleId: 10 }, { roleId: 12 }, { roleId: 13 }],
+    })
+
+    await syncBuiltInRoleAssignments(db as never, 42, 7, 99)
+
+    expect(db.userRoleAssignment.createMany).not.toHaveBeenCalled()
+    expect(db.userRoleAssignment.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 42, roleId: { in: [10, 12, 13] } },
+    })
+    expect(audit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: { added: [], removed: ['male', 'elder', 'publisher'] },
+      }),
+    )
+  })
+
+  it('returns without writing or auditing when assignments already match', async () => {
+    const db = makeDb({
+      user: { ...BASE, isPublisher: true, isMale: true, isHelder: true },
+      builtInRoles: [
+        { id: 10, key: 'male' },
+        { id: 12, key: 'elder' },
+        { id: 13, key: 'publisher' },
+      ],
+      existingAssignments: [{ roleId: 10 }, { roleId: 12 }, { roleId: 13 }],
     })
 
     await syncBuiltInRoleAssignments(db as never, 42, 7, 99)
@@ -163,7 +198,7 @@ describe('syncBuiltInRoleAssignments', () => {
 
   it('ignores roles with unknown keys (defensive against future drift)', async () => {
     const db = makeDb({
-      user: { ...BASE, isMale: true },
+      user: { ...BASE, isPublisher: true, isMale: true },
       builtInRoles: [
         { id: 10, key: 'male' },
         { id: 99, key: 'unknown-future-key' },

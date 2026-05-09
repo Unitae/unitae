@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { cn } from '~/shared/utils/utils'
 
@@ -15,27 +15,57 @@ interface RolePickerProps {
   name: string
   idPrefix: string
   defaultLabel: string
+  /** When provided, the picker becomes controlled — selection state lives in the parent. */
+  onChange?: (next: number[]) => void
+  /** Element id whose label labels the chip group, for screen readers. */
+  labelledBy?: string
 }
 
-export function RolePicker({ roles, selectedIds, name, idPrefix, defaultLabel }: RolePickerProps) {
+export function RolePicker({
+  roles,
+  selectedIds,
+  name,
+  idPrefix,
+  defaultLabel,
+  onChange,
+  labelledBy,
+}: RolePickerProps) {
   const [selected, setSelected] = useState(() => new Set(selectedIds))
+
+  // Keep internal state in sync when the parent rewrites selection (controlled mode).
+  useEffect(() => {
+    if (onChange) setSelected(new Set(selectedIds))
+    // selectedIds identity changes mark intent to re-sync; onChange presence determines mode.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedIds.join(','), Boolean(onChange)])
 
   function toggle(id: number) {
     setSelected(prev => {
       const next = new Set(prev)
       if (next.has(id)) next.delete(id)
       else next.add(id)
+      onChange?.([...next])
       return next
     })
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div
+      role="group"
+      aria-labelledby={labelledBy}
+      className="flex flex-wrap items-center gap-2"
+    >
       {selected.size === 0 && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-border border-dashed bg-background px-2.5 py-1 text-muted-foreground text-xs italic">
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center gap-1 rounded-full border border-border border-dashed bg-background px-2.5 py-1 text-muted-foreground text-xs italic"
+        >
           {defaultLabel}
         </span>
       )}
+      <span className="sr-only" aria-live="polite">
+        {selected.size}
+      </span>
       {roles.map(role => {
         const isSelected = selected.has(role.id)
         return (
