@@ -31,11 +31,7 @@ The archive contains all congregation data:
 
 ### Archive format
 
-The `.unitae` file is a ZIP archive containing:
-
-- `manifest.json` — Archive version, export date, source application, entity counts
-- `data/*.ndjson` — One file per entity type in newline-delimited JSON format
-- `files/` — Uploaded documents (only when "Include files" is selected)
+The `.unitae` file is a structured archive (a ZIP under the hood) bundling the congregation's data — and, when *Include files* is selected, the uploaded documents too. Contributors interested in the on-disk layout can read [Data Transfer Internals](../development/data-transfer.md).
 
 ## Import
 
@@ -60,8 +56,8 @@ The `.unitae` file is a ZIP archive containing:
 ### Important notes
 
 - **Passwords are never imported.** All imported users must reset their password via email.
-- **IDs are remapped.** Internal references (foreign keys) are updated to match the new database IDs.
-- The import preserves the audit trail by recording a `congregation.imported` event.
+- **Internal identifiers are reissued.** When data is imported into a fresh congregation, every record gets a new internal identity and Unitae automatically re-stitches the relationships between them.
+- The import is recorded in the audit trail.
 
 ## Permissions
 
