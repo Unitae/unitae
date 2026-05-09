@@ -36,6 +36,23 @@ export const BUILT_IN_ROLE_PREDICATES: Record<BuiltInRoleKey, (u: BooleanFields)
   'assistant-servant': u => u.isPublisher && u.isServant,
 }
 
+function diffBuiltInAssignments(
+  builtInRoles: Array<{ id: number; key: string }>,
+  existingRoleIds: Set<number>,
+  user: BooleanFields,
+): { added: number[]; removed: number[] } {
+  const added: number[] = []
+  const removed: number[] = []
+  for (const role of builtInRoles) {
+    const predicate = BUILT_IN_ROLE_PREDICATES[role.key as BuiltInRoleKey]
+    const isDesired = predicate?.(user) ?? false
+    const isAssigned = existingRoleIds.has(role.id)
+    if (isDesired && !isAssigned) added.push(role.id)
+    else if (!isDesired && isAssigned) removed.push(role.id)
+  }
+  return { added, removed }
+}
+
 export async function syncBuiltInRoleAssignments(
   db: TransactionClient,
   userId: number,
@@ -66,20 +83,7 @@ export async function syncBuiltInRoleAssignments(
   })
   const existingRoleIds = new Set(existingAssignments.map(a => a.roleId))
 
-  const desiredRoleIds = new Set<number>()
-  for (const role of builtInRoles) {
-    const predicate = BUILT_IN_ROLE_PREDICATES[role.key as BuiltInRoleKey]
-    if (predicate?.(user)) desiredRoleIds.add(role.id)
-  }
-
-  const added: number[] = []
-  const removed: number[] = []
-  for (const role of builtInRoles) {
-    const isDesired = desiredRoleIds.has(role.id)
-    const isAssigned = existingRoleIds.has(role.id)
-    if (isDesired && !isAssigned) added.push(role.id)
-    if (!isDesired && isAssigned) removed.push(role.id)
-  }
+  const { added, removed } = diffBuiltInAssignments(builtInRoles, existingRoleIds, user)
 
   if (added.length === 0 && removed.length === 0) return
 

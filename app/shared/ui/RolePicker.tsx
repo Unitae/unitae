@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { cn } from '~/shared/utils/utils'
 
@@ -30,30 +30,23 @@ export function RolePicker({
   onChange,
   labelledBy,
 }: RolePickerProps) {
-  const [selected, setSelected] = useState(() => new Set(selectedIds))
-
-  // Keep internal state in sync when the parent rewrites selection (controlled mode).
-  useEffect(() => {
-    if (onChange) setSelected(new Set(selectedIds))
-    // selectedIds identity changes mark intent to re-sync; onChange presence determines mode.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIds.join(','), Boolean(onChange)])
+  const [internalSelected, setInternalSelected] = useState(() => new Set(selectedIds))
+  // Controlled mode (parent passes onChange): selection is derived from props every render.
+  // Uncontrolled mode (form-only): the picker manages its own state, seeded once from selectedIds.
+  const selected = onChange ? new Set(selectedIds) : internalSelected
 
   function toggle(id: number) {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      onChange?.([...next])
-      return next
-    })
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    if (onChange) onChange([...next])
+    else setInternalSelected(next)
   }
 
   return (
-    <div
-      role="group"
+    <fieldset
       aria-labelledby={labelledBy}
-      className="flex flex-wrap items-center gap-2"
+      className="flex flex-wrap items-center gap-2 border-0 p-0"
     >
       {selected.size === 0 && (
         <span
@@ -99,6 +92,6 @@ export function RolePicker({
           </label>
         )
       })}
-    </div>
+    </fieldset>
   )
 }
