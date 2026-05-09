@@ -8,7 +8,12 @@ import { updateBoardDocument } from '~/features/display-board/server/board-docum
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -30,12 +35,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const canUploadDocument = permissions.has(Permission.BoardUploader)
-  const canManageBoard = permissions.has(Permission.BoardValidator)
-
-  if (!canUploadDocument) {
-    throw redirect('/')
-  }
+  requirePermission(permissions, Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -49,12 +49,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     if (document == null) throw redirect('/board/documents')
 
-    return { document, sections, rights: { canManageBoard, canUploadDocument } }
+    return { document, sections }
   })
 }
 
 export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
-  const { document, sections, rights } = loaderData
+  const { document, sections } = loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
 
@@ -130,30 +130,28 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
               </Select>
             </div>
 
-            {rights.canManageBoard && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
-                  <Input
-                    id="visible-from"
-                    name="visible-from"
-                    type="datetime-local"
-                    placeholder={m.board_documents_new_visible_from_placeholder()}
-                    defaultValue={formattedVisibleFrom}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
-                  <Input
-                    id="visible-until"
-                    name="visible-until"
-                    type="datetime-local"
-                    placeholder={m.board_documents_new_visible_until_placeholder()}
-                    defaultValue={formattedVisibleUntil}
-                  />
-                </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="visible-from">{m.board_documents_new_visible_from_label()}</Label>
+                <Input
+                  id="visible-from"
+                  name="visible-from"
+                  type="datetime-local"
+                  placeholder={m.board_documents_new_visible_from_placeholder()}
+                  defaultValue={formattedVisibleFrom}
+                />
               </div>
-            )}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="visible-until">{m.board_documents_new_visible_until_label()}</Label>
+                <Input
+                  id="visible-until"
+                  name="visible-until"
+                  type="datetime-local"
+                  placeholder={m.board_documents_new_visible_until_placeholder()}
+                  defaultValue={formattedVisibleUntil}
+                />
+              </div>
+            </div>
 
             <div className="flex flex-col gap-2">
               <Label htmlFor="document">{m.board_documents_edit_replace_file_label()}</Label>
@@ -161,24 +159,22 @@ export default function EditDocumentPage({ loaderData }: Route.ComponentProps) {
               <p className="text-muted-foreground text-xs">{m.board_documents_edit_replace_file_hint()}</p>
             </div>
 
-            {rights.canManageBoard && (
-              <div className="flex items-center gap-2">
-                <input
-                  id="hightlighted"
-                  className="size-4 rounded border border-input accent-primary"
-                  name="hightlighted"
-                  type="checkbox"
-                  defaultChecked={document.isHighlighted}
-                />
-                <Label
-                  htmlFor="hightlighted"
-                  className="cursor-pointer font-normal"
-                  title={m.board_documents_new_highlight_tooltip()}
-                >
-                  {m.board_documents_new_highlight_label()}
-                </Label>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              <input
+                id="hightlighted"
+                className="size-4 rounded border border-input accent-primary"
+                name="hightlighted"
+                type="checkbox"
+                defaultChecked={document.isHighlighted}
+              />
+              <Label
+                htmlFor="hightlighted"
+                className="cursor-pointer font-normal"
+                title={m.board_documents_new_highlight_tooltip()}
+              >
+                {m.board_documents_new_highlight_label()}
+              </Label>
+            </div>
 
             <SubmitButton className="w-fit">{m.board_documents_edit_submit()}</SubmitButton>
           </Form>
@@ -215,9 +211,10 @@ async function parseMultipartForm(request: Request) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.BoardValidator)
+
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
-  const canManageBoard = permissions.has(Permission.BoardValidator)
 
   let formResult: Awaited<ReturnType<typeof parseMultipartForm>>
   try {
@@ -252,8 +249,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     })
   }
 
-  const resolvedVisibleFrom = visibleFrom.getTime() > 0 ? visibleFrom : canManageBoard ? null : undefined
-  const resolvedVisibleUntil = visibleUntil.getTime() > 0 ? visibleUntil : canManageBoard ? null : undefined
+  const resolvedVisibleFrom = visibleFrom.getTime() > 0 ? visibleFrom : null
+  const resolvedVisibleUntil = visibleUntil.getTime() > 0 ? visibleUntil : null
 
   const { congregationId } = currentUser
 

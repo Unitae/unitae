@@ -26,15 +26,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(userContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
+  const canManageBoard = permissions.has(Permission.BoardValidator)
 
-  if (!canUploadDocument) {
-    logger.warn(`Tried to load board documents. User ID: ${currentUser.id}. Does NOT have rights to upload document.`)
+  if (!canUploadDocument && !canManageBoard) {
+    logger.warn(`Tried to load board documents. User ID: ${currentUser.id}. Does NOT have rights to view documents.`)
 
     throw redirect('/')
   }
 
   logger.info(
-    `Loading board documents. User ID: ${currentUser.id}. ${canUploadDocument ? 'Has' : 'Does NOT have'} rights to upload document.`,
+    `Loading board documents. User ID: ${currentUser.id}. ${canManageBoard ? 'Has' : 'Does NOT have'} rights to manage documents.`,
   )
 
   const url = new URL(request.url)
@@ -70,7 +71,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       include: { section: true },
     })
 
-    return { documents, dynamicDocuments, sections }
+    return { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard }
   })
 }
 
@@ -149,13 +150,16 @@ function SortableItemRow({
   item,
   selected,
   onToggle,
+  canManageBoard,
 }: {
   item: UnifiedItem
   selected: boolean
   onToggle: (dndId: string) => void
+  canManageBoard: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.dndId,
+    disabled: !canManageBoard,
   })
 
   const style = {
@@ -170,19 +174,23 @@ function SortableItemRow({
 
   return (
     <TableRow ref={setNodeRef} style={style}>
-      <TableCell className="w-8">
-        <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
-          <GripVertical className="size-4" />
-        </button>
-      </TableCell>
-      <TableCell className="w-8">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggle(item.dndId)}
-          className="size-4 rounded border border-input accent-primary"
-        />
-      </TableCell>
+      {canManageBoard && (
+        <TableCell className="w-8">
+          <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
+            <GripVertical className="size-4" />
+          </button>
+        </TableCell>
+      )}
+      {canManageBoard && (
+        <TableCell className="w-8">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggle(item.dndId)}
+            className="size-4 rounded border border-input accent-primary"
+          />
+        </TableCell>
+      )}
       <TableCell>
         <div className="flex items-center gap-2">
           <span>{item.title}</span>
@@ -204,23 +212,32 @@ function SortableItemRow({
               <Eye className="size-4" />
             </Link>
           </Button>
-          {item.kind === 'pdf' && (
+          {canManageBoard && item.kind === 'pdf' && (
             <Button variant="ghost" size="icon" asChild>
               <Link to={`./${item.id}/read-status`} title={m.board_read_status_link_tooltip()}>
                 <BarChart3 className="size-4" />
               </Link>
             </Button>
           )}
-          <Button variant="ghost" size="icon" asChild>
-            <Link to={editHref}>
-              <Pencil className="size-4" />
-            </Link>
-          </Button>
-          <Button variant="ghost" size="icon" asChild className="text-destructive hover:text-destructive max-sm:hidden">
-            <Link to={deleteHref} title={m.board_documents_delete_tooltip()}>
-              <Trash2 className="size-4" />
-            </Link>
-          </Button>
+          {canManageBoard && (
+            <Button variant="ghost" size="icon" asChild>
+              <Link to={editHref}>
+                <Pencil className="size-4" />
+              </Link>
+            </Button>
+          )}
+          {canManageBoard && (
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className="text-destructive hover:text-destructive max-sm:hidden"
+            >
+              <Link to={deleteHref} title={m.board_documents_delete_tooltip()}>
+                <Trash2 className="size-4" />
+              </Link>
+            </Button>
+          )}
         </div>
       </TableCell>
     </TableRow>
@@ -228,7 +245,7 @@ function SortableItemRow({
 }
 
 export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
-  const { documents, dynamicDocuments, sections } = loaderData
+  const { documents, dynamicDocuments, sections, canUploadDocument, canManageBoard } = loaderData
   const fetcher = useFetcher()
   const bulkFetcher = useFetcher()
   const revalidator = useRevalidator()
@@ -319,15 +336,19 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_documents() }]}
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link to="./new-dynamic">
-                <Sparkles className="mr-2 size-4" />
-                {m.board_add_dynamic_button()}
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link to="./new">{m.board_documents_upload_button()}</Link>
-            </Button>
+            {canManageBoard && (
+              <Button variant="outline" asChild>
+                <Link to="./new-dynamic">
+                  <Sparkles className="mr-2 size-4" />
+                  {m.board_add_dynamic_button()}
+                </Link>
+              </Button>
+            )}
+            {canUploadDocument && (
+              <Button asChild>
+                <Link to="./new">{m.board_documents_upload_button()}</Link>
+              </Button>
+            )}
           </div>
         }
       />
@@ -369,7 +390,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
         />
       ) : (
         <>
-          {selectedIds.size > 0 && (
+          {canManageBoard && selectedIds.size > 0 && (
             <div className="flex items-center gap-3 rounded-lg border bg-muted/50 px-4 py-2">
               <span className="text-muted-foreground text-sm">
                 {m.board_documents_bulk_selected({ count: selectedIds.size })}
@@ -408,6 +429,7 @@ export default function DocumentListPage({ loaderData }: Route.ComponentProps) {
                 onToggleAllInSection={() => toggleAllInSection(sectionItems)}
                 onToggle={toggleSelection}
                 onDragEnd={handleDragEnd}
+                canManageBoard={canManageBoard}
               />
             ))}
           </div>
@@ -425,6 +447,7 @@ function SectionBlock({
   onToggleAllInSection,
   onToggle,
   onDragEnd,
+  canManageBoard,
 }: {
   section: { id: number; name: string }
   items: UnifiedItem[]
@@ -433,6 +456,7 @@ function SectionBlock({
   onToggleAllInSection: () => void
   onToggle: (dndId: string) => void
   onDragEnd: (event: DragEndEvent) => void
+  canManageBoard: boolean
 }) {
   return (
     <div className="flex flex-col gap-3">
@@ -442,17 +466,21 @@ function SectionBlock({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-8">
-                  <span className="sr-only">{m.board_documents_table_position()}</span>
-                </TableHead>
-                <TableHead className="w-8">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={onToggleAllInSection}
-                    className="size-4 rounded border border-input accent-primary"
-                  />
-                </TableHead>
+                {canManageBoard && (
+                  <TableHead className="w-8">
+                    <span className="sr-only">{m.board_documents_table_position()}</span>
+                  </TableHead>
+                )}
+                {canManageBoard && (
+                  <TableHead className="w-8">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={onToggleAllInSection}
+                      className="size-4 rounded border border-input accent-primary"
+                    />
+                  </TableHead>
+                )}
                 <TableHead>{m.board_documents_table_name()}</TableHead>
                 <TableHead className="text-center max-sm:hidden">{m.board_documents_table_views()}</TableHead>
                 <TableHead className="text-center">
@@ -474,6 +502,7 @@ function SectionBlock({
                     item={item}
                     selected={selectedIds.has(item.dndId)}
                     onToggle={onToggle}
+                    canManageBoard={canManageBoard}
                   />
                 ))}
               </TableBody>

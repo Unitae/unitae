@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardUploader)
+  requirePermission(permissions, Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = context.get(userContext)
@@ -57,7 +57,7 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  requirePermission(permissions, Permission.BoardUploader)
+  requirePermission(permissions, Permission.BoardValidator)
 
   const currentUser = context.get(userContext)
   const session = await getSession(request.headers.get('Cookie'))
