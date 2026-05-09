@@ -1,5 +1,4 @@
 import { ArrowLeft, Download } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
@@ -33,28 +32,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-const ANDROID_UA_REGEX = /android/i
-
-function isAndroidDevice(): boolean {
-  if (typeof navigator === 'undefined') return false
-  return ANDROID_UA_REGEX.test(navigator.userAgent)
-}
-
-// PDF open parameters to hide the browser's default PDF viewer chrome.
-// Supported by Chrome/Edge (PDFium) and partially by Firefox. Safari ignores them.
-const PDF_VIEWER_PARAMS = '#toolbar=0&navpanes=0&scrollbar=1&view=FitH'
-
 export default function ViewerPage({ loaderData }: Route.ComponentProps) {
   const { document } = loaderData
   const pdfUrl = `/board/documents/${document.id}/view`
-  const embedUrl = `${pdfUrl}${PDF_VIEWER_PARAMS}`
-  const [useFallback, setUseFallback] = useState<boolean | null>(null)
-  const [embedFailed, setEmbedFailed] = useState(false)
-
-  useEffect(() => {
-    setUseFallback(isAndroidDevice())
-  }, [])
-
   const downloadName = `${document.title}.pdf`
 
   return (
@@ -76,20 +56,7 @@ export default function ViewerPage({ loaderData }: Route.ComponentProps) {
         </Button>
       </div>
 
-      {useFallback === null ? null : useFallback || embedFailed ? (
-        <PdfViewer url={pdfUrl} downloadUrl={pdfUrl} downloadName={downloadName} />
-      ) : (
-        <div className="flex flex-1 justify-center bg-muted/30 p-4 md:p-6">
-          <object
-            data={embedUrl}
-            type="application/pdf"
-            className="h-full w-full max-w-4xl rounded-md shadow-sm"
-            onError={() => setEmbedFailed(true)}
-          >
-            <PdfViewer url={pdfUrl} downloadUrl={pdfUrl} downloadName={downloadName} />
-          </object>
-        </div>
-      )}
+      <PdfViewer url={pdfUrl} downloadUrl={pdfUrl} downloadName={downloadName} />
     </div>
   )
 }
