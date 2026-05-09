@@ -13,6 +13,7 @@ import type { Route } from './+types/_authenticated-layout'
 export const middleware: Route.MiddlewareFunction[] = [
   requireAuth([
     Permission.Admin,
+    Permission.BoardViewer,
     Permission.BoardUploader,
     Permission.BoardValidator,
     Permission.PublisherViewer,
@@ -46,7 +47,7 @@ export async function loader({ request, context }: Route.LoaderArgs) {
   return data(
     {
       permissions: {
-        canViewBoard: true,
+        canViewBoard: can(Permission.BoardViewer),
         canUploadDocument: can(Permission.BoardUploader),
         canManageBoard: can(Permission.BoardValidator),
         canViewPublishers: can(Permission.PublisherViewer),

@@ -1,7 +1,13 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/display-board/server/document.server'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/pdf-loader'
 
@@ -10,6 +16,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.BoardViewer)
+
   const currentUser = context.get(userContext)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 

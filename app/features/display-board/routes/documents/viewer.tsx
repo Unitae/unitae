@@ -3,8 +3,14 @@ import { Link, redirect } from 'react-router'
 import { markDocumentAsViewed } from '~/features/display-board/server/board-document.server'
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -15,6 +21,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.BoardViewer)
+
   const currentUser = context.get(userContext)
 
   const documentId = requireParamId(params.documentId, '/board')

@@ -42,14 +42,21 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const isAdmin = permissions.has(Permission.Admin)
   const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
+  const canViewBoard = permissions.has(Permission.BoardViewer)
 
   return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting] = await Promise.all([
       safeQuery('territories', currentUser.id, () => getUserTerritories(db, currentUser.id)),
-      safeQuery('documents', currentUser.id, () => getRecentDocuments(db, currentUser.id, currentUser.congregationId)),
-      safeQuery('unread-count', currentUser.id, () =>
-        getUnreadDocumentCount(db, currentUser.id, currentUser.congregationId),
-      ),
+      canViewBoard
+        ? safeQuery('documents', currentUser.id, () =>
+            getRecentDocuments(db, currentUser.id, currentUser.congregationId),
+          )
+        : Promise.resolve(null),
+      canViewBoard
+        ? safeQuery('unread-count', currentUser.id, () =>
+            getUnreadDocumentCount(db, currentUser.id, currentUser.congregationId),
+          )
+        : Promise.resolve(0),
       safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
       safeQuery('next-meeting', currentUser.id, () => getNextMeeting(db, currentUser.id)),
     ])

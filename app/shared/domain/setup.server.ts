@@ -58,6 +58,10 @@ export async function seedCongregationDefaults(
  * Idempotently upsert the seven built-in roles for a congregation. Built-ins have
  * null name/description — display strings are sourced from Paraglide via
  * `getRoleDisplayName` / `getRoleDescription` so locale switches don't require DB writes.
+ *
+ * After upserting, BoardViewer is granted to the `publisher` built-in role so
+ * publishers retain board access by default — matching the legacy behaviour where
+ * every authenticated user could view the board.
  */
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and scoped transaction client
 export async function seedBuiltInRoles(db: any, congregationId: number) {
@@ -66,6 +70,28 @@ export async function seedBuiltInRoles(db: any, congregationId: number) {
       where: { key_congregationId: { key, congregationId } },
       update: { isBuiltIn: true },
       create: { key, isBuiltIn: true, congregationId },
+    })
+  }
+
+  const publisherRole = await db.role.findUnique({
+    where: { key_congregationId: { key: 'publisher', congregationId } },
+    select: { id: true },
+  })
+  const boardViewer = await db.permission.findUnique({
+    where: { key: Permission.BoardViewer },
+    select: { id: true },
+  })
+  if (publisherRole != null && boardViewer != null) {
+    await db.rolePermission.upsert({
+      where: {
+        roleId_permissionId: { roleId: publisherRole.id, permissionId: boardViewer.id },
+      },
+      update: {},
+      create: {
+        roleId: publisherRole.id,
+        permissionId: boardViewer.id,
+        congregationId,
+      },
     })
   }
 }

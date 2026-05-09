@@ -1,5 +1,6 @@
 export enum Permission {
   Admin = 'admin',
+  BoardViewer = 'board-viewer',
   BoardUploader = 'board-uploader',
   BoardValidator = 'board-validator',
   TerritoriesViewer = 'territories-viewer',

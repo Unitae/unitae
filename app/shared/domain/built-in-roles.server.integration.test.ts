@@ -77,7 +77,7 @@ beforeAll(async () => {
       firstname: 'Bob',
       lastname: 'Other',
       active: true,
-      isPublisher: false,
+      isPublisher: true,
       isMale: true,
       isHelder: true,
       type: PublisherType.Normal,
@@ -128,7 +128,7 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     expect(keys).toEqual(['female', 'publisher'])
   })
 
-  it('removes assignments when the corresponding boolean flips', async () => {
+  it('removes every domain role when isPublisher flips to false', async () => {
     await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
 
     await testDb.user.update({ where: { id: primaryUserId }, data: { isPublisher: false } })
@@ -143,7 +143,7 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     )
       .map(a => a.role.key)
       .sort()
-    expect(keys).toEqual(['female'])
+    expect(keys).toEqual([])
   })
 
   it('emits no audit when nothing changes (idempotent re-run)', async () => {
@@ -173,6 +173,6 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     )
       .map(a => a.role.key)
       .sort()
-    expect(otherKeys).toEqual(['elder', 'male'])
+    expect(otherKeys).toEqual(['elder', 'male', 'publisher'])
   })
 })

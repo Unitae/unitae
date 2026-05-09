@@ -1,18 +1,21 @@
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { FolderOpen, GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { FolderOpen, GripVertical, Lock, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect, useFetcher, useRevalidator } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+import { getRoleDisplayName } from '~/shared/types/role'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
 
 import type { Route } from './+types/list'
 
@@ -46,7 +49,12 @@ export function loader({ request, context }: Route.LoaderArgs) {
         ...(searchQuery ? { name: { contains: searchQuery, mode: 'insensitive' as const } } : {}),
       },
       include: {
-        documents: true,
+        _count: { select: { documents: true } },
+        visibilityRoles: {
+          select: {
+            role: { select: { id: true, key: true, name: true, isBuiltIn: true } },
+          },
+        },
       },
       orderBy: {
         order: 'asc',
@@ -93,8 +101,34 @@ function SortableSectionRow({
           className="size-4 rounded border border-input accent-primary"
         />
       </TableCell>
-      <TableCell>{section.name}</TableCell>
-      <TableCell className="text-center max-sm:hidden">{section.documents.length}</TableCell>
+      <TableCell>
+        <div className="flex items-center gap-2">
+          <span>{section.name}</span>
+          {section.visibilityRoles.length > 0 && (
+            <TooltipProvider delayDuration={150}>
+              <Tooltip>
+                <TooltipTrigger
+                  asChild
+                  aria-label={m.board_section_restricted_aria({ count: section.visibilityRoles.length })}
+                >
+                  <span className="inline-flex items-center gap-1 text-muted-foreground">
+                    <Lock className="size-3.5" aria-hidden="true" />
+                    <Badge variant="outline" className="font-normal text-xs">
+                      {m.board_section_restricted_badge({ count: section.visibilityRoles.length })}
+                    </Badge>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {m.board_section_restricted_tooltip({
+                    roles: section.visibilityRoles.map(v => getRoleDisplayName(v.role)).join(', '),
+                  })}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+      </TableCell>
+      <TableCell className="text-center max-sm:hidden">{section._count.documents}</TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" asChild>

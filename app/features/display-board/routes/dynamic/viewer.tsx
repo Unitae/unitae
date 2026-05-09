@@ -10,7 +10,13 @@ import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  permissionsContext,
+  requirePermission,
+  userContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { useDebouncedValue } from '~/shared/ui/hooks/use-debounced-value'
 import { Input } from '~/shared/ui/input'
@@ -24,6 +30,9 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
+  const permissions = context.get(permissionsContext)
+  requirePermission(permissions, Permission.BoardViewer)
+
   const currentUser = context.get(userContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')

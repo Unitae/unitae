@@ -32,22 +32,26 @@ const FILTER_LABELS: Record<BuiltInFilterKey, () => string> = {
   'assistant-servant': () => m.congregation_roles_filter_assistant_servant(),
 }
 
+// Built-in domain roles only apply to active publishers. The `all` filter still
+// shows everyone (admins and other non-publisher accounts), but every targeted
+// built-in filter ANDs `isPublisher: true` so the matrix matches what the role
+// sync helper actually assigns.
 function buildBuiltInWhere(filter: BuiltInFilterKey) {
   switch (filter) {
     case 'male':
-      return { isMale: true }
+      return { isPublisher: true, isMale: true }
     case 'female':
-      return { isMale: false }
+      return { isPublisher: true, isMale: false }
     case 'publisher':
       return { isPublisher: true }
     case 'baptized':
-      return { baptismDate: { not: null } }
+      return { isPublisher: true, baptismDate: { not: null } }
     case 'anointed':
-      return { isAnointed: true }
+      return { isPublisher: true, isAnointed: true }
     case 'elder':
-      return { isHelder: true }
+      return { isPublisher: true, isHelder: true }
     case 'assistant-servant':
-      return { isServant: true }
+      return { isPublisher: true, isServant: true }
     default:
       return {}
   }
@@ -63,12 +67,12 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const url = new URL(request.url)
   const search = url.searchParams.get('q')?.trim() || undefined
-  const filterParam = url.searchParams.get('builtIn') ?? 'all'
+  const filterParam = url.searchParams.get('builtIn') ?? 'male'
   const filter: BuiltInFilterKey = (Object.keys(FILTER_LABELS) as BuiltInFilterKey[]).includes(
     filterParam as BuiltInFilterKey,
   )
     ? (filterParam as BuiltInFilterKey)
-    : 'all'
+    : 'male'
 
   return withScopeFromContext(context, async db => {
     const customRoles = await db.role.findMany({

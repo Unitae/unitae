@@ -1,6 +1,19 @@
-// Intentional cross-feature import: dashboard aggregates data from events for the overview
+// Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
+import { getViewerRoleIds } from '~/features/display-board/server/section-visibility.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+
+async function buildSectionVisibilityFilter(db: TransactionClient, userId: number, congregationId: number) {
+  const viewerRoleIds = await getViewerRoleIds(db, userId, congregationId)
+  return {
+    section: {
+      OR: [
+        { visibilityRoles: { none: {} } },
+        { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } },
+      ],
+    },
+  }
+}
 
 const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000
 
@@ -48,12 +61,14 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
       { visibleFrom: { lte: now }, visibleUntil: null },
     ],
   }
+  const sectionVisibility = await buildSectionVisibilityFilter(db, userId, congregationId)
 
   const [recentPdfs, recentDynamic] = await Promise.all([
     db.boardDocument.findMany({
       where: {
         congregationId,
         ...visibleNow,
+        ...sectionVisibility,
       },
       select: {
         id: true,
@@ -71,6 +86,7 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
       where: {
         congregationId,
         ...visibleNow,
+        ...sectionVisibility,
       },
       select: {
         id: true,
@@ -116,12 +132,14 @@ export async function getUnreadDocumentCount(db: TransactionClient, userId: numb
       { visibleFrom: { lte: now }, visibleUntil: null },
     ],
   }
+  const sectionVisibility = await buildSectionVisibilityFilter(db, userId, congregationId)
 
   const [unreadPdfCount, unreadDynamicCount] = await Promise.all([
     db.boardDocument.count({
       where: {
         congregationId,
         ...visibleNow,
+        ...sectionVisibility,
         viewedBy: { none: { id: userId } },
       },
     }),
@@ -129,6 +147,7 @@ export async function getUnreadDocumentCount(db: TransactionClient, userId: numb
       where: {
         congregationId,
         ...visibleNow,
+        ...sectionVisibility,
         views: { none: { userId } },
       },
     }),

@@ -15,27 +15,50 @@ interface RolePickerProps {
   name: string
   idPrefix: string
   defaultLabel: string
+  /** When provided, the picker becomes controlled — selection state lives in the parent. */
+  onChange?: (next: number[]) => void
+  /** Element id whose label labels the chip group, for screen readers. */
+  labelledBy?: string
 }
 
-export function RolePicker({ roles, selectedIds, name, idPrefix, defaultLabel }: RolePickerProps) {
-  const [selected, setSelected] = useState(() => new Set(selectedIds))
+export function RolePicker({
+  roles,
+  selectedIds,
+  name,
+  idPrefix,
+  defaultLabel,
+  onChange,
+  labelledBy,
+}: RolePickerProps) {
+  const [internalSelected, setInternalSelected] = useState(() => new Set(selectedIds))
+  // Controlled mode (parent passes onChange): selection is derived from props every render.
+  // Uncontrolled mode (form-only): the picker manages its own state, seeded once from selectedIds.
+  const selected = onChange ? new Set(selectedIds) : internalSelected
 
   function toggle(id: number) {
-    setSelected(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    const next = new Set(selected)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    if (onChange) onChange([...next])
+    else setInternalSelected(next)
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <fieldset
+      aria-labelledby={labelledBy}
+      className="flex flex-wrap items-center gap-2 border-0 p-0"
+    >
       {selected.size === 0 && (
-        <span className="inline-flex items-center gap-1 rounded-full border border-border border-dashed bg-background px-2.5 py-1 text-muted-foreground text-xs italic">
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center gap-1 rounded-full border border-border border-dashed bg-background px-2.5 py-1 text-muted-foreground text-xs italic"
+        >
           {defaultLabel}
         </span>
       )}
+      <span className="sr-only" aria-live="polite">
+        {selected.size}
+      </span>
       {roles.map(role => {
         const isSelected = selected.has(role.id)
         return (
@@ -69,6 +92,6 @@ export function RolePicker({ roles, selectedIds, name, idPrefix, defaultLabel }:
           </label>
         )
       })}
-    </div>
+    </fieldset>
   )
 }
