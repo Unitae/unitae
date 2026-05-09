@@ -25,19 +25,15 @@ Some actions cancel pending notifications. When a document is deleted shortly af
 
 Users can manage their notification preferences at **Profile > Notification preferences**. Each notification type can be individually enabled or disabled. Preferences can also be set by category (e.g., disabling all board-related notifications at once).
 
-Disabled notifications are never sent — they are filtered out during recipient resolution.
+Users with a notification type disabled are skipped — no email is sent.
 
 ## Email Delivery
 
-Notifications are delivered by email via the Resend API. Emails are rendered in the congregation's language and sent from the congregation's configured sender address.
+Notifications are delivered by email. Emails are rendered in the congregation's language and sent from the congregation's configured sender address. Self-hosters configure the email provider during setup; managed-hosting users do not need to configure anything.
 
-Email delivery requires the `RESEND_API_KEY` environment variable to be set. Without it, the application works normally but no notification emails are sent.
+## Self-hosting requirements
 
-## Cron Requirement
-
-Debounced notifications require the `/cron/process-notifications` endpoint to be called on a regular schedule (every 5–10 minutes). Without this, debounced notifications will accumulate in the database but never be delivered.
-
-See [Cron Jobs](../self-hosting/cron-jobs.md) for setup instructions.
+Debounced notifications need a recurring task to be set up on the server, otherwise emails would never be sent. Self-hosters: see [Cron Jobs](../self-hosting/cron-jobs.md) for the schedule and [Environment Variables](../self-hosting/environment-variables.md) for the email-provider configuration.
 
 ## Related
 
