@@ -25,11 +25,14 @@ type PartAssignment = {
 
 type ExternalSpeakerOption = { id: number; name: string }
 
+type PersonOption = { id: number; firstname: string | null; lastname: string | null }
+
 type AssignPartSheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   assignment: PartAssignment | null
-  users: Array<{ id: number; firstname: string | null; lastname: string | null }>
+  speakerCandidates: PersonOption[]
+  readerCandidates: PersonOption[]
   externalSpeakers: ExternalSpeakerOption[]
   eventId: number
 }
@@ -38,7 +41,8 @@ export function AssignPartSheet({
   open,
   onOpenChange,
   assignment,
-  users,
+  speakerCandidates,
+  readerCandidates,
   externalSpeakers,
   eventId,
 }: AssignPartSheetProps) {
@@ -158,7 +162,7 @@ export function AssignPartSheet({
                 <PersonDropdown
                   id="assigneeId"
                   name="assigneeId"
-                  people={users}
+                  people={speakerCandidates}
                   value={selectedAssignee}
                   onValueChange={setSelectedAssignee}
                   placeholder={m.programs_assign_part_select_publisher()}
@@ -171,7 +175,7 @@ export function AssignPartSheet({
                 <PersonDropdown
                   id="assistantId"
                   name="assistantId"
-                  people={users}
+                  people={readerCandidates}
                   value={selectedAssistant}
                   onValueChange={setSelectedAssistant}
                   placeholder={m.programs_assign_part_no_reader()}

@@ -13,12 +13,8 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const {
-  createCalendarFeedToken,
-  revokeCalendarFeedToken,
-  getCalendarFeedToken,
-  findUserByCalendarFeedToken,
-} = await import('./calendar-feed-token.server')
+const { createCalendarFeedToken, revokeCalendarFeedToken, getCalendarFeedToken, findUserByCalendarFeedToken } =
+  await import('./calendar-feed-token.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {

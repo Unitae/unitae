@@ -1,6 +1,11 @@
 import { AlertTriangle, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
+import {
+  getPartAssignmentAllowedRoleIds,
+  getServiceRoleAssignmentAllowedRoleIds,
+  resolveEligibleUserIds,
+} from '~/features/events/server/allowed-roles.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
@@ -82,14 +87,37 @@ export function loader({ params, context }: Route.LoaderArgs) {
           .map(s => ({ id: s.id, name: s.name }))
       : []
 
+    const partCandidates: Record<number, { speakerIds: number[]; readerIds: number[] }> = {}
+    const serviceCandidates: Record<number, number[]> = {}
+    if (canEdit) {
+      const userById = new Map(users.map(u => [u.id, u]))
+      for (const assignment of event.partAssignments) {
+        const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
+        const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
+        const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
+        const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
+        partCandidates[assignment.id] = {
+          speakerIds: speakerIds.filter(id => userById.has(id)),
+          readerIds: readerIds.filter(id => userById.has(id)),
+        }
+      }
+      for (const assignment of event.serviceRoleAssignments) {
+        const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignment.id, congregationId)
+        const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
+        serviceCandidates[assignment.id] = eligible.filter(id => userById.has(id))
+      }
+    }
+
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
-    return { event, canEdit, users, externalSpeakers }
+    return { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates }
   })
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users, externalSpeakers } = loaderData
+  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates } = loaderData
+
+  const userById = new Map(users.map(u => [u.id, u]))
 
   const [assignPartTarget, setAssignPartTarget] = useState<{
     id: number
@@ -377,7 +405,20 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
         open={assignPartOpen}
         onOpenChange={setAssignPartOpen}
         assignment={assignPartTarget}
-        users={users}
+        speakerCandidates={
+          assignPartTarget
+            ? (partCandidates[assignPartTarget.id]?.speakerIds ?? [])
+                .map(id => userById.get(id))
+                .filter((u): u is (typeof users)[number] => u != null)
+            : []
+        }
+        readerCandidates={
+          assignPartTarget
+            ? (partCandidates[assignPartTarget.id]?.readerIds ?? [])
+                .map(id => userById.get(id))
+                .filter((u): u is (typeof users)[number] => u != null)
+            : []
+        }
         externalSpeakers={externalSpeakers}
         eventId={event.id}
       />
@@ -386,7 +427,13 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
         open={assignServiceOpen}
         onOpenChange={setAssignServiceOpen}
         assignment={assignServiceTarget}
-        users={users}
+        assigneeCandidates={
+          assignServiceTarget
+            ? (serviceCandidates[assignServiceTarget.id] ?? [])
+                .map(id => userById.get(id))
+                .filter((u): u is (typeof users)[number] => u != null)
+            : []
+        }
         eventId={event.id}
       />
 

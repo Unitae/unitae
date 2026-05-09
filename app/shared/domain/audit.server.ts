@@ -21,6 +21,8 @@ export const AuditAction = {
   RoleUpdated: 'role.updated',
   RoleDeleted: 'role.deleted',
   RolePermissionChanged: 'role.permission.changed',
+  PartAllowedRolesChanged: 'part.allowed_roles.changed',
+  ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
 
   // Data export
   UserDataExported: 'user.data.exported',

@@ -27,14 +27,7 @@ export function getPermissionDescription(key: string): string {
   return PERMISSION_DESCRIPTIONS[key as Permission]?.() ?? key
 }
 
-export const PERMISSION_CATEGORIES = [
-  'admin',
-  'board',
-  'territories',
-  'publishers',
-  'programs',
-  'settings',
-] as const
+export const PERMISSION_CATEGORIES = ['admin', 'board', 'territories', 'publishers', 'programs', 'settings'] as const
 
 export type PermissionCategory = (typeof PERMISSION_CATEGORIES)[number]
 

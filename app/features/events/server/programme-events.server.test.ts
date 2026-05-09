@@ -4,6 +4,19 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn() },
 }))
 
+vi.mock('~/features/events/server/allowed-roles.server', () => ({
+  setPartAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+  setServiceRoleAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+}))
+
+vi.mock('~/shared/domain/audit.server', () => ({
+  audit: vi.fn(),
+  AuditAction: {
+    PartAllowedRolesChanged: 'part.allowed_roles.changed',
+    ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
+  },
+}))
+
 const {
   createFreeformEvent,
   deleteEvent,
@@ -29,13 +42,24 @@ const mockDb = {
     create: vi.fn(),
     delete: vi.fn(),
   },
+  programmePartAssignmentAllowedRole: {
+    createMany: vi.fn(),
+  },
+  programmeServiceRoleAssignmentAllowedRole: {
+    createMany: vi.fn(),
+  },
   programmeTemplate: {
     findFirst: vi.fn(),
   },
 }
 
+const allowedRoles = await import('~/features/events/server/allowed-roles.server')
+const auditModule = await import('~/shared/domain/audit.server')
+
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })
 
 describe('createFreeformEvent', () => {
@@ -97,15 +121,18 @@ describe('addPartAssignment', () => {
       order: 1,
       durationMin: 30,
       allowExternalSpeaker: false,
+      allowedSpeakerRoleIds: [],
+      allowedReaderRoleIds: [],
       congregationId: 10,
     }
-    const expected = { id: 1, ...data }
+    const { allowedSpeakerRoleIds: _s, allowedReaderRoleIds: _r, ...createData } = data
+    const expected = { id: 1, ...createData }
     mockDb.programmePartAssignment.create.mockResolvedValue(expected)
 
-    const result = await addPartAssignment(mockDb as never, data)
+    const result = await addPartAssignment(mockDb as never, data, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({ data })
+    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({ data: createData })
   })
 })
 
@@ -124,14 +151,15 @@ describe('deletePartAssignment', () => {
 
 describe('addServiceRoleAssignment', () => {
   it('creates a service role assignment', async () => {
-    const data = { eventId: 1, name: 'Son', congregationId: 10 }
-    const expected = { id: 1, ...data }
+    const data = { eventId: 1, name: 'Son', allowedRoleIds: [], congregationId: 10 }
+    const { allowedRoleIds: _a, ...createData } = data
+    const expected = { id: 1, ...createData }
     mockDb.programmeServiceRoleAssignment.create.mockResolvedValue(expected)
 
-    const result = await addServiceRoleAssignment(mockDb as never, data)
+    const result = await addServiceRoleAssignment(mockDb as never, data, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({ data })
+    expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({ data: createData })
   })
 })
 
@@ -163,15 +191,15 @@ describe('applyTemplateToEvent', () => {
       id: 5,
       name: 'Reunion vie',
       parts: [
-        { id: 10, name: 'Cantique', section: 'intro', track: 'A', order: 1, durationMin: 5 },
-        { id: 11, name: 'Discours', section: 'main', track: 'A', order: 2, durationMin: 30 },
+        { id: 10, name: 'Cantique', section: 'intro', track: 'A', order: 1, durationMin: 5, allowedRoles: [] },
+        { id: 11, name: 'Discours', section: 'main', track: 'A', order: 2, durationMin: 30, allowedRoles: [] },
       ],
-      serviceRoles: [{ id: 20, name: 'Son' }],
+      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
     mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.programmePartAssignment.create.mockResolvedValue({})
-    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 999 })
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 998 })
 
     const result = await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
@@ -196,5 +224,163 @@ describe('applyTemplateToEvent', () => {
     expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({
       data: { eventId: 1, serviceRoleId: 20, name: 'Son', congregationId: 10 },
     })
+  })
+
+  it('copies non-empty allowed-role lists from template parts and service roles to assignments', async () => {
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [
+        {
+          id: 10,
+          name: 'Discours',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 30,
+          allowedRoles: [
+            { roleId: 100, asKind: 'speaker' },
+            { roleId: 101, asKind: 'speaker' },
+            { roleId: 200, asKind: 'reader' },
+          ],
+        },
+      ],
+      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [{ roleId: 300 }, { roleId: 301 }] }],
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 555 })
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 666 })
+    mockDb.programmePartAssignmentAllowedRole.createMany.mockResolvedValue({ count: 3 })
+    mockDb.programmeServiceRoleAssignmentAllowedRole.createMany.mockResolvedValue({ count: 2 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    expect(mockDb.programmePartAssignmentAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [
+        { assignmentId: 555, roleId: 100, asKind: 'speaker', congregationId: 10 },
+        { assignmentId: 555, roleId: 101, asKind: 'speaker', congregationId: 10 },
+        { assignmentId: 555, roleId: 200, asKind: 'reader', congregationId: 10 },
+      ],
+      skipDuplicates: true,
+    })
+    expect(mockDb.programmeServiceRoleAssignmentAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [
+        { assignmentId: 666, roleId: 300, congregationId: 10 },
+        { assignmentId: 666, roleId: 301, congregationId: 10 },
+      ],
+      skipDuplicates: true,
+    })
+  })
+
+  it('does not call createMany on allowed-role tables when lists are empty', async () => {
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [{ id: 10, name: 'Cantique', section: '', track: '', order: 1, durationMin: 5, allowedRoles: [] }],
+      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 555 })
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 666 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    expect(mockDb.programmePartAssignmentAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(mockDb.programmeServiceRoleAssignmentAllowedRole.createMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('addPartAssignment audit firing', () => {
+  it('fires PartAllowedRolesChanged when role lists change', async () => {
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 100 })
+    vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValueOnce({ added: [5], removed: [] })
+    vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValueOnce({ added: [], removed: [] })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Discours',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [5],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'part.allowed_roles.changed',
+        entityType: 'ProgrammePartAssignment',
+        entityId: 100,
+        actorId: 42,
+      }),
+    )
+  })
+
+  it('does not fire audit when role lists do not change', async () => {
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 100 })
+    vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Discours',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
+  })
+})
+
+describe('addServiceRoleAssignment audit firing', () => {
+  it('fires ServiceRoleAllowedRolesChanged when role list changes', async () => {
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 200 })
+    vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValueOnce({ added: [7], removed: [] })
+
+    await addServiceRoleAssignment(
+      mockDb as never,
+      { eventId: 1, name: 'Son', allowedRoleIds: [7], congregationId: 10 },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'service_role.allowed_roles.changed',
+        entityType: 'ProgrammeServiceRoleAssignment',
+        entityId: 200,
+        actorId: 42,
+      }),
+    )
+  })
+
+  it('does not fire audit when role list does not change', async () => {
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 200 })
+    vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+
+    await addServiceRoleAssignment(
+      mockDb as never,
+      { eventId: 1, name: 'Son', allowedRoleIds: [], congregationId: 10 },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
   })
 })

@@ -120,9 +120,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
               <TableHead className="max-sm:hidden">{m.settings_users_table_email()}</TableHead>
               <TableHead className="text-center">{m.settings_users_table_publisher()}</TableHead>
               <TableHead className="text-center max-sm:hidden">{m.settings_users_table_roles()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">
-                {m.settings_users_table_custom_permissions()}
-              </TableHead>
+              <TableHead className="text-center max-sm:hidden">{m.settings_users_table_custom_permissions()}</TableHead>
               <TableHead className="w-0">
                 <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
               </TableHead>
@@ -178,9 +176,7 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                         {m.settings_users_roles_custom_count({ count: user.customRoleCount })}
                       </Link>
                     ) : (
-                      <span className="text-muted-foreground">
-                        {m.settings_users_roles_custom_count({ count: 0 })}
-                      </span>
+                      <span className="text-muted-foreground">{m.settings_users_roles_custom_count({ count: 0 })}</span>
                     )}
                     {user.builtInRoleCount > 0 && (
                       <span className="text-muted-foreground text-xs">

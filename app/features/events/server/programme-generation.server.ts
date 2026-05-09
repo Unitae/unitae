@@ -1,6 +1,14 @@
 import { computeDatesForWeekdayCount } from '~/features/events/model/compute-dates'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
+interface AllowedRoleRow {
+  roleId: number
+}
+
+interface PartAllowedRoleRow extends AllowedRoleRow {
+  asKind: string
+}
+
 interface TemplateWithRelations {
   id: number
   name: string
@@ -14,16 +22,20 @@ interface TemplateWithRelations {
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    allowedRoles: PartAllowedRoleRow[]
   }[]
-  serviceRoles: { id: number; name: string }[]
+  serviceRoles: { id: number; name: string; allowedRoles: AllowedRoleRow[] }[]
 }
 
 function loadTemplate(db: TransactionClient, templateId: number, congregationId: number) {
   return db.programmeTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: {
-      parts: { orderBy: { order: 'asc' } },
-      serviceRoles: true,
+      parts: {
+        orderBy: { order: 'asc' },
+        include: { allowedRoles: true },
+      },
+      serviceRoles: { include: { allowedRoles: true } },
       kind: true,
     },
   })
@@ -55,7 +67,7 @@ async function createEventWithAssignments(
   })
 
   for (const part of template.parts) {
-    await db.programmePartAssignment.create({
+    const assignment = await db.programmePartAssignment.create({
       data: {
         eventId: event.id,
         partId: part.id,
@@ -69,10 +81,21 @@ async function createEventWithAssignments(
         congregationId,
       },
     })
+    if (part.allowedRoles.length > 0) {
+      await db.programmePartAssignmentAllowedRole.createMany({
+        data: part.allowedRoles.map(r => ({
+          assignmentId: assignment.id,
+          roleId: r.roleId,
+          asKind: r.asKind,
+          congregationId,
+        })),
+        skipDuplicates: true,
+      })
+    }
   }
 
   for (const role of template.serviceRoles) {
-    await db.programmeServiceRoleAssignment.create({
+    const assignment = await db.programmeServiceRoleAssignment.create({
       data: {
         eventId: event.id,
         serviceRoleId: role.id,
@@ -80,6 +103,16 @@ async function createEventWithAssignments(
         congregationId,
       },
     })
+    if (role.allowedRoles.length > 0) {
+      await db.programmeServiceRoleAssignmentAllowedRole.createMany({
+        data: role.allowedRoles.map(r => ({
+          assignmentId: assignment.id,
+          roleId: r.roleId,
+          congregationId,
+        })),
+        skipDuplicates: true,
+      })
+    }
   }
 
   return event

@@ -78,8 +78,7 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
     permissions.canViewRoles
   const showTerritories =
     permissions.canViewTerritories || permissions.canViewProspection || permissions.canManageTerritories
-  const showReglages =
-    permissions.canManageSettings || permissions.canManageUsers || permissions.canManagePermissions
+  const showReglages = permissions.canManageSettings || permissions.canManageUsers || permissions.canManagePermissions
 
   return (
     <Sidebar>
@@ -218,11 +217,7 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                   <SidebarMenu>
                     {permissions.canManageSettings && (
                       <>
-                        <SidebarNavItem
-                          to="/settings/general"
-                          icon={Settings}
-                          label={m.sidebar_settings_general()}
-                        />
+                        <SidebarNavItem to="/settings/general" icon={Settings} label={m.sidebar_settings_general()} />
                         <SidebarNavItem
                           to="/settings/congregation"
                           icon={Building2}
