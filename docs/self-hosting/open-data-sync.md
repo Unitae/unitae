@@ -42,7 +42,7 @@ If you define a geographic polygon for your congregation's territory boundaries,
 ## Running a Sync
 
 1. Go to the territories section
-2. Click the sync button (requires `TerritoriesManager` role)
+2. Click the sync button (requires the *Territories Manager* permission)
 3. The sync runs as a background job — you can continue using the app while it processes
 4. Progress is tracked from 0% to 100%
 5. An email notification is sent when the sync completes

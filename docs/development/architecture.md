@@ -43,7 +43,7 @@
 │  │  Board Docs     │  │  Board Docs      │              │
 │  └─────────────────┘  └──────────────────┘              │
 │                                                         │
-│  Global: Permission (16 permission definitions)         │
+│  Global: Permission (20 permission definitions)         │
 │  Global: PasswordResetToken, EmailVerificationToken,    │
 │          CalendarFeedToken                              │
 └─────────────────────────────────────────────────────────┘
@@ -53,16 +53,17 @@
 
 1. **Reverse Proxy** (Traefik/Nginx) routes incoming requests to web pods
 2. **React Router** matches route, runs middleware then loader/action
-3. **`requireAuth(permissions)`** middleware (from `app/shared/middleware/auth.server.ts`) authenticates user, resolves permissions, checks GDPR consent, and sets typed context
+3. **`requireAuth()`** middleware (from `app/shared/auth/middleware.server.ts`) authenticates user, resolves the full effective permission set, checks GDPR consent, and sets typed context. The `_required` parameter on the function signature is retained for call-site compatibility but no longer used — see [Permissions and Roles](permissions-and-roles.md)
 4. **Loader/action** reads context via `context.get(userContext)`, `context.get(congregationContext)`, `context.get(permissionsContext)`
 5. **`withScopeFromContext(context, fn)`** opens a PostgreSQL transaction with `SET LOCAL` for Row-Level Security
 6. **Service functions** (`features/*/server/`) receive the scoped `TransactionClient` and handle business logic
 7. **Route component** renders with loader data
 
 ```
-Middleware → requireAuth([Permission.X, Permission.Y])
-           → verifySession(request)              // authenticates user, returns congregation
-           → verifyPermission(request, perm)     // checks permissions (via Promise.all)
+Middleware → requireAuth()
+           → verifySession(request)                          // authenticates user, returns congregation
+           → resolveEffectivePermissions(userId, congId)     // unions direct + role-mediated permissions
+           → enforceGdprConsent(userId)                      // redirects to /consent if not granted
            → context.set(userContext, currentUser)
            → context.set(congregationContext, congregation)
            → context.set(permissionsContext, permissions)
@@ -101,17 +102,19 @@ When to use each:
 | Background workers | `withScope(congregationId, ...)` or `unscopedDb` | Sync jobs use `withScope`, email jobs use `unscopedDb` with explicit `where` |
 | Platform admin | `unscopedDb` | Cross-congregation queries |
 
-**Scoped models** (30 — all carry `congregationId` and are isolated by RLS):
-- **Auth**: User, CongregationUserPermission
-- **Board**: BoardSection, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
+**Scoped models** (all carry `congregationId` and are isolated by RLS):
+- **Auth**: User, CongregationUserPermission, Role, RolePermission, UserRoleAssignment
+- **Board**: BoardSection, BoardSectionVisibilityRole, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
 - **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, TerritoryCardOverlay, TerritoryPerimeter
 - **Publishers**: PublisherGroup, PublisherActivity
-- **Events**: Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible
+- **Events**: Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible, ExternalSpeaker
 - **Settings**: Setting
 - **Notifications**: NotificationEvent, NotificationPreference
 - **GDPR / Audit**: AuditLog, DataDeletionRecord, ConsentRecord
 
-**Global models** (6 — no `congregationId`, not scoped by RLS): Congregation, Permission, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView
+**Global models** (no `congregationId`, not scoped by RLS): Congregation, Permission, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView
+
+The authoritative list lives in `app/database/schema.prisma`.
 
 ## Authentication & Permission Flow
 
@@ -120,9 +123,12 @@ Login → validateCredentials(email, password)
       → set session cookie (userId)
       → redirect to /
 
-Protected Route → requireAuth([permissions]) middleware on layout route
+Protected Route → requireAuth() middleware on layout route
                 → verifySession: fetch user (unscopedDb), check suspension/trial/email
-                → verifyPermission: check CongregationUserPermission (unscopedDb, via Promise.all)
+                → resolveEffectivePermissions: union direct grants
+                  (CongregationUserPermission) + role-mediated grants
+                  (RolePermission joined to UserRoleAssignment); expands Admin
+                  to every Permission value
                 → context.set(userContext, currentUser)
                 → context.set(congregationContext, congregation)
                 → context.set(permissionsContext, Set<Permission>)
@@ -130,6 +136,8 @@ Protected Route → requireAuth([permissions]) middleware on layout route
 Permission Check → context.get(permissionsContext).has(Permission.TerritoriesViewer) → boolean
                 (resolved during requireAuth middleware, no extra DB query)
 ```
+
+The end-to-end model — Permission enum, Role/RolePermission/UserRoleAssignment tables, built-in vs custom roles — is documented in [Permissions and Roles](permissions-and-roles.md).
 
 ## Redis Architecture
 
@@ -212,7 +220,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
 
 | Route | File | Description |
 |-------|------|-------------|
-| `GET /territories/territory/:id/pdf` | `territories/routes/territory/pdf-download.tsx` | Individual territory card — accessible to `TerritoriesViewer` or the attributed publisher |
+| `GET /territories/territory/:id/pdf` | `territories/routes/territory/pdf-download.tsx` | Individual territory card — accessible to anyone with `Permission.TerritoriesViewer` or the attributed publisher |
 | `GET /publishers/:id/activity/pdf` | `publishers/routes/publishers/activity-pdf.tsx` | Publisher S-21 activity report |
 | `GET /territories/attributions/export/:year/pdf` | `territories/routes/attributions/pdf-export.tsx` | S-13 annual attribution report |
 | `GET /programs/export-pdf/download` | `events/routes/programs/export-pdf-download.tsx` | Programme PDF export |
@@ -261,9 +269,14 @@ Bulk operations (`bulkDeleteBoardItems`, `bulkMoveBoardItems`) and high-frequenc
 
 ### Covered actions
 
+The full list lives in the `AuditAction` map in `app/shared/domain/audit.server.ts`. As of writing it covers:
+
 | Domain | When fired |
 |---|---|
 | Authentication | Login, logout, failed login |
+| User management | User created/updated/anonymized, direct permission grants, role assignments synced and changed |
+| Roles | Role created/updated/deleted, role-permission set changed, allowed-roles changed (programme parts, service roles) |
+| Calendar feed | Personal token created and revoked |
 | Consent | Granted, withdrawn |
 | Passwords | Reset requested, changed |
 | Territories | Created, updated, deleted |
@@ -273,7 +286,10 @@ Bulk operations (`bulkDeleteBoardItems`, `bulkMoveBoardItems`) and high-frequenc
 | Publisher groups | Created, deleted |
 | Publisher activity | Created, updated, deleted |
 | Board documents | Created, updated, deleted |
-| Board sections | Created, updated |
+| Board sections | Created, updated, visibility role list changed |
+| Territory card overlays | Created, updated, deleted |
+| Territory perimeter | Updated, cleared |
+| External speakers | Created, updated, archived, unarchived |
 | Congregation settings | Updated |
 | Data transfer | Export, import |
 | Platform admin | All cross-congregation operations |
@@ -296,7 +312,7 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 - **Email verification**: Required before accessing the app, 24h token expiry
 - **Rate limiting**: Login (5/15min), password reset (3/15min) per email via Redis
 - **Calendar feed tokens**: 32 random bytes encoded as base64url (`crypto.randomBytes(32)`), one active per user, no automatic expiry, manually revoked or regenerated. Audited via `calendar_feed.token.created` and `calendar_feed.token.revoked` actions
-- **Permissions**: 16 congregation-scoped permissions via CongregationUserPermission
+- **Permissions**: 20 congregation-scoped permissions, granted directly via `CongregationUserPermission` or through `Role` membership (see [Permissions and Roles](permissions-and-roles.md))
 - **Files**: Congregation-scoped storage keys with UUID filenames (`{congregationId}/board/{uuid}.pdf`)
 - **RLS**: PostgreSQL Row-Level Security for tenant data isolation
 - **Log PII redaction**: Email addresses and personal data fields hashed with SHA-256 in application logs

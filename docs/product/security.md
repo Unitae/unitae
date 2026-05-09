@@ -87,5 +87,5 @@ Implementation details — hashing parameters, cookie attributes, calendar feed 
 
 ## Related
 
-- [Roles and Permissions](roles-and-permissions.md) — The 14 roles that control access to features.
+- [Roles and Permissions](roles-and-permissions.md) — Permissions, built-in roles, and custom roles you can define yourself.
 - [FAQ](../resources/faq.md) — "Is my data safe?" and other common questions.

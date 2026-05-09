@@ -87,6 +87,14 @@ Programme managers assign publishers to parts and service roles for each event.
 
 For parts with a student/householder format (ministry school), both a **Speaker** and a **Reader** can be assigned.
 
+### Restricting who can be assigned
+
+Each programme part and service role can be limited to a chosen list of roles — for example, "only Elders are eligible to give the public talk", or "only baptized publishers can read on the platform". Set the allowed roles on the template (so every event generated from that template inherits the restriction) or override them on a single event when needed.
+
+When the allowed-roles list is empty, the system defaults to all active publishers. The assignment dropdown only shows people who match.
+
+This works with built-in roles (Publisher, Baptized, Elder, …) and with any custom roles you've created in Settings.
+
 ### Conflict detection
 
 - **On assignment**: if the publisher has a day-off overlapping the event, the assignment is **blocked** with an error message
@@ -105,58 +113,47 @@ Programme managers can see all congregation absences at **Programmes > Absences*
 
 ## Personal Calendar Feed
 
-Each member can subscribe to a private iCalendar (`.ics`) feed containing their own programme assignments and absences. The feed is read-only and lives at a unique, per-user URL — no Unitae login required for the calendar app to fetch it.
+Each member can subscribe to their own programme assignments and absences from any calendar app (Apple Calendar, Google Calendar, Outlook…) via a private link managed in **Profile → My calendar**. See [Calendar Feed](calendar-feed.md) for the full description.
 
-**What's in the feed**
+## External Speakers
 
-- Programme part assignments where the member is the speaker or the reader
-- Service role assignments where the member is the assignee
-- Days off the member has recorded
+Visiting speakers (and any other regular non-publisher contributors) live in their own registry, separate from publishers. Each entry has:
 
-The feed includes events from the last 3 months and all future events. Past events older than 3 months are excluded to keep calendar apps responsive.
+- **Name**
+- **Originating congregation** (optional)
+- **Phone** (optional)
+- **Notes** (optional)
 
-**Subscribing**
+When assigning a programme part — typically the public talk — managers can pick a speaker from this list instead of (or alongside) a publisher. External speakers don't show up in publisher screens, statistics, or activity reports; they exist only to be referenced in programme assignments.
 
-Any standard calendar app can subscribe to the feed by pasting the URL:
+Speakers no longer needed can be **archived** (kept in history but hidden from new-assignment pickers) and unarchived later.
 
-- **Apple Calendar** — File → New Calendar Subscription → paste the URL
-- **Google Calendar** — Other calendars → From URL → paste the URL
-- **Outlook** — Add calendar → Subscribe from web → paste the URL
+**Permissions**
 
-Most calendar apps refresh subscribed feeds every few hours automatically; the user does not need to take any action when assignments change.
-
-**Privacy**
-
-The URL contains a long random token that authenticates the request. Anyone with the URL can read the user's assignments and absences, so it should be treated as a personal secret — not posted publicly or shared.
-
-**Managing the link**
-
-The feed is managed from `/me/profile` → **My calendar**:
-
-- **Generate link** — Creates the feed URL on first use.
-- **Copy** — Copies the URL to the clipboard for pasting into the calendar app.
-- **Regenerate link** — Creates a new URL and breaks any existing subscription using the previous URL. Use this if the URL has been accidentally shared.
-- **Revoke** — Deletes the URL completely; calendar apps subscribed to it stop receiving updates.
+- *External Speaker Viewer* — open the registry and pick speakers when assigning a part
+- *External Speaker Manager* — also add, edit, archive, and unarchive entries
 
 ## Per-Template Responsibility
 
-A **manager** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full `ProgramManager` role.
+A **manager** can be assigned to each template. This person gains write access to that template's events (assign publishers, edit structure) without needing the full Program Manager permission.
 
 This is useful for delegating: "this elder manages the midweek meeting programme, that one manages the weekend programme."
 
-If no responsible is set, only users with `ProgramManager` or `Admin` role can edit.
+If no responsible is set, only users with the Program Manager or Admin permission can edit.
 
 ## Permissions
 
-| Role | Can do |
-|------|--------|
+| Permission | Can do |
+|---|---|
 | Any authenticated user | View and manage their own days off; generate, copy, regenerate, and revoke their personal calendar feed |
-| `ProgramViewer` | View events, programmes, and template list |
-| `ProgramManager` | Create, edit, and delete events. Assign publishers. Manage templates |
+| Program Viewer | View events, programmes, and template list |
+| Program Manager | Create, edit, and delete events. Assign publishers. Manage templates |
+| External Speaker Viewer | Open the external speaker registry and pick from it |
+| External Speaker Manager | Add, edit, archive, and unarchive external speakers |
 | Template responsible | Edit events and assign publishers for their template only |
-| `Admin` | Everything, including creating new templates |
+| Admin | Everything, including creating new templates |
 
-See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.
 
 ## Related
 

@@ -6,16 +6,22 @@ Unitae uses **React Email** for email templates and **Resend** as the delivery p
 
 ## File Structure
 
+Email templates are colocated with the feature that triggers them — there is no centralized `app/emails/` directory.
+
 ```
-app/emails/
-├── reset-password.tsx                    # Password reset link
-├── reset-password-required.tsx           # Forced password reset notification
-├── verify-email.tsx                      # Email verification link
-└── notifications/
-    ├── new-document-in-board.tsx          # New document uploaded to board
-    ├── documents-expiring.tsx            # Documents approaching expiration
-    └── buildings-sync-done.tsx           # Territory sync completion
+app/features/
+├── authentication/emails/
+│   ├── reset-password.tsx                # Password reset link
+│   ├── reset-password-required.tsx       # Forced password reset notification
+│   └── verify-email.tsx                  # Email verification link
+├── notifications/emails/
+│   ├── new-document-in-board.tsx         # New document uploaded to board
+│   └── documents-expiring.tsx            # Documents approaching expiration
+└── territories/emails/
+    └── buildings-sync-done.tsx           # Open data sync completion
 ```
+
+The `pnpm start:emails` dev server is configured with `--dir app/features` (see `package.json`), so it finds templates anywhere under that tree.
 
 ## Template Pattern
 
@@ -73,7 +79,7 @@ Key conventions:
    emailQueue.add('new-document-notification', { congregationId, documentId })
    ```
 
-2. The worker picks up the job in `app/shared/infra/handle-email-work.server.tsx`
+2. The worker picks up the job in `app/features/notifications/jobs/handle-email-work.server.tsx`
 
 3. The handler wraps rendering in `runWithLocale()` for correct i18n:
    ```typescript
@@ -99,29 +105,11 @@ The sender address is per-congregation (`congregation.emailFrom`) with a fallbac
 
 ## Creating a New Email Template
 
-1. **Create the template** in `app/emails/` (or `app/emails/notifications/` for notification emails):
-   ```bash
-   app/emails/notifications/my-new-email.tsx
-   ```
-
-2. **Add i18n messages** for subject, body, etc. in `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`
-
-3. **Add the job type** to `EmailJobData` in `app/shared/infra/email-queue.server.ts`:
-   ```typescript
-   | { type: 'my-new-email'; congregationId: number; myField: string }
-   ```
-
-4. **Add the handler case** in `app/shared/infra/handle-email-work.server.tsx`:
-   ```typescript
-   case 'my-new-email':
-     return handleMyNewEmail(job.data)
-   ```
-
-5. **Queue jobs** from business logic:
-   ```typescript
-   import { emailQueue } from '~/shared/infra/email-queue.server'
-   await emailQueue.add('my-new-email', { congregationId, myField: 'value' })
-   ```
+1. **Create the template** next to the feature that owns the trigger, under that feature's `emails/` directory — e.g. `app/features/territories/emails/my-new-email.tsx`. Don't add it to a centralized folder.
+2. **Add i18n messages** for subject, body, etc. in `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`.
+3. **Add the job type** to `EmailJobData` in `app/shared/infra/email-queue.server.ts`.
+4. **Add the handler case** in `app/features/notifications/jobs/handle-email-work.server.tsx` (or split into a per-feature handler if the rendering logic is non-trivial — the dispatcher just routes by `type`).
+5. **Queue jobs** from business logic via `emailQueue.add(...)`.
 
 ## Development Server
 

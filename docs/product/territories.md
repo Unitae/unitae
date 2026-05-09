@@ -143,7 +143,7 @@ Each building record includes:
 
 ### Open Data Sync
 
-For congregations in France, building addresses can be automatically imported from the national address database (BANO). See [Open Data Sync](../self-hosting/open-data-sync.md) for details.
+For congregations in France, building addresses can be automatically imported from the national address database. See [Open Data Sync](../self-hosting/open-data-sync.md) for details.
 
 ## Split Tool
 
@@ -238,15 +238,15 @@ Statistics follow the **theocratic year** (September to August).
 
 ## Permissions
 
-| Role | Can do |
-|------|--------|
-| `TerritoriesViewer` | View territory list, assignments, and statistics |
-| `TerritoriesManager` | Create, edit, and delete territories. Manage assignments. Trigger open data sync. Cross-territory reassignments performed in the map editor are recorded in the audit log |
-| `ProspectionViewer` | View building prospection data |
-| `ProspectionManager` | Edit buildings, update prospection data, manage building status |
-| `Admin` | Everything |
+| Permission | Can do |
+|---|---|
+| Territories Viewer | View territory list, assignments, and statistics |
+| Territories Manager | Create, edit, and delete territories. Manage assignments. Trigger open-data sync. Cross-territory reassignments performed in the map editor are recorded in the audit log |
+| Prospection Viewer | View building prospection data |
+| Prospection Manager | Edit buildings, update prospection data, manage building status |
+| Admin | Everything |
 
-See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.
 
 ## Related
 

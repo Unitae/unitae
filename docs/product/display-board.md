@@ -2,9 +2,13 @@
 
 The display board is a digital notice board for sharing documents with congregation members. Think of it as the digital equivalent of the physical bulletin board in the Kingdom Hall.
 
+## Who can see the board
+
+Opening the board requires the **Board Viewer** permission. Members without it cannot reach the board, its documents, or the in-app PDF viewer. By default the built-in Publisher role does not include Board Viewer — an admin attaches it to whichever roles should see the board (typically Publisher, or a more restricted role like Elder).
+
 ## Board View
 
-The main board page (`/board`) shows all visible documents organized by section. A page header displays the title and quick-access buttons to the management pages: validators see both the *Manage sections* and *Manage documents* buttons; uploaders see only the *Manage documents* button (their entry point to the upload form).
+The main board page shows all visible documents organized by section. A page header displays the title and quick-access buttons to the management pages: validators see both the *Manage sections* and *Manage documents* buttons; uploaders see only the *Manage documents* button (their entry point to the upload form).
 
 ### Highlighted Section
 
@@ -50,8 +54,17 @@ Documents are organized into **sections** — named folders that group related d
 - Create as many sections as needed
 - Reorder sections to control how they appear on the board
 - Each section shows a count of its documents
+- Restrict each section to a chosen list of roles when needed (see "Section visibility" below)
 
-**Required role**: `BoardValidator` or `Admin`
+**Required permission**: Board Validator or Admin
+
+### Section visibility
+
+Each section can be restricted to specific roles. From the section's edit page, pick the roles allowed to see it — for example, "Elders" or a custom "Service committee" role you've created. Members who don't hold any of those roles see neither the section nor its documents on the board.
+
+By default a section has no role restrictions and is visible to anyone with the Board Viewer permission.
+
+This works with both built-in roles (Elder, Anointed, Publisher, …) and custom roles you've defined in Settings.
 
 ## Documents
 
@@ -61,11 +74,11 @@ Upload PDF documents to any section on the board. Each document has:
 
 - **Name** — A display name for the document
 - **Section** — Which section the document belongs to
-- **File to upload** — The PDF file
+- **File to upload** — The PDF file (must be a real PDF, up to 20 MB)
 
-Documents are stored in the configured file storage backend (local filesystem or S3-compatible storage).
+Larger files are rejected at upload with a clear error message — split or re-export the PDF and try again.
 
-**Required role**: `BoardUploader`, `BoardValidator`, or `Admin`
+**Required permission**: Board Uploader, Board Validator, or Admin
 
 ### File Replacement
 
@@ -86,20 +99,20 @@ Control when a document appears on the board:
 
 Documents outside their visibility window are not shown on the board. This lets you prepare documents in advance and schedule them to appear at the right time.
 
-**Required role**: `BoardValidator` or `Admin`
+**Required permission**: Board Validator or Admin
 
 ### Highlighting
 
 Important documents can be featured on the board using the *Feature this document on the board* option. Featured documents appear in the "Featured" section at the top of the board with a distinct visual container.
 
-**Required role**: `BoardValidator` or `Admin`
+**Required permission**: Board Validator or Admin
 
 ## In-App PDF Viewer
 
 Clicking a document opens an in-app viewer page that keeps the sidebar and navigation visible:
 
 - **Desktop / iOS** — Uses the browser's native PDF embed with a clean toolbar-less view
-- **Android** — Lazy-loads a PDF.js canvas renderer (~500 KB, loaded on demand) for inline viewing
+- **Android** — Falls back to an in-app renderer that loads on demand to keep the page lightweight
 
 The viewer includes a back button to the board and a download button. Document viewing is tracked server-side when the page loads.
 
@@ -123,20 +136,20 @@ Dynamic documents support the same visibility, highlighting, ordering, and secti
 
 For PDFs, the unread badge disappears once a member opens the document. For dynamic documents, the badge **reappears when the underlying data changes** — e.g., when a new publisher is added to a group or a programme assignment is updated. This ensures members are notified of fresh content.
 
-**Required role**: `BoardValidator` or `Admin` to add/configure. Any authenticated user can view.
+**Required permission**: Board Validator or Admin to add/configure. Members with Board Viewer can read them.
 
-## Permissions
+## Permissions summary
 
-| Role | Can do |
-|------|--------|
-| `BoardUploader` | Upload new documents. On documents they uploaded: edit title/section/file, delete, view and restore versions. **Cannot** set visibility window or highlight (those stay validator-controlled, even on the uploader's own documents) |
-| `BoardValidator` | Everything an uploader can do, on any document. Manage sections. Set visibility window and highlighting. Add and configure dynamic documents |
-| `Admin` | Everything |
-| Any authenticated user | View the board, its visible documents, and dynamic documents |
+| Permission | What it grants on the board |
+|---|---|
+| Board Viewer | Open the board, read documents (filtered by section visibility) |
+| Board Uploader | Everything Viewer grants, plus: upload new documents, and on documents they uploaded — edit title/section/file, delete, view and restore versions. **Cannot** set the visibility window or highlight a document |
+| Board Validator | Everything Uploader grants, plus: edit/delete any document, manage sections and their visibility, set the visibility window, highlight, and add/configure dynamic documents |
+| Admin | Everything |
 
 Whether an uploader counts as the "owner" of a document depends on whether the system has recorded them as the original uploader. Documents that pre-date this tracking have no recorded uploader and can only be edited by validators.
 
-See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.
 
 ## Related
 

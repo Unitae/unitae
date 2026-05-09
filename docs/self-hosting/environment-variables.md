@@ -17,7 +17,7 @@ Complete reference for all configuration variables used by Unitae.
 | `UNITAE_COOKIE_DOMAIN` | — | Session cookie domain. Set in production to match your domain |
 | `UNITAE_MULTI_TENANT` | `false` | Enable multi-congregation mode. Set to `true` to allow multiple congregations |
 | `UNITAE_LOG_LEVEL` | `info` | Winston log level (`error`, `warn`, `info`, `debug`) |
-| `UNITAE_WEB_PORT` | `8080` | HTTP server port |
+| `UNITAE_WEB_PORT` | — | HTTP server port. Read by `pnpm start`; falls back to `PORT`, then to `3000` if neither is set. The official Docker images set this to `8080`, which is what the rest of this doc assumes |
 | `UNITAE_CRON_SECRET` | — | Bearer token for authenticating cron endpoint requests (`/cron/*`). When unset, all cron endpoints reject with 401 |
 | `UNITAE_WORKER_HEALTH_PORT` | `9090` | HTTP port for the background worker's health check endpoint |
 

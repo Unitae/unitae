@@ -37,7 +37,14 @@ Alternatively, use [managed hosting](../managed-hosting/getting-started.md) whic
 
 ### Do I need the background worker?
 
-The worker is needed for the [open data sync](../self-hosting/open-data-sync.md) feature (importing building addresses from the French national database). If you don't use this feature, the app works fine without the worker — all other features are synchronous.
+Yes — the worker is what processes any task that doesn't return a response immediately:
+
+- Sending emails (password resets, board notifications, sync completion, document expiry warnings)
+- Generating PDF thumbnails after a document is uploaded to the board
+- Running congregation exports and imports
+- Importing addresses from open-data sources
+
+You can run Unitae without it for local exploration, but for any real deployment the worker should be running alongside the web process.
 
 ### Is self-hosting too much work for me?
 
@@ -47,11 +54,11 @@ If managing a server, database, and backups feels overwhelming, consider [manage
 
 ### Is Unitae available in English?
 
-The user interface is currently in French only. Internationalization (i18n) is on the roadmap but not yet available. Documentation is in English.
+Yes. The interface ships in both French and English; users can switch language from their profile. Documentation is in English.
 
 ### Does the open data sync work outside France?
 
-Currently, only the French BANO (Base Adresse Nationale Ouverte) is supported. Congregations in other countries need to enter building data manually. See [Open Data Sync](../self-hosting/open-data-sync.md).
+Currently the sync only supports the French national address dataset. Congregations in other countries can still use Unitae fully — they just enter building addresses manually. See [Open Data Sync](../self-hosting/open-data-sync.md).
 
 ### Do I need a Google Maps API key?
 
@@ -69,7 +76,7 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the full guide. In short: open 
 
 ### Can I submit code in English?
 
-UI text and code comments should be in French (the primary user language). Commit messages, PR descriptions, and documentation should be in English. See [Coding Conventions](../development/coding-conventions.md).
+Yes. Code, comments, commit messages, PR descriptions, and documentation are all in English. Only the UI strings users actually see are translated to French (and English) through the i18n message files. See [Coding Conventions](../development/coding-conventions.md).
 
 ### How do I report a security issue?
 

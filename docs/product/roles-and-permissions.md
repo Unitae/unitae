@@ -1,78 +1,111 @@
 # Roles and Permissions
 
-Unitae uses a fine-grained role system to control who can access and manage each feature. Roles are assigned per user and scoped to the congregation.
+Unitae lets you decide, precisely, who in the congregation can see what and who can change what. Two ideas work together:
 
-## The 14 Roles
+- **Permissions** are the small units of access — for example, *manage territories*, *upload documents to the board*, *view publishers*. There are 20 of them, each tied to one feature.
+- **Roles** are named bundles of permissions you assign to a person — for example, *Elder*, *Pioneer team lead*, or anything else you want to call it. A user can hold several roles, and gets the union of their permissions.
 
-| Role | Access granted |
-|------|---------------|
-| `Admin` | Full access to all features within the congregation |
-| `BoardUploader` | Upload documents to the display board, and edit/delete/restore versions of documents they themselves uploaded (cannot set visibility or highlight) |
-| `BoardValidator` | Manage any board document: edit, delete, set visibility, highlight. Manage sections. Add dynamic documents |
-| `TerritoriesViewer` | View territory list, attributions, and statistics |
-| `TerritoriesManager` | Create, edit, and delete territories. Manage attributions. Trigger open data sync |
-| `ProspectionViewer` | View building prospection data |
-| `ProspectionManager` | Edit buildings, update prospection data, manage building status |
-| `SettingsUserManager` | Create, edit, and deactivate users. Assign roles |
-| `PublisherViewer` | View publisher profiles and group information |
-| `PublisherManager` | Create, edit, and deactivate publishers. Manage groups |
-| `ActivityViewer` | View activity reports and statistics |
-| `ActivityManager` | Record, edit, and export publisher activity |
-| `ProgramViewer` | View events, programmes, and template list |
-| `ProgramManager` | Create, edit, and delete events. Assign publishers. Manage programme templates |
+You can keep things simple and stick to the built-in roles, or you can create your own roles when the built-ins don't fit how your congregation is organised.
 
-## How Roles Work
+## Built-in roles
 
-### Multiple Roles Per User
+These roles ship with every congregation. The system assigns and removes them automatically based on the publisher status fields on the user's profile (publisher, baptized, anointed, elder, etc.) — you don't manage their membership by hand.
 
-A user can have any combination of roles. For example, an elder might have `TerritoriesManager`, `PublisherManager`, `ActivityManager`, and `ProgramManager` — giving them access to manage territories, publishers, activity, and programs without full admin access.
+| Role | Who gets it |
+|---|---|
+| Publisher | Anyone marked as an active publisher |
+| Male | Active publishers whose profile is marked male |
+| Female | Active publishers whose profile is marked female |
+| Baptized | Active publishers with a baptism date |
+| Anointed | Active publishers marked as anointed |
+| Elder | Active publishers marked as elder |
+| Assistant servant | Active publishers marked as assistant servant |
 
-### Admin Role
+These roles come **without permissions attached by default**. Their main job is to let you **target communications and assignments** — for example, restricting a board section so only elders can see it, or filtering programme assignments to baptized publishers only.
 
-The `Admin` role grants access to everything. Users with this role bypass all other role checks. It also grants access to congregation settings (display name, territory configuration, programme templates).
+If you want a built-in role to actually grant access (say, give every elder the right to validate board documents), open the role and tick the permissions you want it to carry.
 
-### Template Responsible
+## Custom roles
 
-In addition to roles, a **template responsible** can be assigned per programme template. This grants write access (assign publishers, edit event structure) scoped to that template's events only — without needing the full `ProgramManager` role.
+You can create as many roles of your own as you need. A custom role has:
 
-Typically, only a few trusted users should have the Admin role.
+- A name (and an optional description, useful for explaining the role to other admins)
+- Any combination of the 20 permissions
+- The list of users who hold it
 
-### Viewer vs Manager Roles
+Typical examples: *Service committee*, *PR coordinator*, *Group overseer*. Whatever names match how your congregation actually works.
 
-Most features have a **viewer** and a **manager** role:
+To create a role: **Settings → Roles → New role**. Pick the permissions, save, then assign users from their profile.
 
-- **Viewer** roles grant read-only access (view lists, read details, see reports)
-- **Manager** roles grant full access (create, edit, delete, export)
+You can edit, rename, and delete custom roles at any time. Built-in roles cannot be renamed or deleted (the system depends on their identity).
 
-Manager roles implicitly include viewer access — you don't need to assign both.
+## The 20 permissions
 
-## Managing Roles
+Permissions are grouped by area of the app. Most areas come in two flavours: **Viewer** (read-only) and **Manager** (full access). Holding a Manager permission already includes everything a Viewer permission would grant — you don't need to assign both.
 
-Roles are assigned through **Settings > Users**. To manage user roles, you need either the `SettingsUserManager` or `Admin` role.
+### Display board
+- **Board Viewer** — open the board and read documents
+- **Board Uploader** — add new documents to the board, edit or delete versions of documents you uploaded
+- **Board Validator** — manage any board document (edit, delete, set visibility, highlight), manage sections and their visibility rules, add dynamic documents
 
-From the user management page, you can:
+### Territories
+- **Territories Viewer** — open the territory list, attributions, and statistics
+- **Territories Manager** — create, edit and delete territories, manage attributions, trigger the open-data sync
+- **Prospection Viewer** — open the building prospection screens
+- **Prospection Manager** — edit buildings and update prospection data
 
-1. View all users in the congregation
-2. Select a user to see their current roles
-3. Add or remove roles
-4. Create new users with initial role assignments
+### Publishers
+- **Publisher Viewer** — open publisher profiles and group information
+- **Publisher Manager** — create, edit, deactivate publishers, manage groups
+- **Activity Viewer** — read the monthly activity reports and statistics
+- **Activity Manager** — record, edit, and export publisher activity
 
-## Default Access
+### Programme & events
+- **Program Viewer** — open the events list, programmes, and templates
+- **Program Manager** — create and edit events, assign publishers, manage programme templates
+- **External Speaker Viewer** — open the external speaker registry
+- **External Speaker Manager** — add, edit, archive speakers in the registry
 
-Every authenticated user can:
+### Settings
+- **Settings User Manager** — create, edit, deactivate users; assign roles to users
+- **Roles Viewer** — open the list of roles in the congregation
+- **Roles Manager** — create, edit, delete custom roles and choose which permissions they carry
+- **Permissions Manager** — adjust which permissions are attached to a role
 
-- View the display board (visible documents)
-- Record their own days off
-- Access their own profile
+### Admin
+- **Admin** — full access to everything in the congregation, plus congregation-wide settings (display name, configuration, programme templates). Bypasses every other permission check.
 
-Everything else requires at least one role assignment.
+Keep the **Admin** permission to a small handful of trusted users.
+
+## How a person ends up with a permission
+
+The flow is:
+
+1. The person holds one or more roles (built-in roles assigned automatically, custom roles assigned by an admin).
+2. Each role carries a set of permissions.
+3. The person's effective permissions are the union of all their roles' permissions.
+
+So to give someone access to a feature, you don't grant the permission directly — you put them in a role that already has it (or create a new role that does).
+
+## Programme template responsible
+
+Independently of roles, each programme template can have a **template responsible** assigned. That person can edit and assign publishers for the events that come from that template, without needing the broader Program Manager permission. Useful for delegating one programme (e.g. midweek meeting) without handing over the rest.
+
+## Default access
+
+Users who have no roles assigned still have a small baseline:
+
+- They can see and edit their own profile
+- They can record their own days off
+- They can subscribe to their personal calendar feed
+
+Everything else — including viewing the board, territories, or publishers — requires the matching permission.
 
 ## Related
 
-Each feature page documents which roles apply to it:
-
-- [Display Board](display-board.md) — `BoardUploader`, `BoardValidator`
-- [Territories](territories.md) — `TerritoriesViewer`/`Manager`, `ProspectionViewer`/`Manager`
-- [Publishers](publishers.md) — `PublisherViewer`/`Manager`, `ActivityViewer`/`Manager`
-- [Events](events.md) — `ProgramViewer`, `ProgramManager`
-- [Security](security.md) — How roles are enforced at the server level
+- [Display Board](display-board.md) — section visibility and the Board Viewer / Uploader / Validator permissions
+- [Territories](territories.md) — Territories and Prospection permissions
+- [Publishers](publishers.md) — Publisher and Activity permissions
+- [Events](events.md) — Program and External Speaker permissions
+- [Settings](settings.md) — where to assign roles and create new ones
+- [Security](security.md) — how access checks are enforced
