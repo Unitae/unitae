@@ -69,13 +69,13 @@ Documents are stored in the configured file storage backend (local filesystem or
 
 ### File Replacement
 
-Existing documents can have their PDF file replaced from the edit page. Each upload creates a version row — see "Version History" below.
+Existing documents can have their PDF file replaced from the edit page. The previous file is preserved as a version — see "Version History" below.
 
 ### Version History
 
-Every upload — including the original — is recorded as a `BoardDocumentVersion` row attributing the uploader. Replacements append a new version, and the latest row always matches the document's current file. Restoring a previous version is recorded as a fresh version pointing at the restored file. Access the history from the edit page (clock icon); previous versions can be downloaded or restored.
+Every upload is recorded with the date and the person who uploaded it — the original upload as well as later replacements. Open the history from the edit page (clock icon) to download or restore any previous version. Restoring brings back the chosen file as the current one and adds a new entry to the history.
 
-The original uploader attribution from the v1 row is also what determines whether an uploader can edit or delete a given document (see Permissions below).
+The system uses the original uploader's identity to decide who can later edit or delete a document — see Permissions below.
 
 ### Visibility Scheduling
 
@@ -134,7 +134,7 @@ For PDFs, the unread badge disappears once a member opens the document. For dyna
 | `Admin` | Everything |
 | Any authenticated user | View the board, its visible documents, and dynamic documents |
 
-Ownership is anchored on the original uploader recorded in the document's v1 version row. Documents created before this attribution existed have no original uploader and are validator-only editable.
+Whether an uploader counts as the "owner" of a document depends on whether the system has recorded them as the original uploader. Documents that pre-date this tracking have no recorded uploader and can only be edited by validators.
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
 
