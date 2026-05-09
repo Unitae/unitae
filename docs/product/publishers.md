@@ -33,7 +33,7 @@ The *Publisher type* field offers:
 
 The publisher profile displays the list of territories currently assigned to the publisher. For each active assignment, the view shows:
 
-- **Number** — The territory number (links to the territory view if the user has the `TerritoriesViewer` role)
+- **Number** — The territory number (links to the territory view for members with the Territories Viewer permission)
 - **Type** — The territory type (Door to door, Businesses, etc.)
 - **Checkout date** — When the assignment started
 - **Status** — Whether the assignment is on time or overdue
@@ -77,15 +77,15 @@ Activity statistics follow the **theocratic year**, which runs from September to
 
 ## Permissions
 
-| Role | Can do |
-|------|--------|
-| `PublisherViewer` | View publisher profiles and group information |
-| `PublisherManager` | Create, edit, and deactivate publishers. Manage groups |
-| `ActivityViewer` | View activity reports and statistics |
-| `ActivityManager` | Record, edit, and export publisher activity |
-| `Admin` | Everything |
+| Permission | Can do |
+|---|---|
+| Publisher Viewer | View publisher profiles and group information |
+| Publisher Manager | Create, edit, and deactivate publishers. Manage groups |
+| Activity Viewer | View activity reports and statistics |
+| Activity Manager | Record, edit, and export publisher activity |
+| Admin | Everything |
 
-See [Roles and Permissions](roles-and-permissions.md) for the full list of roles across all features.
+See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.
 
 ## Related
 

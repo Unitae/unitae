@@ -106,7 +106,8 @@ app/
 | Route definitions | `app/routes.ts` |
 | Shared UI components | `app/shared/ui/` |
 | AppError classes | `app/shared/errors/app-error.server.ts` |
-| Role enum | `app/shared/types/role.ts` |
+| Permission enum | `app/shared/types/permission.ts` |
+| Role helpers (display names, built-in keys, custom-role CRUD) | `app/shared/types/role.ts`, `app/shared/domain/built-in-roles.server.ts`, `app/shared/domain/roles.server.ts` |
 
 ## Build and Test Commands
 
@@ -215,16 +216,16 @@ return withScopeFromContext(context, async db => {
 ### Authentication & authorization
 
 ```typescript
-// Layout route
-export const middleware = [requireAuth([Role.Admin, Role.TerritoriesManager, /* ALL 14 roles */])]
+// Layout route — the _required arg is deprecated and ignored
+export const middleware = [requireAuth()]
 
 // Route loader/action
 const user = context.get(userContext)
 const permissions = context.get(permissionsContext)
-if (!permissions.has(Role.TerritoriesManager)) throw redirect('/dashboard')
+if (!permissions.has(Permission.TerritoriesManager)) throw redirect('/dashboard')
 ```
 
-**Critical:** `requireAuth()` only resolves roles explicitly listed. Omitting a role means `permissions.has(Role.X)` always returns `false` — silently hiding features. All 14 roles must be listed in `_authenticated-layout.tsx`.
+**Auth model:** `Permission` (20 entries, in `app/shared/types/permission.ts`) is the unit of access. **Roles** (DB table) bundle permissions and are assigned to users — built-in roles plus custom roles a Roles Manager creates. `requireAuth()` runs `resolveEffectivePermissions` and stores the user's full granted set in `permissionsContext`; the legacy `_required` parameter is retained for call-site compatibility but no longer filters anything. See `docs/development/permissions-and-roles.md`.
 
 ### Form validation
 
@@ -301,6 +302,19 @@ await createTerritory(db, ...)
 - ❌ **Don't use `congregationId: <real value>` in `db.*.create()`** — Use `congregationId: 0 as number`; RLS injects the real value at runtime
 - ❌ **Don't use `any` type** — TypeScript strict mode is enforced everywhere except explicit `noExplicitAny` suppressions
 - ❌ **Don't create circular imports between features** — Features must be independent; use `shared/` for cross-feature utilities
+
+## Gotchas
+
+- **`.env` files are not readable** via the Read tool or `cat` — derive env vars by grepping `process.env\.` in `app/`.
+- **Job handlers** live in `app/features/{feature}/jobs/handle-*-work.server.ts`, not under `server/`. Worker imports them from `app/workers/worker.server.ts`.
+- **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.
+- **Built-in role memberships are auto-synced** from `User` boolean fields. After editing `isPublisher`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, or `isServant`, call `syncBuiltInRoleAssignments` (`app/shared/domain/built-in-roles.server.ts`).
+
+## Known gaps
+
+- **#170** — the data-transfer export (`ENTITY_FILES` in `app/features/settings/server/data-transfer.type.ts`) silently drops 11 feature tables added since the export feature shipped (custom roles, allowed-roles, external speakers, card overlays, perimeter, board section visibility). Bump `ARCHIVE_VERSION` if you fix it.
+- **#171** — `BoardDocumentVersion` and `BoardDynamicDocumentSettings` carry `congregationId` but have no `CREATE POLICY` in any migration. They're reached only through scoped Prisma queries today; the database-side guarantee is missing.
+- **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users who hold a permission only via a custom role aren't picked up.
 
 ## Environment Configuration
 

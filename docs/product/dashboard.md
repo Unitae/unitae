@@ -18,7 +18,7 @@ The greeting is sized for a warm, app-like feel.
 On the right side of the greeting (below on mobile), contextual action buttons provide shortcuts to frequent tasks:
 
 - **Plan an absence** — Link to the absence creation form (all users)
-- **Assign territory** — Link to the territory list (visible only to `Admin` and `TerritoriesManager` roles)
+- **Assign territory** — Link to the territory list (visible only to members with the Admin or Territories Manager permission)
 
 ## Admin Onboarding Checklist
 

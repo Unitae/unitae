@@ -66,8 +66,8 @@ export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
 Each type has:
 
 - **`debounceMinutes`** — How long to buffer before sending. `0` = instant.
-- **`recipientStrategy`** — How to find recipients (`'role'`).
-- **`recipientRole`** — Which congregation role receives this notification.
+- **`recipientStrategy`** — How to find recipients (currently only `'role'`).
+- **`recipientRole`** — The **permission key** to query for recipients. Misnamed for historical reasons: `resolveRecipients` looks up users by `CongregationUserPermission` directly (see `app/features/notifications/server/resolve-recipients.server.ts`), so users who hold the permission only via a custom-role assignment are not currently picked up. Direct permission grants are required.
 - **`cancels`** (optional) — List of notification types this one supersedes. If pending events exist for those types + same entity, they are cancelled instead of sending a new email.
 - **`fallback`** (optional) — Config to use if no pending events were found to cancel.
 
@@ -126,10 +126,12 @@ Cancellation types (e.g., `board.document.deleted`) attempt to cancel pending de
 
 `resolveRecipients()` finds users who should receive a notification:
 
-1. Queries all active users with the required role in the congregation
+1. Queries active users in the congregation that hold the configured permission directly via `CongregationUserPermission`
 2. Loads `NotificationPreference` records for those users
 3. Filters out users who have disabled this notification type (exact match or wildcard `category.*`)
 4. Returns the filtered list of recipients
+
+The role layer (`Role` / `RolePermission` / `UserRoleAssignment`) is **not** consulted today. If you want a permission to grant notification eligibility through a role, the resolver needs an update — see the comment on `recipientRole` in the type registry.
 
 ## User Preferences
 
@@ -148,7 +150,7 @@ Wildcard preferences (e.g., `board.*`) disable all notifications in a category.
    },
    ```
 
-2. **Create an email template** in `app/emails/notifications/` (see [Email Templates](email-templates.md))
+2. **Create an email template** under the relevant feature's `emails/` directory (see [Email Templates](email-templates.md))
 
 3. **Add the rendering case** in `handle-notification-email.server.tsx`:
    ```typescript

@@ -45,7 +45,7 @@ export const QUEUE_NAMES = {
 Imports and processes open data (BANO addresses) for territory management.
 
 - **Producer**: `app/features/territories/server/sync-queue.server.ts`
-- **Handler**: `app/features/territories/server/handle-sync-work.server.ts`
+- **Handler**: `app/features/territories/jobs/handle-sync-work.server.ts`
 - **Concurrency**: 1 (CPU/IO-intensive import)
 - **Retries**: 3 attempts, exponential backoff (10s base)
 - **Tenant isolation**: Uses `withScope(congregationId, ...)` for RLS-scoped DB access
@@ -73,7 +73,7 @@ Job types (discriminated union on `type`):
 Generates PDF thumbnails asynchronously after document upload.
 
 - **Producer**: `app/features/display-board/server/thumbnail-queue.server.ts`
-- **Handler**: `app/features/display-board/server/handle-thumbnail-work.server.ts`
+- **Handler**: `app/features/display-board/jobs/handle-thumbnail-work.server.ts`
 - **Concurrency**: 2 (CPU-bound `pdftoppm` subprocess)
 - **Retries**: 3 attempts, exponential backoff (5s base)
 - **Job data**: `{ congregationId, documentId, pdfStorageKey }`
@@ -86,7 +86,7 @@ Documents are created with `thumbnailUri: null` and updated asynchronously when 
 Handles congregation data export and import as background jobs.
 
 - **Producer**: `app/features/settings/server/data-transfer-queue.server.ts`
-- **Handler**: `app/features/settings/server/handle-data-transfer-work.server.ts`
+- **Handler**: `app/features/settings/jobs/handle-data-transfer-work.server.ts`
 - **Concurrency**: 1 (IO-intensive archive creation/extraction)
 - **Retries**: None (1 attempt only)
 - **Tenant isolation**: Uses `withScope(congregationId, ...)` for RLS-scoped DB access
@@ -145,7 +145,7 @@ The worker is only needed if you're working on territory sync, document uploads,
 
 1. Add queue name to `QUEUE_NAMES` in `app/shared/infra/queues.server.ts`
 2. Create queue producer: `app/features/{feature}/server/{name}-queue.server.ts`
-3. Create handler: `app/features/{feature}/server/handle-{name}-work.server.ts`
+3. Create handler: `app/features/{feature}/jobs/handle-{name}-work.server.ts` (handlers live in a per-feature `jobs/` directory, separate from `server/`)
    - For scoped DB access: use `withScope(congregationId, ...)`
    - For cross-tenant queries: use `unscopedDb` with explicit `where: { congregationId }`
    - For email rendering: wrap in `runWithLocale(congregation.locale, ...)`

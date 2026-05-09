@@ -42,8 +42,9 @@ Manage the congregation's geographic territories and track assignments to publis
 - **Map-driven territory editing** — When a Google Maps API key is set, managers edit a territory by clicking markers on the map (add green, remove blue, reassign grey) with an in-place address search, marker clustering, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates
 - **Building prospection** — Maintain a database of individual buildings with address, entrance type, and prospection data
-- **Open data sync** — Automatically import building addresses from the French national address database (BANO) — see [Open Data Sync](../self-hosting/open-data-sync.md)
+- **Open data sync** — Automatically import building addresses from the French national address database — see [Open Data Sync](../self-hosting/open-data-sync.md)
 - **Maps** — Interactive Google Maps integration for building locations and territory visualization (optional)
+- **Card overlays & perimeter** — Draw colored zones and a territory boundary that print on every territory card; useful for orienting publishers in unfamiliar areas
 - **Statistics** — Coverage metrics, attribution frequency, overdue rates, monthly evolution
 - **Exports** — S-13 report, PDF territory cards (with optional map page), CSV export
 
@@ -69,9 +70,10 @@ Manage congregation meeting programmes, event scheduling, and publisher assignme
 - **Event generation** — Auto-generate events from templates, or create one-time events from templates or freeform. Events are listed from the start of the current month onward
 - **Publisher assignments** — Assign speakers, readers, and service roles with a dynamic info card showing availability, conflicts, and rotation history
 - **Conflict detection** — Days-off conflicts block assignments in real time and retroactively flag existing ones
-- **Per-template responsibility** — Delegate programme management to specific elders without granting full `ProgramManager` role
+- **Per-template responsibility** — Delegate programme management to specific elders without granting the full Program Manager permission
 - **Days off** — Members record their upcoming absences so programme organizers can plan accordingly
-- **Personal calendar feed** — Each member can subscribe to their own assignments and absences from any calendar app (Apple Calendar, Google Calendar, Outlook…) via a private iCalendar URL managed from their profile
+- **External speakers** — Maintain a registry of guest speakers (with congregation, phone, notes) and pick from it when assigning a programme part — kept separate from regular publishers
+- **Personal calendar feed** — Each member can subscribe to their own assignments and absences from any calendar app (Apple Calendar, Google Calendar, Outlook…) via a private iCalendar URL managed from their profile. See [Calendar Feed](calendar-feed.md)
 
 See [Events](events.md) for details.
 
@@ -100,11 +102,12 @@ See [Data Transfer](data-transfer.md) for details.
 Configure the congregation and manage users.
 
 - **Users** — Create, edit, and deactivate user accounts and assign roles
+- **Roles** — Use the built-in roles or create custom ones bundling exactly the permissions your congregation needs
 - **Congregation settings** — Display name, publisher profile options, programme template management
 - **Territory settings** — Allowed postal codes for open data sync, phone territory toggle
 - **Carte de l'assemblée** — Draw your assembly's overall preaching territory and its named/colored zones on a Google Map (or import them from a GeoJSON file). The perimeter decides which addresses are inside the assembly's territory; the zones are printed on every territory card to help publishers locate themselves
 
-See [Roles and Permissions](roles-and-permissions.md) for how access control works.
+See [Settings](settings.md) for the full list of what you can manage there, and [Roles and Permissions](roles-and-permissions.md) for how access control works.
 
 ## Privacy & GDPR
 

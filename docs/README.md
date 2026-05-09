@@ -10,7 +10,7 @@ Start here to understand the product, its features, and how it works.
 
 - [What is Unitae?](product/what-is-unitae.md) — The problem it solves, how it differs, who builds it
 - [Feature Overview](product/feature-overview.md) — A glance at all features
-- [Roles and Permissions](product/roles-and-permissions.md) — The 14 roles and access control system
+- [Roles and Permissions](product/roles-and-permissions.md) — Permissions, built-in roles, and custom roles
 - [Security](product/security.md) — How your data is protected (includes GDPR & data protection)
 
 Feature deep dives:
@@ -20,7 +20,9 @@ Feature deep dives:
 - [Territories](product/territories.md) — Geographic areas, attributions, prospection, and statistics
 - [Publishers](product/publishers.md) — Profiles, groups, and activity tracking
 - [Events](product/events.md) — Meeting programmes, assignments, and days off
+- [Calendar Feed](product/calendar-feed.md) — Subscribe your personal assignments and absences from any calendar app
 - [Notifications](product/notifications.md) — Email notifications with debouncing and preferences
+- [Settings](product/settings.md) — Users, roles, congregation preferences, data transfer, audit log
 - [Data Transfer](product/data-transfer.md) — Export and import congregation data
 
 ### Use the managed hosting service
@@ -55,6 +57,7 @@ Getting started:
 Architecture and systems:
 
 - [Architecture](development/architecture.md) — System design, request flow, and data isolation
+- [Permissions and Roles](development/permissions-and-roles.md) — The Permission enum, the Role layer, and how `requireAuth` resolves them
 - [Row-Level Security](development/row-level-security.md) — How RLS enforces tenant isolation
 - [Background Processing](development/background-processing.md) — BullMQ worker architecture
 - [Data Transfer Internals](development/data-transfer.md) — Archive format and import/export contributor reference

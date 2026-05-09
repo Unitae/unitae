@@ -14,7 +14,9 @@ If `UNITAE_CRON_SECRET` is not set, all cron endpoints return `401 Unauthorized`
 
 ## Endpoints
 
-### `GET /cron/retention`
+Each endpoint accepts both `GET` and `POST`. Use `POST` from cron schedulers that need to disable response caching; otherwise either is fine.
+
+### `/cron/retention`
 
 Cleans up expired data to comply with retention policies:
 
@@ -23,13 +25,13 @@ Cleans up expired data to comply with retention policies:
 
 **Recommended schedule**: Once per day (e.g., `0 3 * * *`)
 
-### `GET /cron/board-expirations`
+### `/cron/board-expirations`
 
 Checks for display board documents approaching their visibility end date and sends notification emails to board validators.
 
 **Recommended schedule**: Once per day (e.g., `0 7 * * *`)
 
-### `GET /cron/process-notifications`
+### `/cron/process-notifications`
 
 Flushes settled notification events. Notifications with a debounce window are buffered in the database; this endpoint picks up events whose debounce period has elapsed, resolves recipients based on notification preferences, and pushes email jobs to the background queue.
 

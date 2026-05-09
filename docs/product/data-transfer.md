@@ -31,7 +31,7 @@ The archive contains all congregation data:
 
 ### Archive format
 
-The `.unitae` file is a structured archive (a ZIP under the hood) bundling the congregation's data — and, when *Include files* is selected, the uploaded documents too. Contributors interested in the on-disk layout can read [Data Transfer Internals](../development/data-transfer.md).
+The export produces a single `.unitae` file that bundles your congregation's data — and the uploaded documents too, when *Include files* is selected. Treat it as a self-contained backup: keep it somewhere safe, and import it back whenever you need to restore.
 
 ## Import
 
@@ -61,7 +61,7 @@ The `.unitae` file is a structured archive (a ZIP under the hood) bundling the c
 
 ## Permissions
 
-Only users with the `Admin` role can access the data transfer features.
+Only members with the Admin permission can run an export or an import.
 
 ## Related
 
