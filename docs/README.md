@@ -57,6 +57,7 @@ Architecture and systems:
 - [Architecture](development/architecture.md) — System design, request flow, and data isolation
 - [Row-Level Security](development/row-level-security.md) — How RLS enforces tenant isolation
 - [Background Processing](development/background-processing.md) — BullMQ worker architecture
+- [Data Transfer Internals](development/data-transfer.md) — Archive format and import/export contributor reference
 - [Notifications](development/notifications.md) — Notification system architecture
 - [Email Templates](development/email-templates.md) — React Email templates and Resend
 - [Testing](development/testing.md) — Unit, integration, and E2E test setup

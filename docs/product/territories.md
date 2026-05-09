@@ -41,11 +41,11 @@ Clicking a territory opens a detail page with two tabs:
 
 Assignment info (start date, return date with relative time, status) is shown above the tabs.
 
-The personal territory view is security-scoped: the server only returns territory data if the current user has an active assignment for it.
+Members only ever see territories they currently have an active assignment for.
 
 ## Admin Territory View
 
-The admin territory detail page (`/territories/territory/:id/view`) is the read-only counterpart to the editor. It is laid out as stacked cards on the left with the map on the right. On large screens the map sticks to the top of the viewport while the cards scroll past it.
+The admin territory detail page is the read-only counterpart to the editor. It is laid out as stacked cards on the left with the map on the right. On large screens the map sticks to the top of the viewport while the cards scroll past it.
 
 Cards, top to bottom:
 
@@ -59,7 +59,7 @@ The page header carries previous/next arrows to step through territories of the 
 
 ## Territory Editor
 
-When a Google Maps API key is configured, `/territories/territory/:id/edit` opens a map-driven editor. The map fills most of the page and a summary panel on the right tracks the changes you have not yet saved. Without an API key, the page falls back to a dropdown selector (postal code → street → address) so the editor stays fully usable.
+When a Google Maps API key is configured, the territory edit page opens a map-driven editor. The map fills most of the page and a summary panel on the right tracks the changes you have not yet saved. Without an API key, the page falls back to a dropdown selector (postal code → street → address) so the editor stays fully usable.
 
 ### Map markers
 

@@ -7,7 +7,6 @@ The events module manages congregation meeting programmes, event scheduling, and
 Programme templates define the recurring structure of meetings. Each template contains:
 
 - **Name** — The template name (e.g., "Midweek meeting")
-- **Unique key** — An internal identifier
 - **Day of week** — The recurring weekday (left empty for one-time events like the Memorial)
 - **Event type** — An optional event kind (see [Event Kinds](#event-kinds)) automatically applied to all events generated from this template
 - **Parts** — Ordered list of programme parts (spiritual content), each with a name, section grouping, order, optional duration, and a variable flag
@@ -69,7 +68,7 @@ Event kinds are managed by admins at **Settings > Congregation settings > Event 
 
 ## PDF Export
 
-Events can be exported to PDF from the programme list. The export form provides per-template content selection: each template row has checkboxes for parts and services, allowing mixed exports (e.g., midweek parts + weekend services only). Additional options include an editable document title, a date range filter, and grouping by date (chronological) or by template type. The PDF uses a workbook-inspired single-column layout with colored section bars, dot leaders between part names and assignees, and topic replacing part name when available. Parallel parts (same order, different tracks) render as sub-rows with track labels. A legacy URL format (`?templateId=...&contentType=...`) is preserved for backwards compatibility.
+Events can be exported to PDF from the programme list. The export form provides per-template content selection: each template row has checkboxes for parts and services, allowing mixed exports (e.g., midweek parts + weekend services only). Additional options include an editable document title, a date range filter, and grouping by date (chronological) or by template type. The PDF uses a workbook-inspired single-column layout with colored section bars, dot leaders between part names and assignees, and the topic replacing the part name when available. Parallel parts (same order, different tracks) render as sub-rows with track labels.
 
 ## Assignments
 
@@ -118,7 +117,7 @@ The feed includes events from the last 3 months and all future events. Past even
 
 **Subscribing**
 
-The feed URL is a `text/calendar` resource that any standard calendar app can subscribe to:
+Any standard calendar app can subscribe to the feed by pasting the URL:
 
 - **Apple Calendar** — File → New Calendar Subscription → paste the URL
 - **Google Calendar** — Other calendars → From URL → paste the URL

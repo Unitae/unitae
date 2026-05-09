@@ -27,7 +27,7 @@ The display board is a digital notice board where congregation administrators ca
 - **Status badges** — New, Unread, and Updated badges on document thumbnails to communicate freshness at a glance
 - **View tracking** — See which members have viewed each document
 - **Dynamic documents** — Live views of publisher groups, pioneer lists, and meeting programmes alongside uploaded PDFs, with preview summaries on cards
-- **In-app PDF viewer** — Embedded viewer with native rendering on desktop and PDF.js fallback on Android
+- **In-app PDF viewer** — Embedded viewer that works on all major browsers and on mobile devices
 - **File replacement & versioning** — Replace a document's PDF while preserving previous versions
 - **Thumbnails** — Auto-generated first-page preview thumbnails for PDF documents
 
@@ -91,7 +91,7 @@ Export and import congregation data for migration, backup, or restoration.
 
 - **Export** — Download a `.unitae` archive containing all congregation data, with options to include uploaded files and audit logs
 - **Import** — Upload a `.unitae` archive with automatic conflict detection and resolution
-- **Background processing** — Large exports and imports run as background jobs with progress tracking
+- **Runs in the background** — Large exports and imports run in the background with progress tracking
 
 See [Data Transfer](data-transfer.md) for details.
 
@@ -116,9 +116,9 @@ Unitae manages religious affiliation data, which is special category data under 
 - **Consent management** — Users can view and withdraw their consents at any time from their profile
 - **Privacy policy** — Built-in `/privacy` page explaining data collection, purposes, legal basis, retention periods, sub-processors, and data subject rights
 - **Cookie consent** — Google Maps integration only loads after explicit user consent (ePrivacy Directive)
-- **Audit logging** — Structured audit trail for login, data export, anonymization, consent changes, user creation, and password operations
-- **Log PII redaction** — Email addresses and personal data fields are automatically hashed in application logs (SHA-256)
-- **Data retention** — Automated cleanup of expired password reset tokens and old withdrawn consent records via `/cron/retention` endpoint
+- **Audit logging** — Audit trail for login, data export, anonymization, consent changes, user creation, and password operations
+- **Log PII obfuscation** — Email addresses and personal data fields are automatically obfuscated in application logs
+- **Data retention** — Automated cleanup of expired password reset tokens and old withdrawn consent records on a recurring schedule
 - **Deletion ledger** — All anonymization operations are recorded for backup reconciliation
 
 ## User Experience
@@ -136,7 +136,7 @@ Unitae includes several features to make the app feel responsive and polished:
 - **Sticky table headers** — Column headers stay visible when scrolling long tables
 - **Persisted page size** — Table pagination remembers the preferred number of rows per page
 - **Entrance animations** — Subtle fade-in animations on page headers and dashboard cards
-- **Error boundaries** — Status-specific error pages (404, 403, 500) with retry button
+- **Friendly error pages** — Status-specific pages (page not found, access denied, server error) with a retry button
 
 ## Coming Soon
 

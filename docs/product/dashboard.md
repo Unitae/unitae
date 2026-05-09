@@ -4,7 +4,7 @@ The dashboard is the homepage every congregation member sees after logging in. I
 
 ## Hero Greeting
 
-The dashboard opens with a large, two-line personalized greeting using the display font (Fraunces):
+The dashboard opens with a large, two-line personalized greeting:
 
 > Hello,
 > Nathanaël.
@@ -28,7 +28,7 @@ When an administrator logs in to a congregation that has not yet been fully set 
 - **Configure territories** — Link to territory list
 - **Upload a document** — Link to document upload
 
-Each step shows a checkmark when the congregation has at least one entity of that type. The checklist can be dismissed manually and stays hidden via browser storage. It disappears automatically once all three steps are completed.
+Each step is checked off as soon as the congregation has at least one of that item. You can dismiss the checklist manually — it stays hidden in your browser. It disappears automatically once all three steps are completed.
 
 ## Urgent Strip
 
@@ -36,12 +36,12 @@ A conditional section that surfaces time-sensitive items from across features. I
 
 | Priority | Type | Condition | Link |
 |---|---|---|---|
-| 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | `/board` |
-| 1 | Overdue territory | Territory due date is in the past | `/me/territories/{id}` |
-| 2 | Day-off conflict | An upcoming absence overlaps the next meeting where the user has assignments | `/me/days-off` |
-| 3 | Imminent service role | User has a service role and the meeting is within 3 days | `/board` |
-| 4 | Due-soon territory | Territory due date is within 2 weeks | `/me/territories/{id}` |
-| 5 | Unread documents | At least 1 visible document not yet viewed (total count across all documents) | `/board` |
+| 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | The board |
+| 1 | Overdue territory | Territory due date is in the past | The territory page |
+| 2 | Day-off conflict | An upcoming absence overlaps the next meeting where the user has assignments | The absences page |
+| 3 | Imminent service role | User has a service role and the meeting is within 3 days | The board |
+| 4 | Due-soon territory | Territory due date is within 2 weeks | The territory page |
+| 5 | Unread documents | At least 1 visible document not yet viewed | The board |
 
 Each item is displayed as a clickable row with a colored left border (red for overdue, amber for warnings, teal for informational), an icon, a label, a relative time, and a chevron.
 
@@ -101,18 +101,18 @@ When no absences are planned and no nudge is shown, a *Plan an absence* action b
 
 The *See all* footer link is only shown when the member has absences to browse — it is hidden when the card shows the empty state or nudge.
 
-## Error Resilience
+## Resilience
 
-Each dashboard widget loads its data independently. If one data source is temporarily unavailable (e.g., a database timeout), only the affected card shows a warning message — the rest of the dashboard continues to work normally.
+Each dashboard card loads its own data independently. If one of them fails to load (for example a temporary network hiccup), only that card shows a warning — the rest of the dashboard keeps working.
 
 ## Layout
 
-The dashboard uses a responsive layout with a maximum content width of `max-w-6xl` for readability on wide screens:
+The dashboard adapts to the screen size:
 
-- **Mobile** — Single column. Hero greeting at `text-3xl`. Quick actions appear as a row below the greeting. Cards stacked vertically.
-- **Desktop** — Hero greeting with quick actions side-by-side. Two-column grid for widget cards. All cards use `h-full` for consistent height within grid rows.
+- **On mobile** — A single column. The greeting and quick actions stack at the top, with cards stacked below.
+- **On desktop** — The greeting and quick actions sit side-by-side, with widget cards arranged in a two-column grid.
 
-Cards appear with a staggered fade-in animation (50ms increments) for a smooth entrance. Card footers are pinned to the bottom with `mt-auto`.
+Cards fade in one after another for a smooth entrance, and the dashboard width is capped so it stays comfortable to read on very wide screens.
 
 ## Related
 
