@@ -7,6 +7,8 @@ vi.mock('~/shared/infra/db.server', () => ({
     event: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     programmePartAssignment: { create: vi.fn() },
     programmeServiceRoleAssignment: { create: vi.fn() },
+    programmePartAssignmentAllowedRole: { createMany: vi.fn() },
+    programmeServiceRoleAssignmentAllowedRole: { createMany: vi.fn() },
   },
 }))
 
@@ -288,5 +290,81 @@ describe('createSingleEventFromTemplate', () => {
 
     const call = vi.mocked(db.programmePartAssignment.create).mock.calls[0]
     expect((call[0] as { data: { allowExternalSpeaker: boolean } }).data.allowExternalSpeaker).toBe(true)
+  })
+
+  it('copies non-empty allowed-role lists from template parts and service roles to assignments', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 3,
+      name: 'Mémorial',
+      kindId: null,
+      parts: [
+        {
+          id: 30,
+          name: 'Discours',
+          section: '',
+          track: '',
+          trackOrder: null,
+          order: 1,
+          durationMin: 45,
+          allowExternalSpeaker: false,
+          allowedRoles: [
+            { roleId: 7, asKind: 'speaker' },
+            { roleId: 8, asKind: 'reader' },
+          ],
+        },
+      ],
+      serviceRoles: [{ id: 40, name: 'Son', allowedRoles: [{ roleId: 9 }] }],
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 555 } as never)
+    vi.mocked(db.programmePartAssignment.create).mockResolvedValue({ id: 700 } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.create).mockResolvedValue({ id: 800 } as never)
+    vi.mocked(db.programmePartAssignmentAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
+    vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7)
+
+    expect(vi.mocked(db.programmePartAssignmentAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [
+        { assignmentId: 700, roleId: 7, asKind: 'speaker', congregationId: 7 },
+        { assignmentId: 700, roleId: 8, asKind: 'reader', congregationId: 7 },
+      ],
+      skipDuplicates: true,
+    })
+    expect(vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [{ assignmentId: 800, roleId: 9, congregationId: 7 }],
+      skipDuplicates: true,
+    })
+  })
+
+  it('skips allowed-role createMany when lists are empty', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 3,
+      name: 'Mémorial',
+      kindId: null,
+      parts: [
+        {
+          id: 30,
+          name: 'Discours',
+          section: '',
+          track: '',
+          trackOrder: null,
+          order: 1,
+          durationMin: 45,
+          allowExternalSpeaker: false,
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [{ id: 40, name: 'Son', allowedRoles: [] }],
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 555 } as never)
+    vi.mocked(db.programmePartAssignment.create).mockResolvedValue({ id: 700 } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.create).mockResolvedValue({ id: 800 } as never)
+
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7)
+
+    expect(vi.mocked(db.programmePartAssignmentAllowedRole.createMany)).not.toHaveBeenCalled()
+    expect(vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.createMany)).not.toHaveBeenCalled()
   })
 })

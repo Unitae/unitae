@@ -9,6 +9,14 @@ vi.mock('~/features/events/server/allowed-roles.server', () => ({
   setServiceRoleAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
 }))
 
+vi.mock('~/shared/domain/audit.server', () => ({
+  audit: vi.fn(),
+  AuditAction: {
+    PartAllowedRolesChanged: 'part.allowed_roles.changed',
+    ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
+  },
+}))
+
 const {
   createFreeformEvent,
   deleteEvent,
@@ -46,6 +54,7 @@ const mockDb = {
 }
 
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
+const auditModule = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -215,5 +224,163 @@ describe('applyTemplateToEvent', () => {
     expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({
       data: { eventId: 1, serviceRoleId: 20, name: 'Son', congregationId: 10 },
     })
+  })
+
+  it('copies non-empty allowed-role lists from template parts and service roles to assignments', async () => {
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [
+        {
+          id: 10,
+          name: 'Discours',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 30,
+          allowedRoles: [
+            { roleId: 100, asKind: 'speaker' },
+            { roleId: 101, asKind: 'speaker' },
+            { roleId: 200, asKind: 'reader' },
+          ],
+        },
+      ],
+      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [{ roleId: 300 }, { roleId: 301 }] }],
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 555 })
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 666 })
+    mockDb.programmePartAssignmentAllowedRole.createMany.mockResolvedValue({ count: 3 })
+    mockDb.programmeServiceRoleAssignmentAllowedRole.createMany.mockResolvedValue({ count: 2 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    expect(mockDb.programmePartAssignmentAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [
+        { assignmentId: 555, roleId: 100, asKind: 'speaker', congregationId: 10 },
+        { assignmentId: 555, roleId: 101, asKind: 'speaker', congregationId: 10 },
+        { assignmentId: 555, roleId: 200, asKind: 'reader', congregationId: 10 },
+      ],
+      skipDuplicates: true,
+    })
+    expect(mockDb.programmeServiceRoleAssignmentAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [
+        { assignmentId: 666, roleId: 300, congregationId: 10 },
+        { assignmentId: 666, roleId: 301, congregationId: 10 },
+      ],
+      skipDuplicates: true,
+    })
+  })
+
+  it('does not call createMany on allowed-role tables when lists are empty', async () => {
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [{ id: 10, name: 'Cantique', section: '', track: '', order: 1, durationMin: 5, allowedRoles: [] }],
+      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 555 })
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 666 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    expect(mockDb.programmePartAssignmentAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(mockDb.programmeServiceRoleAssignmentAllowedRole.createMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('addPartAssignment audit firing', () => {
+  it('fires PartAllowedRolesChanged when role lists change', async () => {
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 100 })
+    vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValueOnce({ added: [5], removed: [] })
+    vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValueOnce({ added: [], removed: [] })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Discours',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [5],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'part.allowed_roles.changed',
+        entityType: 'ProgrammePartAssignment',
+        entityId: 100,
+        actorId: 42,
+      }),
+    )
+  })
+
+  it('does not fire audit when role lists do not change', async () => {
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 100 })
+    vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Discours',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
+  })
+})
+
+describe('addServiceRoleAssignment audit firing', () => {
+  it('fires ServiceRoleAllowedRolesChanged when role list changes', async () => {
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 200 })
+    vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValueOnce({ added: [7], removed: [] })
+
+    await addServiceRoleAssignment(
+      mockDb as never,
+      { eventId: 1, name: 'Son', allowedRoleIds: [7], congregationId: 10 },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'service_role.allowed_roles.changed',
+        entityType: 'ProgrammeServiceRoleAssignment',
+        entityId: 200,
+        actorId: 42,
+      }),
+    )
+  })
+
+  it('does not fire audit when role list does not change', async () => {
+    mockDb.programmeServiceRoleAssignment.create.mockResolvedValue({ id: 200 })
+    vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+
+    await addServiceRoleAssignment(
+      mockDb as never,
+      { eventId: 1, name: 'Son', allowedRoleIds: [], congregationId: 10 },
+      42,
+    )
+
+    expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
   })
 })

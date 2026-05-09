@@ -2,16 +2,26 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    programmeTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+    programmeTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     programmeTemplatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     programmeTemplateServiceRole: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     programmeTemplateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
+    programmeTemplatePartAllowedRole: { createMany: vi.fn() },
+    programmeTemplateServiceRoleAllowedRole: { createMany: vi.fn() },
   },
 }))
 
 vi.mock('~/features/events/server/allowed-roles.server', () => ({
   setTemplatePartAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
   setTemplateServiceRoleAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+}))
+
+vi.mock('~/shared/domain/audit.server', () => ({
+  audit: vi.fn(),
+  AuditAction: {
+    PartAllowedRolesChanged: 'part.allowed_roles.changed',
+    ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
+  },
 }))
 
 const {
@@ -25,9 +35,11 @@ const {
   setTemplateResponsible,
   removeTemplateResponsible,
   isTemplateResponsible,
+  duplicateTemplate,
 } = await import('./programme-templates.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
+const auditModule = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -216,5 +228,179 @@ describe('isTemplateResponsible', () => {
 
     const result = await isTemplateResponsible(db, 1, 99, 1)
     expect(result).toBeNull()
+  })
+})
+
+describe('upsertTemplatePart audit firing', () => {
+  it('fires PartAllowedRolesChanged audit when role lists change', async () => {
+    vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 50 } as never)
+    vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValueOnce({ added: [10], removed: [] })
+    vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValueOnce({ added: [], removed: [] })
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        name: 'Discours',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [10],
+        allowedReaderRoleIds: [],
+      },
+      1,
+      99,
+    )
+
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'part.allowed_roles.changed',
+        entityType: 'ProgrammeTemplatePart',
+        entityId: 50,
+        actorId: 99,
+      }),
+    )
+  })
+
+  it('does not fire audit when role lists do not change', async () => {
+    vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 50 } as never)
+    vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        name: 'Discours',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 30,
+        allowExternalSpeaker: false,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      1,
+      99,
+    )
+
+    expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
+  })
+})
+
+describe('upsertTemplateServiceRole audit firing', () => {
+  it('fires ServiceRoleAllowedRolesChanged audit when role list changes', async () => {
+    vi.mocked(db.programmeTemplateServiceRole.create).mockResolvedValue({ id: 60 } as never)
+    vi.mocked(allowedRoles.setTemplateServiceRoleAllowedRoles).mockResolvedValueOnce({ added: [11], removed: [] })
+
+    await upsertTemplateServiceRole(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [11] }, 1, 99)
+
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'service_role.allowed_roles.changed',
+        entityType: 'ProgrammeTemplateServiceRole',
+        entityId: 60,
+        actorId: 99,
+      }),
+    )
+  })
+
+  it('does not fire audit when role list is unchanged', async () => {
+    vi.mocked(db.programmeTemplateServiceRole.create).mockResolvedValue({ id: 60 } as never)
+    vi.mocked(allowedRoles.setTemplateServiceRoleAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+
+    await upsertTemplateServiceRole(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [] }, 1, 99)
+
+    expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
+  })
+})
+
+describe('duplicateTemplate', () => {
+  it('returns null when source template not found', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
+
+    const result = await duplicateTemplate(db, 99, 1)
+
+    expect(result).toBeNull()
+    expect(vi.mocked(db.programmeTemplate.create)).not.toHaveBeenCalled()
+  })
+
+  it('copies allowed-role lists from source parts and service roles to the duplicate', async () => {
+    const source = {
+      id: 5,
+      name: 'Reunion',
+      key: 'midweek',
+      description: '',
+      weekDay: 2,
+      isRecurring: true,
+      parts: [
+        {
+          id: 10,
+          name: 'Discours',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 30,
+          allowExternalSpeaker: false,
+          allowedRoles: [
+            { roleId: 100, asKind: 'speaker' },
+            { roleId: 200, asKind: 'reader' },
+          ],
+        },
+        {
+          id: 11,
+          name: 'Cantique',
+          section: '',
+          track: '',
+          order: 2,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [
+        { id: 20, name: 'Son', key: 'sono', allowedRoles: [{ roleId: 300 }] },
+        { id: 21, name: 'Stage', key: 'stage', allowedRoles: [] },
+      ],
+    }
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(source as never)
+
+    const duplicated = {
+      id: 99,
+      name: 'Reunion (copie)',
+      parts: [
+        { id: 510, order: 1 },
+        { id: 511, order: 2 },
+      ],
+      serviceRoles: [
+        { id: 520, name: 'Son' },
+        { id: 521, name: 'Stage' },
+      ],
+    }
+    vi.mocked(db.programmeTemplate.create).mockResolvedValue(duplicated as never)
+    vi.mocked(db.programmeTemplatePartAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
+    vi.mocked(db.programmeTemplateServiceRoleAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+
+    await duplicateTemplate(db, 5, 7)
+
+    // Speaker role for the first part
+    expect(vi.mocked(db.programmeTemplatePartAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [{ partId: 510, roleId: 100, asKind: 'speaker', congregationId: 7 }],
+      skipDuplicates: true,
+    })
+    // Reader role for the first part
+    expect(vi.mocked(db.programmeTemplatePartAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [{ partId: 510, roleId: 200, asKind: 'reader', congregationId: 7 }],
+      skipDuplicates: true,
+    })
+    // Service-role allowed-roles for the first service role
+    expect(vi.mocked(db.programmeTemplateServiceRoleAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [{ serviceRoleId: 520, roleId: 300, congregationId: 7 }],
+      skipDuplicates: true,
+    })
+    // Empty lists are skipped
+    expect(vi.mocked(db.programmeTemplatePartAllowedRole.createMany)).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(db.programmeTemplateServiceRoleAllowedRole.createMany)).toHaveBeenCalledTimes(1)
   })
 })

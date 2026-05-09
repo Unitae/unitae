@@ -37,6 +37,7 @@ function GroupHeading({ children }: { children: React.ReactNode }) {
   return <h3 className="mb-2 font-semibold text-muted-foreground text-xs uppercase tracking-wide">{children}</h3>
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: edit form with grouped sections, mode-aware copy, and conditional fields
 export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, defaultOrder, roles }: PartEditSheetProps) {
   const isEditing = part != null
   const prevState = useRef(fetcher.state)
