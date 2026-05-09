@@ -86,7 +86,22 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
   const [error, setError] = useState(false)
   const [retryCount, setRetryCount] = useState(0)
   const [zoom, setZoom] = useState(1)
+  const [renderTrigger, setRenderTrigger] = useState(0)
   const isMobile = useIsMobile()
+
+  useEffect(() => {
+    const scrollArea = scrollRef.current
+    if (!scrollArea) return
+    let lastWidth = scrollArea.clientWidth
+    const observer = new ResizeObserver(() => {
+      const nextWidth = scrollArea.clientWidth
+      if (nextWidth === lastWidth) return
+      lastWidth = nextWidth
+      setRenderTrigger(t => t + 1)
+    })
+    observer.observe(scrollArea)
+    return () => observer.disconnect()
+  }, [])
 
   const retry = useCallback(() => {
     setError(false)
@@ -134,6 +149,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
     }
   }, [url, retryCount])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: renderTrigger is a re-trigger signal driven by ResizeObserver
   useEffect(() => {
     const scrollArea = scrollRef.current
     const canvasContainer = canvasContainerRef.current
@@ -156,10 +172,10 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
     return () => {
       cancelled = true
     }
-  }, [pdf, zoom, isMobile])
+  }, [pdf, zoom, isMobile, renderTrigger])
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-muted/30">
+    <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-muted/30">
       {!error && (
         <div className="flex items-center justify-end gap-1 border-b bg-background px-4 py-2">
           <Button
@@ -194,7 +210,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
           </Button>
         </div>
       )}
-      <div ref={scrollRef} className="flex min-h-0 flex-1 flex-col overflow-auto p-4">
+      <div ref={scrollRef} className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-auto p-4">
         {loading && (
           <div className="flex flex-col gap-4">
             <Skeleton className="h-96 w-full" />
