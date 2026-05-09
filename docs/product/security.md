@@ -34,9 +34,9 @@ Uploaded files (board PDFs, territory cards) are stored in separate paths per co
 
 ## Role-based access control
 
-Access to features is controlled through 14 fine-grained roles. Roles are checked on every request — both in the UI (to show or hide elements) and on the server (to enforce access).
+Access to features is controlled through 20 fine-grained permissions, bundled into roles. Every request is checked — both in the UI (to show or hide elements) and on the server (to enforce access).
 
-See [Roles and Permissions](roles-and-permissions.md) for the full list of roles and what they control.
+See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions and the built-in and custom roles that group them.
 
 ## GDPR & data protection
 

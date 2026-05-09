@@ -53,6 +53,10 @@ The user interface is currently in French only. Internationalization (i18n) is o
 
 Currently, only the French BANO (Base Adresse Nationale Ouverte) is supported. Congregations in other countries need to enter building data manually. See [Open Data Sync](../self-hosting/open-data-sync.md).
 
+### Is my personal calendar feed private?
+
+The link is per-user and protected by a long random token. Only people you give the link to can read your assignments and absences. Regenerate or revoke the link from your profile if it leaks. See [Calendar Feed](../product/calendar-feed.md).
+
 ### Do I need a Google Maps API key?
 
 No. Maps are optional. Without an API key, territory management works normally — you just won't see interactive maps or map images in PDF exports. See [Environment Variables](../self-hosting/environment-variables.md).
