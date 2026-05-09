@@ -23,13 +23,13 @@ Unitae is a web application designed specifically for Jehovah's Witnesses congre
 
 Unitae is licensed under [AGPL-3.0](../resources/licensing.md). All application code is open source — there are no proprietary plugins, no locked features, and no code hidden behind a paid tier. Self-hosted users get the exact same features as users on the managed platform.
 
-#### Ghost-Inspired Open-Core Model
+#### How development is funded
 
-Unitae follows the model pioneered by [Ghost](https://ghost.org/): 100% of the code is open source, and development is funded through a managed hosting service at [unitae.app](https://unitae.app). This means the community can contribute to everything, audit the code, and self-host freely — while MindsersIT sustains active development through the hosted offering.
+Unitae follows the model pioneered by [Ghost](https://ghost.org/): 100% of the code is open source, and development is funded through a managed hosting service at [unitae.app](https://unitae.app). The community can contribute to everything, inspect the code, and self-host freely — while MindsersIT sustains active development through the hosted offering.
 
 ### Self-Hosting Without Compromise
 
-When you self-host Unitae, all resource limits are unlimited by default. There is no artificial restriction that pushes you toward the paid service. The managed hosting at unitae.app offers convenience (automatic updates, backups, TLS, support), not exclusive features.
+When you self-host Unitae, all resource limits are unlimited by default. There is no artificial restriction pushing you toward the paid service. The managed hosting at unitae.app offers convenience (automatic updates, backups, secure connections, support) — not exclusive features.
 
 ## Who Builds Unitae
 
@@ -39,9 +39,7 @@ The project is open to community contributions — see [CONTRIBUTING.md](../../C
 
 ## Language
 
-The user interface and code comments are written in **French**, reflecting the primary user base. Documentation, commit messages, and pull request descriptions are written in **English**.
-
-Internationalization (i18n) support is on the roadmap but not yet available.
+The user interface is available in **French** and **English**, reflecting the primary user base. Documentation is written in English. Support for additional languages is on the roadmap.
 
 ## Next Steps
 
