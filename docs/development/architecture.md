@@ -291,13 +291,15 @@ pnpm test:e2e:headed        # E2E tests with browser visible
 
 ## Security
 
-- **Session**: Cookie-based, `UNITAE_SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
-- **Passwords**: scrypt hashed with random salt, reset via 24h time-limited tokens
+- **Session**: Cookie-based (HTTP-only, `SameSite=Lax`, optional `UNITAE_COOKIE_DOMAIN` for multi-subdomain SaaS), `UNITAE_SESSION_SECRET` required, 1h (prod) / 8h (dev) maxAge
+- **Passwords**: scrypt hashed with a 16-byte random salt and 32-byte derived key, constant-time comparison, never stored in plain text, reset via 24h single-use time-limited tokens generated with `crypto.randomBytes(32)`
 - **Email verification**: Required before accessing the app, 24h token expiry
 - **Rate limiting**: Login (5/15min), password reset (3/15min) per email via Redis
+- **Calendar feed tokens**: 32 random bytes encoded as base64url (`crypto.randomBytes(32)`), one active per user, no automatic expiry, manually revoked or regenerated. Audited via `calendar_feed.token.created` and `calendar_feed.token.revoked` actions
 - **Permissions**: 16 congregation-scoped permissions via CongregationUserPermission
-- **Files**: Congregation-scoped storage keys, UUID filenames
+- **Files**: Congregation-scoped storage keys with UUID filenames (`{congregationId}/board/{uuid}.pdf`)
 - **RLS**: PostgreSQL Row-Level Security for tenant data isolation
+- **Log PII redaction**: Email addresses and personal data fields hashed with SHA-256 in application logs
 
 ## Related
 

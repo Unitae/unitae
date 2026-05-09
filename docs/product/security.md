@@ -1,115 +1,91 @@
 # Security
 
-Unitae is designed with data isolation and security as core concerns. This page describes the security measures in place from a product perspective.
+Unitae is built so that each congregation's data stays private to that congregation, accounts are protected against common attacks, and personal data is handled in line with European data protection rules. This page describes those protections in plain terms; readers who want the technical specifics can follow the cross-links to the contributor documentation.
 
 ## Authentication
 
 ### Login
 
-Users authenticate with an email address and password. Sessions are managed through HTTP-only cookies that cannot be accessed by client-side JavaScript.
+Users log in with an email address and password. The session is stored in a secure browser cookie that JavaScript on the page cannot read.
 
-- **Session lifetime**: 1 hour in production, 8 hours in development
-- **Session cookie**: HTTP-only, `SameSite=Lax`, configurable domain via `UNITAE_COOKIE_DOMAIN`
+- **Session lifetime** — 1 hour in production, 8 hours in local development.
 
-### Rate Limiting
+### Rate limiting
 
-Login attempts are rate-limited to prevent brute-force attacks:
+Login attempts are limited to **5 attempts per 15 minutes per email address** to prevent brute-force attacks. Password reset requests are similarly limited.
 
-- **5 login attempts** per 15 minutes per email address
-- Rate limiting is backed by Redis and persists across application restarts
+### Password security
 
-### Password Security
+Passwords are securely hashed before being stored — the original password is never written anywhere. Password comparison is performed in a way that does not reveal information through timing.
 
-- Passwords are hashed using **scrypt** with a 16-byte random salt and 32-byte derived key
-- Passwords are never stored in plain text
-- Password comparison uses constant-time comparison to prevent timing attacks
+### Password reset
 
-### Password Reset
+Users can request a password reset link by email. Reset links are valid for **24 hours** and can only be used once.
 
-Users can request a password reset link via email:
+### Personal calendar feeds
 
-- Reset tokens are valid for **24 hours**
-- Tokens are single-use — consumed immediately when the password is changed
-- Tokens are generated using `crypto.randomBytes(32)`
+Each member can subscribe a calendar app to their personal assignments via a private URL (see [Events — Personal Calendar Feed](events.md#personal-calendar-feed)). The URL contains a per-user secret token; the feed gives read-only access to the user's own assignments and absences only. The user can revoke the URL at any time, which immediately stops the feed for any app subscribed to it.
 
-### Calendar Feed Tokens
+## Data isolation between congregations
 
-Users can subscribe their personal calendar app to their assignments via a private iCalendar URL (see [Events — Personal Calendar Feed](events.md#personal-calendar-feed)). The URL is authenticated by a per-user token:
+A user in one congregation can never see data from another congregation. Unitae enforces this at the database level — not just in the user interface — so an application bug cannot accidentally leak data across congregations.
 
-- Tokens are 32 random bytes encoded as base64url, generated with `crypto.randomBytes(32)` (the same primitive as password reset)
-- Each user has at most one active token; regenerating revokes the previous token immediately
-- Tokens do **not** expire automatically — users revoke or regenerate them manually
-- The token grants read-only access to the user's own programme assignments, service roles, and days off — nothing else
-- Because calendar apps cannot send authentication cookies, the bearer token must travel in the URL; users should treat the URL as a personal secret
-- Both creation and revocation are recorded in the audit log (`calendar_feed.token.created`, `calendar_feed.token.revoked`)
+Uploaded files (board PDFs, territory cards) are stored in separate paths per congregation, with random filenames so that no one can guess at or enumerate file URLs.
 
-## Data Isolation
+## Role-based access control
 
-### Congregation Scoping
-
-All congregation data is strictly isolated. The application uses PostgreSQL Row-Level Security (RLS) to enforce tenant isolation at the database level. This means:
-
-- A user in Congregation A can never see data from Congregation B
-- This isolation is enforced at the database query level, not just the UI level
-- 28 models are congregation-scoped (see [Architecture](../development/architecture.md#data-isolation) for the full list)
-
-### File Storage Isolation
-
-Uploaded files are stored with congregation-scoped keys:
-
-```
-{congregationId}/board/{uuid}.pdf
-```
-
-Each congregation's files are stored in a separate path, and filenames use UUIDs to prevent enumeration.
-
-## Role-Based Access Control
-
-Access to features is controlled through 14 fine-grained roles. Roles are checked on every request — both in the UI (to show/hide elements) and on the server (to enforce access).
+Access to features is controlled through 14 fine-grained roles. Roles are checked on every request — both in the UI (to show or hide elements) and on the server (to enforce access).
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of roles and what they control.
 
-## GDPR & Data Protection
+## GDPR & data protection
 
 Unitae processes religious affiliation data, classified as special category data under GDPR Article 9. The application includes built-in tools to help comply with European data protection regulations:
 
-- **User data export** — JSON export of all personal data (Articles 15 & 20)
-- **User anonymization** — Replace personal data with non-identifiable values while preserving referential integrity (Article 17)
-- **Consent tracking** — Consent gate on first login, management page for users to withdraw consent
-- **Cookie consent** — Third-party services (Google Maps) only load after explicit consent
-- **Audit logging** — Structured audit trail for all GDPR-sensitive operations (login, data export, anonymization, consent changes, user creation, password operations)
-- **Log PII redaction** — Email addresses and personal data fields automatically hashed in application logs
-- **Data retention** — Automated cleanup of expired tokens and old consent records
-- **Deletion ledger** — Audit trail of all anonymization operations for backup reconciliation
-- **Privacy policy** — Built-in `/privacy` page covering all RGPD requirements
-- **Session invalidation** — Anonymized users are immediately logged out
+- **User data export** — JSON export of all personal data (Articles 15 & 20).
+- **User anonymisation** — Replace personal data with non-identifiable values while preserving aggregated reports (Article 17).
+- **Consent gate** — Users must explicitly consent to data processing on their first login before accessing the application.
+- **Consent management** — Users can view and withdraw their consents at any time from their profile.
+- **Cookie consent** — Third-party services (Google Maps) only load after explicit consent.
+- **Audit logging** — A trail of GDPR-sensitive operations: login, data export, anonymisation, consent changes, user creation, password operations.
+- **Log PII obfuscation** — Email addresses and other personal data are automatically obfuscated in application logs.
+- **Data retention** — Automated cleanup of expired tokens and old withdrawn consent records.
+- **Deletion ledger** — Anonymisation operations are recorded for backup reconciliation.
+- **Privacy policy** — A built-in `/privacy` page covering all GDPR requirements.
+- **Session invalidation** — Anonymised users are immediately logged out.
 
 For the managed hosting service, MindsersIT acts as data processor under a Data Processing Agreement (DPA) with each congregation. Self-hosted instances are under the sole responsibility of the deploying entity.
 
-## Vulnerability Reporting
+## Vulnerability reporting
 
 If you discover a security vulnerability in Unitae, please report it responsibly:
 
-- **Do not** create a public GitHub issue for security problems
-- Use [GitHub Security Advisories](https://github.com/Unitae/unitae/security/advisories) to report vulnerabilities privately
-- See [SECURITY.md](../../SECURITY.md) for the full disclosure policy and reporting details
+- **Do not** create a public GitHub issue for security problems.
+- Use [GitHub Security Advisories](https://github.com/Unitae/unitae/security/advisories) to report vulnerabilities privately.
+- See [SECURITY.md](../../SECURITY.md) for the full disclosure policy and reporting details.
 
-### In Scope
+### In scope
 
-- Authentication bypass
-- Data leaks between congregations
-- SQL injection, XSS, CSRF
-- Unauthorized file storage access
-- Privilege escalation
+- Authentication bypass.
+- Data leaks between congregations.
+- SQL injection, XSS, CSRF.
+- Unauthorized file storage access.
+- Privilege escalation.
 
 ### Response
 
-- 48-hour acknowledgment
-- 7-day initial assessment
-- Credit in release notes (if desired)
+- 48-hour acknowledgment.
+- 7-day initial assessment.
+- Credit in release notes (if desired).
+
+## For technical readers
+
+Implementation details — hashing parameters, cookie attributes, calendar feed token format, audit action keys, file-key templates, log redaction algorithm — are documented in the contributor docs:
+
+- [Architecture — Security](../development/architecture.md#security) — The full reference list.
+- [Row-Level Security](../development/row-level-security.md) — How tenant isolation is enforced at the database level.
 
 ## Related
 
-- [Roles and Permissions](roles-and-permissions.md) — The 14 roles that control access to features
-- [FAQ](../resources/faq.md) — "Is my data safe?" and other common questions
-- [Architecture](../development/architecture.md) — Technical details of the data isolation model
+- [Roles and Permissions](roles-and-permissions.md) — The 14 roles that control access to features.
+- [FAQ](../resources/faq.md) — "Is my data safe?" and other common questions.
