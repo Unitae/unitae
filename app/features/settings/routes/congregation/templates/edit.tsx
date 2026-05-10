@@ -296,7 +296,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
 
     reorderFetcher.submit(
       { orderedIds: reordered },
-      { method: 'POST', action: './reorder-parts', encType: 'application/json' },
+      { method: 'POST', action: `/settings/congregation/templates/${template.id}/reorder-parts`, encType: 'application/json' },
     )
   }
 

@@ -14,7 +14,7 @@ export function SortableRow({ id, children }: { id: number; children: ReactNode 
   }
 
   return (
-    <TableRow ref={setNodeRef} style={style}>
+    <TableRow ref={setNodeRef} style={style} data-sortable="">
       <TableCell className="w-8">
         <button type="button" className="cursor-grab touch-none text-muted-foreground" {...attributes} {...listeners}>
           <GripVertical className="size-4" />
