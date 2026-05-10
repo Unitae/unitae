@@ -7,7 +7,7 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignm
 import { togglePublisherStatus } from './publisher-status.server'
 
 const mockDb = {
-  user: {
+  member: {
     update: vi.fn(),
   },
 }
@@ -19,25 +19,25 @@ beforeEach(() => {
 describe('togglePublisherStatus', () => {
   it('sets isPublisher to true', async () => {
     const expected = { id: 5, isPublisher: true }
-    mockDb.userAccount.update.mockResolvedValue(expected)
+    mockDb.member.update.mockResolvedValue(expected)
 
     const result = await togglePublisherStatus(mockDb as never, 5, 10, true, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.userAccount.update).toHaveBeenCalledWith({
+    expect(mockDb.member.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: true },
     })
   })
 
-  it('sets isPublisher to false', async () => {
+  it('sets isPublisher to false (member becomes ministry-school student)', async () => {
     const expected = { id: 5, isPublisher: false }
-    mockDb.userAccount.update.mockResolvedValue(expected)
+    mockDb.member.update.mockResolvedValue(expected)
 
     const result = await togglePublisherStatus(mockDb as never, 5, 10, false, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.userAccount.update).toHaveBeenCalledWith({
+    expect(mockDb.member.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: false },
     })

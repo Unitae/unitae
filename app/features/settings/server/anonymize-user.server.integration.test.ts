@@ -55,7 +55,7 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
-    const user = await tx.user.create({
+    const user = await tx.userAccount.create({
       data: {
         email: `anon-primary-${ts}@test.com`,
         password: 'hashed',
@@ -76,7 +76,7 @@ beforeAll(async () => {
   })
 
   await withScope(otherCongId, async tx => {
-    const user = await tx.user.create({
+    const user = await tx.userAccount.create({
       data: {
         email: `anon-other-${ts}@test.com`,
         password: 'hashed',
@@ -100,7 +100,7 @@ afterAll(async () => {
       await tx.attribution.deleteMany({})
       await tx.congregationUserPermission.deleteMany({})
       await tx.publisherGroup.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
       await tx.territory.deleteMany({})
     })
   }
@@ -112,14 +112,19 @@ describe('anonymizeUser (integration)', () => {
   it('anonymizes personal data of the target user', async () => {
     await withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as UserId, 'admin@test.com'))
 
-    const user = await testDb.userAccount.findUnique({ where: { id: primaryUserId } })
-    expect(user?.firstname).toBe('Utilisateur')
-    expect(user?.lastname).toBe('supprime')
+    const user = await testDb.userAccount.findUnique({
+      where: { id: primaryUserId },
+      include: { member: true },
+    })
     expect(user?.email).toMatch(ANONYMIZED_EMAIL_RE)
     expect(user?.password).toBe('')
-    expect(user?.phone).toBeNull()
     expect(user?.active).toBe(false)
     expect(user?.anonymizedAt).not.toBeNull()
+    // Member-side fields (PII scrubbed; activity-relevant fields preserved)
+    expect(user?.member?.firstname).toBe('Utilisateur')
+    expect(user?.member?.lastname).toBe('supprime')
+    expect(user?.member?.phone).toBe('')
+    expect(user?.member?.anonymizedAt).not.toBeNull()
   })
 
   it('deletes congregation roles for the anonymized user', async () => {
@@ -168,7 +173,7 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
 
   beforeAll(async () => {
     await withScope(primaryCongId, async tx => {
-      const responsible = await tx.user.create({
+      const responsible = await tx.userAccount.create({
         data: {
           email: `anon-resp-${ts}@test.com`,
           password: 'hashed',
@@ -181,7 +186,7 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
         },
       })
 
-      const deputy = await tx.user.create({
+      const deputy = await tx.userAccount.create({
         data: {
           email: `anon-deputy-${ts}@test.com`,
           password: 'hashed',

@@ -40,7 +40,7 @@ beforeAll(async () => {
   congBId = congB.id
 
   await withScope(congAId, async tx => {
-    const alice = await tx.user.create({
+    const alice = await tx.userAccount.create({
       data: {
         email: `alice-cal-${ts}@test.com`,
         password: 'hashed',
@@ -107,7 +107,7 @@ beforeAll(async () => {
   })
 
   await withScope(congBId, async tx => {
-    const bob = await tx.user.create({
+    const bob = await tx.userAccount.create({
       data: {
         email: `bob-cal-${ts}@test.com`,
         password: 'hashed',

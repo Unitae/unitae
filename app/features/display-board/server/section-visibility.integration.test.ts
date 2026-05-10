@@ -57,7 +57,7 @@ beforeAll(async () => {
     })
     primaryPublisherRoleId = publisher.id
 
-    const elderUser = await tx.user.create({
+    const elderUser = await tx.userAccount.create({
       data: {
         email: `sv-elder-${ts}@test.com`,
         password: 'h',
@@ -77,7 +77,7 @@ beforeAll(async () => {
       data: { userId: elderUser.id, roleId: publisher.id, congregationId: primaryCongId },
     })
 
-    const publisherUser = await tx.user.create({
+    const publisherUser = await tx.userAccount.create({
       data: {
         email: `sv-pub-${ts}@test.com`,
         password: 'h',

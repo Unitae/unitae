@@ -9,7 +9,8 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
 }))
 
 const mockDb = {
-  user: { update: vi.fn() },
+  userAccount: { update: vi.fn() },
+  member: { update: vi.fn() },
   congregationUserPermission: { deleteMany: vi.fn(), createMany: vi.fn() },
   permission: { findMany: vi.fn() },
 }
@@ -88,7 +89,7 @@ describe('updateUser', () => {
       action: 'UserUpdated',
       congregationId: 10,
       actorId: 99,
-      entityType: 'User',
+      entityType: 'UserAccount',
       entityId: 7,
       metadata: { permissions: ['admin'] },
     })

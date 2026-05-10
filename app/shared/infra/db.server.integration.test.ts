@@ -64,7 +64,7 @@ afterAll(async () => {
 describe('RLS withScope isolation', () => {
   it('ne retourne que les utilisateurs de la congrégation A quand le scope est A', async () => {
     const users = await withScope(congregationIdA, tx => {
-      return tx.user.findMany({ where: { congregationId: congregationIdA } })
+      return tx.userAccount.findMany({ where: { congregationId: congregationIdA } })
     })
 
     expect(users.length).toBeGreaterThanOrEqual(1)
@@ -73,7 +73,7 @@ describe('RLS withScope isolation', () => {
 
   it('empêche la congrégation A de voir les données de la congrégation B', async () => {
     const users = await withScope(congregationIdA, tx => {
-      return tx.user.findMany({ where: { congregationId: congregationIdB } })
+      return tx.userAccount.findMany({ where: { congregationId: congregationIdB } })
     })
 
     expect(users).toHaveLength(0)

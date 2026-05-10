@@ -9,7 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
       deleteMany: vi.fn(),
       delete: vi.fn(),
     },
-    user: { update: vi.fn() },
+    userAccount: { update: vi.fn() },
     $transaction: vi.fn((fns: Promise<unknown>[]) => Promise.all(fns)),
   },
 }))
@@ -91,7 +91,7 @@ describe('verifyEmailVerificationToken', () => {
       userId: 42,
       expiresAt: pastDate,
       createdAt: new Date(),
-      user: { id: 42 },
+      userAccount: { id: 42 },
     } as never)
 
     const result = await verifyEmailVerificationToken('expired-token')

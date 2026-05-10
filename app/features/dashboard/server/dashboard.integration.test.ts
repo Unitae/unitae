@@ -33,7 +33,7 @@ beforeAll(async () => {
   congregationId = cong.id
 
   await withScope(congregationId, async tx => {
-    const alice = await tx.user.create({
+    const alice = await tx.userAccount.create({
       data: {
         email: `alice-dash-${ts}@test.com`,
         password: 'hashed',
@@ -47,7 +47,7 @@ beforeAll(async () => {
     })
     aliceId = alice.id
 
-    const bob = await tx.user.create({
+    const bob = await tx.userAccount.create({
       data: {
         email: `bob-dash-${ts}@test.com`,
         password: 'hashed',
@@ -193,7 +193,7 @@ afterAll(async () => {
     await tx.boardSection.deleteMany({ where: { congregationId } })
     await tx.attribution.deleteMany({ where: { congregationId } })
     await tx.territory.deleteMany({ where: { congregationId } })
-    await tx.user.deleteMany({ where: { congregationId } })
+    await tx.userAccount.deleteMany({ where: { congregationId } })
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()

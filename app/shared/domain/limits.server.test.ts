@@ -3,7 +3,8 @@ import { LimitError, LimitService } from './limits.server'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { count: vi.fn() },
+    member: { count: vi.fn() },
+    userAccount: { count: vi.fn() },
     territory: { count: vi.fn() },
     boardDocument: { count: vi.fn() },
     territoryCardOverlay: { count: vi.fn() },
@@ -28,12 +29,12 @@ describe('LimitService', () => {
   describe('isLimited', () => {
     it('retourne false quand la limite est null (illimité)', () => {
       const service = new LimitService(db as never, makeLimits({ maxPublishers: null }))
-      expect(service.isLimited('publishers')).toBe(false)
+      expect(service.isLimited('members')).toBe(false)
     })
 
     it('retourne true quand la limite est définie', () => {
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
-      expect(service.isLimited('publishers')).toBe(true)
+      expect(service.isLimited('members')).toBe(true)
     })
 
     it('retourne true même quand la limite est 0', () => {
@@ -43,7 +44,7 @@ describe('LimitService', () => {
 
     it('vérifie chaque type de limite indépendamment', () => {
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10, maxTerritories: null }))
-      expect(service.isLimited('publishers')).toBe(true)
+      expect(service.isLimited('members')).toBe(true)
       expect(service.isLimited('territories')).toBe(false)
     })
   })
@@ -107,31 +108,31 @@ describe('LimitService', () => {
 
     it("retourne false quand la ressource n'est pas limitée", async () => {
       const service = new LimitService(db as never, makeLimits({ maxPublishers: null }))
-      const result = await service.checkWouldGoOverLimit('publishers')
+      const result = await service.checkWouldGoOverLimit('members')
       expect(result).toBe(false)
     })
 
     it('retourne false quand le count est sous la limite', async () => {
-      vi.mocked(db.userAccount.count).mockResolvedValue(5)
+      vi.mocked(db.member.count).mockResolvedValue(5)
 
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
-      const result = await service.checkWouldGoOverLimit('publishers')
+      const result = await service.checkWouldGoOverLimit('members')
       expect(result).toBe(false)
     })
 
     it('retourne true quand le count atteint la limite', async () => {
-      vi.mocked(db.userAccount.count).mockResolvedValue(10)
+      vi.mocked(db.member.count).mockResolvedValue(10)
 
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
-      const result = await service.checkWouldGoOverLimit('publishers')
+      const result = await service.checkWouldGoOverLimit('members')
       expect(result).toBe(true)
     })
 
     it('retourne true quand le count dépasse la limite', async () => {
-      vi.mocked(db.userAccount.count).mockResolvedValue(15)
+      vi.mocked(db.member.count).mockResolvedValue(15)
 
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
-      const result = await service.checkWouldGoOverLimit('publishers')
+      const result = await service.checkWouldGoOverLimit('members')
       expect(result).toBe(true)
     })
 
@@ -158,22 +159,22 @@ describe('LimitService', () => {
     })
 
     it("ne lance pas d'erreur quand sous la limite", async () => {
-      vi.mocked(db.userAccount.count).mockResolvedValue(5)
+      vi.mocked(db.member.count).mockResolvedValue(5)
 
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
-      await expect(service.errorIfWouldGoOverLimit('publishers')).resolves.toBeUndefined()
+      await expect(service.errorIfWouldGoOverLimit('members')).resolves.toBeUndefined()
     })
 
     it('lance LimitError quand la limite est atteinte', async () => {
-      vi.mocked(db.userAccount.count).mockResolvedValue(10)
+      vi.mocked(db.member.count).mockResolvedValue(10)
 
       const service = new LimitService(db as never, makeLimits({ maxPublishers: 10 }))
       try {
-        await service.errorIfWouldGoOverLimit('publishers')
+        await service.errorIfWouldGoOverLimit('members')
         expect.unreachable('devrait lancer une erreur')
       } catch (error) {
         expect(error).toBeInstanceOf(LimitError)
-        expect((error as LimitError).limitName).toBe('publishers')
+        expect((error as LimitError).limitName).toBe('members')
       }
     })
   })
@@ -181,7 +182,7 @@ describe('LimitService', () => {
 
 describe('LimitError', () => {
   it('est une instance de Error', () => {
-    const error = new LimitError('publishers')
+    const error = new LimitError('members')
     expect(error).toBeInstanceOf(Error)
   })
 
@@ -191,7 +192,7 @@ describe('LimitError', () => {
   })
 
   it('a un message contenant le nom de la limite', () => {
-    const error = new LimitError('publishers')
-    expect(error.message).toContain('publishers')
+    const error = new LimitError('members')
+    expect(error.message).toContain('members')
   })
 })

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockDb = {
-  user: { findUnique: vi.fn() },
+  userAccount: { findUnique: vi.fn() },
   congregationUserPermission: { findMany: vi.fn() },
   publisherActivity: { findMany: vi.fn() },
   attribution: { findMany: vi.fn() },
@@ -20,27 +20,36 @@ beforeEach(() => {
 
 describe('exportUserData', () => {
   it('retourne toutes les donnees personnelles de l utilisateur', async () => {
-    const fakeUser = {
+    const fakeAccount = {
       id: 1,
-      firstname: 'Jean',
-      lastname: 'Dupont',
+      firstname: null,
+      lastname: null,
       email: 'jean@test.com',
-      phone: '0600000000',
-      address: '1 rue de la Paix',
-      isMale: true,
-      birthDate: new Date('1990-01-01'),
-      baptismDate: new Date('2010-06-15'),
-      isPublisher: true,
-      type: 'normal',
-      isHelder: false,
-      isServant: true,
-      isAnointed: false,
       active: true,
+      platformAdmin: false,
       anonymizedAt: null,
-      publisherGroupId: 1,
+      memberId: 7,
+      member: {
+        id: 7,
+        firstname: 'Jean',
+        lastname: 'Dupont',
+        phone: '0600000000',
+        address: '1 rue de la Paix',
+        isMale: true,
+        birthDate: new Date('1990-01-01'),
+        baptismDate: new Date('2010-06-15'),
+        isPublisher: true,
+        type: 'normal',
+        isHelder: false,
+        isServant: true,
+        isAnointed: false,
+        publisherGroupId: 1,
+        leftAt: null,
+        anonymizedAt: null,
+      },
     }
 
-    mockDb.userAccount.findUnique.mockResolvedValue(fakeUser as never)
+    mockDb.userAccount.findUnique.mockResolvedValue(fakeAccount as never)
     mockDb.congregationUserPermission.findMany.mockResolvedValue([{ permission: { key: 'Admin' } }] as never)
     mockDb.publisherActivity.findMany.mockResolvedValue([
       { month: 3, year: 2025, hours: 10, studies: 1, type: 'normal', isPublisher: true, notes: '' },
@@ -68,12 +77,12 @@ describe('exportUserData', () => {
 
     const result = await exportUserData(mockDb as never, 1)
 
-    expect(result.user).toEqual(fakeUser)
+    expect(result.user).toEqual(fakeAccount)
     expect(result.permissions).toEqual([{ key: 'Admin' }])
     expect(result.publisherActivities).toHaveLength(1)
     expect(result.attributions).toHaveLength(1)
     expect(result.publisherGroup).not.toBeNull()
-    expect(result.exportVersion).toBe('1.0')
+    expect(result.exportVersion).toBe('2.0')
     expect(result.exportDate).toBeDefined()
   })
 

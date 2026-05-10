@@ -1,22 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
-const mockUpdate = vi.fn()
+const mockMemberUpdate = vi.fn()
+const mockAccountFindUnique = vi.fn()
+const mockAccountUpdate = vi.fn()
 const mockSync = vi.fn()
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
-    user: { update: mockUpdate },
-    auditLog: { create: vi.fn() },
-  },
-}))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: mockSync,
 }))
 
+const mockDb = {
+  member: { update: mockMemberUpdate },
+  userAccount: { findUnique: mockAccountFindUnique, update: mockAccountUpdate },
+}
+
 const { updatePublisher } = await import('./update-publisher.server')
-const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -39,14 +39,15 @@ describe('updatePublisher', () => {
     address: '12 rue de la Paix',
   }
 
-  it('updates the publisher with correct data', async () => {
-    const fakeUpdated = { id: 1, ...baseParams }
-    mockUpdate.mockResolvedValue(fakeUpdated as never)
+  it('updates the member with correct data', async () => {
+    const fakeUpdated = { id: 1 }
+    mockMemberUpdate.mockResolvedValue(fakeUpdated as never)
+    mockAccountFindUnique.mockResolvedValue(null)
 
-    const result = await updatePublisher(db, 1, 10, 99, baseParams)
+    const result = await updatePublisher(mockDb as never, 1, 10, 99, baseParams)
 
     expect(result).toEqual(fakeUpdated)
-    expect(mockUpdate).toHaveBeenCalledWith({
+    expect(mockMemberUpdate).toHaveBeenCalledWith({
       where: {
         id_congregationId: { id: 1, congregationId: 10 },
       },
@@ -60,7 +61,6 @@ describe('updatePublisher', () => {
         isServant: false,
         isAnointed: false,
         publisherGroupId: 5,
-        email: 'jean@example.com',
         type: PublisherType.Normal,
         address: '12 rue de la Paix',
         phone: '0612345678',
@@ -69,12 +69,12 @@ describe('updatePublisher', () => {
   })
 
   it('sets isMale to false when gender is not male', async () => {
-    const params = { ...baseParams, gender: 'female' }
-    mockUpdate.mockResolvedValue({ id: 1 } as never)
+    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+    mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(db, 1, 10, 99, params)
+    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, gender: 'female' })
 
-    expect(mockUpdate).toHaveBeenCalledWith(
+    expect(mockMemberUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ isMale: false }),
       }),
@@ -82,12 +82,12 @@ describe('updatePublisher', () => {
   })
 
   it('sets dates to null when not provided', async () => {
-    const params = { ...baseParams, birthDate: null, baptismDate: null }
-    mockUpdate.mockResolvedValue({ id: 1 } as never)
+    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+    mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(db, 1, 10, 99, params)
+    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, birthDate: null, baptismDate: null })
 
-    expect(mockUpdate).toHaveBeenCalledWith(
+    expect(mockMemberUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ birthDate: null, baptismDate: null }),
       }),
@@ -95,33 +95,45 @@ describe('updatePublisher', () => {
   })
 
   it('sets publisherGroupId to null when groupId is NaN', async () => {
-    const params = { ...baseParams, groupId: Number.NaN }
-    mockUpdate.mockResolvedValue({ id: 1 } as never)
+    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+    mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(db, 1, 10, 99, params)
+    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, groupId: Number.NaN })
 
-    expect(mockUpdate).toHaveBeenCalledWith(
+    expect(mockMemberUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ publisherGroupId: null }),
       }),
     )
   })
 
-  it('does not include email in data when email is null', async () => {
-    const params = { ...baseParams, email: null }
-    mockUpdate.mockResolvedValue({ id: 1 } as never)
+  it('updates the linked account email when email is provided and an account exists', async () => {
+    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+    mockAccountFindUnique.mockResolvedValue({ id: 42 })
 
-    await updatePublisher(db, 1, 10, 99, params)
+    await updatePublisher(mockDb as never, 1, 10, 99, baseParams)
 
-    const callData = mockUpdate.mock.calls[0][0].data
-    expect(callData).not.toHaveProperty('email')
+    expect(mockAccountUpdate).toHaveBeenCalledWith({
+      where: { id: 42 },
+      data: { email: 'jean@example.com' },
+    })
+  })
+
+  it('does not touch any account when email is null', async () => {
+    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+
+    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, email: null })
+
+    expect(mockAccountFindUnique).not.toHaveBeenCalled()
+    expect(mockAccountUpdate).not.toHaveBeenCalled()
   })
 
   it('syncs built-in role assignments after the update', async () => {
-    mockUpdate.mockResolvedValue({ id: 1 } as never)
+    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+    mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(db, 1, 10, 99, baseParams)
+    await updatePublisher(mockDb as never, 1, 10, 99, baseParams)
 
-    expect(mockSync).toHaveBeenCalledWith(db, 1, 10, 99)
+    expect(mockSync).toHaveBeenCalledWith(mockDb, 1, 10, 99)
   })
 })

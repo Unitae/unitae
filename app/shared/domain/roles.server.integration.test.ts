@@ -80,7 +80,7 @@ afterAll(async () => {
     await tx.rolePermission.deleteMany({})
     await tx.role.deleteMany({})
     await tx.congregationUserPermission.deleteMany({})
-    await tx.user.deleteMany({})
+    await tx.userAccount.deleteMany({})
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()

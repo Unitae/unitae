@@ -46,7 +46,7 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
-    await tx.user.create({
+    await tx.userAccount.create({
       data: {
         email: `notify-primary-${ts}@test.com`,
         password: 'hashed',
@@ -61,7 +61,7 @@ beforeAll(async () => {
   })
 
   await withScope(otherCongId, async tx => {
-    await tx.user.create({
+    await tx.userAccount.create({
       data: {
         email: `notify-other-${ts}@test.com`,
         password: 'hashed',
@@ -81,7 +81,7 @@ afterAll(async () => {
     if (!congId) continue
     await withScope(congId, async tx => {
       await tx.notificationEvent.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })

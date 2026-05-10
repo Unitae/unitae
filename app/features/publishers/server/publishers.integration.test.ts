@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import type { CongregationId, UserId } from '~/shared/types/branded'
+import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { createTestCongregation, createTestUser } from '~/tests/factories'
 import { getPublisherById, getPublishersWithGroup } from './publishers.server'
 
@@ -48,7 +48,7 @@ afterAll(async () => {
 describe('getPublisherById', () => {
   it('retourne le publisher dans sa congrégation', async () => {
     const publisher = await withScope(congregationIdA, tx =>
-      getPublisherById(tx, publisherIdA as UserId, congregationIdA as CongregationId, serviceYearStart),
+      getPublisherById(tx, publisherIdA as MemberId, congregationIdA as CongregationId, serviceYearStart),
     )
 
     expect(publisher).not.toBeNull()
@@ -58,7 +58,7 @@ describe('getPublisherById', () => {
 
   it('retourne null si le publisher appartient à une autre congrégation', async () => {
     const publisher = await withScope(congregationIdB, tx =>
-      getPublisherById(tx, publisherIdA as UserId, congregationIdA as CongregationId, serviceYearStart),
+      getPublisherById(tx, publisherIdA as MemberId, congregationIdA as CongregationId, serviceYearStart),
     )
 
     expect(publisher).toBeNull()

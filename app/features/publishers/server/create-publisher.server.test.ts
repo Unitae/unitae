@@ -10,9 +10,13 @@ vi.mock('~/shared/domain/limits.server', () => ({
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignments: vi.fn() }))
+vi.mock('~/features/authentication/server/invalidate-user-password.server', () => ({
+  createPasswordResetToken: vi.fn().mockResolvedValue('token'),
+}))
 
 const mockDb = {
-  user: { create: vi.fn() },
+  member: { create: vi.fn() },
+  userAccount: { create: vi.fn() },
 }
 
 const { createPublisher } = await import('./create-publisher.server')
@@ -48,45 +52,52 @@ const baseParams = {
 }
 
 describe('createPublisher', () => {
-  it('creates publisher with provided email', async () => {
-    const fake = { id: 1, email: 'jean@example.com' }
-    mockDb.userAccount.create.mockResolvedValue(fake as never)
+  it('creates a Member and a linked UserAccount when email is provided', async () => {
+    const member = { id: 1, firstname: 'Jean', lastname: 'Dupont' }
+    const account = { id: 5, memberId: 1, email: 'jean@example.com' }
+    mockDb.member.create.mockResolvedValue(member as never)
+    mockDb.userAccount.create.mockResolvedValue(account as never)
 
     const result = await createPublisher(mockDb as never, baseCongregation, baseParams)
 
-    expect(result).toEqual(fake)
-    const call = mockDb.userAccount.create.mock.calls[0][0]
-    expect(call.data.email).toBe('jean@example.com')
+    expect(result).toEqual(member)
+    const memberCall = mockDb.member.create.mock.calls[0][0]
+    expect(memberCall.data.firstname).toBe('Jean')
+    expect(memberCall.data.isPublisher).toBe(true)
+    const accountCall = mockDb.userAccount.create.mock.calls[0][0]
+    expect(accountCall.data.email).toBe('jean@example.com')
+    expect(accountCall.data.memberId).toBe(1)
   })
 
-  it('creates publisher with placeholder email when email is null', async () => {
-    mockDb.userAccount.create.mockResolvedValue({ id: 2 } as never)
+  it('creates a Member only (no UserAccount) when email is null', async () => {
+    mockDb.member.create.mockResolvedValue({ id: 2 } as never)
 
     await createPublisher(mockDb as never, baseCongregation, { ...baseParams, email: null })
 
-    const call = mockDb.userAccount.create.mock.calls[0][0]
-    expect(call.data.email).toBe('jean.dupont@placeholder.unitae.app')
+    expect(mockDb.member.create).toHaveBeenCalledOnce()
+    expect(mockDb.userAccount.create).not.toHaveBeenCalled()
   })
 
-  it('saves phone and address to the database', async () => {
-    mockDb.userAccount.create.mockResolvedValue({ id: 3 } as never)
+  it('saves phone and address on the Member', async () => {
+    mockDb.member.create.mockResolvedValue({ id: 3 } as never)
 
     await createPublisher(mockDb as never, baseCongregation, {
       ...baseParams,
+      email: null,
       phone: '0612345678',
       address: '5 rue de la Paix',
     })
 
-    const call = mockDb.userAccount.create.mock.calls[0][0]
+    const call = mockDb.member.create.mock.calls[0][0]
     expect(call.data.phone).toBe('0612345678')
     expect(call.data.address).toBe('5 rue de la Paix')
   })
 
-  it('throws LimitError when publisher limit reached', async () => {
+  it('throws LimitError when member limit reached', async () => {
     mockErrorIfWouldGoOverLimit.mockRejectedValue(new Error('Limit reached'))
 
     await expect(createPublisher(mockDb as never, baseCongregation, baseParams)).rejects.toThrow('Limit reached')
 
-    expect(mockDb.userAccount.create).not.toHaveBeenCalled()
+    expect(mockDb.member.create).not.toHaveBeenCalled()
   })
 })

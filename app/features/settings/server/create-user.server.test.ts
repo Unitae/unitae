@@ -24,7 +24,7 @@ vi.mock('~/shared/domain/limits.server', () => ({
 }))
 
 const mockDb = {
-  user: { findUnique: vi.fn(), create: vi.fn() },
+  userAccount: { findUnique: vi.fn(), create: vi.fn() },
 }
 
 const { createUser } = await import('./create-user.server')

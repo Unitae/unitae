@@ -6,7 +6,7 @@ vi.mock('~/features/authentication/server/session.server', () => ({
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { findUnique: vi.fn() },
+    userAccount: { findUnique: vi.fn() },
   },
 }))
 

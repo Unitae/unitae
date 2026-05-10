@@ -6,7 +6,8 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignm
 const ANONYMIZED_EMAIL_PATTERN = /^deleted-.*@anonymized\.local$/
 
 const mockDb = {
-  user: { findUnique: vi.fn(), update: vi.fn() },
+  userAccount: { findUnique: vi.fn(), update: vi.fn() },
+  member: { update: vi.fn() },
   publisherGroup: { updateMany: vi.fn() },
   attribution: { updateMany: vi.fn() },
   congregationUserPermission: { deleteMany: vi.fn() },
@@ -22,13 +23,15 @@ beforeEach(() => {
 })
 
 describe('anonymizeUser', () => {
-  it('anonymise les donnees personnelles de l utilisateur', async () => {
+  it('anonymise les donnees personnelles de l utilisateur et du membre lie', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue({
       id: 1,
       anonymizedAt: null,
       congregationId: 10,
+      memberId: 1,
     } as never)
     mockDb.userAccount.update.mockResolvedValue({} as never)
+    mockDb.member.update.mockResolvedValue({} as never)
     mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.attribution.updateMany.mockResolvedValue({ count: 1 } as never)
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 2 } as never)
@@ -38,18 +41,24 @@ describe('anonymizeUser', () => {
 
     await anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')
 
-    const updateCall = mockDb.userAccount.update.mock.calls[0][0]
-    expect(updateCall.where).toEqual({ id: 1 })
-    expect(updateCall.data.firstname).toBe('Utilisateur')
-    expect(updateCall.data.lastname).toBe('supprime')
-    expect(updateCall.data.email).toMatch(ANONYMIZED_EMAIL_PATTERN)
-    expect(updateCall.data.password).toBe('')
-    expect(updateCall.data.phone).toBeNull()
-    expect(updateCall.data.address).toBeNull()
-    expect(updateCall.data.birthDate).toBeNull()
-    expect(updateCall.data.baptismDate).toBeNull()
-    expect(updateCall.data.active).toBe(false)
-    expect(updateCall.data.anonymizedAt).toBeInstanceOf(Date)
+    const accountUpdate = mockDb.userAccount.update.mock.calls[0][0]
+    expect(accountUpdate.where).toEqual({ id: 1 })
+    expect(accountUpdate.data.firstname).toBeNull()
+    expect(accountUpdate.data.lastname).toBeNull()
+    expect(accountUpdate.data.email).toMatch(ANONYMIZED_EMAIL_PATTERN)
+    expect(accountUpdate.data.password).toBe('')
+    expect(accountUpdate.data.active).toBe(false)
+    expect(accountUpdate.data.anonymizedAt).toBeInstanceOf(Date)
+
+    const memberUpdate = mockDb.member.update.mock.calls[0][0]
+    expect(memberUpdate.where).toEqual({ id: 1 })
+    expect(memberUpdate.data.firstname).toBe('Utilisateur')
+    expect(memberUpdate.data.lastname).toBe('supprime')
+    expect(memberUpdate.data.phone).toBe('')
+    expect(memberUpdate.data.address).toBe('')
+    expect(memberUpdate.data.birthDate).toBeNull()
+    expect(memberUpdate.data.baptismDate).toBeNull()
+    expect(memberUpdate.data.anonymizedAt).toBeInstanceOf(Date)
 
     expect(mockDb.publisherGroup.updateMany).toHaveBeenCalledWith({ where: { deputyId: 1 }, data: { deputyId: null } })
     expect(mockDb.attribution.updateMany).toHaveBeenCalledWith({
@@ -69,6 +78,22 @@ describe('anonymizeUser', () => {
     expect(deletionRecord.data.requestedBy).toBe('admin:5')
   })
 
+  it('anonymise un compte sans membre lie sans toucher aux tables de membres', async () => {
+    mockDb.userAccount.findUnique.mockResolvedValue({
+      id: 7,
+      anonymizedAt: null,
+      congregationId: 10,
+      memberId: null,
+    } as never)
+
+    await anonymizeUser(mockDb as never, 7 as UserId, 'admin:5')
+
+    expect(mockDb.userAccount.update).toHaveBeenCalled()
+    expect(mockDb.member.update).not.toHaveBeenCalled()
+    expect(mockDb.publisherGroup.updateMany).not.toHaveBeenCalled()
+    expect(mockDb.attribution.updateMany).not.toHaveBeenCalled()
+  })
+
   it('refuse d anonymiser un utilisateur inexistant', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null as never)
 
@@ -82,6 +107,7 @@ describe('anonymizeUser', () => {
       id: 1,
       anonymizedAt: new Date(),
       congregationId: 10,
+      memberId: null,
     } as never)
 
     await expect(anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')).rejects.toThrow(

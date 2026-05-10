@@ -7,7 +7,7 @@ const mockDb = {
     count: vi.fn(),
     findFirst: vi.fn(),
   },
-  user: {
+  member: {
     count: vi.fn(),
     findFirst: vi.fn(),
   },
@@ -47,22 +47,22 @@ describe('getDynamicPreview', () => {
   })
 
   it('returns pioneer count for pioneers type', async () => {
-    mockDb.userAccount.count.mockResolvedValue(3)
+    mockDb.member.count.mockResolvedValue(3)
 
     const result = await getDynamicPreview(mockDb as never, 'pioneers', null, 10)
 
     expect(result).toBe('3 pionniers')
-    expect(mockDb.userAccount.count).toHaveBeenCalledWith({
+    expect(mockDb.member.count).toHaveBeenCalledWith({
       where: {
         congregationId: 10,
         type: { in: ['PionnierPermanant', 'PionnierSpecial', 'Missionnaire'] },
-        active: true,
+        leftAt: null,
       },
     })
   })
 
   it('returns null for pioneers when no pioneers exist', async () => {
-    mockDb.userAccount.count.mockResolvedValue(0)
+    mockDb.member.count.mockResolvedValue(0)
 
     const result = await getDynamicPreview(mockDb as never, 'pioneers', null, 10)
 
@@ -116,7 +116,7 @@ describe('getContentVersion', () => {
     const groupDate = new Date('2026-04-10')
     const memberDate = new Date('2026-04-15')
     mockDb.publisherGroup.findFirst.mockResolvedValue({ updatedAt: groupDate })
-    mockDb.userAccount.findFirst.mockResolvedValue({ updatedAt: memberDate })
+    mockDb.member.findFirst.mockResolvedValue({ updatedAt: memberDate })
 
     const result = await getContentVersion(mockDb as never, 'publisher-groups', null, 10)
 
@@ -125,7 +125,7 @@ describe('getContentVersion', () => {
 
   it('returns null for publisher-groups when no data exists', async () => {
     mockDb.publisherGroup.findFirst.mockResolvedValue(null)
-    mockDb.userAccount.findFirst.mockResolvedValue(null)
+    mockDb.member.findFirst.mockResolvedValue(null)
 
     const result = await getContentVersion(mockDb as never, 'publisher-groups', null, 10)
 
@@ -134,7 +134,7 @@ describe('getContentVersion', () => {
 
   it('returns latest pioneer updatedAt for pioneers type', async () => {
     const date = new Date('2026-04-20')
-    mockDb.userAccount.findFirst.mockResolvedValue({ updatedAt: date })
+    mockDb.member.findFirst.mockResolvedValue({ updatedAt: date })
 
     const result = await getContentVersion(mockDb as never, 'pioneers', null, 10)
 
@@ -142,7 +142,7 @@ describe('getContentVersion', () => {
   })
 
   it('returns null for pioneers when no pioneers exist', async () => {
-    mockDb.userAccount.findFirst.mockResolvedValue(null)
+    mockDb.member.findFirst.mockResolvedValue(null)
 
     const result = await getContentVersion(mockDb as never, 'pioneers', null, 10)
 

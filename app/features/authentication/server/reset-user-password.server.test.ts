@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { update: vi.fn() },
+    userAccount: { update: vi.fn() },
   },
 }))
 

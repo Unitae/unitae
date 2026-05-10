@@ -44,19 +44,16 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
-    const user = await tx.user.create({
+    const member = await tx.member.create({
       data: {
-        email: `del-terr-primary-${ts}@test.com`,
-        password: 'hashed',
         firstname: 'Alice',
         lastname: 'Primary',
-        active: true,
         isPublisher: true,
         type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
-    primaryUserId = user.id
+    primaryUserId = member.id
   })
 })
 
@@ -66,7 +63,8 @@ afterAll(async () => {
     await withScope(congId, async tx => {
       await tx.attribution.deleteMany({})
       await tx.territory.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
+      await tx.member.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })

@@ -77,7 +77,7 @@ describe('verifyPasswordResetToken', () => {
       token: 'expired-token',
       userId: 42,
       expiresAt: pastDate,
-      user: { id: 42 },
+      userAccount: { id: 42 },
     } as never)
     vi.mocked(db.passwordResetToken.delete).mockResolvedValue({} as never)
 

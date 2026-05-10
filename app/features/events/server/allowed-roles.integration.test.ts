@@ -65,7 +65,7 @@ beforeAll(async () => {
     publisherRoleId = publisher.id
 
     // Users
-    const elderUser = await tx.user.create({
+    const elderUser = await tx.userAccount.create({
       data: {
         email: `elder-${ts}@test.com`,
         password: 'h',
@@ -79,7 +79,7 @@ beforeAll(async () => {
     })
     elderUserId = elderUser.id
 
-    const plain = await tx.user.create({
+    const plain = await tx.userAccount.create({
       data: {
         email: `plain-${ts}@test.com`,
         password: 'h',
@@ -93,7 +93,7 @@ beforeAll(async () => {
     })
     plainPublisherUserId = plain.id
 
-    const nonPub = await tx.user.create({
+    const nonPub = await tx.userAccount.create({
       data: {
         email: `nonpub-${ts}@test.com`,
         password: 'h',
@@ -196,7 +196,7 @@ afterAll(async () => {
       await tx.event.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
       await tx.role.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
     })
     await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
   }

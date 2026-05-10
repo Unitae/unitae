@@ -63,7 +63,7 @@ afterAll(async () => {
   await withScope(congregationId, async tx => {
     await tx.userRoleAssignment.deleteMany({})
     await tx.role.deleteMany({})
-    await tx.user.deleteMany({})
+    await tx.userAccount.deleteMany({})
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()

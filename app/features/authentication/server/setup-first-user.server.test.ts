@@ -11,7 +11,7 @@ const scopedDb = {
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { findFirst: vi.fn(), create: vi.fn() },
-    user: { create: vi.fn() },
+    userAccount: { create: vi.fn() },
     permission: { findUnique: vi.fn(), upsert: vi.fn() },
     congregationUserPermission: { create: vi.fn() },
     consentRecord: { create: vi.fn() },

@@ -17,7 +17,7 @@ const { updateCongregationSettings } = await import('./congregation-settings.ser
 const { setSetting } = await import('~/shared/domain/settings.server')
 
 const mockDb = {
-  user: {
+  member: {
     updateMany: vi.fn(),
   },
 }
@@ -35,18 +35,18 @@ describe('updateCongregationSettings', () => {
     })
 
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
-    expect(mockDb.userAccount.updateMany).not.toHaveBeenCalled()
+    expect(mockDb.member.updateMany).not.toHaveBeenCalled()
   })
 
   it('resets auxiliary pioneers to normal when feature is deactivated', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
-    mockDb.userAccount.updateMany.mockResolvedValue({ count: 3 })
+    mockDb.member.updateMany.mockResolvedValue({ count: 3 })
 
     await updateCongregationSettings(mockDb as never, 10, 99, {
       auxiliaryPioneerProfileActivated: 'false',
     })
 
-    expect(mockDb.userAccount.updateMany).toHaveBeenCalledWith({
+    expect(mockDb.member.updateMany).toHaveBeenCalledWith({
       where: {
         congregationId: 10,
         type: PublisherType.PionnierAuxiliaires,

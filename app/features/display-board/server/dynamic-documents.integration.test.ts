@@ -30,28 +30,31 @@ beforeAll(async () => {
   congregationId = cong.id
 
   await withScope(congregationId, async tx => {
-    const alice = await tx.user.create({
+    const aliceMember = await tx.member.create({
       data: {
-        email: `alice-board-${ts}@test.com`,
-        password: 'hashed',
         firstname: 'Alice',
         lastname: 'Dupont',
-        active: true,
         isPublisher: true,
         type: PublisherType.Normal,
         congregationId,
       },
     })
-    aliceId = alice.id
-
-    // Create a second user for group responsible/deputy
-    const bob = await tx.user.create({
+    await tx.userAccount.create({
       data: {
-        email: `bob-board-${ts}@test.com`,
+        email: `alice-board-${ts}@test.com`,
         password: 'hashed',
+        active: true,
+        memberId: aliceMember.id,
+        congregationId,
+      },
+    })
+    aliceId = aliceMember.id
+
+    // Create a second member for group responsible/deputy
+    const bob = await tx.member.create({
+      data: {
         firstname: 'Bob',
         lastname: 'Martin',
-        active: true,
         isPublisher: true,
         type: PublisherType.PionnierPermanant,
         congregationId,
@@ -68,7 +71,7 @@ beforeAll(async () => {
     })
 
     // Assign Alice to a group
-    await tx.user.update({
+    await tx.member.update({
       where: { id: aliceId },
       data: { publisherGroupId: group.id },
     })
@@ -121,7 +124,7 @@ afterAll(async () => {
     await tx.eventKind.deleteMany({ where: { congregationId } })
     await tx.programmeTemplate.deleteMany({ where: { congregationId } })
     await tx.publisherGroup.deleteMany({ where: { congregationId } })
-    await tx.user.deleteMany({ where: { congregationId } })
+    await tx.userAccount.deleteMany({ where: { congregationId } })
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()

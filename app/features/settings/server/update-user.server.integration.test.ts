@@ -50,7 +50,7 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
-    const user = await tx.user.create({
+    const user = await tx.userAccount.create({
       data: {
         email: `update-user-primary-${ts}@test.com`,
         password: 'hashed',
@@ -70,7 +70,7 @@ beforeAll(async () => {
   })
 
   await withScope(otherCongId, async tx => {
-    const user = await tx.user.create({
+    const user = await tx.userAccount.create({
       data: {
         email: `update-user-other-${ts}@test.com`,
         password: 'hashed',
@@ -95,7 +95,7 @@ afterAll(async () => {
     if (!congId) continue
     await withScope(congId, async tx => {
       await tx.congregationUserPermission.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })

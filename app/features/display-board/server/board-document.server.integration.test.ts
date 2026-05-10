@@ -54,7 +54,7 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
-    const user = await tx.user.create({
+    const user = await tx.userAccount.create({
       data: {
         email: `board-doc-primary-${ts}@test.com`,
         password: 'hashed',
@@ -109,7 +109,7 @@ beforeAll(async () => {
     })
     dynamicDocId = dynDoc.id
 
-    await tx.user.delete({ where: { id: user.id } })
+    await tx.userAccount.delete({ where: { id: user.id } })
   })
 
   await withScope(otherCongId, async tx => {
@@ -217,7 +217,7 @@ describe('reorderBoardItems (integration)', () => {
 describe('createBoardDocument (integration)', () => {
   it('writes a v1 BoardDocumentVersion attributing the creator', async () => {
     const uploaderId = await withScope(primaryCongId, async tx => {
-      const user = await tx.user.create({
+      const user = await tx.userAccount.create({
         data: {
           email: `board-doc-uploader-${ts}@test.com`,
           password: 'hashed',
@@ -261,7 +261,7 @@ describe('createBoardDocument (integration)', () => {
 describe('isDocumentOwnedByUploader (integration)', () => {
   it('returns true when v1 was uploaded by the user', async () => {
     const ownerId = await withScope(primaryCongId, async tx => {
-      const user = await tx.user.create({
+      const user = await tx.userAccount.create({
         data: {
           email: `board-doc-owner-${ts}@test.com`,
           password: 'hashed',

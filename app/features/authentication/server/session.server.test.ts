@@ -29,7 +29,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { findUnique: vi.fn() },
+    userAccount: { findUnique: vi.fn() },
   },
 }))
 
