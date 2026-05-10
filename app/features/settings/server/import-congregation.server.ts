@@ -10,11 +10,11 @@ import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-
 import { createLogger } from '~/shared/infra/logger.server'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import {
-  ARCHIVE_VERSION,
   EntityIdMap,
   type ImportConflict,
   type ImportSummary,
   type ManifestJson,
+  SUPPORTED_ARCHIVE_VERSIONS,
 } from './data-transfer.type'
 import type { DataTransferJobData } from './data-transfer-queue.server'
 
@@ -38,18 +38,29 @@ export async function validateImport(storageKey: string, congregationId: number)
   const zip = await JsZip.loadAsync(buffer)
   const manifest = await readManifest(zip)
 
-  if (manifest.version !== ARCHIVE_VERSION) {
+  if (!(SUPPORTED_ARCHIVE_VERSIONS as readonly string[]).includes(manifest.version)) {
     return {
       entityCounts: manifest.entityCounts,
       conflicts: [],
-      warnings: [`Version de l'archive non supportée : ${manifest.version} (attendue : ${ARCHIVE_VERSION})`],
+      warnings: [`Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`],
     }
   }
 
   const conflicts: ImportConflict[] = []
   const warnings: string[] = [
-    'Les mots de passe ne sont pas importés. Les utilisateurs devront réinitialiser leur mot de passe.',
+    'Passwords are not imported. Users will need to reset their password after import.',
   ]
+
+  if (manifest.version === '1.0') {
+    warnings.push(
+      'Archive predates v1.1 — custom roles, external speakers, territory card overlays, perimeter, and role-based gating will not be imported.',
+    )
+    if (zip.file('data/congregation-user-permissions.ndjson') == null && zip.file('data/congregation-user-roles.ndjson') != null) {
+      warnings.push(
+        'Archive predates the UserRole → Permission rename; permission assignments will be migrated automatically.',
+      )
+    }
+  }
 
   // Check user email conflicts
   const usersNdjson = await readNdjsonFile<{ email: string }>(zip, 'users')
@@ -160,7 +171,7 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
   const permissionKeyToId = new Map(allPermissions.map(p => [p.key, p.id]))
 
   await withScope(congregationId, async db => {
-    const totalSteps = 27
+    const totalSteps = 38
     let step = 0
 
     const progress = async () => {
@@ -176,103 +187,148 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
     await importEventKinds(zip, db, idMap, congregationId)
     await progress()
 
-    // 3. Users (upsert by email within same congregation, skip if in different congregation)
+    // 3. Roles (upsert by key — built-ins map to pre-seeded target rows; custom roles insert)
+    await importRoles(zip, db, idMap, congregationId)
+    await progress()
+
+    // 4. Role permissions (depends on roles)
+    await importRolePermissions(zip, db, idMap, permissionKeyToId, congregationId)
+    await progress()
+
+    // 5. Users (upsert by email within same congregation, skip if in different congregation)
     await importUsers(zip, db, idMap, congregationId)
     await progress()
 
-    // 4. Congregation user roles
+    // 6. User role assignments (depends on users + roles; overlaps with syncBuiltInRoleAssignments
+    //    seeded during importUsers — composite PK absorbs duplicates).
+    await importUserRoleAssignments(zip, db, idMap, congregationId)
+    await progress()
+
+    // 7. Congregation user permissions (legacy filename fallback for pre-#152 archives)
     await importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
     await progress()
 
-    // 5. Publisher groups (depends on users)
+    // 8. Publisher groups (depends on users)
     await importPublisherGroups(zip, db, idMap, congregationId)
     await progress()
 
-    // 6. Update user publisherGroupId (depends on groups)
+    // 9. Update user publisherGroupId (depends on groups)
     await updateUserPublisherGroups(zip, db, idMap)
     await progress()
 
-    // 7. Publisher activities (depends on users)
+    // 10. Publisher activities (depends on users)
     await importPublisherActivities(zip, db, idMap, congregationId)
     await progress()
 
-    // 8. Territories (upsert by number)
+    // 11. External speakers (must run before programme part assignments)
+    await importExternalSpeakers(zip, db, idMap, congregationId)
+    await progress()
+
+    // 12. Territories (upsert by number)
     await importTerritories(zip, db, idMap, congregationId)
     await progress()
 
-    // 9. Buildings (upsert by number+street+zip)
+    // 13. Territory card overlays
+    await importTerritoryCardOverlays(zip, db, idMap, congregationId)
+    await progress()
+
+    // 14. Territory perimeter (upsert by congregationId — single row)
+    await importTerritoryPerimeter(zip, db, congregationId)
+    await progress()
+
+    // 15. Buildings (upsert by number+street+zip)
     await importBuildings(zip, db, idMap, congregationId)
     await progress()
 
-    // 10. Building entrances
+    // 16. Building entrances
     await importBuildingEntrances(zip, db, idMap, congregationId)
     await progress()
 
-    // 11. Building accesses (depends on entrances)
+    // 17. Building accesses (depends on entrances)
     await importBuildingAccesses(zip, db, idMap, congregationId)
     await progress()
 
-    // 12. Building residential data (depends on buildings + entrances)
+    // 18. Building residential data (depends on buildings + entrances)
     await importBuildingResidentialData(zip, db, idMap, congregationId)
     await progress()
 
-    // 13. Territory-entrance links
+    // 19. Territory-entrance links
     await importTerritoryEntranceLinks(zip, db, idMap)
     await progress()
 
-    // 14. Building-entrance links
+    // 20. Building-entrance links
     await importBuildingEntranceLinks(zip, db, idMap)
     await progress()
 
-    // 15. Attributions (depends on users + territories)
+    // 21. Attributions (depends on users + territories)
     await importAttributions(zip, db, idMap, congregationId)
     await progress()
 
-    // 16. Programme templates (upsert by key)
+    // 22. Programme templates (upsert by key)
     await importProgrammeTemplates(zip, db, idMap, congregationId)
     await progress()
 
-    // 17. Programme template parts
+    // 23. Programme template parts
     await importProgrammeTemplateParts(zip, db, idMap, congregationId)
     await progress()
 
-    // 18. Programme template service roles
+    // 24. Programme template part allowed roles
+    await importProgrammeTemplatePartAllowedRoles(zip, db, idMap, congregationId)
+    await progress()
+
+    // 25. Programme template service roles
     await importProgrammeTemplateServiceRoles(zip, db, idMap, congregationId)
     await progress()
 
-    // 19. Programme template responsibles
+    // 26. Programme template service role allowed roles
+    await importProgrammeTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
+    await progress()
+
+    // 27. Programme template responsibles
     await importProgrammeTemplateResponsibles(zip, db, idMap, congregationId)
     await progress()
 
-    // 20. Events (depends on event kinds + templates + users)
+    // 28. Events (depends on event kinds + templates + users)
     await importEvents(zip, db, idMap, congregationId)
     await progress()
 
-    // 21. Programme part assignments
+    // 29. Programme part assignments
     await importProgrammePartAssignments(zip, db, idMap, congregationId)
     await progress()
 
-    // 22. Programme service role assignments
+    // 30. Programme part assignment allowed roles
+    await importProgrammePartAssignmentAllowedRoles(zip, db, idMap, congregationId)
+    await progress()
+
+    // 31. Programme service role assignments
     await importProgrammeServiceRoleAssignments(zip, db, idMap, congregationId)
     await progress()
 
-    // 23. Board sections
+    // 32. Programme service role assignment allowed roles
+    await importProgrammeServiceRoleAssignmentAllowedRoles(zip, db, idMap, congregationId)
+    await progress()
+
+    // 33. Board sections
     await importBoardSections(zip, db, idMap, congregationId)
     await progress()
 
-    // 24. Board documents (+ files)
+    // 34. Board section visibility roles
+    await importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
+    await progress()
+
+    // 35. Board documents (+ files)
     await importBoardDocuments(zip, db, idMap, congregationId)
     await progress()
 
-    // 25. Board document versions (+ files)
+    // 36. Board document versions (+ files)
     await importBoardDocumentVersions(zip, db, idMap, congregationId)
     await progress()
 
-    // 26. Board dynamic document settings
+    // 37. Board dynamic document settings
     await importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
     await progress()
 
-    // 27. Consent records
+    // 38. Consent records
     await importConsentRecords(zip, db, idMap, congregationId)
     await progress()
 
@@ -463,8 +519,20 @@ export async function importCongregationUserPermissions(
   permissionKeyToId: Map<string, number>,
   congregationId: number,
 ): Promise<void> {
+  // Pre-#152 archives use the legacy `congregation-user-roles.ndjson` shape with `roleKey`.
+  // The rename was a pure terminology change (UserRole table → Permission), so the keys are
+  // identical and route through the same `permissionKeyToId` map.
   const records = await readNdjsonFile<{ userId: number; permissionKey: string }>(zip, 'congregation-user-permissions')
-  for (const record of records) {
+  const legacyRecords =
+    records.length === 0
+      ? (await readNdjsonFile<{ userId: number; roleKey: string }>(zip, 'congregation-user-roles')).map(r => ({
+          userId: r.userId,
+          permissionKey: r.roleKey,
+        }))
+      : []
+  const merged = records.length > 0 ? records : legacyRecords
+
+  for (const record of merged) {
     const userId = idMap.getOptional('users', record.userId)
     const permissionId = permissionKeyToId.get(record.permissionKey)
     if (!userId || !permissionId) continue
@@ -834,9 +902,11 @@ export async function importProgrammeTemplates(
     description: string
     weekDay: number | null
     isRecurring: boolean
+    kindId?: number | null
   }>(zip, 'programme-templates')
 
   for (const record of records) {
+    const kindId = idMap.getOptional('event-kinds', record.kindId)
     const existing = await db.programmeTemplate.findFirst({ where: { key: record.key } })
     if (existing) {
       await db.programmeTemplate.update({
@@ -846,6 +916,7 @@ export async function importProgrammeTemplates(
           description: record.description,
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
+          kindId,
         },
       })
       idMap.set('programme-templates', record.id, existing.id)
@@ -857,6 +928,7 @@ export async function importProgrammeTemplates(
           description: record.description,
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
+          kindId,
           congregationId,
         },
       })
@@ -876,6 +948,7 @@ export async function importProgrammeTemplateParts(
     name: string
     section: string
     track: string
+    trackOrder?: number | null
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
@@ -891,6 +964,7 @@ export async function importProgrammeTemplateParts(
         name: record.name,
         section: record.section,
         track: record.track,
+        trackOrder: record.trackOrder ?? null,
         order: record.order,
         durationMin: record.durationMin,
         allowExternalSpeaker: record.allowExternalSpeaker,
@@ -1008,12 +1082,15 @@ export async function importProgrammePartAssignments(
     name: string
     section: string
     track: string
+    trackOrder?: number | null
     order: number
     durationMin: number | null
     eventId: number
     partId: number | null
     assigneeId: number | null
     assistantId: number | null
+    allowExternalSpeaker?: boolean
+    externalSpeakerId?: number | null
   }>(zip, 'programme-part-assignments')
 
   for (const record of records) {
@@ -1028,12 +1105,15 @@ export async function importProgrammePartAssignments(
         name: record.name,
         section: record.section,
         track: record.track,
+        trackOrder: record.trackOrder ?? null,
         order: record.order,
         durationMin: record.durationMin,
         eventId,
         partId: idMap.getOptional('programme-template-parts', record.partId),
         assigneeId: idMap.getOptional('users', record.assigneeId),
         assistantId: idMap.getOptional('users', record.assistantId),
+        allowExternalSpeaker: record.allowExternalSpeaker ?? false,
+        externalSpeakerId: idMap.getOptional('external-speakers', record.externalSpeakerId),
         congregationId,
       },
     })
@@ -1061,7 +1141,7 @@ export async function importProgrammeServiceRoleAssignments(
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
 
-    await db.programmeServiceRoleAssignment.create({
+    const created = await db.programmeServiceRoleAssignment.create({
       data: {
         note: record.note,
         hasConflict: record.hasConflict,
@@ -1072,6 +1152,7 @@ export async function importProgrammeServiceRoleAssignments(
         congregationId,
       },
     })
+    idMap.set('programme-service-role-assignments', record.id, created.id)
   }
 }
 
@@ -1347,5 +1428,285 @@ export async function importDataDeletionRecords(
         congregationId,
       },
     })
+  }
+}
+
+// --- v1.1 entities ---
+
+export async function importRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{
+    id: number
+    key: string
+    name: string | null
+    description: string | null
+    isBuiltIn: boolean
+  }>(zip, 'roles')
+
+  for (const record of records) {
+    const existing = await db.role.findFirst({ where: { key: record.key } })
+    if (existing) {
+      // Built-in roles are pre-seeded for every congregation; map source id to existing target id.
+      // Custom roles imported into a congregation that already has the same key get their
+      // metadata refreshed but keep the target's id.
+      await db.role.update({
+        where: { id: existing.id },
+        data: { name: record.name, description: record.description, isBuiltIn: record.isBuiltIn },
+      })
+      idMap.set('roles', record.id, existing.id)
+    } else {
+      const created = await db.role.create({
+        data: {
+          key: record.key,
+          name: record.name,
+          description: record.description,
+          isBuiltIn: record.isBuiltIn,
+          congregationId,
+        },
+      })
+      idMap.set('roles', record.id, created.id)
+    }
+  }
+}
+
+export async function importRolePermissions(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  permissionKeyToId: Map<string, number>,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ roleId: number; permissionKey: string }>(zip, 'role-permissions')
+  const data: { roleId: number; permissionId: number; congregationId: number }[] = []
+
+  for (const record of records) {
+    const roleId = idMap.getOptional('roles', record.roleId)
+    const permissionId = permissionKeyToId.get(record.permissionKey)
+    if (!roleId || !permissionId) continue
+    data.push({ roleId, permissionId, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.rolePermission.createMany({ data, skipDuplicates: true })
+  }
+}
+
+export async function importUserRoleAssignments(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ userId: number; roleId: number }>(zip, 'user-role-assignments')
+  const data: { userId: number; roleId: number; congregationId: number }[] = []
+
+  for (const record of records) {
+    const userId = idMap.getOptional('users', record.userId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!userId || !roleId) continue
+    data.push({ userId, roleId, congregationId })
+  }
+
+  if (data.length > 0) {
+    // syncBuiltInRoleAssignments inside importUsers already inserted built-in role rows
+    // matching each user's boolean flags. The composite (userId, roleId) PK absorbs duplicates;
+    // this call adds custom-role memberships and any built-in assignments the source had that
+    // the boolean-flag heuristic doesn't reproduce.
+    await db.userRoleAssignment.createMany({ data, skipDuplicates: true })
+  }
+}
+
+export async function importExternalSpeakers(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{
+    id: number
+    name: string
+    congregationName: string
+    phone: string | null
+    email: string | null
+    notes: string | null
+    archivedAt: string | null
+  }>(zip, 'external-speakers')
+
+  for (const record of records) {
+    const created = await db.externalSpeaker.create({
+      data: {
+        name: record.name,
+        congregationName: record.congregationName,
+        phone: record.phone,
+        email: record.email,
+        notes: record.notes,
+        archivedAt: record.archivedAt ? new Date(record.archivedAt) : null,
+        congregationId,
+      },
+    })
+    idMap.set('external-speakers', record.id, created.id)
+  }
+}
+
+export async function importTerritoryCardOverlays(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{
+    id: number
+    name: string | null
+    color: string
+    paths: unknown
+  }>(zip, 'territory-card-overlays')
+
+  for (const record of records) {
+    const created = await db.territoryCardOverlay.create({
+      data: {
+        name: record.name,
+        color: record.color,
+        paths: record.paths as never,
+        congregationId,
+      },
+    })
+    idMap.set('territory-card-overlays', record.id, created.id)
+  }
+}
+
+export async function importTerritoryPerimeter(
+  zip: JsZip,
+  db: TransactionClient,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ paths: unknown }>(zip, 'territory-perimeter')
+  const record = records[0]
+  if (!record) return
+
+  await db.territoryPerimeter.upsert({
+    where: { congregationId },
+    update: { paths: record.paths as never },
+    create: { paths: record.paths as never, congregationId },
+  })
+}
+
+export async function importBoardSectionVisibilityRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ sectionId: number; roleId: number }>(zip, 'board-section-visibility-roles')
+  const data: { sectionId: number; roleId: number; congregationId: number }[] = []
+
+  for (const record of records) {
+    const sectionId = idMap.getOptional('board-sections', record.sectionId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!sectionId || !roleId) continue
+    data.push({ sectionId, roleId, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.boardSectionVisibilityRole.createMany({ data, skipDuplicates: true })
+  }
+}
+
+export async function importProgrammeTemplatePartAllowedRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ partId: number; roleId: number; asKind: string }>(
+    zip,
+    'programme-template-part-allowed-roles',
+  )
+  const data: { partId: number; roleId: number; asKind: string; congregationId: number }[] = []
+
+  for (const record of records) {
+    const partId = idMap.getOptional('programme-template-parts', record.partId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!partId || !roleId) continue
+    data.push({ partId, roleId, asKind: record.asKind, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.programmeTemplatePartAllowedRole.createMany({ data, skipDuplicates: true })
+  }
+}
+
+export async function importProgrammeTemplateServiceRoleAllowedRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ serviceRoleId: number; roleId: number }>(
+    zip,
+    'programme-template-service-role-allowed-roles',
+  )
+  const data: { serviceRoleId: number; roleId: number; congregationId: number }[] = []
+
+  for (const record of records) {
+    const serviceRoleId = idMap.getOptional('programme-template-service-roles', record.serviceRoleId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!serviceRoleId || !roleId) continue
+    data.push({ serviceRoleId, roleId, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.programmeTemplateServiceRoleAllowedRole.createMany({ data, skipDuplicates: true })
+  }
+}
+
+export async function importProgrammePartAssignmentAllowedRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ assignmentId: number; roleId: number; asKind: string }>(
+    zip,
+    'programme-part-assignment-allowed-roles',
+  )
+  const data: { assignmentId: number; roleId: number; asKind: string; congregationId: number }[] = []
+
+  for (const record of records) {
+    const assignmentId = idMap.getOptional('programme-part-assignments', record.assignmentId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!assignmentId || !roleId) continue
+    data.push({ assignmentId, roleId, asKind: record.asKind, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.programmePartAssignmentAllowedRole.createMany({ data, skipDuplicates: true })
+  }
+}
+
+export async function importProgrammeServiceRoleAssignmentAllowedRoles(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  const records = await readNdjsonFile<{ assignmentId: number; roleId: number }>(
+    zip,
+    'programme-service-role-assignment-allowed-roles',
+  )
+  const data: { assignmentId: number; roleId: number; congregationId: number }[] = []
+
+  for (const record of records) {
+    const assignmentId = idMap.getOptional('programme-service-role-assignments', record.assignmentId)
+    const roleId = idMap.getOptional('roles', record.roleId)
+    if (!assignmentId || !roleId) continue
+    data.push({ assignmentId, roleId, congregationId })
+  }
+
+  if (data.length > 0) {
+    await db.programmeServiceRoleAssignmentAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }

@@ -12,7 +12,7 @@ A `.unitae` archive is a ZIP with three top-level entries:
 | `data/<entity>.ndjson` | One file per entity type, in newline-delimited JSON. Each line is one row. Empty files are omitted from the archive |
 | `files/` | Uploaded user files (board PDFs, territory cards). Only present when the export was created with `includeFiles: true` |
 
-The archive version is a constant at the top of `app/features/settings/server/data-transfer.type.ts` (`ARCHIVE_VERSION`). On import, an archive whose version does not match is reported as a warning and skipped — the schema is intentionally not backwards-compatible across major bumps; bump the constant when the on-disk shape changes.
+The archive version is a constant at the top of `app/features/settings/server/data-transfer.type.ts` (`ARCHIVE_VERSION`, currently `1.1`). The list of accepted versions on import lives in `SUPPORTED_ARCHIVE_VERSIONS` in the same file — versions outside that list are reported as a warning and skipped. Bump the constant when the on-disk shape changes; add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` when the format remains compatible enough to import-with-warning (most recent example: 1.0 archives import successfully, just without the post-1.0 entity tables).
 
 Compression is `DEFLATE` via [`jszip`](https://stuk.github.io/jszip/). Buffers are produced in memory; very large exports may need to switch to streaming if memory pressure becomes a concern.
 
@@ -20,11 +20,13 @@ Compression is `DEFLATE` via [`jszip`](https://stuk.github.io/jszip/). Buffers a
 
 Entities are exported in dependency order so an import can replay them top-down without missing references. The list lives in `buildExportSteps` (`export-congregation.server.ts`). Order matters: territories before attributions, board sections before board documents, etc.
 
-## What's not yet exported
+## Backward compatibility — pre-1.1 archives
 
-Several feature tables added since the export was first written are **not** yet enumerated in `ENTITY_FILES` and therefore not included in the archive — custom roles and their permission bundles, user role memberships, role gating on board sections, allowed-roles on programme parts/service roles, the external-speakers registry, territory card overlays, and the territory perimeter. An export+import round-trip on a congregation that uses these features silently drops them on the target side.
+`1.0` archives are missing every feature table added after the export first shipped (custom roles, role-permissions, user-role-assignments, board section visibility, allowed-roles on programme parts/service-roles and their per-event copies, external speakers, territory card overlays, territory perimeter). The import accepts them with a warning and proceeds — those tables stay empty on the target.
 
-Tracked in [#170](https://github.com/Unitae/unitae/issues/170). When extending `ENTITY_FILES`, also bump `ARCHIVE_VERSION` so older archives are rejected (or handled with an explicit "this archive predates feature X" warning) on import.
+A subset of `1.0` archives, created before [PR #152](https://github.com/Unitae/unitae/pull/152), use the legacy filename `data/congregation-user-roles.ndjson` with a `roleKey` field instead of `data/congregation-user-permissions.ndjson` with `permissionKey`. The rename was a pure terminology change (`UserRole` → `Permission`, key values preserved); `importCongregationUserPermissions` falls back to the legacy filename when the current one is missing.
+
+When extending `ENTITY_FILES`, bump `ARCHIVE_VERSION` and add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` if you want existing archives to keep importing.
 
 ## Conflict resolution on import
 
