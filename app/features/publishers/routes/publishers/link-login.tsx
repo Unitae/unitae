@@ -2,13 +2,14 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 import { z } from 'zod'
 import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { linkAccountToMember } from '~/features/publishers/server/link-account-to-member.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import type { MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/link-login'
@@ -29,7 +30,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const memberId = requireParamId(params.publisherId, '/publishers')
+  const memberId = requireParamId<MemberId>(params.publisherId, '/publishers')
   const submission = parseWithZod(await request.formData(), { schema: linkLoginSchema })
   const session = await getSession(request.headers.get('Cookie'))
   const redirectTo = `/publishers/${memberId}/edit`
@@ -67,7 +68,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const congregation = await resolveCongregation(currentUser.congregationId)
-  await sendResetUserPasswordEmail(
+  await sendResetAccountPasswordEmail(
     result.accountId,
     <ResetPasswordRequired
       email={submission.value.email}

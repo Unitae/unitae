@@ -1,10 +1,11 @@
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
+import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
 
 interface LinkAccountToMemberParams {
-  memberId: number
+  memberId: MemberId
   email: string
   congregationId: number
   actorId: number

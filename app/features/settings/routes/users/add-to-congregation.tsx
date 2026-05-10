@@ -13,6 +13,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import type { AccountId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -48,7 +49,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.SettingsUserManager)
   requirePermission(permissions, Permission.PublisherManager)
 
-  const accountId = requireParamId(params.accountId, '/settings/users')
+  const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 
   return withScopeFromContext(context, async db => {
     const account = await db.userAccount.findUnique({
@@ -153,7 +154,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.SettingsUserManager)
   requirePermission(permissions, Permission.PublisherManager)
 
-  const accountId = requireParamId(params.accountId, '/settings/users')
+  const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
   const submission = parseWithZod(await request.formData(), { schema: addToCongregationSchema })
 
   if (submission.status !== 'success') {

@@ -1,18 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MemberId } from '~/shared/types/branded'
+
+const memberId = 1 as MemberId
 
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { AccountLinkedToMember: 'account.linked_to_member' },
   audit: vi.fn(),
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
-vi.mock('~/features/authentication/server/invalidate-user-password.server', () => ({
+vi.mock('~/features/authentication/server/invalidate-account-password.server', () => ({
   createPasswordResetToken: vi.fn().mockResolvedValue('token-xyz'),
 }))
 
 const { linkAccountToMember } = await import('./link-account-to-member.server')
 const { audit } = await import('~/shared/domain/audit.server')
 const { createPasswordResetToken } = await import(
-  '~/features/authentication/server/invalidate-user-password.server'
+  '~/features/authentication/server/invalidate-account-password.server'
 )
 const { ConflictError, NotFoundError } = await import('~/shared/errors/app-error.server')
 
@@ -35,7 +38,7 @@ describe('linkAccountToMember', () => {
 
     await expect(
       linkAccountToMember(mockDb as never, {
-        memberId: 1,
+        memberId: memberId,
         email: 'a@b.test',
         congregationId: 10,
         actorId: 99,
@@ -48,7 +51,7 @@ describe('linkAccountToMember', () => {
 
     await expect(
       linkAccountToMember(mockDb as never, {
-        memberId: 1,
+        memberId: memberId,
         email: 'a@b.test',
         congregationId: 10,
         actorId: 99,
@@ -62,7 +65,7 @@ describe('linkAccountToMember', () => {
 
     await expect(
       linkAccountToMember(mockDb as never, {
-        memberId: 1,
+        memberId: memberId,
         email: 'a@b.test',
         congregationId: 10,
         actorId: 99,
@@ -76,7 +79,7 @@ describe('linkAccountToMember', () => {
     mockDb.userAccount.create.mockResolvedValue({ id: 42 })
 
     const result = await linkAccountToMember(mockDb as never, {
-      memberId: 1,
+      memberId: memberId,
       email: 'A@B.test',
       congregationId: 10,
       actorId: 99,

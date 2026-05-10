@@ -4,12 +4,12 @@ const mockCreatePasswordResetToken = vi.fn()
 const mockSendResetUserPasswordEmail = vi.fn()
 const mockErrorIfWouldGoOverLimit = vi.fn()
 
-vi.mock('~/features/authentication/server/invalidate-user-password.server', () => ({
+vi.mock('~/features/authentication/server/invalidate-account-password.server', () => ({
   createPasswordResetToken: mockCreatePasswordResetToken,
 }))
 
-vi.mock('~/features/authentication/server/send-reset-user-password-email.server', () => ({
-  sendResetUserPasswordEmail: mockSendResetUserPasswordEmail,
+vi.mock('~/features/authentication/server/send-reset-account-password-email.server', () => ({
+  sendResetAccountPasswordEmail: mockSendResetUserPasswordEmail,
 }))
 
 vi.mock('~/shared/domain/audit.server', () => ({
@@ -27,7 +27,7 @@ const mockDb = {
   userAccount: { findUnique: vi.fn(), create: vi.fn() },
 }
 
-const { createUser } = await import('./create-user.server')
+const { createAccount } = await import('./create-account.server')
 const { ConflictError } = await import('~/shared/errors/app-error.server')
 
 beforeEach(() => {
@@ -51,14 +51,14 @@ const baseParams = {
 
 const mockRenderEmail = vi.fn()
 
-describe('createUser', () => {
+describe('createAccount', () => {
   it('creates user and returns result with emailSent status', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null)
     mockDb.userAccount.create.mockResolvedValue({ id: 42 } as never)
     mockCreatePasswordResetToken.mockResolvedValue('token-abc')
     mockSendResetUserPasswordEmail.mockResolvedValue(true)
 
-    const result = await createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
+    const result = await createAccount(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
 
     expect(result).toEqual({ userId: 42, emailSent: true })
     expect(mockDb.userAccount.create).toHaveBeenCalled()
@@ -70,21 +70,21 @@ describe('createUser', () => {
   it('throws ConflictError when user already exists', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue({ id: 1, email: 'sophie@example.com' })
 
-    await expect(createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)).rejects.toThrow(
+    await expect(createAccount(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)).rejects.toThrow(
       ConflictError,
     )
 
     expect(mockDb.userAccount.create).not.toHaveBeenCalled()
   })
 
-  it('calls createPasswordResetToken and sendResetUserPasswordEmail', async () => {
+  it('calls createPasswordResetToken and sendResetAccountPasswordEmail', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null)
     mockDb.userAccount.create.mockResolvedValue({ id: 10 } as never)
     mockCreatePasswordResetToken.mockResolvedValue('token-xyz')
     mockSendResetUserPasswordEmail.mockResolvedValue(false)
     mockRenderEmail.mockReturnValue('<html>email</html>')
 
-    const result = await createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
+    const result = await createAccount(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
 
     expect(mockCreatePasswordResetToken).toHaveBeenCalledWith(10)
     expect(mockRenderEmail).toHaveBeenCalledWith(10, 'token-xyz')

@@ -9,6 +9,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
+import type { AccountId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -20,7 +21,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   requirePermission(permissions, Permission.Admin)
 
-  const accountId = requireParamId(params.accountId, '/settings/users')
+  const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 
   // Prevent self-deletion — admins shouldn't lock themselves out via this flow
   if (currentUser.id === accountId) {

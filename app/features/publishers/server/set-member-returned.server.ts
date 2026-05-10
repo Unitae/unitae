@@ -2,6 +2,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
 
 /**
  * Reverse `setMemberLeft`: clear `leftAt` and re-sync identity roles from
@@ -11,7 +12,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  */
 export async function setMemberReturned(
   db: TransactionClient,
-  memberId: number,
+  memberId: MemberId,
   congregationId: number,
   actorId: number,
 ) {

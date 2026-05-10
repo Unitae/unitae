@@ -4,6 +4,7 @@ import { unlinkAccountFromMember } from '~/features/publishers/server/unlink-acc
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
+import type { MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/unlink-login'
@@ -20,7 +21,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const memberId = requireParamId(params.publisherId, '/publishers')
+  const memberId = requireParamId<MemberId>(params.publisherId, '/publishers')
   const session = await getSession(request.headers.get('Cookie'))
 
   const result = await withScopeFromContext(context, async db => {

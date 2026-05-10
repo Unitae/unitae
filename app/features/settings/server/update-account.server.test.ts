@@ -16,7 +16,7 @@ const mockDb = {
   permission: { findMany: vi.fn() },
 }
 
-const { updateUser } = await import('./update-user.server')
+const { updateAccount } = await import('./update-account.server')
 const { audit } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
@@ -25,13 +25,13 @@ beforeEach(() => {
   mockDb.userAccount.findUnique.mockResolvedValue({ memberId: null })
 })
 
-describe('updateUser', () => {
+describe('updateAccount', () => {
   it('updates user data', async () => {
     mockDb.userAccount.update.mockResolvedValue({} as never)
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.permission.findMany.mockResolvedValue([] as never)
 
-    await updateUser(mockDb as never, 1, 10, 99, {
+    await updateAccount(mockDb as never, 1, 10, 99, {
       firstname: 'Marie',
       lastname: 'Martin',
       email: 'Marie.Martin@Example.COM',
@@ -55,7 +55,7 @@ describe('updateUser', () => {
     ] as never)
     mockDb.congregationUserPermission.createMany.mockResolvedValue({ count: 2 } as never)
 
-    await updateUser(mockDb as never, 5, 10, 99, {
+    await updateAccount(mockDb as never, 5, 10, 99, {
       firstname: 'Paul',
       lastname: 'Durand',
       email: 'paul@example.com',
@@ -80,7 +80,7 @@ describe('updateUser', () => {
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.permission.findMany.mockResolvedValue([] as never)
 
-    await updateUser(mockDb as never, 7, 10, 99, {
+    await updateAccount(mockDb as never, 7, 10, 99, {
       firstname: 'Luc',
       lastname: 'Bernard',
       email: 'luc@example.com',

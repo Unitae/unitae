@@ -2,6 +2,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
 
 /**
  * Mark a Member as having left the congregation.
@@ -15,7 +16,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  */
 export async function setMemberLeft(
   db: TransactionClient,
-  memberId: number,
+  memberId: MemberId,
   congregationId: number,
   actorId: number,
 ) {

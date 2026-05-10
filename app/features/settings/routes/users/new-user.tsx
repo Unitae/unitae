@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
-import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
+import { createAccount, UserAlreadyExistsError } from '~/features/settings/server/create-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -108,7 +108,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     try {
       const ResetPasswordRequired = (await import('~/features/authentication/emails/reset-password-required')).default
-      const result = await createUser(
+      const result = await createAccount(
         db,
         congregation,
         currentUser.id,

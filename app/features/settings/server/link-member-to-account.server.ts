@@ -4,10 +4,11 @@ import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { AccountId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
 
 export interface LinkMemberToAccountParams {
-  accountId: number
+  accountId: AccountId
   congregationId: number
   actorId: number
   // Member fields collected from the form. The display firstname/lastname

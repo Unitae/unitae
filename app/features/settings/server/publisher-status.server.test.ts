@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MemberId } from '~/shared/types/branded'
+
+const memberId = 5 as MemberId
 
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
@@ -23,7 +26,7 @@ describe('togglePublisherStatus', () => {
     const { NotFoundError } = await import('~/shared/errors/app-error.server')
     mockDb.member.findFirst.mockResolvedValue(null)
 
-    await expect(togglePublisherStatus(mockDb as never, 5, 10, true, 99)).rejects.toBeInstanceOf(NotFoundError)
+    await expect(togglePublisherStatus(mockDb as never, memberId, 10, true, 99)).rejects.toBeInstanceOf(NotFoundError)
     expect(mockDb.member.update).not.toHaveBeenCalled()
   })
 
@@ -31,7 +34,7 @@ describe('togglePublisherStatus', () => {
     const expected = { id: 5, isPublisher: true }
     mockDb.member.update.mockResolvedValue(expected)
 
-    const result = await togglePublisherStatus(mockDb as never, 5, 10, true, 99)
+    const result = await togglePublisherStatus(mockDb as never, memberId, 10, true, 99)
 
     expect(result).toEqual(expected)
     expect(mockDb.member.update).toHaveBeenCalledWith({
@@ -44,7 +47,7 @@ describe('togglePublisherStatus', () => {
     const expected = { id: 5, isPublisher: false }
     mockDb.member.update.mockResolvedValue(expected)
 
-    const result = await togglePublisherStatus(mockDb as never, 5, 10, false, 99)
+    const result = await togglePublisherStatus(mockDb as never, memberId, 10, false, 99)
 
     expect(result).toEqual(expected)
     expect(mockDb.member.update).toHaveBeenCalledWith({

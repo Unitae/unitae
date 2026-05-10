@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { exportUserData } from '~/features/settings/server/export-user-data.server'
+import { exportAccountData } from '~/features/settings/server/export-account-data.server'
 import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Permission } from '~/shared/types/permission'
@@ -23,7 +23,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const data = await exportUserData(db, accountId)
+    const data = await exportAccountData(db, accountId)
     const json = JSON.stringify(data, null, 2)
 
     audit({

@@ -1,6 +1,7 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
 
 /**
  * Remove the login from a Member: deletes the linked UserAccount entirely
@@ -14,7 +15,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  */
 export async function unlinkAccountFromMember(
   db: TransactionClient,
-  memberId: number,
+  memberId: MemberId,
   congregationId: number,
   actorId: number,
 ): Promise<{ accountId: number; email: string } | null> {

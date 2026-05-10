@@ -1,7 +1,7 @@
 import { hash } from '~/shared/auth/crypto.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 
-export async function resetUserPassword(userId: number, password: string) {
+export async function resetAccountPassword(userId: number, password: string) {
   const account = await db.userAccount.findUnique({
     where: { id: userId },
     select: { emailVerifiedAt: true },

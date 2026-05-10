@@ -10,7 +10,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
-import type { AccountId } from '~/shared/types/branded'
+import type { AccountId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -41,9 +41,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (!account) throw new NotFoundError('UserAccount')
 
       if (account.memberId != null) {
-        await anonymizeMember(db, account.memberId, account.congregationId, currentUser.id)
+        await anonymizeMember(db, account.memberId as MemberId, account.congregationId, currentUser.id)
       }
-      await anonymizeAccount(db, account.id, account.congregationId, currentUser.id)
+      await anonymizeAccount(db, accountId, account.congregationId, currentUser.id)
     })
   } catch (error) {
     if (error instanceof NotFoundError) throw redirect('/settings/users')

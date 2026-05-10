@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
-import { updateUser } from '~/features/settings/server/update-user.server'
+import { updateAccount } from '~/features/settings/server/update-account.server'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -433,7 +433,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   return withScopeFromContext(context, async db => {
     try {
-      await updateUser(db, accountId, currentUser.congregationId, currentUser.id, {
+      await updateAccount(db, accountId, currentUser.congregationId, currentUser.id, {
         firstname,
         lastname,
         email,

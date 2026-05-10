@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MemberId } from '~/shared/types/branded'
+
+const memberId = 1 as MemberId
 
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { AccountUnlinkedFromMember: 'account.unlinked_from_member' },
@@ -23,13 +26,13 @@ describe('unlinkAccountFromMember', () => {
   it('throws NotFoundError when the member does not exist', async () => {
     mockDb.member.findFirst.mockResolvedValue(null)
 
-    await expect(unlinkAccountFromMember(mockDb as never, 1, 10, 99)).rejects.toBeInstanceOf(NotFoundError)
+    await expect(unlinkAccountFromMember(mockDb as never, memberId, 10, 99)).rejects.toBeInstanceOf(NotFoundError)
   })
 
   it('returns null when the member has no linked account', async () => {
     mockDb.member.findFirst.mockResolvedValue({ id: 1, account: null })
 
-    const result = await unlinkAccountFromMember(mockDb as never, 1, 10, 99)
+    const result = await unlinkAccountFromMember(mockDb as never, memberId, 10, 99)
 
     expect(result).toBeNull()
     expect(mockDb.userAccount.delete).not.toHaveBeenCalled()
@@ -40,7 +43,7 @@ describe('unlinkAccountFromMember', () => {
     mockDb.member.findFirst.mockResolvedValue({ id: 1, account: { id: 42, email: 'a@b.test' } })
     mockDb.userAccount.delete.mockResolvedValue({ id: 42 })
 
-    const result = await unlinkAccountFromMember(mockDb as never, 1, 10, 99)
+    const result = await unlinkAccountFromMember(mockDb as never, memberId, 10, 99)
 
     expect(result).toEqual({ accountId: 42, email: 'a@b.test' })
     expect(mockDb.userAccount.delete).toHaveBeenCalledWith({ where: { id: 42 } })

@@ -12,7 +12,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 const { createPasswordResetToken, verifyPasswordResetToken, consumePasswordResetToken } = await import(
-  './invalidate-user-password.server'
+  './invalidate-account-password.server'
 )
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 

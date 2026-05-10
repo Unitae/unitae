@@ -2,6 +2,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
 
 /**
  * Anonymize a Member: scrub PII, clear identity flags, stamp `anonymizedAt`.
@@ -14,7 +15,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  */
 export async function anonymizeMember(
   db: TransactionClient,
-  memberId: number,
+  memberId: MemberId,
   congregationId: number,
   actorId: number,
 ): Promise<void> {

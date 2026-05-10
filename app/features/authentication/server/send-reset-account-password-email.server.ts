@@ -5,7 +5,7 @@ import { unscopedDb as db } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
 
-export async function sendResetUserPasswordEmail(userId: number, email: ReactNode): Promise<boolean> {
+export async function sendResetAccountPasswordEmail(userId: number, email: ReactNode): Promise<boolean> {
   const user = await db.userAccount.findFirst({ where: { id: userId } })
 
   if (user == null) return false

@@ -10,7 +10,7 @@ vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn().mockResolvedValue('new-hashed-password' as never),
 }))
 
-const { resetUserPassword } = await import('./reset-user-password.server')
+const { resetAccountPassword } = await import('./reset-account-password.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { hash } = await import('~/shared/auth/crypto.server')
 
@@ -21,15 +21,15 @@ beforeEach(() => {
   vi.mocked(hash).mockResolvedValue('new-hashed-password' as never)
 })
 
-describe('resetUserPassword', () => {
+describe('resetAccountPassword', () => {
   it("ne lance pas d'erreur en fonctionnement normal", async () => {
-    await expect(resetUserPassword(1, 'nouveau-mdp')).resolves.toBeUndefined()
+    await expect(resetAccountPassword(1, 'nouveau-mdp')).resolves.toBeUndefined()
   })
 
   it('stamps emailVerifiedAt when the account has not yet been verified', async () => {
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ emailVerifiedAt: null } as never)
 
-    await resetUserPassword(1, 'nouveau-mdp')
+    await resetAccountPassword(1, 'nouveau-mdp')
 
     expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 1 },
@@ -41,7 +41,7 @@ describe('resetUserPassword', () => {
     const verifiedDate = new Date('2024-01-01')
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ emailVerifiedAt: verifiedDate } as never)
 
-    await resetUserPassword(1, 'nouveau-mdp')
+    await resetAccountPassword(1, 'nouveau-mdp')
 
     expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 1 },

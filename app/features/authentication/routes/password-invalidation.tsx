@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
+import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, requirePermission, currentAccountContext } from '~/shared/auth/route-context.server'
@@ -35,7 +35,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  const sent = await sendResetUserPasswordEmail(
+  const sent = await sendResetAccountPasswordEmail(
     user.id,
     <ResetPasswordRequired
       email={user.email}

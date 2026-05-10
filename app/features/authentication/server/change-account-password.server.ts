@@ -1,9 +1,9 @@
 import { compare } from '~/shared/auth/crypto.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 
-import { resetUserPassword } from './reset-user-password.server'
+import { resetAccountPassword } from './reset-account-password.server'
 
-export async function changeUserPassword(userId: number, password: string, newPassword: string) {
+export async function changeAccountPassword(userId: number, password: string, newPassword: string) {
   const user = await db.userAccount.findFirst({
     where: {
       id: userId,
@@ -19,6 +19,6 @@ export async function changeUserPassword(userId: number, password: string, newPa
     return false
   }
 
-  await resetUserPassword(userId, newPassword)
+  await resetAccountPassword(userId, newPassword)
   return true
 }

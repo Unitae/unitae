@@ -5,7 +5,7 @@ import { setupSchema } from '~/features/authentication/schemas/login.schema'
 
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { setupFirstUser } from '~/features/authentication/server/setup-first-user.server'
+import { setupFirstAccount } from '~/features/authentication/server/setup-first-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import { locales } from '~/i18n/paraglide/runtime'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -132,7 +132,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const { email: username, password, locale } = submission.value
 
-  const userId = await setupFirstUser(
+  const userId = await setupFirstAccount(
     username,
     password,
     m.auth_setup_default_congregation_name(),

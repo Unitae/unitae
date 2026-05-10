@@ -1,21 +1,21 @@
 import type { ReactNode } from 'react'
 // Intentional cross-feature import: user creation relies on authentication for password reset flow
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
+import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export interface CreateUserParams {
+export interface CreateAccountParams {
   firstname: string
   lastname: string
   email: string
   congregationId: number
 }
 
-export interface CreateUserResult {
+export interface CreateAccountResult {
   userId: number
   emailSent: boolean
 }
@@ -28,13 +28,13 @@ export interface CreateUserResult {
  * `linkMemberToAccount`. Password is set to a placeholder and the caller is
  * sent a password-reset email.
  */
-export async function createUser(
+export async function createAccount(
   db: TransactionClient,
   congregation: CongregationInfo,
   actorId: number,
-  params: CreateUserParams,
+  params: CreateAccountParams,
   renderEmail: (userId: number, token: string) => ReactNode,
-): Promise<CreateUserResult> {
+): Promise<CreateAccountResult> {
   const existingUser = await db.userAccount.findUnique({
     where: { email: params.email },
   })
@@ -59,7 +59,7 @@ export async function createUser(
   })
 
   const token = await createPasswordResetToken(user.id)
-  const emailSent = await sendResetUserPasswordEmail(user.id, renderEmail(user.id, token))
+  const emailSent = await sendResetAccountPasswordEmail(user.id, renderEmail(user.id, token))
 
   audit({
     action: AuditAction.UserCreated,

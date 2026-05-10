@@ -12,13 +12,13 @@ const mockDb = {
   consentRecord: { findMany: vi.fn() },
 }
 
-const { exportUserData } = await import('./export-user-data.server')
+const { exportAccountData } = await import('./export-account-data.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('exportUserData', () => {
+describe('exportAccountData', () => {
   it('retourne toutes les donnees personnelles de l utilisateur', async () => {
     const fakeAccount = {
       id: 1,
@@ -75,7 +75,7 @@ describe('exportUserData', () => {
     mockDb.boardDocumentVersion.findMany.mockResolvedValue([] as never)
     mockDb.consentRecord.findMany.mockResolvedValue([] as never)
 
-    const result = await exportUserData(mockDb as never, 1)
+    const result = await exportAccountData(mockDb as never, 1)
 
     expect(result.user).toEqual(fakeAccount)
     expect(result.permissions).toEqual([{ key: 'Admin' }])
@@ -89,6 +89,6 @@ describe('exportUserData', () => {
   it('lance une erreur si l utilisateur n existe pas', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null as never)
 
-    await expect(exportUserData(mockDb as never, 999)).rejects.toThrow('Utilisateur introuvable : 999')
+    await expect(exportAccountData(mockDb as never, 999)).rejects.toThrow('Utilisateur introuvable : 999')
   })
 })

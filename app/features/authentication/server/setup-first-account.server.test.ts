@@ -28,7 +28,7 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
   BUILT_IN_ROLE_KEYS: ['male', 'female', 'publisher', 'baptized', 'anointed', 'elder', 'assistant-servant'],
 }))
 
-const { setupFirstUser } = await import('./setup-first-user.server')
+const { setupFirstAccount } = await import('./setup-first-account.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -43,16 +43,16 @@ beforeEach(() => {
   scopedDb.programmeTemplate.create.mockResolvedValue({} as never)
 })
 
-describe('setupFirstUser', () => {
+describe('setupFirstAccount', () => {
   it("retourne l'id de l'utilisateur créé", async () => {
-    const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre', 'fr')
+    const result = await setupFirstAccount('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre', 'fr')
     expect(result).toBe(42)
   })
 
   it("fonctionne même si le rôle admin n'existe pas", async () => {
     vi.mocked(db.permission.findUnique).mockResolvedValue(null as never)
 
-    const result = await setupFirstUser('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre', 'fr')
+    const result = await setupFirstAccount('admin@test.com', 'motdepasse', 'Ma Congré', 'ma-congre', 'fr')
     expect(result).toBe(42)
   })
 })

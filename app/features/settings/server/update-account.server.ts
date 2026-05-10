@@ -4,7 +4,7 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
 
-export interface UpdateUserParams {
+export interface UpdateAccountParams {
   firstname: string
   lastname: string
   email: string
@@ -18,12 +18,12 @@ export interface UpdateUserParams {
  * Display name (firstname/lastname) lives on Member when the account is
  * linked; on UserAccount itself for admin / circuit-overseer accounts.
  */
-export async function updateUser(
+export async function updateAccount(
   db: TransactionClient,
   userId: number,
   congregationId: number,
   actorId: number,
-  params: UpdateUserParams,
+  params: UpdateAccountParams,
 ) {
   // If the new direct permission set drops Admin, make sure another admin
   // remains in the congregation. (False positive when the same user holds

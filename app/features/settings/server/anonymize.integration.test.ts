@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import type { AccountId } from '~/shared/types/branded'
+import type { AccountId, MemberId } from '~/shared/types/branded'
 
 const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
 const ALREADY_ANONYMIZED_RE = /already anonymized/i
@@ -53,9 +53,9 @@ async function anonymizeUser(tx: Tx, userId: number, actorId: number): Promise<v
     throw new NotFoundError('UserAccount')
   }
   if (account.memberId != null) {
-    await anonymizeMember(tx, account.memberId, account.congregationId, actorId)
+    await anonymizeMember(tx, account.memberId as MemberId, account.congregationId, actorId)
   }
-  await anonymizeAccount(tx, account.id, account.congregationId, actorId)
+  await anonymizeAccount(tx, account.id as AccountId, account.congregationId, actorId)
 }
 
 beforeAll(async () => {

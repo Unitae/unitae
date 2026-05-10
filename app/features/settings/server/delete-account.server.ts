@@ -2,6 +2,7 @@ import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { AccountId } from '~/shared/types/branded'
 
 /**
  * Delete a UserAccount. If a Member is linked (`memberId != null`), the
@@ -14,7 +15,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  */
 export async function deleteAccount(
   db: TransactionClient,
-  accountId: number,
+  accountId: AccountId,
   congregationId: number,
   actorId: number,
 ) {

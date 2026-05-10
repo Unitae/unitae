@@ -70,7 +70,7 @@ export async function countAdmins(congregationId: number, excludingAccountId?: n
  * the admin pool.
  *
  * Call this from delete-account, anonymize-account, and any path that may
- * remove `Permission.Admin` from a user (`updateUser`, custom-role replace).
+ * remove `Permission.Admin` from a user (`updateAccount`, custom-role replace).
  */
 export async function requireNotLastAdmin(accountId: number, congregationId: number): Promise<void> {
   const perms = await resolveEffectivePermissions(accountId, congregationId)

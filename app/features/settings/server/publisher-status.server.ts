@@ -2,6 +2,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
 
 /**
  * Toggle a Member's `isPublisher` status (publisher ↔ ministry-school student).
@@ -12,7 +13,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  */
 export async function togglePublisherStatus(
   db: TransactionClient,
-  memberId: number,
+  memberId: MemberId,
   congregationId: number,
   isPublisher: boolean,
   actorId: number,

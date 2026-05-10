@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { getCalendarFeedToken } from '~/features/authentication/server/calendar-feed-token.server'
-import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
+import { changeAccountPassword } from '~/features/authentication/server/change-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { congregationContext, currentAccountContext } from '~/shared/auth/route-context.server'
@@ -260,7 +260,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const password = formData.get('password')
   const newPassword = formData.get('new_password')
 
-  const isSuccess = await changeUserPassword(currentUser.id, String(password), String(newPassword))
+  const isSuccess = await changeAccountPassword(currentUser.id, String(password), String(newPassword))
 
   if (isSuccess) {
     audit({

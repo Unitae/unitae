@@ -32,7 +32,7 @@ let primaryUserId: number
 let otherUserId: number
 let adminPermissionId: number
 
-const { updateUser } = await import('./update-user.server')
+const { updateAccount } = await import('./update-account.server')
 
 beforeAll(async () => {
   const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })
@@ -98,10 +98,10 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
-describe('updateUser (integration)', () => {
+describe('updateAccount (integration)', () => {
   it('updates user personal data', async () => {
     await withScope(primaryCongId, tx =>
-      updateUser(tx, primaryUserId, primaryCongId, primaryUserId, {
+      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
@@ -118,7 +118,7 @@ describe('updateUser (integration)', () => {
   it('replaces congregation roles — removes old, creates new', async () => {
     // Start with admin role, switch to board-uploader role
     await withScope(primaryCongId, tx =>
-      updateUser(tx, primaryUserId, primaryCongId, primaryUserId, {
+      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
@@ -138,7 +138,7 @@ describe('updateUser (integration)', () => {
 
   it('removes all permissions when empty permissions array is given', async () => {
     await withScope(primaryCongId, tx =>
-      updateUser(tx, primaryUserId, primaryCongId, primaryUserId, {
+      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
@@ -162,7 +162,7 @@ describe('updateUser (integration)', () => {
 
     // Update primary user (deletes roles for primary user in primary congregation)
     await withScope(primaryCongId, tx =>
-      updateUser(tx, primaryUserId, primaryCongId, primaryUserId, {
+      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `update-user-primary-${ts}@test.com`,
@@ -180,7 +180,7 @@ describe('updateUser (integration)', () => {
 
   it('normalises email to lowercase', async () => {
     await withScope(primaryCongId, tx =>
-      updateUser(tx, primaryUserId, primaryCongId, primaryUserId, {
+      updateAccount(tx, primaryUserId, primaryCongId, primaryUserId, {
         firstname: 'Alice',
         lastname: 'After',
         email: `Update-User-PRIMARY-${ts}@TEST.COM`,

@@ -11,11 +11,11 @@ vi.mock('~/shared/auth/crypto.server', () => ({
   hash: vi.fn(),
 }))
 
-vi.mock('./reset-user-password.server', () => ({
-  resetUserPassword: vi.fn(),
+vi.mock('./reset-account-password.server', () => ({
+  resetAccountPassword: vi.fn(),
 }))
 
-const { changeUserPassword } = await import('./change-user-password.server')
+const { changeAccountPassword } = await import('./change-account-password.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { compare } = await import('~/shared/auth/crypto.server')
 
@@ -23,21 +23,21 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('changeUserPassword', () => {
+describe('changeAccountPassword', () => {
   const fakeUser = { id: 1, password: 'old.hashed' }
 
   it('retourne true quand le mot de passe actuel est correct', async () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
-    const result = await changeUserPassword(1, 'ancien', 'nouveau')
+    const result = await changeAccountPassword(1, 'ancien', 'nouveau')
     expect(result).toBe(true)
   })
 
   it("retourne false quand l'utilisateur n'existe pas", async () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
 
-    const result = await changeUserPassword(999, 'ancien', 'nouveau')
+    const result = await changeAccountPassword(999, 'ancien', 'nouveau')
     expect(result).toBe(false)
   })
 
@@ -45,7 +45,7 @@ describe('changeUserPassword', () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(false as never)
 
-    const result = await changeUserPassword(1, 'mauvais', 'nouveau')
+    const result = await changeAccountPassword(1, 'mauvais', 'nouveau')
     expect(result).toBe(false)
   })
 
@@ -53,7 +53,7 @@ describe('changeUserPassword', () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockRejectedValue(new Error('crypto error'))
 
-    const result = await changeUserPassword(1, 'ancien', 'nouveau')
+    const result = await changeAccountPassword(1, 'ancien', 'nouveau')
     expect(result).toBe(false)
   })
 })

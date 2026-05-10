@@ -9,7 +9,7 @@ type Locale = (typeof locales)[number]
 
 import { unscopedDb as db, withScope } from '~/shared/infra/db.server'
 
-export async function setupFirstUser(
+export async function setupFirstAccount(
   email: string,
   password: string,
   congregationName: string,
