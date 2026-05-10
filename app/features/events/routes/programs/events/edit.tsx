@@ -399,7 +399,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
     reorderFetcher.submit(
       { orderedIds: reordered },
-      { method: 'POST', action: `./reorder-parts`, encType: 'application/json' },
+      { method: 'POST', action: `/programs/events/${event.id}/reorder-parts`, encType: 'application/json' },
     )
   }
 
