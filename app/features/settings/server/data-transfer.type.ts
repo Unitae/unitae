@@ -1,4 +1,11 @@
-export const ARCHIVE_VERSION = '1.0'
+export const ARCHIVE_VERSION = '1.1'
+
+// Older archive versions an import will still accept. v1.0 archives miss every
+// post-shipping feature table (custom roles, allowed-roles, external speakers,
+// card overlays, perimeter, board section visibility) — the import path warns
+// and proceeds. v1.0 archives created before PR #152 also use the legacy
+// `congregation-user-roles.ndjson` filename; the import handles that fallback.
+export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1'] as const
 
 export interface ManifestJson {
   version: string
@@ -30,11 +37,17 @@ export const ENTITY_FILES = [
   'congregation',
   'settings',
   'event-kinds',
+  'roles',
+  'role-permissions',
   'users',
+  'user-role-assignments',
   'congregation-user-permissions',
   'publisher-groups',
   'publisher-activities',
+  'external-speakers',
   'territories',
+  'territory-card-overlays',
+  'territory-perimeter',
   'buildings',
   'building-entrances',
   'building-accesses',
@@ -44,12 +57,17 @@ export const ENTITY_FILES = [
   'attributions',
   'programme-templates',
   'programme-template-parts',
+  'programme-template-part-allowed-roles',
   'programme-template-service-roles',
+  'programme-template-service-role-allowed-roles',
   'programme-template-responsibles',
   'events',
   'programme-part-assignments',
+  'programme-part-assignment-allowed-roles',
   'programme-service-role-assignments',
+  'programme-service-role-assignment-allowed-roles',
   'board-sections',
+  'board-section-visibility-roles',
   'board-documents',
   'board-document-versions',
   'board-dynamic-document-settings',

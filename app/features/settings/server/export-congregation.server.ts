@@ -116,6 +116,25 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'roles',
+      export: () =>
+        db.role.findMany({
+          select: { id: true, key: true, name: true, description: true, isBuiltIn: true },
+        }),
+    },
+    {
+      name: 'role-permissions',
+      export: async () => {
+        const grants = await db.rolePermission.findMany({
+          select: {
+            roleId: true,
+            permission: { select: { key: true } },
+          },
+        })
+        return grants.map(g => ({ roleId: g.roleId, permissionKey: g.permission.key }))
+      },
+    },
+    {
       name: 'users',
       export: () =>
         db.user.findMany({
@@ -140,6 +159,13 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             createdAt: true,
             updatedAt: true,
           },
+        }),
+    },
+    {
+      name: 'user-role-assignments',
+      export: () =>
+        db.userRoleAssignment.findMany({
+          select: { userId: true, roleId: true },
         }),
     },
     {
@@ -185,10 +211,39 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'external-speakers',
+      export: () =>
+        db.externalSpeaker.findMany({
+          select: {
+            id: true,
+            name: true,
+            congregationName: true,
+            phone: true,
+            email: true,
+            notes: true,
+            archivedAt: true,
+          },
+        }),
+    },
+    {
       name: 'territories',
       export: () =>
         db.territory.findMany({
           select: { id: true, number: true, type: true, notes: true },
+        }),
+    },
+    {
+      name: 'territory-card-overlays',
+      export: () =>
+        db.territoryCardOverlay.findMany({
+          select: { id: true, name: true, color: true, paths: true },
+        }),
+    },
+    {
+      name: 'territory-perimeter',
+      export: () =>
+        db.territoryPerimeter.findMany({
+          select: { paths: true },
         }),
     },
     {
@@ -294,7 +349,15 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       name: 'programme-templates',
       export: () =>
         db.programmeTemplate.findMany({
-          select: { id: true, name: true, key: true, description: true, weekDay: true, isRecurring: true },
+          select: {
+            id: true,
+            name: true,
+            key: true,
+            description: true,
+            weekDay: true,
+            isRecurring: true,
+            kindId: true,
+          },
         }),
     },
     {
@@ -306,6 +369,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             name: true,
             section: true,
             track: true,
+            trackOrder: true,
             order: true,
             durationMin: true,
             allowExternalSpeaker: true,
@@ -314,10 +378,24 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'programme-template-part-allowed-roles',
+      export: () =>
+        db.programmeTemplatePartAllowedRole.findMany({
+          select: { partId: true, roleId: true, asKind: true },
+        }),
+    },
+    {
       name: 'programme-template-service-roles',
       export: () =>
         db.programmeTemplateServiceRole.findMany({
           select: { id: true, name: true, key: true, templateId: true },
+        }),
+    },
+    {
+      name: 'programme-template-service-role-allowed-roles',
+      export: () =>
+        db.programmeTemplateServiceRoleAllowedRole.findMany({
+          select: { serviceRoleId: true, roleId: true },
         }),
     },
     {
@@ -356,13 +434,23 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             name: true,
             section: true,
             track: true,
+            trackOrder: true,
             order: true,
             durationMin: true,
             eventId: true,
             partId: true,
             assigneeId: true,
             assistantId: true,
+            allowExternalSpeaker: true,
+            externalSpeakerId: true,
           },
+        }),
+    },
+    {
+      name: 'programme-part-assignment-allowed-roles',
+      export: () =>
+        db.programmePartAssignmentAllowedRole.findMany({
+          select: { assignmentId: true, roleId: true, asKind: true },
         }),
     },
     {
@@ -381,10 +469,24 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
+      name: 'programme-service-role-assignment-allowed-roles',
+      export: () =>
+        db.programmeServiceRoleAssignmentAllowedRole.findMany({
+          select: { assignmentId: true, roleId: true },
+        }),
+    },
+    {
       name: 'board-sections',
       export: () =>
         db.boardSection.findMany({
           select: { id: true, name: true, order: true },
+        }),
+    },
+    {
+      name: 'board-section-visibility-roles',
+      export: () =>
+        db.boardSectionVisibilityRole.findMany({
+          select: { sectionId: true, roleId: true },
         }),
     },
     {

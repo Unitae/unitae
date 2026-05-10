@@ -19,12 +19,15 @@ Unitae allows administrators to export and import entire congregation data as `.
 The archive contains all congregation data:
 
 - Users (without passwords — recipients must reset their password after import)
+- Roles, role memberships, and the permissions that each role grants
 - Territories, buildings, and building entrances with prospection data
+- Territory map overlays and the congregation perimeter
 - Territory attributions
 - Publisher groups and activity records
-- Events, event kinds, and programme templates with parts and service roles
-- Programme assignments
-- Board sections and documents (with optional uploaded files)
+- Events, event kinds, and programme templates with parts, service roles, and the role gating that decides who can be assigned
+- Programme assignments (including the same role gating, copied per event)
+- The visiting-speaker registry
+- Board sections (with role-based visibility) and documents (with optional uploaded files)
 - Settings and notification preferences
 - Consent records
 - Audit logs (optional)

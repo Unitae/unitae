@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is a non-empty string', () => {
-    expect(ARCHIVE_VERSION).toBe('1.0')
+  it('is the current 1.1 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('1.1')
   })
 })
 
@@ -114,5 +114,39 @@ describe('ENTITY_FILES', () => {
     const eventsIndex = ENTITY_FILES.indexOf('events')
 
     expect(kindsIndex).toBeLessThan(eventsIndex)
+  })
+
+  it('has roles before role-permissions (dependency order)', () => {
+    expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(ENTITY_FILES.indexOf('role-permissions'))
+  })
+
+  it('has roles and users before user-role-assignments (dependency order)', () => {
+    const userRoleAssignmentsIndex = ENTITY_FILES.indexOf('user-role-assignments')
+    expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(userRoleAssignmentsIndex)
+    expect(ENTITY_FILES.indexOf('users')).toBeLessThan(userRoleAssignmentsIndex)
+  })
+
+  it('has external-speakers before programme-part-assignments (dependency order)', () => {
+    expect(ENTITY_FILES.indexOf('external-speakers')).toBeLessThan(
+      ENTITY_FILES.indexOf('programme-part-assignments'),
+    )
+  })
+
+  it('has board-sections and roles before board-section-visibility-roles (dependency order)', () => {
+    const visibilityIndex = ENTITY_FILES.indexOf('board-section-visibility-roles')
+    expect(ENTITY_FILES.indexOf('board-sections')).toBeLessThan(visibilityIndex)
+    expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(visibilityIndex)
+  })
+
+  it('has programme-template-parts before programme-template-part-allowed-roles (dependency order)', () => {
+    expect(ENTITY_FILES.indexOf('programme-template-parts')).toBeLessThan(
+      ENTITY_FILES.indexOf('programme-template-part-allowed-roles'),
+    )
+  })
+
+  it('has programme-part-assignments before programme-part-assignment-allowed-roles (dependency order)', () => {
+    expect(ENTITY_FILES.indexOf('programme-part-assignments')).toBeLessThan(
+      ENTITY_FILES.indexOf('programme-part-assignment-allowed-roles'),
+    )
   })
 })
