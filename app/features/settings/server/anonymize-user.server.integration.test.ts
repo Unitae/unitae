@@ -4,8 +4,8 @@ import { PrismaClient } from '~/database/generated/client'
 import type { UserId } from '~/shared/types/branded'
 
 const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
-const ALREADY_ANONYMIZED_RE = /deja anonymise/
-const USER_NOT_FOUND_RE = /introuvable/
+const ALREADY_ANONYMIZED_RE = /already anonymized/i
+const USER_NOT_FOUND_RE = /useraccount not found/i
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
@@ -33,6 +33,7 @@ const ts = Date.now()
 let primaryCongId: number
 let otherCongId: number
 let primaryUserId: number
+let primaryMemberId: number
 let otherUserId: number
 let adminPermissionId: number
 
@@ -63,6 +64,7 @@ beforeAll(async () => {
         congregationId: primaryCongId,
       },
     })
+    primaryMemberId = member.id
     const user = await tx.userAccount.create({
       data: {
         email: `anon-primary-${ts}@test.com`,
@@ -143,10 +145,11 @@ describe('anonymizeUser (integration)', () => {
   })
 
   it('creates a data deletion record for GDPR compliance', async () => {
-    const record = await testDb.dataDeletionRecord.findFirst({ where: { entityId: primaryUserId } })
-    expect(record).not.toBeNull()
-    expect(record?.entityType).toBe('User')
-    expect(record?.congregationId).toBe(primaryCongId)
+    const records = await testDb.dataDeletionRecord.findMany({
+      where: { OR: [{ entityId: primaryUserId }, { entityId: primaryMemberId }], congregationId: primaryCongId },
+    })
+    const entityTypes = records.map(r => r.entityType).sort()
+    expect(entityTypes).toEqual(expect.arrayContaining(['Member', 'UserAccount']))
   })
 
   it('throws when the user is already anonymized', async () => {

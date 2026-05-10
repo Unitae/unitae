@@ -59,6 +59,17 @@ Defined by `BUILT_IN_ROLE_KEYS` in `app/shared/domain/built-in-roles.server.ts`:
 
 Membership is computed from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`) by `BUILT_IN_ROLE_PREDICATES`. After any change to those fields, call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` — it diffs the desired vs current `MemberRoleAssignment` rows and audits the change. When `Member.leftAt` is set, every predicate evaluates to `false`, so soft-leaving a member drops every identity role automatically.
 
+### Member lifecycle audit actions
+
+Lifecycle transitions on `Member` and the optional 1:1 `UserAccount` link emit dedicated audit actions (in addition to whatever `syncBuiltInRoleAssignments` records):
+
+| Action key | Service | When |
+|---|---|---|
+| `MemberLeft` (`member.left`) | `setMemberLeft` | A Member is marked as having left. Identity-role assignments are dropped via the role-sync diff; if the Member has a linked `UserAccount`, every `UserRoleAssignment` (custom/management roles) on that account is dropped too — leaving means losing access. |
+| `MemberReturned` (`member.returned`) | `setMemberReturned` | `leftAt` is cleared. Identity roles are re-attached from the still-intact flags; management roles on the linked account are NOT restored — they must be re-granted explicitly. |
+| `AccountLinkedToMember` (`account.linked_to_member`) | `linkAccountToMember` | A login is added to an existing Member. A `UserAccount` row is created with an empty password, a fresh `PasswordResetToken` is generated, and the caller is expected to send the reset email. Throws `ConflictError` on duplicate email or pre-existing link. |
+| `AccountUnlinkedFromMember` (`account.unlinked_from_member`) | `unlinkAccountFromMember` | The linked `UserAccount` is deleted. Tokens, permissions, and management role assignments cascade via FK `onDelete`. The Member row stays in place. |
+
 Domain invariants are enforced at the database level via CHECK constraints on `Member`: a servant cannot also be an elder, anointed requires baptism, pioneer requires baptism, elder/servant require baptism + male. Code that would violate these throws on `INSERT`/`UPDATE`.
 
 Built-in roles ship with **no permissions attached** (with one exception: `publisher` is granted `BoardViewer` by `seedBuiltInRoles`, mirroring the legacy default that publishers can read board documents). Their primary purpose is to label members for things like board section visibility and programme assignment filtering. Admins can attach permissions to built-in roles if they want them to grant access too.

@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Archive, IdCard, KeyRound, UnplugIcon } from 'lucide-react'
+import { Archive, IdCard, KeyRound, RotateCcw, UnplugIcon } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -150,7 +150,13 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                 </AlertDialogContent>
               </AlertDialog>
             )}
-            {user.isPublisher ? (
+            {user.leftAt != null ? (
+              <Form method="post" action={`/settings/users/${user.id}/mark-as-returned`}>
+                <Button type="submit" size="icon" title={m.settings_user_mark_as_returned_title()}>
+                  <RotateCcw className="size-4" />
+                </Button>
+              </Form>
+            ) : user.isPublisher ? (
               <Form method="post" action={`/settings/users/${user.id}/mark-as-left`}>
                 <Button type="submit" variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
                   <Archive className="size-4" />

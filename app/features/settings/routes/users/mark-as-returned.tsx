@@ -1,12 +1,13 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { togglePublisherStatus } from '~/features/settings/server/publisher-status.server'
+import { setMemberReturned } from '~/features/publishers/server/set-member-returned.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
-import type { Route } from './+types/make-publisher'
+import type { Route } from './+types/mark-as-returned'
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
@@ -26,26 +27,15 @@ export function action({ request, params, context }: Route.ActionArgs) {
       select: { email: true, memberId: true },
     })
 
-    if (account == null) {
-      session.flash('error', m.settings_user_make_publisher_error({ email: '' }))
-    } else if (account.memberId == null) {
-      // Account-only admin: send the operator to a form that collects the
-      // Member fields, then linkMemberToAccount will be called on submit.
-      return redirect(`/settings/users/${accountId}/add-to-congregation`, {
-        headers: { 'Set-Cookie': await commitSession(session) },
-      })
+    if (account == null || account.memberId == null) {
+      session.flash('error', m.settings_user_mark_as_returned_error({ email: account?.email ?? '' }))
     } else {
-      const member = await togglePublisherStatus(
-        db,
-        account.memberId,
-        currentUser.congregationId,
-        true,
-        currentUser.id,
-      )
-      if (member.isPublisher === true) {
-        session.flash('success', m.settings_user_make_publisher_success({ email: account.email }))
-      } else {
-        session.flash('error', m.settings_user_make_publisher_error({ email: account.email }))
+      try {
+        await setMemberReturned(db, account.memberId, currentUser.congregationId, currentUser.id)
+        session.flash('success', m.settings_user_mark_as_returned_success({ email: account.email }))
+      } catch (error) {
+        if (!(error instanceof NotFoundError)) throw error
+        session.flash('error', m.settings_user_mark_as_returned_error({ email: account.email }))
       }
     }
 

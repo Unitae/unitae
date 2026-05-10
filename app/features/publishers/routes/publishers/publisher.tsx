@@ -1,4 +1,4 @@
-import { Archive, Download, IdCard, Pencil } from 'lucide-react'
+import { Archive, Download, IdCard, Pencil, RotateCcw } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -102,7 +102,13 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                   <Pencil className="size-4" />
                 </Link>
               </Button>
-              {publisher.isPublisher ? (
+              {publisher.leftAt != null ? (
+                <Form method="post" action={`/settings/users/${publisher.id}/mark-as-returned`}>
+                  <Button type="submit" size="icon" title={m.settings_user_mark_as_returned_title()}>
+                    <RotateCcw className="size-4" />
+                  </Button>
+                </Form>
+              ) : publisher.isPublisher ? (
                 <Form method="post" action={`/settings/users/${publisher.id}/mark-as-left`}>
                   <Button type="submit" variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
                     <Archive className="size-4" />

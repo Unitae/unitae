@@ -6,8 +6,8 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({ syncBuiltInRoleAssignm
 const ANONYMIZED_EMAIL_PATTERN = /^deleted-.*@anonymized\.local$/
 
 const mockDb = {
-  userAccount: { findUnique: vi.fn(), update: vi.fn() },
-  member: { update: vi.fn() },
+  userAccount: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
+  member: { findFirst: vi.fn(), update: vi.fn() },
   publisherGroup: { updateMany: vi.fn() },
   attribution: { updateMany: vi.fn() },
   congregationUserPermission: { deleteMany: vi.fn() },
@@ -17,6 +17,7 @@ const mockDb = {
 }
 
 const { anonymizeUser } = await import('./anonymize-user.server')
+const { NotFoundError, ConflictError } = await import('~/shared/errors/app-error.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -26,10 +27,11 @@ describe('anonymizeUser', () => {
   it('anonymise les donnees personnelles de l utilisateur et du membre lie', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue({
       id: 1,
-      anonymizedAt: null,
       congregationId: 10,
       memberId: 1,
     } as never)
+    mockDb.member.findFirst.mockResolvedValue({ id: 1, anonymizedAt: null } as never)
+    mockDb.userAccount.findFirst.mockResolvedValue({ id: 1, anonymizedAt: null } as never)
     mockDb.userAccount.update.mockResolvedValue({} as never)
     mockDb.member.update.mockResolvedValue({} as never)
     mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
@@ -51,7 +53,7 @@ describe('anonymizeUser', () => {
     expect(accountUpdate.data.anonymizedAt).toBeInstanceOf(Date)
 
     const memberUpdate = mockDb.member.update.mock.calls[0][0]
-    expect(memberUpdate.where).toEqual({ id: 1 })
+    expect(memberUpdate.where).toEqual({ id_congregationId: { id: 1, congregationId: 10 } })
     expect(memberUpdate.data.firstname).toBe('Utilisateur')
     expect(memberUpdate.data.lastname).toBe('supprime')
     expect(memberUpdate.data.phone).toBe('')
@@ -72,19 +74,17 @@ describe('anonymizeUser', () => {
       data: { uploadedById: null },
     })
 
-    const deletionRecord = mockDb.dataDeletionRecord.create.mock.calls[0][0]
-    expect(deletionRecord.data.entityType).toBe('User')
-    expect(deletionRecord.data.entityId).toBe(1)
-    expect(deletionRecord.data.requestedBy).toBe('admin:5')
+    const deletionEntityTypes = mockDb.dataDeletionRecord.create.mock.calls.map(c => c[0].data.entityType)
+    expect(deletionEntityTypes).toEqual(expect.arrayContaining(['Member', 'UserAccount']))
   })
 
   it('anonymise un compte sans membre lie sans toucher aux tables de membres', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue({
       id: 7,
-      anonymizedAt: null,
       congregationId: 10,
       memberId: null,
     } as never)
+    mockDb.userAccount.findFirst.mockResolvedValue({ id: 7, anonymizedAt: null } as never)
 
     await anonymizeUser(mockDb as never, 7 as UserId, 'admin:5')
 
@@ -97,21 +97,17 @@ describe('anonymizeUser', () => {
   it('refuse d anonymiser un utilisateur inexistant', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue(null as never)
 
-    await expect(anonymizeUser(mockDb as never, 999 as UserId, 'admin:5')).rejects.toThrow(
-      'Utilisateur introuvable : 999',
-    )
+    await expect(anonymizeUser(mockDb as never, 999 as UserId, 'admin:5')).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it('refuse d anonymiser un utilisateur deja anonymise', async () => {
+  it('refuse d anonymiser un compte deja anonymise', async () => {
     mockDb.userAccount.findUnique.mockResolvedValue({
       id: 1,
-      anonymizedAt: new Date(),
       congregationId: 10,
       memberId: null,
     } as never)
+    mockDb.userAccount.findFirst.mockResolvedValue({ id: 1, anonymizedAt: new Date() } as never)
 
-    await expect(anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')).rejects.toThrow(
-      'Utilisateur deja anonymise : 1',
-    )
+    await expect(anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')).rejects.toBeInstanceOf(ConflictError)
   })
 })

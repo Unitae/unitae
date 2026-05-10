@@ -307,7 +307,9 @@ The full list lives in the `AuditAction` map in `app/shared/domain/audit.server.
 | Territories | Created, updated, deleted |
 | Entrances | Reassigned (`EntranceReassigned` — when the map editor moves an entrance from one territory to another) |
 | Attributions | Created, updated, deleted |
-| Publishers | Created, updated, status changed |
+| Publishers | Created, updated, status changed (publisher ↔ ministry-school student) |
+| Member lifecycle | Marked as left, marked as returned |
+| Account ↔ Member linking | Account linked to a Member, account unlinked from a Member |
 | Publisher groups | Created, deleted |
 | Publisher activity | Created, updated, deleted |
 | Board documents | Created, updated, deleted |
