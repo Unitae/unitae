@@ -1130,7 +1130,7 @@ async function main() {
           startDate: tuesday,
           endDate: endTuesday,
           templateId: midweekTemplate.id,
-          createdById: mainAdmin.id,
+          createdById: mainAdmin.accountId,
           congregationId: congId,
         },
       })
@@ -1187,7 +1187,7 @@ async function main() {
           startDate: saturday,
           endDate: endSaturday,
           templateId: weekendTemplate.id,
-          createdById: mainAdmin.id,
+          createdById: mainAdmin.accountId,
           congregationId: congId,
         },
       })
@@ -1237,7 +1237,7 @@ async function main() {
         kindId: offKind.id,
         startDate,
         endDate,
-        createdById: publisher.id,
+        createdById: publisher.accountId,
         congregationId: congId,
       },
     })
