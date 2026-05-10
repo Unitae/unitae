@@ -76,7 +76,8 @@ export default [
           route('export-data', 'features/settings/routes/users/export-data.tsx'),
           route('anonymize', 'features/settings/routes/users/anonymize.tsx'),
           route('make-publisher', 'features/settings/routes/users/make-publisher.tsx'),
-          route('unmake-publisher', 'features/settings/routes/users/unmake-publisher.tsx'),
+          route('mark-as-left', 'features/settings/routes/users/mark-as-left.tsx'),
+          route('make-student', 'features/settings/routes/users/make-student.tsx'),
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),
@@ -121,6 +122,8 @@ export default [
         route('view', 'features/publishers/routes/publishers/publisher.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
+        route('link-login', 'features/publishers/routes/publishers/link-login.tsx'),
+        route('unlink-login', 'features/publishers/routes/publishers/unlink-login.tsx'),
       ]),
       ...prefix('activity', [
         index('features/publishers/routes/activity/publisher-list.tsx'),

@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Archive, IdCard } from 'lucide-react'
+import { Archive, IdCard, KeyRound, UnplugIcon } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -13,8 +13,30 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '~/shared/ui/dialog'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
+import { Input } from '~/shared/ui/input'
+import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
@@ -79,19 +101,69 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.sidebar_publishers(), to: '/publishers' }, { label: m.publishers_edit_title() }]}
         backTo="/publishers"
         actions={
-          user.isPublisher ? (
-            <Form method="post" action={`/settings/users/${user.id}/unmake-publisher`}>
-              <Button type="submit" variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
-                <Archive className="size-4" />
-              </Button>
-            </Form>
-          ) : (
-            <Form method="post" action={`/settings/users/${user.id}/make-publisher`}>
-              <Button type="submit" size="icon" title={m.publishers_edit_activate_title()}>
-                <IdCard className="size-4" />
-              </Button>
-            </Form>
-          )
+          <>
+            {user.email == null ? (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" title={m.publishers_edit_link_login_title()}>
+                    <KeyRound className="size-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <Form method="post" action={`/publishers/${user.id}/link-login`}>
+                    <DialogHeader>
+                      <DialogTitle>{m.publishers_edit_link_login_dialog_title()}</DialogTitle>
+                      <DialogDescription>{m.publishers_edit_link_login_dialog_description()}</DialogDescription>
+                    </DialogHeader>
+                    <div className="my-4 flex flex-col gap-2">
+                      <Label htmlFor="link-login-email">{m.publishers_edit_link_login_email_label()}</Label>
+                      <Input id="link-login-email" name="email" type="email" required />
+                    </div>
+                    <DialogFooter>
+                      <Button type="submit">{m.publishers_edit_link_login_submit()}</Button>
+                    </DialogFooter>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            ) : (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="icon" title={m.publishers_edit_unlink_login_title()}>
+                    <UnplugIcon className="size-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.publishers_edit_unlink_login_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.publishers_edit_unlink_login_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <Form method="post" action={`/publishers/${user.id}/unlink-login`}>
+                      <AlertDialogAction type="submit">
+                        {m.publishers_edit_unlink_login_submit()}
+                      </AlertDialogAction>
+                    </Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
+            {user.isPublisher ? (
+              <Form method="post" action={`/settings/users/${user.id}/mark-as-left`}>
+                <Button type="submit" variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
+                  <Archive className="size-4" />
+                </Button>
+              </Form>
+            ) : (
+              <Form method="post" action={`/settings/users/${user.id}/make-publisher`}>
+                <Button type="submit" size="icon" title={m.publishers_edit_activate_title()}>
+                  <IdCard className="size-4" />
+                </Button>
+              </Form>
+            )}
+          </>
         }
       />
 

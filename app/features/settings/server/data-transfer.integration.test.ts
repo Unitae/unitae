@@ -438,7 +438,7 @@ async function exportToZip(
   })
 
   const manifest: ManifestJson = {
-    version: '1.1',
+    version: '2.0',
     exportDate: new Date().toISOString(),
     sourceApp: 'unitae',
     entityCounts,
@@ -508,7 +508,7 @@ describe('Export/Import round-trip', () => {
     const manifestFile = zip.file('manifest.json')
     expect(manifestFile).not.toBeNull()
     const manifest: ManifestJson = JSON.parse(await manifestFile!.async('string'))
-    expect(manifest.version).toBe('1.1')
+    expect(manifest.version).toBe('2.0')
     expect(manifest.sourceApp).toBe('unitae')
 
     expect(entityCounts.members).toBe(2)

@@ -103,7 +103,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                 </Link>
               </Button>
               {publisher.isPublisher ? (
-                <Form method="post" action={`/settings/users/${publisher.id}/unmake-publisher`}>
+                <Form method="post" action={`/settings/users/${publisher.id}/mark-as-left`}>
                   <Button type="submit" variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
                     <Archive className="size-4" />
                   </Button>

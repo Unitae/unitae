@@ -69,6 +69,14 @@ export const AuditAction = {
   PublisherActivityUpdated: 'publisher.activity.updated',
   PublisherActivityDeleted: 'publisher.activity.deleted',
 
+  // Member lifecycle
+  MemberLeft: 'member.left',
+  MemberReturned: 'member.returned',
+
+  // Account / Member linking
+  AccountLinkedToMember: 'account.linked_to_member',
+  AccountUnlinkedFromMember: 'account.unlinked_from_member',
+
   // Congregation settings
   CongregationSettingsUpdated: 'congregation.settings.updated',
 

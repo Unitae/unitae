@@ -6,7 +6,7 @@ import { permissionsContext, userContext, withScopeFromContext } from '~/shared/
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
-import type { Route } from './+types/unmake-publisher'
+import type { Route } from './+types/make-student'
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
@@ -27,7 +27,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
     })
 
     if (account == null || account.memberId == null) {
-      session.flash('error', m.settings_user_unmake_publisher_error({ email: account?.email ?? '' }))
+      session.flash('error', m.settings_user_make_student_error({ email: account?.email ?? '' }))
     } else {
       const member = await togglePublisherStatus(
         db,
@@ -36,10 +36,10 @@ export function action({ request, params, context }: Route.ActionArgs) {
         false,
         currentUser.id,
       )
-      if (member.isPublisher === true) {
-        session.flash('success', m.settings_user_unmake_publisher_success({ email: account.email }))
+      if (member.isPublisher === false) {
+        session.flash('success', m.settings_user_make_student_success({ email: account.email }))
       } else {
-        session.flash('error', m.settings_user_unmake_publisher_error({ email: account.email }))
+        session.flash('error', m.settings_user_make_student_error({ email: account.email }))
       }
     }
 

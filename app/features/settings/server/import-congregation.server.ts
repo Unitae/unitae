@@ -62,6 +62,12 @@ export async function validateImport(storageKey: string, congregationId: number)
     }
   }
 
+  if (manifest.version === '1.0' || manifest.version === '1.1') {
+    warnings.push(
+      'Archive predates v2.0 — the legacy `users.ndjson` cannot be split into Member + UserAccount automatically yet, so publisher and login data will be skipped. Re-export from a v2.0 instance to migrate user data.',
+    )
+  }
+
   // Check user-account email conflicts
   const accountsNdjson = await readNdjsonFile<{ email: string }>(zip, 'user-accounts')
   if (accountsNdjson.length > 0) {
