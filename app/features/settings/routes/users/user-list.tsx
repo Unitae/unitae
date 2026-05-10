@@ -95,6 +95,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       users: accounts.map(account => ({
         email: account.email,
         id: account.id,
+        memberId: account.memberId,
         active: account.active,
         firstname: account.member?.firstname ?? account.firstname,
         lastname: account.member?.lastname ?? account.lastname,
@@ -152,10 +153,10 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                 <TableCell>{user.lastname?.toLocaleUpperCase()}</TableCell>
                 <TableCell className="max-sm:hidden">{user.email ?? '-'}</TableCell>
                 <TableCell className="text-center">
-                  {user.isPublisher ? (
+                  {user.isPublisher && user.memberId != null ? (
                     roles.canViewPublishers ? (
                       <Link
-                        to={`/publishers/${user.id}/view`}
+                        to={`/publishers/${user.memberId}/view`}
                         title={m.settings_users_view_publisher_title()}
                         className="text-primary"
                       >

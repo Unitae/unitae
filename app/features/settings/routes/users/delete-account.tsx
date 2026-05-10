@@ -20,7 +20,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   requirePermission(permissions, Permission.SettingsUserManager)
 
-  const accountId = requireParamId(params.userId, '/settings/users')
+  const accountId = requireParamId(params.accountId, '/settings/users')
 
   // Prevent self-deletion — admins shouldn't lock themselves out via this flow
   if (currentUser.id === accountId) {

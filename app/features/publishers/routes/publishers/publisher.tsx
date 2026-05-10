@@ -85,8 +85,8 @@ function LifecycleAction({
 }) {
   if (leftAt != null) {
     return (
-      <Form method="post" action={`/settings/users/${publisherId}/mark-as-returned`}>
-        <Button type="submit" size="icon" title={m.settings_user_mark_as_returned_title()}>
+      <Form method="post" action={`/publishers/${publisherId}/mark-as-returned`}>
+        <Button type="submit" size="icon" title={m.publishers_view_mark_as_returned_title()}>
           <RotateCcw className="size-4" />
         </Button>
       </Form>
@@ -94,7 +94,7 @@ function LifecycleAction({
   }
   if (isPublisher) {
     return (
-      <Form method="post" action={`/settings/users/${publisherId}/mark-as-left`}>
+      <Form method="post" action={`/publishers/${publisherId}/mark-as-left`}>
         <Button type="submit" variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
           <Archive className="size-4" />
         </Button>
@@ -102,7 +102,7 @@ function LifecycleAction({
     )
   }
   return (
-    <Form method="post" action={`/settings/users/${publisherId}/make-publisher`}>
+    <Form method="post" action={`/publishers/${publisherId}/make-publisher`}>
       <Button type="submit" size="icon" title={m.publishers_view_activate_title()}>
         <IdCard className="size-4" />
       </Button>

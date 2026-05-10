@@ -56,7 +56,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const user = await db.userAccount.findUnique({
       where: {
         id_congregationId: {
-          id: requireParamId(params.userId, '/settings/users'),
+          id: requireParamId(params.accountId, '/settings/users'),
           congregationId: currentUser.congregationId,
         },
       },
@@ -92,6 +92,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     return {
       email: user.email,
       id: user.id,
+      memberId: user.member?.id ?? null,
       active: user.active,
       firstname: user.member?.firstname ?? user.firstname,
       lastname: user.member?.lastname ?? user.lastname,
@@ -150,9 +151,9 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
         backTo="/settings/users"
         actions={
           <>
-            {user.isPublisher === true ? (
+            {user.isPublisher === true && user.memberId != null ? (
               <Button asChild variant="outline" size="icon" title={m.settings_user_edit_view_publisher_title()}>
-                <Link to={`/publishers/${user.id}/edit`}>
+                <Link to={`/publishers/${user.memberId}/edit`}>
                   <IdCard className="size-4" />
                 </Link>
               </Button>
@@ -421,7 +422,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const userId = requireParamId(params.userId, '/settings/users')
+  const accountId = requireParamId(params.accountId, '/settings/users')
   const submission = parseWithZod(await request.formData(), { schema: editUserSchema })
 
   if (submission.status !== 'success') {
@@ -431,7 +432,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { firstname, lastname, email, active, permissions: selectedPermissions, customRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
-    await updateUser(db, userId, currentUser.congregationId, currentUser.id, {
+    await updateUser(db, accountId, currentUser.congregationId, currentUser.id, {
       firstname,
       lastname,
       email,
@@ -439,7 +440,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       permissions: selectedPermissions,
     })
 
-    await setUserCustomRoleAssignments(db, userId, currentUser.congregationId, currentUser.id, customRoleIds)
+    await setUserCustomRoleAssignments(db, accountId, currentUser.congregationId, currentUser.id, customRoleIds)
 
     return redirect('/settings/users')
   })

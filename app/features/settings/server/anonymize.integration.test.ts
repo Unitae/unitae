@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import type { UserId } from '~/shared/types/branded'
+import type { AccountId } from '~/shared/types/branded'
 
 const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
 const ALREADY_ANONYMIZED_RE = /already anonymized/i
@@ -141,7 +141,7 @@ afterAll(async () => {
 
 describe('anonymizeUser (integration)', () => {
   it('anonymizes personal data of the target user', async () => {
-    await withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as UserId, 'admin@test.com'))
+    await withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as AccountId, 'admin@test.com'))
 
     const user = await testDb.userAccount.findUnique({
       where: { id: primaryUserId },
@@ -173,12 +173,12 @@ describe('anonymizeUser (integration)', () => {
 
   it('throws when the user is already anonymized', async () => {
     await expect(
-      withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as UserId, 'admin@test.com')),
+      withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as AccountId, 'admin@test.com')),
     ).rejects.toThrow(ALREADY_ANONYMIZED_RE)
   })
 
   it('throws when the user does not exist', async () => {
-    await expect(withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as UserId, 'admin@test.com'))).rejects.toThrow(
+    await expect(withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as AccountId, 'admin@test.com'))).rejects.toThrow(
       USER_NOT_FOUND_RE,
     )
   })
@@ -193,7 +193,7 @@ describe('anonymizeUser (integration)', () => {
 
     // The primary scope must not be able to locate the other congregation's user
     await expect(
-      withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as UserId, 'admin@test.com')),
+      withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as AccountId, 'admin@test.com')),
     ).rejects.toThrow(USER_NOT_FOUND_RE)
 
     const otherUserAfter = await testDb.userAccount.findUnique({
@@ -275,7 +275,7 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
   })
 
   it('nulls out deputyId on publisher group when deputy is anonymized', async () => {
-    await withScope(primaryCongId, tx => anonymizeUser(tx, deputyUserId as UserId, 'admin@test.com'))
+    await withScope(primaryCongId, tx => anonymizeUser(tx, deputyUserId as AccountId, 'admin@test.com'))
 
     const group = await testDb.publisherGroup.findUnique({ where: { id: groupId } })
     expect(group?.deputyId).toBeNull()

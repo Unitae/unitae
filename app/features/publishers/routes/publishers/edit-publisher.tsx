@@ -151,19 +151,19 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
               </AlertDialog>
             )}
             {user.leftAt != null ? (
-              <Form method="post" action={`/settings/users/${user.id}/mark-as-returned`}>
-                <Button type="submit" size="icon" title={m.settings_user_mark_as_returned_title()}>
+              <Form method="post" action={`/publishers/${user.id}/mark-as-returned`}>
+                <Button type="submit" size="icon" title={m.publishers_view_mark_as_returned_title()}>
                   <RotateCcw className="size-4" />
                 </Button>
               </Form>
             ) : user.isPublisher ? (
-              <Form method="post" action={`/settings/users/${user.id}/mark-as-left`}>
+              <Form method="post" action={`/publishers/${user.id}/mark-as-left`}>
                 <Button type="submit" variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
                   <Archive className="size-4" />
                 </Button>
               </Form>
             ) : (
-              <Form method="post" action={`/settings/users/${user.id}/make-publisher`}>
+              <Form method="post" action={`/publishers/${user.id}/make-publisher`}>
                 <Button type="submit" size="icon" title={m.publishers_edit_activate_title()}>
                   <IdCard className="size-4" />
                 </Button>

@@ -4,6 +4,7 @@ import { setMemberReturned } from '~/features/publishers/server/set-member-retur
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
+import type { MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -12,38 +13,36 @@ import type { Route } from './+types/mark-as-returned'
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  if (!canManagePublisher) {
+  if (!permissions.has(Permission.PublisherManager)) {
     throw redirect('/')
   }
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
-    const accountId = requireParamId(params.userId, '/settings/users')
+    const memberId = requireParamId<MemberId>(params.publisherId, '/publishers')
 
-    const account = await db.userAccount.findUnique({
-      where: { id_congregationId: { id: accountId, congregationId: currentUser.congregationId } },
-      select: { email: true, memberId: true },
+    const member = await db.member.findFirst({
+      where: { id: memberId, congregationId: currentUser.congregationId },
+      select: { firstname: true, lastname: true },
     })
+    const name = member ? `${member.firstname} ${member.lastname}` : ''
 
-    if (account == null || account.memberId == null) {
-      session.flash('error', m.settings_user_mark_as_returned_error({ email: account?.email ?? '' }))
+    if (!member) {
+      session.flash('error', m.publishers_view_mark_as_returned_error({ name }))
     } else {
       try {
-        await setMemberReturned(db, account.memberId, currentUser.congregationId, currentUser.id)
-        session.flash('success', m.settings_user_mark_as_returned_success({ email: account.email }))
+        await setMemberReturned(db, memberId, currentUser.congregationId, currentUser.id)
+        session.flash('success', m.publishers_view_mark_as_returned_success({ name }))
       } catch (error) {
         if (!(error instanceof NotFoundError)) throw error
-        session.flash('error', m.settings_user_mark_as_returned_error({ email: account.email }))
+        session.flash('error', m.publishers_view_mark_as_returned_error({ name }))
       }
     }
 
     const previousPage = request.headers.get('referer')
-    return redirect(previousPage ?? '/settings/users', {
-      headers: {
-        'Set-Cookie': await commitSession(session),
-      },
+    return redirect(previousPage ?? `/publishers/${memberId}/view`, {
+      headers: { 'Set-Cookie': await commitSession(session) },
     })
   })
 }

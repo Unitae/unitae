@@ -10,7 +10,7 @@ import {
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
-import type { UserId } from '~/shared/types/branded'
+import type { AccountId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -24,15 +24,15 @@ export async function action({ params, context }: Route.ActionArgs) {
 
   requirePermission(permissions, Permission.Admin)
 
-  const userId = requireParamId<UserId>(params.userId, '/settings/users')
+  const accountId = requireParamId<AccountId>(params.accountId, '/settings/users')
 
-  if (currentUser.id === userId) {
+  if (currentUser.id === accountId) {
     throw redirect('/settings/users')
   }
 
   await withScopeFromContext(context, async db => {
     const account = await db.userAccount.findUnique({
-      where: { id: userId },
+      where: { id_congregationId: { id: accountId, congregationId } },
       select: { id: true, congregationId: true, memberId: true },
     })
     if (!account) throw new NotFoundError('UserAccount')
@@ -43,13 +43,13 @@ export async function action({ params, context }: Route.ActionArgs) {
     await anonymizeAccount(db, account.id, account.congregationId, `admin:${currentUser.id}`)
   })
 
-  logger.info(`User anonymized. UserAccount ID: ${userId}. By admin ID: ${currentUser.id}.`)
+  logger.info(`User anonymized. UserAccount ID: ${accountId}. By admin ID: ${currentUser.id}.`)
   audit({
     action: AuditAction.UserAnonymized,
     congregationId,
     actorId: currentUser.id,
     entityType: 'UserAccount',
-    entityId: userId,
+    entityId: accountId,
   })
 
   return redirect('/settings/users')

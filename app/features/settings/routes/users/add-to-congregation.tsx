@@ -49,7 +49,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const accountId = requireParamId(params.userId, '/settings/users')
+  const accountId = requireParamId(params.accountId, '/settings/users')
 
   return withScopeFromContext(context, async db => {
     const account = await db.userAccount.findUnique({
@@ -133,7 +133,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     throw redirect('/')
   }
 
-  const accountId = requireParamId(params.userId, '/settings/users')
+  const accountId = requireParamId(params.accountId, '/settings/users')
   const submission = parseWithZod(await request.formData(), { schema: addToCongregationSchema })
 
   if (submission.status !== 'success') {

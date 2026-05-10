@@ -12,10 +12,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const congregationId = currentUser.congregationId
-  const userId = requireParamId(params.userId, '/settings/users')
+  const accountId = requireParamId(params.accountId, '/settings/users')
 
   // Seul un admin/gestionnaire peut exporter, ou l'utilisateur lui-meme
-  const isSelf = currentUser.id === userId
+  const isSelf = currentUser.id === accountId
   const canManageUsers = permissions.has(Permission.SettingsUserManager) || permissions.has(Permission.Admin)
 
   if (!isSelf && !canManageUsers) {
@@ -23,22 +23,22 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const data = await exportUserData(db, userId)
+    const data = await exportUserData(db, accountId)
     const json = JSON.stringify(data, null, 2)
 
     audit({
       action: AuditAction.UserDataExported,
       congregationId,
       actorId: currentUser.id,
-      entityType: 'User',
-      entityId: userId,
+      entityType: 'UserAccount',
+      entityId: accountId,
     })
 
     return new Response(json, {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename="donnees-utilisateur-${userId}.json"`,
+        'Content-Disposition': `attachment; filename="donnees-utilisateur-${accountId}.json"`,
       },
     })
   })

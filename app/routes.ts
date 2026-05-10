@@ -71,14 +71,11 @@ export default [
       ...prefix('users', [
         index('features/settings/routes/users/user-list.tsx'),
         route('new', 'features/settings/routes/users/new-user.tsx'),
-        ...prefix(':userId', [
+        ...prefix(':accountId', [
           route('edit', 'features/settings/routes/users/edit-user.tsx'),
           route('export-data', 'features/settings/routes/users/export-data.tsx'),
           route('anonymize', 'features/settings/routes/users/anonymize.tsx'),
           route('make-publisher', 'features/settings/routes/users/make-publisher.tsx'),
-          route('mark-as-left', 'features/settings/routes/users/mark-as-left.tsx'),
-          route('mark-as-returned', 'features/settings/routes/users/mark-as-returned.tsx'),
-          route('make-student', 'features/settings/routes/users/make-student.tsx'),
           route('add-to-congregation', 'features/settings/routes/users/add-to-congregation.tsx'),
           route('delete-account', 'features/settings/routes/users/delete-account.tsx'),
         ]),
@@ -127,6 +124,10 @@ export default [
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
         route('link-login', 'features/publishers/routes/publishers/link-login.tsx'),
         route('unlink-login', 'features/publishers/routes/publishers/unlink-login.tsx'),
+        route('mark-as-left', 'features/publishers/routes/publishers/mark-as-left.tsx'),
+        route('mark-as-returned', 'features/publishers/routes/publishers/mark-as-returned.tsx'),
+        route('make-publisher', 'features/publishers/routes/publishers/make-publisher.tsx'),
+        route('make-student', 'features/publishers/routes/publishers/make-student.tsx'),
       ]),
       ...prefix('activity', [
         index('features/publishers/routes/activity/publisher-list.tsx'),
