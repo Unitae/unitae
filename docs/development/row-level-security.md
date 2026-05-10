@@ -74,15 +74,11 @@ The authoritative source is the set of `CREATE POLICY tenant_isolation` statemen
 
 **Tenant-scoped (RLS enforced):**
 
-Attribution, AuditLog, BoardDocument, BoardSection, BoardSectionVisibilityRole, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, CongregationUserPermission, ConsentRecord, DataDeletionRecord, Event, EventKind, ExternalSpeaker, NotificationEvent, NotificationPreference, ProgrammePartAssignment, ProgrammePartAssignmentAllowedRole, ProgrammeServiceRoleAssignment, ProgrammeServiceRoleAssignmentAllowedRole, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplatePartAllowedRole, ProgrammeTemplateResponsible, ProgrammeTemplateServiceRole, ProgrammeTemplateServiceRoleAllowedRole, PublisherActivity, PublisherGroup, Role, RolePermission, Setting, Territory, TerritoryCardOverlay, TerritoryPerimeter, User, UserRoleAssignment.
+Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, BoardSection, BoardSectionVisibilityRole, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, CongregationUserPermission, ConsentRecord, DataDeletionRecord, Event, EventKind, ExternalSpeaker, NotificationEvent, NotificationPreference, ProgrammePartAssignment, ProgrammePartAssignmentAllowedRole, ProgrammeServiceRoleAssignment, ProgrammeServiceRoleAssignmentAllowedRole, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplatePartAllowedRole, ProgrammeTemplateResponsible, ProgrammeTemplateServiceRole, ProgrammeTemplateServiceRoleAllowedRole, PublisherActivity, PublisherGroup, Role, RolePermission, Setting, Territory, TerritoryCardOverlay, TerritoryPerimeter, User, UserRoleAssignment.
 
 **Global (no `congregationId`, RLS not applicable):**
 
 Congregation, Permission, PasswordResetToken, EmailVerificationToken, CalendarFeedToken, BoardDynamicDocumentView.
-
-**Scoped column but no RLS policy yet:**
-
-`BoardDocumentVersion` and `BoardDynamicDocumentSettings`. Both carry `congregationId` and are reached today only through scoped Prisma queries (joined to their parent `BoardDocument` / `BoardSection`, which are themselves scoped), but no migration ever ran `CREATE POLICY` on them — so the database-side guarantee is missing. Tracked in [#171](https://github.com/Unitae/unitae/issues/171); a follow-up migration will bring them in line with the policy shape used everywhere else.
 
 ## Application Integration
 
