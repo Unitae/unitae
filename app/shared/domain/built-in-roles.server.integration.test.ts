@@ -175,8 +175,13 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
   it('does not touch assignments in another congregation (RLS isolation)', async () => {
     await withScope(otherCongId, tx => syncBuiltInRoleAssignments(tx, otherMemberId, otherCongId, otherMemberId))
 
-    // Mutate the primary member, sync them — must not affect the other member
-    await testDb.member.update({ where: { id: primaryMemberId }, data: { isHelder: true } })
+    // Mutate the primary member, sync them — must not affect the other member.
+    // Alice is female + non-baptized, so toggling baptism (a valid mutation
+    // under the CHECK constraints) is enough to trigger a sync.
+    await testDb.member.update({
+      where: { id: primaryMemberId },
+      data: { baptismDate: new Date('2005-01-01') },
+    })
     await withScope(primaryCongId, tx =>
       syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
     )
@@ -193,6 +198,6 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     expect(otherKeys).toEqual(['baptized', 'brother', 'elder', 'member', 'publisher'])
 
     // Restore for downstream tests
-    await testDb.member.update({ where: { id: primaryMemberId }, data: { isHelder: false } })
+    await testDb.member.update({ where: { id: primaryMemberId }, data: { baptismDate: null } })
   })
 })

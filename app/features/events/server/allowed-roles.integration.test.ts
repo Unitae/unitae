@@ -9,7 +9,6 @@ import {
 } from '~/features/events/server/programme-events.server'
 import { createSingleEventFromTemplate } from '~/features/events/server/programme-generation.server'
 import { upsertTemplatePart, upsertTemplateServiceRole } from '~/features/events/server/programme-templates.server'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -54,6 +53,11 @@ beforeAll(async () => {
 
   await withScope(primaryCongId, async tx => {
     // Built-in roles (mirrors the seed order in built-in-roles.server.ts)
+    const member = await tx.role.create({
+      data: { key: 'member', isBuiltIn: true, congregationId: primaryCongId },
+    })
+    const memberRoleId = member.id
+
     const elder = await tx.role.create({
       data: { key: 'elder', isBuiltIn: true, congregationId: primaryCongId },
     })
@@ -64,55 +68,49 @@ beforeAll(async () => {
     })
     publisherRoleId = publisher.id
 
-    // Users
-    const elderUser = await tx.userAccount.create({
+    // Members + accounts
+    const elderMember = await tx.member.create({
       data: {
-        email: `elder-${ts}@test.com`,
-        password: 'h',
         firstname: 'Elder',
         lastname: 'Person',
-        active: true,
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
-    elderUserId = elderUser.id
+    elderUserId = elderMember.id
 
-    const plain = await tx.userAccount.create({
+    const plainMember = await tx.member.create({
       data: {
-        email: `plain-${ts}@test.com`,
-        password: 'h',
         firstname: 'Plain',
         lastname: 'Publisher',
-        active: true,
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
-    plainPublisherUserId = plain.id
+    plainPublisherUserId = plainMember.id
 
-    const nonPub = await tx.userAccount.create({
+    const nonPubMember = await tx.member.create({
       data: {
-        email: `nonpub-${ts}@test.com`,
-        password: 'h',
         firstname: 'Non',
         lastname: 'Publisher',
-        active: true,
         isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
-    nonPublisherUserId = nonPub.id
+    nonPublisherUserId = nonPubMember.id
 
-    // Role assignments
-    await tx.userRoleAssignment.createMany({
+    // Identity-role assignments live on Member. Empty allowed list resolves
+    // via the `member` built-in role (every current Member). Targeted lists
+    // resolve via specific identity roles like `elder` or `publisher`.
+    await tx.memberRoleAssignment.createMany({
       data: [
-        { userId: elderUserId, roleId: elderRoleId, congregationId: primaryCongId },
-        { userId: elderUserId, roleId: publisherRoleId, congregationId: primaryCongId },
-        { userId: plainPublisherUserId, roleId: publisherRoleId, congregationId: primaryCongId },
+        { memberId: elderUserId, roleId: memberRoleId, congregationId: primaryCongId },
+        { memberId: elderUserId, roleId: elderRoleId, congregationId: primaryCongId },
+        { memberId: elderUserId, roleId: publisherRoleId, congregationId: primaryCongId },
+        { memberId: plainPublisherUserId, roleId: memberRoleId, congregationId: primaryCongId },
+        { memberId: plainPublisherUserId, roleId: publisherRoleId, congregationId: primaryCongId },
+        // Non-publisher (school student) is also a member — should be eligible by default
+        { memberId: nonPublisherUserId, roleId: memberRoleId, congregationId: primaryCongId },
       ],
     })
 
@@ -194,9 +192,11 @@ afterAll(async () => {
       await tx.programmeTemplateServiceRole.deleteMany({})
       await tx.programmeTemplate.deleteMany({})
       await tx.event.deleteMany({})
+      await tx.memberRoleAssignment.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
       await tx.role.deleteMany({})
       await tx.userAccount.deleteMany({})
+      await tx.member.deleteMany({})
     })
     await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
   }
@@ -205,13 +205,14 @@ afterAll(async () => {
 })
 
 describe('resolveEligibleUserIds (integration)', () => {
-  it('returns publisher role members when allowed list is empty', async () => {
+  it('returns every Member (via built-in `member` role) when allowed list is empty', async () => {
     const result = await withScope(primaryCongId, tx => resolveEligibleUserIds(tx, [], primaryCongId))
-    expect(result.sort()).toEqual([elderUserId, plainPublisherUserId].sort())
-    expect(result).not.toContain(nonPublisherUserId)
+    // School-student (non-publisher) Members are now also eligible — the
+    // member fallback is broader than the old publisher gate.
+    expect(result.sort()).toEqual([elderUserId, plainPublisherUserId, nonPublisherUserId].sort())
   })
 
-  it('returns only role-matching users when list is non-empty', async () => {
+  it('returns only role-matching members when list is non-empty', async () => {
     const result = await withScope(primaryCongId, tx => resolveEligibleUserIds(tx, [elderRoleId], primaryCongId))
     expect(result).toEqual([elderUserId])
     expect(result).not.toContain(plainPublisherUserId)

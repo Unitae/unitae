@@ -57,8 +57,6 @@ beforeAll(async () => {
         firstname: 'Alice',
         lastname: 'Before',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -77,8 +75,6 @@ beforeAll(async () => {
         firstname: 'Bob',
         lastname: 'Other',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: otherCongId,
       },
     })

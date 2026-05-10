@@ -49,7 +49,6 @@ beforeAll(async () => {
         firstname: 'Alice',
         lastname: 'Primary',
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })

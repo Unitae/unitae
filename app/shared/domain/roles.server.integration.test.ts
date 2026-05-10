@@ -67,7 +67,6 @@ beforeAll(async () => {
       firstname: 'Test',
       lastname: 'User',
       active: true,
-      isPublisher: false,
       congregationId,
     },
   })

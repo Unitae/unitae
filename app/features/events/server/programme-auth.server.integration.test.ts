@@ -56,8 +56,6 @@ beforeAll(async () => {
         firstname: 'Manny',
         lastname: 'Manager',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -70,8 +68,6 @@ beforeAll(async () => {
         firstname: 'Rose',
         lastname: 'Responsible',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -84,8 +80,6 @@ beforeAll(async () => {
         firstname: 'Pat',
         lastname: 'Plain',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -114,8 +108,6 @@ beforeAll(async () => {
         firstname: 'Olga',
         lastname: 'Other',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: otherCongId,
       },
     })

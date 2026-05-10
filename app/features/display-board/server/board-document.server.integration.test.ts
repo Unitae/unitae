@@ -1,7 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 // File operations are not the focus of these tests — isolate from storage layer
 vi.mock('./document.server', () => ({
@@ -61,8 +60,6 @@ beforeAll(async () => {
         firstname: 'Alice',
         lastname: 'Primary',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -224,8 +221,6 @@ describe('createBoardDocument (integration)', () => {
           firstname: 'Carla',
           lastname: 'Uploader',
           active: true,
-          isPublisher: true,
-          type: PublisherType.Normal,
           congregationId: primaryCongId,
         },
       })
@@ -268,8 +263,6 @@ describe('isDocumentOwnedByUploader (integration)', () => {
           firstname: 'Owen',
           lastname: 'Owner',
           active: true,
-          isPublisher: true,
-          type: PublisherType.Normal,
           congregationId: primaryCongId,
         },
       })

@@ -57,15 +57,20 @@ beforeAll(async () => {
     })
     primaryPublisherRoleId = publisher.id
 
+    const elderMember = await tx.member.create({
+      data: {
+        firstname: 'Elder',
+        lastname: 'Person',
+        isPublisher: true,
+        congregationId: primaryCongId,
+      },
+    })
     const elderUser = await tx.userAccount.create({
       data: {
         email: `sv-elder-${ts}@test.com`,
         password: 'h',
-        firstname: 'Elder',
-        lastname: 'Person',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: elderMember.id,
         congregationId: primaryCongId,
       },
     })
@@ -77,15 +82,20 @@ beforeAll(async () => {
       data: { userId: elderUser.id, roleId: publisher.id, congregationId: primaryCongId },
     })
 
+    const publisherMember = await tx.member.create({
+      data: {
+        firstname: 'Publisher',
+        lastname: 'Person',
+        isPublisher: true,
+        congregationId: primaryCongId,
+      },
+    })
     const publisherUser = await tx.userAccount.create({
       data: {
         email: `sv-pub-${ts}@test.com`,
         password: 'h',
-        firstname: 'Publisher',
-        lastname: 'Person',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: publisherMember.id,
         congregationId: primaryCongId,
       },
     })
@@ -124,6 +134,7 @@ afterAll(async () => {
   await testDb.boardSection.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.userRoleAssignment.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.userAccount.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.member.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.role.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.auditLog.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, foreignCongId] } } })

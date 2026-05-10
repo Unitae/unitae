@@ -2,7 +2,6 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import type { UserId } from '~/shared/types/branded'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const ANONYMIZED_EMAIL_RE = /^deleted-.+@anonymized\.local$/
 const ALREADY_ANONYMIZED_RE = /deja anonymise/
@@ -55,16 +54,21 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
+    const member = await tx.member.create({
+      data: {
+        firstname: 'Alice',
+        lastname: 'Primary',
+        phone: '0600000001',
+        isPublisher: true,
+        congregationId: primaryCongId,
+      },
+    })
     const user = await tx.userAccount.create({
       data: {
         email: `anon-primary-${ts}@test.com`,
         password: 'hashed',
-        firstname: 'Alice',
-        lastname: 'Primary',
-        phone: '0600000001',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: member.id,
         congregationId: primaryCongId,
       },
     })
@@ -76,15 +80,20 @@ beforeAll(async () => {
   })
 
   await withScope(otherCongId, async tx => {
+    const member = await tx.member.create({
+      data: {
+        firstname: 'Bob',
+        lastname: 'Other',
+        isPublisher: true,
+        congregationId: otherCongId,
+      },
+    })
     const user = await tx.userAccount.create({
       data: {
         email: `anon-other-${ts}@test.com`,
         password: 'hashed',
-        firstname: 'Bob',
-        lastname: 'Other',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
+        memberId: member.id,
         congregationId: otherCongId,
       },
     })
@@ -101,6 +110,7 @@ afterAll(async () => {
       await tx.congregationUserPermission.deleteMany({})
       await tx.publisherGroup.deleteMany({})
       await tx.userAccount.deleteMany({})
+      await tx.member.deleteMany({})
       await tx.territory.deleteMany({})
     })
   }
@@ -152,17 +162,23 @@ describe('anonymizeUser (integration)', () => {
   })
 
   it('does not anonymize a user from another congregation — RLS isolation', async () => {
-    const otherUserBefore = await testDb.userAccount.findUnique({ where: { id: otherUserId } })
+    const otherUserBefore = await testDb.userAccount.findUnique({
+      where: { id: otherUserId },
+      include: { member: true },
+    })
     expect(otherUserBefore?.anonymizedAt).toBeNull()
-    expect(otherUserBefore?.firstname).toBe('Bob')
+    expect(otherUserBefore?.member?.firstname).toBe('Bob')
 
     // The primary scope must not be able to locate the other congregation's user
     await expect(
       withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as UserId, 'admin@test.com')),
     ).rejects.toThrow(USER_NOT_FOUND_RE)
 
-    const otherUserAfter = await testDb.userAccount.findUnique({ where: { id: otherUserId } })
-    expect(otherUserAfter?.firstname).toBe('Bob')
+    const otherUserAfter = await testDb.userAccount.findUnique({
+      where: { id: otherUserId },
+      include: { member: true },
+    })
+    expect(otherUserAfter?.member?.firstname).toBe('Bob')
     expect(otherUserAfter?.anonymizedAt).toBeNull()
   })
 })
@@ -173,28 +189,38 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
 
   beforeAll(async () => {
     await withScope(primaryCongId, async tx => {
-      const responsible = await tx.userAccount.create({
+      const responsibleMember = await tx.member.create({
+        data: {
+          firstname: 'Responsible',
+          lastname: 'User',
+          isPublisher: true,
+          congregationId: primaryCongId,
+        },
+      })
+      await tx.userAccount.create({
         data: {
           email: `anon-resp-${ts}@test.com`,
           password: 'hashed',
-          firstname: 'Responsible',
-          lastname: 'User',
           active: true,
-          isPublisher: true,
-          type: PublisherType.Normal,
+          memberId: responsibleMember.id,
           congregationId: primaryCongId,
         },
       })
 
+      const deputyMember = await tx.member.create({
+        data: {
+          firstname: 'Deputy',
+          lastname: 'User',
+          isPublisher: true,
+          congregationId: primaryCongId,
+        },
+      })
       const deputy = await tx.userAccount.create({
         data: {
           email: `anon-deputy-${ts}@test.com`,
           password: 'hashed',
-          firstname: 'Deputy',
-          lastname: 'User',
           active: true,
-          isPublisher: true,
-          type: PublisherType.Normal,
+          memberId: deputyMember.id,
           congregationId: primaryCongId,
         },
       })
@@ -204,8 +230,8 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
         data: {
           name: `Group ${ts}`,
           adress: '1 rue Test',
-          responsibleId: responsible.id,
-          deputyId: deputy.id,
+          responsibleId: responsibleMember.id,
+          deputyId: deputyMember.id,
           congregationId: primaryCongId,
         },
       })
@@ -217,7 +243,7 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
 
       await tx.attribution.create({
         data: {
-          publisherId: deputy.id,
+          publisherId: deputyMember.id,
           territoryId: territory.id,
           lateDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
           congregationId: primaryCongId,

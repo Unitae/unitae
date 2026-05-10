@@ -35,18 +35,17 @@ beforeAll(async () => {
   const publisherCount = 8
   for (let i = 0; i < publisherCount; i++) {
     const user = await createTestUser(testDb, congregationId, {
-      isPublisher: true,
       firstname: `Publisher${i}`,
       lastname: `Last${i}`,
     })
-    publisherIds.push(user.id)
+    const memberId = user.memberId ?? user.id
+    publisherIds.push(memberId)
     await testDb.publisherActivity.create({
       data: {
-        publisherId: user.id,
+        publisherId: memberId,
         congregationId,
         month: 8,
         year: 2025,
-        isPublisher: true,
         hours: 1,
       },
     })
@@ -56,6 +55,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await testDb.publisherActivity.deleteMany({ where: { congregationId } })
   await testDb.userAccount.deleteMany({ where: { congregationId } })
+  await testDb.member.deleteMany({ where: { congregationId } })
   await testDb.congregation.deleteMany({ where: { id: congregationId } })
   await testDb.$disconnect()
 })

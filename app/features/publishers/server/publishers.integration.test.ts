@@ -35,12 +35,13 @@ beforeAll(async () => {
   congregationIdB = congB.id
 
   const userA = await createTestUser(testDb, congregationIdA, { isPublisher: true })
-  publisherIdA = userA.id
+  publisherIdA = userA.memberId ?? userA.id
   await createTestUser(testDb, congregationIdB, { isPublisher: true })
 })
 
 afterAll(async () => {
   await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
+  await testDb.member.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congregationIdA, congregationIdB] } } })
   await testDb.$disconnect()
 })
@@ -78,12 +79,10 @@ describe('getPublishersWithGroup search filter', () => {
     searchCongregationId = cong.id
 
     await createTestUser(testDb, searchCongregationId, {
-      isPublisher: true,
       firstname: expectedFirstname,
       lastname: expectedLastname,
     })
     await createTestUser(testDb, searchCongregationId, {
-      isPublisher: true,
       firstname: otherFirstname,
       lastname: otherLastname,
     })
@@ -91,6 +90,7 @@ describe('getPublishersWithGroup search filter', () => {
 
   afterAll(async () => {
     await testDb.userAccount.deleteMany({ where: { congregationId: searchCongregationId } })
+    await testDb.member.deleteMany({ where: { congregationId: searchCongregationId } })
     await testDb.congregation.deleteMany({ where: { id: searchCongregationId } })
   })
 

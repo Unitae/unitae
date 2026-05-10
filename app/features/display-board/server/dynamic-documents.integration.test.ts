@@ -22,6 +22,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 const ts = Date.now()
 let congregationId: number
 let aliceId: number
+let aliceAccountIdInner: number
 
 beforeAll(async () => {
   const cong = await testDb.congregation.create({
@@ -35,11 +36,10 @@ beforeAll(async () => {
         firstname: 'Alice',
         lastname: 'Dupont',
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId,
       },
     })
-    await tx.userAccount.create({
+    const aliceAccount = await tx.userAccount.create({
       data: {
         email: `alice-board-${ts}@test.com`,
         password: 'hashed',
@@ -49,14 +49,16 @@ beforeAll(async () => {
       },
     })
     aliceId = aliceMember.id
+    aliceAccountIdInner = aliceAccount.id
 
-    // Create a second member for group responsible/deputy
+    // Create a second member for group responsible/deputy. Pioneer requires
+    // baptism per the CHECK constraint.
     const bob = await tx.member.create({
       data: {
         firstname: 'Bob',
         lastname: 'Martin',
+        baptismDate: new Date('2010-01-01'),
         isPublisher: true,
-        type: PublisherType.PionnierPermanant,
         congregationId,
       },
     })
@@ -92,7 +94,7 @@ beforeAll(async () => {
         templateId: template.id,
         startDate: new Date('2027-06-01T19:00:00Z'),
         endDate: new Date('2027-06-01T21:00:00Z'),
-        createdById: aliceId,
+        createdById: aliceAccountIdInner,
         congregationId,
       },
     })
@@ -125,6 +127,7 @@ afterAll(async () => {
     await tx.programmeTemplate.deleteMany({ where: { congregationId } })
     await tx.publisherGroup.deleteMany({ where: { congregationId } })
     await tx.userAccount.deleteMany({ where: { congregationId } })
+    await tx.member.deleteMany({ where: { congregationId } })
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()

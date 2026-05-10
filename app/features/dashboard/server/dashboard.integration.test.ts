@@ -23,7 +23,9 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 const ts = Date.now()
 let congregationId: number
 let aliceId: number
+let aliceAccountId: number
 let bobId: number
+let bobAccountId: number
 let pastEventId: number
 
 beforeAll(async () => {
@@ -33,33 +35,45 @@ beforeAll(async () => {
   congregationId = cong.id
 
   await withScope(congregationId, async tx => {
-    const alice = await tx.userAccount.create({
+    const aliceMember = await tx.member.create({
+      data: {
+        firstname: 'Alice',
+        lastname: 'Dupont',
+        isPublisher: true,
+        congregationId,
+      },
+    })
+    const aliceAccount = await tx.userAccount.create({
       data: {
         email: `alice-dash-${ts}@test.com`,
         password: 'hashed',
-        firstname: 'Alice',
-        lastname: 'Dupont',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: aliceMember.id,
         congregationId,
       },
     })
-    aliceId = alice.id
+    aliceId = aliceMember.id
+    aliceAccountId = aliceAccount.id
 
-    const bob = await tx.userAccount.create({
+    const bobMember = await tx.member.create({
+      data: {
+        firstname: 'Bob',
+        lastname: 'Martin',
+        isPublisher: true,
+        congregationId,
+      },
+    })
+    const bobAccount = await tx.userAccount.create({
       data: {
         email: `bob-dash-${ts}@test.com`,
         password: 'hashed',
-        firstname: 'Bob',
-        lastname: 'Martin',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: bobMember.id,
         congregationId,
       },
     })
-    bobId = bob.id
+    bobId = bobMember.id
+    bobAccountId = bobAccount.id
 
     // Territory with attribution to Alice
     const territory = await tx.territory.create({
@@ -117,7 +131,7 @@ beforeAll(async () => {
       where: {
         id_congregationId: { id: readDoc.id, congregationId },
       },
-      data: { viewedBy: { connect: { id: aliceId } } },
+      data: { viewedBy: { connect: { id: aliceAccountId } } },
     })
 
     // Future event with programme assignments
@@ -131,7 +145,7 @@ beforeAll(async () => {
         kindId: eventKind.id,
         startDate: new Date('2027-06-01T19:00:00Z'),
         endDate: new Date('2027-06-01T21:00:00Z'),
-        createdById: aliceId,
+        createdById: aliceAccountId,
         congregationId,
       },
     })
@@ -175,7 +189,7 @@ beforeAll(async () => {
         name: `Past Meeting ${ts}`,
         startDate: new Date('2025-01-01T19:00:00Z'),
         endDate: new Date('2025-01-01T21:00:00Z'),
-        createdById: aliceId,
+        createdById: aliceAccountId,
         congregationId,
       },
     })
@@ -194,6 +208,7 @@ afterAll(async () => {
     await tx.attribution.deleteMany({ where: { congregationId } })
     await tx.territory.deleteMany({ where: { congregationId } })
     await tx.userAccount.deleteMany({ where: { congregationId } })
+    await tx.member.deleteMany({ where: { congregationId } })
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()
@@ -223,13 +238,13 @@ describe('getUserTerritories (integration)', () => {
 
 describe('getUnreadDocumentCount (integration)', () => {
   it('counts only unread visible documents for the user', async () => {
-    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, aliceId, congregationId))
+    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, aliceAccountId, congregationId))
     // 1 unread PDF (the other was marked as read)
     expect(result).toBe(1)
   })
 
   it('counts all documents as unread for a user who read nothing', async () => {
-    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, bobId, congregationId))
+    const result = await withScope(congregationId, tx => getUnreadDocumentCount(tx, bobAccountId, congregationId))
     // Bob has read nothing — both PDFs are unread
     expect(result).toBe(2)
   })
@@ -237,7 +252,7 @@ describe('getUnreadDocumentCount (integration)', () => {
 
 describe('getRecentDocuments (integration)', () => {
   it('returns documents with correct alreadyViewed flag', async () => {
-    const result = await withScope(congregationId, tx => getRecentDocuments(tx, aliceId, congregationId))
+    const result = await withScope(congregationId, tx => getRecentDocuments(tx, aliceAccountId, congregationId))
     expect(result.length).toBeGreaterThanOrEqual(1)
     const readDoc = result.find(d => d.title.includes('Read PDF'))
     const unreadDoc = result.find(d => d.title.includes('Unread PDF'))

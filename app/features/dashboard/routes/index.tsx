@@ -44,9 +44,14 @@ export function loader({ context }: Route.LoaderArgs) {
   const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
   const canViewBoard = permissions.has(Permission.BoardViewer)
 
+  // Member-bound queries (territories, programme assignments) need the linked
+  // Member id; account-bound queries (documents/views) use the UserAccount id.
+  const memberId = currentUser.member?.id ?? null
   return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting] = await Promise.all([
-      safeQuery('territories', currentUser.id, () => getUserTerritories(db, currentUser.id)),
+      memberId != null
+        ? safeQuery('territories', currentUser.id, () => getUserTerritories(db, memberId))
+        : Promise.resolve(null),
       canViewBoard
         ? safeQuery('documents', currentUser.id, () =>
             getRecentDocuments(db, currentUser.id, currentUser.congregationId),
@@ -58,7 +63,9 @@ export function loader({ context }: Route.LoaderArgs) {
           )
         : Promise.resolve(0),
       safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
-      safeQuery('next-meeting', currentUser.id, () => getNextMeeting(db, currentUser.id)),
+      memberId != null
+        ? safeQuery('next-meeting', currentUser.id, () => getNextMeeting(db, memberId))
+        : Promise.resolve(null),
     ])
 
     // Onboarding: count entities for admin checklist

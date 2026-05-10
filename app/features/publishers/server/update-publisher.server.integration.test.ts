@@ -33,6 +33,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 
 const ts = Date.now()
 let congregationId: number
+// `publisherId` is a Member id — `updatePublisher` operates on Member.
 let publisherId: number
 
 beforeAll(async () => {
@@ -43,53 +44,58 @@ beforeAll(async () => {
 
   await seedBuiltInRoles(testDb, congregationId)
 
-  const user = await testDb.userAccount.create({
+  const member = await testDb.member.create({
     data: {
-      email: `update-pub-${ts}@test.com`,
-      password: 'hashed',
       firstname: 'Charlie',
       lastname: 'Wiring',
-      active: true,
       isPublisher: true,
       isMale: true,
+      // Elder + brother require baptism per the CHECK
+      baptismDate: new Date('2010-01-01'),
       type: PublisherType.Normal,
       congregationId,
     },
   })
-  publisherId = user.id
+  publisherId = member.id
 })
 
 afterAll(async () => {
   await withScope(congregationId, async tx => {
+    await tx.memberRoleAssignment.deleteMany({})
     await tx.userRoleAssignment.deleteMany({})
     await tx.role.deleteMany({})
     await tx.userAccount.deleteMany({})
+    await tx.member.deleteMany({})
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()
 })
 
+const baseParams = {
+  firstname: 'Charlie',
+  lastname: 'Wiring',
+  email: '',
+  gender: 'male',
+  birthDate: null,
+  baptismDate: '2010-01-01',
+  isHelder: false,
+  isServant: false,
+  isAnointed: false,
+  groupId: null,
+  type: PublisherType.Normal,
+  phone: '',
+  address: '',
+}
+
 describe('updatePublisher (integration) — built-in role wiring', () => {
   it('adds the elder role assignment when isHelder flips to true', async () => {
     await withScope(congregationId, tx =>
-      updatePublisher(tx, publisherId, congregationId, publisherId, {
-        firstname: 'Charlie',
-        lastname: 'Wiring',
-        email: `update-pub-${ts}@test.com`,
-        gender: 'male',
-        birthDate: null,
-        baptismDate: null,
-        isHelder: true,
-        isServant: false,
-        isAnointed: false,
-        groupId: null,
-        type: PublisherType.Normal,
-        phone: '',
-        address: '',
-      }),
+      updatePublisher(tx, publisherId, congregationId, publisherId, { ...baseParams, isHelder: true }),
     )
 
-    const keys = (await testDb.userRoleAssignment.findMany({ where: { userId: publisherId }, include: { role: true } }))
+    const keys = (
+      await testDb.memberRoleAssignment.findMany({ where: { memberId: publisherId }, include: { role: true } })
+    )
       .map(a => a.role.key)
       .sort()
     expect(keys).toContain('elder')
@@ -97,24 +103,12 @@ describe('updatePublisher (integration) — built-in role wiring', () => {
 
   it('removes the elder role assignment when isHelder flips back to false', async () => {
     await withScope(congregationId, tx =>
-      updatePublisher(tx, publisherId, congregationId, publisherId, {
-        firstname: 'Charlie',
-        lastname: 'Wiring',
-        email: `update-pub-${ts}@test.com`,
-        gender: 'male',
-        birthDate: null,
-        baptismDate: null,
-        isHelder: false,
-        isServant: false,
-        isAnointed: false,
-        groupId: null,
-        type: PublisherType.Normal,
-        phone: '',
-        address: '',
-      }),
+      updatePublisher(tx, publisherId, congregationId, publisherId, { ...baseParams, isHelder: false }),
     )
 
-    const keys = (await testDb.userRoleAssignment.findMany({ where: { userId: publisherId }, include: { role: true } }))
+    const keys = (
+      await testDb.memberRoleAssignment.findMany({ where: { memberId: publisherId }, include: { role: true } })
+    )
       .map(a => a.role.key)
       .sort()
     expect(keys).not.toContain('elder')
