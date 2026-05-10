@@ -313,7 +313,6 @@ await createTerritory(db, ...)
 ## Known gaps
 
 - **#170** — the data-transfer export (`ENTITY_FILES` in `app/features/settings/server/data-transfer.type.ts`) silently drops 11 feature tables added since the export feature shipped (custom roles, allowed-roles, external speakers, card overlays, perimeter, board section visibility). Bump `ARCHIVE_VERSION` if you fix it.
-- **#171** — `BoardDocumentVersion` and `BoardDynamicDocumentSettings` carry `congregationId` but have no `CREATE POLICY` in any migration. They're reached only through scoped Prisma queries today; the database-side guarantee is missing.
 - **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users who hold a permission only via a custom role aren't picked up.
 
 ## Environment Configuration
