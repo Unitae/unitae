@@ -60,7 +60,7 @@ beforeAll(async () => {
 
   await seedBuiltInRoles(testDb, congregationId)
 
-  const user = await testDb.user.create({
+  const user = await testDb.userAccount.create({
     data: {
       email: `roles-${ts}@test.com`,
       password: 'hashed',
@@ -159,7 +159,7 @@ describe('roles.server (integration)', () => {
     const assignmentsAfter = await testDb.userRoleAssignment.findMany({ where: { roleId: role.id } })
     expect(assignmentsAfter).toHaveLength(0)
 
-    const userAfter = await testDb.user.findUnique({ where: { id: userId } })
+    const userAfter = await testDb.userAccount.findUnique({ where: { id: userId } })
     expect(userAfter).not.toBeNull()
   })
 

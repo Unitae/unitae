@@ -20,7 +20,7 @@ export async function updateCongregationSettings(
   )
 
   if (data.auxiliaryPioneerProfileActivated === 'false') {
-    await db.user.updateMany({
+    await db.member.updateMany({
       where: {
         congregationId,
         type: PublisherType.PionnierAuxiliaires,

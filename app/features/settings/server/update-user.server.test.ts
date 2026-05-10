@@ -23,7 +23,7 @@ beforeEach(() => {
 
 describe('updateUser', () => {
   it('updates user data', async () => {
-    mockDb.user.update.mockResolvedValue({} as never)
+    mockDb.userAccount.update.mockResolvedValue({} as never)
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.permission.findMany.mockResolvedValue([] as never)
 
@@ -35,7 +35,7 @@ describe('updateUser', () => {
       permissions: [],
     })
 
-    const call = mockDb.user.update.mock.calls[0][0]
+    const call = mockDb.userAccount.update.mock.calls[0][0]
     expect(call.data.firstname).toBe('Marie')
     expect(call.data.lastname).toBe('Martin')
     expect(call.data.email).toBe('marie.martin@example.com')
@@ -43,7 +43,7 @@ describe('updateUser', () => {
   })
 
   it('deletes existing permissions and creates new ones', async () => {
-    mockDb.user.update.mockResolvedValue({} as never)
+    mockDb.userAccount.update.mockResolvedValue({} as never)
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 2 } as never)
     mockDb.permission.findMany.mockResolvedValue([
       { id: 100, key: 'admin' },
@@ -72,7 +72,7 @@ describe('updateUser', () => {
   })
 
   it('calls audit with correct action', async () => {
-    mockDb.user.update.mockResolvedValue({} as never)
+    mockDb.userAccount.update.mockResolvedValue({} as never)
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 0 } as never)
     mockDb.permission.findMany.mockResolvedValue([] as never)
 

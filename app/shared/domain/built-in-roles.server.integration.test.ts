@@ -55,7 +55,7 @@ beforeAll(async () => {
   await seedRoles(testDb, primaryCongId)
   await seedRoles(testDb, otherCongId)
 
-  const primaryUser = await testDb.user.create({
+  const primaryUser = await testDb.userAccount.create({
     data: {
       email: `bi-roles-primary-${ts}@test.com`,
       password: 'hashed',
@@ -70,7 +70,7 @@ beforeAll(async () => {
   })
   primaryUserId = primaryUser.id
 
-  const otherUser = await testDb.user.create({
+  const otherUser = await testDb.userAccount.create({
     data: {
       email: `bi-roles-other-${ts}@test.com`,
       password: 'hashed',
@@ -131,7 +131,7 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
   it('removes every domain role when isPublisher flips to false', async () => {
     await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
 
-    await testDb.user.update({ where: { id: primaryUserId }, data: { isPublisher: false } })
+    await testDb.userAccount.update({ where: { id: primaryUserId }, data: { isPublisher: false } })
 
     await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
 
@@ -162,7 +162,7 @@ describe('syncBuiltInRoleAssignments (integration)', () => {
     await withScope(otherCongId, tx => syncBuiltInRoleAssignments(tx, otherUserId, otherCongId, otherUserId))
 
     // Mutate the primary user, sync them — must not affect the other user
-    await testDb.user.update({ where: { id: primaryUserId }, data: { isHelder: true } })
+    await testDb.userAccount.update({ where: { id: primaryUserId }, data: { isHelder: true } })
     await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
 
     const otherKeys = (

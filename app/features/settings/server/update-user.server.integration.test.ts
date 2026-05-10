@@ -114,7 +114,7 @@ describe('updateUser (integration)', () => {
       }),
     )
 
-    const user = await testDb.user.findUnique({ where: { id: primaryUserId } })
+    const user = await testDb.userAccount.findUnique({ where: { id: primaryUserId } })
     expect(user?.lastname).toBe('After')
     expect(user?.active).toBe(false)
   })
@@ -193,7 +193,7 @@ describe('updateUser (integration)', () => {
       }),
     )
 
-    const user = await testDb.user.findUnique({ where: { id: primaryUserId } })
+    const user = await testDb.userAccount.findUnique({ where: { id: primaryUserId } })
     expect(user?.email).toBe(`update-user-primary-${ts}@test.com`)
   })
 })

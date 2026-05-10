@@ -33,9 +33,10 @@ export function loader({ context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const brothers = await db.user.findMany({
+    const brothers = await db.member.findMany({
       where: {
         congregationId: currentUser.congregationId,
+        leftAt: null,
         isMale: true,
         OR: [{ isHelder: true }, { isServant: true }],
       },

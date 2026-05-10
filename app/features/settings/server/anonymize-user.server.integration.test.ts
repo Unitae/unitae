@@ -112,7 +112,7 @@ describe('anonymizeUser (integration)', () => {
   it('anonymizes personal data of the target user', async () => {
     await withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as UserId, 'admin@test.com'))
 
-    const user = await testDb.user.findUnique({ where: { id: primaryUserId } })
+    const user = await testDb.userAccount.findUnique({ where: { id: primaryUserId } })
     expect(user?.firstname).toBe('Utilisateur')
     expect(user?.lastname).toBe('supprime')
     expect(user?.email).toMatch(ANONYMIZED_EMAIL_RE)
@@ -147,7 +147,7 @@ describe('anonymizeUser (integration)', () => {
   })
 
   it('does not anonymize a user from another congregation — RLS isolation', async () => {
-    const otherUserBefore = await testDb.user.findUnique({ where: { id: otherUserId } })
+    const otherUserBefore = await testDb.userAccount.findUnique({ where: { id: otherUserId } })
     expect(otherUserBefore?.anonymizedAt).toBeNull()
     expect(otherUserBefore?.firstname).toBe('Bob')
 
@@ -156,7 +156,7 @@ describe('anonymizeUser (integration)', () => {
       withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as UserId, 'admin@test.com')),
     ).rejects.toThrow(USER_NOT_FOUND_RE)
 
-    const otherUserAfter = await testDb.user.findUnique({ where: { id: otherUserId } })
+    const otherUserAfter = await testDb.userAccount.findUnique({ where: { id: otherUserId } })
     expect(otherUserAfter?.firstname).toBe('Bob')
     expect(otherUserAfter?.anonymizedAt).toBeNull()
   })

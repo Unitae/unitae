@@ -1,3 +1,4 @@
+import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
@@ -23,28 +24,24 @@ export interface CreatePublisherParams {
   actorId: number
 }
 
+/**
+ * Create a Member. If `email` is provided, also create a linked UserAccount
+ * with a placeholder password and a password-reset token (caller is expected
+ * to email the link). When `email` is null/empty, the Member exists without
+ * a login (offline publisher).
+ */
 export async function createPublisher(
   db: TransactionClient,
   congregation: CongregationInfo,
   params: CreatePublisherParams,
 ) {
   const limits = new LimitService(db, congregation)
-  await limits.errorIfWouldGoOverLimit('publishers')
+  await limits.errorIfWouldGoOverLimit('members')
 
-  const email =
-    params.email && params.email.length > 0
-      ? params.email
-      : `${params.firstname}.${params.lastname}@placeholder.unitae.app`.toLowerCase()
-
-  const publisher = await db.user.create({
+  const member = await db.member.create({
     data: {
       firstname: params.firstname,
       lastname: params.lastname,
-      email,
-      active: true,
-      password: 'password',
-      emailVerifiedAt: new Date(),
-      isPublisher: true,
       isMale: params.gender === 'male',
       baptismDate: params.baptismDate ? new Date(params.baptismDate) : null,
       birthDate: params.birthDate ? new Date(params.birthDate) : null,
@@ -53,21 +50,37 @@ export async function createPublisher(
       isAnointed: params.isAnointed,
       publisherGroupId: Number.isNaN(params.groupId) ? null : params.groupId,
       type: params.type,
+      isPublisher: true,
       congregationId: params.congregationId,
       phone: params.phone,
       address: params.address,
     },
   })
 
-  await syncBuiltInRoleAssignments(db, publisher.id, params.congregationId, params.actorId)
+  if (params.email && params.email.length > 0) {
+    const account = await db.userAccount.create({
+      data: {
+        memberId: member.id,
+        email: params.email.toLocaleLowerCase(),
+        password: '',
+        active: true,
+        emailVerifiedAt: new Date(),
+        congregationId: params.congregationId,
+      },
+    })
+    // Send a reset link so the publisher can pick a password
+    await createPasswordResetToken(account.id)
+  }
+
+  await syncBuiltInRoleAssignments(db, member.id, params.congregationId, params.actorId)
 
   audit({
     action: AuditAction.PublisherCreated,
     congregationId: params.congregationId,
     actorId: params.actorId,
-    entityType: 'User',
-    entityId: publisher.id,
+    entityType: 'Member',
+    entityId: member.id,
   })
 
-  return publisher
+  return member
 }

@@ -53,7 +53,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canManageRoles = permissions.has(Permission.RolesManager)
 
   return withScopeFromContext(context, async db => {
-    const user = await db.user.findUnique({
+    const user = await db.userAccount.findUnique({
       where: {
         id_congregationId: {
           id: requireParamId(params.userId, '/settings/users'),
@@ -61,27 +61,40 @@ export function loader({ params, context }: Route.LoaderArgs) {
         },
       },
       include: {
+        member: { select: { id: true, firstname: true, lastname: true, isPublisher: true, anonymizedAt: true } },
         congregationPermissions: { include: { permission: true } },
-        roleAssignments: { include: { role: true } },
+        // Identity-role assignments for the matrix come from the linked Member
       },
     })
 
     if (user == null) throw redirect('/settings/users')
+
+    const memberRoleAssignments = user.member
+      ? await db.memberRoleAssignment.findMany({
+          where: { memberId: user.member.id },
+          select: { roleId: true },
+        })
+      : []
+    const userRoleAssignments = await db.userRoleAssignment.findMany({
+      where: { userId: user.id },
+      select: { roleId: true },
+    })
 
     const permissionList = await db.permission.findMany()
     const allRoles = await db.role.findMany({
       where: { congregationId: currentUser.congregationId },
       orderBy: [{ isBuiltIn: 'desc' }, { name: 'asc' }, { key: 'asc' }],
     })
-    const assignedRoleIds = new Set(user.roleAssignments.map(a => a.roleId))
-    const missEmail = user.email.includes('@placeholder.unitae.app')
+    // Built-in identity roles attach to Member; management/custom roles attach to UserAccount
+    const assignedBuiltInIds = new Set(memberRoleAssignments.map(a => a.roleId))
+    const assignedCustomIds = new Set(userRoleAssignments.map(a => a.roleId))
 
     return {
-      email: missEmail ? null : user.email,
+      email: user.email,
       id: user.id,
       active: user.active,
-      firstname: user.firstname,
-      lastname: user.lastname,
+      firstname: user.member?.firstname ?? user.firstname,
+      lastname: user.member?.lastname ?? user.lastname,
       permissions: user.congregationPermissions.map(cp => cp.permission),
       permissionList,
       builtInRoles: allRoles
@@ -91,7 +104,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
           key: r.key,
           name: r.name,
           description: r.description,
-          isAssigned: assignedRoleIds.has(r.id),
+          isAssigned: assignedBuiltInIds.has(r.id),
         })),
       customRoles: allRoles
         .filter(r => !r.isBuiltIn)
@@ -100,12 +113,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
           key: r.key,
           name: r.name,
           description: r.description,
-          isAssigned: assignedRoleIds.has(r.id),
+          isAssigned: assignedCustomIds.has(r.id),
         })),
       canManageRoles,
-      isPublisher: user.isPublisher,
+      isPublisher: user.member?.isPublisher ?? false,
       isAdmin,
-      anonymizedAt: user.anonymizedAt,
+      anonymizedAt: user.anonymizedAt ?? user.member?.anonymizedAt ?? null,
       canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
     }
   })

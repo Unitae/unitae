@@ -3,7 +3,7 @@ import { redis } from '~/shared/infra/redis.server'
 
 export async function loader() {
   try {
-    await Promise.all([redis.ping(), db.user.count()])
+    await Promise.all([redis.ping(), db.userAccount.count()])
 
     return new Response('OK', {
       status: 200,

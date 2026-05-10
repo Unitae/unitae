@@ -69,8 +69,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const canEdit = await canEditEvent(db, can, currentUser.id, event.templateId, congregationId)
 
     const users = canEdit
-      ? await db.user.findMany({
-          where: { congregationId, active: true },
+      ? await db.member.findMany({
+          where: { congregationId, leftAt: null },
           orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
         })
       : []

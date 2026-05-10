@@ -27,7 +27,7 @@ describe('changeUserPassword', () => {
   const fakeUser = { id: 1, password: 'old.hashed' }
 
   it('retourne true quand le mot de passe actuel est correct', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
     const result = await changeUserPassword(1, 'ancien', 'nouveau')
@@ -35,14 +35,14 @@ describe('changeUserPassword', () => {
   })
 
   it("retourne false quand l'utilisateur n'existe pas", async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
 
     const result = await changeUserPassword(999, 'ancien', 'nouveau')
     expect(result).toBe(false)
   })
 
   it('retourne false quand le mot de passe actuel est incorrect', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(false as never)
 
     const result = await changeUserPassword(1, 'mauvais', 'nouveau')
@@ -50,7 +50,7 @@ describe('changeUserPassword', () => {
   })
 
   it('retourne false quand compare lance une erreur', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockRejectedValue(new Error('crypto error'))
 
     const result = await changeUserPassword(1, 'ancien', 'nouveau')

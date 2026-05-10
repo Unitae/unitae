@@ -65,7 +65,9 @@ export function loader({ context }: Route.LoaderArgs) {
     let onboarding = null
     if (isAdmin) {
       const [publisherCount, territoryCount, documentCount] = await Promise.all([
-        safeQuery('onboarding-publishers', currentUser.id, () => db.user.count({ where: { isPublisher: true } })),
+        safeQuery('onboarding-publishers', currentUser.id, () =>
+          db.member.count({ where: { isPublisher: true, leftAt: null } }),
+        ),
         safeQuery('onboarding-territories', currentUser.id, () => db.territory.count()),
         safeQuery('onboarding-documents', currentUser.id, () => db.boardDocument.count()),
       ])
@@ -77,7 +79,7 @@ export function loader({ context }: Route.LoaderArgs) {
     }
 
     return {
-      currentUser: { firstname: currentUser.firstname },
+      currentUser: { firstname: currentUser.member?.firstname ?? currentUser.firstname },
       territories,
       recentDocuments,
       unreadDocumentCount,

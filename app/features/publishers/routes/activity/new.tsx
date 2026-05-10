@@ -8,7 +8,6 @@ import { createPublisherActivity } from '~/features/publishers/server/publisher-
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -32,19 +31,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & {
-    responsibleFor?: { id: number }
-    deputyFor?: { id: number }
-  }
+  const member = currentUser.member
   const canManageMyGroupActivity =
-    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
-    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
+    member != null &&
+    (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
   }
 
-  const groupFilter = canManageMyGroupActivity && !canManagePublisher ? currentUser.publisherGroupId : undefined
+  const groupFilter = canManageMyGroupActivity && !canManagePublisher ? (member?.publisherGroupId ?? undefined) : undefined
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams
@@ -69,7 +65,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     let publisher = null
     if (searchParams.has('publisherId')) {
-      publisher = await db.user.findUnique({
+      publisher = await db.member.findUnique({
         where: {
           id_congregationId: {
             id: Number(searchParams.get('publisherId')),
@@ -83,8 +79,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
     }
 
     return {
-      publishers: publishers.map(sanitizeUser),
-      publisher: publisher != null ? sanitizeUser(publisher) : null,
+      publishers,
+      publisher,
       selectedMonth: { month, year },
       previousPage: request.headers.get('referer'),
     }
@@ -304,13 +300,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & {
-    responsibleFor?: { id: number }
-    deputyFor?: { id: number }
-  }
+  const member = currentUser.member
   const canManageMyGroupActivity =
-    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
-    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
+    member != null &&
+    (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -324,7 +317,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { publisher: publisherId, month, year, hours, studies, observations, preached, previousPage } = submission.value
 
   return withScopeFromContext(context, async db => {
-    const publisher = await db.user.findUnique({
+    const publisher = await db.member.findUnique({
       where: {
         id_congregationId: { id: publisherId, congregationId: currentUser.congregationId },
       },

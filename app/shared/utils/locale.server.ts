@@ -11,7 +11,7 @@ export async function resolveLocaleFromRequest(request: Request): Promise<string
   const userId = Number(rawUserId)
 
   if (rawUserId && !Number.isNaN(userId) && userId > 0) {
-    const user = await unscopedDb.user.findUnique({
+    const user = await unscopedDb.userAccount.findUnique({
       where: { id: userId },
       select: { congregationId: true },
     })

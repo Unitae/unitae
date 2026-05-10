@@ -37,7 +37,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const search = url.searchParams.get('q')?.trim() || undefined
 
   return withScopeFromContext(context, async db => {
-    const users = await db.user.findMany({
+    const accounts = await db.userAccount.findMany({
       where: {
         congregationId: currentUser.congregationId,
         ...(search
@@ -46,12 +46,22 @@ export function loader({ request, context }: Route.LoaderArgs) {
                 { firstname: { contains: search, mode: 'insensitive' } },
                 { lastname: { contains: search, mode: 'insensitive' } },
                 { email: { contains: search, mode: 'insensitive' } },
+                {
+                  member: {
+                    OR: [
+                      { firstname: { contains: search, mode: 'insensitive' } },
+                      { lastname: { contains: search, mode: 'insensitive' } },
+                    ],
+                  },
+                },
               ],
             }
           : {}),
       },
       include: {
-        roleAssignments: { select: { role: { select: { isBuiltIn: true } } } },
+        member: { select: { firstname: true, lastname: true, isPublisher: true, leftAt: true } },
+        // UserRoleAssignment holds management/custom roles only (post-split).
+        roleAssignments: { select: { roleId: true } },
         _count: {
           select: {
             congregationPermissions: true,
@@ -68,22 +78,31 @@ export function loader({ request, context }: Route.LoaderArgs) {
       ],
     })
 
+    // Count built-in identity roles per linked Member, in one batch query.
+    const memberIds = accounts.flatMap(a => (a.member ? [a.memberId as number] : []))
+    const memberRoleRows = memberIds.length
+      ? await db.memberRoleAssignment.findMany({
+          where: { memberId: { in: memberIds } },
+          select: { memberId: true, role: { select: { isBuiltIn: true } } },
+        })
+      : []
+    const builtInCountByMember = new Map<number, number>()
+    for (const r of memberRoleRows) {
+      if (r.role.isBuiltIn) builtInCountByMember.set(r.memberId, (builtInCountByMember.get(r.memberId) ?? 0) + 1)
+    }
+
     return {
-      users: users.map(user => {
-        const builtInRoleCount = user.roleAssignments.filter(a => a.role.isBuiltIn).length
-        const customRoleCount = user.roleAssignments.length - builtInRoleCount
-        return {
-          email: user.email.includes('@placeholder.unitae.app') ? null : user.email,
-          id: user.id,
-          active: user.active,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          isPublisher: user.isPublisher,
-          builtInRoleCount,
-          customRoleCount,
-          directPermissionCount: user._count.congregationPermissions,
-        }
-      }),
+      users: accounts.map(account => ({
+        email: account.email,
+        id: account.id,
+        active: account.active,
+        firstname: account.member?.firstname ?? account.firstname,
+        lastname: account.member?.lastname ?? account.lastname,
+        isPublisher: account.member?.isPublisher ?? false,
+        builtInRoleCount: account.memberId ? (builtInCountByMember.get(account.memberId) ?? 0) : 0,
+        customRoleCount: account.roleAssignments.length,
+        directPermissionCount: account._count.congregationPermissions,
+      })),
       roles: {
         canViewPublishers,
         canManageUser,

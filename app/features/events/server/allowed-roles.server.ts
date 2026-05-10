@@ -2,33 +2,44 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 export type PartRoleKind = 'speaker' | 'reader'
 
+/**
+ * Resolve member ids eligible for a programme assignment with the given allowed
+ * roles. Reads from `MemberRoleAssignment` — identity roles (brother, elder,
+ * pioneer, …) are auto-synced from Member flags. The default fallback (when no
+ * allowed roles are specified) is "every current Member of the congregation"
+ * via the built-in `member` role, so school students can be picked too.
+ */
 export async function resolveEligibleUserIds(
   db: TransactionClient,
   allowedRoleIds: number[],
   congregationId: number,
 ): Promise<number[]> {
   if (allowedRoleIds.length === 0) {
-    const publisherRole = await db.role.findFirst({
-      where: { key: 'publisher', isBuiltIn: true, congregationId },
+    const memberRole = await db.role.findFirst({
+      where: { key: 'member', isBuiltIn: true, congregationId },
       select: { id: true },
     })
-    if (!publisherRole) return []
-    const assignments = await db.userRoleAssignment.findMany({
-      where: { roleId: publisherRole.id, congregationId, user: { active: true, anonymizedAt: null } },
-      select: { userId: true },
+    if (!memberRole) return []
+    const assignments = await db.memberRoleAssignment.findMany({
+      where: {
+        roleId: memberRole.id,
+        congregationId,
+        member: { leftAt: null, anonymizedAt: null },
+      },
+      select: { memberId: true },
     })
-    return [...new Set(assignments.map(a => a.userId))]
+    return [...new Set(assignments.map(a => a.memberId))]
   }
 
-  const assignments = await db.userRoleAssignment.findMany({
+  const assignments = await db.memberRoleAssignment.findMany({
     where: {
       roleId: { in: allowedRoleIds },
       congregationId,
-      user: { active: true, anonymizedAt: null },
+      member: { leftAt: null, anonymizedAt: null },
     },
-    select: { userId: true },
+    select: { memberId: true },
   })
-  return [...new Set(assignments.map(a => a.userId))]
+  return [...new Set(assignments.map(a => a.memberId))]
 }
 
 export async function getTemplatePartAllowedRoleIds(

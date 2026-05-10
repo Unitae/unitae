@@ -113,7 +113,7 @@ describe('consumeEmailVerificationToken', () => {
     await consumeEmailVerificationToken('valid-token')
 
     expect(db.$transaction).toHaveBeenCalled()
-    expect(db.user.update).toHaveBeenCalledWith({
+    expect(db.userAccount.update).toHaveBeenCalledWith({
       where: { id: 42 },
       data: { emailVerifiedAt: expect.any(Date) },
     })

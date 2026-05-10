@@ -39,7 +39,7 @@ export async function findAuditLogsPaginated(params: AuditLogQueryParams) {
 
   const actorEmailMap: Map<number, string> = new Map()
   if (missingEmailIds.length > 0) {
-    const users = await unscopedDb.user.findMany({
+    const users = await unscopedDb.userAccount.findMany({
       where: { id: { in: missingEmailIds } },
       select: { id: true, email: true },
     })

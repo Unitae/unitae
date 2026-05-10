@@ -3,7 +3,6 @@ import type { ReactNode } from 'react'
 import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
 import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
@@ -21,6 +20,14 @@ export interface CreateUserResult {
   emailSent: boolean
 }
 
+/**
+ * Create a UserAccount-only login (admin / circuit overseer / external user).
+ *
+ * No Member is created — the admin path is for accounts that don't belong to
+ * the congregation as a publisher. To attach a Member after the fact, call
+ * `linkMemberToAccount`. Password is set to a placeholder and the caller is
+ * sent a password-reset email.
+ */
 export async function createUser(
   db: TransactionClient,
   congregation: CongregationInfo,
@@ -28,7 +35,7 @@ export async function createUser(
   params: CreateUserParams,
   renderEmail: (userId: number, token: string) => ReactNode,
 ): Promise<CreateUserResult> {
-  const existingUser = await db.user.findUnique({
+  const existingUser = await db.userAccount.findUnique({
     where: { email: params.email },
   })
 
@@ -39,7 +46,7 @@ export async function createUser(
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('users')
 
-  const user = await db.user.create({
+  const user = await db.userAccount.create({
     data: {
       firstname: params.firstname,
       lastname: params.lastname,
@@ -51,8 +58,6 @@ export async function createUser(
     },
   })
 
-  await syncBuiltInRoleAssignments(db, user.id, params.congregationId, actorId)
-
   const token = await createPasswordResetToken(user.id)
   const emailSent = await sendResetUserPasswordEmail(user.id, renderEmail(user.id, token))
 
@@ -60,7 +65,7 @@ export async function createUser(
     action: AuditAction.UserCreated,
     congregationId: params.congregationId,
     actorId,
-    entityType: 'User',
+    entityType: 'UserAccount',
     entityId: user.id,
   })
 

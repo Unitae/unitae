@@ -154,7 +154,7 @@ afterAll(async () => {
   })
   await testDb.event.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.eventKind.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
-  await testDb.user.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
+  await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congAId, congBId] } } })
   await testDb.$disconnect()
 })

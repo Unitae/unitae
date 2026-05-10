@@ -47,9 +47,9 @@ async function findUserFromSession(session: Session<SessionData, SessionFlashDat
   }
 
   try {
-    const user = await unscopedDb.user.findUnique({
+    const user = await unscopedDb.userAccount.findUnique({
       where: { id: userId },
-      include: { responsibleFor: true, deputyFor: true },
+      include: { member: { include: { responsibleFor: true, deputyFor: true } } },
     })
 
     if (user == null || !user.active) return redirectToLogin(session)

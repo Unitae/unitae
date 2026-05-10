@@ -6,9 +6,8 @@ import { findActiveAttributionsForPublisher } from '~/features/territories/serve
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import logger from '~/shared/infra/logger.server'
-import type { CongregationId, UserId } from '~/shared/types/branded'
+import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -47,7 +46,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
-  const publisherId = requireParamId<UserId>(params.publisherId, '/publishers')
+  const publisherId = requireParamId<MemberId>(params.publisherId, '/publishers')
 
   return withScopeFromContext(context, async db => {
     const [publisher, attributions] = await Promise.all([
@@ -60,7 +59,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     return {
-      publisher: sanitizeUser(publisher),
+      publisher,
       attributions,
       roles: {
         canViewPublisher,
@@ -68,8 +67,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewTerritories,
         canManageActivity:
           canManageActivity ||
-          publisher.publisherGroup?.responsible.id === currentUser.id ||
-          publisher.publisherGroup?.deputy?.id === currentUser.id,
+          publisher.publisherGroup?.responsible.id === currentUser.member?.id ||
+          publisher.publisherGroup?.deputy?.id === currentUser.member?.id,
       },
     }
   })
@@ -200,11 +199,11 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             {m.publishers_view_phone()} :{' '}
             <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
           </p>
-          {!publisher.email.includes('@placeholder.unitae.app') && (
+          {publisher.account?.email && (
             <p className="text-muted-foreground text-sm">
               {m.publishers_view_email_address()} :{' '}
-              <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
-                {publisher.email}
+              <Link to={`mailto:${publisher.account.email}`} className="font-medium text-primary hover:underline">
+                {publisher.account.email}
               </Link>
             </p>
           )}

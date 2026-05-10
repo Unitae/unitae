@@ -40,9 +40,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     user: {
       id: currentUser.id,
       email: currentUser.email,
-      lastname: currentUser.lastname,
-      firstname: currentUser.firstname,
-      isPublisher: currentUser.isPublisher,
+      lastname: currentUser.member?.lastname ?? currentUser.lastname,
+      firstname: currentUser.member?.firstname ?? currentUser.firstname,
+      isPublisher: currentUser.member?.isPublisher ?? false,
     },
     congregationName: congregation.displayName ?? congregation.name,
     calendar,

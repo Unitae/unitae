@@ -106,7 +106,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const user = await db.user.findFirst({ where: { email: emailStr } })
+  const user = await db.userAccount.findFirst({ where: { email: emailStr } })
 
   if (user == null) {
     throw redirect('/password/forgot', {

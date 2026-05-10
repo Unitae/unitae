@@ -43,7 +43,7 @@ beforeAll(async () => {
 
   await seedBuiltInRoles(testDb, congregationId)
 
-  const user = await testDb.user.create({
+  const user = await testDb.userAccount.create({
     data: {
       email: `update-pub-${ts}@test.com`,
       password: 'hashed',

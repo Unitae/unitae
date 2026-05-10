@@ -60,9 +60,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
       throw redirect('/territories/attributions/new/available-territories')
     }
 
-    const users = await db.user.findMany({
+    const users = await db.member.findMany({
       where: {
         isPublisher: true,
+        leftAt: null,
         congregationId,
       },
       orderBy: [

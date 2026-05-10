@@ -5,7 +5,6 @@ import { getPublisherWithActivities } from '~/features/publishers/server/get-pub
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -55,7 +54,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
       },
       stats: await getPublisherStats(db, currentUser.congregationId, month, year),
       publishers: users
-        .map(sanitizeUser)
         .map(({ activities, ...member }) => ({
           ...member,
           lastActivity: activities.length < 1 ? null : activities[0],
@@ -204,7 +202,7 @@ function PublisherRow({
 }) {
   return (
     <TableRow
-      key={publisher.email}
+      key={publisher.id}
       className={publisher.notRegular ? 'bg-destructive/10 text-destructive dark:bg-destructive/5' : ''}
     >
       <TableCell className="text-center max-sm:text-left">

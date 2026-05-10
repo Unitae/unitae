@@ -31,7 +31,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.user.deleteMany({ where: { congregationId } })
+  await testDb.userAccount.deleteMany({ where: { congregationId } })
   await testDb.congregation.deleteMany({ where: { id: congregationId } })
   await testDb.$disconnect()
 })

@@ -1,4 +1,3 @@
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export async function getGroups(db: TransactionClient, congregationId: number) {
@@ -18,6 +17,7 @@ export async function getGroup(db: TransactionClient, groupId: number) {
       members: {
         where: {
           isPublisher: true,
+          leftAt: null,
         },
         orderBy: [
           {
@@ -28,6 +28,7 @@ export async function getGroup(db: TransactionClient, groupId: number) {
           },
         ],
         include: {
+          account: { select: { email: true } },
           activities: {
             where: {
               OR: [
@@ -62,7 +63,7 @@ export async function getGroup(db: TransactionClient, groupId: number) {
     address: group.adress,
     responsible: group.responsible,
     deputy: group.deputy,
-    members: group.members.map(sanitizeUser).map(({ activities, ...member }) => ({
+    members: group.members.map(({ activities, ...member }) => ({
       ...member,
       currentActivity: activities.find(
         activity => activity.year === today.getFullYear() && activity.month === today.getMonth(),

@@ -22,7 +22,7 @@ describe('validateCredentials', () => {
   const fakeUser = { id: 42, email: 'test@example.com', password: 'hashed.password', active: true }
 
   it("retourne l'id de l'utilisateur pour des identifiants valides", async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
     const result = await validateCredentials('test@example.com', 'motdepasse')
@@ -30,7 +30,7 @@ describe('validateCredentials', () => {
   })
 
   it("normalise l'email en minuscules", async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
     const result = await validateCredentials('TEST@EXAMPLE.COM', 'motdepasse')
@@ -38,7 +38,7 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined pour un utilisateur inexistant', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
@@ -48,7 +48,7 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined pour un utilisateur inactif', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue({ ...fakeUser, active: false } as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ ...fakeUser, active: false } as never)
 
     const sentinel = Symbol('sentinel')
     let result: unknown = sentinel
@@ -58,7 +58,7 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined pour un mauvais mot de passe', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(false as never)
 
     const sentinel = Symbol('sentinel')
@@ -69,7 +69,7 @@ describe('validateCredentials', () => {
   })
 
   it('retourne undefined si compare lance une erreur', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockRejectedValue(new Error('crypto error'))
 
     const sentinel = Symbol('sentinel')
@@ -80,21 +80,21 @@ describe('validateCredentials', () => {
   })
 
   it('filtre par congregationId quand il est fourni', async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
     await validateCredentials('test@example.com', 'motdepasse', 5)
-    expect(db.user.findFirst).toHaveBeenCalledWith({
+    expect(db.userAccount.findFirst).toHaveBeenCalledWith({
       where: { email: 'test@example.com', congregationId: 5 },
     })
   })
 
   it("ne filtre pas par congregationId quand il n'est pas fourni", async () => {
-    vi.mocked(db.user.findFirst).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(fakeUser as never)
     vi.mocked(compare).mockResolvedValue(true as never)
 
     await validateCredentials('test@example.com', 'motdepasse')
-    expect(db.user.findFirst).toHaveBeenCalledWith({
+    expect(db.userAccount.findFirst).toHaveBeenCalledWith({
       where: { email: 'test@example.com' },
     })
   })

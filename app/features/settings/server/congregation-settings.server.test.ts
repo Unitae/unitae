@@ -35,18 +35,18 @@ describe('updateCongregationSettings', () => {
     })
 
     expect(setSetting).toHaveBeenCalledWith(mockDb, 'auxiliary-pioneer-profile-active', 'true', 10)
-    expect(mockDb.user.updateMany).not.toHaveBeenCalled()
+    expect(mockDb.userAccount.updateMany).not.toHaveBeenCalled()
   })
 
   it('resets auxiliary pioneers to normal when feature is deactivated', async () => {
     vi.mocked(setSetting).mockResolvedValue(undefined as never)
-    mockDb.user.updateMany.mockResolvedValue({ count: 3 })
+    mockDb.userAccount.updateMany.mockResolvedValue({ count: 3 })
 
     await updateCongregationSettings(mockDb as never, 10, 99, {
       auxiliaryPioneerProfileActivated: 'false',
     })
 
-    expect(mockDb.user.updateMany).toHaveBeenCalledWith({
+    expect(mockDb.userAccount.updateMany).toHaveBeenCalledWith({
       where: {
         congregationId: 10,
         type: PublisherType.PionnierAuxiliaires,

@@ -10,7 +10,7 @@ export function createTestCongregation(db: PrismaClient, overrides: Record<strin
 
 export function createTestUser(db: PrismaClient, congregationId: number, overrides: Record<string, unknown> = {}) {
   const suffix = Date.now()
-  return db.user.create({
+  return db.userAccount.create({
     data: {
       email: `user-${suffix}@test.com`,
       password: 'x',
@@ -18,6 +18,18 @@ export function createTestUser(db: PrismaClient, congregationId: number, overrid
       congregationId,
       firstname: 'Test',
       lastname: 'User',
+      ...overrides,
+    },
+  })
+}
+
+export function createTestMember(db: PrismaClient, congregationId: number, overrides: Record<string, unknown> = {}) {
+  return db.member.create({
+    data: {
+      firstname: 'Test',
+      lastname: 'Member',
+      isPublisher: true,
+      congregationId,
       ...overrides,
     },
   })

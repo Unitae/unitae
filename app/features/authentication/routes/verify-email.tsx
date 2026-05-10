@@ -27,7 +27,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/login')
   }
 
-  const user = await db.user.findUnique({ where: { id: userId } })
+  const user = await db.userAccount.findUnique({ where: { id: userId } })
 
   if (user == null || !user.active) {
     throw redirect('/login', {
@@ -79,7 +79,7 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/login')
   }
 
-  const user = await db.user.findUnique({ where: { id: userId } })
+  const user = await db.userAccount.findUnique({ where: { id: userId } })
   if (user == null) {
     throw redirect('/login')
   }

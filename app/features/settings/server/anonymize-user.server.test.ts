@@ -23,12 +23,12 @@ beforeEach(() => {
 
 describe('anonymizeUser', () => {
   it('anonymise les donnees personnelles de l utilisateur', async () => {
-    mockDb.user.findUnique.mockResolvedValue({
+    mockDb.userAccount.findUnique.mockResolvedValue({
       id: 1,
       anonymizedAt: null,
       congregationId: 10,
     } as never)
-    mockDb.user.update.mockResolvedValue({} as never)
+    mockDb.userAccount.update.mockResolvedValue({} as never)
     mockDb.publisherGroup.updateMany.mockResolvedValue({ count: 0 } as never)
     mockDb.attribution.updateMany.mockResolvedValue({ count: 1 } as never)
     mockDb.congregationUserPermission.deleteMany.mockResolvedValue({ count: 2 } as never)
@@ -38,7 +38,7 @@ describe('anonymizeUser', () => {
 
     await anonymizeUser(mockDb as never, 1 as UserId, 'admin:5')
 
-    const updateCall = mockDb.user.update.mock.calls[0][0]
+    const updateCall = mockDb.userAccount.update.mock.calls[0][0]
     expect(updateCall.where).toEqual({ id: 1 })
     expect(updateCall.data.firstname).toBe('Utilisateur')
     expect(updateCall.data.lastname).toBe('supprime')
@@ -70,7 +70,7 @@ describe('anonymizeUser', () => {
   })
 
   it('refuse d anonymiser un utilisateur inexistant', async () => {
-    mockDb.user.findUnique.mockResolvedValue(null as never)
+    mockDb.userAccount.findUnique.mockResolvedValue(null as never)
 
     await expect(anonymizeUser(mockDb as never, 999 as UserId, 'admin:5')).rejects.toThrow(
       'Utilisateur introuvable : 999',
@@ -78,7 +78,7 @@ describe('anonymizeUser', () => {
   })
 
   it('refuse d anonymiser un utilisateur deja anonymise', async () => {
-    mockDb.user.findUnique.mockResolvedValue({
+    mockDb.userAccount.findUnique.mockResolvedValue({
       id: 1,
       anonymizedAt: new Date(),
       congregationId: 10,

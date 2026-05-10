@@ -10,6 +10,12 @@ export interface UpdateUserParams {
   permissions: string[]
 }
 
+/**
+ * Update a UserAccount and, when linked, the bound Member's name.
+ *
+ * Display name (firstname/lastname) lives on Member when the account is
+ * linked; on UserAccount itself for admin / circuit-overseer accounts.
+ */
 export async function updateUser(
   db: TransactionClient,
   userId: number,
@@ -17,17 +23,35 @@ export async function updateUser(
   actorId: number,
   params: UpdateUserParams,
 ) {
-  await db.user.update({
+  const account = await db.userAccount.update({
     where: {
       id_congregationId: { id: userId, congregationId },
     },
     data: {
+      // Only used when memberId is null (admin / CO accounts)
       firstname: params.firstname,
       lastname: params.lastname,
       email: params.email.toLocaleLowerCase(),
       active: params.active,
     },
+    select: { memberId: true },
   })
+
+  if (account.memberId != null) {
+    await db.member.update({
+      where: { id: account.memberId },
+      data: {
+        firstname: params.firstname,
+        lastname: params.lastname,
+      },
+    })
+    // Account.firstname/lastname stay null when linked to a Member
+    await db.userAccount.update({
+      where: { id_congregationId: { id: userId, congregationId } },
+      data: { firstname: null, lastname: null },
+    })
+    await syncBuiltInRoleAssignments(db, account.memberId, congregationId, actorId)
+  }
 
   // Update congregation-scoped permissions: delete existing, create new
   await db.congregationUserPermission.deleteMany({
@@ -48,13 +72,11 @@ export async function updateUser(
     })
   }
 
-  await syncBuiltInRoleAssignments(db, userId, congregationId, actorId)
-
   audit({
     action: AuditAction.UserUpdated,
     congregationId,
     actorId,
-    entityType: 'User',
+    entityType: 'UserAccount',
     entityId: userId,
     metadata: { permissions: params.permissions },
   })

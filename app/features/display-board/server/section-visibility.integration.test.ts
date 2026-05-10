@@ -123,7 +123,7 @@ afterAll(async () => {
   })
   await testDb.boardSection.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.userRoleAssignment.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
-  await testDb.user.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
+  await testDb.userAccount.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.role.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.auditLog.deleteMany({ where: { congregationId: { in: [primaryCongId, foreignCongId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, foreignCongId] } } })

@@ -18,18 +18,29 @@ export function action({ request, params, context }: Route.ActionArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const user = await togglePublisherStatus(
-      db,
-      requireParamId(params.userId, '/settings/users'),
-      currentUser.congregationId,
-      true,
-      currentUser.id,
-    )
     const session = await getSession(request.headers.get('Cookie'))
-    if (user.isPublisher === true) {
-      session.flash('success', m.settings_user_make_publisher_success({ email: user.email }))
+    const accountId = requireParamId(params.userId, '/settings/users')
+
+    const account = await db.userAccount.findUnique({
+      where: { id_congregationId: { id: accountId, congregationId: currentUser.congregationId } },
+      select: { email: true, memberId: true },
+    })
+
+    if (account == null || account.memberId == null) {
+      session.flash('error', m.settings_user_make_publisher_error({ email: account?.email ?? '' }))
     } else {
-      session.flash('error', m.settings_user_make_publisher_error({ email: user.email }))
+      const member = await togglePublisherStatus(
+        db,
+        account.memberId,
+        currentUser.congregationId,
+        true,
+        currentUser.id,
+      )
+      if (member.isPublisher === true) {
+        session.flash('success', m.settings_user_make_publisher_success({ email: account.email }))
+      } else {
+        session.flash('error', m.settings_user_make_publisher_error({ email: account.email }))
+      }
     }
 
     const previousPage = request.headers.get('referer')

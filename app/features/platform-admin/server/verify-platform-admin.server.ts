@@ -12,7 +12,7 @@ export async function verifyPlatformAdmin(request: Request) {
     throw redirect('/login')
   }
 
-  const user = await unscopedDb.user.findUnique({ where: { id: userId } })
+  const user = await unscopedDb.userAccount.findUnique({ where: { id: userId } })
 
   if (!user?.platformAdmin) {
     throw redirect('/')

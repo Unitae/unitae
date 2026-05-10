@@ -33,13 +33,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & {
-    responsibleFor?: { id: number }
-    deputyFor?: { id: number }
-  }
+  const member = currentUser.member
   const canManageMyGroupActivity =
-    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
-    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
+    member != null &&
+    (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -212,13 +209,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(userContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & {
-    responsibleFor?: { id: number }
-    deputyFor?: { id: number }
-  }
+  const member = currentUser.member
   const canManageMyGroupActivity =
-    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
-    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
+    member != null &&
+    (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')

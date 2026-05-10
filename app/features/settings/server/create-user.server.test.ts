@@ -53,33 +53,33 @@ const mockRenderEmail = vi.fn()
 
 describe('createUser', () => {
   it('creates user and returns result with emailSent status', async () => {
-    mockDb.user.findUnique.mockResolvedValue(null)
-    mockDb.user.create.mockResolvedValue({ id: 42 } as never)
+    mockDb.userAccount.findUnique.mockResolvedValue(null)
+    mockDb.userAccount.create.mockResolvedValue({ id: 42 } as never)
     mockCreatePasswordResetToken.mockResolvedValue('token-abc')
     mockSendResetUserPasswordEmail.mockResolvedValue(true)
 
     const result = await createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
 
     expect(result).toEqual({ userId: 42, emailSent: true })
-    expect(mockDb.user.create).toHaveBeenCalled()
-    const createCall = mockDb.user.create.mock.calls[0][0]
+    expect(mockDb.userAccount.create).toHaveBeenCalled()
+    const createCall = mockDb.userAccount.create.mock.calls[0][0]
     expect(createCall.data.email).toBe('sophie@example.com')
     expect(createCall.data.firstname).toBe('Sophie')
   })
 
   it('throws ConflictError when user already exists', async () => {
-    mockDb.user.findUnique.mockResolvedValue({ id: 1, email: 'sophie@example.com' })
+    mockDb.userAccount.findUnique.mockResolvedValue({ id: 1, email: 'sophie@example.com' })
 
     await expect(createUser(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)).rejects.toThrow(
       ConflictError,
     )
 
-    expect(mockDb.user.create).not.toHaveBeenCalled()
+    expect(mockDb.userAccount.create).not.toHaveBeenCalled()
   })
 
   it('calls createPasswordResetToken and sendResetUserPasswordEmail', async () => {
-    mockDb.user.findUnique.mockResolvedValue(null)
-    mockDb.user.create.mockResolvedValue({ id: 10 } as never)
+    mockDb.userAccount.findUnique.mockResolvedValue(null)
+    mockDb.userAccount.create.mockResolvedValue({ id: 10 } as never)
     mockCreatePasswordResetToken.mockResolvedValue('token-xyz')
     mockSendResetUserPasswordEmail.mockResolvedValue(false)
     mockRenderEmail.mockReturnValue('<html>email</html>')

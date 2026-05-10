@@ -17,86 +17,56 @@ interface UserDataExport {
 /**
  * Exporte toutes les donnees personnelles d'un utilisateur au format JSON.
  * Couvre les Articles 15 (droit d'acces) et 20 (portabilite) du RGPD.
+ *
+ * `userId` is a UserAccount id. Member-bound data (publisher activities,
+ * attributions, group membership) is read via the linked Member when present.
  */
 export async function exportUserData(db: TransactionClient, userId: number): Promise<UserDataExport> {
-  const user = await db.user.findUnique({
+  const account = await db.userAccount.findUnique({
     where: { id: userId },
     select: {
       id: true,
       firstname: true,
       lastname: true,
       email: true,
-      phone: true,
-      address: true,
-      isMale: true,
-      birthDate: true,
-      baptismDate: true,
-      isPublisher: true,
-      type: true,
-      isHelder: true,
-      isServant: true,
-      isAnointed: true,
       active: true,
       platformAdmin: true,
       anonymizedAt: true,
-      publisherGroupId: true,
+      memberId: true,
+      member: {
+        select: {
+          id: true,
+          firstname: true,
+          lastname: true,
+          phone: true,
+          address: true,
+          isMale: true,
+          birthDate: true,
+          baptismDate: true,
+          isPublisher: true,
+          type: true,
+          isHelder: true,
+          isServant: true,
+          isAnointed: true,
+          publisherGroupId: true,
+          leftAt: true,
+          anonymizedAt: true,
+        },
+      },
     },
   })
 
-  if (!user) {
+  if (!account) {
     throw new Error(`Utilisateur introuvable : ${userId}`)
   }
 
-  const [
-    permissions,
-    activities,
-    attributions,
-    group,
-    events,
-    documentsViewed,
-    documentVersionUploads,
-    consentRecords,
-  ] = await Promise.all([
+  const memberId = account.memberId
+
+  const [permissions, events, documentsViewed, documentVersionUploads, consentRecords] = await Promise.all([
     db.congregationUserPermission.findMany({
       where: { userId },
       select: {
         permission: { select: { key: true } },
-      },
-    }),
-    db.publisherActivity.findMany({
-      where: { publisherId: userId },
-      select: {
-        month: true,
-        year: true,
-        hours: true,
-        studies: true,
-        type: true,
-        isPublisher: true,
-        notes: true,
-      },
-      orderBy: [{ year: 'desc' }, { month: 'desc' }],
-    }),
-    db.attribution.findMany({
-      where: { publisherId: userId },
-      select: {
-        territory: { select: { number: true, type: true } },
-        type: true,
-        startDate: true,
-        endDate: true,
-        lateDate: true,
-        notes: true,
-      },
-      orderBy: { startDate: 'desc' },
-    }),
-    db.publisherGroup.findFirst({
-      where: {
-        OR: [{ members: { some: { id: userId } } }, { responsibleId: userId }, { deputyId: userId }],
-      },
-      select: {
-        name: true,
-        adress: true,
-        responsibleId: true,
-        deputyId: true,
       },
     }),
     db.event.findMany({
@@ -142,10 +112,51 @@ export async function exportUserData(db: TransactionClient, userId: number): Pro
     }),
   ])
 
+  const [activities, attributions, group] = memberId
+    ? await Promise.all([
+        db.publisherActivity.findMany({
+          where: { publisherId: memberId },
+          select: {
+            month: true,
+            year: true,
+            hours: true,
+            studies: true,
+            type: true,
+            isPublisher: true,
+            notes: true,
+          },
+          orderBy: [{ year: 'desc' }, { month: 'desc' }],
+        }),
+        db.attribution.findMany({
+          where: { publisherId: memberId },
+          select: {
+            territory: { select: { number: true, type: true } },
+            type: true,
+            startDate: true,
+            endDate: true,
+            lateDate: true,
+            notes: true,
+          },
+          orderBy: { startDate: 'desc' },
+        }),
+        db.publisherGroup.findFirst({
+          where: {
+            OR: [{ members: { some: { id: memberId } } }, { responsibleId: memberId }, { deputyId: memberId }],
+          },
+          select: {
+            name: true,
+            adress: true,
+            responsibleId: true,
+            deputyId: true,
+          },
+        }),
+      ])
+    : [[], [], null]
+
   return {
     exportDate: new Date().toISOString(),
-    exportVersion: '1.0',
-    user,
+    exportVersion: '2.0',
+    user: account,
     permissions: permissions.map(p => p.permission),
     publisherActivities: activities,
     attributions: attributions.map(a => ({

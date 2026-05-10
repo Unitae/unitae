@@ -15,7 +15,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.user.update).mockResolvedValue({} as never)
+  vi.mocked(db.userAccount.update).mockResolvedValue({} as never)
 })
 
 describe('resetUserPassword', () => {

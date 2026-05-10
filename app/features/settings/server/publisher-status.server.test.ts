@@ -19,12 +19,12 @@ beforeEach(() => {
 describe('togglePublisherStatus', () => {
   it('sets isPublisher to true', async () => {
     const expected = { id: 5, isPublisher: true }
-    mockDb.user.update.mockResolvedValue(expected)
+    mockDb.userAccount.update.mockResolvedValue(expected)
 
     const result = await togglePublisherStatus(mockDb as never, 5, 10, true, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.user.update).toHaveBeenCalledWith({
+    expect(mockDb.userAccount.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: true },
     })
@@ -32,12 +32,12 @@ describe('togglePublisherStatus', () => {
 
   it('sets isPublisher to false', async () => {
     const expected = { id: 5, isPublisher: false }
-    mockDb.user.update.mockResolvedValue(expected)
+    mockDb.userAccount.update.mockResolvedValue(expected)
 
     const result = await togglePublisherStatus(mockDb as never, 5, 10, false, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.user.update).toHaveBeenCalledWith({
+    expect(mockDb.userAccount.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: { isPublisher: false },
     })

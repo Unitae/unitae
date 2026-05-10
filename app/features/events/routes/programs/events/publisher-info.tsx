@@ -22,23 +22,26 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     if (!event) return Response.json(null)
 
     // Publisher profile
-    const user = await db.user.findFirst({
+    const user = await db.member.findFirst({
       where: { id: userId, congregationId },
-      include: { publisherGroup: true },
+      include: { publisherGroup: true, account: { select: { id: true } } },
     })
     if (!user) return Response.json(null)
 
-    // Days-off overlapping this event
-    const daysOff = await db.event.findMany({
-      where: {
-        congregationId,
-        createdById: userId,
-        kind: { key: EventKind.Off },
-        startDate: { lte: event.endDate },
-        endDate: { gte: event.startDate },
-      },
-      select: { id: true, startDate: true, endDate: true },
-    })
+    // Days-off overlapping this event — created by the publisher's account
+    const accountId = user.account?.id
+    const daysOff = accountId
+      ? await db.event.findMany({
+          where: {
+            congregationId,
+            createdById: accountId,
+            kind: { key: EventKind.Off },
+            startDate: { lte: event.endDate },
+            endDate: { gte: event.startDate },
+          },
+          select: { id: true, startDate: true, endDate: true },
+        })
+      : []
 
     // Other assignments on the same event
     const sameEventParts = await db.programmePartAssignment.findMany({

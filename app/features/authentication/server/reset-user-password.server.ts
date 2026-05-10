@@ -2,7 +2,7 @@ import { hash } from '~/shared/auth/crypto.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 
 export async function resetUserPassword(userId: number, password: string) {
-  await db.user.update({
+  await db.userAccount.update({
     where: {
       id: userId,
     },

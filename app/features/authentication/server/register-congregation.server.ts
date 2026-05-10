@@ -22,7 +22,7 @@ export async function registerCongregation(
     return { error: m.auth_register_slug_taken_error() }
   }
 
-  const existingUser = await db.user.findUnique({ where: { email: adminEmail.toLowerCase() } })
+  const existingUser = await db.userAccount.findUnique({ where: { email: adminEmail.toLowerCase() } })
   if (existingUser) {
     return { error: m.auth_register_email_taken_error() }
   }
@@ -39,7 +39,7 @@ export async function registerCongregation(
     },
   })
 
-  const user = await db.user.create({
+  const user = await db.userAccount.create({
     data: {
       email: adminEmail.toLowerCase(),
       password: hashedPassword,

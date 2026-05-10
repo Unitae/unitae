@@ -51,8 +51,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
     const assignment = event.partAssignments.find(a => a.id === assignmentId)
 
-    const users = await db.user.findMany({
-      where: { congregationId, active: true },
+    const users = await db.member.findMany({
+      where: { congregationId, leftAt: null },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
     const userById = new Map(users.map(u => [u.id, u]))

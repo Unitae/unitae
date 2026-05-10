@@ -35,13 +35,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const result = await db.user.findUnique({
+    const result = await db.member.findUnique({
       where: {
         id_congregationId: {
           id: requireParamId(params.publisherId, '/publishers'),
           congregationId: currentUser.congregationId,
         },
       },
+      include: { account: { select: { email: true } } },
     })
 
     if (result == null) throw redirect('/publishers')
@@ -52,11 +53,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       currentUser.congregationId,
     )
     const groups = await db.publisherGroup.findMany({ where: { congregationId: currentUser.congregationId } })
-    const { email, password, ...user } = result
+    const { account, ...member } = result
     return {
       user: {
-        ...user,
-        email: email.includes('@placeholder.unitae.app') ? undefined : email,
+        ...member,
+        email: account?.email ?? undefined,
       },
       groups,
       hideAuxiliaryPioneer: !showAuxiliaryPioneer,

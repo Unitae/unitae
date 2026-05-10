@@ -2,9 +2,10 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 export async function getPublisherStats(db: TransactionClient, congregationId: number, month: number, year: number) {
-  const publishers = await db.user.count({
+  const publishers = await db.member.count({
     where: {
       congregationId,
+      leftAt: null,
       activities: {
         some: {
           year,

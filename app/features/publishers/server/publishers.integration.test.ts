@@ -40,7 +40,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.user.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
+  await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congregationIdA, congregationIdB] } } })
   await testDb.$disconnect()
 })
@@ -90,7 +90,7 @@ describe('getPublishersWithGroup search filter', () => {
   })
 
   afterAll(async () => {
-    await testDb.user.deleteMany({ where: { congregationId: searchCongregationId } })
+    await testDb.userAccount.deleteMany({ where: { congregationId: searchCongregationId } })
     await testDb.congregation.deleteMany({ where: { id: searchCongregationId } })
   })
 

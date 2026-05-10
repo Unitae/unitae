@@ -254,7 +254,7 @@ describe('createBoardDocument (integration)', () => {
     expect(v1?.uri).toBe('storage/key.pdf')
 
     // Cleanup the user we created — versions cascade with the document.
-    await testDb.user.delete({ where: { id: uploaderId } })
+    await testDb.userAccount.delete({ where: { id: uploaderId } })
   })
 })
 
@@ -292,7 +292,7 @@ describe('isDocumentOwnedByUploader (integration)', () => {
     const notOwned = await withScope(primaryCongId, tx => isDocumentOwnedByUploader(tx, created.id, -1))
     expect(notOwned).toBe(false)
 
-    await testDb.user.delete({ where: { id: ownerId } })
+    await testDb.userAccount.delete({ where: { id: ownerId } })
   })
 
   it('returns false for legacy docs without a v1 row', async () => {

@@ -142,7 +142,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           </TableHeader>
           <TableBody>
             {group.members.map(member => (
-              <TableRow key={member.email}>
+              <TableRow key={member.id}>
                 <TableCell className="text-center max-sm:text-left">
                   <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
                     {member.firstname}
@@ -154,8 +154,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {member.email.includes('@placeholder.unitae.app') === false && (
-                    <Link to={`mailto:${member.email}`} className="hover:text-primary">
+                  {member.account?.email && (
+                    <Link to={`mailto:${member.account.email}`} className="hover:text-primary">
                       <Mail className="inline size-4" />
                     </Link>
                   )}

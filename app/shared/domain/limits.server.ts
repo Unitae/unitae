@@ -4,7 +4,10 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 export { LimitReachedError as LimitError }
 
 const LIMIT_COLUMN_MAP = {
-  publishers: 'maxPublishers',
+  // The control plane writes to `maxPublishers` (column kept for backward
+  // compat); semantically it's "members" — both publishers and ministry-school
+  // students count as members. Excludes leavers and anonymized.
+  members: 'maxPublishers',
   territories: 'maxTerritories',
   users: 'maxUsers',
   boardDocuments: 'maxBoardDocuments',
@@ -16,9 +19,9 @@ type LimitName = keyof typeof LIMIT_COLUMN_MAP
 type CounterFn = (db: TransactionClient) => Promise<number>
 
 const LIMIT_COUNTERS: Record<LimitName, CounterFn> = {
-  publishers: db => db.user.count({ where: { isPublisher: true } }),
+  members: db => db.member.count({ where: { leftAt: null, anonymizedAt: null } }),
   territories: db => db.territory.count(),
-  users: db => db.user.count(),
+  users: db => db.userAccount.count(),
   boardDocuments: db => db.boardDocument.count(),
   cardOverlays: db => db.territoryCardOverlay.count(),
 }

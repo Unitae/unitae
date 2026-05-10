@@ -85,7 +85,7 @@ function makeRequest(url = 'http://localhost/') {
 describe('verifySession', () => {
   it('retourne currentUser, congregation et session pour une session valide', async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
 
@@ -113,7 +113,7 @@ describe('verifySession', () => {
 
   it("redirige vers /login si l'utilisateur n'existe pas", async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue(null as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(null as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/login')
@@ -121,7 +121,7 @@ describe('verifySession', () => {
 
   it("redirige vers /login si l'utilisateur est inactif", async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue({ ...fakeUser, active: false } as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, active: false } as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/login')
@@ -129,7 +129,7 @@ describe('verifySession', () => {
 
   it("redirige vers /login si le subdomain ne correspond pas à l'assemblée de l'utilisateur", async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue({ id: 999 } as never)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
@@ -138,7 +138,7 @@ describe('verifySession', () => {
 
   it("redirige vers /suspended si l'assemblée est suspendue", async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(resolveCongregation).mockResolvedValue({
       ...fakeCongregation,
@@ -152,7 +152,7 @@ describe('verifySession', () => {
 
   it("redirige vers /trial-expired si l'essai est terminé", async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue(fakeUser as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     const pastDate = new Date()
     pastDate.setDate(pastDate.getDate() - 1)
@@ -168,7 +168,7 @@ describe('verifySession', () => {
   it('redirige vers /login si findUnique échoue avec P2007', async () => {
     mockSession.get.mockReturnValue('42')
     const p2007Error = Object.assign(new Error('Type mismatch'), { code: 'P2007' })
-    vi.mocked(db.user.findUnique).mockRejectedValue(p2007Error)
+    vi.mocked(db.userAccount.findUnique).mockRejectedValue(p2007Error)
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/login')
@@ -176,7 +176,7 @@ describe('verifySession', () => {
 
   it("redirige vers /verify-email si l'email n'est pas vérifié", async () => {
     mockSession.get.mockReturnValue('42')
-    vi.mocked(db.user.findUnique).mockResolvedValue({ ...fakeUser, emailVerifiedAt: null } as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, emailVerifiedAt: null } as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(resolveCongregation).mockResolvedValue(fakeCongregation as never)
 

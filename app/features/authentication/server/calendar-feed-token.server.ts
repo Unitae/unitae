@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import type { CalendarFeedToken, User } from '~/database/generated/client'
+import type { CalendarFeedToken, UserAccount } from '~/database/generated/client'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
@@ -20,7 +20,9 @@ export function getCalendarFeedToken(userId: number): Promise<CalendarFeedToken 
   return db.calendarFeedToken.findUnique({ where: { userId } })
 }
 
-export async function findUserByCalendarFeedToken(token: string): Promise<{ tokenId: number; user: User } | null> {
+export async function findUserByCalendarFeedToken(
+  token: string,
+): Promise<{ tokenId: number; user: UserAccount } | null> {
   const record = await db.calendarFeedToken.findUnique({
     where: { token },
     include: { user: true },

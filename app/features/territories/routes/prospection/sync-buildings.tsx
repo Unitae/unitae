@@ -37,10 +37,11 @@ export function action({ request, context }: Route.ActionArgs) {
       throw redirect('/')
     }
 
-    const user = await db.user.findUnique({
+    const user = await db.userAccount.findUnique({
       where: {
         id_congregationId: { id: sessionUserId, congregationId },
       },
+      include: { member: true },
     })
 
     if (user == null) {
@@ -48,7 +49,7 @@ export function action({ request, context }: Route.ActionArgs) {
     }
 
     await syncQueue.add('sync', {
-      userName: user.firstname ?? undefined,
+      userName: user.member?.firstname ?? user.firstname ?? undefined,
       userEmail: user.email,
       congregationId: currentUser.congregationId,
     })

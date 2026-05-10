@@ -44,9 +44,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     return {
       users: users.map(user => ({
-        email: user.email,
+        email: user.account?.email ?? null,
         id: user.id,
-        active: user.active,
         firstname: user.firstname,
         lastname: user.lastname,
         isPublisher: user.isPublisher,
@@ -131,7 +130,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
             </TableHeader>
             <TableBody>
               {users.map(user => (
-                <TableRow key={user.email}>
+                <TableRow key={user.id}>
                   <TableCell className="text-center max-sm:text-left">
                     <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
                       {user.firstname}
@@ -150,7 +149,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                     )}
                   </TableCell>
                   <TableCell className="text-center max-sm:hidden">
-                    {user.email.includes('@placeholder.unitae.app') === false && (
+                    {user.email && (
                       <Link to={`mailto:${user.email}`} className="hover:text-primary">
                         <Mail className="inline size-4" />
                       </Link>

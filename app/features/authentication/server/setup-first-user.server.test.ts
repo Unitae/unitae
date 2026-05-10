@@ -35,7 +35,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
   vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test' } as never)
-  vi.mocked(db.user.create).mockResolvedValue({ id: 42 } as never)
+  vi.mocked(db.userAccount.create).mockResolvedValue({ id: 42 } as never)
   vi.mocked(db.permission.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
   vi.mocked(db.congregationUserPermission.create).mockResolvedValue({} as never)
   scopedDb.eventKind.upsert.mockResolvedValue({} as never)

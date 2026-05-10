@@ -33,7 +33,7 @@ beforeAll(async () => {
   congregationIdA = congA.id
   congregationIdB = congB.id
 
-  await testDb.user.create({
+  await testDb.userAccount.create({
     data: {
       email: `user-a-${testSuffix}@test.com`,
       password: 'x',
@@ -43,7 +43,7 @@ beforeAll(async () => {
       lastname: 'A',
     },
   })
-  await testDb.user.create({
+  await testDb.userAccount.create({
     data: {
       email: `user-b-${testSuffix}@test.com`,
       password: 'x',
@@ -56,7 +56,7 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.user.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
+  await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congregationIdA, congregationIdB] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congregationIdA, congregationIdB] } } })
   await testDb.$disconnect()
 })
@@ -80,7 +80,7 @@ describe('RLS withScope isolation', () => {
   })
 
   it('sans scope (unscopedDb), retourne les utilisateurs de toutes les congrégations', async () => {
-    const users = await testDb.user.findMany({
+    const users = await testDb.userAccount.findMany({
       where: { congregationId: { in: [congregationIdA, congregationIdB] } },
     })
 

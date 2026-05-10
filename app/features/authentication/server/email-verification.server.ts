@@ -37,7 +37,7 @@ export async function consumeEmailVerificationToken(token: string) {
   if (verificationToken == null) return
 
   await db.$transaction([
-    db.user.update({
+    db.userAccount.update({
       where: { id: verificationToken.userId },
       data: { emailVerifiedAt: new Date() },
     }),

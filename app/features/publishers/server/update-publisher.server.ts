@@ -19,6 +19,10 @@ export interface UpdatePublisherParams {
   address: string
 }
 
+/**
+ * Update a Member's identity + status. Email — when the Member has a linked
+ * UserAccount — is set on that account; null/empty leaves it untouched.
+ */
 export async function updatePublisher(
   db: TransactionClient,
   id: number,
@@ -26,7 +30,7 @@ export async function updatePublisher(
   actorId: number,
   params: UpdatePublisherParams,
 ) {
-  const publisher = await db.user.update({
+  const publisher = await db.member.update({
     where: {
       id_congregationId: { id, congregationId },
     },
@@ -40,12 +44,21 @@ export async function updatePublisher(
       isServant: params.isServant,
       isAnointed: params.isAnointed,
       publisherGroupId: Number.isNaN(params.groupId) ? null : params.groupId,
-      ...(params.email ? { email: params.email } : {}),
       type: params.type,
       address: params.address,
       phone: params.phone,
     },
   })
+
+  if (params.email && params.email.length > 0) {
+    const existingAccount = await db.userAccount.findUnique({ where: { memberId: id } })
+    if (existingAccount) {
+      await db.userAccount.update({
+        where: { id: existingAccount.id },
+        data: { email: params.email.toLocaleLowerCase() },
+      })
+    }
+  }
 
   await syncBuiltInRoleAssignments(db, id, congregationId, actorId)
 
@@ -53,7 +66,7 @@ export async function updatePublisher(
     action: AuditAction.PublisherUpdated,
     congregationId,
     actorId,
-    entityType: 'User',
+    entityType: 'Member',
     entityId: id,
   })
 

@@ -81,10 +81,11 @@ export function loader({ request, context }: Route.LoaderArgs) {
       select: { id: true, key: true, name: true },
     })
 
-    const members = await db.user.findMany({
+    const members = await db.member.findMany({
       where: {
         congregationId: currentUser.congregationId,
         anonymizedAt: null,
+        leftAt: null,
         ...(search
           ? {
               OR: [
@@ -96,9 +97,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
         ...buildBuiltInWhere(filter),
       },
       include: {
-        roleAssignments: {
-          where: { role: { isBuiltIn: false } },
-          select: { roleId: true },
+        // Custom (management) roles live on UserAccount.roleAssignments.
+        // Members without an account contribute no assignments here.
+        account: {
+          include: {
+            roleAssignments: {
+              where: { role: { isBuiltIn: false } },
+              select: { roleId: true },
+            },
+          },
         },
       },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
@@ -110,7 +117,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         id: member.id,
         firstname: member.firstname,
         lastname: member.lastname,
-        assignedRoleIds: member.roleAssignments.map(a => a.roleId),
+        assignedRoleIds: member.account?.roleAssignments.map(a => a.roleId) ?? [],
       })),
       canManageRoles,
       currentSearch: search ?? '',

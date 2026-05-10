@@ -27,7 +27,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   requirePermission(permissions, Permission.SettingsUserManager)
 
-  const user = await db.user.findUnique({
+  const user = await db.userAccount.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },
   })
 

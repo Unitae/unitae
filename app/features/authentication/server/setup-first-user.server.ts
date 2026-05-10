@@ -33,7 +33,7 @@ export async function setupFirstUser(
       },
     }))
 
-  const user = await db.user.create({
+  const user = await db.userAccount.create({
     data: {
       email,
       password: hashedPassword,

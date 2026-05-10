@@ -6,9 +6,10 @@ export function getPublisherWithActivities(
   selectedMonth: number,
   selectedYear: number,
 ) {
-  return db.user.findMany({
+  return db.member.findMany({
     where: {
       congregationId,
+      leftAt: null,
       OR: [
         {
           isPublisher: true,

@@ -38,8 +38,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const template = await getTemplateById(db, templateId, currentUser.congregationId)
     if (!template) throw redirect('/settings/congregation/templates')
 
-    const users = await db.user.findMany({
+    const users = await db.userAccount.findMany({
       where: { congregationId: currentUser.congregationId, active: true },
+      include: { member: { select: { firstname: true, lastname: true } } },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
 

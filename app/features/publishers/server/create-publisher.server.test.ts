@@ -50,26 +50,26 @@ const baseParams = {
 describe('createPublisher', () => {
   it('creates publisher with provided email', async () => {
     const fake = { id: 1, email: 'jean@example.com' }
-    mockDb.user.create.mockResolvedValue(fake as never)
+    mockDb.userAccount.create.mockResolvedValue(fake as never)
 
     const result = await createPublisher(mockDb as never, baseCongregation, baseParams)
 
     expect(result).toEqual(fake)
-    const call = mockDb.user.create.mock.calls[0][0]
+    const call = mockDb.userAccount.create.mock.calls[0][0]
     expect(call.data.email).toBe('jean@example.com')
   })
 
   it('creates publisher with placeholder email when email is null', async () => {
-    mockDb.user.create.mockResolvedValue({ id: 2 } as never)
+    mockDb.userAccount.create.mockResolvedValue({ id: 2 } as never)
 
     await createPublisher(mockDb as never, baseCongregation, { ...baseParams, email: null })
 
-    const call = mockDb.user.create.mock.calls[0][0]
+    const call = mockDb.userAccount.create.mock.calls[0][0]
     expect(call.data.email).toBe('jean.dupont@placeholder.unitae.app')
   })
 
   it('saves phone and address to the database', async () => {
-    mockDb.user.create.mockResolvedValue({ id: 3 } as never)
+    mockDb.userAccount.create.mockResolvedValue({ id: 3 } as never)
 
     await createPublisher(mockDb as never, baseCongregation, {
       ...baseParams,
@@ -77,7 +77,7 @@ describe('createPublisher', () => {
       address: '5 rue de la Paix',
     })
 
-    const call = mockDb.user.create.mock.calls[0][0]
+    const call = mockDb.userAccount.create.mock.calls[0][0]
     expect(call.data.phone).toBe('0612345678')
     expect(call.data.address).toBe('5 rue de la Paix')
   })
@@ -87,6 +87,6 @@ describe('createPublisher', () => {
 
     await expect(createPublisher(mockDb as never, baseCongregation, baseParams)).rejects.toThrow('Limit reached')
 
-    expect(mockDb.user.create).not.toHaveBeenCalled()
+    expect(mockDb.userAccount.create).not.toHaveBeenCalled()
   })
 })
