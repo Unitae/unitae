@@ -314,7 +314,7 @@ await createTerritory(db, ...)
 ## Known gaps
 
 - **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users whose permission comes only through a custom `UserRoleAssignment` aren't picked up.
-- **Pre-2.0 archive import**: `data-transfer.type.ts` is at `ARCHIVE_VERSION = '2.0'`. Archives produced before the User → Member/UserAccount split (`1.x`) are not yet importable — the legacy `users.ndjson` would need to be split on the fly into `members` + `user-accounts`. Deferred follow-up.
+- **Pre-2.0 archive import**: handled by `migrateLegacyUsersNdjson` in `import-congregation.server.ts` — v1.x archives are split into `members.ndjson` + `user-accounts.ndjson` in memory before the regular import path runs. Placeholder-email accounts (`*.placeholder.unitae.app`) are dropped on the fly.
 - **Automatic anonymization cron**: anonymizing a left member is manual-only today (action available from the admin Users list). A retention cron would auto-anonymize after N months; not yet implemented.
 
 ## Environment Configuration

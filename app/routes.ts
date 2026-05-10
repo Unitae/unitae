@@ -80,6 +80,7 @@ export default [
           route('mark-as-returned', 'features/settings/routes/users/mark-as-returned.tsx'),
           route('make-student', 'features/settings/routes/users/make-student.tsx'),
           route('add-to-congregation', 'features/settings/routes/users/add-to-congregation.tsx'),
+          route('delete-account', 'features/settings/routes/users/delete-account.tsx'),
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),

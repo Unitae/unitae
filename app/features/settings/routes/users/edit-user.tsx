@@ -124,6 +124,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: large edit page with multiple optional sections (custom roles, danger-zone, anonymized banner)
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const { permissionList, builtInRoles, customRoles, canManageRoles, isAdmin, canAnonymize, anonymizedAt, ...user } =
     loaderData
@@ -342,32 +343,60 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
               {m.settings_user_edit_danger_zone()}
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-between gap-4">
-            <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="shrink-0">
-                  {m.settings_user_edit_anonymize_button()}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{m.settings_user_edit_anonymize_dialog_title()}</AlertDialogTitle>
-                  <AlertDialogDescription>{m.settings_user_edit_anonymize_dialog_description()}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                  <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
-                    <AlertDialogAction
-                      type="submit"
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      {m.settings_user_edit_anonymize_confirm()}
-                    </AlertDialogAction>
-                  </Form>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-muted-foreground text-sm">{m.settings_user_edit_delete_account_description()}</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="shrink-0">
+                    {m.settings_user_edit_delete_account_button()}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.settings_user_edit_delete_account_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.settings_user_edit_delete_account_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <Form method="post" action={`/settings/users/${user.id}/delete-account`}>
+                      <AlertDialogAction type="submit">
+                        {m.settings_user_edit_delete_account_confirm()}
+                      </AlertDialogAction>
+                    </Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="shrink-0">
+                    {m.settings_user_edit_anonymize_button()}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.settings_user_edit_anonymize_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>{m.settings_user_edit_anonymize_dialog_description()}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
+                      <AlertDialogAction
+                        type="submit"
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {m.settings_user_edit_anonymize_confirm()}
+                      </AlertDialogAction>
+                    </Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardContent>
         </Card>
       )}

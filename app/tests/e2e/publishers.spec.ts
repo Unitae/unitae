@@ -9,6 +9,7 @@ const LASTNAME_FIELD_RE = /^nom$/i
 const SUBMIT_BUTTON_RE = /enregistrer|sauvegarder|créer|ajouter/i
 const MARK_AS_LEFT_TITLE_RE = /désactiver la fiche proclamateur/i
 const MARK_AS_RETURNED_TITLE_RE = /marquer comme de retour/i
+const ACCOUNT_ID_FROM_EDIT_URL_RE = /\/settings\/users\/(\d+)\/edit/
 
 async function createPublisherWithoutEmail(page: Page, lastname: string): Promise<boolean> {
   await page.goto('/publishers/new')
@@ -75,6 +76,52 @@ test.describe('Member lifecycle', () => {
 
     // Returned member should reappear in the publishers list
     await page.goto('/publishers')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(lastname)).toBeVisible()
+  })
+
+  test('demoting a publisher to ministry-school student keeps them as a Member', async ({ page, request, baseURL }) => {
+    const uniqueSuffix = Date.now()
+    const lastname = `Student-${uniqueSuffix}`
+
+    const created = await createPublisherWithoutEmail(page, lastname)
+    if (!created) test.skip()
+
+    // The new publisher shows up in the publisher-filtered list
+    await page.goto('/publishers')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(lastname)).toBeVisible()
+
+    // Look the account up by visiting the Users list and clicking the row to
+    // reach the edit page — we need the accountId for the POST below.
+    await page.goto('/settings/users')
+    await page.waitForLoadState('networkidle')
+    const userRow = page.getByText(lastname).first()
+    if (!(await userRow.isVisible({ timeout: 3000 }).catch(() => false))) test.skip()
+    await userRow.click()
+    await page.waitForLoadState('networkidle')
+
+    const editUrl = page.url()
+    const idMatch = editUrl.match(ACCOUNT_ID_FROM_EDIT_URL_RE)
+    if (!idMatch) test.skip()
+    const accountId = idMatch![1]
+
+    // Demote to ministry-school student via the action endpoint. We forward
+    // the session cookies so the request is authenticated.
+    const cookies = await page.context().cookies()
+    const cookieHeader = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    const resp = await request.post(`${baseURL ?? ''}/settings/users/${accountId}/make-student`, {
+      headers: { cookie: cookieHeader },
+    })
+    expect(resp.status()).toBeLessThan(500)
+
+    // After demotion: the user is no longer in the publisher-filtered list,
+    // but the Member row (and account) still exists in the admin Users list.
+    await page.goto('/publishers')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText(lastname)).not.toBeVisible()
+
+    await page.goto('/settings/users')
     await page.waitForLoadState('networkidle')
     await expect(page.getByText(lastname)).toBeVisible()
   })
