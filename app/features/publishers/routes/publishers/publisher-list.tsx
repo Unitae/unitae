@@ -124,7 +124,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                 <TableHead className="text-center">{m.publishers_table_group()}</TableHead>
                 <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
                 <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>

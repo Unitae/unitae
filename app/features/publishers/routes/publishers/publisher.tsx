@@ -1,4 +1,4 @@
-import { Archive, Download, IdCard, Pencil, RotateCcw } from 'lucide-react'
+import { Download, Pencil, RotateCcw, UserCheck, UserMinus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -9,6 +9,17 @@ import { permissionsContext, currentAccountContext, withScopeFromContext } from 
 import logger from '~/shared/infra/logger.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -94,19 +105,47 @@ function LifecycleAction({
   }
   if (isPublisher) {
     return (
-      <Form method="post" action={`/publishers/${publisherId}/mark-as-left`}>
-        <Button type="submit" variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
-          <Archive className="size-4" />
-        </Button>
-      </Form>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
+            <UserMinus className="size-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.publishers_view_mark_as_left_dialog_description()}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+            <Form method="post" action={`/publishers/${publisherId}/mark-as-left`}>
+              <AlertDialogAction type="submit">{m.publishers_view_mark_as_left_confirm()}</AlertDialogAction>
+            </Form>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     )
   }
   return (
-    <Form method="post" action={`/publishers/${publisherId}/make-publisher`}>
-      <Button type="submit" size="icon" title={m.publishers_view_activate_title()}>
-        <IdCard className="size-4" />
-      </Button>
-    </Form>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="icon" title={m.publishers_view_activate_title()}>
+          <UserCheck className="size-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
+          <AlertDialogDescription>{m.publishers_view_make_publisher_dialog_description()}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+          <Form method="post" action={`/publishers/${publisherId}/make-publisher`}>
+            <AlertDialogAction type="submit">{m.publishers_view_make_publisher_confirm()}</AlertDialogAction>
+          </Form>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   )
 }
 

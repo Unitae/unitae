@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { Archive, IdCard, KeyRound, RotateCcw, UnplugIcon } from 'lucide-react'
+import { KeyRound, RotateCcw, UnplugIcon, UserCheck, UserMinus } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -157,17 +157,53 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                 </Button>
               </Form>
             ) : user.isPublisher ? (
-              <Form method="post" action={`/publishers/${user.id}/mark-as-left`}>
-                <Button type="submit" variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
-                  <Archive className="size-4" />
-                </Button>
-              </Form>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
+                    <UserMinus className="size-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.publishers_view_mark_as_left_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <Form method="post" action={`/publishers/${user.id}/mark-as-left`}>
+                      <AlertDialogAction type="submit">
+                        {m.publishers_view_mark_as_left_confirm()}
+                      </AlertDialogAction>
+                    </Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ) : (
-              <Form method="post" action={`/publishers/${user.id}/make-publisher`}>
-                <Button type="submit" size="icon" title={m.publishers_edit_activate_title()}>
-                  <IdCard className="size-4" />
-                </Button>
-              </Form>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="icon" title={m.publishers_edit_activate_title()}>
+                    <UserCheck className="size-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.publishers_view_make_publisher_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <Form method="post" action={`/publishers/${user.id}/make-publisher`}>
+                      <AlertDialogAction type="submit">
+                        {m.publishers_view_make_publisher_confirm()}
+                      </AlertDialogAction>
+                    </Form>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </>
         }

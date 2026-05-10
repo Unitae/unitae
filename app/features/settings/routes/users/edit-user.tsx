@@ -145,6 +145,13 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
   return (
     <div className="flex flex-col gap-6">
       <UnsavedChangesDialog blocker={blocker} />
+      {anonymizedAt && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString('fr-FR') })}
+          </AlertDescription>
+        </Alert>
+      )}
       <PageHeader
         title={m.settings_user_edit_title()}
         subtitle={m.settings_user_edit_subtitle()}
@@ -401,14 +408,6 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {anonymizedAt && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString('fr-FR') })}
-          </AlertDescription>
-        </Alert>
       )}
     </div>
   )

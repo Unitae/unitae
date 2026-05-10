@@ -1,3 +1,4 @@
+import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { z } from 'zod'
@@ -15,6 +16,7 @@ import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
+import { useFocusError } from '~/shared/ui/hooks/use-focus-error'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -33,9 +35,6 @@ const addToCongregationSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
-  type: z.nativeEnum(PublisherType).default(PublisherType.Normal),
-  phone: z.string().optional().default(''),
-  address: z.string().optional().default(''),
 })
 
 export const meta: Route.MetaFunction = () => {
@@ -63,8 +62,16 @@ export function loader({ params, context }: Route.LoaderArgs) {
   })
 }
 
-export default function AddToCongregationPage({ loaderData }: Route.ComponentProps) {
+export default function AddToCongregationPage({ loaderData, actionData }: Route.ComponentProps) {
   const { account } = loaderData
+  useFocusError(actionData)
+
+  const [form, fields] = useForm({
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: addToCongregationSchema })
+    },
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,37 +85,51 @@ export default function AddToCongregationPage({ loaderData }: Route.ComponentPro
         backTo={`/settings/users/${account.id}/edit`}
       />
 
-      <Form method="post" className="flex max-w-xl flex-col gap-4">
+      <Form method="post" {...getFormProps(form)} className="flex max-w-xl flex-col gap-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="firstname">{m.settings_user_new_firstname_label()}</Label>
-            <Input id="firstname" name="firstname" defaultValue={account.firstname ?? ''} required />
+            <Label htmlFor={fields.firstname.id}>{m.settings_user_new_firstname_label()}</Label>
+            <Input
+              {...getInputProps(fields.firstname, { type: 'text' })}
+              key={fields.firstname.id}
+              defaultValue={account.firstname ?? ''}
+              required
+            />
+            {fields.firstname.errors && <p className="text-destructive text-sm">{fields.firstname.errors}</p>}
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="lastname">{m.settings_user_new_lastname_label()}</Label>
-            <Input id="lastname" name="lastname" defaultValue={account.lastname ?? ''} required />
+            <Label htmlFor={fields.lastname.id}>{m.settings_user_new_lastname_label()}</Label>
+            <Input
+              {...getInputProps(fields.lastname, { type: 'text' })}
+              key={fields.lastname.id}
+              defaultValue={account.lastname ?? ''}
+              required
+            />
+            {fields.lastname.errors && <p className="text-destructive text-sm">{fields.lastname.errors}</p>}
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="gender">{m.publishers_view_gender_label()}</Label>
-          <Select name="gender" defaultValue="male">
-            <SelectTrigger id="gender">
-              <SelectValue />
+          <Label htmlFor={fields.gender.id}>{m.publishers_view_gender_label()}</Label>
+          {/* No default — picking gender drives isMale, which gates elder/servant fields downstream. */}
+          <Select name="gender" required>
+            <SelectTrigger id={fields.gender.id}>
+              <SelectValue placeholder={m.publishers_view_gender_label()} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="male">{m.publishers_view_gender_male()}</SelectItem>
               <SelectItem value="female">{m.publishers_view_gender_female()}</SelectItem>
             </SelectContent>
           </Select>
+          {fields.gender.errors && <p className="text-destructive text-sm">{fields.gender.errors}</p>}
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="birthDate">{m.publishers_view_birth_date_label()}</Label>
-            <Input id="birthDate" name="birthDate" type="date" />
+            <Label htmlFor={fields.birthDate.id}>{m.publishers_view_birth_date_label()}</Label>
+            <Input {...getInputProps(fields.birthDate, { type: 'date' })} key={fields.birthDate.id} />
           </div>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="baptismDate">{m.publishers_view_baptism_date_label()}</Label>
-            <Input id="baptismDate" name="baptismDate" type="date" />
+            <Label htmlFor={fields.baptismDate.id}>{m.publishers_view_baptism_date_label()}</Label>
+            <Input {...getInputProps(fields.baptismDate, { type: 'date' })} key={fields.baptismDate.id} />
           </div>
         </div>
         <label className="flex items-center gap-2">
@@ -159,13 +180,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         birthDate: submission.value.birthDate ? new Date(submission.value.birthDate) : null,
         baptismDate: submission.value.baptismDate ? new Date(submission.value.baptismDate) : null,
         isPublisher: submission.value.isPublisher,
-        type: submission.value.type,
+        type: PublisherType.Normal,
         isHelder: false,
         isServant: false,
         isAnointed: false,
         publisherGroupId: null,
-        phone: submission.value.phone,
-        address: submission.value.address,
+        phone: '',
+        address: '',
       })
     } catch (error) {
       if (error instanceof NotFoundError) throw redirect('/settings/users')
