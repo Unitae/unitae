@@ -18,7 +18,7 @@ Unitae allows administrators to export and import entire congregation data as `.
 
 The archive contains all congregation data:
 
-- Users (without passwords — recipients must reset their password after import)
+- Members (publisher profiles) and login accounts (without passwords — recipients must reset their password after import)
 - Roles, role memberships, and the permissions that each role grants
 - Territories, buildings, and building entrances with prospection data
 - Territory map overlays and the congregation perimeter
@@ -52,7 +52,8 @@ The export produces a single `.unitae` file that bundles your congregation's dat
 
 ### Conflict resolution
 
-- **Users**: Skipped if the email already exists in a different congregation. Updated if in the same congregation.
+- **Login accounts**: Skipped if the email already exists in a different congregation. Updated if in the same congregation.
+- **Member profiles**: Always inserted with fresh identifiers; the relationships to attributions, activity reports, and assignments are rewired automatically.
 - **Territories**: Updated with the imported data if the number matches.
 - **Event kinds**: Skipped if a duplicate key exists.
 

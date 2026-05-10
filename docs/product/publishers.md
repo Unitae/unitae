@@ -4,14 +4,17 @@ The publishers module manages congregation member profiles, organizes them into 
 
 ## Publisher Profiles
 
-A **publisher** is a congregation member who participates in field ministry. User accounts can be marked as publishers to enable activity tracking and group assignment.
+A **publisher** is a congregation member who participates in field ministry. The Publishers list also shows ministry-school students — people who are part of the congregation and can be assigned to programme parts (e.g., student talks) but aren't yet declared publishers. Publishers and students share the same profile shape; the only difference is the *Publisher* status flag.
+
+A publisher does not need a login. You can create a publisher profile without any email — they appear in attribution dropdowns, group rosters, and activity reports the same way. Add a login later from the profile if they get an email account.
 
 ### Profile information
 
 Each publisher profile includes:
 
 - **First name / Last name**
-- **Email / Phone / Address** — Contact details
+- **Email** — Optional. When provided, the publisher gets a login account; when blank, they exist as an offline profile only.
+- **Phone / Address** — Contact details
 - **Date of birth**
 - **Baptism date**
 - **Gender** — Male or female, used for gender-specific assignments
@@ -50,6 +53,16 @@ Publishers are organized into **groups** (field service groups). Each group has:
 
 Groups help organize field service and track activity at the group level.
 
+## Lifecycle: present, left, anonymized
+
+Publishers (and ministry-school students) have three independent lifecycle states:
+
+- **Present** — The default. Appears in selectors, attribution dropdowns, group rosters, and activity prompts.
+- **Left** — Marks the person as no longer part of the congregation. They disappear from publisher-facing lists and the system stops asking for their monthly activity. Past data (attributions, activity reports, group history) is preserved untouched. Reversible: marking them as returned brings everything back exactly as it was.
+- **Anonymized** — Permanent GDPR scrub. Personal information (name, contact, dates, gender) is wiped from the profile while activity numbers are kept (without name) for congregation statistics. Irreversible.
+
+Anonymization is a manual action available from the admin Users list — there is no automatic retention cron yet. Mark someone as left first, then anonymize once you've decided you no longer need their identifying data.
+
 ## Activity Tracking
 
 Monthly field service reports are recorded for each publisher.
@@ -74,6 +87,15 @@ Activity statistics follow the **theocratic year**, which runs from September to
 - **Individual PDF reports** — Activity report for a single publisher
 - **Batch PDF export** — All publisher reports as a ZIP file
 - **Yearly Excel export** — Full year activity summary for all publishers in a spreadsheet
+
+## Login (optional)
+
+A publisher with an email gets a login account that's tied to their profile. From the profile page, you can:
+
+- **Add login** — Set an email and send the publisher a password-reset email. They'll be able to log in to the app afterwards.
+- **Remove login** — Delete the login account but keep the profile. The publisher remains in all lists and reports; they just can't sign in anymore.
+
+The two operations don't affect each other's data: you can swap an email or remove the login without losing attribution history, group membership, or activity reports.
 
 ## Permissions
 

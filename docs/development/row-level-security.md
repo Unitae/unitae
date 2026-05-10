@@ -17,7 +17,7 @@ RLS moves the isolation guarantee from the application layer down to the databas
 │                        Application                          │              
 │                                                             │
 │      SET LOCAL app.congregation_id                          │──── sets context for the transaction
-│      SELECT * FROM "User"                                   │──── no WHERE needed, RLS filters
+│      SELECT * FROM "Member"                                 │──── no WHERE needed, RLS filters
 │                                                             │
 ├─────────────────────────────────────────────────────────────┤
 │                        PostgreSQL                           │
@@ -45,10 +45,10 @@ The application reads `DB_RUNTIME_URL` for the runtime connection. If not set, i
 Every tenant-scoped table has the same policy:
 
 ```sql
-ALTER TABLE "User" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "User" FORCE ROW LEVEL SECURITY;
+ALTER TABLE "Member" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Member" FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY tenant_isolation ON "User" FOR ALL
+CREATE POLICY tenant_isolation ON "Member" FOR ALL
   USING (
     CASE
       WHEN NULLIF(current_setting('app.congregation_id', true), '') IS NULL THEN true
@@ -74,7 +74,7 @@ The authoritative source is the set of `CREATE POLICY tenant_isolation` statemen
 
 **Tenant-scoped (RLS enforced):**
 
-Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, BoardSection, BoardSectionVisibilityRole, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, CongregationUserPermission, ConsentRecord, DataDeletionRecord, Event, EventKind, ExternalSpeaker, NotificationEvent, NotificationPreference, ProgrammePartAssignment, ProgrammePartAssignmentAllowedRole, ProgrammeServiceRoleAssignment, ProgrammeServiceRoleAssignmentAllowedRole, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplatePartAllowedRole, ProgrammeTemplateResponsible, ProgrammeTemplateServiceRole, ProgrammeTemplateServiceRoleAllowedRole, PublisherActivity, PublisherGroup, Role, RolePermission, Setting, Territory, TerritoryCardOverlay, TerritoryPerimeter, User, UserRoleAssignment.
+Attribution, AuditLog, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings, BoardSection, BoardSectionVisibilityRole, Building, BuildingAccess, BuildingEntrance, BuildingResidentialData, CongregationUserPermission, ConsentRecord, DataDeletionRecord, Event, EventKind, ExternalSpeaker, Member, MemberRoleAssignment, NotificationEvent, NotificationPreference, ProgrammePartAssignment, ProgrammePartAssignmentAllowedRole, ProgrammeServiceRoleAssignment, ProgrammeServiceRoleAssignmentAllowedRole, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplatePartAllowedRole, ProgrammeTemplateResponsible, ProgrammeTemplateServiceRole, ProgrammeTemplateServiceRoleAllowedRole, PublisherActivity, PublisherGroup, Role, RolePermission, Setting, Territory, TerritoryCardOverlay, TerritoryPerimeter, UserAccount, UserRoleAssignment.
 
 **Global (no `congregationId`, RLS not applicable):**
 
@@ -151,12 +151,12 @@ docker compose -f docker/docker-compose.dev.yml exec postgres \
   psql -U unitae_app -d unitae_dev -c "
     BEGIN;
     SET LOCAL app.congregation_id = '1';
-    SELECT id, firstname, \"congregationId\" FROM \"User\";
+    SELECT id, firstname, \"congregationId\" FROM \"Member\";
     COMMIT;
   "
 ```
 
-Only users from congregation 1 should appear. Without `SET LOCAL`, all users are visible.
+Only members from congregation 1 should appear. Without `SET LOCAL`, all members are visible.
 
 ## Adding RLS to a New Table
 

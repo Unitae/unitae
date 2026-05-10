@@ -308,11 +308,14 @@ await createTerritory(db, ...)
 - **`.env` files are not readable** via the Read tool or `cat` — derive env vars by grepping `process.env\.` in `app/`.
 - **Job handlers** live in `app/features/{feature}/jobs/handle-*-work.server.ts`, not under `server/`. Worker imports them from `app/workers/worker.server.ts`.
 - **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.
-- **Built-in role memberships are auto-synced** from `User` boolean fields. After editing `isPublisher`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, or `isServant`, call `syncBuiltInRoleAssignments` (`app/shared/domain/built-in-roles.server.ts`).
+- **Built-in role memberships are auto-synced** from `Member` flags. After editing `isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, or `leftAt` on a `Member`, call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` (`app/shared/domain/built-in-roles.server.ts`). Identity-role assignments live on `MemberRoleAssignment`; management/custom roles on `UserRoleAssignment` (UserAccount-bound).
+- **Member vs UserAccount FK rule of thumb**: action requires login → `UserAccount`; subject is a person in the congregation → `Member`. See `docs/development/coding-conventions.md` for the full table.
 
 ## Known gaps
 
-- **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users who hold a permission only via a custom role aren't picked up.
+- **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users whose permission comes only through a custom `UserRoleAssignment` aren't picked up.
+- **Pre-2.0 archive import**: `data-transfer.type.ts` is at `ARCHIVE_VERSION = '2.0'`. Archives produced before the User → Member/UserAccount split (`1.x`) are not yet importable — the legacy `users.ndjson` would need to be split on the fly into `members` + `user-accounts`. Deferred follow-up.
+- **Automatic anonymization cron**: anonymizing a left member is manual-only today (action available from the admin Users list). A retention cron would auto-anonymize after N months; not yet implemented.
 
 ## Environment Configuration
 

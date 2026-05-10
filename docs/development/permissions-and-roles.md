@@ -7,9 +7,11 @@ For the end-user view of the same system, see the product doc: [Roles and Permis
 ## Two layers, distinct concepts
 
 - **Permission** — the unit of access. A finite, code-defined enum (20 entries) declared in `app/shared/types/permission.ts`. New permissions require code + migration changes.
-- **Role** — a named bundle of permissions assigned to users. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable) or **custom** (created at runtime by a Roles Manager).
+- **Role** — a named bundle of permissions. Lives in the database (`Role` table), scoped to a congregation. Roles can be **built-in** (seeded, identity-stable, auto-synced from `Member` flags) or **custom** (created at runtime by a Roles Manager and assigned to a `UserAccount`).
 
-Users do not hold permissions directly through roles only — there is also a direct `CongregationUserPermission` table for one-off grants. Both sources are unioned at request time.
+Built-in identity roles attach to **`Member`** via `MemberRoleAssignment`. Custom roles (and the management permissions they grant) attach to **`UserAccount`** via `UserRoleAssignment`. The two tables are siblings: identity ("you are an elder") vs access ("you can manage roles").
+
+Users do not hold permissions through roles only — there is also a direct `CongregationUserPermission` table for one-off grants. Both sources are unioned at request time.
 
 ## Where things live
 
@@ -24,7 +26,7 @@ Users do not hold permissions directly through roles only — there is also a di
 | Role admin UI | `app/features/congregation/routes/roles/` |
 | User assignment UI | settings — see `app/features/settings/` |
 
-Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `UserRoleAssignment`, and `CongregationUserPermission`.
+Database schema is in `app/database/schema.prisma`. The relevant tables are `Permission`, `Role`, `RolePermission`, `UserRoleAssignment` (custom/management roles, on `UserAccount`), `MemberRoleAssignment` (built-in identity roles, on `Member`), and `CongregationUserPermission`.
 
 ## Resolution flow
 
@@ -33,7 +35,7 @@ When a request hits an authenticated layout:
 1. `requireAuth()` middleware runs (`app/shared/auth/middleware.server.ts`). It calls `verifySession`, then `resolveEffectivePermissions(userId, congregationId)`, then enforces GDPR consent.
 2. `resolveEffectivePermissions` (`app/shared/auth/permissions.server.ts`) reads two sources in parallel:
    - direct grants from `CongregationUserPermission`
-   - role-mediated grants from `RolePermission` joined to roles the user is a member of (`UserRoleAssignment`)
+   - role-mediated grants from `RolePermission` joined to roles the `UserAccount` holds via `UserRoleAssignment` (custom/management roles only — identity-role assignments on `MemberRoleAssignment` aren't consulted here, since identity roles don't carry permissions by themselves)
    It unions both, and if the result contains `Permission.Admin`, expands it to every value of the enum.
 3. The middleware sets `permissionsContext` to the resulting `Set<Permission>`.
 4. Loaders/actions read `context.get(permissionsContext)` and call `requirePermission(permissions, Permission.X)` (which redirects on failure) or `permissions.has(...)` for conditional UI.
@@ -44,11 +46,22 @@ The `_required` parameter on `requireAuth(_required: Permission[] = [])` is **re
 
 Defined by `BUILT_IN_ROLE_KEYS` in `app/shared/domain/built-in-roles.server.ts`:
 
-- `male`, `female`, `publisher`, `baptized`, `anointed`, `elder`, `assistant-servant`
+- `member` — every current Member of the congregation (the broad fallback for programme eligibility)
+- `ministry-school-student` — a Member who attends but isn't yet a publisher
+- `publisher` — declared field-service publisher
+- `baptized` — publisher with a `baptismDate`
+- `brother` — baptized male (no longer publisher-gated, so a baptized non-publisher counts)
+- `sister` — baptized female (same)
+- `anointed` — publisher + baptized + `isAnointed`
+- `elder` — baptized male + `isHelder`
+- `assistant-servant` — baptized male + `isServant`
+- `pioneer` — publisher + baptized + `type` is `pionnier-permanant` or `pionnier-auxiliaires`
 
-Membership is computed from boolean fields on the user (`isPublisher`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`) by `BUILT_IN_ROLE_PREDICATES`. After any change to those fields, call `syncBuiltInRoleAssignments(db, userId, congregationId, actorId)` — it diffs the desired vs current `UserRoleAssignment` rows for built-in roles and audits the change.
+Membership is computed from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`) by `BUILT_IN_ROLE_PREDICATES`. After any change to those fields, call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` — it diffs the desired vs current `MemberRoleAssignment` rows and audits the change. When `Member.leftAt` is set, every predicate evaluates to `false`, so soft-leaving a member drops every identity role automatically.
 
-Built-in roles ship with **no permissions attached**; their primary purpose is to label users for things like board section visibility and programme assignment filtering. Admins can attach permissions to built-in roles if they want them to grant access too.
+Domain invariants are enforced at the database level via CHECK constraints on `Member`: a servant cannot also be an elder, anointed requires baptism, pioneer requires baptism, elder/servant require baptism + male. Code that would violate these throws on `INSERT`/`UPDATE`.
+
+Built-in roles ship with **no permissions attached** (with one exception: `publisher` is granted `BoardViewer` by `seedBuiltInRoles`, mirroring the legacy default that publishers can read board documents). Their primary purpose is to label members for things like board section visibility and programme assignment filtering. Admins can attach permissions to built-in roles if they want them to grant access too.
 
 Built-in roles cannot be renamed or deleted. Their identity is sourced from i18n via `getRoleDisplayName` (`app/shared/types/role.ts`).
 
@@ -59,7 +72,7 @@ Created and edited through `app/shared/domain/roles.server.ts`:
 - `createRole` — slugifies the name into a key, ensures uniqueness within the congregation, audits as `RoleCreated`
 - `updateRoleIdentity` — edits name/description (forbidden on built-ins)
 - `updateRolePermissions` → `syncRolePermissions` — diff-based add/remove on `RolePermission`, audits as `RolePermissionChanged`
-- `addUserToRole` / `removeUserFromRole` / `setUserCustomRoleAssignments` — manage `UserRoleAssignment` for non-built-in roles, audits as `UserRoleAssignmentChanged`
+- `addUserToRole` / `removeUserFromRole` / `setUserCustomRoleAssignments` — manage `UserRoleAssignment` for non-built-in roles (i.e. management roles on a `UserAccount`), audits as `UserRoleAssignmentChanged`
 - `deleteRole` — forbidden on built-ins; cascades to memberships and permission rows
 
 The corresponding routes live in `app/features/congregation/routes/roles/`.

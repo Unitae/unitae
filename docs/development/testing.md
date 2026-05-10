@@ -43,8 +43,15 @@ Unit tests are co-located next to their source files (e.g., `change-user-passwor
 ```typescript
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// Account-bound services (auth, tokens, audit) mock `userAccount`.
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { user: { findUnique: vi.fn(), update: vi.fn() } },
+  unscopedDb: { userAccount: { findUnique: vi.fn(), update: vi.fn() } },
+}))
+
+// Member-bound services (publishers, attributions, activities, programme
+// assignments) mock `member` instead.
+vi.mock('~/shared/infra/db.server', () => ({
+  unscopedDb: { member: { findMany: vi.fn() } },
 }))
 
 vi.mock('~/shared/auth/crypto.server', () => ({
@@ -57,7 +64,7 @@ vi.mock('~/shared/auth/crypto.server', () => ({
 
 ```typescript
 it('should throw NotFoundError when user does not exist', async () => {
-  vi.mocked(db.user.findUnique).mockResolvedValue(null)
+  vi.mocked(db.userAccount.findUnique).mockResolvedValue(null)
   await expect(changePassword(params)).rejects.toThrow(NotFoundError)
 })
 ```

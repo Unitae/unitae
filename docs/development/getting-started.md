@@ -67,7 +67,7 @@ pnpm prisma db seed
 pnpm start:dev
 ```
 
-Visit `http://localhost:5173`. The setup wizard will guide you through creating the first user.
+Visit `http://localhost:5173`. The setup wizard will guide you through creating the first user — note that this only creates a `UserAccount` (login), not a `Member` (publisher). Add yourself as a publisher from the publishers list once the wizard is done if you want to test publisher-side features.
 
 ### 6. Start the Worker (Optional)
 

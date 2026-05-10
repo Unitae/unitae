@@ -12,13 +12,13 @@ A `.unitae` archive is a ZIP with three top-level entries:
 | `data/<entity>.ndjson` | One file per entity type, in newline-delimited JSON. Each line is one row. Empty files are omitted from the archive |
 | `files/` | Uploaded user files (board PDFs, territory cards). Only present when the export was created with `includeFiles: true` |
 
-The archive version is a constant at the top of `app/features/settings/server/data-transfer.type.ts` (`ARCHIVE_VERSION`, currently `1.1`). The list of accepted versions on import lives in `SUPPORTED_ARCHIVE_VERSIONS` in the same file — versions outside that list are reported as a warning and skipped. Bump the constant when the on-disk shape changes; add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` when the format remains compatible enough to import-with-warning (most recent example: 1.0 archives import successfully, just without the post-1.0 entity tables).
+The archive version is a constant at the top of `app/features/settings/server/data-transfer.type.ts` (`ARCHIVE_VERSION`, currently `2.0` — bumped from `1.1` when `User` was split into `Member` + `UserAccount`). The list of accepted versions on import lives in `SUPPORTED_ARCHIVE_VERSIONS` in the same file — versions outside that list are reported as a warning and skipped. Bump the constant when the on-disk shape changes; add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` when the format remains compatible enough to import-with-warning. Note: pre-2.0 archives are not yet readable by the new import — the legacy `users.ndjson` would have to be split into `members.ndjson` + `user-accounts.ndjson` on the fly. That compatibility shim is a deferred follow-up.
 
 Compression is `DEFLATE` via [`jszip`](https://stuk.github.io/jszip/). Buffers are produced in memory; very large exports may need to switch to streaming if memory pressure becomes a concern.
 
 ## Entity export ordering
 
-Entities are exported in dependency order so an import can replay them top-down without missing references. The list lives in `buildExportSteps` (`export-congregation.server.ts`). Order matters: territories before attributions, board sections before board documents, etc.
+Entities are exported in dependency order so an import can replay them top-down without missing references. The list lives in `buildExportSteps` (`export-congregation.server.ts`). Order matters: territories before attributions, board sections before board documents, members before user-accounts (so `UserAccount.memberId` can resolve via the id map), etc.
 
 ## Backward compatibility — pre-1.1 archives
 
@@ -34,7 +34,8 @@ The validator scans for natural-key collisions before any write. Decisions per e
 
 | Entity | Detection | Same congregation | Different congregation |
 |---|---|---|---|
-| Users | matching `email` | Update in place | Skip with warning |
+| User accounts | matching `email` | Update in place (link to imported member when present) | Skip with warning |
+| Members | (none — fresh ids per import) | Always insert | n/a |
 | Territories | matching `number` | Update in place | n/a (RLS-scoped) |
 | Event kinds | matching compound key `(key, congregationId)` | Skip | n/a |
 

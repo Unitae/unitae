@@ -114,8 +114,10 @@ Business logic belongs in **service functions** (`features/*/server/*.server.ts`
 // Service function with typed params
 export async function createPublisher(db: TransactionClient, congregation: CongregationInfo, params: CreatePublisherParams) {
   const limits = new LimitService(db, congregation)
-  await limits.errorIfWouldGoOverLimit('publishers')
-  return db.user.create({ data: { ... } })
+  await limits.errorIfWouldGoOverLimit('members')
+  // Publisher data lives on Member; an account is only created when an email
+  // is provided (offline publishers stay member-only).
+  return db.member.create({ data: { ... } })
 }
 
 // Route action delegates to service (middleware already set context)
@@ -123,11 +125,20 @@ export async function action({ request, context }: Route.ActionArgs) {
   const congregation = context.get(congregationContext)
   const form = await request.formData()
   return withScopeFromContext(context, async db => {
-    const user = await createPublisher(db, congregation, { firstname, lastname, ... })
-    return redirect(`/congregation/publishers/${user.id}/edit`)
+    const member = await createPublisher(db, congregation, { firstname, lastname, ... })
+    return redirect(`/congregation/publishers/${member.id}/edit`)
   })
 }
 ```
+
+### `Member` vs `UserAccount` — where FKs go
+
+Identity is split: `Member` holds person/publisher data; `UserAccount` holds login credentials. They link 1:1 via `UserAccount.memberId` (nullable). Decide each new FK by intent:
+
+- **Action requires being logged in to perform** → FK targets `UserAccount`. Audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, document uploads, tokens, permissions, management role assignments.
+- **Subject is a person in the congregation** → FK targets `Member`. Attributions, activities, programme assignments (assignee/assistant), publisher groups, identity-role assignments.
+
+Display names: when reading from a session-loaded `currentUser`, name lives on `currentUser.member` if linked, otherwise on `currentUser` itself. Use `accountDisplayName(account)` from `app/shared/utils/display-name.ts` to handle both.
 
 ### Cross-Feature Import Rule
 
