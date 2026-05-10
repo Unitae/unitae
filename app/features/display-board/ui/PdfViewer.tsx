@@ -1,7 +1,8 @@
-import { AlertCircle, Download, Maximize2, Minus, Plus, RefreshCw } from 'lucide-react'
+import { AlertCircle, ChevronDown, Download, Maximize2, Minus, Plus, RefreshCw } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import { useIsMobile } from '~/shared/ui/hooks/use-mobile'
 import { Skeleton } from '~/shared/ui/skeleton'
 import { computeAutoFitScale, MAX_USER_ZOOM, MIN_USER_ZOOM, type ViewportSize, ZOOM_STEP } from './pdf-viewer-scaling'
@@ -10,6 +11,38 @@ interface PdfViewerProps {
   url: string
   downloadUrl?: string
   downloadName?: string
+}
+
+interface PdfErrorDetails {
+  stage: 'fetch' | 'render'
+  name: string
+  message: string
+  httpStatus?: number
+  url: string
+  timestamp: string
+  userAgent: string
+}
+
+class PdfFetchError extends Error {
+  httpStatus: number
+  constructor(httpStatus: number) {
+    super(`HTTP ${httpStatus}`)
+    this.name = 'PdfFetchError'
+    this.httpStatus = httpStatus
+  }
+}
+
+function buildErrorDetails(stage: 'fetch' | 'render', err: unknown, url: string): PdfErrorDetails {
+  const e = err instanceof Error ? err : new Error(String(err))
+  return {
+    stage,
+    name: e.name,
+    message: e.message,
+    httpStatus: e instanceof PdfFetchError ? e.httpStatus : undefined,
+    url,
+    timestamp: new Date().toISOString(),
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+  }
 }
 
 const SCROLLBAR_BUDGET_PX = 16
@@ -62,7 +95,7 @@ async function renderAllPages(
 async function fetchPdfDocument(url: string) {
   const pdfjs = await loadPdfJs()
   const response = await fetch(url)
-  if (!response.ok) throw new Error('Failed to fetch PDF')
+  if (!response.ok) throw new PdfFetchError(response.status)
   const data = await response.arrayBuffer()
   return pdfjs.getDocument({ data }).promise
 }
@@ -83,7 +116,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
   // biome-ignore lint/suspicious/noExplicitAny: pdfjs document type is complex and not exported cleanly
   const [pdf, setPdf] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<PdfErrorDetails | null>(null)
   const [retryCount, setRetryCount] = useState(0)
   const [zoom, setZoom] = useState(1)
   const [renderTrigger, setRenderTrigger] = useState(0)
@@ -104,7 +137,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
   }, [])
 
   const retry = useCallback(() => {
-    setError(false)
+    setError(null)
     setLoading(true)
     setPdf(null)
     setRetryCount(c => c + 1)
@@ -131,15 +164,15 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    setError(false)
+    setError(null)
 
     fetchPdfDocument(url)
       .then(doc => {
         if (!cancelled) setPdf(doc)
       })
-      .catch(() => {
+      .catch(err => {
         if (!cancelled) {
-          setError(true)
+          setError(buildErrorDetails('fetch', err, url))
           setLoading(false)
         }
       })
@@ -162,9 +195,9 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
       .then(() => {
         if (!cancelled) setLoading(false)
       })
-      .catch(() => {
+      .catch(err => {
         if (!cancelled) {
-          setError(true)
+          setError(buildErrorDetails('render', err, url))
           setLoading(false)
         }
       })
@@ -176,7 +209,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
 
   return (
     <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-hidden bg-muted/30">
-      {!error && (
+      {error == null && (
         <div className="flex items-center justify-end gap-1 border-b bg-background px-4 py-2">
           <Button
             variant="ghost"
@@ -217,7 +250,7 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
             <p className="text-center text-muted-foreground text-sm">{m.board_viewer_loading()}</p>
           </div>
         )}
-        {error && (
+        {error != null && (
           <div className="flex flex-1 flex-col items-center justify-center gap-6 py-16 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-destructive/10">
               <AlertCircle className="size-8 text-destructive" />
@@ -240,6 +273,39 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
                 </Button>
               )}
             </div>
+            <Collapsible className="mt-2 w-full max-w-md text-left">
+              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-3 text-xs">
+                <span className="font-medium text-muted-foreground">{m.error_technical_details()}</span>
+                <ChevronDown className="size-3.5 text-muted-foreground transition-transform data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <div className="space-y-1 break-all rounded bg-muted p-2 font-mono text-muted-foreground text-xs">
+                  <div>
+                    {m.board_viewer_error_detail_stage()} {error.stage}
+                  </div>
+                  <div>
+                    {m.board_viewer_error_detail_name()} {error.name}
+                  </div>
+                  <div>
+                    {m.board_viewer_error_detail_message()} {error.message}
+                  </div>
+                  {error.httpStatus != null && (
+                    <div>
+                      {m.board_viewer_error_detail_status()} {error.httpStatus}
+                    </div>
+                  )}
+                  <div>
+                    {m.board_viewer_error_detail_url()} {error.url}
+                  </div>
+                  <div>
+                    {m.error_detail_time()} {error.timestamp}
+                  </div>
+                  <div>
+                    {m.board_viewer_error_detail_browser()} {error.userAgent}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </div>
         )}
         <div ref={canvasContainerRef} className="mx-auto flex flex-col items-center gap-4" />
