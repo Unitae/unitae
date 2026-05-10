@@ -8,15 +8,25 @@ import { togglePublisherStatus } from './publisher-status.server'
 
 const mockDb = {
   member: {
+    findFirst: vi.fn(),
     update: vi.fn(),
   },
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockDb.member.findFirst.mockResolvedValue({ id: 5 })
 })
 
 describe('togglePublisherStatus', () => {
+  it('throws NotFoundError when the member does not exist in the scope', async () => {
+    const { NotFoundError } = await import('~/shared/errors/app-error.server')
+    mockDb.member.findFirst.mockResolvedValue(null)
+
+    await expect(togglePublisherStatus(mockDb as never, 5, 10, true, 99)).rejects.toBeInstanceOf(NotFoundError)
+    expect(mockDb.member.update).not.toHaveBeenCalled()
+  })
+
   it('sets isPublisher to true', async () => {
     const expected = { id: 5, isPublisher: true }
     mockDb.member.update.mockResolvedValue(expected)

@@ -10,7 +10,7 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
 vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn() }))
 
 const mockDb = {
-  userAccount: { update: vi.fn() },
+  userAccount: { update: vi.fn(), findUnique: vi.fn() },
   member: { update: vi.fn() },
   congregationUserPermission: { deleteMany: vi.fn(), createMany: vi.fn() },
   permission: { findMany: vi.fn() },
@@ -21,6 +21,8 @@ const { audit } = await import('~/shared/domain/audit.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // Default: account exists with no linked Member (admin / CO account)
+  mockDb.userAccount.findUnique.mockResolvedValue({ memberId: null })
 })
 
 describe('updateUser', () => {

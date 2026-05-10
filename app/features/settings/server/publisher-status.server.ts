@@ -1,5 +1,6 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 /**
@@ -16,6 +17,12 @@ export async function togglePublisherStatus(
   isPublisher: boolean,
   actorId: number,
 ) {
+  const existing = await db.member.findFirst({
+    where: { id: memberId, congregationId },
+    select: { id: true },
+  })
+  if (!existing) throw new NotFoundError('Member')
+
   const member = await db.member.update({
     where: {
       id_congregationId: { id: memberId, congregationId },

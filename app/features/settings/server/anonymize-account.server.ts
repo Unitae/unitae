@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -19,8 +20,8 @@ export async function anonymizeAccount(
   db: TransactionClient,
   accountId: number,
   congregationId: number,
-  requestedBy: string,
-) {
+  actorId: number,
+): Promise<void> {
   const account = await db.userAccount.findFirst({
     where: { id: accountId, congregationId },
     select: { id: true, anonymizedAt: true },
@@ -58,8 +59,16 @@ export async function anonymizeAccount(
       entityType: 'UserAccount',
       entityId: accountId,
       congregationId,
-      requestedBy,
+      requestedBy: `admin:${actorId}`,
       completedAt: new Date(),
     },
+  })
+
+  audit({
+    action: AuditAction.UserAnonymized,
+    congregationId,
+    actorId,
+    entityType: 'UserAccount',
+    entityId: accountId,
   })
 }

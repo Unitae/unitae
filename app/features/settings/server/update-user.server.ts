@@ -34,34 +34,37 @@ export async function updateUser(
     await requireNotLastAdmin(userId, congregationId)
   }
 
-  const account = await db.userAccount.update({
+  // Look up the linked member ID up front so the single account update can
+  // null the display-name fields when a Member owns the name. Saves a second
+  // userAccount.update round-trip that the previous shape did.
+  const existing = await db.userAccount.findUnique({
+    where: { id_congregationId: { id: userId, congregationId } },
+    select: { memberId: true },
+  })
+  const hasLinkedMember = existing?.memberId != null
+
+  await db.userAccount.update({
     where: {
       id_congregationId: { id: userId, congregationId },
     },
     data: {
-      // Only used when memberId is null (admin / CO accounts)
-      firstname: params.firstname,
-      lastname: params.lastname,
+      // Display name lives on Member when linked; on UserAccount otherwise.
+      firstname: hasLinkedMember ? null : params.firstname,
+      lastname: hasLinkedMember ? null : params.lastname,
       email: params.email.toLocaleLowerCase(),
       active: params.active,
     },
-    select: { memberId: true },
   })
 
-  if (account.memberId != null) {
+  if (existing?.memberId != null) {
     await db.member.update({
-      where: { id: account.memberId },
+      where: { id: existing.memberId },
       data: {
         firstname: params.firstname,
         lastname: params.lastname,
       },
     })
-    // Account.firstname/lastname stay null when linked to a Member
-    await db.userAccount.update({
-      where: { id_congregationId: { id: userId, congregationId } },
-      data: { firstname: null, lastname: null },
-    })
-    await syncBuiltInRoleAssignments(db, account.memberId, congregationId, actorId)
+    await syncBuiltInRoleAssignments(db, existing.memberId, congregationId, actorId)
   }
 
   // Update congregation-scoped permissions: delete existing, create new

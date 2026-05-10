@@ -43,7 +43,7 @@ const { anonymizeMember } = await import('./anonymize-member.server')
 // Mirror what `app/features/settings/routes/users/anonymize.tsx` does: scrub
 // the linked Member first (if any), then the UserAccount. Tests that exercise
 // the full flow call this helper instead of pulling in route-level concerns.
-async function anonymizeUser(tx: Tx, userId: number, requestedBy: string): Promise<void> {
+async function anonymizeUser(tx: Tx, userId: number, actorId: number): Promise<void> {
   const account = await tx.userAccount.findUnique({
     where: { id: userId },
     select: { id: true, congregationId: true, memberId: true },
@@ -53,9 +53,9 @@ async function anonymizeUser(tx: Tx, userId: number, requestedBy: string): Promi
     throw new NotFoundError('UserAccount')
   }
   if (account.memberId != null) {
-    await anonymizeMember(tx, account.memberId, account.congregationId, requestedBy)
+    await anonymizeMember(tx, account.memberId, account.congregationId, actorId)
   }
-  await anonymizeAccount(tx, account.id, account.congregationId, requestedBy)
+  await anonymizeAccount(tx, account.id, account.congregationId, actorId)
 }
 
 beforeAll(async () => {
@@ -141,7 +141,7 @@ afterAll(async () => {
 
 describe('anonymizeUser (integration)', () => {
   it('anonymizes personal data of the target user', async () => {
-    await withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as AccountId, 'admin@test.com'))
+    await withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as AccountId, 1))
 
     const user = await testDb.userAccount.findUnique({
       where: { id: primaryUserId },
@@ -173,12 +173,12 @@ describe('anonymizeUser (integration)', () => {
 
   it('throws when the user is already anonymized', async () => {
     await expect(
-      withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as AccountId, 'admin@test.com')),
+      withScope(primaryCongId, tx => anonymizeUser(tx, primaryUserId as AccountId, 1)),
     ).rejects.toThrow(ALREADY_ANONYMIZED_RE)
   })
 
   it('throws when the user does not exist', async () => {
-    await expect(withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as AccountId, 'admin@test.com'))).rejects.toThrow(
+    await expect(withScope(primaryCongId, tx => anonymizeUser(tx, 999999 as AccountId, 1))).rejects.toThrow(
       USER_NOT_FOUND_RE,
     )
   })
@@ -193,7 +193,7 @@ describe('anonymizeUser (integration)', () => {
 
     // The primary scope must not be able to locate the other congregation's user
     await expect(
-      withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as AccountId, 'admin@test.com')),
+      withScope(primaryCongId, tx => anonymizeUser(tx, otherUserId as AccountId, 1)),
     ).rejects.toThrow(USER_NOT_FOUND_RE)
 
     const otherUserAfter = await testDb.userAccount.findUnique({
@@ -275,7 +275,7 @@ describe('anonymizeUser — attribution and group cleanup (integration)', () => 
   })
 
   it('nulls out deputyId on publisher group when deputy is anonymized', async () => {
-    await withScope(primaryCongId, tx => anonymizeUser(tx, deputyUserId as AccountId, 'admin@test.com'))
+    await withScope(primaryCongId, tx => anonymizeUser(tx, deputyUserId as AccountId, 1))
 
     const group = await testDb.publisherGroup.findUnique({ where: { id: groupId } })
     expect(group?.deputyId).toBeNull()

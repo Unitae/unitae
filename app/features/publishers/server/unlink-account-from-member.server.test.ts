@@ -42,7 +42,7 @@ describe('unlinkAccountFromMember', () => {
 
     const result = await unlinkAccountFromMember(mockDb as never, 1, 10, 99)
 
-    expect(result).toEqual({ accountId: 42 })
+    expect(result).toEqual({ accountId: 42, email: 'a@b.test' })
     expect(mockDb.userAccount.delete).toHaveBeenCalledWith({ where: { id: 42 } })
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({

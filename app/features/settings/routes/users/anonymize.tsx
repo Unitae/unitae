@@ -8,7 +8,6 @@ import {
   currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import type { AccountId } from '~/shared/types/branded'
@@ -42,9 +41,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (!account) throw new NotFoundError('UserAccount')
 
       if (account.memberId != null) {
-        await anonymizeMember(db, account.memberId, account.congregationId, `admin:${currentUser.id}`)
+        await anonymizeMember(db, account.memberId, account.congregationId, currentUser.id)
       }
-      await anonymizeAccount(db, account.id, account.congregationId, `admin:${currentUser.id}`)
+      await anonymizeAccount(db, account.id, account.congregationId, currentUser.id)
     })
   } catch (error) {
     if (error instanceof NotFoundError) throw redirect('/settings/users')
@@ -58,13 +57,6 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   logger.info(`User anonymized. UserAccount ID: ${accountId}. By admin ID: ${currentUser.id}.`)
-  audit({
-    action: AuditAction.UserAnonymized,
-    congregationId,
-    actorId: currentUser.id,
-    entityType: 'UserAccount',
-    entityId: accountId,
-  })
 
   return redirect('/settings/users')
 }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/domain/audit.server', () => ({
-  AuditAction: { AccountUnlinkedFromMember: 'account.unlinked_from_member' },
+  AuditAction: { AccountDeleted: 'account.deleted' },
   audit: vi.fn(),
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
@@ -36,12 +36,12 @@ describe('deleteAccount', () => {
     expect(mockDb.userAccount.delete).toHaveBeenCalledWith({ where: { id: 1 } })
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({
-        action: 'account.unlinked_from_member',
+        action: 'account.deleted',
         congregationId: 10,
         actorId: 99,
         entityType: 'UserAccount',
         entityId: 1,
-        metadata: { email: 'a@b.test', memberId: 42, deleted: true },
+        metadata: { email: 'a@b.test', memberId: 42 },
       }),
     )
   })

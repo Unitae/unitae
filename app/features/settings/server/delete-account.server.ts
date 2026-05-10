@@ -29,12 +29,12 @@ export async function deleteAccount(
   await db.userAccount.delete({ where: { id: accountId } })
 
   audit({
-    action: AuditAction.AccountUnlinkedFromMember,
+    action: AuditAction.AccountDeleted,
     congregationId,
     actorId,
     entityType: 'UserAccount',
     entityId: accountId,
-    metadata: { email: account.email, memberId: account.memberId, deleted: true },
+    metadata: { email: account.email, memberId: account.memberId },
   })
 
   return { accountId, memberId: account.memberId }

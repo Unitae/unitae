@@ -76,6 +76,7 @@ export const AuditAction = {
   // Account / Member linking
   AccountLinkedToMember: 'account.linked_to_member',
   AccountUnlinkedFromMember: 'account.unlinked_from_member',
+  AccountDeleted: 'account.deleted',
 
   // Congregation settings
   CongregationSettingsUpdated: 'congregation.settings.updated',

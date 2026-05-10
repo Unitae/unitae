@@ -7,13 +7,17 @@ import type { TransactionClient } from '~/shared/infra/db.server'
  * (tokens + permissions + management role assignments cascade via FK
  * onDelete). The Member row itself stays in place — the person is still
  * part of the congregation, just without a way to log in.
+ *
+ * Returns the deleted account's `id` and `email` so callers can flash a
+ * confirmation without a second lookup. `null` when the Member had no
+ * linked account.
  */
 export async function unlinkAccountFromMember(
   db: TransactionClient,
   memberId: number,
   congregationId: number,
   actorId: number,
-) {
+): Promise<{ accountId: number; email: string } | null> {
   const member = await db.member.findFirst({
     where: { id: memberId, congregationId },
     select: { id: true, account: { select: { id: true, email: true } } },
@@ -21,7 +25,7 @@ export async function unlinkAccountFromMember(
   if (!member) throw new NotFoundError('Member')
   if (!member.account) return null
 
-  const accountId = member.account.id
+  const { id: accountId, email } = member.account
   await db.userAccount.delete({ where: { id: accountId } })
 
   audit({
@@ -30,8 +34,8 @@ export async function unlinkAccountFromMember(
     actorId,
     entityType: 'UserAccount',
     entityId: accountId,
-    metadata: { memberId, email: member.account.email },
+    metadata: { memberId, email },
   })
 
-  return { accountId }
+  return { accountId, email }
 }

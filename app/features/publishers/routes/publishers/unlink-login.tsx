@@ -25,12 +25,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const result = await withScopeFromContext(context, async db => {
     try {
-      const member = await db.member.findFirst({
-        where: { id: memberId, congregationId: currentUser.congregationId },
-        select: { account: { select: { email: true } } },
-      })
-      const removed = await unlinkAccountFromMember(db, memberId, currentUser.congregationId, currentUser.id)
-      return { removed, email: member?.account?.email ?? '' }
+      return await unlinkAccountFromMember(db, memberId, currentUser.congregationId, currentUser.id)
     } catch (error) {
       if (error instanceof NotFoundError) {
         throw redirect('/publishers')
@@ -39,7 +34,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     }
   })
 
-  if (result.removed != null) {
+  if (result != null) {
     session.flash('success', m.publishers_edit_unlink_login_success({ email: result.email }))
   }
 

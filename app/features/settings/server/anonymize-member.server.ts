@@ -1,3 +1,4 @@
+import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -15,8 +16,8 @@ export async function anonymizeMember(
   db: TransactionClient,
   memberId: number,
   congregationId: number,
-  requestedBy: string,
-) {
+  actorId: number,
+): Promise<void> {
   const member = await db.member.findFirst({
     where: { id: memberId, congregationId },
     select: { id: true, anonymizedAt: true },
@@ -61,8 +62,16 @@ export async function anonymizeMember(
       entityType: 'Member',
       entityId: memberId,
       congregationId,
-      requestedBy,
+      requestedBy: `admin:${actorId}`,
       completedAt: new Date(),
     },
+  })
+
+  audit({
+    action: AuditAction.UserAnonymized,
+    congregationId,
+    actorId,
+    entityType: 'Member',
+    entityId: memberId,
   })
 }
