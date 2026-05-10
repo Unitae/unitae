@@ -8,6 +8,7 @@ import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicke
 import * as m from '~/i18n/paraglide/messages'
 import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -432,15 +433,22 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { firstname, lastname, email, active, permissions: selectedPermissions, customRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
-    await updateUser(db, accountId, currentUser.congregationId, currentUser.id, {
-      firstname,
-      lastname,
-      email,
-      active,
-      permissions: selectedPermissions,
-    })
+    try {
+      await updateUser(db, accountId, currentUser.congregationId, currentUser.id, {
+        firstname,
+        lastname,
+        email,
+        active,
+        permissions: selectedPermissions,
+      })
 
-    await setUserCustomRoleAssignments(db, accountId, currentUser.congregationId, currentUser.id, customRoleIds)
+      await setUserCustomRoleAssignments(db, accountId, currentUser.congregationId, currentUser.id, customRoleIds)
+    } catch (error) {
+      if (error instanceof ConflictError) {
+        return data(submission.reply({ formErrors: [error.message] }), { status: 409 })
+      }
+      throw error
+    }
 
     return redirect('/settings/users')
   })

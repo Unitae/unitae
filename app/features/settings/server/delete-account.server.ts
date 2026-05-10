@@ -1,3 +1,4 @@
+import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -22,6 +23,8 @@ export async function deleteAccount(
     select: { id: true, email: true, memberId: true },
   })
   if (!account) throw new NotFoundError('UserAccount')
+
+  await requireNotLastAdmin(accountId, congregationId)
 
   await db.userAccount.delete({ where: { id: accountId } })
 

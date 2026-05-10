@@ -22,6 +22,13 @@ export function action({ request, params, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     const memberId = requireParamId<MemberId>(params.publisherId, '/publishers')
 
+    if (currentUser.member?.id === memberId) {
+      session.flash('error', m.publishers_view_lifecycle_self_error())
+      return redirect(`/publishers/${memberId}/view`, {
+        headers: { 'Set-Cookie': await commitSession(session) },
+      })
+    }
+
     const member = await db.member.findFirst({
       where: { id: memberId, congregationId: currentUser.congregationId },
       select: { firstname: true, lastname: true },

@@ -1,6 +1,8 @@
+import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { Permission } from '~/shared/types/permission'
 
 export interface UpdateUserParams {
   firstname: string
@@ -23,6 +25,15 @@ export async function updateUser(
   actorId: number,
   params: UpdateUserParams,
 ) {
+  // If the new direct permission set drops Admin, make sure another admin
+  // remains in the congregation. (False positive when the same user holds
+  // Admin via both direct grant and a role — rare; workaround is to grant
+  // Admin to another user first.)
+  const willHaveDirectAdmin = params.permissions.includes(Permission.Admin)
+  if (!willHaveDirectAdmin) {
+    await requireNotLastAdmin(userId, congregationId)
+  }
+
   const account = await db.userAccount.update({
     where: {
       id_congregationId: { id: userId, congregationId },

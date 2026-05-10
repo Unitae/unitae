@@ -8,7 +8,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -18,7 +18,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  requirePermission(permissions, Permission.SettingsUserManager)
+  requirePermission(permissions, Permission.Admin)
 
   const accountId = requireParamId(params.accountId, '/settings/users')
 
@@ -40,6 +40,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       await deleteAccount(db, accountId, currentUser.congregationId, currentUser.id)
     } catch (error) {
       if (error instanceof NotFoundError) throw redirect('/settings/users')
+      if (error instanceof ConflictError) {
+        session.flash('error', error.message)
+        return
+      }
       throw error
     }
 

@@ -37,7 +37,9 @@ export async function linkAccountToMember(
       email: normalizedEmail,
       password: '',
       active: true,
-      emailVerifiedAt: new Date(),
+      // emailVerifiedAt stays null — the operator-supplied address is unverified
+      // until the recipient completes the password-reset flow we kick off below.
+      emailVerifiedAt: null,
       congregationId: params.congregationId,
     },
   })

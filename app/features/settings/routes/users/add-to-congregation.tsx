@@ -7,6 +7,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
+  requirePermission,
   currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
@@ -45,9 +46,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
-  if (!permissions.has(Permission.PublisherManager)) {
-    throw redirect('/')
-  }
+  requirePermission(permissions, Permission.SettingsUserManager)
+  requirePermission(permissions, Permission.PublisherManager)
 
   const accountId = requireParamId(params.accountId, '/settings/users')
 
@@ -129,9 +129,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
 
-  if (!permissions.has(Permission.PublisherManager)) {
-    throw redirect('/')
-  }
+  requirePermission(permissions, Permission.SettingsUserManager)
+  requirePermission(permissions, Permission.PublisherManager)
 
   const accountId = requireParamId(params.accountId, '/settings/users')
   const submission = parseWithZod(await request.formData(), { schema: addToCongregationSchema })

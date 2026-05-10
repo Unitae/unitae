@@ -894,6 +894,7 @@
     "settings_user_add_to_congregation_success": "{email} a été ajouté à l'assemblée.",
     "settings_user_add_to_congregation_error_conflict": "Ce compte est déjà rattaché à une fiche de membre.",
     "settings_user_add_to_congregation_is_publisher_label": "Inscrire comme proclamateur",
+    "publishers_view_lifecycle_self_error": "Vous ne pouvez pas modifier votre propre statut de proclamateur. Demandez à un autre responsable des proclamateurs de le faire.",
     "publishers_view_mark_as_left_success": "{name} a été marqué comme ayant quitté l'assemblée.",
     "publishers_view_mark_as_left_error": "Impossible de marquer {name} comme ayant quitté l'assemblée.",
     "publishers_view_mark_as_returned_success": "{name} a été marqué comme étant de retour dans l'assemblée.",

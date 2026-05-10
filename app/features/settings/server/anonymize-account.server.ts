@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -27,6 +28,8 @@ export async function anonymizeAccount(
 
   if (!account) throw new NotFoundError('UserAccount')
   if (account.anonymizedAt) throw new ConflictError('Account already anonymized')
+
+  await requireNotLastAdmin(accountId, congregationId)
 
   const anonymizedEmail = `deleted-${randomUUID()}@anonymized.local`
 

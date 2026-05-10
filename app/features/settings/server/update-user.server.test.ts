@@ -7,6 +7,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
 vi.mock('~/shared/domain/built-in-roles.server', () => ({
   syncBuiltInRoleAssignments: vi.fn(),
 }))
+vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn() }))
 
 const mockDb = {
   userAccount: { update: vi.fn() },

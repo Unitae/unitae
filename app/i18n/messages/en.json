@@ -892,6 +892,7 @@
     "settings_user_add_to_congregation_success": "{email} has been added to the congregation.",
     "settings_user_add_to_congregation_error_conflict": "This account already has a linked member profile.",
     "settings_user_add_to_congregation_is_publisher_label": "Register as publisher",
+    "publishers_view_lifecycle_self_error": "You cannot change your own publisher status. Ask another publisher manager to do it.",
     "publishers_view_mark_as_left_success": "{name} has been marked as having left the congregation.",
     "publishers_view_mark_as_left_error": "Could not mark {name} as having left the congregation.",
     "publishers_view_mark_as_returned_success": "{name} has been marked as having returned to the congregation.",

@@ -5,6 +5,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
 }))
 vi.mock('~/shared/infra/db.server', () => ({ unscopedDb: { auditLog: { create: vi.fn() } } }))
+vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn() }))
 
 const { deleteAccount } = await import('./delete-account.server')
 const { audit } = await import('~/shared/domain/audit.server')

@@ -10,6 +10,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   },
   audit: vi.fn(),
 }))
+vi.mock('~/shared/auth/permissions.server', () => ({ requireNotLastAdmin: vi.fn() }))
 
 const mockDb = {
   role: {
@@ -22,6 +23,7 @@ const mockDb = {
   rolePermission: {
     createMany: vi.fn(),
     deleteMany: vi.fn(),
+    findFirst: vi.fn(),
   },
   userRoleAssignment: {
     findFirst: vi.fn(),
