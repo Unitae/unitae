@@ -41,6 +41,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/board')
     }
 
+    logger.info(
+      `Document ID: ${params.documentId} delivered. Status: ${response.status}. Type: ${response.headers.get('Content-Type')}.`,
+      { documentId: params.documentId, userId: currentUser.id },
+    )
+
     return response
   })
 }
