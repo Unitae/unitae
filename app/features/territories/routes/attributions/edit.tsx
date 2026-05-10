@@ -13,7 +13,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -43,7 +43,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
@@ -236,7 +236,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const hasLateDate = lateDateText.length > 0 && lateDateText !== 'null'
   const hasEndDate = endDateText.length > 0 && endDateText !== 'null'
-  const { congregationId, id: actorId } = context.get(userContext)
+  const { congregationId, id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const attribution = await updateAttribution(

@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { editPermissionsSchema } from '~/features/settings/schemas/permissions.schema'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getRole, updateRolePermissions } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDescription, getRoleDisplayName } from '~/shared/types/role'
@@ -25,7 +25,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.PermissionsManager)) throw redirect('/')
 
   const roleId = requireParamId(params.roleId, '/settings/permissions')
@@ -83,7 +83,7 @@ export default function EditPermissionPage({ loaderData, actionData }: Route.Com
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.PermissionsManager)) throw redirect('/')
 
   const roleId = requireParamId(params.roleId, '/settings/permissions')

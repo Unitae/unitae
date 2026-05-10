@@ -1,12 +1,14 @@
 import { redirect } from 'react-router'
-import { anonymizeUser } from '~/features/settings/server/anonymize-user.server'
+import { anonymizeAccount } from '~/features/settings/server/anonymize-account.server'
+import { anonymizeMember } from '~/features/settings/server/anonymize-member.server'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import type { UserId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
@@ -17,28 +19,36 @@ import type { Route } from './+types/anonymize'
 // Action-only route : anonymise un utilisateur (admin uniquement)
 export async function action({ params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregationId = currentUser.congregationId
 
   requirePermission(permissions, Permission.Admin)
 
   const userId = requireParamId<UserId>(params.userId, '/settings/users')
 
-  // Empecher l'auto-anonymisation
   if (currentUser.id === userId) {
     throw redirect('/settings/users')
   }
 
   await withScopeFromContext(context, async db => {
-    await anonymizeUser(db, userId, `admin:${currentUser.id}`)
+    const account = await db.userAccount.findUnique({
+      where: { id: userId },
+      select: { id: true, congregationId: true, memberId: true },
+    })
+    if (!account) throw new NotFoundError('UserAccount')
+
+    if (account.memberId != null) {
+      await anonymizeMember(db, account.memberId, account.congregationId, `admin:${currentUser.id}`)
+    }
+    await anonymizeAccount(db, account.id, account.congregationId, `admin:${currentUser.id}`)
   })
 
-  logger.info(`Utilisateur anonymise. User ID: ${userId}. Par admin ID: ${currentUser.id}.`)
+  logger.info(`User anonymized. UserAccount ID: ${userId}. By admin ID: ${currentUser.id}.`)
   audit({
     action: AuditAction.UserAnonymized,
     congregationId,
     actorId: currentUser.id,
-    entityType: 'User',
+    entityType: 'UserAccount',
     entityId: userId,
   })
 

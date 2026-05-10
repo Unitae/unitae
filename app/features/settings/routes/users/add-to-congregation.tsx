@@ -7,7 +7,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
@@ -43,7 +43,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   if (!permissions.has(Permission.PublisherManager)) {
     throw redirect('/')
@@ -126,7 +126,7 @@ export default function AddToCongregationPage({ loaderData }: Route.ComponentPro
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
 
   if (!permissions.has(Permission.PublisherManager)) {

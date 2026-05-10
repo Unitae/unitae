@@ -3,7 +3,7 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { PublisherType } from '~/shared/types/publisher-type'
 
-export interface UpdatePublisherParams {
+export interface UpdateMemberParams {
   firstname: string
   lastname: string
   email: string | null
@@ -23,12 +23,12 @@ export interface UpdatePublisherParams {
  * Update a Member's identity + status. Email — when the Member has a linked
  * UserAccount — is set on that account; null/empty leaves it untouched.
  */
-export async function updatePublisher(
+export async function updateMember(
   db: TransactionClient,
   id: number,
   congregationId: number,
   actorId: number,
-  params: UpdatePublisherParams,
+  params: UpdateMemberParams,
 ) {
   const publisher = await db.member.update({
     where: {

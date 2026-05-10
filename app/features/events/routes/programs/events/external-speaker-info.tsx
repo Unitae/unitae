@@ -1,4 +1,4 @@
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -15,7 +15,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   if (!externalSpeakerId || Number.isNaN(externalSpeakerId)) return Response.json(null)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId } })
     if (!event) return Response.json(null)
 

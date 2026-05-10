@@ -18,8 +18,8 @@ vi.mock('@react-pdf/renderer', () => ({
   Font: { register: vi.fn() },
 }))
 
-vi.mock('~/shared/auth/sanitize-user.server', () => ({
-  sanitizeUser: vi.fn((u: unknown) => u),
+vi.mock('~/shared/auth/sanitize-account.server', () => ({
+  sanitizeAccount: vi.fn((u: unknown) => u),
 }))
 
 vi.mock('~/features/publishers/ui/PublisherActivityDocument', () => ({

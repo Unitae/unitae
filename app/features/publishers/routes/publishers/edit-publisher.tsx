@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
-import { updatePublisher } from '~/features/publishers/server/update-publisher.server'
+import { updateMember } from '~/features/publishers/server/update-member.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'
@@ -49,7 +49,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
@@ -187,7 +187,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const submission = parseWithZod(await request.formData(), { schema: updatePublisherSchema })
 
   if (submission.status !== 'success') {
@@ -212,7 +212,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
 
   return withScopeFromContext(context, async db => {
-    const user = await updatePublisher(
+    const user = await updateMember(
       db,
       requireParamId(params.publisherId, '/publishers'),
       currentUser.congregationId,

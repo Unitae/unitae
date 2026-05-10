@@ -3,7 +3,7 @@ import { data } from 'react-router'
 import { toast } from 'sonner'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { requireAuth } from '~/shared/auth/middleware.server'
-import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { congregationContext, permissionsContext, currentAccountContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { AppLayout } from '~/shared/ui/AppLayout'
 import { RouteErrorBoundary } from '~/shared/ui/RouteErrorBoundary'
@@ -36,7 +36,7 @@ export const middleware: Route.MiddlewareFunction[] = [
 ]
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const permissions = context.get(permissionsContext)
   const session = await getSession(request.headers.get('Cookie'))

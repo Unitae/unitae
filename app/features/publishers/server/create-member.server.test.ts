@@ -19,7 +19,7 @@ const mockDb = {
   userAccount: { create: vi.fn() },
 }
 
-const { createPublisher } = await import('./create-publisher.server')
+const { createMember } = await import('./create-member.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
@@ -51,14 +51,14 @@ const baseParams = {
   actorId: 99,
 }
 
-describe('createPublisher', () => {
+describe('createMember', () => {
   it('creates a Member and a linked UserAccount when email is provided', async () => {
     const member = { id: 1, firstname: 'Jean', lastname: 'Dupont' }
     const account = { id: 5, memberId: 1, email: 'jean@example.com' }
     mockDb.member.create.mockResolvedValue(member as never)
     mockDb.userAccount.create.mockResolvedValue(account as never)
 
-    const result = await createPublisher(mockDb as never, baseCongregation, baseParams)
+    const result = await createMember(mockDb as never, baseCongregation, baseParams)
 
     expect(result).toEqual(member)
     const memberCall = mockDb.member.create.mock.calls[0][0]
@@ -72,7 +72,7 @@ describe('createPublisher', () => {
   it('creates a Member only (no UserAccount) when email is null', async () => {
     mockDb.member.create.mockResolvedValue({ id: 2 } as never)
 
-    await createPublisher(mockDb as never, baseCongregation, { ...baseParams, email: null })
+    await createMember(mockDb as never, baseCongregation, { ...baseParams, email: null })
 
     expect(mockDb.member.create).toHaveBeenCalledOnce()
     expect(mockDb.userAccount.create).not.toHaveBeenCalled()
@@ -81,7 +81,7 @@ describe('createPublisher', () => {
   it('saves phone and address on the Member', async () => {
     mockDb.member.create.mockResolvedValue({ id: 3 } as never)
 
-    await createPublisher(mockDb as never, baseCongregation, {
+    await createMember(mockDb as never, baseCongregation, {
       ...baseParams,
       email: null,
       phone: '0612345678',
@@ -96,7 +96,7 @@ describe('createPublisher', () => {
   it('throws LimitError when member limit reached', async () => {
     mockErrorIfWouldGoOverLimit.mockRejectedValue(new Error('Limit reached'))
 
-    await expect(createPublisher(mockDb as never, baseCongregation, baseParams)).rejects.toThrow('Limit reached')
+    await expect(createMember(mockDb as never, baseCongregation, baseParams)).rejects.toThrow('Limit reached')
 
     expect(mockDb.member.create).not.toHaveBeenCalled()
   })

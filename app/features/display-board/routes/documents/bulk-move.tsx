@@ -3,7 +3,7 @@ import { bulkMoveBoardItems } from '~/features/display-board/server/board-docume
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -31,7 +31,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const dynIds = items.filter(i => i.kind === 'dyn').map(i => i.id)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const { pdfMoved, dynMoved } = await bulkMoveBoardItems(db, congregationId, sectionId, pdfIds, dynIds)
 
     logger.info(`Bulk moved ${pdfMoved} PDFs and ${dynMoved} dynamic docs to section ${sectionId}.`)

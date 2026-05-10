@@ -12,9 +12,9 @@ export type MemberWithGroupRoles = Member & {
 export type AccountWithMember = UserAccount & { member: MemberWithGroupRoles | null }
 
 // Strip the password before passing into request context.
-export type SanitizedUser = Omit<AccountWithMember, 'password'>
+export type SanitizedAccount = Omit<AccountWithMember, 'password'>
 
-export function sanitizeUser<T extends UserAccount>(user: T): Omit<T, 'password'> {
+export function sanitizeAccount<T extends UserAccount>(user: T): Omit<T, 'password'> {
   const { password, ...sanitized } = user
   return sanitized
 }

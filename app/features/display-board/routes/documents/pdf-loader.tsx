@@ -3,7 +3,7 @@ import { getFileStream } from '~/features/display-board/server/document.server'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -19,7 +19,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.BoardViewer)
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   logger.info(`Loading document ID: ${params.documentId}. User ID: ${currentUser.id}.`, { currentUser })
 
   return withScopeFromContext(context, async db => {

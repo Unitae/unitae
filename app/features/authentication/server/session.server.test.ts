@@ -38,8 +38,8 @@ vi.mock('~/shared/domain/congregation.server', () => ({
   resolveCongregationFromRequest: vi.fn(),
 }))
 
-vi.mock('./sanitize-user.server', () => ({
-  sanitizeUser: vi.fn((user: Record<string, unknown>) => {
+vi.mock('./sanitize-account.server', () => ({
+  sanitizeAccount: vi.fn((user: Record<string, unknown>) => {
     const { password: _, ...rest } = user
     return rest
   }),

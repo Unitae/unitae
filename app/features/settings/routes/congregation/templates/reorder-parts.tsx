@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { isTemplateResponsible, reorderTemplateParts } from '~/features/events/server/programme-templates.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 
@@ -13,7 +13,7 @@ export function loader({ params }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   const { orderedIds } = (await request.json()) as { orderedIds: number[] }

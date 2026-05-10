@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -26,7 +26,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const preferences = await getUserPreferences(db, currentUser.id)
@@ -35,7 +35,7 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const submission = parseWithZod(await request.formData(), { schema: togglePreferenceSchema })
 
   if (submission.status !== 'success') {

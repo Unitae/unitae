@@ -6,7 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -29,7 +29,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const canManageProspection = permissions.has(Permission.ProspectionManager)
   const canManageTerritories = permissions.has(Permission.TerritoriesManager)
   const canViewProspection = permissions.has(Permission.ProspectionViewer)
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const staleDate = await getProspectionStaleDate(db)

@@ -3,7 +3,7 @@ import { Form, Link, redirect, useSearchParams } from 'react-router'
 import type { ImportSummary } from '~/features/settings/server/data-transfer.type'
 import { dataTransferQueue } from '~/features/settings/server/data-transfer-queue.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, currentAccountContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription, AlertTitle } from '~/shared/ui/alert'
 import { Badge } from '~/shared/ui/badge'
@@ -186,7 +186,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.Admin)
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const formData = await request.formData()
   const storageKey = formData.get('storageKey') as string
 

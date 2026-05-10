@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import { sanitizeAccount } from '~/shared/auth/sanitize-account.server'
 
-describe('sanitizeUser', () => {
+describe('sanitizeAccount', () => {
   it("supprime le mot de passe de l'objet utilisateur", () => {
     const user = {
       id: 1,
@@ -11,7 +11,7 @@ describe('sanitizeUser', () => {
       lastname: 'Dupont',
     }
 
-    const result = sanitizeUser(user as never)
+    const result = sanitizeAccount(user as never)
     expect(result).not.toHaveProperty('password')
     expect(result).toHaveProperty('id', 1)
     expect(result).toHaveProperty('email', 'test@example.com')
@@ -29,7 +29,7 @@ describe('sanitizeUser', () => {
       congregationId: 5,
     }
 
-    const result = sanitizeUser(user as never)
+    const result = sanitizeAccount(user as never)
     expect(result).toEqual({
       id: 42,
       email: 'a@b.com',

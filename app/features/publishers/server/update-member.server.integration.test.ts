@@ -13,7 +13,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
 }))
 
 const { seedBuiltInRoles } = await import('~/shared/domain/setup.server')
-const { updatePublisher } = await import('./update-publisher.server')
+const { updateMember } = await import('./update-member.server')
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -33,7 +33,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 
 const ts = Date.now()
 let congregationId: number
-// `publisherId` is a Member id — `updatePublisher` operates on Member.
+// `publisherId` is a Member id — `updateMember` operates on Member.
 let publisherId: number
 
 beforeAll(async () => {
@@ -87,10 +87,10 @@ const baseParams = {
   address: '',
 }
 
-describe('updatePublisher (integration) — built-in role wiring', () => {
+describe('updateMember (integration) — built-in role wiring', () => {
   it('adds the elder role assignment when isHelder flips to true', async () => {
     await withScope(congregationId, tx =>
-      updatePublisher(tx, publisherId, congregationId, publisherId, { ...baseParams, isHelder: true }),
+      updateMember(tx, publisherId, congregationId, publisherId, { ...baseParams, isHelder: true }),
     )
 
     const keys = (
@@ -103,7 +103,7 @@ describe('updatePublisher (integration) — built-in role wiring', () => {
 
   it('removes the elder role assignment when isHelder flips back to false', async () => {
     await withScope(congregationId, tx =>
-      updatePublisher(tx, publisherId, congregationId, publisherId, { ...baseParams, isHelder: false }),
+      updateMember(tx, publisherId, congregationId, publisherId, { ...baseParams, isHelder: false }),
     )
 
     const keys = (

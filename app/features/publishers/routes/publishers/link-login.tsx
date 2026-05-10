@@ -6,7 +6,7 @@ import { sendResetUserPasswordEmail } from '~/features/authentication/server/sen
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { linkAccountToMember } from '~/features/publishers/server/link-account-to-member.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -23,7 +23,7 @@ export function loader() {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   if (!permissions.has(Permission.PublisherManager)) {
     throw redirect('/')

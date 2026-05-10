@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { redirect } from 'react-router'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -23,7 +23,7 @@ export function loader({ context }: Route.LoaderArgs) {
   if (!permissions.has(Permission.ProgramViewer)) throw redirect('/programs')
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const templates = await getTemplates(db, congregationId)
     return { templates }
   })

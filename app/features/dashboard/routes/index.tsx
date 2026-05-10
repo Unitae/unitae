@@ -12,7 +12,7 @@ import {
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -38,7 +38,7 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const permissions = context.get(permissionsContext)
   const isAdmin = permissions.has(Permission.Admin)
   const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)

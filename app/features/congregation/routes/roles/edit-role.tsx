@@ -5,7 +5,7 @@ import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { editRoleSchema } from '~/features/congregation/schemas/role.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getRole, updateRoleIdentity } from '~/shared/domain/roles.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -41,7 +41,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
 
   const roleId = requireParamId(params.roleId, '/congregation/roles')
@@ -153,7 +153,7 @@ export default function EditRolePage({ loaderData, actionData }: Route.Component
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
 
   const roleId = requireParamId(params.roleId, '/congregation/roles')

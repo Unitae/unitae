@@ -8,7 +8,7 @@ import {
 } from '~/features/territories/server/my-territories.server'
 
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const territories = await getUserTerritoriesWithDetails(db, currentUser.id)

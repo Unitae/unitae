@@ -4,7 +4,7 @@ import { deleteBoardDocument, isDocumentOwnedByUploader } from '~/features/displ
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import { notify } from '~/features/notifications/server/notify.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 
@@ -61,7 +61,7 @@ export default function DeleteDocumentPage({ loaderData }: Route.ComponentProps)
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 

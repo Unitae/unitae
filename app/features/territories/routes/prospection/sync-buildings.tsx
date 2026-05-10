@@ -6,7 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -26,7 +26,7 @@ export function action({ request, context }: Route.ActionArgs) {
 
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const { congregationId } = currentUser
 
   return withScopeFromContext(context, async db => {

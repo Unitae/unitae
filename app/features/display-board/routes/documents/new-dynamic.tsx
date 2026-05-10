@@ -11,7 +11,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -32,7 +32,7 @@ export function loader({ context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const available = await listAvailableDynamicTypes(db, congregationId)
     const sections = await db.boardSection.findMany({
       where: { congregationId },
@@ -121,7 +121,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const dynamicRef = submission.value.dynamicRef === '' ? null : submission.value.dynamicRef
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const section = await db.boardSection.findFirst({
       where: { congregationId },
       orderBy: { order: 'asc' },

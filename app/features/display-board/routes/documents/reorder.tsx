@@ -3,7 +3,7 @@ import { reorderBoardItems } from '~/features/display-board/server/board-documen
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -27,7 +27,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     await reorderBoardItems(db, congregationId, orderedItems)
 
     return { ok: true }

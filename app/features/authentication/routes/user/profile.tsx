@@ -4,7 +4,7 @@ import { getCalendarFeedToken } from '~/features/authentication/server/calendar-
 import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { congregationContext, userContext } from '~/shared/auth/route-context.server'
+import { congregationContext, currentAccountContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const session = await getSession(request.headers.get('Cookie'))
   logger.info(`Loading profile data. User ID: ${currentUser.id}.`)
@@ -254,7 +254,7 @@ function CalendarFeedCard({ calendar }: { calendar: CalendarLoaderData }) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const password = formData.get('password')

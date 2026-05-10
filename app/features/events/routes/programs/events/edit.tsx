@@ -33,7 +33,7 @@ import { PartEditSheet } from '~/features/events/ui/PartEditSheet'
 import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
 import { SortableRow } from '~/features/events/ui/SortableRow'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Permission } from '~/shared/types/permission'
@@ -55,7 +55,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   const eventId = requireParamId(params.eventId, '/programs')
 
@@ -118,7 +118,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
   const eventId = requireParamId(params.eventId, '/programs')
   const formData = await request.formData()

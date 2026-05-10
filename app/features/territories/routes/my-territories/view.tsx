@@ -11,7 +11,7 @@ import {
 import { EntranceMarkerPin } from '~/features/territories/ui/EntranceMarkerPin'
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Badge } from '~/shared/ui/badge'
@@ -32,7 +32,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const territoryId = requireParamId(params.territoryId, '/me/territories')
 
   return withScopeFromContext(context, async db => {

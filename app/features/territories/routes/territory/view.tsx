@@ -24,7 +24,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -52,7 +52,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
   const canManageTerritories = permissions.has(Permission.TerritoriesManager)
   const canViewPublisher = permissions.has(Permission.PublisherViewer)
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
   const from = new URL(request.url).searchParams.get('from')
 
   return withScopeFromContext(context, async db => {

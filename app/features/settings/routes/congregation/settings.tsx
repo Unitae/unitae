@@ -8,7 +8,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -30,7 +30,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {
@@ -125,7 +125,7 @@ export default function CongregationSettingsPage({ loaderData, actionData }: Rou
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const congregation = context.get(congregationContext)
-  const { id: actorId } = context.get(userContext)
+  const { id: actorId } = context.get(currentAccountContext)
   const canManageSettings = permissions.has(Permission.Admin)
 
   if (!canManageSettings) {

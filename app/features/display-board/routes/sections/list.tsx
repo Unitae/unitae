@@ -5,7 +5,7 @@ import { FolderOpen, GripVertical, Lock, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect, useFetcher, useRevalidator } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
@@ -25,7 +25,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 
   if (!canManageBoard) {

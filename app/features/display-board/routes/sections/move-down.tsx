@@ -5,7 +5,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -24,7 +24,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const sectionId = requireParamId(params.sectionId, '/board')
     const result = await reorderSection(db, sectionId, congregationId, 'down')
 

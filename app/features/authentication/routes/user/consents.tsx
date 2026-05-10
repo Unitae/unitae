@@ -2,7 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import { consentSchema } from '~/features/authentication/schemas/login.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { type ConsentPurpose, getActiveConsents, withdrawConsent } from '~/shared/domain/consent.server'
 import { Button } from '~/shared/ui/button'
@@ -20,7 +20,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const consents = await getActiveConsents(db, currentUser.id)
@@ -29,7 +29,7 @@ export function loader({ context }: Route.LoaderArgs) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const submission = parseWithZod(await request.formData(), { schema: consentSchema })
 
   if (submission.status !== 'success') {

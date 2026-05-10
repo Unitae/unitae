@@ -17,7 +17,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
@@ -41,7 +41,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 
@@ -171,7 +171,7 @@ export default function NewDocumentPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const session = await getSession(request.headers.get('Cookie'))
   const canUploadDocument = permissions.has(Permission.BoardUploader)

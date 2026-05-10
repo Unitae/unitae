@@ -16,13 +16,13 @@ const mockDb = {
   userAccount: { findUnique: mockAccountFindUnique, update: mockAccountUpdate },
 }
 
-const { updatePublisher } = await import('./update-publisher.server')
+const { updateMember } = await import('./update-member.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('updatePublisher', () => {
+describe('updateMember', () => {
   const baseParams = {
     firstname: 'Jean',
     lastname: 'Dupont',
@@ -44,7 +44,7 @@ describe('updatePublisher', () => {
     mockMemberUpdate.mockResolvedValue(fakeUpdated as never)
     mockAccountFindUnique.mockResolvedValue(null)
 
-    const result = await updatePublisher(mockDb as never, 1, 10, 99, baseParams)
+    const result = await updateMember(mockDb as never, 1, 10, 99, baseParams)
 
     expect(result).toEqual(fakeUpdated)
     expect(mockMemberUpdate).toHaveBeenCalledWith({
@@ -72,7 +72,7 @@ describe('updatePublisher', () => {
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
     mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, gender: 'female' })
+    await updateMember(mockDb as never, 1, 10, 99, { ...baseParams, gender: 'female' })
 
     expect(mockMemberUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -85,7 +85,7 @@ describe('updatePublisher', () => {
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
     mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, birthDate: null, baptismDate: null })
+    await updateMember(mockDb as never, 1, 10, 99, { ...baseParams, birthDate: null, baptismDate: null })
 
     expect(mockMemberUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -98,7 +98,7 @@ describe('updatePublisher', () => {
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
     mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, groupId: Number.NaN })
+    await updateMember(mockDb as never, 1, 10, 99, { ...baseParams, groupId: Number.NaN })
 
     expect(mockMemberUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -111,7 +111,7 @@ describe('updatePublisher', () => {
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
     mockAccountFindUnique.mockResolvedValue({ id: 42 })
 
-    await updatePublisher(mockDb as never, 1, 10, 99, baseParams)
+    await updateMember(mockDb as never, 1, 10, 99, baseParams)
 
     expect(mockAccountUpdate).toHaveBeenCalledWith({
       where: { id: 42 },
@@ -122,7 +122,7 @@ describe('updatePublisher', () => {
   it('does not touch any account when email is null', async () => {
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
 
-    await updatePublisher(mockDb as never, 1, 10, 99, { ...baseParams, email: null })
+    await updateMember(mockDb as never, 1, 10, 99, { ...baseParams, email: null })
 
     expect(mockAccountFindUnique).not.toHaveBeenCalled()
     expect(mockAccountUpdate).not.toHaveBeenCalled()
@@ -132,7 +132,7 @@ describe('updatePublisher', () => {
     mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
     mockAccountFindUnique.mockResolvedValue(null)
 
-    await updatePublisher(mockDb as never, 1, 10, 99, baseParams)
+    await updateMember(mockDb as never, 1, 10, 99, baseParams)
 
     expect(mockSync).toHaveBeenCalledWith(mockDb, 1, 10, 99)
   })

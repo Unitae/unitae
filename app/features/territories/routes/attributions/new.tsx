@@ -11,7 +11,7 @@ import {
   congregationContext,
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -44,7 +44,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     throw redirect('/territories/attributions/new/available-territories')
   }
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
@@ -183,7 +183,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { territory: territoryId, publisher: publisherId, 'start-date': startDate, notes, type } = submission.value
   const congregation = context.get(congregationContext)
-  const { id: actorId } = context.get(userContext)
+  const { id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const attribution = await createAttribution(db, {

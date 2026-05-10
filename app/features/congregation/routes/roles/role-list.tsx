@@ -4,7 +4,7 @@ import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { type BuiltInFilterKey, toggleSchema } from '~/features/congregation/schemas/role.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { addUserToRole, removeUserFromRole } from '~/shared/domain/roles.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -59,7 +59,7 @@ function buildBuiltInWhere(filter: BuiltInFilterKey) {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewRoles = permissions.has(Permission.RolesViewer) || permissions.has(Permission.RolesManager)
   const canManageRoles = permissions.has(Permission.RolesManager)
 
@@ -128,7 +128,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.RolesManager)) throw redirect('/')
 
   const submission = parseWithZod(await request.formData(), { schema: toggleSchema })

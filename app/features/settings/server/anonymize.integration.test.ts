@@ -37,7 +37,26 @@ let primaryMemberId: number
 let otherUserId: number
 let adminPermissionId: number
 
-const { anonymizeUser } = await import('./anonymize-user.server')
+const { anonymizeAccount } = await import('./anonymize-account.server')
+const { anonymizeMember } = await import('./anonymize-member.server')
+
+// Mirror what `app/features/settings/routes/users/anonymize.tsx` does: scrub
+// the linked Member first (if any), then the UserAccount. Tests that exercise
+// the full flow call this helper instead of pulling in route-level concerns.
+async function anonymizeUser(tx: Tx, userId: number, requestedBy: string): Promise<void> {
+  const account = await tx.userAccount.findUnique({
+    where: { id: userId },
+    select: { id: true, congregationId: true, memberId: true },
+  })
+  if (!account) {
+    const { NotFoundError } = await import('~/shared/errors/app-error.server')
+    throw new NotFoundError('UserAccount')
+  }
+  if (account.memberId != null) {
+    await anonymizeMember(tx, account.memberId, account.congregationId, requestedBy)
+  }
+  await anonymizeAccount(tx, account.id, account.congregationId, requestedBy)
+}
 
 beforeAll(async () => {
   const adminPermission = await testDb.permission.findFirst({ where: { key: 'admin' } })

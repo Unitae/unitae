@@ -6,7 +6,7 @@ import { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { PublisherType } from '~/shared/types/publisher-type'
 
-export interface CreatePublisherParams {
+export interface CreateMemberParams {
   firstname: string
   lastname: string
   email: string | null
@@ -30,10 +30,10 @@ export interface CreatePublisherParams {
  * to email the link). When `email` is null/empty, the Member exists without
  * a login (offline publisher).
  */
-export async function createPublisher(
+export async function createMember(
   db: TransactionClient,
   congregation: CongregationInfo,
-  params: CreatePublisherParams,
+  params: CreateMemberParams,
 ) {
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('members')

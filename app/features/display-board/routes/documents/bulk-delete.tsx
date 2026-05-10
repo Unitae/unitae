@@ -3,7 +3,7 @@ import { bulkDeleteBoardItems } from '~/features/display-board/server/board-docu
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -31,7 +31,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const dynIds = items.filter(i => i.kind === 'dyn').map(i => i.id)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const { pdfDeleted, dynDeleted } = await bulkDeleteBoardItems(db, congregationId, pdfIds, dynIds)
 
     logger.info(`Bulk deleted ${pdfDeleted} PDF documents and ${dynDeleted} dynamic documents.`)

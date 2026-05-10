@@ -1,12 +1,12 @@
 import { getBoardFileBuffer } from '~/features/display-board/server/document-storage.server'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/thumbnail'
 
 export function loader({ params, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const document = await db.boardDocument.findUnique({
       where: {
         id_congregationId: { id: requireParamId(params.documentId, '/board'), congregationId },

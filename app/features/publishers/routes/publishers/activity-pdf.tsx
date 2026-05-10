@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'
@@ -19,7 +19,7 @@ function computeServiceYearStart(): number {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   if (!permissions.has(Permission.ActivityManager)) {
     logger.warn(

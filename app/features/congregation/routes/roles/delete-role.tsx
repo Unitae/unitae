@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { deleteRole } from '~/shared/domain/roles.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -15,7 +15,7 @@ export function loader() {
 
 export async function action({ params, request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.RolesManager)) throw redirect('/congregation/roles')
 
   const roleId = requireParamId(params.roleId, '/congregation/roles')

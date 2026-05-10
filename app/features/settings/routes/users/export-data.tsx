@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { exportUserData } from '~/features/settings/server/export-user-data.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -10,7 +10,7 @@ import type { Route } from './+types/export-data'
 // Route loader-only : renvoie un fichier JSON avec les donnees personnelles de l'utilisateur
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregationId = currentUser.congregationId
   const userId = requireParamId(params.userId, '/settings/users')
 
