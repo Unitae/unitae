@@ -5,7 +5,6 @@ import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
-import { PublisherType } from '~/shared/types/publisher-type'
 import { EntityIdMap, type ManifestJson } from './data-transfer.type'
 
 // --- Test DB setup (same pattern as db.server.integration.test.ts) ---
@@ -68,7 +67,7 @@ beforeAll(async () => {
         congregationId: sourceId,
       },
     })
-    const bob = await tx.userAccount.create({
+    await tx.userAccount.create({
       data: {
         email: `bob-${ts}@test.com`,
         password: 'hashed-password',
@@ -192,8 +191,8 @@ beforeAll(async () => {
       data: {
         eventId: event.id,
         partId: part.id,
-        assigneeId: alice.id,
-        assistantId: bob.id,
+        assigneeId: aliceMember.id,
+        assistantId: bobMember.id,
         name: 'Opening',
         section: 'intro',
         order: 1,
@@ -206,7 +205,7 @@ beforeAll(async () => {
       data: {
         eventId: event.id,
         serviceRoleId: serviceRole.id,
-        assigneeId: bob.id,
+        assigneeId: bobMember.id,
         name: 'Sound',
         congregationId: sourceId,
       },
@@ -512,7 +511,8 @@ describe('Export/Import round-trip', () => {
     expect(manifest.version).toBe('1.1')
     expect(manifest.sourceApp).toBe('unitae')
 
-    expect(entityCounts.users).toBe(2)
+    expect(entityCounts.members).toBe(2)
+    expect(entityCounts['user-accounts']).toBe(2)
     expect(entityCounts.territories).toBe(1)
     expect(entityCounts.buildings).toBe(1)
     expect(entityCounts['building-entrances']).toBe(1)
@@ -528,7 +528,7 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['congregation-user-permissions']).toBe(1)
 
     // v1.1 entities
-    expect(entityCounts.roles).toBe(8) // 7 built-ins + 1 custom
+    expect(entityCounts.roles).toBe(11) // 10 built-ins + 1 custom
     expect(entityCounts['role-permissions']).toBe(1)
     expect(entityCounts['user-role-assignments']).toBe(1)
     expect(entityCounts['external-speakers']).toBe(1)
@@ -541,9 +541,9 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['board-section-visibility-roles']).toBe(1)
   })
 
-  it('exported users do not contain passwords or sensitive fields', async () => {
+  it('exported user accounts do not contain passwords or sensitive fields', async () => {
     const { zip } = await exportToZip(sourceId)
-    const content = await zip.file('data/users.ndjson')!.async('string')
+    const content = await zip.file('data/user-accounts.ndjson')!.async('string')
     const users = content
       .split('\n')
       .filter(l => l.trim())
@@ -551,7 +551,6 @@ describe('Export/Import round-trip', () => {
 
     for (const user of users) {
       expect(user).not.toHaveProperty('password')
-      expect(user).not.toHaveProperty('platformAdmin')
       expect(user).not.toHaveProperty('congregationId')
     }
   })
@@ -686,7 +685,7 @@ describe('Export/Import round-trip', () => {
       // Attributions — FK references point to new IDs
       const attributions = await tx.attribution.findMany({})
       expect(attributions).toHaveLength(1)
-      expect(attributions[0].publisherId).toBe(alice.id)
+      expect(attributions[0].publisherId).toBe(aliceMember.id)
       expect(attributions[0].territoryId).toBe(territories[0].id)
       expect(attributions[0].notes).toBe('Test attribution')
 
@@ -694,7 +693,7 @@ describe('Export/Import round-trip', () => {
       const activities = await tx.publisherActivity.findMany({})
       expect(activities).toHaveLength(1)
       expect(activities[0].hours).toBe(10)
-      expect(activities[0].publisherId).toBe(alice.id)
+      expect(activities[0].publisherId).toBe(aliceMember.id)
 
       // Event kinds
       const eventKinds = await tx.eventKind.findMany({})
@@ -722,14 +721,14 @@ describe('Export/Import round-trip', () => {
       expect(events[0].createdById).toBe(alice.id)
       const partAssignments = await tx.programmePartAssignment.findMany({})
       expect(partAssignments).toHaveLength(1)
-      expect(partAssignments[0].assigneeId).toBe(alice.id)
-      expect(partAssignments[0].assistantId).toBe(bob.id)
+      expect(partAssignments[0].assigneeId).toBe(aliceMember.id)
+      expect(partAssignments[0].assistantId).toBe(bobMember.id)
       expect(partAssignments[0].topic).toBe('Welcome')
       expect(partAssignments[0].trackOrder).toBe(2)
       expect(partAssignments[0].allowExternalSpeaker).toBe(true)
       const srAssignments = await tx.programmeServiceRoleAssignment.findMany({})
       expect(srAssignments).toHaveLength(1)
-      expect(srAssignments[0].assigneeId).toBe(bob.id)
+      expect(srAssignments[0].assigneeId).toBe(bobMember.id)
 
       // Board
       const sections = await tx.boardSection.findMany({})
@@ -743,9 +742,9 @@ describe('Export/Import round-trip', () => {
       expect(consents).toHaveLength(1)
       expect(consents[0].userId).toBe(alice.id)
 
-      // v1.1: Roles — 7 built-ins (pre-seeded) + 1 custom.
+      // 10 built-ins (pre-seeded) + 1 custom.
       const roles = await tx.role.findMany({})
-      expect(roles).toHaveLength(8)
+      expect(roles).toHaveLength(11)
       const customRoleOnTarget = roles.find(r => r.key.startsWith('custom-'))
       expect(customRoleOnTarget).toBeDefined()
       expect(customRoleOnTarget?.name).toBe('Custom QA Reviewer')

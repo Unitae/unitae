@@ -59,6 +59,7 @@ beforeAll(async () => {
         lastname: 'Martin',
         baptismDate: new Date('2010-01-01'),
         isPublisher: true,
+        type: PublisherType.PionnierPermanant,
         congregationId,
       },
     })
@@ -211,12 +212,12 @@ describe('markDynamicDocumentViewed (integration)', () => {
     expect(settings).not.toBeNull()
     const settingsId = settings?.id ?? 0
 
-    // First view
-    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceId))
+    // First view — userId on BoardDynamicDocumentView points at UserAccount.
+    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceAccountIdInner))
 
     const view = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
-        where: { settingsId, userId: aliceId },
+        where: { settingsId, userId: aliceAccountIdInner },
       }),
     )
     expect(view).not.toBeNull()
@@ -224,11 +225,11 @@ describe('markDynamicDocumentViewed (integration)', () => {
 
     // Second view (upsert should update timestamp)
     await new Promise(r => setTimeout(r, 50))
-    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceId))
+    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceAccountIdInner))
 
     const updatedView = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
-        where: { settingsId, userId: aliceId },
+        where: { settingsId, userId: aliceAccountIdInner },
       }),
     )
     expect(updatedView).not.toBeNull()

@@ -33,6 +33,7 @@ let elderRoleId: number
 let publisherRoleId: number
 let foreignElderRoleId: number
 let elderUserId: number
+let elderAccountId: number
 let plainPublisherUserId: number
 let nonPublisherUserId: number
 let templateId: number
@@ -68,7 +69,8 @@ beforeAll(async () => {
     })
     publisherRoleId = publisher.id
 
-    // Members + accounts
+    // Members + accounts. The elder needs an account so tests that create
+    // Events (`Event.createdById` -> UserAccount) can use it as the actor.
     const elderMember = await tx.member.create({
       data: {
         firstname: 'Elder',
@@ -78,6 +80,16 @@ beforeAll(async () => {
       },
     })
     elderUserId = elderMember.id
+    const elderAccount = await tx.userAccount.create({
+      data: {
+        email: `elder-${ts}@test.com`,
+        password: 'h',
+        active: true,
+        memberId: elderMember.id,
+        congregationId: primaryCongId,
+      },
+    })
+    elderAccountId = elderAccount.id
 
     const plainMember = await tx.member.create({
       data: {
@@ -242,7 +254,7 @@ describe('upsertTemplatePart + RLS (integration)', () => {
           allowedReaderRoleIds: [publisherRoleId],
         },
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 
@@ -272,7 +284,7 @@ describe('upsertTemplateServiceRole + RLS (integration)', () => {
         templateId,
         { id: serviceRoleId, name: 'Son', key: `son-${ts}`, allowedRoleIds: [elderRoleId] },
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 
@@ -288,7 +300,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
     // Pre-condition: speakerPart has [elderRoleId speaker, publisherRoleId reader] from previous test
     // serviceRole has [elderRoleId] from previous test
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderUserId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderAccountId, primaryCongId),
     )
     expect(event).not.toBeNull()
     if (!event) return
@@ -321,11 +333,11 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
           name: 'Freeform',
           startDate: new Date('2099-02-15T18:00:00Z'),
           endDate: new Date('2099-02-15T20:00:00Z'),
-          createdById: elderUserId,
+          createdById: elderAccountId,
           congregationId: primaryCongId,
         },
       })
-      await applyTemplateToEvent(tx, ev.id, templateId, primaryCongId, elderUserId)
+      await applyTemplateToEvent(tx, ev.id, templateId, primaryCongId, elderAccountId)
       return ev
     })
 
@@ -342,7 +354,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
 describe('updatePartAssignment + updateServiceRoleAssignment update allowed roles (integration)', () => {
   it('replaces existing allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderUserId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderAccountId, primaryCongId),
     )
     if (!event) throw new Error('event not created')
 
@@ -366,7 +378,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
           allowedReaderRoleIds: [], // was [publisherRoleId]
         },
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 
@@ -383,7 +395,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
 
   it('replaces service-role allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderUserId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderAccountId, primaryCongId),
     )
     if (!event) throw new Error('event not created')
 
@@ -398,7 +410,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
         serviceAssignment.id,
         { name: 'Son', allowedRoleIds: [] }, // clear allowed roles
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 

@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getPersonalAssignments } from './personal-assignments.server'
 
-function makeDb(rows: { parts?: unknown[]; serviceRoles?: unknown[]; daysOff?: unknown[] }) {
+function makeDb(rows: { parts?: unknown[]; serviceRoles?: unknown[]; daysOff?: unknown[]; memberId?: number }) {
+  // Mirror the new id-resolution: getPersonalAssignments looks up the linked
+  // member id from the UserAccount before issuing member-bound queries.
   return {
+    userAccount: { findUnique: vi.fn().mockResolvedValue({ memberId: rows.memberId ?? 42 }) },
     programmePartAssignment: { findMany: vi.fn().mockResolvedValue(rows.parts ?? []) },
     programmeServiceRoleAssignment: { findMany: vi.fn().mockResolvedValue(rows.serviceRoles ?? []) },
     event: { findMany: vi.fn().mockResolvedValue(rows.daysOff ?? []) },
