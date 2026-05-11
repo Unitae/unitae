@@ -65,6 +65,20 @@ beforeAll(async () => {
     await tx.congregationUserPermission.create({
       data: { userId: user.id, permissionId: adminPermissionId, congregationId: primaryCongId },
     })
+
+    // Spare admin so requireNotLastAdmin doesn't block these tests when they
+    // demote the primary user away from Admin. Never touched.
+    const sentinelAdmin = await tx.userAccount.create({
+      data: {
+        email: `update-user-primary-sentinel-${ts}@test.com`,
+        password: 'hashed',
+        active: true,
+        congregationId: primaryCongId,
+      },
+    })
+    await tx.congregationUserPermission.create({
+      data: { userId: sentinelAdmin.id, permissionId: adminPermissionId, congregationId: primaryCongId },
+    })
   })
 
   await withScope(otherCongId, async tx => {
