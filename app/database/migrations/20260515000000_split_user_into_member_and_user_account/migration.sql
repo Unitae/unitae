@@ -101,12 +101,88 @@ CREATE POLICY tenant_isolation ON "MemberRoleAssignment" FOR ALL
   );
 
 -- =========================================================================
+-- 2.5. Normalize User data anomalies before backfilling Member
+-- =========================================================================
+--
+-- Production data may contain rows that violate the new Member CHECK
+-- constraints (e.g. a "pionnier-permanant" with no recorded baptismDate,
+-- or an isHelder=true row with no baptismDate). The old User schema didn't
+-- enforce these invariants; the split is where we discover the anomalies.
+--
+-- Strategy: never silently strip rights-bearing flags. isHelder, isServant,
+-- the pioneer types, and isAnointed all gate features in the app (built-in
+-- role assignments, group leadership eligibility, activity report shape,
+-- display state). Demoting them would silently revoke user permissions.
+-- Instead, we *patch the missing precondition* with a sentinel:
+--   - missing baptismDate → 1970-01-01 (epoch — easy to query for cleanup)
+--   - explicit isMale=false on an elder/servant → isMale=NULL (CHECK accepts
+--     NULL via three-valued logic; this drops the false-male claim without
+--     asserting a different gender)
+--
+-- One exception: the servant-xor-elder rule has no precondition to patch.
+-- If both flags are true (data error — promotion to elder without clearing
+-- servant), we demote isServant. The user keeps the stronger isHelder role
+-- and its rights, so no permission is lost on net.
+--
+-- NOTICEs report counts per rule so operators can spot-check the sentinel
+-- rows after the migration and fix them properly.
+
+DO $$
+DECLARE
+  v_count INTEGER;
+BEGIN
+  -- member_pioneer_requires_baptism / member_anointed_requires_baptism /
+  -- member_elder_requires_baptized_male / member_servant_requires_baptized_male:
+  -- every constraint that requires baptismDate gets the same sentinel patch.
+  UPDATE "User"
+     SET "baptismDate" = '1970-01-01 00:00:00'
+   WHERE "baptismDate" IS NULL
+     AND (
+       "type" != 'normal'
+       OR "isAnointed" = true
+       OR "isHelder" = true
+       OR "isServant" = true
+     );
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  IF v_count > 0 THEN
+    RAISE NOTICE 'User normalization: % row(s) had a rights-bearing flag (pioneer type / isAnointed / isHelder / isServant) but no baptismDate — baptismDate set to 1970-01-01 sentinel for later cleanup', v_count;
+  END IF;
+
+  -- member_elder_requires_baptized_male / member_servant_requires_baptized_male:
+  -- if isHelder or isServant is true and isMale is explicitly false, drop the
+  -- gender claim (CHECK accepts NULL). Preserves the elder/servant rights.
+  UPDATE "User"
+     SET "isMale" = NULL
+   WHERE "isMale" = false
+     AND ("isHelder" = true OR "isServant" = true);
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  IF v_count > 0 THEN
+    RAISE NOTICE 'User normalization: % row(s) had isHelder/isServant=true with isMale=false — isMale set to NULL (preserves the rights-bearing flag)', v_count;
+  END IF;
+
+  -- member_servant_xor_elder: if both true (impossible per domain — likely a
+  -- promotion that did not clear the old flag), drop isServant. The stronger
+  -- isHelder remains, so no rights are lost on net.
+  UPDATE "User"
+     SET "isServant" = false
+   WHERE "isHelder" = true AND "isServant" = true;
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  IF v_count > 0 THEN
+    RAISE NOTICE 'User normalization: % row(s) had both isHelder and isServant true (isServant → false, isHelder preserved)', v_count;
+  END IF;
+END $$;
+
+-- =========================================================================
 -- 3. Backfill Member from User, preserving id values
 -- =========================================================================
 --
 -- Heuristic: a User row that ever had publisher signals is treated as a Member.
 -- Today's "leaver" pattern (isPublisher = false but had publisher data) sets
 -- leftAt = User.updatedAt — the system time approximates when they left.
+-- For these leavers we also force isPublisher = true so the post-split data
+-- shape matches what setMemberLeft produces (leftAt marks former membership;
+-- isPublisher / baptismDate / isHelder / isServant are historical state that
+-- the domain CHECK constraints require to be internally consistent).
 -- Operator must spot-check this against real data before running prod.
 
 INSERT INTO "Member" (
@@ -124,7 +200,14 @@ SELECT
   u."birthDate",
   COALESCE(u."phone", ''),
   COALESCE(u."address", ''),
-  u."isPublisher",
+  CASE
+    WHEN u."isPublisher" = false AND (
+      u."baptismDate" IS NOT NULL
+      OR u."isHelder" OR u."isServant" OR u."isAnointed"
+      OR EXISTS (SELECT 1 FROM "PublisherActivity" pa WHERE pa."publisherId" = u."id")
+    ) THEN true
+    ELSE u."isPublisher"
+  END,
   u."type",
   u."baptismDate",
   u."isAnointed",

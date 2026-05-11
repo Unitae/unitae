@@ -41,7 +41,7 @@ export function loader({ context }: Route.LoaderArgs) {
       include: {
         responsible: true,
         deputy: true,
-        _count: { select: { members: { where: { isPublisher: true } } } },
+        _count: { select: { members: { where: { isPublisher: true, leftAt: null } } } },
       },
       orderBy: [{ name: 'asc' }],
     })
