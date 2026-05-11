@@ -1,10 +1,10 @@
 import { Queue } from 'bullmq'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
-import { redis } from '~/shared/infra/redis.server'
+import { getBullMQConnection } from '~/shared/infra/redis.server'
 import type { ExportOptions } from './data-transfer.type'
 
 export const dataTransferQueue = new Queue(QUEUE_NAMES.dataTransfer, {
-  connection: redis,
+  connection: getBullMQConnection(),
   defaultJobOptions: {
     attempts: 1,
     removeOnComplete: 10,
