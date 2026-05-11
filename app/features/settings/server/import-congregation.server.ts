@@ -42,20 +42,23 @@ export async function validateImport(storageKey: string, congregationId: number)
     return {
       entityCounts: manifest.entityCounts,
       conflicts: [],
-      warnings: [`Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`],
+      warnings: [
+        `Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`,
+      ],
     }
   }
 
   const conflicts: ImportConflict[] = []
-  const warnings: string[] = [
-    'Passwords are not imported. Users will need to reset their password after import.',
-  ]
+  const warnings: string[] = ['Passwords are not imported. Users will need to reset their password after import.']
 
   if (manifest.version === '1.0') {
     warnings.push(
       'Archive predates v1.1 — custom roles, external speakers, territory card overlays, perimeter, and role-based gating will not be imported.',
     )
-    if (zip.file('data/congregation-user-permissions.ndjson') == null && zip.file('data/congregation-user-roles.ndjson') != null) {
+    if (
+      zip.file('data/congregation-user-permissions.ndjson') == null &&
+      zip.file('data/congregation-user-roles.ndjson') != null
+    ) {
       warnings.push(
         'Archive predates the UserRole → Permission rename; permission assignments will be migrated automatically.',
       )
@@ -170,174 +173,183 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
   const allPermissions = await unscopedDb.permission.findMany({ select: { id: true, key: true } })
   const permissionKeyToId = new Map(allPermissions.map(p => [p.key, p.id]))
 
-  await withScope(congregationId, async db => {
-    const totalSteps = 38
-    let step = 0
+  // Imports write thousands of rows in one atomic transaction — well past Prisma's
+  // 5s default. Bump to 10 minutes; also raise maxWait so we don't fail to acquire
+  // a pool connection on a busy instance.
+  const importTransactionOptions = { timeout: 10 * 60 * 1000, maxWait: 30 * 1000 }
 
-    const progress = async () => {
-      step++
-      await job.updateProgress(Math.round((step / totalSteps) * 95))
-    }
+  await withScope(
+    congregationId,
+    async db => {
+      const totalSteps = 38
+      let step = 0
 
-    // 1. Settings (upsert by key)
-    await importSettings(zip, db, congregationId)
-    await progress()
+      const progress = async () => {
+        step++
+        await job.updateProgress(Math.round((step / totalSteps) * 95))
+      }
 
-    // 2. Event kinds (upsert by key)
-    await importEventKinds(zip, db, idMap, congregationId)
-    await progress()
+      // 1. Settings (upsert by key)
+      await importSettings(zip, db, congregationId)
+      await progress()
 
-    // 3. Roles (upsert by key — built-ins map to pre-seeded target rows; custom roles insert)
-    await importRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 2. Event kinds (upsert by key)
+      await importEventKinds(zip, db, idMap, congregationId)
+      await progress()
 
-    // 4. Role permissions (depends on roles)
-    await importRolePermissions(zip, db, idMap, permissionKeyToId, congregationId)
-    await progress()
+      // 3. Roles (upsert by key — built-ins map to pre-seeded target rows; custom roles insert)
+      await importRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 5. Users (upsert by email within same congregation, skip if in different congregation)
-    await importUsers(zip, db, idMap, congregationId)
-    await progress()
+      // 4. Role permissions (depends on roles)
+      await importRolePermissions(zip, db, idMap, permissionKeyToId, congregationId)
+      await progress()
 
-    // 6. User role assignments (depends on users + roles; overlaps with syncBuiltInRoleAssignments
-    //    seeded during importUsers — composite PK absorbs duplicates).
-    await importUserRoleAssignments(zip, db, idMap, congregationId)
-    await progress()
+      // 5. Users (upsert by email within same congregation, skip if in different congregation)
+      await importUsers(zip, db, idMap, congregationId)
+      await progress()
 
-    // 7. Congregation user permissions (legacy filename fallback for pre-#152 archives)
-    await importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
-    await progress()
+      // 6. User role assignments (depends on users + roles; overlaps with syncBuiltInRoleAssignments
+      //    seeded during importUsers — composite PK absorbs duplicates).
+      await importUserRoleAssignments(zip, db, idMap, congregationId)
+      await progress()
 
-    // 8. Publisher groups (depends on users)
-    await importPublisherGroups(zip, db, idMap, congregationId)
-    await progress()
+      // 7. Congregation user permissions (legacy filename fallback for pre-#152 archives)
+      await importCongregationUserPermissions(zip, db, idMap, permissionKeyToId, congregationId)
+      await progress()
 
-    // 9. Update user publisherGroupId (depends on groups)
-    await updateUserPublisherGroups(zip, db, idMap)
-    await progress()
+      // 8. Publisher groups (depends on users)
+      await importPublisherGroups(zip, db, idMap, congregationId)
+      await progress()
 
-    // 10. Publisher activities (depends on users)
-    await importPublisherActivities(zip, db, idMap, congregationId)
-    await progress()
+      // 9. Update user publisherGroupId (depends on groups)
+      await updateUserPublisherGroups(zip, db, idMap)
+      await progress()
 
-    // 11. External speakers (must run before programme part assignments)
-    await importExternalSpeakers(zip, db, idMap, congregationId)
-    await progress()
+      // 10. Publisher activities (depends on users)
+      await importPublisherActivities(zip, db, idMap, congregationId)
+      await progress()
 
-    // 12. Territories (upsert by number)
-    await importTerritories(zip, db, idMap, congregationId)
-    await progress()
+      // 11. External speakers (must run before programme part assignments)
+      await importExternalSpeakers(zip, db, idMap, congregationId)
+      await progress()
 
-    // 13. Territory card overlays
-    await importTerritoryCardOverlays(zip, db, idMap, congregationId)
-    await progress()
+      // 12. Territories (upsert by number)
+      await importTerritories(zip, db, idMap, congregationId)
+      await progress()
 
-    // 14. Territory perimeter (upsert by congregationId — single row)
-    await importTerritoryPerimeter(zip, db, congregationId)
-    await progress()
+      // 13. Territory card overlays
+      await importTerritoryCardOverlays(zip, db, idMap, congregationId)
+      await progress()
 
-    // 15. Buildings (upsert by number+street+zip)
-    await importBuildings(zip, db, idMap, congregationId)
-    await progress()
+      // 14. Territory perimeter (upsert by congregationId — single row)
+      await importTerritoryPerimeter(zip, db, congregationId)
+      await progress()
 
-    // 16. Building entrances
-    await importBuildingEntrances(zip, db, idMap, congregationId)
-    await progress()
+      // 15. Buildings (upsert by number+street+zip)
+      await importBuildings(zip, db, idMap, congregationId)
+      await progress()
 
-    // 17. Building accesses (depends on entrances)
-    await importBuildingAccesses(zip, db, idMap, congregationId)
-    await progress()
+      // 16. Building entrances
+      await importBuildingEntrances(zip, db, idMap, congregationId)
+      await progress()
 
-    // 18. Building residential data (depends on buildings + entrances)
-    await importBuildingResidentialData(zip, db, idMap, congregationId)
-    await progress()
+      // 17. Building accesses (depends on entrances)
+      await importBuildingAccesses(zip, db, idMap, congregationId)
+      await progress()
 
-    // 19. Territory-entrance links
-    await importTerritoryEntranceLinks(zip, db, idMap)
-    await progress()
+      // 18. Building residential data (depends on buildings + entrances)
+      await importBuildingResidentialData(zip, db, idMap, congregationId)
+      await progress()
 
-    // 20. Building-entrance links
-    await importBuildingEntranceLinks(zip, db, idMap)
-    await progress()
+      // 19. Territory-entrance links
+      await importTerritoryEntranceLinks(zip, db, idMap)
+      await progress()
 
-    // 21. Attributions (depends on users + territories)
-    await importAttributions(zip, db, idMap, congregationId)
-    await progress()
+      // 20. Building-entrance links
+      await importBuildingEntranceLinks(zip, db, idMap)
+      await progress()
 
-    // 22. Programme templates (upsert by key)
-    await importProgrammeTemplates(zip, db, idMap, congregationId)
-    await progress()
+      // 21. Attributions (depends on users + territories)
+      await importAttributions(zip, db, idMap, congregationId)
+      await progress()
 
-    // 23. Programme template parts
-    await importProgrammeTemplateParts(zip, db, idMap, congregationId)
-    await progress()
+      // 22. Programme templates (upsert by key)
+      await importProgrammeTemplates(zip, db, idMap, congregationId)
+      await progress()
 
-    // 24. Programme template part allowed roles
-    await importProgrammeTemplatePartAllowedRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 23. Programme template parts
+      await importProgrammeTemplateParts(zip, db, idMap, congregationId)
+      await progress()
 
-    // 25. Programme template service roles
-    await importProgrammeTemplateServiceRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 24. Programme template part allowed roles
+      await importProgrammeTemplatePartAllowedRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 26. Programme template service role allowed roles
-    await importProgrammeTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 25. Programme template service roles
+      await importProgrammeTemplateServiceRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 27. Programme template responsibles
-    await importProgrammeTemplateResponsibles(zip, db, idMap, congregationId)
-    await progress()
+      // 26. Programme template service role allowed roles
+      await importProgrammeTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 28. Events (depends on event kinds + templates + users)
-    await importEvents(zip, db, idMap, congregationId)
-    await progress()
+      // 27. Programme template responsibles
+      await importProgrammeTemplateResponsibles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 29. Programme part assignments
-    await importProgrammePartAssignments(zip, db, idMap, congregationId)
-    await progress()
+      // 28. Events (depends on event kinds + templates + users)
+      await importEvents(zip, db, idMap, congregationId)
+      await progress()
 
-    // 30. Programme part assignment allowed roles
-    await importProgrammePartAssignmentAllowedRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 29. Programme part assignments
+      await importProgrammePartAssignments(zip, db, idMap, congregationId)
+      await progress()
 
-    // 31. Programme service role assignments
-    await importProgrammeServiceRoleAssignments(zip, db, idMap, congregationId)
-    await progress()
+      // 30. Programme part assignment allowed roles
+      await importProgrammePartAssignmentAllowedRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 32. Programme service role assignment allowed roles
-    await importProgrammeServiceRoleAssignmentAllowedRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 31. Programme service role assignments
+      await importProgrammeServiceRoleAssignments(zip, db, idMap, congregationId)
+      await progress()
 
-    // 33. Board sections
-    await importBoardSections(zip, db, idMap, congregationId)
-    await progress()
+      // 32. Programme service role assignment allowed roles
+      await importProgrammeServiceRoleAssignmentAllowedRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 34. Board section visibility roles
-    await importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
-    await progress()
+      // 33. Board sections
+      await importBoardSections(zip, db, idMap, congregationId)
+      await progress()
 
-    // 35. Board documents (+ files)
-    await importBoardDocuments(zip, db, idMap, congregationId)
-    await progress()
+      // 34. Board section visibility roles
+      await importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
+      await progress()
 
-    // 36. Board document versions (+ files)
-    await importBoardDocumentVersions(zip, db, idMap, congregationId)
-    await progress()
+      // 35. Board documents (+ files)
+      await importBoardDocuments(zip, db, idMap, congregationId)
+      await progress()
 
-    // 37. Board dynamic document settings
-    await importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
-    await progress()
+      // 36. Board document versions (+ files)
+      await importBoardDocumentVersions(zip, db, idMap, congregationId)
+      await progress()
 
-    // 38. Consent records
-    await importConsentRecords(zip, db, idMap, congregationId)
-    await progress()
+      // 37. Board dynamic document settings
+      await importBoardDynamicDocumentSettings(zip, db, idMap, congregationId)
+      await progress()
 
-    // Optional: audit logs
-    await importAuditLogs(zip, db, idMap, congregationId)
+      // 38. Consent records
+      await importConsentRecords(zip, db, idMap, congregationId)
+      await progress()
 
-    // Optional: data deletion records
-    await importDataDeletionRecords(zip, db, congregationId)
-  })
+      // Optional: audit logs
+      await importAuditLogs(zip, db, idMap, congregationId)
+
+      // Optional: data deletion records
+      await importDataDeletionRecords(zip, db, congregationId)
+    },
+    importTransactionOptions,
+  )
 
   await job.updateProgress(100)
 
