@@ -54,6 +54,7 @@ export interface AppSidebarPermissions {
   canManageSettings: boolean
   canManageUsers: boolean
   canViewPrograms: boolean
+  canViewAbsences: boolean
   canViewActivity: boolean
   canViewExternalSpeakers: boolean
   canManageExternalSpeakers: boolean
@@ -74,6 +75,7 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
   const showAssemblee =
     permissions.canViewPublishers ||
     permissions.canViewPrograms ||
+    permissions.canViewAbsences ||
     permissions.canViewExternalSpeakers ||
     permissions.canViewRoles
   const showTerritories =
@@ -162,6 +164,9 @@ export function AppSidebar({ permissions, congregationName, onSearchClick }: App
                     )}
                     {permissions.canViewPrograms && (
                       <SidebarNavItem to="/programs" icon={CalendarDays} label={m.sidebar_programs()} end />
+                    )}
+                    {!permissions.canViewPrograms && permissions.canViewAbsences && (
+                      <SidebarNavItem to="/programs/days-off" icon={CalendarOff} label={m.sidebar_absences()} />
                     )}
                   </SidebarMenu>
                 </SidebarGroupContent>

@@ -32,14 +32,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const canViewPrograms = permissions.has(Permission.ProgramViewer)
+  const canViewAbsences = permissions.has(Permission.AbsenceViewer)
 
-  if (!canViewPrograms) {
-    logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)
+  if (!canViewPrograms && !canViewAbsences) {
+    logger.warn(`Try to load absences. User ID: ${currentUser.id}. Does NOT have rights to access absences.`)
 
     throw redirect('/')
   }
 
-  logger.info(`Loading program list. User ID: ${currentUser.id}.`)
+  logger.info(`Loading absences list. User ID: ${currentUser.id}.`)
 
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
@@ -142,12 +143,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
       totalConflicts,
       hasAnyDaysOff,
       defaults: { from: defaultFrom, to: defaultTo },
+      canViewPrograms,
     }
   })
 }
 
 export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
-  const { events = [], publishers, conflictsByDayOff, totalConflicts, hasAnyDaysOff, defaults } = loaderData
+  const {
+    events = [],
+    publishers,
+    conflictsByDayOff,
+    totalConflicts,
+    hasAnyDaysOff,
+    defaults,
+    canViewPrograms,
+  } = loaderData
   const weekGroups = groupEventsByWeek(events)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
@@ -160,8 +170,12 @@ export default function DaysOffListPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={m.days_off_admin_page_title()}
         subtitle={m.days_off_admin_page_subtitle()}
-        backTo="/programs"
-        breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.sidebar_absences() }]}
+        backTo={canViewPrograms ? '/programs' : undefined}
+        breadcrumbs={
+          canViewPrograms
+            ? [{ label: m.sidebar_programs(), to: '/programs' }, { label: m.sidebar_absences() }]
+            : [{ label: m.sidebar_absences() }]
+        }
       />
 
       <EventFilters defaults={defaults} publishers={publishers} />

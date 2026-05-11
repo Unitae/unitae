@@ -2052,6 +2052,7 @@
     "permission_desc_activity_viewer": "Can view publisher activity",
     "permission_desc_program_viewer": "Can view congregation programs",
     "permission_desc_program_manager": "Can manage congregation programs (edit)",
+    "permission_desc_absence_viewer": "Can view the congregation absences list",
     "permission_desc_prospection_viewer": "Can view territory prospecting data",
     "permission_desc_prospection_manager": "Can manage territory prospecting data (edit)",
     "permission_desc_external_speaker_viewer": "Can view the external speakers registry",
