@@ -2055,6 +2055,7 @@
     "permission_desc_activity_viewer": "Peut voir l'activité des proclamateurs",
     "permission_desc_program_viewer": "Peut voir les programmes de l'assemblée",
     "permission_desc_program_manager": "Peut gérer les programmes de l'assemblée (modifier)",
+    "permission_desc_absence_viewer": "Peut consulter la liste des absences de l'assemblée",
     "permission_desc_prospection_viewer": "Peut voir les données de prospection du territoires",
     "permission_desc_prospection_manager": "Peut gérer les données de prospection du territoires (modifier)",
     "permission_desc_external_speaker_viewer": "Peut consulter le registre des orateurs externes",

@@ -14,6 +14,7 @@ export enum Permission {
   ActivityManager = 'activity-manager',
   ProgramViewer = 'program-viewer',
   ProgramManager = 'program-manager',
+  AbsenceViewer = 'absence-viewer',
   ExternalSpeakerViewer = 'external-speaker-viewer',
   ExternalSpeakerManager = 'external-speaker-manager',
   RolesViewer = 'roles-viewer',
