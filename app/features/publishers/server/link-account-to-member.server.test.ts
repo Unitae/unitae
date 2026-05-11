@@ -90,7 +90,7 @@ describe('linkAccountToMember', () => {
     expect(mockDb.userAccount.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ email: 'a@b.test', memberId: 1, congregationId: 10 }),
     })
-    expect(createPasswordResetToken).toHaveBeenCalledWith(42)
+    expect(createPasswordResetToken).toHaveBeenCalledWith(42, mockDb)
     expect(audit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'account.linked_to_member',

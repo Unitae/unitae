@@ -86,7 +86,7 @@ describe('createAccount', () => {
 
     const result = await createAccount(mockDb as never, baseCongregation, 99, baseParams, mockRenderEmail)
 
-    expect(mockCreatePasswordResetToken).toHaveBeenCalledWith(10)
+    expect(mockCreatePasswordResetToken).toHaveBeenCalledWith(10, mockDb)
     expect(mockRenderEmail).toHaveBeenCalledWith(10, 'token-xyz')
     expect(mockSendResetUserPasswordEmail).toHaveBeenCalledWith(10, '<html>email</html>')
     expect(result.emailSent).toBe(false)

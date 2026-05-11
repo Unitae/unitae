@@ -1,16 +1,25 @@
 import crypto from 'node:crypto'
-import { unscopedDb as db } from '~/shared/infra/db.server'
+import { type TransactionClient, unscopedDb } from '~/shared/infra/db.server'
 
 const TOKEN_EXPIRY_HOURS = 24
 
-export async function createPasswordResetToken(userId: number): Promise<string> {
+/**
+ * Create a password-reset token for a UserAccount.
+ *
+ * `client` lets callers thread the active transaction (e.g. `link-account-to-
+ * member` and `create-account` create the account and the token in the same
+ * `withScope` transaction — the UserAccount FK isn't visible on a separate
+ * connection until the transaction commits, so a default `unscopedDb` write
+ * would fail the `PasswordResetToken_userId_fkey` constraint).
+ */
+export async function createPasswordResetToken(userId: number, client: TransactionClient = unscopedDb): Promise<string> {
   const token = crypto.randomBytes(32).toString('base64url')
   const expiresAt = new Date()
   expiresAt.setHours(expiresAt.getHours() + TOKEN_EXPIRY_HOURS)
 
-  await db.passwordResetToken.deleteMany({ where: { userId } })
+  await client.passwordResetToken.deleteMany({ where: { userId } })
 
-  await db.passwordResetToken.create({
+  await client.passwordResetToken.create({
     data: { token, userId, expiresAt },
   })
 
@@ -18,14 +27,14 @@ export async function createPasswordResetToken(userId: number): Promise<string> 
 }
 
 export async function verifyPasswordResetToken(token: string) {
-  const resetToken = await db.passwordResetToken.findUnique({
+  const resetToken = await unscopedDb.passwordResetToken.findUnique({
     where: { token },
     include: { user: true },
   })
 
   if (resetToken == null) return null
   if (resetToken.expiresAt < new Date()) {
-    await db.passwordResetToken.delete({ where: { id: resetToken.id } })
+    await unscopedDb.passwordResetToken.delete({ where: { id: resetToken.id } })
     return null
   }
 
@@ -33,8 +42,8 @@ export async function verifyPasswordResetToken(token: string) {
 }
 
 export async function consumePasswordResetToken(token: string) {
-  const resetToken = await db.passwordResetToken.findUnique({ where: { token } })
+  const resetToken = await unscopedDb.passwordResetToken.findUnique({ where: { token } })
   if (resetToken != null) {
-    await db.passwordResetToken.delete({ where: { id: resetToken.id } })
+    await unscopedDb.passwordResetToken.delete({ where: { id: resetToken.id } })
   }
 }

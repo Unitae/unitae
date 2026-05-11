@@ -45,7 +45,7 @@ export async function linkAccountToMember(
     },
   })
 
-  const resetToken = await createPasswordResetToken(account.id)
+  const resetToken = await createPasswordResetToken(account.id, db)
 
   audit({
     action: AuditAction.AccountLinkedToMember,

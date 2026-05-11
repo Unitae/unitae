@@ -69,7 +69,7 @@ export async function createMember(
       },
     })
     // Send a reset link so the publisher can pick a password
-    await createPasswordResetToken(account.id)
+    await createPasswordResetToken(account.id, db)
   }
 
   await syncBuiltInRoleAssignments(db, member.id, params.congregationId, params.actorId)

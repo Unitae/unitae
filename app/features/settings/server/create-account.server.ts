@@ -58,7 +58,7 @@ export async function createAccount(
     },
   })
 
-  const token = await createPasswordResetToken(user.id)
+  const token = await createPasswordResetToken(user.id, db)
   const emailSent = await sendResetAccountPasswordEmail(user.id, renderEmail(user.id, token))
 
   audit({
