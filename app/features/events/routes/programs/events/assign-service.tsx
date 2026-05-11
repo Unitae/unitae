@@ -11,7 +11,7 @@ import { assignServiceRole, getEventProgramme } from '~/features/events/server/p
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'

@@ -293,9 +293,12 @@ model UserRoleAssignment {
   @@index([roleId])
 }
 
-// Identity role assignments (e.g. brother, elder, pioneer). Auto-synced from
-// Member flags by `syncBuiltInRoleAssignments`. Used by programme-part
-// eligibility filters; not used for permissions.
+// Identity role assignments (e.g. brother, elder, pioneer, publisher).
+// Auto-synced from Member flags by `syncBuiltInRoleAssignments`. Permissions
+// reach the linked UserAccount through this table too — every reader that
+// resolves an account's permissions or role membership must union this with
+// UserRoleAssignment. The canonical primitives live in
+// app/shared/auth/permissions.server.ts.
 model MemberRoleAssignment {
   member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
   memberId       Int

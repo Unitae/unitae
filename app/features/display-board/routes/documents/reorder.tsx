@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
 import { reorderBoardItems } from '~/features/display-board/server/board-document.server'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

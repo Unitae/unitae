@@ -4,7 +4,7 @@ import { createPasswordResetToken } from '~/features/authentication/server/inval
 import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, currentAccountContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'

@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import * as m from '~/i18n/paraglide/messages'
+import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
@@ -37,15 +38,8 @@ async function handleNewDocumentNotification(data: Extract<EmailJobData, { type:
     return
   }
 
-  const validators = await unscopedDb.userAccount.findMany({
-    where: {
-      congregationId: data.congregationId,
-      active: true,
-      congregationPermissions: {
-        some: { permission: { key: Permission.BoardValidator } },
-      },
-    },
-  })
+  const accounts = await findAccountsWithPermission(unscopedDb, data.congregationId, Permission.BoardValidator)
+  const validators = accounts.filter(a => a.active)
 
   await runWithLocale(congregation.locale, async () => {
     for (const user of validators) {

@@ -135,9 +135,7 @@ describe('ENTITY_FILES', () => {
   })
 
   it('has external-speakers before programme-part-assignments (dependency order)', () => {
-    expect(ENTITY_FILES.indexOf('external-speakers')).toBeLessThan(
-      ENTITY_FILES.indexOf('programme-part-assignments'),
-    )
+    expect(ENTITY_FILES.indexOf('external-speakers')).toBeLessThan(ENTITY_FILES.indexOf('programme-part-assignments'))
   })
 
   it('has board-sections and roles before board-section-visibility-roles (dependency order)', () => {

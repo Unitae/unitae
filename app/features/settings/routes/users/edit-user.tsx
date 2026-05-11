@@ -6,7 +6,7 @@ import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateAccount } from '~/features/settings/server/update-account.server'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
@@ -393,7 +393,9 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>{m.settings_user_edit_anonymize_dialog_title()}</AlertDialogTitle>
-                    <AlertDialogDescription>{m.settings_user_edit_anonymize_dialog_description()}</AlertDialogDescription>
+                    <AlertDialogDescription>
+                      {m.settings_user_edit_anonymize_dialog_description()}
+                    </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>

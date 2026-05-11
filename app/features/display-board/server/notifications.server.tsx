@@ -1,6 +1,7 @@
 import type { BoardDocument } from '~/database/generated/client'
 import NewDocumentInBoard from '~/features/notifications/emails/new-document-in-board'
 import * as m from '~/i18n/paraglide/messages'
+import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -11,16 +12,7 @@ export async function sendNewDocumentNotificationEmail(
   congregation: CongregationInfo,
   { document }: { document: BoardDocument },
 ) {
-  const users = await unscopedDb.userAccount.findMany({
-    where: {
-      congregationId: congregation.id,
-      congregationPermissions: {
-        some: {
-          permission: { key: Permission.BoardValidator },
-        },
-      },
-    },
-  })
+  const users = await findAccountsWithPermission(unscopedDb, congregation.id, Permission.BoardValidator)
 
   for (const user of users) {
     try {

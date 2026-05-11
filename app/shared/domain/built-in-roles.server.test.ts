@@ -93,17 +93,15 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
 
   it('elder/assistant-servant require baptism + male', () => {
     const baptized = new Date()
-    expect(
-      BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, baptismDate: baptized, isMale: true, isHelder: true }),
-    ).toBe(true)
+    expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, baptismDate: baptized, isMale: true, isHelder: true })).toBe(true)
     expect(
       BUILT_IN_ROLE_PREDICATES['assistant-servant']({ ...BASE, baptismDate: baptized, isMale: true, isServant: true }),
     ).toBe(true)
 
     // Female with isHelder flag set is still not an elder
-    expect(
-      BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, baptismDate: baptized, isMale: false, isHelder: true }),
-    ).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, baptismDate: baptized, isMale: false, isHelder: true })).toBe(
+      false,
+    )
 
     // No baptism → not an elder
     expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, baptismDate: null, isMale: true, isHelder: true })).toBe(false)
@@ -117,9 +115,9 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
     expect(
       BUILT_IN_ROLE_PREDICATES.anointed({ ...BASE, isPublisher: false, baptismDate: baptized, isAnointed: true }),
     ).toBe(false)
-    expect(
-      BUILT_IN_ROLE_PREDICATES.anointed({ ...BASE, isPublisher: true, baptismDate: null, isAnointed: true }),
-    ).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.anointed({ ...BASE, isPublisher: true, baptismDate: null, isAnointed: true })).toBe(
+      false,
+    )
   })
 
   it('pioneer requires publisher + baptism + permanent or auxiliary type', () => {

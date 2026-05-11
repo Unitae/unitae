@@ -12,7 +12,7 @@ import {
   updateExternalSpeaker,
 } from '~/features/events/server/external-speakers.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import {

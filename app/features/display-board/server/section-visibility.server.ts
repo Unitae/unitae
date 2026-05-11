@@ -61,15 +61,3 @@ export async function setSectionVisibilityRoles(
 
   return diff
 }
-
-export async function getViewerRoleIds(
-  db: TransactionClient,
-  userId: number,
-  congregationId: number,
-): Promise<number[]> {
-  const rows = await db.userRoleAssignment.findMany({
-    where: { userId, congregationId },
-    select: { roleId: true },
-  })
-  return rows.map(r => r.roleId)
-}

@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { deleteRole } from '~/shared/domain/roles.server'
 import { ForbiddenError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'

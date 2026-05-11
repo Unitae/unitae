@@ -3,9 +3,9 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { reorderSection } from '~/features/display-board/server/document.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

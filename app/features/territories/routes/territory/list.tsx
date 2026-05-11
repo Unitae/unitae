@@ -9,9 +9,9 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { editPermissionsSchema } from '~/features/settings/schemas/permissions.schema'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getRole, updateRolePermissions } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDescription, getRoleDisplayName } from '~/shared/types/role'

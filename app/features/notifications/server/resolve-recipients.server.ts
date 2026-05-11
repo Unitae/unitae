@@ -1,5 +1,7 @@
+import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
+import type { Permission } from '~/shared/types/permission'
 
 const logger = createLogger('notifications')
 
@@ -16,16 +18,8 @@ export async function resolveRecipients(
   recipientRole: string,
   notificationType: string,
 ): Promise<ResolvedRecipient[]> {
-  const users = await db.userAccount.findMany({
-    where: {
-      congregationId,
-      active: true,
-      congregationPermissions: {
-        some: { permission: { key: recipientRole } },
-      },
-    },
-    select: { id: true, email: true, firstname: true },
-  })
+  const accounts = await findAccountsWithPermission(db, congregationId, recipientRole as Permission)
+  const users = accounts.filter(a => a.active)
 
   if (users.length === 0) return []
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import {

@@ -1,3 +1,4 @@
+import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { emailQueue } from '~/shared/infra/email-queue.server'
@@ -53,19 +54,9 @@ export async function checkExpiringDocuments(): Promise<{
     try {
       const congregation = await resolveCongregation(congregationId)
 
-      // Find BoardValidator users for this congregation
-      const validators = await unscopedDb.userAccount.findMany({
-        where: {
-          congregationId,
-          active: true,
-          congregationPermissions: {
-            some: {
-              permission: { key: Permission.BoardValidator },
-            },
-          },
-        },
-        select: { email: true, firstname: true },
-      })
+      // Find BoardValidator users for this congregation (active only).
+      const accounts = await findAccountsWithPermission(unscopedDb, congregationId, Permission.BoardValidator)
+      const validators = accounts.filter(a => a.active)
 
       const jobs = validators.map(user => ({
         name: 'documents-expiring',

@@ -3,10 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import {
   getSectionVisibilityRoleIds,
-  getViewerRoleIds,
   setSectionVisibilityRoles,
 } from '~/features/display-board/server/section-visibility.server'
-import { PublisherType } from '~/shared/types/publisher-type'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -199,12 +198,14 @@ describe('Row-Level Security on BoardSectionVisibilityRole', () => {
   })
 })
 
-describe('getViewerRoleIds (integration)', () => {
+describe('resolveEffectiveRoleIds (integration)', () => {
   it('returns the user effective role IDs in the current congregation', async () => {
-    const elderRoles = await withScope(primaryCongId, tx => getViewerRoleIds(tx, elderUserId, primaryCongId))
+    const elderRoles = await withScope(primaryCongId, tx => resolveEffectiveRoleIds(tx, elderUserId, primaryCongId))
     expect(elderRoles.sort()).toEqual([primaryElderRoleId, primaryPublisherRoleId].sort())
 
-    const publisherRoles = await withScope(primaryCongId, tx => getViewerRoleIds(tx, publisherUserId, primaryCongId))
+    const publisherRoles = await withScope(primaryCongId, tx =>
+      resolveEffectiveRoleIds(tx, publisherUserId, primaryCongId),
+    )
     expect(publisherRoles).toEqual([primaryPublisherRoleId])
   })
 })

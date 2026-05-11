@@ -14,9 +14,9 @@ import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

@@ -1,9 +1,9 @@
 import { data } from 'react-router'
 import { getEntrancesInBbox } from '~/features/territories/server/buildings.server'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

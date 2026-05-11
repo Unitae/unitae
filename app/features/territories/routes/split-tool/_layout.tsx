@@ -5,9 +5,9 @@ import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'

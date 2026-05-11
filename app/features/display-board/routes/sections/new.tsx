@@ -5,15 +5,13 @@ import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { createBoardSection } from '~/features/display-board/server/board-section.server'
-import {
-  getViewerRoleIds,
-  setSectionVisibilityRoles,
-} from '~/features/display-board/server/section-visibility.server'
+import { setSectionVisibilityRoles } from '~/features/display-board/server/section-visibility.server'
 import * as m from '~/i18n/paraglide/messages'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -46,7 +44,7 @@ export function loader({ context }: Route.LoaderArgs) {
         select: { id: true, key: true, name: true, isBuiltIn: true },
         orderBy: [{ isBuiltIn: 'desc' }, { key: 'asc' }],
       }),
-      getViewerRoleIds(db, userId, congregationId),
+      resolveEffectiveRoleIds(db, userId, congregationId),
     ])
     return { roles, viewerRoleIds }
   })
@@ -63,8 +61,7 @@ export default function NewSectionPage({ loaderData, actionData }: Route.Compone
     },
   })
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
-  const showLockoutWarning =
-    selectedRoleIds.length > 0 && selectedRoleIds.every(id => !viewerRoleIds.includes(id))
+  const showLockoutWarning = selectedRoleIds.length > 0 && selectedRoleIds.every(id => !viewerRoleIds.includes(id))
 
   return (
     <div className="flex flex-col gap-6">

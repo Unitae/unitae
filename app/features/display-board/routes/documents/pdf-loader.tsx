@@ -1,9 +1,9 @@
 import { redirect } from 'react-router'
 import { getFileStream } from '~/features/display-board/server/document.server'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

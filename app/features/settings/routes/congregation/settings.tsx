@@ -7,8 +7,8 @@ import { updateCongregationSettings } from '~/features/settings/server/congregat
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
-  permissionsContext,
   currentAccountContext,
+  permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'

@@ -8,14 +8,14 @@ import { updateSectionSchema } from '~/features/display-board/schemas/board-sect
 import { updateBoardSection } from '~/features/display-board/server/board-section.server'
 import {
   getSectionVisibilityRoleIds,
-  getViewerRoleIds,
   setSectionVisibilityRoles,
 } from '~/features/display-board/server/section-visibility.server'
 import * as m from '~/i18n/paraglide/messages'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -29,9 +29,8 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { requireParamId } from '~/shared/utils/params.server'
-
-import { VisibilityField } from './new'
 import type { Route } from './+types/edit'
+import { VisibilityField } from './new'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_sections_edit_meta_title() }]
@@ -59,7 +58,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
         orderBy: [{ isBuiltIn: 'desc' }, { key: 'asc' }],
       }),
       getSectionVisibilityRoleIds(db, sectionId, congregationId),
-      getViewerRoleIds(db, userId, congregationId),
+      resolveEffectiveRoleIds(db, userId, congregationId),
     ])
 
     return { section, roles, visibilityRoleIds, viewerRoleIds }
@@ -77,8 +76,7 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
     },
   })
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>(visibilityRoleIds)
-  const showLockoutWarning =
-    selectedRoleIds.length > 0 && selectedRoleIds.every(id => !viewerRoleIds.includes(id))
+  const showLockoutWarning = selectedRoleIds.length > 0 && selectedRoleIds.every(id => !viewerRoleIds.includes(id))
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,12 +97,7 @@ export default function EditSectionPage({ loaderData, actionData }: Route.Compon
 
       <Card>
         <CardContent className="pt-6">
-          <Form
-            method="post"
-            {...getFormProps(form)}
-            className="flex flex-col gap-4"
-            onChange={markDirty}
-          >
+          <Form method="post" {...getFormProps(form)} className="flex flex-col gap-4" onChange={markDirty}>
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.name.id}>{m.board_sections_edit_name_label()}</Label>
               <Input

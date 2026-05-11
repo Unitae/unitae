@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { externalSpeakerSchema } from '~/features/events/schemas/external-speaker.schema'
 import { createExternalSpeaker } from '~/features/events/server/external-speakers.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'

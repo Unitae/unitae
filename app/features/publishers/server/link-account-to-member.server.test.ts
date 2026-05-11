@@ -14,9 +14,7 @@ vi.mock('~/features/authentication/server/invalidate-account-password.server', (
 
 const { linkAccountToMember } = await import('./link-account-to-member.server')
 const { audit } = await import('~/shared/domain/audit.server')
-const { createPasswordResetToken } = await import(
-  '~/features/authentication/server/invalidate-account-password.server'
-)
+const { createPasswordResetToken } = await import('~/features/authentication/server/invalidate-account-password.server')
 const { ConflictError, NotFoundError } = await import('~/shared/errors/app-error.server')
 
 const mockDb = {

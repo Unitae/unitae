@@ -58,9 +58,7 @@ export async function createTestUser(
   // Create a Member only when at least one publisher-shaped field is
   // explicitly set (or the override has firstname/lastname). Tests that
   // create Account-only admins pass none of those, so we skip Member.
-  const hasMemberSignal = Object.keys(overrides).some(k =>
-    (memberFieldKeys as readonly string[]).includes(k),
-  )
+  const hasMemberSignal = Object.keys(overrides).some(k => (memberFieldKeys as readonly string[]).includes(k))
 
   let memberId: number | null = null
   if (hasMemberSignal) {

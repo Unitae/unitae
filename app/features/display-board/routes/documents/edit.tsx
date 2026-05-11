@@ -8,7 +8,7 @@ import { isDocumentOwnedByUploader, updateBoardDocument } from '~/features/displ
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'

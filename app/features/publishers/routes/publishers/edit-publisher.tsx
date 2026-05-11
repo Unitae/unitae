@@ -9,7 +9,7 @@ import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldSe
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import { CongregationSettingKey } from '~/shared/types/congregation-setting-key'
 import { Permission } from '~/shared/types/permission'

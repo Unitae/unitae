@@ -1,16 +1,13 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
-import { getViewerRoleIds } from '~/features/display-board/server/section-visibility.server'
+import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 async function buildSectionVisibilityFilter(db: TransactionClient, userId: number, congregationId: number) {
-  const viewerRoleIds = await getViewerRoleIds(db, userId, congregationId)
+  const viewerRoleIds = await resolveEffectiveRoleIds(db, userId, congregationId)
   return {
     section: {
-      OR: [
-        { visibilityRoles: { none: {} } },
-        { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } },
-      ],
+      OR: [{ visibilityRoles: { none: {} } }, { visibilityRoles: { some: { roleId: { in: viewerRoleIds } } } }],
     },
   }
 }
