@@ -21,7 +21,7 @@ export async function anonymizeMember(
 ): Promise<void> {
   const member = await db.member.findFirst({
     where: { id: memberId, congregationId },
-    select: { id: true, anonymizedAt: true },
+    select: { id: true, anonymizedAt: true, leftAt: true },
   })
 
   if (!member) throw new NotFoundError('Member')
@@ -41,6 +41,11 @@ export async function anonymizeMember(
       isServant: false,
       isAnointed: false,
       anonymizedAt: new Date(),
+      // An anonymized person is definitionally no longer in the congregation
+      // — flip leftAt so they drop from /publishers (which filters leftAt:null)
+      // and stop appearing as "Utilisateur supprime" in active lists. Preserve
+      // the original leave date when the member was already marked left.
+      ...(member.leftAt == null ? { leftAt: new Date() } : {}),
     },
   })
 

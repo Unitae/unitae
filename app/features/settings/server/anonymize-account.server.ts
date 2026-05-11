@@ -48,6 +48,7 @@ export async function anonymizeAccount(
   })
 
   await db.congregationUserPermission.deleteMany({ where: { userId: accountId } })
+  await db.userRoleAssignment.deleteMany({ where: { userId: accountId } })
   await db.passwordResetToken.deleteMany({ where: { userId: accountId } })
 
   await db.boardDocumentVersion.updateMany({

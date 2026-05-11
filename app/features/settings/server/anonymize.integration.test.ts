@@ -156,11 +156,15 @@ describe('anonymizeUser (integration)', () => {
     expect(user?.member?.lastname).toBe('supprime')
     expect(user?.member?.phone).toBe('')
     expect(user?.member?.anonymizedAt).not.toBeNull()
+    // leftAt is set so the anonymized row drops from active publisher lists
+    expect(user?.member?.leftAt).not.toBeNull()
   })
 
   it('deletes congregation roles for the anonymized user', async () => {
-    const roles = await testDb.congregationUserPermission.findMany({ where: { userId: primaryUserId } })
-    expect(roles).toHaveLength(0)
+    const directPerms = await testDb.congregationUserPermission.findMany({ where: { userId: primaryUserId } })
+    expect(directPerms).toHaveLength(0)
+    const roleAssignments = await testDb.userRoleAssignment.findMany({ where: { userId: primaryUserId } })
+    expect(roleAssignments).toHaveLength(0)
   })
 
   it('creates a data deletion record for GDPR compliance', async () => {
