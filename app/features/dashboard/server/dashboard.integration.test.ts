@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { EventKind } from '~/features/events/model/event-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { PublisherType } from '~/shared/types/publisher-type'
 
@@ -287,5 +288,34 @@ describe('getNextMeeting (integration)', () => {
   it('does not return past events', async () => {
     const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
     expect(result?.id).not.toBe(pastEventId)
+  })
+
+  it("ignores another user's day off when picking the next meeting", async () => {
+    const offEventId = await withScope(congregationId, async tx => {
+      const offKind = await tx.eventKind.create({
+        data: { name: 'Absence', key: EventKind.Off, color: '#888888', congregationId },
+      })
+      const off = await tx.event.create({
+        data: {
+          name: 'Absence',
+          kindId: offKind.id,
+          startDate: new Date('2027-05-01T00:00:00Z'),
+          endDate: new Date('2027-05-03T00:00:00Z'),
+          createdById: bobAccountId,
+          congregationId,
+        },
+      })
+      return off.id
+    })
+
+    try {
+      const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
+      expect(result?.name).toBe(`Future Meeting ${ts}`)
+    } finally {
+      await withScope(congregationId, async tx => {
+        await tx.event.delete({ where: { id_congregationId: { id: offEventId, congregationId } } })
+        await tx.eventKind.deleteMany({ where: { key: EventKind.Off, congregationId } })
+      })
+    }
   })
 })

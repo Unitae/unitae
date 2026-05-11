@@ -1,4 +1,5 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
+import { EventKind } from '~/features/events/model/event-kind.type'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -251,7 +252,10 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   const now = new Date()
 
   const event = await db.event.findFirst({
-    where: { startDate: { gte: now } },
+    where: {
+      startDate: { gte: now },
+      kind: { key: { not: EventKind.Off } },
+    },
     select: {
       id: true,
       name: true,
