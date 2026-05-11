@@ -9,6 +9,20 @@ const redisConfig = {
   lazyConnect: true,
 }
 
+// Each BullMQ Queue and Worker must own its own connection — sharing one ioredis
+// instance across multiple Workers causes their duplicated blocking clients to
+// race at boot, leaving some Workers "ready" but never actually subscribed via
+// BZPOPMIN. Returning a fresh options object per call lets BullMQ manage the
+// lifecycle without a shared parent.
+export function getBullMQConnection() {
+  return {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD,
+    maxRetriesPerRequest: null,
+  }
+}
+
 export const redis = new Redis({
   ...redisConfig,
   maxRetriesPerRequest: null, // Allow retries for BullMQ

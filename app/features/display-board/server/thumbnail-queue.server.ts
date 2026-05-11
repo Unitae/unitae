@@ -1,9 +1,9 @@
 import { Queue } from 'bullmq'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
-import { redis } from '~/shared/infra/redis.server'
+import { getBullMQConnection } from '~/shared/infra/redis.server'
 
 export const thumbnailQueue = new Queue(QUEUE_NAMES.thumbnail, {
-  connection: redis,
+  connection: getBullMQConnection(),
   defaultJobOptions: {
     attempts: 3,
     backoff: {

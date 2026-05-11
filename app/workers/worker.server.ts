@@ -8,7 +8,7 @@ import { handleDataTransferWork } from '~/features/settings/jobs/handle-data-tra
 import { handleSyncWork } from '~/features/territories/jobs/handle-sync-work.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
-import { redis } from '~/shared/infra/redis.server'
+import { getBullMQConnection } from '~/shared/infra/redis.server'
 
 const logger = createLogger('worker')
 const HEALTH_PORT = Number(process.env.UNITAE_WORKER_HEALTH_PORT ?? '9090')
@@ -39,28 +39,28 @@ function setupWorkerEvents(worker: Worker, name: string) {
 }
 
 const syncWorker = new Worker(QUEUE_NAMES.sync, handleSyncWork, {
-  connection: redis,
+  connection: getBullMQConnection(),
   concurrency: 1,
   removeOnComplete: { count: 100 },
   removeOnFail: { count: 50 },
 })
 
 const emailWorker = new Worker(QUEUE_NAMES.email, handleEmailWork, {
-  connection: redis,
+  connection: getBullMQConnection(),
   concurrency: 5,
   removeOnComplete: { count: 50 },
   removeOnFail: { count: 20 },
 })
 
 const thumbnailWorker = new Worker(QUEUE_NAMES.thumbnail, handleThumbnailWork, {
-  connection: redis,
+  connection: getBullMQConnection(),
   concurrency: 2,
   removeOnComplete: { count: 50 },
   removeOnFail: { count: 20 },
 })
 
 const dataTransferWorker = new Worker(QUEUE_NAMES.dataTransfer, handleDataTransferWork, {
-  connection: redis,
+  connection: getBullMQConnection(),
   concurrency: 1,
   removeOnComplete: { count: 10 },
   removeOnFail: { count: 10 },
