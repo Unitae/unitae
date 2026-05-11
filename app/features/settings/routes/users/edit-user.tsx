@@ -355,6 +355,15 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
           <CardContent className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-4">
               <p className="text-muted-foreground text-sm">{m.settings_user_edit_delete_account_description()}</p>
+              {/* Form lives outside the portaled AlertDialog so the submit
+                  survives Radix's close-on-click. AlertDialogAction refs it
+                  via the HTML `form` attribute. */}
+              <Form
+                id={`delete-account-form-${user.id}`}
+                method="post"
+                action={`/settings/users/${user.id}/delete-account`}
+                className="hidden"
+              />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="shrink-0">
@@ -370,17 +379,21 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                    <Form method="post" action={`/settings/users/${user.id}/delete-account`}>
-                      <AlertDialogAction type="submit">
-                        {m.settings_user_edit_delete_account_confirm()}
-                      </AlertDialogAction>
-                    </Form>
+                    <AlertDialogAction type="submit" form={`delete-account-form-${user.id}`}>
+                      {m.settings_user_edit_delete_account_confirm()}
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             </div>
             <div className="flex items-center justify-between gap-4">
               <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
+              <Form
+                id={`anonymize-form-${user.id}`}
+                method="post"
+                action={`/settings/users/${user.id}/anonymize`}
+                className="hidden"
+              />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="shrink-0">
@@ -394,14 +407,13 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                    <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
-                      <AlertDialogAction
-                        type="submit"
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        {m.settings_user_edit_anonymize_confirm()}
-                      </AlertDialogAction>
-                    </Form>
+                    <AlertDialogAction
+                      type="submit"
+                      form={`anonymize-form-${user.id}`}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {m.settings_user_edit_anonymize_confirm()}
+                    </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>

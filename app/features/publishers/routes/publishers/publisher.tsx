@@ -104,48 +104,58 @@ function LifecycleAction({
     )
   }
   if (isPublisher) {
+    const formId = `mark-as-left-form-${publisherId}`
     return (
+      <>
+        {/* Form lives outside the portaled AlertDialog so the submit survives
+            the close-on-click. AlertDialogAction references it via `form`. */}
+        <Form id={formId} method="post" action={`/publishers/${publisherId}/mark-as-left`} className="hidden" />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
+              <UserMinus className="size-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+              <AlertDialogDescription>{m.publishers_view_mark_as_left_dialog_description()}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+              <AlertDialogAction type="submit" form={formId}>
+                {m.publishers_view_mark_as_left_confirm()}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
+    )
+  }
+  const formId = `make-publisher-form-${publisherId}`
+  return (
+    <>
+      <Form id={formId} method="post" action={`/publishers/${publisherId}/make-publisher`} className="hidden" />
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
-            <UserMinus className="size-4" />
+          <Button size="icon" title={m.publishers_view_activate_title()}>
+            <UserCheck className="size-4" />
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
-            <AlertDialogDescription>{m.publishers_view_mark_as_left_dialog_description()}</AlertDialogDescription>
+            <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.publishers_view_make_publisher_dialog_description()}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-            <Form method="post" action={`/publishers/${publisherId}/mark-as-left`}>
-              <AlertDialogAction type="submit">{m.publishers_view_mark_as_left_confirm()}</AlertDialogAction>
-            </Form>
+            <AlertDialogAction type="submit" form={formId}>
+              {m.publishers_view_make_publisher_confirm()}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    )
-  }
-  return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        <Button size="icon" title={m.publishers_view_activate_title()}>
-          <UserCheck className="size-4" />
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
-          <AlertDialogDescription>{m.publishers_view_make_publisher_dialog_description()}</AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-          <Form method="post" action={`/publishers/${publisherId}/make-publisher`}>
-            <AlertDialogAction type="submit">{m.publishers_view_make_publisher_confirm()}</AlertDialogAction>
-          </Form>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    </>
   )
 }
 
