@@ -8,7 +8,7 @@ import { getCurrentTheocraticYear } from '~/features/territories/server/theocrat
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -198,8 +198,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                             className="inline-flex items-center gap-1 text-muted-foreground italic"
                             title={m.attributions_publisher_anonymized_tooltip()}
                           >
-                            <Lock className="size-3" aria-hidden="true" />
-                            —
+                            <Lock className="size-3" aria-hidden="true" />—
                           </span>
                         ) : hasLeft ? (
                           canViewPublisher ? (
@@ -237,35 +236,35 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                       <TableCell className="max-sm:hidden">
                         {attribution.notes.length > 0 ? attribution.notes : '-'}
                       </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {canManageTerritories && (
-                          <>
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link to={`./${attribution.id}/edit`}>
-                                <Pencil className="size-4" />
-                              </Link>
-                            </Button>
-                            {attribution.endDate == null && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                asChild
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Link
-                                  to={`/territories/attributions/${attribution.id}/delete`}
-                                  title={m.attributions_cancel_title()}
-                                >
-                                  <X className="size-4" />
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {canManageTerritories && (
+                            <>
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link to={`./${attribution.id}/edit`}>
+                                  <Pencil className="size-4" />
                                 </Link>
                               </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                              {attribution.endDate == null && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  asChild
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Link
+                                    to={`/territories/attributions/${attribution.id}/delete`}
+                                    title={m.attributions_cancel_title()}
+                                  >
+                                    <X className="size-4" />
+                                  </Link>
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
                   )
                 })}
             </TableBody>

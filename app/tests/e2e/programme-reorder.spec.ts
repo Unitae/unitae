@@ -32,9 +32,7 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     const rowsBefore = await sortableRows.allTextContents()
     if (rowsBefore.length < 2) test.skip()
 
-    const responsePromise = page.waitForResponse(
-      r => REORDER_PARTS_RE.test(r.url()) && r.request().method() === 'POST',
-    )
+    const responsePromise = page.waitForResponse(r => REORDER_PARTS_RE.test(r.url()) && r.request().method() === 'POST')
 
     await page.locator('button[aria-roledescription="sortable"]').first().focus()
     await page.keyboard.press('Space')
@@ -62,9 +60,7 @@ test.describe('Programme parts drag-drop reorder (regression: #134)', () => {
     const rowsBefore = await sortableRows.allTextContents()
     if (rowsBefore.length < 2) test.skip()
 
-    const responsePromise = page.waitForResponse(
-      r => REORDER_PARTS_RE.test(r.url()) && r.request().method() === 'POST',
-    )
+    const responsePromise = page.waitForResponse(r => REORDER_PARTS_RE.test(r.url()) && r.request().method() === 'POST')
 
     await page.locator('button[aria-roledescription="sortable"]').first().focus()
     await page.keyboard.press('Space')

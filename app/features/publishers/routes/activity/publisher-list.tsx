@@ -4,7 +4,7 @@ import { getPublisherStats } from '~/features/publishers/server/get-publisher-st
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'

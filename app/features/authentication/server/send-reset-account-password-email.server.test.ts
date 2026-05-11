@@ -40,7 +40,11 @@ describe('sendResetAccountPasswordEmail', () => {
   })
 
   it("envoie l'email quand l'utilisateur existe", async () => {
-    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 1, email: 'test@example.com', congregationId: 5 } as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({
+      id: 1,
+      email: 'test@example.com',
+      congregationId: 5,
+    } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ emailFrom: 'Congré <noreply@test.org>' } as never)
     vi.mocked(mailer.emails.send).mockResolvedValue({} as never)
 
@@ -53,7 +57,11 @@ describe('sendResetAccountPasswordEmail', () => {
   })
 
   it("ne lance pas d'erreur quand l'envoi d'email échoue", async () => {
-    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 1, email: 'test@example.com', congregationId: 5 } as never)
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({
+      id: 1,
+      email: 'test@example.com',
+      congregationId: 5,
+    } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ emailFrom: 'Congré <noreply@test.org>' } as never)
     vi.mocked(mailer.emails.send).mockRejectedValue(new Error('SMTP error'))
 

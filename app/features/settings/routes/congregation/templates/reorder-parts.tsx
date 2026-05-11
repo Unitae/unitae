@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { isTemplateResponsible, reorderTemplateParts } from '~/features/events/server/programme-templates.server'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 

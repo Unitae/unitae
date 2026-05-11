@@ -24,9 +24,9 @@ import SharedEntranceField from '~/features/territories/ui/SharedEntranceField'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

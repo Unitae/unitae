@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import { bulkDeleteEvents } from '~/features/events/server/programme-events.server'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 

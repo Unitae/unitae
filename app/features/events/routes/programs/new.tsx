@@ -17,7 +17,7 @@ import {
 } from '~/features/events/server/programme-generation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'

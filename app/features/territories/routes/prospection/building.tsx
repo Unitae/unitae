@@ -10,9 +10,9 @@ import BuildingProspectionInfo from '~/features/territories/ui/BuildingProspecti
 import BuildingTerritoryInfo from '~/features/territories/ui/BuildingTerritoryInfo'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

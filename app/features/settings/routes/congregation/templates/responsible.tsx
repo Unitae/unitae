@@ -8,7 +8,7 @@ import {
 } from '~/features/events/server/programme-templates.server'
 import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'

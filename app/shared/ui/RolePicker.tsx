@@ -44,10 +44,7 @@ export function RolePicker({
   }
 
   return (
-    <fieldset
-      aria-labelledby={labelledBy}
-      className="flex flex-wrap items-center gap-2 border-0 p-0"
-    >
+    <fieldset aria-labelledby={labelledBy} className="flex flex-wrap items-center gap-2 border-0 p-0">
       {selected.size === 0 && (
         <span
           aria-hidden="true"

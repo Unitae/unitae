@@ -12,7 +12,10 @@ const TOKEN_EXPIRY_HOURS = 24
  * connection until the transaction commits, so a default `unscopedDb` write
  * would fail the `PasswordResetToken_userId_fkey` constraint).
  */
-export async function createPasswordResetToken(userId: number, client: TransactionClient = unscopedDb): Promise<string> {
+export async function createPasswordResetToken(
+  userId: number,
+  client: TransactionClient = unscopedDb,
+): Promise<string> {
   const token = crypto.randomBytes(32).toString('base64url')
   const expiresAt = new Date()
   expiresAt.setHours(expiresAt.getHours() + TOKEN_EXPIRY_HOURS)

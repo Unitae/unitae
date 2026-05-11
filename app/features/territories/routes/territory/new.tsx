@@ -13,9 +13,9 @@ import BuildingSelector from '~/features/territories/ui/BuildingSelector'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'

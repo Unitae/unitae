@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { generateS13ExportExcel } from '~/features/territories/server/s13-export.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 

@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 

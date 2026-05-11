@@ -9,8 +9,8 @@ import { ProgrammeDocument } from '~/features/events/ui/ProgrammeDocument'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
-  permissionsContext,
   currentAccountContext,
+  permissionsContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

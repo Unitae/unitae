@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse, sanitizeFilename } from '~/shared/infra/pdf.server'

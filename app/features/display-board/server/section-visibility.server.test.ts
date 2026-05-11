@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     boardSectionVisibilityRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    userRoleAssignment: { findMany: vi.fn() },
   },
 }))
 
@@ -15,9 +14,7 @@ vi.mock('~/shared/domain/audit.server', async () => {
   }
 })
 
-const { getSectionVisibilityRoleIds, setSectionVisibilityRoles, getViewerRoleIds } = await import(
-  './section-visibility.server'
-)
+const { getSectionVisibilityRoleIds, setSectionVisibilityRoles } = await import('./section-visibility.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { audit, AuditAction } = await import('~/shared/domain/audit.server')
 
@@ -115,22 +112,6 @@ describe('setSectionVisibilityRoles', () => {
       data: [{ sectionId: 100, roleId: 3, congregationId: 1 }],
       skipDuplicates: true,
     })
-    expect(audit).toHaveBeenCalledWith(
-      expect.objectContaining({ metadata: { added: [3], removed: [1] } }),
-    )
-  })
-})
-
-describe('getViewerRoleIds', () => {
-  it('returns the role IDs assigned to the user', async () => {
-    vi.mocked(db.userRoleAssignment.findMany).mockResolvedValue([{ roleId: 11 }, { roleId: 13 }] as never)
-
-    const result = await getViewerRoleIds(db, 42, 1)
-
-    expect(db.userRoleAssignment.findMany).toHaveBeenCalledWith({
-      where: { userId: 42, congregationId: 1 },
-      select: { roleId: true },
-    })
-    expect(result).toEqual([11, 13])
+    expect(audit).toHaveBeenCalledWith(expect.objectContaining({ metadata: { added: [3], removed: [1] } }))
   })
 })

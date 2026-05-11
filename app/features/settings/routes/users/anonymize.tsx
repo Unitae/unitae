@@ -3,9 +3,9 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { anonymizeAccount } from '~/features/settings/server/anonymize-account.server'
 import { anonymizeMember } from '~/features/settings/server/anonymize-member.server'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'

@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { exportAccountData } from '~/features/settings/server/export-account-data.server'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'

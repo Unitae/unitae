@@ -5,9 +5,9 @@ import { createTemplateSchema } from '~/features/settings/schemas/template.schem
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

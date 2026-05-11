@@ -7,9 +7,9 @@ import { createTerritoryFromSplit } from '~/features/territories/server/create-t
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'

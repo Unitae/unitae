@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     boardDocument: { findMany: vi.fn(), count: vi.fn() },
     boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn() },
-    userRoleAssignment: { findMany: vi.fn() },
+    role: { findMany: vi.fn() },
   },
 }))
 
@@ -21,7 +21,7 @@ const { getNextDaysOffs } = await import('~/features/events/server/days-off.serv
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.userRoleAssignment.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.role.findMany).mockResolvedValue([] as never)
 })
 
 // --- getUserTerritories ---

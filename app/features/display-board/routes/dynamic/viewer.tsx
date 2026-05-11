@@ -11,9 +11,9 @@ import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

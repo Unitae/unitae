@@ -7,7 +7,7 @@ import { createActivitySchema } from '~/features/publishers/schemas/activity.sch
 import { createPublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import { getPublishers } from '~/features/publishers/server/publishers.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -40,7 +40,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const groupFilter = canManageMyGroupActivity && !canManagePublisher ? (member?.publisherGroupId ?? undefined) : undefined
+  const groupFilter =
+    canManageMyGroupActivity && !canManagePublisher ? (member?.publisherGroupId ?? undefined) : undefined
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams

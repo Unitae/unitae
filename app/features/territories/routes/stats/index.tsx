@@ -37,9 +37,9 @@ import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNev
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

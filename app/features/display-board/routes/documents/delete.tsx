@@ -4,7 +4,7 @@ import { deleteBoardDocument, isDocumentOwnedByUploader } from '~/features/displ
 import { deleteAllVersionFiles } from '~/features/display-board/server/document-versions.server'
 import { notify } from '~/features/notifications/server/notify.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'

@@ -1,5 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
 

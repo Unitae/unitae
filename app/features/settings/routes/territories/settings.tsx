@@ -6,7 +6,7 @@ import { territorySettingsSchema } from '~/features/settings/schemas/territory-s
 import { loadTerritorySettings } from '~/features/settings/server/load-territory-settings.server'
 import { getAllowedZips, parseZips, serializeZips } from '~/features/territories/server/settings.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting, setSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'

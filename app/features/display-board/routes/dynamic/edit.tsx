@@ -15,9 +15,9 @@ import { validateVisibilityDates } from '~/features/display-board/server/file-va
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

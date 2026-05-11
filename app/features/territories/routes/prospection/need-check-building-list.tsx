@@ -7,9 +7,9 @@ import { BuildingCheckReason } from '~/features/territories/ui/BuildingCheckReas
 import { BuildingStatus } from '~/features/territories/ui/BuildingStatus'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'

@@ -7,7 +7,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { updateActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'

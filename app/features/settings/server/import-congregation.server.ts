@@ -42,20 +42,23 @@ export async function validateImport(storageKey: string, congregationId: number)
     return {
       entityCounts: manifest.entityCounts,
       conflicts: [],
-      warnings: [`Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`],
+      warnings: [
+        `Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`,
+      ],
     }
   }
 
   const conflicts: ImportConflict[] = []
-  const warnings: string[] = [
-    'Passwords are not imported. Users will need to reset their password after import.',
-  ]
+  const warnings: string[] = ['Passwords are not imported. Users will need to reset their password after import.']
 
   if (manifest.version === '1.0') {
     warnings.push(
       'Archive predates v1.1 — custom roles, external speakers, territory card overlays, perimeter, and role-based gating will not be imported.',
     )
-    if (zip.file('data/congregation-user-permissions.ndjson') == null && zip.file('data/congregation-user-roles.ndjson') != null) {
+    if (
+      zip.file('data/congregation-user-permissions.ndjson') == null &&
+      zip.file('data/congregation-user-roles.ndjson') != null
+    ) {
       warnings.push(
         'Archive predates the UserRole → Permission rename; permission assignments will be migrated automatically.',
       )
@@ -540,7 +543,9 @@ export async function migrateLegacyUsersNdjson(zip: JsZip, manifestVersion: stri
     `Archive v${manifestVersion}: ${legacy.length} legacy user row(s) split into ${members.length} member(s) and ${accounts.length} account(s) on the fly.`,
   ]
   if (placeholderDropped > 0) {
-    warnings.push(`${placeholderDropped} placeholder-email account(s) (legacy *@placeholder.unitae.app) skipped — they were never real logins.`)
+    warnings.push(
+      `${placeholderDropped} placeholder-email account(s) (legacy *@placeholder.unitae.app) skipped — they were never real logins.`,
+    )
   }
   return warnings
 }
@@ -778,7 +783,11 @@ export async function importPublisherGroups(
   }
 }
 
-export async function updateMemberPublisherGroups(zip: JsZip, db: TransactionClient, idMap: EntityIdMap): Promise<void> {
+export async function updateMemberPublisherGroups(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+): Promise<void> {
   interface ExportedMember {
     id: number
     publisherGroupId: number | null

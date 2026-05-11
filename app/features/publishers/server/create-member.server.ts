@@ -30,11 +30,7 @@ export interface CreateMemberParams {
  * to email the link). When `email` is null/empty, the Member exists without
  * a login (offline publisher).
  */
-export async function createMember(
-  db: TransactionClient,
-  congregation: CongregationInfo,
-  params: CreateMemberParams,
-) {
+export async function createMember(db: TransactionClient, congregation: CongregationInfo, params: CreateMemberParams) {
   const limits = new LimitService(db, congregation)
   await limits.errorIfWouldGoOverLimit('members')
 

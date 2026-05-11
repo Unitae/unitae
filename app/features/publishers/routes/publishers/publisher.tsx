@@ -5,7 +5,7 @@ import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
@@ -188,7 +188,6 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                 leftAt={publisher.leftAt}
                 isPublisher={publisher.isPublisher}
               />
-
             </>
           )
         }

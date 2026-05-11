@@ -4,9 +4,9 @@ import { markDocumentAsViewed } from '~/features/display-board/server/board-docu
 import { PdfViewer } from '~/features/display-board/ui/PdfViewer'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

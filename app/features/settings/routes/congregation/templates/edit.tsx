@@ -26,7 +26,7 @@ import {
   upsertServiceRoleSchema,
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -296,7 +296,11 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
 
     reorderFetcher.submit(
       { orderedIds: reordered },
-      { method: 'POST', action: `/settings/congregation/templates/${template.id}/reorder-parts`, encType: 'application/json' },
+      {
+        method: 'POST',
+        action: `/settings/congregation/templates/${template.id}/reorder-parts`,
+        encType: 'application/json',
+      },
     )
   }
 

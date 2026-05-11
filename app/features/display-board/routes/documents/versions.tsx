@@ -6,7 +6,7 @@ import { restoreVersionSchema } from '~/features/display-board/schemas/board-doc
 import { isDocumentOwnedByUploader } from '~/features/display-board/server/board-document.server'
 import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'

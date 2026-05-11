@@ -11,9 +11,9 @@ import { updateAttribution } from '~/features/territories/server/update-attribut
 import { TerritoryCardLink } from '~/features/territories/ui/TerritoryCardLink'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  currentAccountContext,
   permissionsContext,
   requirePermission,
-  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
