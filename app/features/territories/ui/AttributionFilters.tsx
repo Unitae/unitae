@@ -56,6 +56,7 @@ export default function AttributionFilters({ action, phoneTypeActive = false, gr
             <SelectItem value="none">{m.territories_filter_status()}</SelectItem>
             <SelectItem value="current">{m.territories_filter_status_current()}</SelectItem>
             <SelectItem value="late">{m.territories_filter_status_late()}</SelectItem>
+            <SelectItem value="orphaned">{m.territories_filter_status_orphaned()}</SelectItem>
           </SelectContent>
         </Select>
         <Input

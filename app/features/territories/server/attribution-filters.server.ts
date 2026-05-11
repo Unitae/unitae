@@ -41,6 +41,17 @@ function applyStatusFilter(
   params: URLSearchParams,
 ): Prisma.AttributionWhereInput {
   if (params.has('status') && params.get('status') !== 'none') {
+    if (params.get('status') === 'orphaned') {
+      // Publisher has left the congregation or has been anonymized — the
+      // attribution still points at them but the territory needs reassigning.
+      return {
+        ...filters,
+        publisher: {
+          ...((filters.publisher as Prisma.MemberWhereInput | undefined) ?? {}),
+          OR: [{ leftAt: { not: null } }, { anonymizedAt: { not: null } }],
+        },
+      }
+    }
     if (params.get('status') === 'late') {
       return { ...filters, lateDate: { lt: new Date() } }
     }
