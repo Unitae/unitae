@@ -3,7 +3,7 @@ import { deleteSectionWithFiles } from '~/features/display-board/server/document
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -26,7 +26,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     for (const sectionId of ids) {
       await deleteSectionWithFiles(db, sectionId, congregationId)
     }

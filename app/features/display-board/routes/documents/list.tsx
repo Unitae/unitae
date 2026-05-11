@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { Link, redirect, useFetcher, useRevalidator, useSearchParams } from 'react-router'
 import { DocumentVisibility } from '~/features/display-board/ui/DocumentVisibility'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 

@@ -71,12 +71,13 @@ export default [
       ...prefix('users', [
         index('features/settings/routes/users/user-list.tsx'),
         route('new', 'features/settings/routes/users/new-user.tsx'),
-        ...prefix(':userId', [
+        ...prefix(':accountId', [
           route('edit', 'features/settings/routes/users/edit-user.tsx'),
           route('export-data', 'features/settings/routes/users/export-data.tsx'),
           route('anonymize', 'features/settings/routes/users/anonymize.tsx'),
           route('make-publisher', 'features/settings/routes/users/make-publisher.tsx'),
-          route('unmake-publisher', 'features/settings/routes/users/unmake-publisher.tsx'),
+          route('add-to-congregation', 'features/settings/routes/users/add-to-congregation.tsx'),
+          route('delete-account', 'features/settings/routes/users/delete-account.tsx'),
         ]),
       ]),
       route('territories', 'features/settings/routes/territories/settings.tsx'),
@@ -116,11 +117,18 @@ export default [
     ]),
     route('publishers', 'features/publishers/routes/_layout.tsx', [
       index('features/publishers/routes/publishers/publisher-list.tsx'),
+      route('former', 'features/publishers/routes/publishers/former-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
       ...prefix(':publisherId', [
         route('view', 'features/publishers/routes/publishers/publisher.tsx'),
         route('edit', 'features/publishers/routes/publishers/edit-publisher.tsx'),
         route('activity/pdf', 'features/publishers/routes/publishers/activity-pdf.tsx'),
+        route('link-login', 'features/publishers/routes/publishers/link-login.tsx'),
+        route('unlink-login', 'features/publishers/routes/publishers/unlink-login.tsx'),
+        route('mark-as-left', 'features/publishers/routes/publishers/mark-as-left.tsx'),
+        route('mark-as-returned', 'features/publishers/routes/publishers/mark-as-returned.tsx'),
+        route('make-publisher', 'features/publishers/routes/publishers/make-publisher.tsx'),
+        route('make-student', 'features/publishers/routes/publishers/make-student.tsx'),
       ]),
       ...prefix('activity', [
         index('features/publishers/routes/activity/publisher-list.tsx'),

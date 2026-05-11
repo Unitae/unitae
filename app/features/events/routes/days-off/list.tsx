@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { getSession } from '~/features/authentication/server/session.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -16,7 +16,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {

@@ -9,7 +9,7 @@ import {
   congregationContext,
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
@@ -35,7 +35,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { type, entranceIds } = submission.value
   const congregation = context.get(congregationContext)
-  const { id: actorId } = context.get(userContext)
+  const { id: actorId } = context.get(currentAccountContext)
 
   const previousPage = safeRedirectUrl(request.headers.get('referer'), '/territories/buildings/split-territories')
 

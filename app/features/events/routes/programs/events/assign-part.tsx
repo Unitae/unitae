@@ -10,7 +10,7 @@ import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -33,7 +33,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
@@ -51,8 +51,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
     const assignment = event.partAssignments.find(a => a.id === assignmentId)
 
-    const users = await db.user.findMany({
-      where: { congregationId, active: true },
+    const users = await db.member.findMany({
+      where: { congregationId, leftAt: null },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
     const userById = new Map(users.map(u => [u.id, u]))
@@ -90,7 +90,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
 
   const eventId = requireParamId(params.eventId, '/programs')

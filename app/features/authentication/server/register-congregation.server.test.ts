@@ -11,7 +11,7 @@ const scopedDb = {
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     congregation: { findUnique: vi.fn(), create: vi.fn() },
-    user: { findUnique: vi.fn(), create: vi.fn() },
+    userAccount: { findUnique: vi.fn(), create: vi.fn() },
     permission: { findUnique: vi.fn(), upsert: vi.fn() },
     congregationUserPermission: { create: vi.fn() },
     consentRecord: { create: vi.fn() },
@@ -34,9 +34,9 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.congregation.findUnique).mockResolvedValue(null as never)
-  vi.mocked(db.user.findUnique).mockResolvedValue(null as never)
+  vi.mocked(db.userAccount.findUnique).mockResolvedValue(null as never)
   vi.mocked(db.congregation.create).mockResolvedValue({ id: 1, slug: 'test-congre' } as never)
-  vi.mocked(db.user.create).mockResolvedValue({ id: 10 } as never)
+  vi.mocked(db.userAccount.create).mockResolvedValue({ id: 10 } as never)
   vi.mocked(db.permission.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
   vi.mocked(db.congregationUserPermission.create).mockResolvedValue({} as never)
   scopedDb.eventKind.upsert.mockResolvedValue({} as never)
@@ -61,7 +61,7 @@ describe('registerCongregation', () => {
   })
 
   it("retourne une erreur si l'email existe déjà", async () => {
-    vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'admin@test.com', 'motdepasse', 'fr')
 
@@ -71,7 +71,7 @@ describe('registerCongregation', () => {
 
   it("normalise l'email en minuscules pour la vérification", async () => {
     // Simule un utilisateur existant avec l'email en minuscules
-    vi.mocked(db.user.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ id: 1, email: 'admin@test.com' } as never)
 
     const result = await registerCongregation('Ma Congrégation', 'test-congre', 'ADMIN@TEST.COM', 'motdepasse', 'fr')
 

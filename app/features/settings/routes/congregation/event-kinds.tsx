@@ -3,7 +3,7 @@ import { Trash2 } from 'lucide-react'
 import { data, Form, redirect, useFetcher } from 'react-router'
 import { z } from 'zod'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -33,7 +33,7 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.Admin)) throw redirect('/settings/congregation')
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
   return withScopeFromContext(context, async db => {
     const kinds = await db.eventKind.findMany({
       where: { congregationId, NOT: { key: 'off' } },
@@ -47,7 +47,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.Admin)) throw redirect('/settings/congregation')
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
   const formData = await request.formData()
   const intent = formData.get('intent')
 

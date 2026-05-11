@@ -6,7 +6,7 @@ vi.mock('~/features/authentication/server/session.server', () => ({
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { findUnique: vi.fn() },
+    userAccount: { findUnique: vi.fn() },
   },
 }))
 
@@ -33,7 +33,7 @@ beforeEach(() => {
 describe('verifyPlatformAdmin', () => {
   it('retourne userId et email pour un admin plateforme', async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({
+    vi.mocked(unscopedDb.userAccount.findUnique).mockResolvedValue({
       id: 42,
       email: 'admin@unitae.app',
       platformAdmin: true,
@@ -58,7 +58,7 @@ describe('verifyPlatformAdmin', () => {
 
   it("lance une redirection vers / quand l'utilisateur n'est pas admin plateforme", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue({
+    vi.mocked(unscopedDb.userAccount.findUnique).mockResolvedValue({
       id: 42,
       email: 'user@test.com',
       platformAdmin: false,
@@ -76,7 +76,7 @@ describe('verifyPlatformAdmin', () => {
 
   it("lance une redirection vers / quand l'utilisateur n'existe pas", async () => {
     vi.mocked(getSession).mockResolvedValue(makeSession('42') as never)
-    vi.mocked(unscopedDb.user.findUnique).mockResolvedValue(null as never)
+    vi.mocked(unscopedDb.userAccount.findUnique).mockResolvedValue(null as never)
 
     try {
       await verifyPlatformAdmin(makeRequest())

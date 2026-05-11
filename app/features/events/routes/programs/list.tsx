@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import {
@@ -30,7 +30,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   if (!permissions.has(Permission.ProgramViewer)) {
     logger.warn(`Try to load programs. User ID: ${currentUser.id}. Does NOT have rights to access programs.`)

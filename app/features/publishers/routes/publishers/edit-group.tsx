@@ -6,7 +6,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -28,7 +28,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
@@ -36,9 +36,10 @@ export function loader({ params, context }: Route.LoaderArgs) {
   }
 
   return withScopeFromContext(context, async db => {
-    const brothers = await db.user.findMany({
+    const brothers = await db.member.findMany({
       where: {
         congregationId: currentUser.congregationId,
+        leftAt: null,
         isMale: true,
         OR: [{ isHelder: true }, { isServant: true }],
       },
@@ -180,7 +181,7 @@ export default function EditGroup({ loaderData, actionData }: Route.ComponentPro
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const previousPage = request.headers.get('referer')
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 

@@ -12,7 +12,7 @@ import {
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -38,15 +38,20 @@ async function safeQuery<T>(label: string, userId: number, fn: () => Promise<T>)
 }
 
 export function loader({ context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const permissions = context.get(permissionsContext)
   const isAdmin = permissions.has(Permission.Admin)
   const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
   const canViewBoard = permissions.has(Permission.BoardViewer)
 
+  // Member-bound queries (territories, programme assignments) need the linked
+  // Member id; account-bound queries (documents/views) use the UserAccount id.
+  const memberId = currentUser.member?.id ?? null
   return withScopeFromContext(context, async db => {
     const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting] = await Promise.all([
-      safeQuery('territories', currentUser.id, () => getUserTerritories(db, currentUser.id)),
+      memberId != null
+        ? safeQuery('territories', currentUser.id, () => getUserTerritories(db, memberId))
+        : Promise.resolve(null),
       canViewBoard
         ? safeQuery('documents', currentUser.id, () =>
             getRecentDocuments(db, currentUser.id, currentUser.congregationId),
@@ -58,14 +63,18 @@ export function loader({ context }: Route.LoaderArgs) {
           )
         : Promise.resolve(0),
       safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
-      safeQuery('next-meeting', currentUser.id, () => getNextMeeting(db, currentUser.id)),
+      memberId != null
+        ? safeQuery('next-meeting', currentUser.id, () => getNextMeeting(db, memberId))
+        : Promise.resolve(null),
     ])
 
     // Onboarding: count entities for admin checklist
     let onboarding = null
     if (isAdmin) {
       const [publisherCount, territoryCount, documentCount] = await Promise.all([
-        safeQuery('onboarding-publishers', currentUser.id, () => db.user.count({ where: { isPublisher: true } })),
+        safeQuery('onboarding-publishers', currentUser.id, () =>
+          db.member.count({ where: { isPublisher: true, leftAt: null } }),
+        ),
         safeQuery('onboarding-territories', currentUser.id, () => db.territory.count()),
         safeQuery('onboarding-documents', currentUser.id, () => db.boardDocument.count()),
       ])
@@ -77,7 +86,7 @@ export function loader({ context }: Route.LoaderArgs) {
     }
 
     return {
-      currentUser: { firstname: currentUser.firstname },
+      currentUser: { firstname: currentUser.member?.firstname ?? currentUser.firstname },
       territories,
       recentDocuments,
       unreadDocumentCount,

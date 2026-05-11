@@ -1,7 +1,9 @@
+import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { BUILT_IN_ROLE_KEYS } from '~/shared/domain/built-in-roles.server'
 import { ConflictError, ForbiddenError, ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 
 const BUILT_IN_ORDER = new Map<string, number>(BUILT_IN_ROLE_KEYS.map((key, index) => [key, index]))
@@ -316,6 +318,22 @@ export async function setUserCustomRoleAssignments(
   }
 
   if (added.length === 0 && removed.length === 0) return
+
+  // If any removed role granted Admin, this update could strip the user's
+  // admin power. Guard against leaving the congregation without an admin.
+  if (removed.length > 0) {
+    const removedRolesWithAdmin = await db.rolePermission.findFirst({
+      where: {
+        roleId: { in: removed },
+        congregationId,
+        permission: { key: Permission.Admin },
+      },
+      select: { roleId: true },
+    })
+    if (removedRolesWithAdmin) {
+      await requireNotLastAdmin(userId, congregationId)
+    }
+  }
 
   if (added.length > 0) {
     await db.userRoleAssignment.createMany({

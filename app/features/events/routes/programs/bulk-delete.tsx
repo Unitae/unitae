@@ -1,7 +1,7 @@
 import { redirect } from 'react-router'
 import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import { bulkDeleteEvents } from '~/features/events/server/programme-events.server'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -13,7 +13,7 @@ export function loader(_args: Route.LoaderArgs) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const isProgramManager = permissions.has(Permission.ProgramManager)
 
   const { ids } = (await request.json()) as { ids: number[] }

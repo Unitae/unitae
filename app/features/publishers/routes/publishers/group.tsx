@@ -6,7 +6,7 @@ import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -24,7 +24,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewPublishers = permissions.has(Permission.PublisherViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
   const canManageActivity = permissions.has(Permission.ActivityManager)
@@ -142,7 +142,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
           </TableHeader>
           <TableBody>
             {group.members.map(member => (
-              <TableRow key={member.email}>
+              <TableRow key={member.id}>
                 <TableCell className="text-center max-sm:text-left">
                   <Link className="hover:text-primary" to={`../../../publishers/${member.id}/view`} relative="path">
                     {member.firstname}
@@ -154,8 +154,8 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">
-                  {member.email.includes('@placeholder.unitae.app') === false && (
-                    <Link to={`mailto:${member.email}`} className="hover:text-primary">
+                  {member.account?.email && (
+                    <Link to={`mailto:${member.account.email}`} className="hover:text-primary">
                       <Mail className="inline size-4" />
                     </Link>
                   )}
@@ -235,7 +235,7 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const previousPage = request.headers.get('referer')
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 

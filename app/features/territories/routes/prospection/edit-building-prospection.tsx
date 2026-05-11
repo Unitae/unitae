@@ -26,7 +26,7 @@ import {
   congregationContext,
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -53,7 +53,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
   requirePermission(permissions, Permission.ProspectionManager)
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const building = await getBuildingDetails(db, requireParamId(params.buildingId, '/territories/buildings'))

@@ -4,7 +4,7 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { getZips } from '~/features/territories/server/buildings.server'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -27,7 +27,7 @@ export function loader({ context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const prospectionValidity = Number(

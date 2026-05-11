@@ -12,7 +12,7 @@ import {
   updateExternalSpeaker,
 } from '~/features/events/server/external-speakers.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import {
@@ -53,7 +53,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')
 
   return withScopeFromContext(context, async db => {
-    const { congregationId } = context.get(userContext)
+    const { congregationId } = context.get(currentAccountContext)
     const speaker = await getExternalSpeaker(db, externalSpeakerId, congregationId)
     if (!speaker) throw redirect('/programs/external-speakers')
 
@@ -79,7 +79,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.ExternalSpeakerManager)) throw redirect('/')
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const externalSpeakerId = requireParamId(params.externalSpeakerId, '/programs/external-speakers')
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()

@@ -2,12 +2,12 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, Link, redirect } from 'react-router'
 import ResetPassword from '~/features/authentication/emails/reset-password'
 import { forgotPasswordSchema } from '~/features/authentication/schemas/login.schema'
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
+import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
 import {
   checkPasswordResetRateLimit,
   recordPasswordResetAttempt,
 } from '~/features/authentication/server/rate-limit.server'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -106,7 +106,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const user = await db.user.findFirst({ where: { email: emailStr } })
+  const user = await db.userAccount.findFirst({ where: { email: emailStr } })
 
   if (user == null) {
     throw redirect('/password/forgot', {
@@ -116,7 +116,7 @@ export async function action({ request }: Route.ActionArgs) {
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  const sent = await sendResetUserPasswordEmail(
+  const sent = await sendResetAccountPasswordEmail(
     user.id,
     <ResetPassword
       email={user.email}

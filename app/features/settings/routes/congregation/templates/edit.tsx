@@ -26,7 +26,7 @@ import {
   upsertServiceRoleSchema,
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -49,7 +49,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
@@ -103,7 +103,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
   const formData = await request.formData()

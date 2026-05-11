@@ -553,7 +553,7 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.building.deleteMany({ where: { congregationId } })
   await prisma.territory.deleteMany({ where: { congregationId } })
   await prisma.congregationUserPermission.deleteMany({ where: { congregationId } })
-  await prisma.user.updateMany({
+  await prisma.member.updateMany({
     where: { congregationId },
     data: { publisherGroupId: null },
   })
@@ -580,7 +580,8 @@ async function main() {
     const stale = await prisma.congregation.findUnique({ where: { slug } })
     if (stale) {
       await cleanCongregationData(stale.id)
-      await prisma.user.deleteMany({ where: { congregationId: stale.id } })
+      await prisma.userAccount.deleteMany({ where: { congregationId: stale.id } })
+      await prisma.member.deleteMany({ where: { congregationId: stale.id } })
       await prisma.congregation.delete({ where: { id: stale.id } })
     }
   }
@@ -588,7 +589,8 @@ async function main() {
   // If both default and marketing exist, delete the marketing one (stale duplicate)
   if (defaultCong && marketingCong) {
     await cleanCongregationData(marketingCong.id)
-    await prisma.user.deleteMany({ where: { congregationId: marketingCong.id } })
+    await prisma.userAccount.deleteMany({ where: { congregationId: marketingCong.id } })
+    await prisma.member.deleteMany({ where: { congregationId: marketingCong.id } })
     await prisma.congregation.delete({ where: { id: marketingCong.id } })
   }
 
@@ -597,7 +599,8 @@ async function main() {
   if (existing) {
     console.log('  ⤵ Cleaning previous marketing data...')
     await cleanCongregationData(existing.id)
-    await prisma.user.deleteMany({ where: { congregationId: existing.id } })
+    await prisma.userAccount.deleteMany({ where: { congregationId: existing.id } })
+    await prisma.member.deleteMany({ where: { congregationId: existing.id } })
   }
 
   const hashedPassword = await hashPassword('demo1234')
@@ -656,8 +659,12 @@ async function main() {
   console.log('  ✓ Event kinds & programme templates')
 
   // ── Users / Publishers ────────────────────────────────────────────────
+  // `id` = Member id (used as publisherId/assigneeId everywhere); `accountId` =
+  // UserAccount id (used as userId in CongregationUserPermission). They differ
+  // for fresh seeds because Prisma assigns each table its own sequence.
   const createdUsers: {
     id: number
+    accountId: number
     firstname: string
     lastname: string
     isMale: boolean
@@ -676,15 +683,10 @@ async function main() {
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')}@demo.unitae.app`
 
-    const user = await prisma.user.upsert({
-      where: { email },
-      update: {},
-      create: {
+    const member = await prisma.member.create({
+      data: {
         firstname: pub.firstname,
         lastname: pub.lastname,
-        email,
-        password: hashedPassword,
-        active: true,
         isPublisher: true,
         type: pub.type,
         isMale: pub.isMale,
@@ -692,13 +694,26 @@ async function main() {
         isServant: pub.isServant ?? false,
         birthDate: randomDate(new Date('1955-01-01'), new Date('2002-12-31')),
         baptismDate: randomDate(new Date('1975-01-01'), new Date('2024-06-30')),
+        congregationId: congId,
+      },
+    })
+
+    const account = await prisma.userAccount.upsert({
+      where: { email },
+      update: {},
+      create: {
+        memberId: member.id,
+        email,
+        password: hashedPassword,
+        active: true,
         emailVerifiedAt: email === 'marc.dupont@demo.unitae.app' ? new Date() : null,
         congregationId: congId,
       },
     })
 
     createdUsers.push({
-      id: user.id,
+      id: member.id,
+      accountId: account.id,
       firstname: pub.firstname,
       lastname: pub.lastname,
       isMale: pub.isMale,
@@ -755,13 +770,13 @@ async function main() {
     await prisma.congregationUserPermission.upsert({
       where: {
         userId_permissionId_congregationId: {
-          userId: mainAdmin.id,
+          userId: mainAdmin.accountId,
           permissionId: role.id,
           congregationId: congId,
         },
       },
       update: {},
-      create: { userId: mainAdmin.id, permissionId: role.id, congregationId: congId },
+      create: { userId: mainAdmin.accountId, permissionId: role.id, congregationId: congId },
     })
   }
 
@@ -772,14 +787,14 @@ async function main() {
       await prisma.congregationUserPermission.upsert({
         where: {
           userId_permissionId_congregationId: {
-            userId: createdUsers[i].id,
+            userId: createdUsers[i].accountId,
             permissionId: role.id,
             congregationId: congId,
           },
         },
         update: {},
         create: {
-          userId: createdUsers[i].id,
+          userId: createdUsers[i].accountId,
           permissionId: role.id,
           congregationId: congId,
         },
@@ -820,7 +835,7 @@ async function main() {
     const startIdx = i * 9
     const endIdx = Math.min(startIdx + 9, createdUsers.length)
     for (let j = startIdx; j < endIdx; j++) {
-      await prisma.user.update({
+      await prisma.member.update({
         where: { id: createdUsers[j].id },
         data: { publisherGroupId: group.id },
       })
@@ -1115,7 +1130,7 @@ async function main() {
           startDate: tuesday,
           endDate: endTuesday,
           templateId: midweekTemplate.id,
-          createdById: mainAdmin.id,
+          createdById: mainAdmin.accountId,
           congregationId: congId,
         },
       })
@@ -1172,7 +1187,7 @@ async function main() {
           startDate: saturday,
           endDate: endSaturday,
           templateId: weekendTemplate.id,
-          createdById: mainAdmin.id,
+          createdById: mainAdmin.accountId,
           congregationId: congId,
         },
       })
@@ -1222,7 +1237,7 @@ async function main() {
         kindId: offKind.id,
         startDate,
         endDate,
-        createdById: publisher.id,
+        createdById: publisher.accountId,
         congregationId: congId,
       },
     })

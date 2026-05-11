@@ -47,7 +47,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     // In multi-tenant mode, verify the session matches the subdomain's congregation
     const urlCongregation = await resolveCongregationFromRequest(request)
     if (urlCongregation) {
-      const user = await unscopedDb.user.findUnique({
+      const user = await unscopedDb.userAccount.findUnique({
         where: { id: uid },
         select: { congregationId: true },
       })

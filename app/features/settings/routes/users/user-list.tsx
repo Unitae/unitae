@@ -1,7 +1,7 @@
 import { IdCard, Pencil, UserPlus } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageUser = permissions.has(Permission.SettingsUserManager)
   const canViewPublishers = permissions.has(Permission.PublisherViewer)
   const canManagePublishers = permissions.has(Permission.PublisherManager)
@@ -37,7 +37,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const search = url.searchParams.get('q')?.trim() || undefined
 
   return withScopeFromContext(context, async db => {
-    const users = await db.user.findMany({
+    const accounts = await db.userAccount.findMany({
       where: {
         congregationId: currentUser.congregationId,
         ...(search
@@ -46,12 +46,22 @@ export function loader({ request, context }: Route.LoaderArgs) {
                 { firstname: { contains: search, mode: 'insensitive' } },
                 { lastname: { contains: search, mode: 'insensitive' } },
                 { email: { contains: search, mode: 'insensitive' } },
+                {
+                  member: {
+                    OR: [
+                      { firstname: { contains: search, mode: 'insensitive' } },
+                      { lastname: { contains: search, mode: 'insensitive' } },
+                    ],
+                  },
+                },
               ],
             }
           : {}),
       },
       include: {
-        roleAssignments: { select: { role: { select: { isBuiltIn: true } } } },
+        member: { select: { firstname: true, lastname: true, isPublisher: true, leftAt: true } },
+        // UserRoleAssignment holds management/custom roles only (post-split).
+        roleAssignments: { select: { roleId: true } },
         _count: {
           select: {
             congregationPermissions: true,
@@ -68,22 +78,32 @@ export function loader({ request, context }: Route.LoaderArgs) {
       ],
     })
 
+    // Count built-in identity roles per linked Member, in one batch query.
+    const memberIds = accounts.flatMap(a => (a.member ? [a.memberId as number] : []))
+    const memberRoleRows = memberIds.length
+      ? await db.memberRoleAssignment.findMany({
+          where: { memberId: { in: memberIds } },
+          select: { memberId: true, role: { select: { isBuiltIn: true } } },
+        })
+      : []
+    const builtInCountByMember = new Map<number, number>()
+    for (const r of memberRoleRows) {
+      if (r.role.isBuiltIn) builtInCountByMember.set(r.memberId, (builtInCountByMember.get(r.memberId) ?? 0) + 1)
+    }
+
     return {
-      users: users.map(user => {
-        const builtInRoleCount = user.roleAssignments.filter(a => a.role.isBuiltIn).length
-        const customRoleCount = user.roleAssignments.length - builtInRoleCount
-        return {
-          email: user.email.includes('@placeholder.unitae.app') ? null : user.email,
-          id: user.id,
-          active: user.active,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          isPublisher: user.isPublisher,
-          builtInRoleCount,
-          customRoleCount,
-          directPermissionCount: user._count.congregationPermissions,
-        }
-      }),
+      users: accounts.map(account => ({
+        email: account.email,
+        id: account.id,
+        memberId: account.memberId,
+        active: account.active,
+        firstname: account.member?.firstname ?? account.firstname,
+        lastname: account.member?.lastname ?? account.lastname,
+        isPublisher: account.member?.isPublisher ?? false,
+        builtInRoleCount: account.memberId ? (builtInCountByMember.get(account.memberId) ?? 0) : 0,
+        customRoleCount: account.roleAssignments.length,
+        directPermissionCount: account._count.congregationPermissions,
+      })),
       roles: {
         canViewPublishers,
         canManageUser,
@@ -133,10 +153,10 @@ export default function UserListPage({ loaderData }: Route.ComponentProps) {
                 <TableCell>{user.lastname?.toLocaleUpperCase()}</TableCell>
                 <TableCell className="max-sm:hidden">{user.email ?? '-'}</TableCell>
                 <TableCell className="text-center">
-                  {user.isPublisher ? (
+                  {user.isPublisher && user.memberId != null ? (
                     roles.canViewPublishers ? (
                       <Link
-                        to={`/publishers/${user.id}/view`}
+                        to={`/publishers/${user.memberId}/view`}
                         title={m.settings_users_view_publisher_title()}
                         className="text-primary"
                       >

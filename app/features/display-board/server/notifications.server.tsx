@@ -11,7 +11,7 @@ export async function sendNewDocumentNotificationEmail(
   congregation: CongregationInfo,
   { document }: { document: BoardDocument },
 ) {
-  const users = await unscopedDb.user.findMany({
+  const users = await unscopedDb.userAccount.findMany({
     where: {
       congregationId: congregation.id,
       congregationPermissions: {

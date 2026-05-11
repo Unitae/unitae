@@ -67,7 +67,7 @@ Each type has:
 
 - **`debounceMinutes`** — How long to buffer before sending. `0` = instant.
 - **`recipientStrategy`** — How to find recipients (currently only `'role'`).
-- **`recipientRole`** — The **permission key** to query for recipients. Misnamed for historical reasons: `resolveRecipients` looks up users by `CongregationUserPermission` directly (see `app/features/notifications/server/resolve-recipients.server.ts`), so users who hold the permission only via a custom-role assignment are not currently picked up. Direct permission grants are required.
+- **`recipientRole`** — The **permission key** to query for recipients. Misnamed for historical reasons: `resolveRecipients` looks up `UserAccount` rows by `CongregationUserPermission` directly (see `app/features/notifications/server/resolve-recipients.server.ts`), so accounts whose permission comes only via a custom `UserRoleAssignment` aren't currently picked up. Direct permission grants are required.
 - **`cancels`** (optional) — List of notification types this one supersedes. If pending events exist for those types + same entity, they are cancelled instead of sending a new email.
 - **`fallback`** (optional) — Config to use if no pending events were found to cancel.
 
@@ -124,14 +124,16 @@ Cancellation types (e.g., `board.document.deleted`) attempt to cancel pending de
 
 ## Recipient Resolution
 
-`resolveRecipients()` finds users who should receive a notification:
+`resolveRecipients()` finds `UserAccount`s that should receive a notification:
 
-1. Queries active users in the congregation that hold the configured permission directly via `CongregationUserPermission`
-2. Loads `NotificationPreference` records for those users
-3. Filters out users who have disabled this notification type (exact match or wildcard `category.*`)
+1. Queries active accounts in the congregation that hold the configured permission directly via `CongregationUserPermission`
+2. Loads `NotificationPreference` records for those accounts
+3. Filters out accounts that have disabled this notification type (exact match or wildcard `category.*`)
 4. Returns the filtered list of recipients
 
-The role layer (`Role` / `RolePermission` / `UserRoleAssignment`) is **not** consulted today. If you want a permission to grant notification eligibility through a role, the resolver needs an update — see the comment on `recipientRole` in the type registry.
+The role layer (`Role` / `RolePermission` / `UserRoleAssignment`) is **not** consulted today. If you want a permission to grant notification eligibility through a custom role, the resolver needs an update — see the comment on `recipientRole` in the type registry.
+
+Members without an account are not addressable as notification recipients (no email, no preferences); the resolver naturally skips them.
 
 ## User Preferences
 

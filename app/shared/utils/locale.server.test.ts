@@ -6,7 +6,7 @@ vi.mock('~/features/authentication/server/session.server', () => ({
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { findUnique: vi.fn() },
+    userAccount: { findUnique: vi.fn() },
     congregation: { findUnique: vi.fn(), findFirst: vi.fn() },
   },
 }))
@@ -39,7 +39,7 @@ function mockSession(userId: number | typeof NaN) {
 describe('resolveLocaleFromRequest', () => {
   it('returns the congregation locale for an authenticated user', async () => {
     mockSession(42)
-    vi.mocked(db.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1 } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ locale: 'en' } as never)
 
     const result = await resolveLocaleFromRequest(makeRequest())
@@ -48,7 +48,7 @@ describe('resolveLocaleFromRequest', () => {
 
   it("returns 'fr' when authenticated user's congregation has locale 'fr'", async () => {
     mockSession(42)
-    vi.mocked(db.user.findUnique).mockResolvedValue({ congregationId: 1 } as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue({ congregationId: 1 } as never)
     vi.mocked(resolveCongregation).mockResolvedValue({ locale: 'fr' } as never)
 
     const result = await resolveLocaleFromRequest(makeRequest())
@@ -66,7 +66,7 @@ describe('resolveLocaleFromRequest', () => {
 
   it('falls through when session user is not found in DB', async () => {
     mockSession(42)
-    vi.mocked(db.user.findUnique).mockResolvedValue(null as never)
+    vi.mocked(db.userAccount.findUnique).mockResolvedValue(null as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue(null as never)
     vi.mocked(db.congregation.findFirst).mockResolvedValue(null as never)
 

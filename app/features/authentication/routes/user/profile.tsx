@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Form, Link, redirect } from 'react-router'
 import { getCalendarFeedToken } from '~/features/authentication/server/calendar-feed-token.server'
-import { changeUserPassword } from '~/features/authentication/server/change-user-password.server'
+import { changeAccountPassword } from '~/features/authentication/server/change-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { congregationContext, userContext } from '~/shared/auth/route-context.server'
+import { congregationContext, currentAccountContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import logger from '~/shared/infra/logger.server'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const session = await getSession(request.headers.get('Cookie'))
   logger.info(`Loading profile data. User ID: ${currentUser.id}.`)
@@ -40,9 +40,9 @@ export async function loader({ request, context }: Route.LoaderArgs) {
     user: {
       id: currentUser.id,
       email: currentUser.email,
-      lastname: currentUser.lastname,
-      firstname: currentUser.firstname,
-      isPublisher: currentUser.isPublisher,
+      lastname: currentUser.member?.lastname ?? currentUser.lastname,
+      firstname: currentUser.member?.firstname ?? currentUser.firstname,
+      isPublisher: currentUser.member?.isPublisher ?? false,
     },
     congregationName: congregation.displayName ?? congregation.name,
     calendar,
@@ -254,13 +254,13 @@ function CalendarFeedCard({ calendar }: { calendar: CalendarLoaderData }) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
   const password = formData.get('password')
   const newPassword = formData.get('new_password')
 
-  const isSuccess = await changeUserPassword(currentUser.id, String(password), String(newPassword))
+  const isSuccess = await changeAccountPassword(currentUser.id, String(password), String(newPassword))
 
   if (isSuccess) {
     audit({

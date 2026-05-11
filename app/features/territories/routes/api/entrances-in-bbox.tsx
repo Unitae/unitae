@@ -3,7 +3,7 @@ import { getEntrancesInBbox } from '~/features/territories/server/buildings.serv
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -30,7 +30,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     return data({ error: 'invalid_params' }, { status: 400 })
   }
 
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const territory = await db.territory.findFirst({ where: { id: territoryId }, select: { type: true } })

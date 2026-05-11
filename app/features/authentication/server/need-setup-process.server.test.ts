@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { count: vi.fn() },
+    userAccount: { count: vi.fn() },
   },
 }))
 
@@ -15,19 +15,19 @@ beforeEach(() => {
 
 describe('needSetupProcess', () => {
   it("retourne true quand il n'y a aucun utilisateur", async () => {
-    vi.mocked(db.user.count).mockResolvedValue(0)
+    vi.mocked(db.userAccount.count).mockResolvedValue(0)
 
     expect(await needSetupProcess()).toBe(true)
   })
 
   it('retourne false quand il y a des utilisateurs', async () => {
-    vi.mocked(db.user.count).mockResolvedValue(1)
+    vi.mocked(db.userAccount.count).mockResolvedValue(1)
 
     expect(await needSetupProcess()).toBe(false)
   })
 
   it('retourne false quand il y a plusieurs utilisateurs', async () => {
-    vi.mocked(db.user.count).mockResolvedValue(50)
+    vi.mocked(db.userAccount.count).mockResolvedValue(50)
 
     expect(await needSetupProcess()).toBe(false)
   })

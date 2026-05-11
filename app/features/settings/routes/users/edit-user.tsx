@@ -1,13 +1,14 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
-import { data, Form, Link, redirect } from 'react-router'
+import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
-import { updateUser } from '~/features/settings/server/update-user.server'
+import { updateAccount } from '~/features/settings/server/update-account.server'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { setUserCustomRoleAssignments } from '~/shared/domain/roles.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDisplayName } from '~/shared/types/role'
 import { Alert, AlertDescription } from '~/shared/ui/alert'
@@ -42,7 +43,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageUser = permissions.has(Permission.SettingsUserManager)
   const isAdmin = permissions.has(Permission.Admin)
 
@@ -53,35 +54,49 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const canManageRoles = permissions.has(Permission.RolesManager)
 
   return withScopeFromContext(context, async db => {
-    const user = await db.user.findUnique({
+    const user = await db.userAccount.findUnique({
       where: {
         id_congregationId: {
-          id: requireParamId(params.userId, '/settings/users'),
+          id: requireParamId(params.accountId, '/settings/users'),
           congregationId: currentUser.congregationId,
         },
       },
       include: {
+        member: { select: { id: true, firstname: true, lastname: true, isPublisher: true, anonymizedAt: true } },
         congregationPermissions: { include: { permission: true } },
-        roleAssignments: { include: { role: true } },
+        // Identity-role assignments for the matrix come from the linked Member
       },
     })
 
     if (user == null) throw redirect('/settings/users')
+
+    const memberRoleAssignments = user.member
+      ? await db.memberRoleAssignment.findMany({
+          where: { memberId: user.member.id },
+          select: { roleId: true },
+        })
+      : []
+    const userRoleAssignments = await db.userRoleAssignment.findMany({
+      where: { userId: user.id },
+      select: { roleId: true },
+    })
 
     const permissionList = await db.permission.findMany()
     const allRoles = await db.role.findMany({
       where: { congregationId: currentUser.congregationId },
       orderBy: [{ isBuiltIn: 'desc' }, { name: 'asc' }, { key: 'asc' }],
     })
-    const assignedRoleIds = new Set(user.roleAssignments.map(a => a.roleId))
-    const missEmail = user.email.includes('@placeholder.unitae.app')
+    // Built-in identity roles attach to Member; management/custom roles attach to UserAccount
+    const assignedBuiltInIds = new Set(memberRoleAssignments.map(a => a.roleId))
+    const assignedCustomIds = new Set(userRoleAssignments.map(a => a.roleId))
 
     return {
-      email: missEmail ? null : user.email,
+      email: user.email,
       id: user.id,
+      memberId: user.member?.id ?? null,
       active: user.active,
-      firstname: user.firstname,
-      lastname: user.lastname,
+      firstname: user.member?.firstname ?? user.firstname,
+      lastname: user.member?.lastname ?? user.lastname,
       permissions: user.congregationPermissions.map(cp => cp.permission),
       permissionList,
       builtInRoles: allRoles
@@ -91,7 +106,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
           key: r.key,
           name: r.name,
           description: r.description,
-          isAssigned: assignedRoleIds.has(r.id),
+          isAssigned: assignedBuiltInIds.has(r.id),
         })),
       customRoles: allRoles
         .filter(r => !r.isBuiltIn)
@@ -100,22 +115,24 @@ export function loader({ params, context }: Route.LoaderArgs) {
           key: r.key,
           name: r.name,
           description: r.description,
-          isAssigned: assignedRoleIds.has(r.id),
+          isAssigned: assignedCustomIds.has(r.id),
         })),
       canManageRoles,
-      isPublisher: user.isPublisher,
+      isPublisher: user.member?.isPublisher ?? false,
       isAdmin,
-      anonymizedAt: user.anonymizedAt,
+      anonymizedAt: user.anonymizedAt ?? user.member?.anonymizedAt ?? null,
       canAnonymize: isAdmin && user.id !== currentUser.id && !user.anonymizedAt,
     }
   })
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: large edit page with multiple optional sections (custom roles, danger-zone, anonymized banner)
 export default function SettingsLayout({ loaderData, actionData }: Route.ComponentProps) {
   const { permissionList, builtInRoles, customRoles, canManageRoles, isAdmin, canAnonymize, anonymizedAt, ...user } =
     loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
+  const submit = useSubmit()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -129,6 +146,13 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
   return (
     <div className="flex flex-col gap-6">
       <UnsavedChangesDialog blocker={blocker} />
+      {anonymizedAt && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString('fr-FR') })}
+          </AlertDescription>
+        </Alert>
+      )}
       <PageHeader
         title={m.settings_user_edit_title()}
         subtitle={m.settings_user_edit_subtitle()}
@@ -136,9 +160,9 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
         backTo="/settings/users"
         actions={
           <>
-            {user.isPublisher === true ? (
+            {user.isPublisher === true && user.memberId != null ? (
               <Button asChild variant="outline" size="icon" title={m.settings_user_edit_view_publisher_title()}>
-                <Link to={`/publishers/${user.id}/edit`}>
+                <Link to={`/publishers/${user.memberId}/edit`}>
                   <IdCard className="size-4" />
                 </Link>
               </Button>
@@ -329,42 +353,62 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
               {m.settings_user_edit_danger_zone()}
             </CardTitle>
           </CardHeader>
-          <CardContent className="flex items-center justify-between gap-4">
-            <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="shrink-0">
-                  {m.settings_user_edit_anonymize_button()}
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{m.settings_user_edit_anonymize_dialog_title()}</AlertDialogTitle>
-                  <AlertDialogDescription>{m.settings_user_edit_anonymize_dialog_description()}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                  <Form method="post" action={`/settings/users/${user.id}/anonymize`}>
+          <CardContent className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-muted-foreground text-sm">{m.settings_user_edit_delete_account_description()}</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="shrink-0">
+                    {m.settings_user_edit_delete_account_button()}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.settings_user_edit_delete_account_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.settings_user_edit_delete_account_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
                     <AlertDialogAction
-                      type="submit"
+                      onClick={() =>
+                        submit(null, { method: 'post', action: `/settings/users/${user.id}/delete-account` })
+                      }
+                    >
+                      {m.settings_user_edit_delete_account_confirm()}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="shrink-0">
+                    {m.settings_user_edit_anonymize_button()}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.settings_user_edit_anonymize_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>{m.settings_user_edit_anonymize_dialog_description()}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => submit(null, { method: 'post', action: `/settings/users/${user.id}/anonymize` })}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       {m.settings_user_edit_anonymize_confirm()}
                     </AlertDialogAction>
-                  </Form>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </CardContent>
         </Card>
-      )}
-
-      {anonymizedAt && (
-        <Alert variant="destructive">
-          <AlertDescription>
-            {m.settings_user_edit_anonymized_at({ date: new Date(anonymizedAt).toLocaleDateString('fr-FR') })}
-          </AlertDescription>
-        </Alert>
       )}
     </div>
   )
@@ -372,14 +416,14 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageUser = permissions.has(Permission.SettingsUserManager)
 
   if (!canManageUser) {
     throw redirect('/')
   }
 
-  const userId = requireParamId(params.userId, '/settings/users')
+  const accountId = requireParamId(params.accountId, '/settings/users')
   const submission = parseWithZod(await request.formData(), { schema: editUserSchema })
 
   if (submission.status !== 'success') {
@@ -389,15 +433,22 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { firstname, lastname, email, active, permissions: selectedPermissions, customRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
-    await updateUser(db, userId, currentUser.congregationId, currentUser.id, {
-      firstname,
-      lastname,
-      email,
-      active,
-      permissions: selectedPermissions,
-    })
+    try {
+      await updateAccount(db, accountId, currentUser.congregationId, currentUser.id, {
+        firstname,
+        lastname,
+        email,
+        active,
+        permissions: selectedPermissions,
+      })
 
-    await setUserCustomRoleAssignments(db, userId, currentUser.congregationId, currentUser.id, customRoleIds)
+      await setUserCustomRoleAssignments(db, accountId, currentUser.congregationId, currentUser.id, customRoleIds)
+    } catch (error) {
+      if (error instanceof ConflictError) {
+        return data(submission.reply({ formErrors: [error.message] }), { status: 409 })
+      }
+      throw error
+    }
 
     return redirect('/settings/users')
   })

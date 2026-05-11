@@ -3,12 +3,12 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createUserSchema } from '~/features/settings/schemas/user.schema'
-import { createUser, UserAlreadyExistsError } from '~/features/settings/server/create-user.server'
+import { createAccount, UserAlreadyExistsError } from '~/features/settings/server/create-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -94,7 +94,7 @@ export default function SettingsLayout({ actionData }: Route.ComponentProps) {
 }
 
 export async function action({ request, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const submission = parseWithZod(await request.formData(), { schema: createUserSchema })
 
@@ -108,7 +108,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     try {
       const ResetPasswordRequired = (await import('~/features/authentication/emails/reset-password-required')).default
-      const result = await createUser(
+      const result = await createAccount(
         db,
         congregation,
         currentUser.id,

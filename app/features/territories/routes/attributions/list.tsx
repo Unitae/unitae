@@ -1,4 +1,4 @@
-import { CalendarCheck, Pencil, X } from 'lucide-react'
+import { CalendarCheck, Lock, Pencil, X } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
@@ -8,7 +8,7 @@ import { getCurrentTheocraticYear } from '~/features/territories/server/theocrat
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -29,7 +29,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewTerritories = permissions.has(Permission.TerritoriesViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
   const canViewPublisher = permissions.has(Permission.PublisherViewer)
@@ -155,58 +155,88 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
             <TableBody>
               {[...attributions]
                 .sort((attrA, attrB) => {
+                  // Sort priority: orphaned > late > current. Within a bucket
+                  // the order falls back to the DB ordering (startDate asc).
+                  const aIsOrphaned = attrA.publisher.leftAt != null || attrA.publisher.anonymizedAt != null
+                  const bIsOrphaned = attrB.publisher.leftAt != null || attrB.publisher.anonymizedAt != null
+                  if (aIsOrphaned && !bIsOrphaned) return -1
+                  if (!aIsOrphaned && bIsOrphaned) return 1
+
                   const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
                   const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
-                  if (aIsLate && !bIsLate) {
-                    return -1
-                  }
-
-                  if (!aIsLate && bIsLate) {
-                    return 1
-                  }
+                  if (aIsLate && !bIsLate) return -1
+                  if (!aIsLate && bIsLate) return 1
 
                   return 0
                 })
-                .map(attribution => (
-                  <TableRow key={attribution.id}>
-                    <TableCell>
-                      {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
-                      <span className="text-muted-foreground text-xs">
-                        (
-                        {m.attributions_days_count({
-                          count: ((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2),
-                        })}
-                        )
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Link
-                        to={`/territories/territory/${attribution.territoryId}/view`}
-                        className="hover:text-primary"
-                      >
-                        {attribution.territory.number}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {canViewPublisher ? (
-                        <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
-                          {formatPersonName(attribution.publisher)}
+                .map(attribution => {
+                  const isAnonymized = attribution.publisher.anonymizedAt != null
+                  const hasLeft = attribution.publisher.leftAt != null
+                  return (
+                    <TableRow key={attribution.id}>
+                      <TableCell>
+                        {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
+                        <span className="text-muted-foreground text-xs">
+                          (
+                          {m.attributions_days_count({
+                            count: ((Date.now() - attribution.startDate.getTime()) / 3600 / 24 / 1000).toFixed(2),
+                          })}
+                          )
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link
+                          to={`/territories/territory/${attribution.territoryId}/view`}
+                          className="hover:text-primary"
+                        >
+                          {attribution.territory.number}
                         </Link>
-                      ) : (
-                        formatPersonName(attribution.publisher)
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center max-sm:hidden">
-                      {attribution.type === TerritoryAttributionKind.Default && m.attributions_type_default()}
-                      {attribution.type === TerritoryAttributionKind.Campaign && m.attributions_type_campaign()}
-                      {attribution.type === TerritoryAttributionKind.Phone && m.attributions_type_phone()}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <AttributionStatus attribution={attribution} />
-                    </TableCell>
-                    <TableCell className="max-sm:hidden">
-                      {attribution.notes.length > 0 ? attribution.notes : '-'}
-                    </TableCell>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isAnonymized ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-muted-foreground italic"
+                            title={m.attributions_publisher_anonymized_tooltip()}
+                          >
+                            <Lock className="size-3" aria-hidden="true" />
+                            —
+                          </span>
+                        ) : hasLeft ? (
+                          canViewPublisher ? (
+                            <Link
+                              to={`/publishers/${attribution.publisherId}/view`}
+                              className="text-muted-foreground line-through hover:text-primary"
+                              title={m.attributions_publisher_left_tooltip()}
+                            >
+                              {formatPersonName(attribution.publisher)}
+                            </Link>
+                          ) : (
+                            <span
+                              className="text-muted-foreground line-through"
+                              title={m.attributions_publisher_left_tooltip()}
+                            >
+                              {formatPersonName(attribution.publisher)}
+                            </span>
+                          )
+                        ) : canViewPublisher ? (
+                          <Link to={`/publishers/${attribution.publisherId}/view`} className="hover:text-primary">
+                            {formatPersonName(attribution.publisher)}
+                          </Link>
+                        ) : (
+                          formatPersonName(attribution.publisher)
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center max-sm:hidden">
+                        {attribution.type === TerritoryAttributionKind.Default && m.attributions_type_default()}
+                        {attribution.type === TerritoryAttributionKind.Campaign && m.attributions_type_campaign()}
+                        {attribution.type === TerritoryAttributionKind.Phone && m.attributions_type_phone()}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <AttributionStatus attribution={attribution} publisher={attribution.publisher} />
+                      </TableCell>
+                      <TableCell className="max-sm:hidden">
+                        {attribution.notes.length > 0 ? attribution.notes : '-'}
+                      </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
                         {canManageTerritories && (
@@ -236,7 +266,8 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
             </TableBody>
           </Table>
         </div>

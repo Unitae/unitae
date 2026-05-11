@@ -6,10 +6,18 @@ The **Settings** area is where administrators configure the congregation, manage
 
 Create, edit and deactivate the people who can sign in to your congregation's Unitae.
 
-- Add users by email; they receive a verification email and set their own password
-- Edit a user's profile (name, email, publisher status fields)
-- Deactivate a user when they leave the congregation — their assignments and history stay intact
-- Anonymize a user (right to erasure) — replaces personal data with placeholders while preserving statistical history
+The Users list is the admin-side view of every record in the system. It shows three kinds of rows side by side:
+
+- **Publishers with a login** — full member of the congregation who can sign in (most common)
+- **Publishers without a login** — offline members maintained by the secretary; created from the publishers screen
+- **Logins without a publisher record** — circuit overseers, external admins, or anyone who needs read access to data but isn't part of the congregation
+
+For each row you can:
+
+- **Add or remove a login** — turn an offline publisher into someone with a sign-in account, or remove a login while keeping the profile.
+- **Edit profile** — name, email, publisher fields, group, etc.
+- **Mark as left** — the publisher disappears from publisher-facing lists, attribution dropdowns, group rosters; their data stays. Reversible via *Mark as returned*.
+- **Anonymize** (right to erasure) — replaces personal data with placeholders while preserving statistical history. Irreversible. Typically used after a publisher has been gone long enough that you no longer need to identify them.
 
 Permission required: *Settings User Manager* or *Admin*.
 

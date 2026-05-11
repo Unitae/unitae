@@ -66,7 +66,9 @@ model Congregation {
   stripeCustomerId     String?
   stripeSubscriptionId String?
 
-  users                        User[]
+  userAccounts                 UserAccount[]
+  members                      Member[]
+  memberRoleAssignments        MemberRoleAssignment[]
   territories                  Territory[]
   buildings                    Building[]
   buildingEntrances            BuildingEntrance[]
@@ -113,59 +115,117 @@ model Congregation {
   updatedAt DateTime @updatedAt
 }
 
-model User {
-  id                      Int                          @id @default(autoincrement())
-  firstname               String?
-  lastname                String?
-  email                   String                       @unique
-  password                String
-  active                  Boolean                      @default(true)
-  platformAdmin           Boolean                      @default(false)
-  congregationPermissions CongregationUserPermission[]
-  roleAssignments         UserRoleAssignment[]
+// A person currently part of this congregation. Holds identity, demographics,
+// publisher status, and the lifecycle flags (`leftAt` for soft-leave,
+// `anonymizedAt` for GDPR scrub).
+//
+// All domain FKs (attributions, activity reports, programme assignments,
+// publisher groups) point here. Account-bound FKs (audit, document uploads,
+// tokens, permissions, management role assignments) point at `UserAccount`.
+//
+// A Member can exist without a UserAccount (offline publisher, ministry-school
+// student). A UserAccount can exist without a Member (circuit overseer,
+// external admin).
+model Member {
+  id             Int          @id @default(autoincrement())
+  congregation   Congregation @relation(fields: [congregationId], references: [id])
+  congregationId Int
 
+  // Identity
+  firstname String
+  lastname  String
+  isMale    Boolean?
+  birthDate DateTime?
+  phone     String   @default("")
+  address   String   @default("")
+
+  // Domain status. `isPublisher = false` means ministry-school student.
+  // `type` is only meaningful when `isPublisher = true`.
   isPublisher Boolean       @default(false)
   type        PublisherType @default(Normal)
-  isMale      Boolean?
-  phone       String?
-  address     String?
-  birthDate   DateTime?
   baptismDate DateTime?
+  isAnointed  Boolean       @default(false)
   isHelder    Boolean       @default(false)
   isServant   Boolean       @default(false)
-  isAnointed  Boolean       @default(false)
 
-  emailVerifiedAt DateTime?
-  anonymizedAt    DateTime?
-
+  // Group
   publisherGroupId Int?
   publisherGroup   PublisherGroup? @relation("group", fields: [publisherGroupId], references: [id])
   responsibleFor   PublisherGroup? @relation("groupResponsible")
   deputyFor        PublisherGroup? @relation("groupDeputy")
 
-  attributions  Attribution[]       @relation("publisher")
-  activities    PublisherActivity[] @relation("publisherActivity")
-  eventsCreated Event[]             @relation("createdBy")
+  // Lifecycle. Two orthogonal dimensions:
+  //   leftAt        — soft-leave; reversible. Hides Member from publisher-facing lists.
+  //   anonymizedAt  — GDPR scrub; irreversible. PII fields cleared, activity rows preserved.
+  leftAt       DateTime?
+  anonymizedAt DateTime?
 
+  // Optional 1:1 to a login account
+  account UserAccount?
+
+  // Domain relations (FK target Member.id)
+  attributions             Attribution[]                    @relation("publisher")
+  activities               PublisherActivity[]              @relation("publisherActivity")
   partAssignments          ProgrammePartAssignment[]        @relation("partAssignee")
   partAssistantAssignments ProgrammePartAssignment[]        @relation("partAssistant")
   serviceRoleAssignments   ProgrammeServiceRoleAssignment[] @relation("serviceRoleAssignee")
-  templateResponsibilities ProgrammeTemplateResponsible[]   @relation("templateResponsible")
 
-  documentsViewed         BoardDocument[]            @relation("viewedBy")
-  documentVersionUploads  BoardDocumentVersion[]     @relation("boardDocumentVersionUploader")
-  dynamicDocumentViews    BoardDynamicDocumentView[]
-  passwordResetTokens     PasswordResetToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  calendarFeedTokens      CalendarFeedToken[]
-  consentRecords          ConsentRecord[]
-  notificationPreferences NotificationPreference[]
+  // Identity-role assignments (built-in roles like brother/elder/pioneer plus
+  // any custom role the user may add later that expresses identity)
+  roleAssignments MemberRoleAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([id, congregationId])
+  @@index([congregationId, leftAt])
+}
+
+// A login. Always has an email + password. Optionally points at a Member.
+//
+// When `memberId` is null, the account belongs to a circuit overseer or
+// external admin who is not part of this congregation. The display
+// `firstname` / `lastname` fields are used in that case; when `memberId`
+// is set, name comes from the linked Member.
+//
+// Note: AuditLog.actorId, NotificationEvent.{actorId,recipientId} are loose
+// `Int?` fields without FK constraints; their semantic target is UserAccount.id.
+model UserAccount {
+  id             Int          @id @default(autoincrement())
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
+
+  member   Member? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+  memberId Int?    @unique
+
+  // Display fallback. Only used when `memberId` is null. When linked to a
+  // Member, these stay null and the Member's name is the source of truth.
+  firstname String?
+  lastname  String?
+
+  email           String    @unique
+  password        String
+  active          Boolean   @default(true)
+  emailVerifiedAt DateTime?
+  platformAdmin   Boolean   @default(false)
+  anonymizedAt    DateTime?
+
+  // Account-bound relations
+  congregationPermissions  CongregationUserPermission[]
+  roleAssignments          UserRoleAssignment[] // management/access roles
+  eventsCreated            Event[]                        @relation("createdBy")
+  documentsViewed          BoardDocument[]                @relation("viewedBy")
+  documentVersionUploads   BoardDocumentVersion[]         @relation("boardDocumentVersionUploader")
+  dynamicDocumentViews     BoardDynamicDocumentView[]
+  templateResponsibilities ProgrammeTemplateResponsible[] @relation("templateResponsible")
+  passwordResetTokens      PasswordResetToken[]
+  emailVerificationTokens  EmailVerificationToken[]
+  calendarFeedTokens       CalendarFeedToken[]
+  consentRecords           ConsentRecord[]
+  notificationPreferences  NotificationPreference[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([id, congregationId])
 }
@@ -184,8 +244,9 @@ model Role {
   description String?
   isBuiltIn   Boolean @default(false)
 
-  permissions RolePermission[]
-  members     UserRoleAssignment[]
+  permissions       RolePermission[]
+  members           UserRoleAssignment[]
+  memberAssignments MemberRoleAssignment[]
 
   allowedForTemplateParts          ProgrammeTemplatePartAllowedRole[]
   allowedForPartAssignments        ProgrammePartAssignmentAllowedRole[]
@@ -216,8 +277,11 @@ model RolePermission {
   @@index([permissionId])
 }
 
+// Management/access role assignments (e.g. Roles Manager, Territory Manager).
+// Granted manually by a Roles Manager. Permissions resolve through
+// `UserRoleAssignment` → `Role` → `RolePermission`.
 model UserRoleAssignment {
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           UserAccount  @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         Int
   role           Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId         Int
@@ -229,9 +293,25 @@ model UserRoleAssignment {
   @@index([roleId])
 }
 
+// Identity role assignments (e.g. brother, elder, pioneer). Auto-synced from
+// Member flags by `syncBuiltInRoleAssignments`. Used by programme-part
+// eligibility filters; not used for permissions.
+model MemberRoleAssignment {
+  member         Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  memberId       Int
+  role           Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId         Int
+  congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
+  congregationId Int
+
+  @@id([memberId, roleId])
+  @@index([congregationId])
+  @@index([roleId])
+}
+
 model CongregationUserPermission {
   id             Int          @id @default(autoincrement())
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           UserAccount  @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         Int
   permission     Permission   @relation(fields: [permissionId], references: [id], onDelete: Cascade)
   permissionId   Int
@@ -280,7 +360,7 @@ model BoardDocument {
   type          String?
   visibleFrom   DateTime?
   visibleUntil  DateTime?
-  viewedBy      User[]                 @relation("viewedBy")
+  viewedBy      UserAccount[]          @relation("viewedBy")
   isHighlighted Boolean                @default(false)
   createdAt     DateTime               @default(now())
   versions      BoardDocumentVersion[]
@@ -298,7 +378,7 @@ model BoardDocumentVersion {
   uri           String
   thumbnailUri  String?
   versionNumber Int           @default(1)
-  uploadedBy    User?         @relation("boardDocumentVersionUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+  uploadedBy    UserAccount?  @relation("boardDocumentVersionUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
   uploadedById  Int?
   createdAt     DateTime      @default(now())
 
@@ -334,7 +414,7 @@ model BoardDynamicDocumentView {
   id         Int                          @id @default(autoincrement())
   settings   BoardDynamicDocumentSettings @relation(fields: [settingsId], references: [id], onDelete: Cascade)
   settingsId Int
-  user       User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       UserAccount                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     Int
   viewedAt   DateTime                     @default(now())
 
@@ -384,7 +464,7 @@ model TerritoryCardOverlay {
 model Attribution {
   id          Int                      @id @default(autoincrement())
   type        TerritoryAttributionKind @default(Default)
-  publisher   User                     @relation("publisher", fields: [publisherId], references: [id])
+  publisher   Member                   @relation("publisher", fields: [publisherId], references: [id])
   territory   Territory                @relation("territory", fields: [territoryId], references: [id])
   publisherId Int
   territoryId Int
@@ -508,11 +588,11 @@ model PublisherGroup {
   id            Int    @id @default(autoincrement())
   name          String
   adress        String
-  members       User[] @relation("group")
-  responsible   User   @relation("groupResponsible", fields: [responsibleId], references: [id])
-  responsibleId Int    @unique
-  deputy        User?  @relation("groupDeputy", fields: [deputyId], references: [id])
-  deputyId      Int?   @unique
+  members       Member[] @relation("group")
+  responsible   Member   @relation("groupResponsible", fields: [responsibleId], references: [id])
+  responsibleId Int      @unique
+  deputy        Member?  @relation("groupDeputy", fields: [deputyId], references: [id])
+  deputyId      Int?     @unique
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -527,7 +607,7 @@ model PublisherActivity {
   id          Int  @id @default(autoincrement())
   month       Int
   year        Int
-  publisher   User @relation("publisherActivity", fields: [publisherId], references: [id])
+  publisher   Member @relation("publisherActivity", fields: [publisherId], references: [id])
   publisherId Int
 
   hours       Int?
@@ -558,7 +638,7 @@ model Event {
   partAssignments        ProgrammePartAssignment[]
   serviceRoleAssignments ProgrammeServiceRoleAssignment[]
 
-  createdBy   User     @relation("createdBy", fields: [createdById], references: [id])
+  createdBy   UserAccount @relation("createdBy", fields: [createdById], references: [id])
   createdById Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -674,10 +754,10 @@ model ProgrammePartAssignment {
   part   ProgrammeTemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
   partId Int?
 
-  assignee   User? @relation("partAssignee", fields: [assigneeId], references: [id])
+  assignee   Member? @relation("partAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
 
-  assistant   User? @relation("partAssistant", fields: [assistantId], references: [id])
+  assistant   Member? @relation("partAssistant", fields: [assistantId], references: [id])
   assistantId Int?
 
   allowExternalSpeaker Boolean @default(false)
@@ -732,7 +812,7 @@ model ProgrammeServiceRoleAssignment {
   serviceRole   ProgrammeTemplateServiceRole? @relation(fields: [serviceRoleId], references: [id], onDelete: SetNull)
   serviceRoleId Int?
 
-  assignee   User? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
+  assignee   Member? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
 
   allowedRoles ProgrammeServiceRoleAssignmentAllowedRole[]
@@ -810,7 +890,7 @@ model ProgrammeTemplateResponsible {
   template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  user   User @relation("templateResponsible", fields: [userId], references: [id], onDelete: Cascade)
+  user   UserAccount @relation("templateResponsible", fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
@@ -821,29 +901,29 @@ model ProgrammeTemplateResponsible {
 }
 
 model PasswordResetToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int         @id @default(autoincrement())
+  token     String      @unique
+  user      UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime    @default(now())
 }
 
 model EmailVerificationToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        Int         @id @default(autoincrement())
+  token     String      @unique
+  user      UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime    @default(now())
 }
 
 model CalendarFeedToken {
-  id         Int       @id @default(autoincrement())
-  token      String    @unique
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     Int       @unique
-  createdAt  DateTime  @default(now())
+  id         Int         @id @default(autoincrement())
+  token      String      @unique
+  user       UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int         @unique
+  createdAt  DateTime    @default(now())
   lastUsedAt DateTime?
 }
 
@@ -887,7 +967,7 @@ model ConsentRecord {
   consentVersion String
   ipAddress      String?
 
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           UserAccount  @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId         Int
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -925,7 +1005,7 @@ model NotificationPreference {
   notificationType String
   enabled          Boolean @default(true)
 
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   UserAccount @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
 
   createdAt DateTime @default(now())

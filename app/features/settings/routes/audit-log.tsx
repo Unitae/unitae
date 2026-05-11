@@ -1,7 +1,7 @@
 import { Form as RouterForm, useSearchParams } from 'react-router'
 import { findAuditLogsPaginated } from '~/features/settings/server/audit-log.server'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext } from '~/shared/auth/route-context.server'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -26,7 +26,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export async function loader({ request, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregationId = currentUser.congregationId
 
   const url = new URL(request.url)

@@ -1,7 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 // File operations are not the focus of these tests — isolate from storage layer
 vi.mock('./document.server', () => ({
@@ -54,15 +53,13 @@ beforeAll(async () => {
   otherCongId = otherCong.id
 
   await withScope(primaryCongId, async tx => {
-    const user = await tx.user.create({
+    const user = await tx.userAccount.create({
       data: {
         email: `board-doc-primary-${ts}@test.com`,
         password: 'hashed',
         firstname: 'Alice',
         lastname: 'Primary',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -109,7 +106,7 @@ beforeAll(async () => {
     })
     dynamicDocId = dynDoc.id
 
-    await tx.user.delete({ where: { id: user.id } })
+    await tx.userAccount.delete({ where: { id: user.id } })
   })
 
   await withScope(otherCongId, async tx => {
@@ -217,15 +214,13 @@ describe('reorderBoardItems (integration)', () => {
 describe('createBoardDocument (integration)', () => {
   it('writes a v1 BoardDocumentVersion attributing the creator', async () => {
     const uploaderId = await withScope(primaryCongId, async tx => {
-      const user = await tx.user.create({
+      const user = await tx.userAccount.create({
         data: {
           email: `board-doc-uploader-${ts}@test.com`,
           password: 'hashed',
           firstname: 'Carla',
           lastname: 'Uploader',
           active: true,
-          isPublisher: true,
-          type: PublisherType.Normal,
           congregationId: primaryCongId,
         },
       })
@@ -254,22 +249,20 @@ describe('createBoardDocument (integration)', () => {
     expect(v1?.uri).toBe('storage/key.pdf')
 
     // Cleanup the user we created — versions cascade with the document.
-    await testDb.user.delete({ where: { id: uploaderId } })
+    await testDb.userAccount.delete({ where: { id: uploaderId } })
   })
 })
 
 describe('isDocumentOwnedByUploader (integration)', () => {
   it('returns true when v1 was uploaded by the user', async () => {
     const ownerId = await withScope(primaryCongId, async tx => {
-      const user = await tx.user.create({
+      const user = await tx.userAccount.create({
         data: {
           email: `board-doc-owner-${ts}@test.com`,
           password: 'hashed',
           firstname: 'Owen',
           lastname: 'Owner',
           active: true,
-          isPublisher: true,
-          type: PublisherType.Normal,
           congregationId: primaryCongId,
         },
       })
@@ -292,7 +285,7 @@ describe('isDocumentOwnedByUploader (integration)', () => {
     const notOwned = await withScope(primaryCongId, tx => isDocumentOwnedByUploader(tx, created.id, -1))
     expect(notOwned).toBe(false)
 
-    await testDb.user.delete({ where: { id: ownerId } })
+    await testDb.userAccount.delete({ where: { id: ownerId } })
   })
 
   it('returns false for legacy docs without a v1 row', async () => {

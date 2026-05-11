@@ -31,7 +31,8 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.user.deleteMany({ where: { congregationId } })
+  await testDb.userAccount.deleteMany({ where: { congregationId } })
+  await testDb.member.deleteMany({ where: { congregationId } })
   await testDb.congregation.deleteMany({ where: { id: congregationId } })
   await testDb.$disconnect()
 })
@@ -47,7 +48,7 @@ describe('LimitService', () => {
         maxBoardDocuments: null,
         maxCardOverlays: null,
       })
-      await expect(limits.errorIfWouldGoOverLimit('publishers')).resolves.toBeUndefined()
+      await expect(limits.errorIfWouldGoOverLimit('members')).resolves.toBeUndefined()
     })
   })
 
@@ -61,7 +62,7 @@ describe('LimitService', () => {
         maxBoardDocuments: null,
         maxCardOverlays: null,
       })
-      await expect(limits.errorIfWouldGoOverLimit('publishers')).rejects.toThrow()
+      await expect(limits.errorIfWouldGoOverLimit('members')).rejects.toThrow()
     })
   })
 
@@ -75,7 +76,7 @@ describe('LimitService', () => {
         maxBoardDocuments: null,
         maxCardOverlays: null,
       })
-      await expect(limits.errorIfWouldGoOverLimit('publishers')).resolves.toBeUndefined()
+      await expect(limits.errorIfWouldGoOverLimit('members')).resolves.toBeUndefined()
     })
   })
 })

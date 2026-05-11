@@ -23,7 +23,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     actorEmail: admin.email,
   })
 
-  const users = await unscopedDb.user.findMany({
+  const users = await unscopedDb.userAccount.findMany({
     include: {
       congregation: { select: { name: true, slug: true } },
     },

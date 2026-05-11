@@ -1,7 +1,7 @@
 import { type RouterContext, redirect } from 'react-router'
 import { verifySession } from '~/features/authentication/server/session.server'
 import { resolveEffectivePermissions } from '~/shared/auth/permissions.server'
-import { congregationContext, permissionsContext, userContext } from '~/shared/auth/route-context.server'
+import { congregationContext, permissionsContext, currentAccountContext } from '~/shared/auth/route-context.server'
 import { hasDataProcessingConsent } from '~/shared/domain/consent.server'
 import type { Permission } from '~/shared/types/permission'
 
@@ -36,7 +36,7 @@ export function requireAuth(_required: Permission[] = []) {
 
     await enforceGdprConsent(currentUser.id)
 
-    context.set(userContext, currentUser)
+    context.set(currentAccountContext, currentUser)
     context.set(congregationContext, congregation)
     context.set(permissionsContext, permissions)
 

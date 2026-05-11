@@ -1,8 +1,8 @@
-import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
+import { BarChart3, Eye, Mail, Pencil, UserMinus, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewPublishers = permissions.has(Permission.PublisherViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
   const canViewActivities = permissions.has(Permission.ActivityViewer)
@@ -44,9 +44,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     return {
       users: users.map(user => ({
-        email: user.email,
+        email: user.account?.email ?? null,
         id: user.id,
-        active: user.active,
         firstname: user.firstname,
         lastname: user.lastname,
         isPublisher: user.isPublisher,
@@ -99,6 +98,13 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
               </Button>
             )}
             {canManagePublisher && (
+              <Button asChild variant="outline" size="icon" title={m.publishers_view_former_link_title()}>
+                <Link to="./former">
+                  <UserMinus className="size-4" />
+                </Link>
+              </Button>
+            )}
+            {canManagePublisher && (
               <Button asChild>
                 <Link to="./new">{m.publishers_create_button()}</Link>
               </Button>
@@ -125,13 +131,13 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                 <TableHead className="text-center">{m.publishers_table_group()}</TableHead>
                 <TableHead className="text-center max-sm:hidden">{m.publishers_table_contact()}</TableHead>
                 <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{m.settings_users_table_actions_sr()}</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.map(user => (
-                <TableRow key={user.email}>
+                <TableRow key={user.id}>
                   <TableCell className="text-center max-sm:text-left">
                     <Link to={`/publishers/${user.id}/view`} className="hover:text-primary">
                       {user.firstname}
@@ -150,7 +156,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                     )}
                   </TableCell>
                   <TableCell className="text-center max-sm:hidden">
-                    {user.email.includes('@placeholder.unitae.app') === false && (
+                    {user.email && (
                       <Link to={`mailto:${user.email}`} className="hover:text-primary">
                         <Mail className="inline size-4" />
                       </Link>

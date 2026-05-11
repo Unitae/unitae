@@ -3,7 +3,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    user: { count: vi.fn() },
+    member: { count: vi.fn() },
     publisherActivity: { groupBy: vi.fn() },
   },
 }))
@@ -25,7 +25,7 @@ function makeFigure(type: PublisherType, count: number, hours: number, studies: 
 
 describe('getPublisherStats', () => {
   it('agrège les statistiques par type de proclamateur', async () => {
-    vi.mocked(db.user.count).mockResolvedValue(25)
+    vi.mocked(db.member.count).mockResolvedValue(25)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([
       makeFigure(PublisherType.Normal, 15, 0, 5),
       makeFigure(PublisherType.PionnierPermanant, 3, 210, 8),
@@ -55,7 +55,7 @@ describe('getPublisherStats', () => {
   })
 
   it('gère le cas sans activité (données vides)', async () => {
-    vi.mocked(db.user.count).mockResolvedValue(0)
+    vi.mocked(db.member.count).mockResolvedValue(0)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
 
     const result = await getPublisherStats(db, 1, 1, 2025)
@@ -71,7 +71,7 @@ describe('getPublisherStats', () => {
   })
 
   it('gère le cas où seuls certains types ont des activités', async () => {
-    vi.mocked(db.user.count).mockResolvedValue(10)
+    vi.mocked(db.member.count).mockResolvedValue(10)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([makeFigure(PublisherType.Normal, 10, 0, 2)])
 
     const result = await getPublisherStats(db, 1, 6, 2025)
@@ -83,7 +83,7 @@ describe('getPublisherStats', () => {
   })
 
   it('note: all.hours ne compte pas les heures des proclamateurs normaux', async () => {
-    vi.mocked(db.user.count).mockResolvedValue(5)
+    vi.mocked(db.member.count).mockResolvedValue(5)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([
       makeFigure(PublisherType.Normal, 5, 100, 0), // 100 heures pour les normaux
       makeFigure(PublisherType.PionnierPermanant, 2, 50, 0),

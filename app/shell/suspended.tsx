@@ -24,7 +24,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const session = await getSession(request.headers.get('Cookie'))
     const userId = Number(session.get('userId'))
     if (!Number.isNaN(userId) && userId > 0) {
-      const user = await unscopedDb.user.findUnique({
+      const user = await unscopedDb.userAccount.findUnique({
         where: { id: userId },
         select: { congregation: { select: { suspendedReason: true } } },
       })

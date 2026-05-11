@@ -17,26 +17,41 @@ export type PersonalCalendarItem = {
 type PartWithEvent = ProgrammePartAssignment & { event: Event }
 type ServiceRoleWithEvent = ProgrammeServiceRoleAssignment & { event: Event }
 
+/**
+ * `userId` is a UserAccount id. Days-off events are account-bound (createdById),
+ * while programme assignments are member-bound (assigneeId/assistantId), so we
+ * resolve the linked member id internally.
+ */
 export async function getPersonalAssignments(
   db: TransactionClient,
   userId: number,
   since: Date,
 ): Promise<PersonalCalendarItem[]> {
+  const account = await db.userAccount.findUnique({
+    where: { id: userId },
+    select: { memberId: true },
+  })
+  const memberId = account?.memberId ?? null
+
   const [partAssignments, serviceRoleAssignments, daysOff] = await Promise.all([
-    db.programmePartAssignment.findMany({
-      where: {
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
-        event: { startDate: { gte: since } },
-      },
-      include: { event: true },
-    }),
-    db.programmeServiceRoleAssignment.findMany({
-      where: {
-        assigneeId: userId,
-        event: { startDate: { gte: since } },
-      },
-      include: { event: true },
-    }),
+    memberId != null
+      ? db.programmePartAssignment.findMany({
+          where: {
+            OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+            event: { startDate: { gte: since } },
+          },
+          include: { event: true },
+        })
+      : Promise.resolve([]),
+    memberId != null
+      ? db.programmeServiceRoleAssignment.findMany({
+          where: {
+            assigneeId: memberId,
+            event: { startDate: { gte: since } },
+          },
+          include: { event: true },
+        })
+      : Promise.resolve([]),
     db.event.findMany({
       where: {
         createdById: userId,
@@ -47,7 +62,7 @@ export async function getPersonalAssignments(
   ])
 
   return [
-    ...partAssignments.map(p => partAssignmentToItem(p, userId)),
+    ...partAssignments.map(p => partAssignmentToItem(p, memberId ?? userId)),
     ...serviceRoleAssignments.map(serviceRoleAssignmentToItem),
     ...daysOff.map(dayOffToItem),
   ]

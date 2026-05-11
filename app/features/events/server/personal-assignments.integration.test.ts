@@ -40,19 +40,25 @@ beforeAll(async () => {
   congBId = congB.id
 
   await withScope(congAId, async tx => {
-    const alice = await tx.user.create({
+    const aliceMember = await tx.member.create({
+      data: {
+        firstname: 'Alice',
+        lastname: 'Cal',
+        isPublisher: true,
+        congregationId: congAId,
+      },
+    })
+    const alice = await tx.userAccount.create({
       data: {
         email: `alice-cal-${ts}@test.com`,
         password: 'hashed',
-        firstname: 'Alice',
-        lastname: 'Cal',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: aliceMember.id,
         congregationId: congAId,
       },
     })
     aliceId = alice.id
+    const aliceMemberId = aliceMember.id
 
     const offKind = await tx.eventKind.create({
       data: {
@@ -91,7 +97,7 @@ beforeAll(async () => {
         section: 'Section 1',
         topic: 'Sujet test',
         eventId: meetingEvent.id,
-        assigneeId: aliceId,
+        assigneeId: aliceMemberId,
         congregationId: congAId,
       },
     })
@@ -100,26 +106,32 @@ beforeAll(async () => {
       data: {
         name: 'Sono',
         eventId: meetingEvent.id,
-        assigneeId: aliceId,
+        assigneeId: aliceMemberId,
         congregationId: congAId,
       },
     })
   })
 
   await withScope(congBId, async tx => {
-    const bob = await tx.user.create({
+    const bobMember = await tx.member.create({
+      data: {
+        firstname: 'Bob',
+        lastname: 'Cal',
+        isPublisher: true,
+        congregationId: congBId,
+      },
+    })
+    const bob = await tx.userAccount.create({
       data: {
         email: `bob-cal-${ts}@test.com`,
         password: 'hashed',
-        firstname: 'Bob',
-        lastname: 'Cal',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: bobMember.id,
         congregationId: congBId,
       },
     })
     bobId = bob.id
+    const bobMemberId = bobMember.id
 
     const meetingEvent = await tx.event.create({
       data: {
@@ -136,7 +148,7 @@ beforeAll(async () => {
         name: 'Foreign',
         section: 'X',
         eventId: meetingEvent.id,
-        assigneeId: bobId,
+        assigneeId: bobMemberId,
         congregationId: congBId,
       },
     })
@@ -154,7 +166,8 @@ afterAll(async () => {
   })
   await testDb.event.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.eventKind.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
-  await testDb.user.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
+  await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
+  await testDb.member.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congAId, congBId] } } })
   await testDb.$disconnect()
 })

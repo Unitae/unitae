@@ -3,7 +3,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
-import { userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   logger.info(`Trying to remove days off. User ID: ${currentUser.id}. Event: ${params.eventId}`)
 
   return withScopeFromContext(context, async db => {
@@ -50,7 +50,7 @@ export default function DeleteDayOff({ loaderData }: Route.ComponentProps) {
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {

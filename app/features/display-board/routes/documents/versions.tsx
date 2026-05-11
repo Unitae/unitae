@@ -6,7 +6,7 @@ import { restoreVersionSchema } from '~/features/display-board/schemas/board-doc
 import { isDocumentOwnedByUploader } from '~/features/display-board/server/board-document.server'
 import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -23,7 +23,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 
@@ -143,7 +143,7 @@ export default function VersionsPage({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canUploadDocument = permissions.has(Permission.BoardUploader)
   const canManageBoard = permissions.has(Permission.BoardValidator)
 

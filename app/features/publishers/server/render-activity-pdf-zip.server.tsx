@@ -1,12 +1,11 @@
 import { pdf } from '@react-pdf/renderer'
 import JsZip from 'jszip'
 import pLimit from 'p-limit'
-import type { PublisherActivity } from '~/database/generated/client'
+import type { Member, PublisherActivity } from '~/database/generated/client'
 import { PublisherActivityDocument } from '~/features/publishers/ui/PublisherActivityDocument'
-import { type SanitizedUser, sanitizeUser } from '~/shared/auth/sanitize-user.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-type PublisherWithActivities = SanitizedUser & { activities: PublisherActivity[] }
+type PublisherWithActivities = Member & { activities: PublisherActivity[] }
 
 export async function getPublishersWithYearActivities(
   db: TransactionClient,
@@ -20,23 +19,15 @@ export async function getPublishersWithYearActivities(
     ],
   }
 
-  const users = await db.user.findMany({
+  return db.member.findMany({
     where: {
       congregationId,
       activities: { some: yearFilter },
     },
     include: {
-      publisherGroup: {
-        include: {
-          responsible: true,
-          deputy: true,
-        },
-      },
       activities: { where: yearFilter },
     },
   })
-
-  return users.map(user => sanitizeUser(user))
 }
 
 export async function buildActivityPdfZip(publishers: PublisherWithActivities[]): Promise<ArrayBuffer> {

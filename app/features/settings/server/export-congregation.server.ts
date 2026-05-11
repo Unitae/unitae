@@ -135,15 +135,13 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       },
     },
     {
-      name: 'users',
+      name: 'members',
       export: () =>
-        db.user.findMany({
+        db.member.findMany({
           select: {
             id: true,
             firstname: true,
             lastname: true,
-            email: true,
-            active: true,
             isPublisher: true,
             type: true,
             isMale: true,
@@ -154,8 +152,28 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             isHelder: true,
             isServant: true,
             isAnointed: true,
+            leftAt: true,
             anonymizedAt: true,
             publisherGroupId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+    },
+    {
+      name: 'user-accounts',
+      export: () =>
+        db.userAccount.findMany({
+          select: {
+            id: true,
+            memberId: true,
+            firstname: true,
+            lastname: true,
+            email: true,
+            active: true,
+            emailVerifiedAt: true,
+            platformAdmin: true,
+            anonymizedAt: true,
             createdAt: true,
             updatedAt: true,
           },
@@ -166,6 +184,13 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       export: () =>
         db.userRoleAssignment.findMany({
           select: { userId: true, roleId: true },
+        }),
+    },
+    {
+      name: 'member-role-assignments',
+      export: () =>
+        db.memberRoleAssignment.findMany({
+          select: { memberId: true, roleId: true },
         }),
     },
     {

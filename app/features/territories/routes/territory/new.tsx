@@ -15,7 +15,7 @@ import {
   congregationContext,
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
@@ -47,7 +47,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
@@ -205,7 +205,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const { number, type, entrances } = submission.value
   const congregation = context.get(congregationContext)
-  const { id: actorId } = context.get(userContext)
+  const { id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))

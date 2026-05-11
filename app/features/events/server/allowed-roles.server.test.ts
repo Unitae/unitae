@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     role: { findFirst: vi.fn() },
-    userRoleAssignment: { findMany: vi.fn() },
+    memberRoleAssignment: { findMany: vi.fn() },
     programmeTemplatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     programmePartAssignmentAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     programmeTemplateServiceRoleAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
@@ -25,38 +25,38 @@ beforeEach(() => {
 })
 
 describe('resolveEligibleUserIds', () => {
-  it('returns publisher role members when allowed list is empty', async () => {
+  it('returns `member` built-in role members when allowed list is empty', async () => {
     vi.mocked(db.role.findFirst).mockResolvedValue({ id: 42 } as never)
-    vi.mocked(db.userRoleAssignment.findMany).mockResolvedValue([{ userId: 7 }, { userId: 11 }] as never)
+    vi.mocked(db.memberRoleAssignment.findMany).mockResolvedValue([{ memberId: 7 }, { memberId: 11 }] as never)
 
     const result = await resolveEligibleUserIds(db, [], 1)
 
     expect(db.role.findFirst).toHaveBeenCalledWith({
-      where: { key: 'publisher', isBuiltIn: true, congregationId: 1 },
+      where: { key: 'member', isBuiltIn: true, congregationId: 1 },
       select: { id: true },
     })
-    expect(db.userRoleAssignment.findMany).toHaveBeenCalledWith(
+    expect(db.memberRoleAssignment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ roleId: 42 }) }),
     )
     expect(result).toEqual([7, 11])
   })
 
-  it('returns empty array when no publisher role exists for empty list', async () => {
+  it('returns empty array when no member role exists for empty list', async () => {
     vi.mocked(db.role.findFirst).mockResolvedValue(null as never)
     const result = await resolveEligibleUserIds(db, [], 1)
     expect(result).toEqual([])
   })
 
-  it('returns user IDs assigned to any allowed role for non-empty list', async () => {
-    vi.mocked(db.userRoleAssignment.findMany).mockResolvedValue([
-      { userId: 5 },
-      { userId: 7 },
-      { userId: 5 }, // duplicate (user has both roles)
+  it('returns member IDs assigned to any allowed role for non-empty list', async () => {
+    vi.mocked(db.memberRoleAssignment.findMany).mockResolvedValue([
+      { memberId: 5 },
+      { memberId: 7 },
+      { memberId: 5 }, // duplicate (member has both roles)
     ] as never)
 
     const result = await resolveEligibleUserIds(db, [10, 20], 1)
 
-    expect(db.userRoleAssignment.findMany).toHaveBeenCalledWith(
+    expect(db.memberRoleAssignment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ roleId: { in: [10, 20] }, congregationId: 1 }),
       }),
@@ -65,15 +65,15 @@ describe('resolveEligibleUserIds', () => {
     expect(db.role.findFirst).not.toHaveBeenCalled()
   })
 
-  it('filters out inactive and anonymized users via the where clause', async () => {
-    vi.mocked(db.userRoleAssignment.findMany).mockResolvedValue([] as never)
+  it('filters out leavers and anonymized members via the where clause', async () => {
+    vi.mocked(db.memberRoleAssignment.findMany).mockResolvedValue([] as never)
 
     await resolveEligibleUserIds(db, [10], 1)
 
-    expect(db.userRoleAssignment.findMany).toHaveBeenCalledWith(
+    expect(db.memberRoleAssignment.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          user: { active: true, anonymizedAt: null },
+          member: { leftAt: null, anonymizedAt: null },
         }),
       }),
     )

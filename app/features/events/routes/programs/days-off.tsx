@@ -12,7 +12,7 @@ import {
 } from '~/features/events/ui/days-off-helpers'
 import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
@@ -30,7 +30,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewPrograms = permissions.has(Permission.ProgramViewer)
 
   if (!canViewPrograms) {
@@ -52,50 +52,64 @@ export function loader({ request, context }: Route.LoaderArgs) {
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
 
-    const [events, publishers] = await Promise.all([
+    const [rawEvents, publishers] = await Promise.all([
       db.event.findMany({
         where: { ...selectors, congregationId },
-        include: { createdBy: true },
+        include: { createdBy: { include: { member: { select: { id: true, firstname: true, lastname: true } } } } },
         orderBy: [{ startDate: 'asc' }],
       }),
-      db.user.findMany({
-        where: { congregationId },
+      db.member.findMany({
+        where: { congregationId, leftAt: null },
         orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
         select: { id: true, firstname: true, lastname: true },
       }),
     ])
 
+    // Flatten the createdBy display name (Member when linked, account fallback otherwise)
+    const events = rawEvents.map(e => ({
+      ...e,
+      createdBy: {
+        firstname: e.createdBy.member?.firstname ?? e.createdBy.firstname,
+        lastname: e.createdBy.member?.lastname ?? e.createdBy.lastname,
+        memberId: e.createdBy.memberId,
+      },
+    }))
+
     // Find conflicting programme events for each day-off (with dates for per-week scoping)
     const conflictsByDayOff: Record<number, ConflictingEvent[]> = {}
     for (const event of events) {
-      const [partAssignments, serviceAssignments] = await Promise.all([
-        db.programmePartAssignment.findMany({
-          where: {
-            hasConflict: true,
-            congregationId,
-            event: {
-              startDate: { lte: event.endDate },
-              endDate: { gte: event.startDate },
-              templateId: { not: null },
-            },
-            OR: [{ assigneeId: event.createdById }, { assistantId: event.createdById }],
-          },
-          select: { event: { select: { id: true, name: true, startDate: true } } },
-        }),
-        db.programmeServiceRoleAssignment.findMany({
-          where: {
-            hasConflict: true,
-            congregationId,
-            assigneeId: event.createdById,
-            event: {
-              startDate: { lte: event.endDate },
-              endDate: { gte: event.startDate },
-              templateId: { not: null },
-            },
-          },
-          select: { event: { select: { id: true, name: true, startDate: true } } },
-        }),
-      ])
+      // Programme assignments are bound to Member ids; resolve via the creator's linked member
+      const memberId = event.createdBy.memberId
+      const [partAssignments, serviceAssignments] = memberId
+        ? await Promise.all([
+            db.programmePartAssignment.findMany({
+              where: {
+                hasConflict: true,
+                congregationId,
+                event: {
+                  startDate: { lte: event.endDate },
+                  endDate: { gte: event.startDate },
+                  templateId: { not: null },
+                },
+                OR: [{ assigneeId: memberId }, { assistantId: memberId }],
+              },
+              select: { event: { select: { id: true, name: true, startDate: true } } },
+            }),
+            db.programmeServiceRoleAssignment.findMany({
+              where: {
+                hasConflict: true,
+                congregationId,
+                assigneeId: memberId,
+                event: {
+                  startDate: { lte: event.endDate },
+                  endDate: { gte: event.startDate },
+                  templateId: { not: null },
+                },
+              },
+              select: { event: { select: { id: true, name: true, startDate: true } } },
+            }),
+          ])
+        : [[], []]
 
       // Deduplicate by programme event ID
       const seen = new Set<number>()

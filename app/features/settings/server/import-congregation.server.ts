@@ -42,34 +42,37 @@ export async function validateImport(storageKey: string, congregationId: number)
     return {
       entityCounts: manifest.entityCounts,
       conflicts: [],
-      warnings: [
-        `Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`,
-      ],
+      warnings: [`Unsupported archive version: ${manifest.version} (expected one of: ${SUPPORTED_ARCHIVE_VERSIONS.join(', ')})`],
     }
   }
 
   const conflicts: ImportConflict[] = []
-  const warnings: string[] = ['Passwords are not imported. Users will need to reset their password after import.']
+  const warnings: string[] = [
+    'Passwords are not imported. Users will need to reset their password after import.',
+  ]
 
   if (manifest.version === '1.0') {
     warnings.push(
       'Archive predates v1.1 — custom roles, external speakers, territory card overlays, perimeter, and role-based gating will not be imported.',
     )
-    if (
-      zip.file('data/congregation-user-permissions.ndjson') == null &&
-      zip.file('data/congregation-user-roles.ndjson') != null
-    ) {
+    if (zip.file('data/congregation-user-permissions.ndjson') == null && zip.file('data/congregation-user-roles.ndjson') != null) {
       warnings.push(
         'Archive predates the UserRole → Permission rename; permission assignments will be migrated automatically.',
       )
     }
   }
 
-  // Check user email conflicts
-  const usersNdjson = await readNdjsonFile<{ email: string }>(zip, 'users')
-  if (usersNdjson.length > 0) {
-    const importedEmails = usersNdjson.map(u => u.email)
-    const existingUsers = await unscopedDb.user.findMany({
+  // v1.x → v2.0 shim: synthesize members.ndjson + user-accounts.ndjson from
+  // the legacy users.ndjson so the rest of the validation reads the v2.0
+  // layout uniformly.
+  const shimWarnings = await migrateLegacyUsersNdjson(zip, manifest.version)
+  warnings.push(...shimWarnings)
+
+  // Check user-account email conflicts
+  const accountsNdjson = await readNdjsonFile<{ email: string }>(zip, 'user-accounts')
+  if (accountsNdjson.length > 0) {
+    const importedEmails = accountsNdjson.map(u => u.email)
+    const existingUsers = await unscopedDb.userAccount.findMany({
       where: { email: { in: importedEmails } },
       select: { id: true, email: true, congregationId: true },
     })
@@ -165,7 +168,15 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
   }
 
   const zip = await JsZip.loadAsync(buffer)
-  await readManifest(zip) // validate
+  const manifest = await readManifest(zip)
+
+  // v1.x → v2.0 shim: split legacy users.ndjson into members + user-accounts
+  // so the rest of runImport reads the v2.0 layout. Idempotent if the
+  // archive is already v2.0.
+  const shimWarnings = await migrateLegacyUsersNdjson(zip, manifest.version)
+  if (shimWarnings.length > 0) {
+    logger.info(`Imported legacy v${manifest.version} archive`, { congregationId, warnings: shimWarnings })
+  }
 
   const idMap = new EntityIdMap()
 
@@ -205,12 +216,14 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importRolePermissions(zip, db, idMap, permissionKeyToId, congregationId)
       await progress()
 
-      // 5. Users (upsert by email within same congregation, skip if in different congregation)
-      await importUsers(zip, db, idMap, congregationId)
+      // 5. Members (people in the congregation) and UserAccounts (logins)
+      await importMembers(zip, db, idMap, congregationId)
+      await importUserAccounts(zip, db, idMap, congregationId)
       await progress()
 
-      // 6. User role assignments (depends on users + roles; overlaps with syncBuiltInRoleAssignments
-      //    seeded during importUsers — composite PK absorbs duplicates).
+      // 6. User role assignments (depends on accounts + roles; overlaps with
+      //    syncBuiltInRoleAssignments seeded during importMembers — composite PK
+      //    absorbs duplicates).
       await importUserRoleAssignments(zip, db, idMap, congregationId)
       await progress()
 
@@ -222,8 +235,8 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importPublisherGroups(zip, db, idMap, congregationId)
       await progress()
 
-      // 9. Update user publisherGroupId (depends on groups)
-      await updateUserPublisherGroups(zip, db, idMap)
+      // 9. Update member publisherGroupId (depends on groups)
+      await updateMemberPublisherGroups(zip, db, idMap)
       await progress()
 
       // 10. Publisher activities (depends on users)
@@ -385,6 +398,153 @@ async function readNdjsonFile<T>(zip: JsZip, name: string): Promise<T[]> {
     .map(line => JSON.parse(line) as T)
 }
 
+function writeNdjsonFile(zip: JsZip, name: string, records: object[]): void {
+  if (records.length === 0) {
+    zip.file(`data/${name}.ndjson`, '')
+    return
+  }
+  const content = `${records.map(r => JSON.stringify(r)).join('\n')}\n`
+  zip.file(`data/${name}.ndjson`, content)
+}
+
+interface LegacyUserRow {
+  id: number
+  firstname: string | null
+  lastname: string | null
+  email: string
+  active: boolean
+  emailVerifiedAt: string | null
+  platformAdmin?: boolean
+  isPublisher: boolean
+  type?: string | null
+  isMale?: boolean | null
+  birthDate?: string | null
+  baptismDate?: string | null
+  isHelder?: boolean
+  isServant?: boolean
+  isAnointed?: boolean
+  publisherGroupId?: number | null
+  phone?: string | null
+  address?: string | null
+  anonymizedAt?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+// Same set of signals the original schema migration used to decide whether a
+// legacy User row corresponds to a person in the congregation (Member) vs a
+// pure login. Kept in sync with `app/database/migrations/.../migration.sql`.
+function legacyUserIsMember(row: LegacyUserRow): boolean {
+  return (
+    row.isPublisher === true ||
+    row.baptismDate != null ||
+    row.isHelder === true ||
+    row.isServant === true ||
+    row.isAnointed === true ||
+    row.publisherGroupId != null
+  )
+}
+
+function isPlaceholderEmail(email: string): boolean {
+  return email.endsWith('@placeholder.unitae.app')
+}
+
+/**
+ * v1.x compatibility: legacy archives have a single `users.ndjson` carrying
+ * both person-side fields (publisher status, baptism, …) and account-side
+ * fields (email, password). When the archive is older than v2.0 and we see
+ * `users.ndjson` but no `members.ndjson` / `user-accounts.ndjson`, split each
+ * row into the new shape on the fly and write the synthesized NDJSON files
+ * back into the in-memory zip. Downstream import functions then read the
+ * v2.0 layout normally — no further code paths know about v1.x.
+ *
+ * Placeholder-email accounts (`*.placeholder.unitae.app`) are dropped:
+ * they were never real logins, and any FK that pointed at them is preserved
+ * by reusing the legacy id space on the Member side.
+ *
+ * Returns a list of warnings describing what was split / skipped, to surface
+ * back to the operator running the import.
+ */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: one row → up to two NDJSON shapes; the branches are the heuristic
+export async function migrateLegacyUsersNdjson(zip: JsZip, manifestVersion: string): Promise<string[]> {
+  if (manifestVersion !== '1.0' && manifestVersion !== '1.1') return []
+  const legacyFile = zip.file('data/users.ndjson')
+  if (!legacyFile) return []
+  // Archives that already shipped v2.0 entries take precedence.
+  if (zip.file('data/members.ndjson') != null || zip.file('data/user-accounts.ndjson') != null) {
+    return []
+  }
+
+  const legacy = await readNdjsonFile<LegacyUserRow>(zip, 'users')
+
+  const members: object[] = []
+  const accounts: object[] = []
+  let placeholderDropped = 0
+
+  for (const row of legacy) {
+    const isMember = legacyUserIsMember(row)
+    const isRealAccount = !isPlaceholderEmail(row.email)
+
+    if (isMember) {
+      members.push({
+        id: row.id,
+        firstname: row.firstname ?? '',
+        lastname: row.lastname ?? '',
+        isPublisher: row.isPublisher,
+        type: row.type ?? 'normal',
+        isMale: row.isMale ?? null,
+        phone: row.phone ?? '',
+        address: row.address ?? '',
+        birthDate: row.birthDate ?? null,
+        baptismDate: row.baptismDate ?? null,
+        isHelder: row.isHelder ?? false,
+        isServant: row.isServant ?? false,
+        isAnointed: row.isAnointed ?? false,
+        leftAt: null,
+        anonymizedAt: row.anonymizedAt ?? null,
+        publisherGroupId: row.publisherGroupId ?? null,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      })
+    }
+
+    if (isRealAccount) {
+      accounts.push({
+        id: row.id,
+        // Link to the Member only when we synthesized one (same id space).
+        memberId: isMember ? row.id : null,
+        // When the account isn't tied to a Member, keep the display name on
+        // the account so it can still render.
+        firstname: isMember ? null : (row.firstname ?? null),
+        lastname: isMember ? null : (row.lastname ?? null),
+        email: row.email,
+        active: row.active,
+        emailVerifiedAt: row.emailVerifiedAt ?? null,
+        platformAdmin: row.platformAdmin ?? false,
+        anonymizedAt: row.anonymizedAt ?? null,
+        createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
+      })
+    } else {
+      placeholderDropped++
+    }
+  }
+
+  writeNdjsonFile(zip, 'members', members)
+  writeNdjsonFile(zip, 'user-accounts', accounts)
+  // No `member-role-assignments` synthesized — v1.x didn't track Member-side
+  // identity roles. `syncBuiltInRoleAssignments` runs after Member inserts
+  // during the regular import path and recomputes them from the flags.
+
+  const warnings: string[] = [
+    `Archive v${manifestVersion}: ${legacy.length} legacy user row(s) split into ${members.length} member(s) and ${accounts.length} account(s) on the fly.`,
+  ]
+  if (placeholderDropped > 0) {
+    warnings.push(`${placeholderDropped} placeholder-email account(s) (legacy *@placeholder.unitae.app) skipped — they were never real logins.`)
+  }
+  return warnings
+}
+
 // --- Import functions per entity (exported for integration testing) ---
 
 export async function importSettings(zip: JsZip, db: TransactionClient, congregationId: number): Promise<void> {
@@ -435,91 +595,116 @@ export async function importEventKinds(
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: complex import logic with many entity types and validation steps
-export async function importUsers(
+export async function importMembers(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
   congregationId: number,
 ): Promise<void> {
-  interface ExportedUser {
+  interface ExportedMember {
     id: number
-    firstname: string | null
-    lastname: string | null
-    email: string
-    active: boolean
+    firstname: string
+    lastname: string
     isPublisher: boolean
     type: string
     isMale: boolean | null
-    phone: string | null
-    address: string | null
+    phone: string
+    address: string
     birthDate: string | null
     baptismDate: string | null
     isHelder: boolean
     isServant: boolean
     isAnointed: boolean
+    leftAt: string | null
     anonymizedAt: string | null
     publisherGroupId: number | null
     createdAt: string
     updatedAt: string
   }
 
-  const records = await readNdjsonFile<ExportedUser>(zip, 'users')
+  const records = await readNdjsonFile<ExportedMember>(zip, 'members')
   for (const record of records) {
-    // Check if user exists globally (email is unique across all congregations)
-    const existing = await db.user.findFirst({ where: { email: record.email } })
+    const created = await db.member.create({
+      data: {
+        firstname: record.firstname,
+        lastname: record.lastname,
+        isPublisher: record.isPublisher,
+        type: record.type as PublisherType,
+        isMale: record.isMale,
+        phone: record.phone,
+        address: record.address,
+        birthDate: record.birthDate ? new Date(record.birthDate) : null,
+        baptismDate: record.baptismDate ? new Date(record.baptismDate) : null,
+        isHelder: record.isHelder,
+        isServant: record.isServant,
+        isAnointed: record.isAnointed,
+        leftAt: record.leftAt ? new Date(record.leftAt) : null,
+        anonymizedAt: record.anonymizedAt ? new Date(record.anonymizedAt) : null,
+        congregationId,
+      },
+    })
+    idMap.set('members', record.id, created.id)
+    await syncBuiltInRoleAssignments(db, created.id, congregationId, null)
+  }
+}
+
+export async function importUserAccounts(
+  zip: JsZip,
+  db: TransactionClient,
+  idMap: EntityIdMap,
+  congregationId: number,
+): Promise<void> {
+  interface ExportedAccount {
+    id: number
+    memberId: number | null
+    firstname: string | null
+    lastname: string | null
+    email: string
+    active: boolean
+    emailVerifiedAt: string | null
+    platformAdmin: boolean
+    anonymizedAt: string | null
+    createdAt: string
+    updatedAt: string
+  }
+
+  const records = await readNdjsonFile<ExportedAccount>(zip, 'user-accounts')
+  for (const record of records) {
+    const existing = await db.userAccount.findFirst({ where: { email: record.email } })
 
     if (existing) {
-      // Only update if the user belongs to this congregation
       if (existing.congregationId === congregationId) {
-        await db.user.update({
+        const newMemberId = record.memberId != null ? idMap.getOptional('members', record.memberId) : null
+        await db.userAccount.update({
           where: { id: existing.id },
           data: {
             firstname: record.firstname,
             lastname: record.lastname,
             active: record.active,
-            isPublisher: record.isPublisher,
-            type: record.type as PublisherType,
-            isMale: record.isMale,
-            phone: record.phone,
-            address: record.address,
-            birthDate: record.birthDate ? new Date(record.birthDate) : null,
-            baptismDate: record.baptismDate ? new Date(record.baptismDate) : null,
-            isHelder: record.isHelder,
-            isServant: record.isServant,
-            isAnointed: record.isAnointed,
+            memberId: newMemberId,
           },
         })
-        idMap.set('users', record.id, existing.id)
-        await syncBuiltInRoleAssignments(db, existing.id, congregationId, null)
+        idMap.set('user-accounts', record.id, existing.id)
       } else {
-        // User exists in different congregation — skip
-        logger.warn(`Skipping user ${record.email}: exists in another congregation`, { congregationId })
+        logger.warn(`Skipping account ${record.email}: exists in another congregation`, { congregationId })
       }
     } else {
-      const created = await db.user.create({
+      const newMemberId = record.memberId != null ? idMap.getOptional('members', record.memberId) : null
+      const created = await db.userAccount.create({
         data: {
           firstname: record.firstname,
           lastname: record.lastname,
           email: record.email,
           password: IMPORTED_PASSWORD_PLACEHOLDER,
           active: record.active,
+          emailVerifiedAt: record.emailVerifiedAt ? new Date(record.emailVerifiedAt) : null,
           platformAdmin: false,
-          isPublisher: record.isPublisher,
-          type: record.type as PublisherType,
-          isMale: record.isMale,
-          phone: record.phone,
-          address: record.address,
-          birthDate: record.birthDate ? new Date(record.birthDate) : null,
-          baptismDate: record.baptismDate ? new Date(record.baptismDate) : null,
-          isHelder: record.isHelder,
-          isServant: record.isServant,
-          isAnointed: record.isAnointed,
           anonymizedAt: record.anonymizedAt ? new Date(record.anonymizedAt) : null,
+          memberId: newMemberId,
           congregationId,
         },
       })
-      idMap.set('users', record.id, created.id)
-      await syncBuiltInRoleAssignments(db, created.id, congregationId, null)
+      idMap.set('user-accounts', record.id, created.id)
     }
   }
 }
@@ -545,7 +730,7 @@ export async function importCongregationUserPermissions(
   const merged = records.length > 0 ? records : legacyRecords
 
   for (const record of merged) {
-    const userId = idMap.getOptional('users', record.userId)
+    const userId = idMap.getOptional('user-accounts', record.userId)
     const permissionId = permissionKeyToId.get(record.permissionKey)
     if (!userId || !permissionId) continue
 
@@ -575,10 +760,10 @@ export async function importPublisherGroups(
   }>(zip, 'publisher-groups')
 
   for (const record of records) {
-    const responsibleId = idMap.getOptional('users', record.responsibleId)
+    const responsibleId = idMap.getOptional('members', record.responsibleId)
     if (!responsibleId) continue // cannot create group without responsible
 
-    const deputyId = idMap.getOptional('users', record.deputyId)
+    const deputyId = idMap.getOptional('members', record.deputyId)
 
     const created = await db.publisherGroup.create({
       data: {
@@ -593,21 +778,21 @@ export async function importPublisherGroups(
   }
 }
 
-export async function updateUserPublisherGroups(zip: JsZip, db: TransactionClient, idMap: EntityIdMap): Promise<void> {
-  interface ExportedUser {
+export async function updateMemberPublisherGroups(zip: JsZip, db: TransactionClient, idMap: EntityIdMap): Promise<void> {
+  interface ExportedMember {
     id: number
     publisherGroupId: number | null
   }
 
-  const records = await readNdjsonFile<ExportedUser>(zip, 'users')
+  const records = await readNdjsonFile<ExportedMember>(zip, 'members')
   for (const record of records) {
     if (record.publisherGroupId == null) continue
-    const userId = idMap.getOptional('users', record.id)
+    const memberId = idMap.getOptional('members', record.id)
     const groupId = idMap.getOptional('publisher-groups', record.publisherGroupId)
-    if (!userId || !groupId) continue
+    if (!memberId || !groupId) continue
 
-    await db.user.update({
-      where: { id: userId },
+    await db.member.update({
+      where: { id: memberId },
       data: { publisherGroupId: groupId },
     })
   }
@@ -632,7 +817,7 @@ export async function importPublisherActivities(
   }>(zip, 'publisher-activities')
 
   for (const record of records) {
-    const publisherId = idMap.getOptional('users', record.publisherId)
+    const publisherId = idMap.getOptional('members', record.publisherId)
     if (!publisherId) continue
 
     const created = await db.publisherActivity.create({
@@ -881,7 +1066,7 @@ export async function importAttributions(
   }>(zip, 'attributions')
 
   for (const record of records) {
-    const publisherId = idMap.getOptional('users', record.publisherId)
+    const publisherId = idMap.getOptional('members', record.publisherId)
     const territoryId = idMap.getOptional('territories', record.territoryId)
     if (!publisherId || !territoryId) continue
 
@@ -1030,7 +1215,7 @@ export async function importProgrammeTemplateResponsibles(
 
   for (const record of records) {
     const templateId = idMap.getOptional('programme-templates', record.templateId)
-    const userId = idMap.getOptional('users', record.userId)
+    const userId = idMap.getOptional('user-accounts', record.userId)
     if (!templateId || !userId) continue
 
     await db.programmeTemplateResponsible.create({
@@ -1058,7 +1243,7 @@ export async function importEvents(
   }>(zip, 'events')
 
   for (const record of records) {
-    const createdById = idMap.getOptional('users', record.createdById)
+    const createdById = idMap.getOptional('user-accounts', record.createdById)
     if (!createdById) continue
 
     const kindId = idMap.getOptional('event-kinds', record.kindId)
@@ -1122,8 +1307,8 @@ export async function importProgrammePartAssignments(
         durationMin: record.durationMin,
         eventId,
         partId: idMap.getOptional('programme-template-parts', record.partId),
-        assigneeId: idMap.getOptional('users', record.assigneeId),
-        assistantId: idMap.getOptional('users', record.assistantId),
+        assigneeId: idMap.getOptional('members', record.assigneeId),
+        assistantId: idMap.getOptional('members', record.assistantId),
         allowExternalSpeaker: record.allowExternalSpeaker ?? false,
         externalSpeakerId: idMap.getOptional('external-speakers', record.externalSpeakerId),
         congregationId,
@@ -1160,7 +1345,7 @@ export async function importProgrammeServiceRoleAssignments(
         name: record.name,
         eventId,
         serviceRoleId: idMap.getOptional('programme-template-service-roles', record.serviceRoleId),
-        assigneeId: idMap.getOptional('users', record.assigneeId),
+        assigneeId: idMap.getOptional('members', record.assigneeId),
         congregationId,
       },
     })
@@ -1268,7 +1453,7 @@ export async function importBoardDocumentVersions(
         uri: newUri,
         thumbnailUri: newThumbnailUri,
         versionNumber: record.versionNumber,
-        uploadedById: idMap.getOptional('users', record.uploadedById),
+        uploadedById: idMap.getOptional('user-accounts', record.uploadedById),
         congregationId,
       },
     })
@@ -1365,7 +1550,7 @@ export async function importConsentRecords(
   }>(zip, 'consent-records')
 
   for (const record of records) {
-    const userId = idMap.getOptional('users', record.userId)
+    const userId = idMap.getOptional('user-accounts', record.userId)
     if (!userId) continue
 
     await db.consentRecord.create({
@@ -1405,7 +1590,7 @@ export async function importAuditLogs(
         action: record.action,
         entityType: record.entityType,
         entityId: record.entityId,
-        actorId: idMap.getOptional('users', record.actorId),
+        actorId: idMap.getOptional('user-accounts', record.actorId),
         actorEmail: record.actorEmail,
         metadata: record.metadata,
         createdAt: new Date(record.createdAt),
@@ -1517,7 +1702,7 @@ export async function importUserRoleAssignments(
   const data: { userId: number; roleId: number; congregationId: number }[] = []
 
   for (const record of records) {
-    const userId = idMap.getOptional('users', record.userId)
+    const userId = idMap.getOptional('user-accounts', record.userId)
     const roleId = idMap.getOptional('roles', record.roleId)
     if (!userId || !roleId) continue
     data.push({ userId, roleId, congregationId })

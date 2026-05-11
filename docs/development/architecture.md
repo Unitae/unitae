@@ -1,5 +1,28 @@
 # Architecture
 
+## Member, UserAccount, and the four valid personas
+
+Identity is split across two tables:
+
+- **`Member`** — a person currently part of *this* congregation. Holds identity (firstname/lastname, demographics, phone), publisher status (`isPublisher`, `type`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`), and the lifecycle flags `leftAt` (soft-leave; reversible) and `anonymizedAt` (GDPR scrub; irreversible).
+- **`UserAccount`** — a login. Holds email, password, tokens. Optionally points 1:1 at a `Member` via `memberId`. When `memberId` is null, the account belongs to a circuit overseer or external admin who is not in this congregation; the account carries fallback `firstname`/`lastname` for display.
+
+Four valid combinations, all real personas:
+
+| Persona | Member | UserAccount |
+|---|---|---|
+| Publisher who logs in | ✓ (`isPublisher=true`) | ✓ → member |
+| Publisher without account | ✓ | ✗ |
+| Ministry-school student | ✓ (`isPublisher=false`) | optional |
+| Circuit overseer / external admin | ✗ | ✓ (no member link) |
+
+FK target rule of thumb:
+
+- **Action requires a login** → FK targets `UserAccount`. Examples: audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, `BoardDocumentVersion.uploadedBy`, all token tables, `CongregationUserPermission.user`, `UserRoleAssignment.user`.
+- **Subject is a person in the congregation** → FK targets `Member`. Examples: `Attribution.publisherId`, `PublisherActivity.publisherId`, `ProgrammePartAssignment.{assigneeId,assistantId}`, `ProgrammeServiceRoleAssignment.assigneeId`, `PublisherGroup.{members,responsible,deputy}`, `MemberRoleAssignment.member`.
+
+Helpers: `account.member?.firstname ?? account.firstname` for display (use the `accountDisplayName` helper in `app/shared/utils/display-name.ts`); `currentUser.member?.id` to get the linked member id from the session-loaded account.
+
 ## High-Level Architecture
 
 ```
@@ -33,7 +56,8 @@
 │  │ Congregation A  │  │  Congregation B  │   ...        │
 │  │ (slug: lyon)    │  │  (slug: paris)   │              │
 │  │                 │  │                  │              │
-│  │  Users          │  │  Users           │              │
+│  │  Members        │  │  Members         │              │
+│  │  UserAccounts   │  │  UserAccounts    │              │
 │  │  Territories    │  │  Territories     │              │
 │  │  Buildings      │  │  Buildings       │              │
 │  │  Attributions   │  │  Attributions    │              │
@@ -103,7 +127,8 @@ When to use each:
 | Platform admin | `unscopedDb` | Cross-congregation queries |
 
 **Scoped models** (all carry `congregationId` and are isolated by RLS):
-- **Auth**: User, CongregationUserPermission, Role, RolePermission, UserRoleAssignment
+- **Identity**: Member (person currently in the congregation), UserAccount (login), MemberRoleAssignment (identity-role memberships)
+- **Auth**: CongregationUserPermission, Role, RolePermission, UserRoleAssignment (management-role memberships)
 - **Board**: BoardSection, BoardSectionVisibilityRole, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
 - **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, TerritoryCardOverlay, TerritoryPerimeter
 - **Publishers**: PublisherGroup, PublisherActivity
@@ -261,7 +286,7 @@ return withScopeFromContext(context, async db => {
 
 ### entityType convention
 
-Always use the Prisma model name as the `entityType` string: `'User'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`, `'TerritoryCardOverlay'`, `'TerritoryPerimeter'`.
+Always use the Prisma model name as the `entityType` string: `'Member'`, `'UserAccount'`, `'Territory'`, `'Attribution'`, `'BoardDocument'`, `'BoardSection'`, `'PublisherGroup'`, `'PublisherActivity'`, `'Congregation'`, `'TerritoryCardOverlay'`, `'TerritoryPerimeter'`. Audit logs that pre-date the User → Member/UserAccount split still use `'User'` as the historical entity type and are not rewritten.
 
 ### What is not audited
 
@@ -282,7 +307,9 @@ The full list lives in the `AuditAction` map in `app/shared/domain/audit.server.
 | Territories | Created, updated, deleted |
 | Entrances | Reassigned (`EntranceReassigned` — when the map editor moves an entrance from one territory to another) |
 | Attributions | Created, updated, deleted |
-| Publishers | Created, updated, status changed |
+| Publishers | Created, updated, status changed (publisher ↔ ministry-school student) |
+| Member lifecycle | Marked as left, marked as returned |
+| Account ↔ Member linking | Account linked to a Member, account unlinked from a Member |
 | Publisher groups | Created, deleted |
 | Publisher activity | Created, updated, deleted |
 | Board documents | Created, updated, deleted |

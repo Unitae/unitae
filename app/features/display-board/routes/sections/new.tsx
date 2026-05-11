@@ -13,7 +13,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -39,7 +39,7 @@ export function loader({ context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.BoardValidator)
 
   return withScopeFromContext(context, async db => {
-    const { congregationId, id: userId } = context.get(userContext)
+    const { congregationId, id: userId } = context.get(currentAccountContext)
     const [roles, viewerRoleIds] = await Promise.all([
       db.role.findMany({
         where: { congregationId },
@@ -146,7 +146,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { name, visibilityRoleIds } = submission.value
 
   return withScopeFromContext(context, async db => {
-    const { congregationId, id: actorId } = context.get(userContext)
+    const { congregationId, id: actorId } = context.get(currentAccountContext)
     const section = await createBoardSection(db, { name, congregationId, actorId })
 
     if (section == null) {

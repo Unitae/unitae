@@ -1,5 +1,5 @@
 import { createCookieSessionStorage, redirect, type Session } from 'react-router'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import { sanitizeAccount } from '~/shared/auth/sanitize-account.server'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -47,9 +47,9 @@ async function findUserFromSession(session: Session<SessionData, SessionFlashDat
   }
 
   try {
-    const user = await unscopedDb.user.findUnique({
+    const user = await unscopedDb.userAccount.findUnique({
       where: { id: userId },
-      include: { responsibleFor: true, deputyFor: true },
+      include: { member: { include: { responsibleFor: true, deputyFor: true } } },
     })
 
     if (user == null || !user.active) return redirectToLogin(session)
@@ -87,7 +87,7 @@ export async function verifySession(request: Request) {
   }
 
   return {
-    currentUser: sanitizeUser(user),
+    currentUser: sanitizeAccount(user),
     congregation,
     session,
   }

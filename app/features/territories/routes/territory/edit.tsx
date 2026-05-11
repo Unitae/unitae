@@ -25,7 +25,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
@@ -140,7 +140,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const apiKey = getOptionalEnv('GOOGLE_MAPS_API_KEY')
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     const territory = await db.territory.findUnique({
@@ -711,7 +711,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   }
 
   const { entrances, reassignments, notes } = submission.value
-  const { congregationId, id: actorId } = context.get(userContext)
+  const { congregationId, id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
     await updateTerritory(db, requireParamId(params.territoryId, '/territories'), congregationId, actorId, {

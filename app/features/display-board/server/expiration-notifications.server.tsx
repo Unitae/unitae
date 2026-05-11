@@ -54,7 +54,7 @@ export async function checkExpiringDocuments(): Promise<{
       const congregation = await resolveCongregation(congregationId)
 
       // Find BoardValidator users for this congregation
-      const validators = await unscopedDb.user.findMany({
+      const validators = await unscopedDb.userAccount.findMany({
         where: {
           congregationId,
           active: true,

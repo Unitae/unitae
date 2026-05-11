@@ -1,10 +1,10 @@
 import { Document, Page, Polygon, StyleSheet, Svg, Text, View } from '@react-pdf/renderer'
-import type { PublisherActivity, User } from '~/database/generated/client'
+import type { Member, PublisherActivity } from '~/database/generated/client'
 import * as m from '~/i18n/paraglide/messages'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 interface PublisherActivityDocumentProps {
-  publisher: Omit<User, 'password'> & { activities: PublisherActivity[] }
+  publisher: Member & { activities: PublisherActivity[] }
 }
 
 export function PublisherActivityDocument({ publisher }: PublisherActivityDocumentProps) {

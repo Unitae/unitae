@@ -5,8 +5,8 @@ import { resetPasswordSchema } from '~/features/authentication/schemas/login.sch
 import {
   consumePasswordResetToken,
   verifyPasswordResetToken,
-} from '~/features/authentication/server/invalidate-user-password.server'
-import { resetUserPassword } from '~/features/authentication/server/reset-user-password.server'
+} from '~/features/authentication/server/invalidate-account-password.server'
+import { resetAccountPassword } from '~/features/authentication/server/reset-account-password.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
 import { getBrandingName, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
@@ -121,7 +121,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     })
   }
 
-  await resetUserPassword(user.id, password)
+  await resetAccountPassword(user.id, password)
   await consumePasswordResetToken(params.userHash ?? '')
 
   session.flash('success', m.auth_password_reset_success_message())

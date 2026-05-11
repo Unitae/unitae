@@ -3,7 +3,7 @@ import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { deletePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -16,7 +16,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageActivity = permissions.has(Permission.ActivityManager)
 
   if (!canManageActivity) {
@@ -70,7 +70,7 @@ export default function DeleteActivity({ loaderData }: Route.ComponentProps) {
 
 export function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManageActivity = permissions.has(Permission.ActivityManager)
 
   if (!canManageActivity) {

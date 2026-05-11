@@ -60,14 +60,13 @@ beforeAll(async () => {
 
   await seedBuiltInRoles(testDb, congregationId)
 
-  const user = await testDb.user.create({
+  const user = await testDb.userAccount.create({
     data: {
       email: `roles-${ts}@test.com`,
       password: 'hashed',
       firstname: 'Test',
       lastname: 'User',
       active: true,
-      isPublisher: false,
       congregationId,
     },
   })
@@ -80,7 +79,7 @@ afterAll(async () => {
     await tx.rolePermission.deleteMany({})
     await tx.role.deleteMany({})
     await tx.congregationUserPermission.deleteMany({})
-    await tx.user.deleteMany({})
+    await tx.userAccount.deleteMany({})
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()
@@ -159,7 +158,7 @@ describe('roles.server (integration)', () => {
     const assignmentsAfter = await testDb.userRoleAssignment.findMany({ where: { roleId: role.id } })
     expect(assignmentsAfter).toHaveLength(0)
 
-    const userAfter = await testDb.user.findUnique({ where: { id: userId } })
+    const userAfter = await testDb.userAccount.findUnique({ where: { id: userId } })
     expect(userAfter).not.toBeNull()
   })
 

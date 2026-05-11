@@ -5,7 +5,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { externalSpeakerSchema } from '~/features/events/schemas/external-speaker.schema'
 import { createExternalSpeaker } from '~/features/events/server/external-speakers.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -34,7 +34,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.ExternalSpeakerManager)) throw redirect('/')
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
   const submission = parseWithZod(await request.formData(), { schema: externalSpeakerSchema })
 

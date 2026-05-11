@@ -4,7 +4,7 @@ import { Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { validateImport } from '~/features/settings/server/import-congregation.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, currentAccountContext } from '~/shared/auth/route-context.server'
 import { buildStorageKey, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
@@ -68,7 +68,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.Admin)
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
   let uploadedFile: File | null = null
 

@@ -13,7 +13,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -33,7 +33,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.BoardViewer)
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
 

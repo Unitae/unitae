@@ -9,7 +9,6 @@ import {
 } from '~/features/events/server/programme-events.server'
 import { createSingleEventFromTemplate } from '~/features/events/server/programme-generation.server'
 import { upsertTemplatePart, upsertTemplateServiceRole } from '~/features/events/server/programme-templates.server'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -34,6 +33,7 @@ let elderRoleId: number
 let publisherRoleId: number
 let foreignElderRoleId: number
 let elderUserId: number
+let elderAccountId: number
 let plainPublisherUserId: number
 let nonPublisherUserId: number
 let templateId: number
@@ -54,6 +54,11 @@ beforeAll(async () => {
 
   await withScope(primaryCongId, async tx => {
     // Built-in roles (mirrors the seed order in built-in-roles.server.ts)
+    const member = await tx.role.create({
+      data: { key: 'member', isBuiltIn: true, congregationId: primaryCongId },
+    })
+    const memberRoleId = member.id
+
     const elder = await tx.role.create({
       data: { key: 'elder', isBuiltIn: true, congregationId: primaryCongId },
     })
@@ -64,55 +69,60 @@ beforeAll(async () => {
     })
     publisherRoleId = publisher.id
 
-    // Users
-    const elderUser = await tx.user.create({
+    // Members + accounts. The elder needs an account so tests that create
+    // Events (`Event.createdById` -> UserAccount) can use it as the actor.
+    const elderMember = await tx.member.create({
+      data: {
+        firstname: 'Elder',
+        lastname: 'Person',
+        isPublisher: true,
+        congregationId: primaryCongId,
+      },
+    })
+    elderUserId = elderMember.id
+    const elderAccount = await tx.userAccount.create({
       data: {
         email: `elder-${ts}@test.com`,
         password: 'h',
-        firstname: 'Elder',
-        lastname: 'Person',
         active: true,
-        isPublisher: true,
-        type: PublisherType.Normal,
+        memberId: elderMember.id,
         congregationId: primaryCongId,
       },
     })
-    elderUserId = elderUser.id
+    elderAccountId = elderAccount.id
 
-    const plain = await tx.user.create({
+    const plainMember = await tx.member.create({
       data: {
-        email: `plain-${ts}@test.com`,
-        password: 'h',
         firstname: 'Plain',
         lastname: 'Publisher',
-        active: true,
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
-    plainPublisherUserId = plain.id
+    plainPublisherUserId = plainMember.id
 
-    const nonPub = await tx.user.create({
+    const nonPubMember = await tx.member.create({
       data: {
-        email: `nonpub-${ts}@test.com`,
-        password: 'h',
         firstname: 'Non',
         lastname: 'Publisher',
-        active: true,
         isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
-    nonPublisherUserId = nonPub.id
+    nonPublisherUserId = nonPubMember.id
 
-    // Role assignments
-    await tx.userRoleAssignment.createMany({
+    // Identity-role assignments live on Member. Empty allowed list resolves
+    // via the `member` built-in role (every current Member). Targeted lists
+    // resolve via specific identity roles like `elder` or `publisher`.
+    await tx.memberRoleAssignment.createMany({
       data: [
-        { userId: elderUserId, roleId: elderRoleId, congregationId: primaryCongId },
-        { userId: elderUserId, roleId: publisherRoleId, congregationId: primaryCongId },
-        { userId: plainPublisherUserId, roleId: publisherRoleId, congregationId: primaryCongId },
+        { memberId: elderUserId, roleId: memberRoleId, congregationId: primaryCongId },
+        { memberId: elderUserId, roleId: elderRoleId, congregationId: primaryCongId },
+        { memberId: elderUserId, roleId: publisherRoleId, congregationId: primaryCongId },
+        { memberId: plainPublisherUserId, roleId: memberRoleId, congregationId: primaryCongId },
+        { memberId: plainPublisherUserId, roleId: publisherRoleId, congregationId: primaryCongId },
+        // Non-publisher (school student) is also a member — should be eligible by default
+        { memberId: nonPublisherUserId, roleId: memberRoleId, congregationId: primaryCongId },
       ],
     })
 
@@ -194,9 +204,11 @@ afterAll(async () => {
       await tx.programmeTemplateServiceRole.deleteMany({})
       await tx.programmeTemplate.deleteMany({})
       await tx.event.deleteMany({})
+      await tx.memberRoleAssignment.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
       await tx.role.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
+      await tx.member.deleteMany({})
     })
     await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
   }
@@ -205,13 +217,14 @@ afterAll(async () => {
 })
 
 describe('resolveEligibleUserIds (integration)', () => {
-  it('returns publisher role members when allowed list is empty', async () => {
+  it('returns every Member (via built-in `member` role) when allowed list is empty', async () => {
     const result = await withScope(primaryCongId, tx => resolveEligibleUserIds(tx, [], primaryCongId))
-    expect(result.sort()).toEqual([elderUserId, plainPublisherUserId].sort())
-    expect(result).not.toContain(nonPublisherUserId)
+    // School-student (non-publisher) Members are now also eligible — the
+    // member fallback is broader than the old publisher gate.
+    expect(result.sort()).toEqual([elderUserId, plainPublisherUserId, nonPublisherUserId].sort())
   })
 
-  it('returns only role-matching users when list is non-empty', async () => {
+  it('returns only role-matching members when list is non-empty', async () => {
     const result = await withScope(primaryCongId, tx => resolveEligibleUserIds(tx, [elderRoleId], primaryCongId))
     expect(result).toEqual([elderUserId])
     expect(result).not.toContain(plainPublisherUserId)
@@ -241,7 +254,7 @@ describe('upsertTemplatePart + RLS (integration)', () => {
           allowedReaderRoleIds: [publisherRoleId],
         },
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 
@@ -271,7 +284,7 @@ describe('upsertTemplateServiceRole + RLS (integration)', () => {
         templateId,
         { id: serviceRoleId, name: 'Son', key: `son-${ts}`, allowedRoleIds: [elderRoleId] },
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 
@@ -287,7 +300,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
     // Pre-condition: speakerPart has [elderRoleId speaker, publisherRoleId reader] from previous test
     // serviceRole has [elderRoleId] from previous test
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderUserId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderAccountId, primaryCongId),
     )
     expect(event).not.toBeNull()
     if (!event) return
@@ -320,11 +333,11 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
           name: 'Freeform',
           startDate: new Date('2099-02-15T18:00:00Z'),
           endDate: new Date('2099-02-15T20:00:00Z'),
-          createdById: elderUserId,
+          createdById: elderAccountId,
           congregationId: primaryCongId,
         },
       })
-      await applyTemplateToEvent(tx, ev.id, templateId, primaryCongId, elderUserId)
+      await applyTemplateToEvent(tx, ev.id, templateId, primaryCongId, elderAccountId)
       return ev
     })
 
@@ -341,7 +354,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
 describe('updatePartAssignment + updateServiceRoleAssignment update allowed roles (integration)', () => {
   it('replaces existing allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderUserId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderAccountId, primaryCongId),
     )
     if (!event) throw new Error('event not created')
 
@@ -365,7 +378,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
           allowedReaderRoleIds: [], // was [publisherRoleId]
         },
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 
@@ -382,7 +395,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
 
   it('replaces service-role allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderUserId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderAccountId, primaryCongId),
     )
     if (!event) throw new Error('event not created')
 
@@ -397,7 +410,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
         serviceAssignment.id,
         { name: 'Son', allowedRoleIds: [] }, // clear allowed roles
         primaryCongId,
-        elderUserId,
+        elderAccountId,
       ),
     )
 

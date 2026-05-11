@@ -25,7 +25,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
@@ -171,7 +171,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   if (!permissions.has(Permission.TerritoriesManager)) {
     throw redirect('/')
   }
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
   const formData = await request.formData()
   const parsed = actionSchema.safeParse(Object.fromEntries(formData.entries()))

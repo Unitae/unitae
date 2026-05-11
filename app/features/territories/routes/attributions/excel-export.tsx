@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { generateS13ExportExcel } from '~/features/territories/server/s13-export.server'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   if (!permissions.has(Permission.TerritoriesViewer)) {
     logger.warn(

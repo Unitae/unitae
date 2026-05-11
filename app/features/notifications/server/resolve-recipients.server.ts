@@ -16,7 +16,7 @@ export async function resolveRecipients(
   recipientRole: string,
   notificationType: string,
 ): Promise<ResolvedRecipient[]> {
-  const users = await db.user.findMany({
+  const users = await db.userAccount.findMany({
     where: {
       congregationId,
       active: true,

@@ -4,7 +4,7 @@ import {
   getPublishersYearlyActivities,
 } from '~/features/publishers/server/generate-publishers-yearly-activity-xlsx.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -16,7 +16,7 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewActivities = permissions.has(Permission.ActivityViewer)
 
   if (!canViewActivities) {

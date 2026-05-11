@@ -49,43 +49,37 @@ beforeAll(async () => {
   otherCongId = other.id
 
   await withScope(primaryCongId, async tx => {
-    const manager = await tx.user.create({
+    const manager = await tx.userAccount.create({
       data: {
         email: `auth-manager-${ts}@test.com`,
         password: 'hashed',
         firstname: 'Manny',
         lastname: 'Manager',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
     managerId = manager.id
 
-    const responsible = await tx.user.create({
+    const responsible = await tx.userAccount.create({
       data: {
         email: `auth-responsible-${ts}@test.com`,
         password: 'hashed',
         firstname: 'Rose',
         lastname: 'Responsible',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
     responsibleId = responsible.id
 
-    const plain = await tx.user.create({
+    const plain = await tx.userAccount.create({
       data: {
         email: `auth-plain-${ts}@test.com`,
         password: 'hashed',
         firstname: 'Pat',
         lastname: 'Plain',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: primaryCongId,
       },
     })
@@ -107,15 +101,13 @@ beforeAll(async () => {
   })
 
   await withScope(otherCongId, async tx => {
-    const otherCongResp = await tx.user.create({
+    const otherCongResp = await tx.userAccount.create({
       data: {
         email: `auth-othercong-resp-${ts}@test.com`,
         password: 'hashed',
         firstname: 'Olga',
         lastname: 'Other',
         active: true,
-        isPublisher: false,
-        type: PublisherType.Normal,
         congregationId: otherCongId,
       },
     })
@@ -138,7 +130,7 @@ afterAll(async () => {
     await withScope(congId, async tx => {
       await tx.programmeTemplateResponsible.deleteMany({})
       await tx.programmeTemplate.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })

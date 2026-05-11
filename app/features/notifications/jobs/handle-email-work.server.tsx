@@ -37,7 +37,7 @@ async function handleNewDocumentNotification(data: Extract<EmailJobData, { type:
     return
   }
 
-  const validators = await unscopedDb.user.findMany({
+  const validators = await unscopedDb.userAccount.findMany({
     where: {
       congregationId: data.congregationId,
       active: true,

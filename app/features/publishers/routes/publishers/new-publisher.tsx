@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { createPublisherSchema } from '~/features/publishers/schemas/publisher.schema'
-import { createPublisher } from '~/features/publishers/server/create-publisher.server'
+import { createMember } from '~/features/publishers/server/create-member.server'
 import PublisherFieldServiceForm from '~/features/publishers/ui/PublisherFieldServiceForm'
 import PublisherNominationForm from '~/features/publishers/ui/PublisherNominationForm'
 import PublisherPersonalInformationForm from '~/features/publishers/ui/PublisherPersonalInformationForm'
@@ -11,7 +11,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -31,7 +31,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
   if (!canManagePublisher) {
@@ -80,7 +80,7 @@ export default function NewPublisher({ loaderData }: Route.ComponentProps) {
 
 export async function action({ request, context }: Route.ActionArgs) {
   const congregation = context.get(congregationContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const submission = parseWithZod(await request.formData(), { schema: createPublisherSchema })
 
   if (submission.status !== 'success') {
@@ -106,7 +106,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const session = await getSession(request.headers.get('Cookie'))
     try {
-      const user = await createPublisher(db, congregation, {
+      const user = await createMember(db, congregation, {
         firstname,
         lastname,
         email: email && email.length > 0 ? email : null,

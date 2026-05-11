@@ -7,7 +7,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { updateActivitySchema } from '~/features/publishers/schemas/activity.schema'
 import { updatePublisherActivity } from '~/features/publishers/server/publisher-activity-mutations.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
@@ -30,16 +30,13 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & {
-    responsibleFor?: { id: number }
-    deputyFor?: { id: number }
-  }
+  const member = currentUser.member
   const canManageMyGroupActivity =
-    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
-    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
+    member != null &&
+    (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')
@@ -209,16 +206,13 @@ export default function EditActivity({ loaderData, actionData }: Route.Component
 export async function action({ request, params, context }: Route.ActionArgs) {
   const previousPage = request.headers.get('referer')
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
-  const userWithRelations = currentUser as typeof currentUser & {
-    responsibleFor?: { id: number }
-    deputyFor?: { id: number }
-  }
+  const member = currentUser.member
   const canManageMyGroupActivity =
-    userWithRelations.responsibleFor?.id === currentUser.publisherGroupId ||
-    userWithRelations.deputyFor?.id === currentUser.publisherGroupId
+    member != null &&
+    (member.responsibleFor?.id === member.publisherGroupId || member.deputyFor?.id === member.publisherGroupId)
 
   if (!canManagePublisher && !canManageMyGroupActivity) {
     throw redirect('/')

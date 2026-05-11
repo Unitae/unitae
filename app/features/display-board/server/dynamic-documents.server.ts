@@ -49,8 +49,8 @@ export async function listAvailableDynamicTypes(
     })
   }
 
-  const pioneerCount = await db.user.count({
-    where: { congregationId, type: { in: PIONEER_TYPES }, active: true },
+  const pioneerCount = await db.member.count({
+    where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null },
   })
   if (pioneerCount > 0) {
     available.push({
@@ -93,7 +93,7 @@ export async function getContentVersion(
         orderBy: { updatedAt: 'desc' },
         select: { updatedAt: true },
       }),
-      db.user.findFirst({
+      db.member.findFirst({
         where: { congregationId, publisherGroupId: { not: null } },
         orderBy: { updatedAt: 'desc' },
         select: { updatedAt: true },
@@ -104,7 +104,7 @@ export async function getContentVersion(
   }
 
   if (dynamicType === DynamicType.Pioneers) {
-    const pioneer = await db.user.findFirst({
+    const pioneer = await db.member.findFirst({
       where: { congregationId, type: { in: PIONEER_TYPES } },
       orderBy: { updatedAt: 'desc' },
       select: { updatedAt: true },
@@ -182,8 +182,8 @@ export async function getDynamicPreview(
   }
 
   if (dynamicType === DynamicType.Pioneers) {
-    const count = await db.user.count({
-      where: { congregationId, type: { in: PIONEER_TYPES }, active: true },
+    const count = await db.member.count({
+      where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null },
     })
     return count > 0 ? `${count} pionniers` : null
   }
@@ -298,7 +298,7 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
       responsible: { select: userSelect },
       deputy: { select: userSelect },
       members: {
-        where: { active: true, isPublisher: true },
+        where: { leftAt: null, isPublisher: true },
         select: { ...userSelect, type: true },
         orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
       },
@@ -308,8 +308,8 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
 }
 
 function fetchPioneers(db: TransactionClient, congregationId: number) {
-  return db.user.findMany({
-    where: { congregationId, type: { in: PIONEER_TYPES }, active: true },
+  return db.member.findMany({
+    where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null },
     select: { ...userSelect, type: true },
     orderBy: [{ type: 'asc' }, { lastname: 'asc' }, { firstname: 'asc' }],
   })

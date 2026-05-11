@@ -3,7 +3,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { deleteEvent } from '~/features/events/server/programme-events.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
@@ -17,7 +17,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   const eventId = requireParamId(params.eventId, '/programs')
 
@@ -37,7 +37,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const session = await getSession(request.headers.get('Cookie'))
 
   const eventId = requireParamId(params.eventId, '/programs')

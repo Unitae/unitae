@@ -2,7 +2,7 @@ import { redirect } from 'react-router'
 import { getTerritoriesExportData } from '~/features/territories/server/territories-export-data.server'
 import { TerritoryAttributionDocument } from '~/features/territories/ui/TerritoryAttributionDocument'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { renderPdfResponse } from '~/shared/infra/pdf.server'
 import { Permission } from '~/shared/types/permission'
@@ -15,7 +15,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   if (!permissions.has(Permission.TerritoriesViewer)) {
     logger.warn(

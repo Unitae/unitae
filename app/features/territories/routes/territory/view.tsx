@@ -10,7 +10,7 @@ import {
   X,
 } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import type { Attribution, User } from '~/database/generated/client'
+import type { Attribution, Member } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findAdjacentTerritories, findTerritoryWithHistory } from '~/features/territories/server/attributions.server'
@@ -24,7 +24,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -52,7 +52,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
   const canManageTerritories = permissions.has(Permission.TerritoriesManager)
   const canViewPublisher = permissions.has(Permission.PublisherViewer)
-  const { congregationId } = context.get(userContext)
+  const { congregationId } = context.get(currentAccountContext)
   const from = new URL(request.url).searchParams.get('from')
 
   return withScopeFromContext(context, async db => {
@@ -92,7 +92,7 @@ function getTerritoryTypeLabel(type: string): string {
   return labels[type]?.() ?? type
 }
 
-function publisherInitials(publisher: User): string {
+function publisherInitials(publisher: Member): string {
   const first = publisher.firstname?.charAt(0) ?? ''
   const last = publisher.lastname?.charAt(0) ?? ''
   return `${first}${last}`.toLocaleUpperCase()
@@ -104,7 +104,7 @@ function CurrentAttributionCard({
   canManageTerritories,
   canViewPublisher,
 }: {
-  attribution: (Attribution & { publisher: User }) | undefined
+  attribution: (Attribution & { publisher: Member }) | undefined
   territoryId: number
   canManageTerritories: boolean
   canViewPublisher: boolean
@@ -213,7 +213,7 @@ function AttributionHistoryCard({
   attributions,
   canViewPublisher,
 }: {
-  attributions: (Attribution & { publisher: User })[]
+  attributions: (Attribution & { publisher: Member })[]
   canViewPublisher: boolean
 }) {
   return (

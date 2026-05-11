@@ -1,10 +1,10 @@
 import { redirect } from 'react-router'
 import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-user-password.server'
-import { sendResetUserPasswordEmail } from '~/features/authentication/server/send-reset-user-password-email.server'
+import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
+import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, requirePermission, userContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, requirePermission, currentAccountContext } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
@@ -21,13 +21,13 @@ export function loader() {
 }
 
 export async function action({ request, params, context }: Route.ActionArgs) {
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const permissions = context.get(permissionsContext)
   const session = await getSession(request.headers.get('Cookie'))
 
   requirePermission(permissions, Permission.SettingsUserManager)
 
-  const user = await db.user.findUnique({
+  const user = await db.userAccount.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },
   })
 
@@ -35,7 +35,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const token = await createPasswordResetToken(user.id)
   const congregation = await resolveCongregation(user.congregationId)
-  const sent = await sendResetUserPasswordEmail(
+  const sent = await sendResetAccountPasswordEmail(
     user.id,
     <ResetPasswordRequired
       email={user.email}

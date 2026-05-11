@@ -47,7 +47,7 @@ export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'no
         await sendNotificationToUser(data.notificationType, data.payload, recipient, congregation)
       }
     } else if (data.recipientId) {
-      const user = await unscopedDb.user.findFirst({
+      const user = await unscopedDb.userAccount.findFirst({
         where: { id: data.recipientId, congregationId: data.congregationId, active: true },
         select: { id: true, email: true, firstname: true },
       })
@@ -85,7 +85,7 @@ async function sendEventEmail(
   }
 
   // Direct recipient
-  const user = await unscopedDb.user.findFirst({
+  const user = await unscopedDb.userAccount.findFirst({
     where: { id: recipientId, congregationId, active: true },
     select: { id: true, email: true, firstname: true },
   })

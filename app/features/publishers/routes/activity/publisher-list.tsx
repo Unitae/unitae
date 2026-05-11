@@ -4,8 +4,7 @@ import { getPublisherStats } from '~/features/publishers/server/get-publisher-st
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
@@ -23,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewActivities = permissions.has(Permission.ActivityViewer)
   const canManageActivities = permissions.has(Permission.ActivityManager)
 
@@ -55,7 +54,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
       },
       stats: await getPublisherStats(db, currentUser.congregationId, month, year),
       publishers: users
-        .map(sanitizeUser)
         .map(({ activities, ...member }) => ({
           ...member,
           lastActivity: activities.length < 1 ? null : activities[0],
@@ -204,7 +202,7 @@ function PublisherRow({
 }) {
   return (
     <TableRow
-      key={publisher.email}
+      key={publisher.id}
       className={publisher.notRegular ? 'bg-destructive/10 text-destructive dark:bg-destructive/5' : ''}
     >
       <TableCell className="text-center max-sm:text-left">

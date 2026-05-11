@@ -9,17 +9,26 @@ You can keep things simple and stick to the built-in roles, or you can create yo
 
 ## Built-in roles
 
-These roles ship with every congregation. The system assigns and removes them automatically based on the publisher status fields on the user's profile (publisher, baptized, anointed, elder, etc.) — you don't manage their membership by hand.
+These roles ship with every congregation. The system assigns and removes them automatically based on the publisher profile fields (publisher, baptized, anointed, elder, etc.) — you don't manage their membership by hand.
 
 | Role | Who gets it |
 |---|---|
-| Publisher | Anyone marked as an active publisher |
-| Male | Active publishers whose profile is marked male |
-| Female | Active publishers whose profile is marked female |
-| Baptized | Active publishers with a baptism date |
-| Anointed | Active publishers marked as anointed |
-| Elder | Active publishers marked as elder |
-| Assistant servant | Active publishers marked as assistant servant |
+| Member | Anyone in the publisher list (publishers and ministry-school students alike) |
+| Ministry-school student | Someone in the publisher list who isn't yet declared a publisher |
+| Publisher | Anyone marked as a publisher |
+| Baptized | Publishers with a baptism date |
+| Brother | Anyone baptized whose profile is marked male |
+| Sister | Anyone baptized whose profile is marked female |
+| Anointed | Publishers marked as anointed |
+| Elder | Baptized males marked as elder |
+| Assistant servant | Baptized males marked as assistant servant |
+| Pioneer | Publishers serving as auxiliary or regular pioneers |
+
+A few things worth noting about how membership is computed:
+
+- **Brother / Sister** are no longer publisher-gated. A baptized non-publisher (for instance someone who's just moved in but hasn't yet been added to the local publisher record) still counts.
+- **Member** and **Ministry-school student** were added when the system started supporting people enrolled in the ministry school but not yet declared publishers — so a school student can now be picked as a candidate for a school talk without first being marked as a publisher.
+- When someone is **marked as left** the congregation, every built-in role assignment is removed automatically. When they return, the assignments come back from their stored profile flags.
 
 These roles come **without permissions attached by default**. Their main job is to let you **target communications and assignments** — for example, restricting a board section so only elders can see it, or filtering programme assignments to baptized publishers only.
 

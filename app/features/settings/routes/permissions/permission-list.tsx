@@ -1,7 +1,7 @@
 import { Pencil, Shield } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import { Permission } from '~/shared/types/permission'
 import { getRoleDescription, getRoleDisplayName } from '~/shared/types/role'
@@ -18,7 +18,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   if (!permissions.has(Permission.PermissionsManager)) throw redirect('/')
 
   return withScopeFromContext(context, async db => {

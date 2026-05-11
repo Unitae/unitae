@@ -10,7 +10,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   permissionsContext,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -23,7 +23,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.ProgramViewer)) throw redirect('/programs')
 
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const congregation = context.get(congregationContext)
 
   const url = new URL(request.url)

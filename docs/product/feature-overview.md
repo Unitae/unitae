@@ -52,12 +52,14 @@ See [Territories](territories.md) for details.
 
 ## Publishers
 
-Track publisher profiles, organize them into groups, and record field service activity.
+Track publisher profiles, organize them into groups, and record field service activity. Profiles are the system's representation of the people in the congregation; logins (with email and password) are a separate, optional layer — you can keep an offline publisher in the system without giving them an account, and you can give a circuit overseer a login without making them a congregation member.
 
 - **Profiles** — Personal information, publisher type (publisher, auxiliary pioneer, regular pioneer, etc.), appointment status
+- **Ministry-school students** — People who attend the school but aren't yet declared publishers appear in the same list and can be assigned to programme parts
 - **Field service groups** — Organize publishers into groups with a responsible and a deputy
 - **Activity tracking** — Monthly records of hours, studies, and pioneer service
 - **Reports** — Yearly activity Excel export, individual PDF reports, batch ZIP export
+- **Lifecycle** — Mark someone as left when they move away (reversible, data preserved); anonymise later for GDPR compliance
 
 See [Publishers](publishers.md) for details.
 

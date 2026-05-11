@@ -1,17 +1,18 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
-import type { CongregationId, UserId } from '~/shared/types/branded'
+import type { CongregationId, MemberId } from '~/shared/types/branded'
 
 export function getPublisherById(
   db: TransactionClient,
-  publisherId: UserId,
+  publisherId: MemberId,
   congregationId: CongregationId,
   serviceYearStart: number,
 ) {
-  return db.user.findUnique({
+  return db.member.findUnique({
     where: {
       id_congregationId: { id: publisherId, congregationId },
     },
     include: {
+      account: { select: { id: true, email: true, active: true } },
       publisherGroup: { include: { responsible: true, deputy: true } },
       activities: {
         where: {
@@ -30,9 +31,10 @@ export async function getPublishers(
   congregationId: number,
   options?: { groupId?: number | null },
 ) {
-  return await db.user.findMany({
+  return await db.member.findMany({
     where: {
       isPublisher: true,
+      leftAt: null,
       congregationId,
       ...(options?.groupId != null ? { publisherGroupId: options.groupId } : {}),
     },
@@ -54,9 +56,9 @@ export async function getPublishersWithGroup(
       }
     : {}
 
-  return await db.user.findMany({
-    where: { isPublisher: true, congregationId, ...searchFilter },
-    include: { publisherGroup: true },
+  return await db.member.findMany({
+    where: { isPublisher: true, leftAt: null, congregationId, ...searchFilter },
+    include: { publisherGroup: true, account: { select: { email: true } } },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })
 }

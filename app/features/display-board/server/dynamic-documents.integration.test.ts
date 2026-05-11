@@ -22,6 +22,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 const ts = Date.now()
 let congregationId: number
 let aliceId: number
+let aliceAccountIdInner: number
 
 beforeAll(async () => {
   const cong = await testDb.congregation.create({
@@ -30,28 +31,33 @@ beforeAll(async () => {
   congregationId = cong.id
 
   await withScope(congregationId, async tx => {
-    const alice = await tx.user.create({
+    const aliceMember = await tx.member.create({
       data: {
-        email: `alice-board-${ts}@test.com`,
-        password: 'hashed',
         firstname: 'Alice',
         lastname: 'Dupont',
-        active: true,
         isPublisher: true,
-        type: PublisherType.Normal,
         congregationId,
       },
     })
-    aliceId = alice.id
-
-    // Create a second user for group responsible/deputy
-    const bob = await tx.user.create({
+    const aliceAccount = await tx.userAccount.create({
       data: {
-        email: `bob-board-${ts}@test.com`,
+        email: `alice-board-${ts}@test.com`,
         password: 'hashed',
+        active: true,
+        memberId: aliceMember.id,
+        congregationId,
+      },
+    })
+    aliceId = aliceMember.id
+    aliceAccountIdInner = aliceAccount.id
+
+    // Create a second member for group responsible/deputy. Pioneer requires
+    // baptism per the CHECK constraint.
+    const bob = await tx.member.create({
+      data: {
         firstname: 'Bob',
         lastname: 'Martin',
-        active: true,
+        baptismDate: new Date('2010-01-01'),
         isPublisher: true,
         type: PublisherType.PionnierPermanant,
         congregationId,
@@ -68,7 +74,7 @@ beforeAll(async () => {
     })
 
     // Assign Alice to a group
-    await tx.user.update({
+    await tx.member.update({
       where: { id: aliceId },
       data: { publisherGroupId: group.id },
     })
@@ -89,7 +95,7 @@ beforeAll(async () => {
         templateId: template.id,
         startDate: new Date('2027-06-01T19:00:00Z'),
         endDate: new Date('2027-06-01T21:00:00Z'),
-        createdById: aliceId,
+        createdById: aliceAccountIdInner,
         congregationId,
       },
     })
@@ -121,7 +127,8 @@ afterAll(async () => {
     await tx.eventKind.deleteMany({ where: { congregationId } })
     await tx.programmeTemplate.deleteMany({ where: { congregationId } })
     await tx.publisherGroup.deleteMany({ where: { congregationId } })
-    await tx.user.deleteMany({ where: { congregationId } })
+    await tx.userAccount.deleteMany({ where: { congregationId } })
+    await tx.member.deleteMany({ where: { congregationId } })
   })
   await testDb.congregation.delete({ where: { id: congregationId } })
   await testDb.$disconnect()
@@ -205,12 +212,12 @@ describe('markDynamicDocumentViewed (integration)', () => {
     expect(settings).not.toBeNull()
     const settingsId = settings?.id ?? 0
 
-    // First view
-    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceId))
+    // First view — userId on BoardDynamicDocumentView points at UserAccount.
+    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceAccountIdInner))
 
     const view = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
-        where: { settingsId, userId: aliceId },
+        where: { settingsId, userId: aliceAccountIdInner },
       }),
     )
     expect(view).not.toBeNull()
@@ -218,11 +225,11 @@ describe('markDynamicDocumentViewed (integration)', () => {
 
     // Second view (upsert should update timestamp)
     await new Promise(r => setTimeout(r, 50))
-    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceId))
+    await withScope(congregationId, tx => markDynamicDocumentViewed(tx, settingsId, aliceAccountIdInner))
 
     const updatedView = await withScope(congregationId, tx =>
       tx.boardDynamicDocumentView.findFirst({
-        where: { settingsId, userId: aliceId },
+        where: { settingsId, userId: aliceAccountIdInner },
       }),
     )
     expect(updatedView).not.toBeNull()

@@ -1,15 +1,25 @@
-import { Archive, Download, IdCard, Pencil } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
+import { Download, Pencil, RotateCcw, UserCheck, UserMinus } from 'lucide-react'
+import { Form, Link, redirect, useSubmit } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { findActiveAttributionsForPublisher } from '~/features/territories/server/attributions.server'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { sanitizeUser } from '~/shared/auth/sanitize-user.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import type { CongregationId, UserId } from '~/shared/types/branded'
+import type { CongregationId, MemberId } from '~/shared/types/branded'
 import { Permission } from '~/shared/types/permission'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '~/shared/ui/alert-dialog'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -32,7 +42,7 @@ export const meta: Route.MetaFunction = ({ loaderData }) => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewPublisher = permissions.has(Permission.PublisherViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
   const canManageActivity = permissions.has(Permission.ActivityManager)
@@ -47,7 +57,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     `Loading publisher file for ${params.publisherId}. User ID: ${currentUser.id}. ${canManagePublisher ? 'Has' : 'Does NOT have'} rights to manage publishers.`,
   )
 
-  const publisherId = requireParamId<UserId>(params.publisherId, '/publishers')
+  const publisherId = requireParamId<MemberId>(params.publisherId, '/publishers')
 
   return withScopeFromContext(context, async db => {
     const [publisher, attributions] = await Promise.all([
@@ -60,7 +70,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     }
 
     return {
-      publisher: sanitizeUser(publisher),
+      publisher,
       attributions,
       roles: {
         canViewPublisher,
@@ -68,11 +78,81 @@ export function loader({ params, context }: Route.LoaderArgs) {
         canViewTerritories,
         canManageActivity:
           canManageActivity ||
-          publisher.publisherGroup?.responsible.id === currentUser.id ||
-          publisher.publisherGroup?.deputy?.id === currentUser.id,
+          publisher.publisherGroup?.responsible.id === currentUser.member?.id ||
+          publisher.publisherGroup?.deputy?.id === currentUser.member?.id,
       },
     }
   })
+}
+
+function LifecycleAction({
+  publisherId,
+  leftAt,
+  isPublisher,
+}: {
+  publisherId: number
+  leftAt: Date | null
+  isPublisher: boolean
+}) {
+  const submit = useSubmit()
+
+  if (leftAt != null) {
+    return (
+      <Form method="post" action={`/publishers/${publisherId}/mark-as-returned`}>
+        <Button type="submit" size="icon" title={m.publishers_view_mark_as_returned_title()}>
+          <RotateCcw className="size-4" />
+        </Button>
+      </Form>
+    )
+  }
+  if (isPublisher) {
+    return (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
+            <UserMinus className="size-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.publishers_view_mark_as_left_dialog_description()}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => submit(null, { method: 'post', action: `/publishers/${publisherId}/mark-as-left` })}
+            >
+              {m.publishers_view_mark_as_left_confirm()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )
+  }
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button size="icon" title={m.publishers_view_activate_title()}>
+          <UserCheck className="size-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
+          <AlertDialogDescription>{m.publishers_view_make_publisher_dialog_description()}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => submit(null, { method: 'post', action: `/publishers/${publisherId}/make-publisher` })}
+          >
+            {m.publishers_view_make_publisher_confirm()}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
 }
 
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
@@ -103,19 +183,12 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                   <Pencil className="size-4" />
                 </Link>
               </Button>
-              {publisher.isPublisher ? (
-                <Form method="post" action={`/settings/users/${publisher.id}/unmake-publisher`}>
-                  <Button type="submit" variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
-                    <Archive className="size-4" />
-                  </Button>
-                </Form>
-              ) : (
-                <Form method="post" action={`/settings/users/${publisher.id}/make-publisher`}>
-                  <Button type="submit" size="icon" title={m.publishers_view_activate_title()}>
-                    <IdCard className="size-4" />
-                  </Button>
-                </Form>
-              )}
+              <LifecycleAction
+                publisherId={publisher.id}
+                leftAt={publisher.leftAt}
+                isPublisher={publisher.isPublisher}
+              />
+
             </>
           )
         }
@@ -200,11 +273,11 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
             {m.publishers_view_phone()} :{' '}
             <span className="font-medium text-foreground">{publisher.phone ? publisher.phone : '...'}</span>
           </p>
-          {!publisher.email.includes('@placeholder.unitae.app') && (
+          {publisher.account?.email && (
             <p className="text-muted-foreground text-sm">
               {m.publishers_view_email_address()} :{' '}
-              <Link to={`mailto:${publisher.email}`} className="font-medium text-primary hover:underline">
-                {publisher.email}
+              <Link to={`mailto:${publisher.account.email}`} className="font-medium text-primary hover:underline">
+                {publisher.account.email}
               </Link>
             </p>
           )}

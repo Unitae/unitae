@@ -1,7 +1,7 @@
 import { Eye, Pencil, UsersRound } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
-import { permissionsContext, userContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { permissionsContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
@@ -19,7 +19,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
   const canViewPublishers = permissions.has(Permission.PublisherViewer)
   const canManagePublisher = permissions.has(Permission.PublisherManager)
 
@@ -41,7 +41,7 @@ export function loader({ context }: Route.LoaderArgs) {
       include: {
         responsible: true,
         deputy: true,
-        _count: { select: { members: { where: { isPublisher: true } } } },
+        _count: { select: { members: { where: { isPublisher: true, leftAt: null } } } },
       },
       orderBy: [{ name: 'asc' }],
     })

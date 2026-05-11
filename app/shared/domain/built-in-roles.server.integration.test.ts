@@ -38,8 +38,9 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 const ts = Date.now()
 let primaryCongId: number
 let otherCongId: number
-let primaryUserId: number
-let otherUserId: number
+// Member ids — identity roles attach to Member, so the test operates on the member side.
+let primaryMemberId: number
+let otherMemberId: number
 
 beforeAll(async () => {
   const primaryCong = await testDb.congregation.create({
@@ -55,45 +56,43 @@ beforeAll(async () => {
   await seedRoles(testDb, primaryCongId)
   await seedRoles(testDb, otherCongId)
 
-  const primaryUser = await testDb.user.create({
+  const primaryMember = await testDb.member.create({
     data: {
-      email: `bi-roles-primary-${ts}@test.com`,
-      password: 'hashed',
       firstname: 'Alice',
       lastname: 'Primary',
-      active: true,
       isPublisher: true,
       isMale: false,
       type: PublisherType.Normal,
       congregationId: primaryCongId,
     },
   })
-  primaryUserId = primaryUser.id
+  primaryMemberId = primaryMember.id
 
-  const otherUser = await testDb.user.create({
+  const otherMember = await testDb.member.create({
     data: {
-      email: `bi-roles-other-${ts}@test.com`,
-      password: 'hashed',
       firstname: 'Bob',
       lastname: 'Other',
-      active: true,
       isPublisher: true,
       isMale: true,
       isHelder: true,
+      // Elder requires baptism
+      baptismDate: new Date('2000-01-01'),
       type: PublisherType.Normal,
       congregationId: otherCongId,
     },
   })
-  otherUserId = otherUser.id
+  otherMemberId = otherMember.id
 })
 
 afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
+      await tx.memberRoleAssignment.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
       await tx.role.deleteMany({})
-      await tx.user.deleteMany({})
+      await tx.userAccount.deleteMany({})
+      await tx.member.deleteMany({})
     })
   }
   await testDb.congregation.deleteMany({ where: { id: { in: [primaryCongId, otherCongId] } } })
@@ -101,7 +100,7 @@ afterAll(async () => {
 })
 
 describe('seedBuiltInRoles', () => {
-  it('creates exactly the seven built-in roles per congregation', async () => {
+  it('creates exactly the configured built-in roles per congregation', async () => {
     const roles = await testDb.role.findMany({
       where: { congregationId: primaryCongId, isBuiltIn: true },
       select: { key: true },
@@ -117,62 +116,88 @@ describe('seedBuiltInRoles', () => {
 })
 
 describe('syncBuiltInRoleAssignments (integration)', () => {
-  it('assigns roles matching current boolean fields', async () => {
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
+  it('assigns roles matching current member flags', async () => {
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
 
-    const assignments = await testDb.userRoleAssignment.findMany({
-      where: { userId: primaryUserId, congregationId: primaryCongId },
+    const assignments = await testDb.memberRoleAssignment.findMany({
+      where: { memberId: primaryMemberId, congregationId: primaryCongId },
       include: { role: true },
     })
     const keys = assignments.map(a => a.role.key).sort()
-    expect(keys).toEqual(['female', 'publisher'])
+    // Alice is a non-baptized female publisher → publisher + member only
+    expect(keys).toEqual(['member', 'publisher'])
   })
 
-  it('removes every domain role when isPublisher flips to false', async () => {
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
+  it('removes every identity role when leftAt is set', async () => {
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
 
-    await testDb.user.update({ where: { id: primaryUserId }, data: { isPublisher: false } })
+    await testDb.member.update({ where: { id: primaryMemberId }, data: { leftAt: new Date() } })
 
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
 
     const keys = (
-      await testDb.userRoleAssignment.findMany({
-        where: { userId: primaryUserId },
+      await testDb.memberRoleAssignment.findMany({
+        where: { memberId: primaryMemberId },
         include: { role: true },
       })
     )
       .map(a => a.role.key)
       .sort()
     expect(keys).toEqual([])
+
+    // Restore for downstream tests
+    await testDb.member.update({ where: { id: primaryMemberId }, data: { leftAt: null } })
   })
 
   it('emits no audit when nothing changes (idempotent re-run)', async () => {
     vi.mocked(audit).mockClear()
 
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
 
-    // First call may emit (state-dependent); second call must not.
     const callsAfterIdempotentRun = vi.mocked(audit).mock.calls.length
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
     expect(vi.mocked(audit).mock.calls.length).toBe(callsAfterIdempotentRun)
   })
 
   it('does not touch assignments in another congregation (RLS isolation)', async () => {
-    await withScope(otherCongId, tx => syncBuiltInRoleAssignments(tx, otherUserId, otherCongId, otherUserId))
+    await withScope(otherCongId, tx => syncBuiltInRoleAssignments(tx, otherMemberId, otherCongId, otherMemberId))
 
-    // Mutate the primary user, sync them — must not affect the other user
-    await testDb.user.update({ where: { id: primaryUserId }, data: { isHelder: true } })
-    await withScope(primaryCongId, tx => syncBuiltInRoleAssignments(tx, primaryUserId, primaryCongId, primaryUserId))
+    // Mutate the primary member, sync them — must not affect the other member.
+    // Alice is female + non-baptized, so toggling baptism (a valid mutation
+    // under the CHECK constraints) is enough to trigger a sync.
+    await testDb.member.update({
+      where: { id: primaryMemberId },
+      data: { baptismDate: new Date('2005-01-01') },
+    })
+    await withScope(primaryCongId, tx =>
+      syncBuiltInRoleAssignments(tx, primaryMemberId, primaryCongId, primaryMemberId),
+    )
 
     const otherKeys = (
-      await testDb.userRoleAssignment.findMany({
-        where: { userId: otherUserId },
+      await testDb.memberRoleAssignment.findMany({
+        where: { memberId: otherMemberId },
         include: { role: true },
       })
     )
       .map(a => a.role.key)
       .sort()
-    expect(otherKeys).toEqual(['elder', 'male', 'publisher'])
+    // Bob: baptized male elder publisher → baptized, brother, elder, member, publisher
+    expect(otherKeys).toEqual(['baptized', 'brother', 'elder', 'member', 'publisher'])
+
+    // Restore for downstream tests
+    await testDb.member.update({ where: { id: primaryMemberId }, data: { baptismDate: null } })
   })
 })

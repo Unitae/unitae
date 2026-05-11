@@ -4,7 +4,7 @@ import * as m from '~/i18n/paraglide/messages'
 import {
   permissionsContext,
   requirePermission,
-  userContext,
+  currentAccountContext,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
@@ -22,7 +22,7 @@ export const meta: Route.MetaFunction = () => {
 
 export function loader({ params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
-  const currentUser = context.get(userContext)
+  const currentUser = context.get(currentAccountContext)
 
   requirePermission(permissions, Permission.BoardValidator)
 
@@ -46,22 +46,41 @@ export function loader({ params, context }: Route.LoaderArgs) {
         id: true,
         title: true,
         viewedBy: {
-          select: { id: true, firstname: true, lastname: true, anonymizedAt: true },
+          select: {
+            id: true,
+            firstname: true,
+            lastname: true,
+            anonymizedAt: true,
+            member: { select: { firstname: true, lastname: true, anonymizedAt: true } },
+          },
         },
       },
     })
 
     if (document == null) throw redirect('/board/documents')
 
-    const allUsers = await db.user.findMany({
+    const allUsers = await db.userAccount.findMany({
       where: { congregationId, active: true },
-      select: { id: true, firstname: true, lastname: true, anonymizedAt: true },
+      select: {
+        id: true,
+        firstname: true,
+        lastname: true,
+        anonymizedAt: true,
+        member: { select: { firstname: true, lastname: true, anonymizedAt: true } },
+      },
       orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
 
+    const flatten = (u: (typeof allUsers)[number]) => ({
+      id: u.id,
+      firstname: u.member?.firstname ?? u.firstname,
+      lastname: u.member?.lastname ?? u.lastname,
+      anonymizedAt: u.member?.anonymizedAt ?? u.anonymizedAt,
+    })
+
     const viewedIds = new Set(document.viewedBy.map(u => u.id))
-    const readUsers = allUsers.filter(u => viewedIds.has(u.id))
-    const unreadUsers = allUsers.filter(u => !viewedIds.has(u.id))
+    const readUsers = allUsers.filter(u => viewedIds.has(u.id)).map(flatten)
+    const unreadUsers = allUsers.filter(u => !viewedIds.has(u.id)).map(flatten)
 
     return {
       document: { id: document.id, title: document.title },

@@ -38,7 +38,7 @@ function makeTerritory(id: number, number: string, status: 'on-time' | 'due-soon
   }
 }
 
-type Person = { id: number; firstname: string | null; lastname: string | null }
+type Person = { id: number; firstname: string; lastname: string }
 type PartAssignment = {
   id: number
   name: string

@@ -75,24 +75,26 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 1.1 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('1.1')
+  it('is the current 2.0 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.0')
   })
 })
 
 describe('ENTITY_FILES', () => {
   it('contains the expected entity types in dependency order', () => {
     expect(ENTITY_FILES[0]).toBe('congregation')
-    expect(ENTITY_FILES).toContain('users')
+    expect(ENTITY_FILES).toContain('members')
+    expect(ENTITY_FILES).toContain('user-accounts')
+    expect(ENTITY_FILES).toContain('member-role-assignments')
     expect(ENTITY_FILES).toContain('territories')
     expect(ENTITY_FILES).toContain('board-documents')
   })
 
-  it('has users before publisher-groups (dependency order)', () => {
-    const usersIndex = ENTITY_FILES.indexOf('users')
+  it('has members before publisher-groups (dependency order)', () => {
+    const membersIndex = ENTITY_FILES.indexOf('members')
     const groupsIndex = ENTITY_FILES.indexOf('publisher-groups')
 
-    expect(usersIndex).toBeLessThan(groupsIndex)
+    expect(membersIndex).toBeLessThan(groupsIndex)
   })
 
   it('has territories before attributions (dependency order)', () => {
@@ -120,10 +122,16 @@ describe('ENTITY_FILES', () => {
     expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(ENTITY_FILES.indexOf('role-permissions'))
   })
 
-  it('has roles and users before user-role-assignments (dependency order)', () => {
+  it('has roles and user-accounts before user-role-assignments (dependency order)', () => {
     const userRoleAssignmentsIndex = ENTITY_FILES.indexOf('user-role-assignments')
     expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(userRoleAssignmentsIndex)
-    expect(ENTITY_FILES.indexOf('users')).toBeLessThan(userRoleAssignmentsIndex)
+    expect(ENTITY_FILES.indexOf('user-accounts')).toBeLessThan(userRoleAssignmentsIndex)
+  })
+
+  it('has roles and members before member-role-assignments (dependency order)', () => {
+    const memberRoleAssignmentsIndex = ENTITY_FILES.indexOf('member-role-assignments')
+    expect(ENTITY_FILES.indexOf('roles')).toBeLessThan(memberRoleAssignmentsIndex)
+    expect(ENTITY_FILES.indexOf('members')).toBeLessThan(memberRoleAssignmentsIndex)
   })
 
   it('has external-speakers before programme-part-assignments (dependency order)', () => {
