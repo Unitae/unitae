@@ -1,4 +1,4 @@
-import { BarChart3, Eye, Mail, Pencil, Users } from 'lucide-react'
+import { BarChart3, Eye, Mail, Pencil, UserMinus, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -94,6 +94,13 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
               <Button asChild variant="outline" size="icon" title={m.publishers_view_activity_title()}>
                 <Link to="./activity">
                   <BarChart3 className="size-4" />
+                </Link>
+              </Button>
+            )}
+            {canManagePublisher && (
+              <Button asChild variant="outline" size="icon" title={m.publishers_view_former_link_title()}>
+                <Link to="./former">
+                  <UserMinus className="size-4" />
                 </Link>
               </Button>
             )}

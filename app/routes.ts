@@ -117,6 +117,7 @@ export default [
     ]),
     route('publishers', 'features/publishers/routes/_layout.tsx', [
       index('features/publishers/routes/publishers/publisher-list.tsx'),
+      route('former', 'features/publishers/routes/publishers/former-list.tsx'),
       route('new', 'features/publishers/routes/publishers/new-publisher.tsx'),
       ...prefix(':publisherId', [
         route('view', 'features/publishers/routes/publishers/publisher.tsx'),
