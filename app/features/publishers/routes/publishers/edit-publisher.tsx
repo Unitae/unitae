@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { KeyRound, RotateCcw, UnplugIcon, UserCheck, UserMinus } from 'lucide-react'
 import { useState } from 'react'
-import { data, Form, redirect } from 'react-router'
+import { data, Form, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
 import { updatePublisherSchema } from '~/features/publishers/schemas/edit-publisher.schema'
 import { updateMember } from '~/features/publishers/server/update-member.server'
@@ -90,6 +90,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 export default function EditPublisher({ loaderData }: Route.ComponentProps) {
   const { user, groups, hideAuxiliaryPioneer } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
+  const submit = useSubmit()
   const [gender, setGender] = useState<'male' | 'female' | null>(user.isMale ? 'male' : 'female')
 
   return (
@@ -126,38 +127,29 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                 </DialogContent>
               </Dialog>
             ) : (
-              <>
-                {/* Form lives outside the portaled AlertDialog so the submit
-                    survives the close-on-click. The action button references
-                    it by id via the HTML `form` attribute. */}
-                <Form
-                  id={`unlink-login-form-${user.id}`}
-                  method="post"
-                  action={`/publishers/${user.id}/unlink-login`}
-                  className="hidden"
-                />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="icon" title={m.publishers_edit_unlink_login_title()}>
-                      <UnplugIcon className="size-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{m.publishers_edit_unlink_login_dialog_title()}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {m.publishers_edit_unlink_login_dialog_description()}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                      <AlertDialogAction type="submit" form={`unlink-login-form-${user.id}`}>
-                        {m.publishers_edit_unlink_login_submit()}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="icon" title={m.publishers_edit_unlink_login_title()}>
+                    <UnplugIcon className="size-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.publishers_edit_unlink_login_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.publishers_edit_unlink_login_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/unlink-login` })}
+                    >
+                      {m.publishers_edit_unlink_login_submit()}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             {user.leftAt != null ? (
               <Form method="post" action={`/publishers/${user.id}/mark-as-returned`}>
@@ -166,65 +158,53 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                 </Button>
               </Form>
             ) : user.isPublisher ? (
-              <>
-                <Form
-                  id={`mark-as-left-form-${user.id}`}
-                  method="post"
-                  action={`/publishers/${user.id}/mark-as-left`}
-                  className="hidden"
-                />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
-                      <UserMinus className="size-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {m.publishers_view_mark_as_left_dialog_description()}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                      <AlertDialogAction type="submit" form={`mark-as-left-form-${user.id}`}>
-                        {m.publishers_view_mark_as_left_confirm()}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
+                    <UserMinus className="size-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.publishers_view_mark_as_left_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-left` })}
+                    >
+                      {m.publishers_view_mark_as_left_confirm()}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             ) : (
-              <>
-                <Form
-                  id={`make-publisher-form-${user.id}`}
-                  method="post"
-                  action={`/publishers/${user.id}/make-publisher`}
-                  className="hidden"
-                />
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button size="icon" title={m.publishers_edit_activate_title()}>
-                      <UserCheck className="size-4" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {m.publishers_view_make_publisher_dialog_description()}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                      <AlertDialogAction type="submit" form={`make-publisher-form-${user.id}`}>
-                        {m.publishers_view_make_publisher_confirm()}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button size="icon" title={m.publishers_edit_activate_title()}>
+                    <UserCheck className="size-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{m.publishers_view_make_publisher_dialog_title()}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {m.publishers_view_make_publisher_dialog_description()}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/make-publisher` })}
+                    >
+                      {m.publishers_view_make_publisher_confirm()}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </>
         }

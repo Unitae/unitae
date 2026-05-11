@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { Download, IdCard, ShieldAlert, UserPlus } from 'lucide-react'
-import { data, Form, Link, redirect } from 'react-router'
+import { data, Form, Link, redirect, useSubmit } from 'react-router'
 import { editUserSchema } from '~/features/settings/schemas/user.schema'
 import { updateAccount } from '~/features/settings/server/update-account.server'
 import { RolePermissionPicker } from '~/features/settings/ui/RolePermissionPicker'
@@ -132,6 +132,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
     loaderData
 
   const { blocker, markDirty } = useUnsavedChanges()
+  const submit = useSubmit()
   useFocusError(actionData)
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -355,15 +356,6 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
           <CardContent className="flex flex-col gap-4">
             <div className="flex items-center justify-between gap-4">
               <p className="text-muted-foreground text-sm">{m.settings_user_edit_delete_account_description()}</p>
-              {/* Form lives outside the portaled AlertDialog so the submit
-                  survives Radix's close-on-click. AlertDialogAction refs it
-                  via the HTML `form` attribute. */}
-              <Form
-                id={`delete-account-form-${user.id}`}
-                method="post"
-                action={`/settings/users/${user.id}/delete-account`}
-                className="hidden"
-              />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="outline" className="shrink-0">
@@ -379,7 +371,11 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                    <AlertDialogAction type="submit" form={`delete-account-form-${user.id}`}>
+                    <AlertDialogAction
+                      onClick={() =>
+                        submit(null, { method: 'post', action: `/settings/users/${user.id}/delete-account` })
+                      }
+                    >
                       {m.settings_user_edit_delete_account_confirm()}
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -388,12 +384,6 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
             </div>
             <div className="flex items-center justify-between gap-4">
               <p className="text-muted-foreground text-sm">{m.settings_user_edit_anonymize_description()}</p>
-              <Form
-                id={`anonymize-form-${user.id}`}
-                method="post"
-                action={`/settings/users/${user.id}/anonymize`}
-                className="hidden"
-              />
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button variant="destructive" className="shrink-0">
@@ -408,8 +398,7 @@ export default function SettingsLayout({ loaderData, actionData }: Route.Compone
                   <AlertDialogFooter>
                     <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
                     <AlertDialogAction
-                      type="submit"
-                      form={`anonymize-form-${user.id}`}
+                      onClick={() => submit(null, { method: 'post', action: `/settings/users/${user.id}/anonymize` })}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
                       {m.settings_user_edit_anonymize_confirm()}
