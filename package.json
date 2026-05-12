@@ -2,7 +2,12 @@
     "name": "unitae",
     "license": "AGPL-3.0-only",
     "private": true,
-    "sideEffects": false,
+    "sideEffects": [
+        "**/*.css",
+        "**/pdf-worker.ts",
+        "**/pdf-globals-shim.ts",
+        "**/env.server.ts"
+    ],
     "type": "module",
     "scripts": {
         "build": "react-router build",

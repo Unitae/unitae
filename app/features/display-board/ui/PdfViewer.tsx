@@ -13,8 +13,10 @@ interface PdfViewerProps {
   downloadName?: string
 }
 
+type PdfErrorStage = 'load' | 'fetch' | 'render'
+
 interface PdfErrorDetails {
-  stage: 'fetch' | 'render'
+  stage: PdfErrorStage
   name: string
   message: string
   httpStatus?: number
@@ -32,8 +34,18 @@ class PdfFetchError extends Error {
   }
 }
 
-function buildErrorDetails(stage: 'fetch' | 'render', err: unknown, url: string): PdfErrorDetails {
-  const e = err instanceof Error ? err : new Error(String(err))
+class PdfLoadError extends Error {
+  override cause: unknown
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause))
+    this.name = 'PdfLoadError'
+    this.cause = cause
+  }
+}
+
+function buildErrorDetails(stage: PdfErrorStage, err: unknown, url: string): PdfErrorDetails {
+  const original = err instanceof PdfLoadError ? err.cause : err
+  const e = original instanceof Error ? original : new Error(String(original))
   return {
     stage,
     name: e.name,
@@ -48,12 +60,16 @@ function buildErrorDetails(stage: 'fetch' | 'render', err: unknown, url: string)
 const SCROLLBAR_BUDGET_PX = 16
 
 async function loadPdfJs() {
-  await import('./pdf-globals-shim')
-  await import('es-arraybuffer-base64/auto')
-  const pdfjs = await import('pdfjs-dist')
-  const workerSrc = (await import('./pdf-worker?worker&url')).default
-  pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
-  return pdfjs
+  try {
+    await import('./pdf-globals-shim')
+    await import('es-arraybuffer-base64/auto')
+    const pdfjs = await import('pdfjs-dist')
+    const workerSrc = (await import('./pdf-worker?worker&url')).default
+    pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
+    return pdfjs
+  } catch (err) {
+    throw new PdfLoadError(err)
+  }
 }
 
 // biome-ignore lint/suspicious/noExplicitAny: pdfjs page type is complex and not exported cleanly
@@ -174,7 +190,8 @@ export function PdfViewer({ url, downloadUrl, downloadName }: PdfViewerProps) {
       })
       .catch(err => {
         if (!cancelled) {
-          setError(buildErrorDetails('fetch', err, url))
+          const stage: PdfErrorStage = err instanceof PdfLoadError ? 'load' : 'fetch'
+          setError(buildErrorDetails(stage, err, url))
           setLoading(false)
         }
       })
