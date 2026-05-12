@@ -2,6 +2,7 @@ import { AlertTriangle, CalendarOff, CalendarPlus, ChevronRight, FileText, Info,
 import { Link } from 'react-router'
 
 import {
+  getConflictingAssignments,
   getNextMeeting,
   getRecentDocuments,
   getUnreadDocumentCount,
@@ -48,25 +49,30 @@ export function loader({ context }: Route.LoaderArgs) {
   // Member id; account-bound queries (documents/views) use the UserAccount id.
   const memberId = currentUser.member?.id ?? null
   return withScopeFromContext(context, async db => {
-    const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting] = await Promise.all([
-      memberId != null
-        ? safeQuery('territories', currentUser.id, () => getUserTerritories(db, memberId))
-        : Promise.resolve(null),
-      canViewBoard
-        ? safeQuery('documents', currentUser.id, () =>
-            getRecentDocuments(db, currentUser.id, currentUser.congregationId),
-          )
-        : Promise.resolve(null),
-      canViewBoard
-        ? safeQuery('unread-count', currentUser.id, () =>
-            getUnreadDocumentCount(db, currentUser.id, currentUser.congregationId),
-          )
-        : Promise.resolve(0),
-      safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
-      memberId != null
-        ? safeQuery('next-meeting', currentUser.id, () => getNextMeeting(db, memberId))
-        : Promise.resolve(null),
-    ])
+    const memberSafeQuery = <T,>(label: string, run: (mid: number) => Promise<T>): Promise<T | null> => {
+      if (memberId == null) return Promise.resolve(null)
+      return safeQuery(label, currentUser.id, () => run(memberId))
+    }
+
+    const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting, dayoffConflict] =
+      await Promise.all([
+        memberSafeQuery('territories', mid => getUserTerritories(db, mid)),
+        canViewBoard
+          ? safeQuery('documents', currentUser.id, () =>
+              getRecentDocuments(db, currentUser.id, currentUser.congregationId),
+            )
+          : Promise.resolve(null),
+        canViewBoard
+          ? safeQuery('unread-count', currentUser.id, () =>
+              getUnreadDocumentCount(db, currentUser.id, currentUser.congregationId),
+            )
+          : Promise.resolve(0),
+        safeQuery('absences', currentUser.id, () =>
+          getUpcomingAbsences(db, currentUser.id, currentUser.congregationId),
+        ),
+        memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid)),
+        memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
+      ])
 
     // Onboarding: count entities for admin checklist
     let onboarding = null
@@ -92,6 +98,7 @@ export function loader({ context }: Route.LoaderArgs) {
       unreadDocumentCount,
       nextMeeting,
       absences,
+      dayoffConflict,
       onboarding,
       isAdmin,
       isTerritoriesManager,
@@ -127,6 +134,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     unreadDocumentCount,
     nextMeeting,
     absences,
+    dayoffConflict,
     onboarding,
     isAdmin,
     isTerritoriesManager,
@@ -140,7 +148,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   })
 
   // Build urgent items from across features
-  const urgentItems = buildUrgentItems(territories, unreadDocumentCount, nextMeeting, absences?.upcoming ?? null)
+  const urgentItems = buildUrgentItems(territories, unreadDocumentCount, nextMeeting, dayoffConflict)
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8">

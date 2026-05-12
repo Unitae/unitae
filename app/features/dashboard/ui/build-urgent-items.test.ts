@@ -72,20 +72,8 @@ function makeNextMeeting(
   }
 }
 
-function makeAbsence(id: number, startDate: Date, endDate: Date) {
-  return {
-    id,
-    startDate,
-    endDate,
-    name: 'Absence',
-    description: '',
-    congregationId: 1,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    createdById: 1,
-    kindId: 1,
-    templateId: null as number | null,
-  }
+function makeConflict(id: number, eventName: string, eventStartDate: Date, kind: 'part' | 'service-role' = 'part') {
+  return { kind, id, eventName, eventStartDate }
 }
 
 // --- urgentTerritoriesItems ---
@@ -237,59 +225,36 @@ describe('urgentServiceRoleItems', () => {
 // --- urgentDayoffConflictItems ---
 
 describe('urgentDayoffConflictItems', () => {
-  it('returns empty array for null meeting', () => {
-    expect(urgentDayoffConflictItems(null, [makeAbsence(1, new Date(), new Date())])).toEqual([])
+  it('returns empty array when there is no conflict', () => {
+    expect(urgentDayoffConflictItems(null)).toEqual([])
   })
 
-  it('returns empty array for null absences', () => {
-    const meeting = makeNextMeeting(new Date(2026, 3, 25), { userPartIds: [10] })
-    expect(urgentDayoffConflictItems(meeting, null)).toEqual([])
-  })
-
-  it('returns empty array when user has no assignments', () => {
-    const meeting = makeNextMeeting(new Date(2026, 3, 25))
-    const absences = [makeAbsence(1, new Date(2026, 3, 25), new Date(2026, 3, 25))]
-    expect(urgentDayoffConflictItems(meeting, absences)).toEqual([])
-  })
-
-  it('returns empty array when absence does not overlap meeting', () => {
-    const meetingDate = new Date(2026, 3, 25, 19, 0)
-    const meeting = makeNextMeeting(meetingDate, {
-      userPartIds: [10],
-      partAssignments: [
-        { id: 10, name: 'Discours', section: 'main', topic: '', order: 1, assignee: null, assistant: null },
-      ],
-    })
-    // Absence is the day before the meeting
-    const absences = [makeAbsence(1, new Date(2026, 3, 20), new Date(2026, 3, 23))]
-    expect(urgentDayoffConflictItems(meeting, absences)).toEqual([])
-  })
-
-  it('returns conflict item when absence overlaps meeting date', () => {
-    const meetingDate = new Date(2026, 3, 25, 19, 0)
-    const meeting = makeNextMeeting(meetingDate, {
-      userPartIds: [10],
-      partAssignments: [
-        { id: 10, name: 'Discours', section: 'main', topic: '', order: 1, assignee: null, assistant: null },
-      ],
-    })
-    // Absence spans the meeting day
-    const absences = [makeAbsence(7, new Date(2026, 3, 24), new Date(2026, 3, 26))]
-    const items = urgentDayoffConflictItems(meeting, absences)
+  it('returns conflict item with priority 2 for a part assignment', () => {
+    const eventStart = new Date(2026, 3, 25, 19, 0)
+    const conflict = makeConflict(7, 'Réunion de semaine', eventStart, 'part')
+    const items = urgentDayoffConflictItems(conflict)
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(2)
     expect(items[0].to).toBe('/me/days-off')
     expect(items[0].label).toContain('Réunion de semaine')
+    expect(items[0].key).toBe('dayoff-conflict-part-7')
+    // The relative date must reflect the conflicting event, not the next meeting
+    expect(items[0].relativeDate).toBe(eventStart)
   })
 
-  it('detects conflict when absence starts same day as meeting', () => {
-    const meetingDate = new Date(2026, 3, 25, 19, 0)
-    const meeting = makeNextMeeting(meetingDate, {
-      userServiceRoleIds: [5],
-      serviceRoleAssignments: [{ id: 5, name: 'Son', assignee: null }],
-    })
-    const absences = [makeAbsence(8, new Date(2026, 3, 25, 0, 0), new Date(2026, 3, 27))]
-    expect(urgentDayoffConflictItems(meeting, absences)).toHaveLength(1)
+  it('returns conflict item for a service role assignment', () => {
+    const conflict = makeConflict(5, 'Réunion publique', new Date(2026, 5, 1, 9, 30), 'service-role')
+    const items = urgentDayoffConflictItems(conflict)
+    expect(items).toHaveLength(1)
+    expect(items[0].key).toBe('dayoff-conflict-service-role-5')
+    expect(items[0].label).toContain('Réunion publique')
+  })
+
+  it('surfaces conflicts well beyond the next meeting horizon', () => {
+    // Two months out — old behaviour ignored anything past the next meeting
+    const conflict = makeConflict(99, 'Assemblée régionale', new Date(2026, 5, 24, 9, 0))
+    const items = urgentDayoffConflictItems(conflict)
+    expect(items).toHaveLength(1)
   })
 })
 
@@ -360,8 +325,8 @@ describe('buildUrgentItems', () => {
       ],
       serviceRoleAssignments: [{ id: 5, name: 'Son', assignee: null }],
     })
-    const absences = [makeAbsence(7, new Date(2026, 3, 24), new Date(2026, 3, 26))]
-    const items = buildUrgentItems(null, null, meeting, absences)
+    const conflict = makeConflict(7, 'Réunion de semaine', meetingDate)
+    const items = buildUrgentItems(null, null, meeting, conflict)
     const priorities = items.map(i => i.priority)
     expect(priorities).toEqual([0, 2, 3])
   })
