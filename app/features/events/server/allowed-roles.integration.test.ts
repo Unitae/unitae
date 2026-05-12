@@ -40,6 +40,7 @@ let templateId: number
 let speakerPartId: number
 let serviceRoleId: number
 let foreignTemplatePartId: number
+let customRoleId: number
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({
@@ -124,6 +125,17 @@ beforeAll(async () => {
         // Non-publisher (school student) is also a member — should be eligible by default
         { memberId: nonPublisherUserId, roleId: memberRoleId, congregationId: primaryCongId },
       ],
+    })
+
+    // Custom role assigned to the elder's UserAccount only (no MemberRoleAssignment).
+    // Used by the regression test that verifies eligibility resolves through
+    // both assignment tables, mirroring the three-source rule in #183.
+    const custom = await tx.role.create({
+      data: { key: `custom-${ts}`, name: 'Custom', isBuiltIn: false, congregationId: primaryCongId },
+    })
+    customRoleId = custom.id
+    await tx.userRoleAssignment.create({
+      data: { userId: elderAccountId, roleId: customRoleId, congregationId: primaryCongId },
     })
 
     // Template + parts + service role
@@ -233,6 +245,11 @@ describe('resolveEligibleUserIds (integration)', () => {
   it('does not leak users from another congregation', async () => {
     const result = await withScope(foreignCongId, tx => resolveEligibleUserIds(tx, [foreignElderRoleId], foreignCongId))
     expect(result).toEqual([])
+  })
+
+  it('includes members reached only via UserRoleAssignment on the linked account', async () => {
+    const result = await withScope(primaryCongId, tx => resolveEligibleUserIds(tx, [customRoleId], primaryCongId))
+    expect(result).toEqual([elderUserId])
   })
 })
 

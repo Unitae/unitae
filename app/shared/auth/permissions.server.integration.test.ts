@@ -4,9 +4,12 @@ import { PrismaClient } from '~/database/generated/client'
 import { Permission } from '~/shared/types/permission'
 
 const { seedPermissions } = await import('~/shared/domain/setup.server')
-const { resolveEffectivePermissions, resolveEffectiveRoleIds, findAccountsWithPermission } = await import(
-  './permissions.server'
-)
+const {
+  resolveEffectivePermissions,
+  resolveEffectiveRoleIds,
+  findAccountsWithPermission,
+  findMembersWithAnyRole,
+} = await import('./permissions.server')
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -23,6 +26,9 @@ let memberOnlyAccountId: number
 let accountOnlyAccountId: number
 let directGrantAccountId: number
 let noMemberAccountId: number
+let memberOnlyMemberId: number
+let accountOnlyMemberId: number
+let leaverMemberId: number
 
 beforeAll(async () => {
   await seedPermissions(testDb)
@@ -57,6 +63,7 @@ beforeAll(async () => {
   const memberOnlyMember = await testDb.member.create({
     data: { firstname: 'Mem', lastname: 'Only', isPublisher: true, congregationId },
   })
+  memberOnlyMemberId = memberOnlyMember.id
   const memberOnlyAccount = await testDb.userAccount.create({
     data: {
       email: `perms-mem-${ts}@test.com`,
@@ -75,6 +82,7 @@ beforeAll(async () => {
   const accountOnlyMember = await testDb.member.create({
     data: { firstname: 'Acc', lastname: 'Only', isPublisher: false, congregationId },
   })
+  accountOnlyMemberId = accountOnlyMember.id
   const accountOnlyAccount = await testDb.userAccount.create({
     data: {
       email: `perms-acc-${ts}@test.com`,
@@ -87,6 +95,22 @@ beforeAll(async () => {
   accountOnlyAccountId = accountOnlyAccount.id
   await testDb.userRoleAssignment.create({
     data: { userId: accountOnlyAccount.id, roleId: accountRoleId, congregationId },
+  })
+
+  // A Member that holds memberRoleId but has left the congregation. Used to
+  // verify findMembersWithAnyRole excludes leavers.
+  const leaverMember = await testDb.member.create({
+    data: {
+      firstname: 'Left',
+      lastname: 'Member',
+      isPublisher: true,
+      leftAt: new Date('2024-01-01'),
+      congregationId,
+    },
+  })
+  leaverMemberId = leaverMember.id
+  await testDb.memberRoleAssignment.create({
+    data: { memberId: leaverMember.id, roleId: memberRoleId, congregationId },
   })
 
   // Account 3: BoardViewer reached only via direct CongregationUserPermission.
@@ -182,5 +206,32 @@ describe('findAccountsWithPermission (integration)', () => {
   it('does not return accounts that lack the permission', async () => {
     const accounts = await findAccountsWithPermission(testDb, congregationId, Permission.BoardViewer)
     expect(accounts.some(a => a.id === noMemberAccountId)).toBe(false)
+  })
+})
+
+describe('findMembersWithAnyRole (integration)', () => {
+  it('returns the member when the role is assigned via MemberRoleAssignment', async () => {
+    const ids = await findMembersWithAnyRole(testDb, [memberRoleId], congregationId)
+    expect(ids).toContain(memberOnlyMemberId)
+  })
+
+  it('returns the member when the role is assigned via UserRoleAssignment on the linked account', async () => {
+    const ids = await findMembersWithAnyRole(testDb, [accountRoleId], congregationId)
+    expect(ids).toEqual([accountOnlyMemberId])
+  })
+
+  it('unions both sources when both role IDs are queried at once', async () => {
+    const ids = await findMembersWithAnyRole(testDb, [memberRoleId, accountRoleId], congregationId)
+    expect(ids.sort((a, b) => a - b)).toEqual([memberOnlyMemberId, accountOnlyMemberId].sort((a, b) => a - b))
+  })
+
+  it('excludes leavers even when they hold the role', async () => {
+    const ids = await findMembersWithAnyRole(testDb, [memberRoleId], congregationId)
+    expect(ids).not.toContain(leaverMemberId)
+  })
+
+  it('returns an empty array when roleIds is empty', async () => {
+    const ids = await findMembersWithAnyRole(testDb, [], congregationId)
+    expect(ids).toEqual([])
   })
 })

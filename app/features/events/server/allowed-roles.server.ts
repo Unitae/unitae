@@ -1,13 +1,19 @@
+import { findMembersWithAnyRole } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export type PartRoleKind = 'speaker' | 'reader'
 
 /**
  * Resolve member ids eligible for a programme assignment with the given allowed
- * roles. Reads from `MemberRoleAssignment` — identity roles (brother, elder,
- * pioneer, …) are auto-synced from Member flags. The default fallback (when no
- * allowed roles are specified) is "every current Member of the congregation"
- * via the built-in `member` role, so school students can be picked too.
+ * roles. A role reaches a Member two ways: directly via `MemberRoleAssignment`
+ * (identity roles like brother/elder/pioneer, auto-synced from Member flags)
+ * or via the linked `UserAccount`'s `UserRoleAssignment` (custom/management
+ * roles granted to the account). Both must be unioned — the canonical rule
+ * lives in `app/shared/auth/permissions.server.ts`.
+ *
+ * The default fallback (when no allowed roles are specified) is "every current
+ * Member of the congregation" via the built-in `member` role, so school
+ * students can be picked too.
  */
 export async function resolveEligibleUserIds(
   db: TransactionClient,
@@ -31,15 +37,7 @@ export async function resolveEligibleUserIds(
     return [...new Set(assignments.map(a => a.memberId))]
   }
 
-  const assignments = await db.memberRoleAssignment.findMany({
-    where: {
-      roleId: { in: allowedRoleIds },
-      congregationId,
-      member: { leftAt: null, anonymizedAt: null },
-    },
-    select: { memberId: true },
-  })
-  return [...new Set(assignments.map(a => a.memberId))]
+  return findMembersWithAnyRole(db, allowedRoleIds, congregationId)
 }
 
 export async function getTemplatePartAllowedRoleIds(

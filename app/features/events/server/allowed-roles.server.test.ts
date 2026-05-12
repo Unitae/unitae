@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     role: { findFirst: vi.fn() },
+    member: { findMany: vi.fn() },
     memberRoleAssignment: { findMany: vi.fn() },
     programmeTemplatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
     programmePartAssignmentAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
@@ -47,36 +48,26 @@ describe('resolveEligibleUserIds', () => {
     expect(result).toEqual([])
   })
 
-  it('returns member IDs assigned to any allowed role for non-empty list', async () => {
-    vi.mocked(db.memberRoleAssignment.findMany).mockResolvedValue([
-      { memberId: 5 },
-      { memberId: 7 },
-      { memberId: 5 }, // duplicate (member has both roles)
-    ] as never)
+  it('returns member IDs reached via either assignment table for non-empty list', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([{ id: 5 }, { id: 7 }] as never)
 
     const result = await resolveEligibleUserIds(db, [10, 20], 1)
 
-    expect(db.memberRoleAssignment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ roleId: { in: [10, 20] }, congregationId: 1 }),
-      }),
-    )
-    expect(result.sort()).toEqual([5, 7])
+    expect(db.member.findMany).toHaveBeenCalledWith({
+      where: {
+        congregationId: 1,
+        leftAt: null,
+        anonymizedAt: null,
+        OR: [
+          { roleAssignments: { some: { roleId: { in: [10, 20] } } } },
+          { account: { roleAssignments: { some: { roleId: { in: [10, 20] } } } } },
+        ],
+      },
+      select: { id: true },
+    })
+    expect(result).toEqual([5, 7])
     expect(db.role.findFirst).not.toHaveBeenCalled()
-  })
-
-  it('filters out leavers and anonymized members via the where clause', async () => {
-    vi.mocked(db.memberRoleAssignment.findMany).mockResolvedValue([] as never)
-
-    await resolveEligibleUserIds(db, [10], 1)
-
-    expect(db.memberRoleAssignment.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          member: { leftAt: null, anonymizedAt: null },
-        }),
-      }),
-    )
+    expect(db.memberRoleAssignment.findMany).not.toHaveBeenCalled()
   })
 })
 
