@@ -6,6 +6,7 @@
         "**/*.css",
         "**/pdf-worker.ts",
         "**/pdf-globals-shim.ts",
+        "**/pdf-upsert-shim.ts",
         "**/env.server.ts"
     ],
     "type": "module",
