@@ -248,6 +248,57 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
   return assignments.slice(0, 5)
 }
 
+export async function getConflictingAssignments(db: TransactionClient, userId: number) {
+  const now = new Date()
+
+  const [partConflicts, serviceConflicts] = await Promise.all([
+    db.programmePartAssignment.findMany({
+      where: {
+        hasConflict: true,
+        OR: [{ assigneeId: userId }, { assistantId: userId }],
+        event: { startDate: { gte: now } },
+      },
+      select: {
+        id: true,
+        event: { select: { name: true, startDate: true } },
+      },
+      orderBy: { event: { startDate: 'asc' } },
+      take: 1,
+    }),
+    db.programmeServiceRoleAssignment.findMany({
+      where: {
+        hasConflict: true,
+        assigneeId: userId,
+        event: { startDate: { gte: now } },
+      },
+      select: {
+        id: true,
+        event: { select: { name: true, startDate: true } },
+      },
+      orderBy: { event: { startDate: 'asc' } },
+      take: 1,
+    }),
+  ])
+
+  const candidates = [
+    ...partConflicts.map(c => ({
+      kind: 'part' as const,
+      id: c.id,
+      eventName: c.event.name,
+      eventStartDate: c.event.startDate,
+    })),
+    ...serviceConflicts.map(c => ({
+      kind: 'service-role' as const,
+      id: c.id,
+      eventName: c.event.name,
+      eventStartDate: c.event.startDate,
+    })),
+  ]
+
+  candidates.sort((a, b) => a.eventStartDate.getTime() - b.eventStartDate.getTime())
+  return candidates.at(0) ?? null
+}
+
 export async function getNextMeeting(db: TransactionClient, userId: number) {
   const now = new Date()
 

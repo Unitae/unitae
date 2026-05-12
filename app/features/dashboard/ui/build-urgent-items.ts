@@ -1,8 +1,8 @@
 import { CalendarOff, FileText, MapPin, Mic } from 'lucide-react'
 
 import type {
+  getConflictingAssignments,
   getNextMeeting,
-  getUpcomingAbsences,
   getUserTerritories,
 } from '~/features/dashboard/server/dashboard.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -20,7 +20,7 @@ export type UrgentItem = {
 
 type Territories = Awaited<ReturnType<typeof getUserTerritories>> | null
 type NextMeeting = Awaited<ReturnType<typeof getNextMeeting>>
-type UpcomingAbsences = Awaited<ReturnType<typeof getUpcomingAbsences>>['upcoming'] | null
+type DayoffConflict = Awaited<ReturnType<typeof getConflictingAssignments>>
 
 const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
 
@@ -97,29 +97,18 @@ export function urgentServiceRoleItems(nextMeeting: NextMeeting): UrgentItem[] {
   ]
 }
 
-export function urgentDayoffConflictItems(nextMeeting: NextMeeting, absences: UpcomingAbsences): UrgentItem[] {
-  if (!nextMeeting || !absences || absences.length === 0) return []
-  const hasUserAssignment = nextMeeting.userPartIds.length > 0 || nextMeeting.userServiceRoleIds.length > 0
-  if (!hasUserAssignment) return []
-
-  const meetingStart = new Date(nextMeeting.startDate).getTime()
-  const meetingEnd = new Date(nextMeeting.endDate).getTime()
-  const conflicting = absences.find(a => {
-    const absStart = new Date(a.startDate).getTime()
-    const absEnd = new Date(a.endDate).getTime()
-    return absStart <= meetingEnd && absEnd >= meetingStart
-  })
-  if (!conflicting) return []
+export function urgentDayoffConflictItems(conflict: DayoffConflict): UrgentItem[] {
+  if (!conflict) return []
 
   return [
     {
-      key: `dayoff-conflict-${conflicting.id}`,
-      label: m.dashboard_urgent_dayoff_conflict({ eventName: nextMeeting.name }),
+      key: `dayoff-conflict-${conflict.kind}-${conflict.id}`,
+      label: m.dashboard_urgent_dayoff_conflict({ eventName: conflict.eventName }),
       to: '/me/days-off',
       icon: CalendarOff,
       borderClass: 'border-l-amber-500 bg-amber-500/5',
       iconClass: 'text-amber-600 dark:text-amber-400',
-      relativeDate: nextMeeting.startDate,
+      relativeDate: conflict.eventStartDate,
       priority: 2,
     },
   ]
@@ -145,13 +134,13 @@ export function buildUrgentItems(
   territories: Territories,
   unreadDocumentCount: number | null,
   nextMeeting: NextMeeting,
-  absences: UpcomingAbsences,
+  dayoffConflict: DayoffConflict,
 ): UrgentItem[] {
   const items = [
     ...urgentTerritoriesItems(territories),
     ...urgentPartAssignmentItems(nextMeeting),
     ...urgentServiceRoleItems(nextMeeting),
-    ...urgentDayoffConflictItems(nextMeeting, absences),
+    ...urgentDayoffConflictItems(dayoffConflict),
     ...urgentDocumentsItem(unreadDocumentCount),
   ]
   items.sort((a, b) => a.priority - b.priority)

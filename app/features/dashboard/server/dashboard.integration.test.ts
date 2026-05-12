@@ -217,9 +217,9 @@ afterAll(async () => {
 
 // --- Import the module under test ---
 
-const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting } = await import(
-  './dashboard.server'
-)
+const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getConflictingAssignments } =
+  await import('./dashboard.server')
+const { refreshConflictFlags } = await import('~/features/events/server/programme-assignments.server')
 
 // --- Tests ---
 
@@ -315,6 +315,357 @@ describe('getNextMeeting (integration)', () => {
       await withScope(congregationId, async tx => {
         await tx.event.delete({ where: { id_congregationId: { id: offEventId, congregationId } } })
         await tx.eventKind.deleteMany({ where: { key: EventKind.Off, congregationId } })
+      })
+    }
+  })
+})
+
+describe('getConflictingAssignments (integration)', () => {
+  type SeedOpts = {
+    name: string
+    startDate: Date
+    endDate?: Date
+    parts?: { assigneeId?: number | null; assistantId?: number | null; hasConflict?: boolean; name?: string }[]
+    serviceRoles?: { assigneeId: number; hasConflict?: boolean; name?: string }[]
+    cong?: number
+    createdById?: number
+  }
+
+  function seedEvent(opts: SeedOpts) {
+    const cong = opts.cong ?? congregationId
+    return withScope(cong, async tx => {
+      const eventKind = await tx.eventKind.findFirstOrThrow({
+        where: { congregationId: cong, key: { not: EventKind.Off } },
+      })
+      const event = await tx.event.create({
+        data: {
+          name: opts.name,
+          kindId: eventKind.id,
+          startDate: opts.startDate,
+          endDate: opts.endDate ?? new Date(opts.startDate.getTime() + 2 * 60 * 60 * 1000),
+          createdById: opts.createdById ?? aliceAccountId,
+          congregationId: cong,
+        },
+      })
+      const partIds = await Promise.all(
+        (opts.parts ?? []).map(async (p, i) => {
+          const created = await tx.programmePartAssignment.create({
+            data: {
+              eventId: event.id,
+              assigneeId: p.assigneeId ?? null,
+              assistantId: p.assistantId ?? null,
+              name: p.name ?? `Part ${i}`,
+              section: 'main',
+              order: i,
+              hasConflict: p.hasConflict ?? false,
+              congregationId: cong,
+            },
+          })
+          return created.id
+        }),
+      )
+      const serviceRoleIds = await Promise.all(
+        (opts.serviceRoles ?? []).map(async sr => {
+          const created = await tx.programmeServiceRoleAssignment.create({
+            data: {
+              eventId: event.id,
+              assigneeId: sr.assigneeId,
+              name: sr.name ?? 'Service',
+              hasConflict: sr.hasConflict ?? false,
+              congregationId: cong,
+            },
+          })
+          return created.id
+        }),
+      )
+      return { eventId: event.id, partIds, serviceRoleIds }
+    })
+  }
+
+  async function cleanupEvent(eventId: number, cong: number = congregationId) {
+    await withScope(cong, async tx => {
+      await tx.programmeServiceRoleAssignment.deleteMany({ where: { eventId, congregationId: cong } })
+      await tx.programmePartAssignment.deleteMany({ where: { eventId, congregationId: cong } })
+      await tx.event.delete({ where: { id_congregationId: { id: eventId, congregationId: cong } } })
+    })
+  }
+
+  it('returns the conflict when the user is the part assignee', async () => {
+    const seeded = await seedEvent({
+      name: 'Assignee Conflict',
+      startDate: new Date('2027-08-01T19:00:00Z'),
+      parts: [{ assigneeId: aliceId, hasConflict: true, name: 'Discours' }],
+    })
+    try {
+      const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(result).not.toBeNull()
+      expect(result?.kind).toBe('part')
+      expect(result?.id).toBe(seeded.partIds[0])
+      expect(result?.eventName).toBe('Assignee Conflict')
+    } finally {
+      await cleanupEvent(seeded.eventId)
+    }
+  })
+
+  it('returns the conflict when the user is the part assistant (not assignee)', async () => {
+    const seeded = await seedEvent({
+      name: 'Assistant Conflict',
+      startDate: new Date('2027-08-02T19:00:00Z'),
+      parts: [{ assigneeId: bobId, assistantId: aliceId, hasConflict: true, name: 'Lecture' }],
+    })
+    try {
+      const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(result?.kind).toBe('part')
+      expect(result?.id).toBe(seeded.partIds[0])
+    } finally {
+      await cleanupEvent(seeded.eventId)
+    }
+  })
+
+  it('returns the conflict for a service role with kind="service-role"', async () => {
+    const seeded = await seedEvent({
+      name: 'Service Role Conflict',
+      startDate: new Date('2027-08-03T19:00:00Z'),
+      serviceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Son' }],
+    })
+    try {
+      const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(result?.kind).toBe('service-role')
+      expect(result?.id).toBe(seeded.serviceRoleIds[0])
+      expect(result?.eventName).toBe('Service Role Conflict')
+    } finally {
+      await cleanupEvent(seeded.eventId)
+    }
+  })
+
+  it('picks the earliest conflict when several exist across part and service role', async () => {
+    const later = await seedEvent({
+      name: 'Later Part',
+      startDate: new Date('2027-09-15T19:00:00Z'),
+      parts: [{ assigneeId: aliceId, hasConflict: true }],
+    })
+    const earlier = await seedEvent({
+      name: 'Earlier Service Role',
+      startDate: new Date('2027-09-01T19:00:00Z'),
+      serviceRoles: [{ assigneeId: aliceId, hasConflict: true }],
+    })
+    try {
+      const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(result?.kind).toBe('service-role')
+      expect(result?.eventName).toBe('Earlier Service Role')
+      expect(result?.id).toBe(earlier.serviceRoleIds[0])
+    } finally {
+      await cleanupEvent(earlier.eventId)
+      await cleanupEvent(later.eventId)
+    }
+  })
+
+  it('ignores assignments where hasConflict is false', async () => {
+    const seeded = await seedEvent({
+      name: 'No Conflict',
+      startDate: new Date('2027-10-01T19:00:00Z'),
+      parts: [{ assigneeId: aliceId, hasConflict: false }],
+      serviceRoles: [{ assigneeId: aliceId, hasConflict: false }],
+    })
+    try {
+      const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(result).toBeNull()
+    } finally {
+      await cleanupEvent(seeded.eventId)
+    }
+  })
+
+  it('ignores conflicts on past events', async () => {
+    const seeded = await seedEvent({
+      name: 'Past Conflict',
+      startDate: new Date('2024-01-01T19:00:00Z'),
+      endDate: new Date('2024-01-01T21:00:00Z'),
+      parts: [{ assigneeId: aliceId, hasConflict: true }],
+    })
+    try {
+      const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(result).toBeNull()
+    } finally {
+      await cleanupEvent(seeded.eventId)
+    }
+  })
+
+  it('does not leak conflicts across congregations (RLS)', async () => {
+    const otherTs = Date.now()
+    const otherCong = await testDb.congregation.create({
+      data: { name: `Dashboard Test Other ${otherTs}`, slug: `dashboard-test-other-${otherTs}`, active: true },
+    })
+
+    const otherSeed = await withScope(otherCong.id, async tx => {
+      const otherKind = await tx.eventKind.create({
+        data: { name: 'Midweek', key: `midweek-other-${otherTs}`, color: '#00aa00', congregationId: otherCong.id },
+      })
+      const otherMember = await tx.member.create({
+        data: { firstname: 'Eve', lastname: 'Cross', isPublisher: true, congregationId: otherCong.id },
+      })
+      const otherAccount = await tx.userAccount.create({
+        data: {
+          email: `eve-cross-${otherTs}@test.com`,
+          password: 'hashed',
+          active: true,
+          memberId: otherMember.id,
+          congregationId: otherCong.id,
+        },
+      })
+      const event = await tx.event.create({
+        data: {
+          name: 'Other Cong Event',
+          kindId: otherKind.id,
+          startDate: new Date('2027-11-01T19:00:00Z'),
+          endDate: new Date('2027-11-01T21:00:00Z'),
+          createdById: otherAccount.id,
+          congregationId: otherCong.id,
+        },
+      })
+      // Same numeric id range as Alice — guarantees that without RLS the other-cong row would match
+      const part = await tx.programmePartAssignment.create({
+        data: {
+          eventId: event.id,
+          assigneeId: otherMember.id,
+          name: 'Discours',
+          section: 'main',
+          order: 1,
+          hasConflict: true,
+          congregationId: otherCong.id,
+        },
+      })
+      return {
+        otherKindId: otherKind.id,
+        otherMemberId: otherMember.id,
+        otherAccountId: otherAccount.id,
+        eventId: event.id,
+        partId: part.id,
+      }
+    })
+
+    try {
+      // Query as Alice's member id, but scoped to the other congregation:
+      // RLS must hide the other-cong row even if some member id happened to collide.
+      const aliceFromOtherCong = await withScope(otherCong.id, tx => getConflictingAssignments(tx, aliceId))
+      expect(aliceFromOtherCong).toBeNull()
+
+      // And from Alice's own congregation, the other cong's row must also be invisible.
+      const aliceFromHerCong = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(aliceFromHerCong).toBeNull()
+    } finally {
+      await withScope(otherCong.id, async tx => {
+        await tx.programmePartAssignment.delete({
+          where: { id_congregationId: { id: otherSeed.partId, congregationId: otherCong.id } },
+        })
+        await tx.event.delete({
+          where: { id_congregationId: { id: otherSeed.eventId, congregationId: otherCong.id } },
+        })
+        await tx.userAccount.delete({ where: { id: otherSeed.otherAccountId } })
+        await tx.member.delete({ where: { id: otherSeed.otherMemberId } })
+        await tx.eventKind.delete({
+          where: { id_congregationId: { id: otherSeed.otherKindId, congregationId: otherCong.id } },
+        })
+      })
+      await testDb.congregation.delete({ where: { id: otherCong.id } })
+    }
+  })
+
+  // Invariant pin: the dashboard alert is correct only as long as `refreshConflictFlags`
+  // keeps the assignment-level `hasConflict` flag in sync with the actual day-off state.
+  // We exercise the "no overlapping day-off → flag must clear" path end-to-end, which
+  // catches future regressions where refreshConflictFlags forgets to recompute the flag
+  // for templated events or stops touching one of the two assignment tables.
+  it('refreshConflictFlags clears stale hasConflict and the alert disappears', async () => {
+    const setup = await withScope(congregationId, async tx => {
+      const eventKind = await tx.eventKind.findFirstOrThrow({
+        where: { congregationId, key: { not: EventKind.Off } },
+      })
+      const template = await tx.programmeTemplate.create({
+        data: {
+          name: 'Invariant Template',
+          key: `invariant-template-${ts}`,
+          kindId: eventKind.id,
+          congregationId,
+        },
+      })
+      const event = await tx.event.create({
+        data: {
+          name: 'Invariant Event',
+          kindId: eventKind.id,
+          templateId: template.id,
+          startDate: new Date('2027-12-01T19:00:00Z'),
+          endDate: new Date('2027-12-01T21:00:00Z'),
+          createdById: aliceAccountId,
+          congregationId,
+        },
+      })
+      // Pre-set the flag to true to simulate a stale conflict left over from a now-deleted day-off.
+      const part = await tx.programmePartAssignment.create({
+        data: {
+          eventId: event.id,
+          assigneeId: aliceId,
+          name: 'Discours',
+          section: 'main',
+          order: 1,
+          hasConflict: true,
+          congregationId,
+        },
+      })
+      const serviceRole = await tx.programmeServiceRoleAssignment.create({
+        data: {
+          eventId: event.id,
+          assigneeId: aliceId,
+          name: 'Son',
+          hasConflict: true,
+          congregationId,
+        },
+      })
+      return { templateId: template.id, eventId: event.id, partId: part.id, serviceRoleId: serviceRole.id }
+    })
+
+    try {
+      const before = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(before?.id).toBe(setup.partId)
+
+      await withScope(congregationId, tx =>
+        refreshConflictFlags(
+          tx,
+          aliceId,
+          new Date('2027-11-30T00:00:00Z'),
+          new Date('2027-12-02T00:00:00Z'),
+          congregationId,
+        ),
+      )
+
+      const partFlag = await withScope(congregationId, tx =>
+        tx.programmePartAssignment.findUniqueOrThrow({
+          where: { id_congregationId: { id: setup.partId, congregationId } },
+          select: { hasConflict: true },
+        }),
+      )
+      const serviceFlag = await withScope(congregationId, tx =>
+        tx.programmeServiceRoleAssignment.findUniqueOrThrow({
+          where: { id_congregationId: { id: setup.serviceRoleId, congregationId } },
+          select: { hasConflict: true },
+        }),
+      )
+      expect(partFlag.hasConflict).toBe(false)
+      expect(serviceFlag.hasConflict).toBe(false)
+
+      const after = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
+      expect(after).toBeNull()
+    } finally {
+      await withScope(congregationId, async tx => {
+        await tx.programmeServiceRoleAssignment.delete({
+          where: { id_congregationId: { id: setup.serviceRoleId, congregationId } },
+        })
+        await tx.programmePartAssignment.delete({
+          where: { id_congregationId: { id: setup.partId, congregationId } },
+        })
+        await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
+        await tx.programmeTemplate.delete({
+          where: { id_congregationId: { id: setup.templateId, congregationId } },
+        })
       })
     }
   })
