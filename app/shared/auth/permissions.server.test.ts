@@ -7,11 +7,17 @@ vi.mock('~/shared/infra/db.server', () => ({
     rolePermission: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
     userAccount: { findMany: vi.fn() },
+    member: { findMany: vi.fn() },
   },
 }))
 
-const { resolveEffectivePermissions, resolveEffectiveRoleIds, findAccountsWithPermission, requireNotLastAdmin } =
-  await import('./permissions.server')
+const {
+  resolveEffectivePermissions,
+  resolveEffectiveRoleIds,
+  findAccountsWithPermission,
+  findMembersWithAnyRole,
+  requireNotLastAdmin,
+} = await import('./permissions.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -159,6 +165,42 @@ describe('findAccountsWithPermission', () => {
         ],
       },
       select: { id: true, email: true, firstname: true, active: true },
+    })
+  })
+})
+
+describe('findMembersWithAnyRole', () => {
+  it('returns [] without hitting the database when roleIds is empty', async () => {
+    const result = await findMembersWithAnyRole(unscopedDb, [], 7)
+
+    expect(result).toEqual([])
+    expect(unscopedDb.member.findMany).not.toHaveBeenCalled()
+  })
+
+  it('returns the mapped member IDs', async () => {
+    vi.mocked(unscopedDb.member.findMany).mockResolvedValue([{ id: 5 }, { id: 11 }] as never)
+
+    const result = await findMembersWithAnyRole(unscopedDb, [10, 20], 1)
+
+    expect(result).toEqual([5, 11])
+  })
+
+  it('queries Member with the two-source role filter scoped to the congregation, excluding leavers and anonymized', async () => {
+    vi.mocked(unscopedDb.member.findMany).mockResolvedValue([] as never)
+
+    await findMembersWithAnyRole(unscopedDb, [10, 20], 7)
+
+    expect(unscopedDb.member.findMany).toHaveBeenCalledWith({
+      where: {
+        congregationId: 7,
+        leftAt: null,
+        anonymizedAt: null,
+        OR: [
+          { roleAssignments: { some: { roleId: { in: [10, 20] } } } },
+          { account: { roleAssignments: { some: { roleId: { in: [10, 20] } } } } },
+        ],
+      },
+      select: { id: true },
     })
   })
 })

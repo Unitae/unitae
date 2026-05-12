@@ -8,7 +8,10 @@ import { Permission } from '~/shared/types/permission'
 //   2. Account-bound role — UserRoleAssignment → Role → RolePermission
 //   3. Member-bound role — MemberRoleAssignment → Role → RolePermission, via UserAccount.member
 //
-// The rule lives in the two builders below, one per query direction. Every
+// Roles reach a Member through two of those paths — the direct grant (#1) is
+// account-scoped only and does not factor in when resolving role → members.
+//
+// The rule lives in the builders below, one per query direction. Every
 // permission/role-membership resolver in the app must go through them.
 
 function rolesAssignedToAccount(userId: number): Prisma.RoleWhereInput {
@@ -33,6 +36,17 @@ function accountsWithPermissionFilter(permissionKey: Permission): Prisma.UserAcc
           },
         },
       },
+    ],
+  }
+}
+
+function membersWithAnyRoleFilter(roleIds: number[]): Prisma.MemberWhereInput {
+  return {
+    leftAt: null,
+    anonymizedAt: null,
+    OR: [
+      { roleAssignments: { some: { roleId: { in: roleIds } } } },
+      { account: { roleAssignments: { some: { roleId: { in: roleIds } } } } },
     ],
   }
 }
@@ -84,6 +98,19 @@ export async function findAccountsWithPermission(
     where: { congregationId, ...accountsWithPermissionFilter(permissionKey) },
     select: { id: true, email: true, firstname: true, active: true },
   })
+}
+
+export async function findMembersWithAnyRole(
+  db: DbClient,
+  roleIds: number[],
+  congregationId: number,
+): Promise<number[]> {
+  if (roleIds.length === 0) return []
+  const rows = await db.member.findMany({
+    where: { congregationId, ...membersWithAnyRoleFilter(roleIds) },
+    select: { id: true },
+  })
+  return rows.map(r => r.id)
 }
 
 /**
