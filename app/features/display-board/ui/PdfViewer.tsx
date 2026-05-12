@@ -48,8 +48,9 @@ function buildErrorDetails(stage: 'fetch' | 'render', err: unknown, url: string)
 const SCROLLBAR_BUDGET_PX = 16
 
 async function loadPdfJs() {
+  await import('es-arraybuffer-base64/auto')
   const pdfjs = await import('pdfjs-dist')
-  const workerSrc = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default
+  const workerSrc = (await import('./pdf-worker?worker&url')).default
   pdfjs.GlobalWorkerOptions.workerSrc = workerSrc
   return pdfjs
 }
