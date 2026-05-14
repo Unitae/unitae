@@ -15,9 +15,19 @@ interface PioneersViewData {
   pioneers: Pioneer[]
 }
 
-function formatName(user: { firstname: string | null; lastname: string | null; anonymizedAt: Date | null }): string {
-  if (user.anonymizedAt != null) return m.board_read_status_anonymized_user()
-  return [user.firstname, user.lastname].filter(Boolean).join(' ') || '—'
+function NameDisplay({ person }: { person: Pioneer }) {
+  if (person.anonymizedAt != null) {
+    return <span className="text-muted-foreground italic">{m.board_read_status_anonymized_user()}</span>
+  }
+  if (!person.firstname && !person.lastname) {
+    return <span>—</span>
+  }
+  return (
+    <span>
+      {person.firstname && <span className="text-muted-foreground">{person.firstname} </span>}
+      {person.lastname && <span className="font-semibold tracking-wide">{person.lastname.toUpperCase()}</span>}
+    </span>
+  )
 }
 
 function labelForType(type: string): string {
@@ -45,16 +55,19 @@ export function PioneersView({ pioneers }: PioneersViewData) {
   }, {})
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-4 md:p-6">
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-5 p-4 md:gap-6 md:p-6">
       {Object.entries(byType).map(([type, members]) => (
-        <Card key={type}>
-          <CardContent className="flex flex-col gap-3">
-            <h2 className="font-display font-semibold text-lg">
-              {labelForType(type)} ({members.length})
+        <Card key={type} className="overflow-hidden rounded-xl border-border/60 shadow-none">
+          <CardContent className="flex flex-col gap-5 p-6">
+            <h2 className="font-display font-semibold text-xl leading-tight tracking-tight">
+              {labelForType(type)}
+              <span className="font-normal text-muted-foreground text-sm tabular-nums"> · {members.length}</span>
             </h2>
-            <ul className="grid list-disc gap-1 pl-5 text-sm sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm tabular-nums sm:grid-cols-2">
               {members.map(pioneer => (
-                <li key={pioneer.id}>{formatName(pioneer)}</li>
+                <li key={pioneer.id} className="min-w-0 truncate">
+                  <NameDisplay person={pioneer} />
+                </li>
               ))}
             </ul>
           </CardContent>

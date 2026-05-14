@@ -4,12 +4,8 @@ import { PrismaClient } from '~/database/generated/client'
 import { Permission } from '~/shared/types/permission'
 
 const { seedPermissions } = await import('~/shared/domain/setup.server')
-const {
-  resolveEffectivePermissions,
-  resolveEffectiveRoleIds,
-  findAccountsWithPermission,
-  findMembersWithAnyRole,
-} = await import('./permissions.server')
+const { resolveEffectivePermissions, resolveEffectiveRoleIds, findAccountsWithPermission, findMembersWithAnyRole } =
+  await import('./permissions.server')
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
