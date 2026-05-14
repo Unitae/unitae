@@ -17,7 +17,8 @@ interface PioneersViewData {
 
 function formatName(user: { firstname: string | null; lastname: string | null; anonymizedAt: Date | null }): string {
   if (user.anonymizedAt != null) return m.board_read_status_anonymized_user()
-  return [user.firstname, user.lastname].filter(Boolean).join(' ') || '—'
+  const lastname = user.lastname?.toUpperCase() ?? null
+  return [user.firstname, lastname].filter(Boolean).join(' ') || '—'
 }
 
 function labelForType(type: string): string {
