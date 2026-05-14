@@ -3,6 +3,7 @@ import { useRef, useState } from 'react'
 import { Link, redirect } from 'react-router'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import {
+  getContentVersion,
   getDynamicDocumentData,
   markDynamicDocumentViewed,
 } from '~/features/display-board/server/dynamic-documents.server'
@@ -20,6 +21,7 @@ import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { useDebouncedValue } from '~/shared/ui/hooks/use-debounced-value'
 import { Input } from '~/shared/ui/input'
+import { RelativeTime } from '~/shared/ui/RelativeTime'
 import { requireParamId } from '~/shared/utils/params.server'
 import { cn } from '~/shared/utils/utils'
 
@@ -49,17 +51,20 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     await markDynamicDocumentViewed(db, dynamicId, currentUser.id)
 
-    const data = await getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
-      showServices: settings.showServices,
-      dynamicConfig: settings.dynamicConfig,
-    })
+    const [data, contentVersion] = await Promise.all([
+      getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
+        showServices: settings.showServices,
+        dynamicConfig: settings.dynamicConfig,
+      }),
+      getContentVersion(db, settings.dynamicType, settings.dynamicRef, congregationId, settings.dynamicConfig),
+    ])
 
-    return { settings, data }
+    return { settings, data, contentVersion }
   })
 }
 
 export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) {
-  const { settings, data } = loaderData
+  const { settings, data, contentVersion } = loaderData
   const isProgramme = data?.type === DynamicType.Programme
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -79,49 +84,58 @@ export default function DynamicViewerPage({ loaderData }: Route.ComponentProps) 
           <h1 className="truncate font-semibold text-sm">{settings.title}</h1>
         </div>
 
-        {isProgramme && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => {
-                setSearchOpen(prev => !prev)
-                if (searchOpen) setSearchValue('')
-              }}
-              aria-label={m.board_viewer_search_toggle()}
-            >
-              {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
-            </Button>
-            <div className={cn('relative hidden md:block', searchOpen && '!block')}>
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="search"
-                value={searchValue}
-                onChange={e => setSearchValue(e.target.value)}
-                placeholder={m.board_viewer_search_placeholder()}
-                className="w-48 pr-9 pl-9 md:w-56"
+        <div className="flex items-center gap-3">
+          {contentVersion != null && (
+            <span className="hidden text-muted-foreground text-xs sm:inline">
+              {m.board_viewer_updated()} <RelativeTime date={contentVersion} />
+            </span>
+          )}
+          {isProgramme && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden"
+                onClick={() => {
+                  setSearchOpen(prev => !prev)
+                  if (searchOpen) setSearchValue('')
+                }}
                 aria-label={m.board_viewer_search_toggle()}
-              />
-              {searchValue.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
-                  onClick={() => setSearchValue('')}
-                >
-                  <X className="size-3.5" />
-                  <span className="sr-only">{m.common_clear()}</span>
-                </Button>
-              )}
+              >
+                {searchOpen ? <X className="size-4" /> : <Search className="size-4" />}
+              </Button>
+              <div className={cn('relative hidden md:block', searchOpen && '!block')}>
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="search"
+                  value={searchValue}
+                  onChange={e => setSearchValue(e.target.value)}
+                  placeholder={m.board_viewer_search_placeholder()}
+                  className="w-48 pr-9 pl-9 md:w-56"
+                  aria-label={m.board_viewer_search_toggle()}
+                />
+                {searchValue.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
+                    onClick={() => setSearchValue('')}
+                  >
+                    <X className="size-3.5" />
+                    <span className="sr-only">{m.common_clear()}</span>
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       <div className="flex-1 overflow-auto" ref={scrollContainerRef}>
-        <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-2 px-4 pt-6 md:px-6">
-          <h2 className="text-center font-bold font-display text-2xl tracking-tight">{settings.title}</h2>
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-2 px-4 pt-6 md:px-6">
+          <h2 className="font-display font-semibold text-3xl leading-tight tracking-[-0.02em] md:text-4xl">
+            {settings.title}
+          </h2>
         </div>
         {data?.type === DynamicType.PublisherGroups && <PublisherGroupsView groups={data.groups} />}
         {data?.type === DynamicType.Pioneers && <PioneersView pioneers={data.pioneers} />}
