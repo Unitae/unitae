@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { formatMemberName, getPartAssigneeDisplay } from '~/features/events/ui/part-display'
+import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 const fontsDir = path.join(process.cwd(), 'public', 'fonts')
 
@@ -296,7 +297,7 @@ function EventBlock({
             <View key={groupIdx}>
               {group.section !== '' && (
                 <View style={[styles.sectionHeader, { backgroundColor: color ?? '#64748b' }]}>
-                  <Text style={styles.sectionHeaderText}>{group.section}</Text>
+                  <Text style={styles.sectionHeaderText}>{sanitizeText(group.section)}</Text>
                 </View>
               )}
               {group.parts.map((part, partIdx) => {
@@ -330,13 +331,15 @@ function EventBlock({
 
 function PartRow({ part, isAlt }: { part: PartAssignment; isAlt: boolean }) {
   const { primary, assistant } = getPartAssigneeDisplay(part)
-  const displayName = part.track ? `${part.name} — ${part.track}` : part.name
+  const cleanName = sanitizeText(part.name)
+  const cleanTrack = sanitizeText(part.track)
+  const displayName = cleanTrack ? `${cleanName} — ${cleanTrack}` : cleanName
 
   return (
     <View style={[styles.partRow, isAlt ? styles.partRowAlt : {}]}>
       <Text style={styles.partName}>{displayName}</Text>
       <Text style={styles.partDuration}>{part.durationMin ? `${part.durationMin}'` : ''}</Text>
-      <Text style={styles.partTopic}>{part.topic || ''}</Text>
+      <Text style={styles.partTopic}>{part.topic ? sanitizeText(part.topic) : ''}</Text>
       {primary ? <Text style={styles.partAssignee}>{primary}</Text> : <Text style={styles.unassigned}>—</Text>}
       {assistant ? <Text style={styles.partAssistant}>{assistant}</Text> : <Text style={styles.partAssistant} />}
     </View>

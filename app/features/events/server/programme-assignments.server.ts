@@ -5,6 +5,7 @@ import {
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 export function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
   return db.event.findFirst({
@@ -45,6 +46,8 @@ export async function assignPart(
   })
   if (!existing) return { error: "L'attribution n'existe pas." }
 
+  const cleanTopic = sanitizeText(topic)
+
   if (externalSpeakerId != null) {
     const speaker = await db.externalSpeaker.findFirst({
       where: { id: externalSpeakerId, congregationId, archivedAt: null },
@@ -55,7 +58,7 @@ export async function assignPart(
       where: {
         id_congregationId: { id: assignmentId, congregationId },
       },
-      data: { assigneeId: null, assistantId: null, externalSpeakerId, topic, hasConflict: false },
+      data: { assigneeId: null, assistantId: null, externalSpeakerId, topic: cleanTopic, hasConflict: false },
     })
     return { assignment }
   }
@@ -96,7 +99,7 @@ export async function assignPart(
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, assistantId, externalSpeakerId: null, topic, hasConflict: false },
+    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict: false },
   })
 
   return { assignment }
