@@ -1,6 +1,15 @@
-export const RESTING_PERIOD_FOR_DOORS_TO_DOORS = 90 * 24 * 60 * 60 * 1000 // 90 days
-export const RESTING_PERIOD_FOR_CAMPAIGN = 15 * 24 * 60 * 60 * 1000 // 15 days
-export const RESTING_PERIOD_FOR_PHONE = 15 * 24 * 60 * 60 * 1000 // 15 days
+const MS_PER_DAY = 24 * 60 * 60 * 1000
+
+// Single source of truth — day counts surfaced via tooltips and SQL helpers.
+export const RESTING_PERIOD_DAYS = {
+  doorsToDoors: 90,
+  campaign: 15,
+  phone: 15,
+} as const
+
+export const RESTING_PERIOD_FOR_DOORS_TO_DOORS = RESTING_PERIOD_DAYS.doorsToDoors * MS_PER_DAY
+export const RESTING_PERIOD_FOR_CAMPAIGN = RESTING_PERIOD_DAYS.campaign * MS_PER_DAY
+export const RESTING_PERIOD_FOR_PHONE = RESTING_PERIOD_DAYS.phone * MS_PER_DAY
 
 export interface RestPeriodCutoffs {
   doorsToDoors: Date

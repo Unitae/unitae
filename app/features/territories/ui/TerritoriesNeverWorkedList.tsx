@@ -4,9 +4,12 @@ import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'
 
-const MAX_DISPLAY = 20
+interface TerritoriesNeverWorkedListProps {
+  territories: NeverWorkedTerritory[]
+  isCapped?: boolean
+}
 
-export default function TerritoriesNeverWorkedList({ territories }: { territories: NeverWorkedTerritory[] }) {
+export default function TerritoriesNeverWorkedList({ territories, isCapped = false }: TerritoriesNeverWorkedListProps) {
   if (territories.length === 0) {
     return (
       <EmptyState
@@ -17,9 +20,6 @@ export default function TerritoriesNeverWorkedList({ territories }: { territorie
     )
   }
 
-  const displayed = territories.slice(0, MAX_DISPLAY)
-  const remaining = territories.length - MAX_DISPLAY
-
   return (
     <div className="flex flex-col gap-3">
       <p className="text-muted-foreground text-sm">
@@ -28,12 +28,12 @@ export default function TerritoriesNeverWorkedList({ territories }: { territorie
           : m.stats_never_worked_count_one({ count: territories.length })}
       </p>
       <div className="flex flex-wrap gap-2">
-        {displayed.map(t => (
+        {territories.map(t => (
           <Badge key={t.id} variant="outline">
             {t.number}
           </Badge>
         ))}
-        {remaining > 0 && <Badge variant="secondary">{m.stats_never_worked_more({ count: remaining })}</Badge>}
+        {isCapped && <Badge variant="secondary">{m.stats_never_worked_more_capped()}</Badge>}
       </div>
     </div>
   )

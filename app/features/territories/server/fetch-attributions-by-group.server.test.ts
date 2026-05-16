@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as m from '~/i18n/paraglide/messages'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -29,7 +30,7 @@ describe('fetchActiveAttributionsByGroup', () => {
     ])
   })
 
-  it('regroupe les proclamateurs sans groupe sous "Sans groupe"', async () => {
+  it('regroupe les proclamateurs sans groupe sous le label "publishers_no_group"', async () => {
     vi.mocked(db.attribution.findMany).mockResolvedValue([
       { publisher: { publisherGroup: null } },
       { publisher: { publisherGroup: { name: 'Groupe A' } } },
@@ -38,7 +39,7 @@ describe('fetchActiveAttributionsByGroup', () => {
     const result = await fetchActiveAttributionsByGroup(db, 1)
 
     expect(result).toEqual([
-      { groupName: 'Sans groupe', count: 1 },
+      { groupName: m.publishers_no_group(), count: 1 },
       { groupName: 'Groupe A', count: 1 },
     ])
   })

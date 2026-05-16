@@ -4,6 +4,14 @@ import { parseLocalDate } from '~/shared/utils/date.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
 
+// Falls back to `fallback` for missing/empty/unparseable input. Centralises the
+// guard so the rest of the parser stays linear.
+function parseLocalDateOrDefault(value: string | null, fallback: Date): Date {
+  if (value == null || value === '') return fallback
+  const parsed = parseLocalDate(value)
+  return Number.isNaN(parsed.getTime()) ? fallback : parsed
+}
+
 export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: number): StatsFilterParams {
   const rawKinds = params.getAll('kind')
   const attributionKinds = params.getAll('attributionKind') as TerritoryAttributionKind[]
@@ -16,8 +24,13 @@ export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: 
       ? (rawKinds as TerritoryKind[])
       : [TerritoryKind.Classical]
 
-  const startDateParam = params.get('startDate')
-  const endDateParam = params.get('endDate')
+  let startDate = parseLocalDateOrDefault(params.get('startDate'), getBeginingDateOfTheocraticYear(theocraticYear))
+  let endDate = parseLocalDateOrDefault(params.get('endDate'), getEndDateOfTheocraticYear(theocraticYear))
+  // Defensive swap: an inverted range silently becomes the corrected range
+  // rather than returning zero rows from SQL.
+  if (startDate > endDate) {
+    ;[startDate, endDate] = [endDate, startDate]
+  }
 
   return {
     territoryKind,
@@ -25,8 +38,8 @@ export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: 
       attributionKinds.length > 0
         ? attributionKinds
         : [TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign],
-    startDate: startDateParam != null ? parseLocalDate(startDateParam) : getBeginingDateOfTheocraticYear(theocraticYear),
-    endDate: endDateParam != null ? parseLocalDate(endDateParam) : getEndDateOfTheocraticYear(theocraticYear),
+    startDate,
+    endDate,
     groupId: params.get('group') != null && params.get('group') !== 'none' ? Number(params.get('group')) : undefined,
   }
 }

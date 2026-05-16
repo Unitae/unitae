@@ -26,6 +26,8 @@ const { countTerritoriesExistingBefore } = await import('./fetch-territory-count
 const { countActiveWorkingTerritories } = await import('./active-working-territories.server')
 const { countRestingTerritories } = await import('./resting-territories.server')
 const { countAvailableTerritories } = await import('./available-territories.server')
+const { getTerritoriesNeverWorked, NEVER_WORKED_MAX } = await import('./territories-never-worked.server')
+const { aggregateAttributionStatsForWindow } = await import('./aggregate-attribution-stats.server')
 
 const ts = Date.now()
 let congregationId: number
@@ -37,6 +39,7 @@ let lastDayTerritoryId: number
 let workingPlusRestingTerritoryId: number
 let oldTerritoryId: number
 let recentTerritoryId: number
+let overdueTerritoryId: number
 
 // Filter window used by the boundary test below.
 const FILTER_START = new Date(2025, 8, 1) // Sept 1, 2025 local midnight
@@ -200,6 +203,46 @@ beforeAll(async () => {
       },
     })
     recentTerritoryId = recentTerritory.id
+
+    // ── T17 — exceed the never-worked cap ──
+    // Seed enough untouched territories that getTerritoriesNeverWorked must cap.
+    for (let i = 0; i < NEVER_WORKED_MAX + 1; i += 1) {
+      await tx.territory.create({
+        data: { number: `T-CAP-${ts}-${String(i).padStart(2, '0')}`, type: TerritoryKind.Classical, congregationId },
+      })
+    }
+
+    // ── #13 — overdue rate gated by lateDate inside the window ──
+    // Two completed attributions on the same territory; both went late, but one's
+    // lateDate falls BEFORE the filter window. The in-window aggregate should only
+    // count the in-window late event.
+    const overdueTerritory = await tx.territory.create({
+      data: { number: `T-OVERDUE-${ts}`, type: TerritoryKind.Classical, congregationId },
+    })
+    overdueTerritoryId = overdueTerritory.id
+
+    await tx.attribution.create({
+      data: {
+        publisherId: publisherInGroupAId,
+        territoryId: overdueTerritoryId,
+        type: TerritoryAttributionKind.Default,
+        startDate: new Date(2025, 5, 1), // June 1, 2025 — before window
+        lateDate: new Date(2025, 7, 1), // Aug 1, 2025 — BEFORE windowStart (Sept 1)
+        endDate: new Date(2025, 7, 15), // ended late (Aug 15 > Aug 1)
+        congregationId,
+      },
+    })
+    await tx.attribution.create({
+      data: {
+        publisherId: publisherInGroupAId,
+        territoryId: overdueTerritoryId,
+        type: TerritoryAttributionKind.Default,
+        startDate: new Date(2025, 9, 1), // Oct 1, 2025 — inside window
+        lateDate: new Date(2026, 0, 1), // Jan 1, 2026 — INSIDE window
+        endDate: new Date(2026, 1, 1), // ended late (Feb 1 > Jan 1)
+        congregationId,
+      },
+    })
   })
 })
 
@@ -313,6 +356,53 @@ describe('stats aggregates — working/resting exclusivity (#9)', () => {
     // mild lower-bound — but the test territory must not contribute twice.
     // (`available` is `every` so it excludes any territory with an in-progress attribution.)
     expect(active + resting + available).toBeGreaterThan(0)
+  })
+})
+
+describe('stats aggregates — never-worked cap (T17)', () => {
+  it('returns at most NEVER_WORKED_MAX territories and reports isCapped', async () => {
+    const result = await withScope(congregationId, async tx => {
+      return getTerritoriesNeverWorked(
+        tx as never,
+        {
+          territoryKind: [TerritoryKind.Classical],
+          attributionKind: [TerritoryAttributionKind.Default],
+          startDate: FILTER_START,
+          endDate: FILTER_END,
+        },
+        congregationId,
+      )
+    })
+
+    expect(result.territories).toHaveLength(NEVER_WORKED_MAX)
+    expect(result.isCapped).toBe(true)
+  })
+})
+
+describe('stats aggregates — overdue rate restricted to in-window lateDate (#13)', () => {
+  it('counts only the late event whose lateDate is inside the window', async () => {
+    const aggregate = await withScope(congregationId, async tx => {
+      return aggregateAttributionStatsForWindow(
+        tx as never,
+        {
+          territoryKind: [TerritoryKind.Classical],
+          attributionKind: [TerritoryAttributionKind.Default],
+          startDate: FILTER_START,
+          endDate: FILTER_END,
+          groupId: groupAId, // narrow to the group that owns both overdue attributions
+        },
+        congregationId,
+      )
+    })
+
+    // Of group A's two overdue attributions on the test territory, only the
+    // second one (lateDate inside window) contributes to the rate.
+    // The seed also includes one non-overdue group-A attribution on
+    // groupATerritory — its lateDate (Feb 1, 2026) is inside the window
+    // so it joins the denominator as a "completed in window" data point.
+    // Numerator: 1 overdue (in-window). Denominator: 2 completed in-window.
+    // Hence 50%.
+    expect(aggregate.overdueRate).toBe(50)
   })
 })
 

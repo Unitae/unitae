@@ -1,31 +1,12 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import type { MonthlyCoverage } from '~/features/territories/server/compute-monthly-coverage-evolution.server'
 import * as m from '~/i18n/paraglide/messages'
-
-const MONTH_LABELS: Record<string, string> = {
-  '01': 'Jan',
-  '02': 'Fév',
-  '03': 'Mar',
-  '04': 'Avr',
-  '05': 'Mai',
-  '06': 'Juin',
-  '07': 'Juil',
-  '08': 'Août',
-  '09': 'Sep',
-  '10': 'Oct',
-  '11': 'Nov',
-  '12': 'Déc',
-}
-
-function formatMonth(month: string): string {
-  const [, m] = month.split('-')
-  return MONTH_LABELS[m] ?? m
-}
+import { formatMonthLabel } from '~/shared/utils/month-label'
 
 export default function MonthlyCoverageChart({ data }: { data: MonthlyCoverage[] }) {
   if (data.length === 0) return null
 
-  const chartData = data.map(d => ({ name: formatMonth(d.month), coverage: d.coverage }))
+  const chartData = data.map(d => ({ name: formatMonthLabel(d.month), coverage: d.coverage }))
 
   return (
     <ResponsiveContainer width="100%" height={300}>

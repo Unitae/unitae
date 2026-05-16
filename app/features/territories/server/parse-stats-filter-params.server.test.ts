@@ -60,4 +60,35 @@ describe('parseStatsFilterParams', () => {
     expect(result.startDate).toEqual(new Date(2025, 8, 1))
     expect(result.endDate).toEqual(new Date(2026, 7, 31))
   })
+
+  it('retombe sur les dates par défaut quand startDate est vide', () => {
+    const params = new URLSearchParams()
+    params.set('startDate', '')
+    params.set('endDate', '2026-08-31')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    expect(result.startDate).toEqual(new Date(2025, 8, 1))
+    expect(result.endDate).toEqual(new Date(2026, 7, 31))
+  })
+
+  it("retombe sur les dates par défaut quand startDate n'est pas une date", () => {
+    const params = new URLSearchParams()
+    params.set('startDate', 'not-a-date')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    expect(result.startDate).toEqual(new Date(2025, 8, 1))
+  })
+
+  it('échange start/end quand la plage est inversée', () => {
+    const params = new URLSearchParams()
+    params.set('startDate', '2026-01-01')
+    params.set('endDate', '2025-01-01')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    expect(result.startDate).toEqual(new Date(2025, 0, 1))
+    expect(result.endDate).toEqual(new Date(2026, 0, 1))
+  })
 })

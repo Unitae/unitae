@@ -1,7 +1,8 @@
 import { Info } from 'lucide-react'
-import { Cell, Pie, PieChart } from 'recharts'
+import { Cell, Pie, PieChart, Tooltip as RechartsTooltip } from 'recharts'
 import { getGroups } from '~/features/publishers/server/groups.server'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
+import { aggregateAttributionStatsForWindow } from '~/features/territories/server/aggregate-attribution-stats.server'
 import { countAvailableTerritories } from '~/features/territories/server/available-territories.server'
 import { computeAttributionsPerMonth } from '~/features/territories/server/compute-attributions-per-month.server'
 import { computeAvailabilityGap } from '~/features/territories/server/compute-availability-gap.server'
@@ -20,6 +21,7 @@ import {
   getTotalTerritoryCount,
 } from '~/features/territories/server/fetch-territory-counts.server'
 import { parseStatsFilterParams } from '~/features/territories/server/parse-stats-filter-params.server'
+import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { countRestingTerritories } from '~/features/territories/server/resting-territories.server'
 import { getTerritoriesNeverWorked } from '~/features/territories/server/territories-never-worked.server'
 import { computeTerritoryCoverage } from '~/features/territories/server/territory-coverage.server'
@@ -36,7 +38,7 @@ import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNev
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
 import * as m from '~/i18n/paraglide/messages'
 import {
-  currentAccountContext,
+  congregationContext,
   permissionsContext,
   requirePermission,
   withScopeFromContext,
@@ -52,12 +54,22 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.stats_meta_title() }]
 }
 
+const CHART_TOOLTIP_STYLE = {
+  contentStyle: {
+    backgroundColor: 'var(--color-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '0.5rem',
+  },
+  labelStyle: { color: 'var(--color-card-foreground)' },
+}
+
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requirePermission(permissions, Permission.TerritoriesManager)
 
-  const { congregationId } = context.get(currentAccountContext)
+  const congregation = context.get(congregationContext)
+  const congregationId = congregation.id
 
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
@@ -90,10 +102,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
       percentageCovered,
       percentageTotallyCovered,
       filteredAttributions,
-      yoyCurrentAttributions,
-      yoyPreviousAttributions,
       allKindsAttributions,
-      territoryCounts,
+      yoyCurrentAggregate,
+      yoyPreviousAggregate,
       allTerritoryCounts,
       previousYearTerritoryCount,
       neverWorked,
@@ -123,21 +134,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
         filterParams.groupId,
       ),
       fetchAttributionsForStats(db, filterParams, congregationId),
-      fetchAttributionsForStats(db, yoyCurrentParams, congregationId),
-      fetchAttributionsForStats(db, yoyPreviousParams, congregationId),
       fetchAttributionsForStats(db, allKindsParams, congregationId),
-      fetchTerritoryCounts(db, congregationId, filterParams.territoryKind),
+      aggregateAttributionStatsForWindow(db, yoyCurrentParams, congregationId),
+      aggregateAttributionStatsForWindow(db, yoyPreviousParams, congregationId),
       fetchTerritoryCounts(db, congregationId),
-      countTerritoriesExistingBefore(
-        db,
-        congregationId,
-        yoyPreviousParams.endDate,
-        filterParams.territoryKind,
-      ),
+      countTerritoriesExistingBefore(db, congregationId, yoyPreviousParams.endDate, filterParams.territoryKind),
       getTerritoriesNeverWorked(db, filterParams, congregationId),
       fetchActiveAttributionsByGroup(db, congregationId),
       getGroups(db, congregationId),
     ])
+
+    // Filtered counts derived in JS to avoid a second SQL groupBy (R10).
+    const territoryCounts =
+      filterParams.territoryKind.length > 0
+        ? allTerritoryCounts.filter(c => filterParams.territoryKind.includes(c.type))
+        : allTerritoryCounts
 
     const workingTerritoriesCount = activeWorkingTerritoriesCount + delayedWorkingTerritoriesCount
     const unavailableTerritoriesCount = restingTerritoriesCount + workingTerritoriesCount
@@ -146,7 +157,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // Cards driven by the user's filter
     const ranked = computeRankedTerritories(filteredAttributions)
     const durationStats = computeDurationStats(filteredAttributions)
-    const overdueRate = computeOverdueRate(filteredAttributions)
+    const overdueRate = computeOverdueRate(filteredAttributions, filterParams.startDate, filterParams.endDate)
     const availabilityGap = computeAvailabilityGap(filteredAttributions)
     const attributionsPerMonth = computeAttributionsPerMonth(
       filteredAttributions,
@@ -164,24 +175,21 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // By-type breakdown — always all kinds, regardless of filter.
     const coverageByType = computeCoverageByTerritoryType(allKindsAttributions, allTerritoryCounts)
 
-    // YoY card — pinned to current vs previous theocratic year.
-    const yoyCurrentDuration = computeDurationStats(yoyCurrentAttributions)
-    const yoyCurrentOverdueRate = computeOverdueRate(yoyCurrentAttributions)
-    const yoyPreviousDuration = computeDurationStats(yoyPreviousAttributions)
-    const yoyPreviousOverdueRate = computeOverdueRate(yoyPreviousAttributions)
-
+    // YoY card — denominators differ between current (snapshot now) and previous
+    // (territories that already existed at the end of the previous theocratic year).
     const currentYearTerritoryCount = getTotalTerritoryCount(territoryCounts)
-    const yoyCurrentTouched = new Set(yoyCurrentAttributions.map(a => a.territoryId))
-    const yoyPreviousTouched = new Set(yoyPreviousAttributions.map(a => a.territoryId))
-
     const yoyCurrentCoverage =
-      currentYearTerritoryCount > 0 ? (yoyCurrentAttributions.length / currentYearTerritoryCount) * 100 : 0
+      currentYearTerritoryCount > 0 ? (yoyCurrentAggregate.attributionCount / currentYearTerritoryCount) * 100 : 0
     const yoyCurrentTotalCoverage =
-      currentYearTerritoryCount > 0 ? (yoyCurrentTouched.size / currentYearTerritoryCount) * 100 : 0
+      currentYearTerritoryCount > 0 ? (yoyCurrentAggregate.distinctTerritoryCount / currentYearTerritoryCount) * 100 : 0
     const yoyPreviousCoverage =
-      previousYearTerritoryCount > 0 ? (yoyPreviousAttributions.length / previousYearTerritoryCount) * 100 : 0
+      previousYearTerritoryCount > 0
+        ? (yoyPreviousAggregate.attributionCount / previousYearTerritoryCount) * 100
+        : 0
     const yoyPreviousTotalCoverage =
-      previousYearTerritoryCount > 0 ? (yoyPreviousTouched.size / previousYearTerritoryCount) * 100 : 0
+      previousYearTerritoryCount > 0
+        ? (yoyPreviousAggregate.distinctTerritoryCount / previousYearTerritoryCount) * 100
+        : 0
 
     return {
       stats: {
@@ -212,16 +220,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
         current: {
           coverage: yoyCurrentCoverage,
           totalCoverage: yoyCurrentTotalCoverage,
-          averageDurationDays: yoyCurrentDuration.averageDays,
-          overdueRate: yoyCurrentOverdueRate,
-          attributionCount: yoyCurrentAttributions.length,
+          averageDurationDays: yoyCurrentAggregate.averageDurationDays,
+          overdueRate: yoyCurrentAggregate.overdueRate,
+          attributionCount: yoyCurrentAggregate.attributionCount,
         },
         previous: {
           coverage: yoyPreviousCoverage,
           totalCoverage: yoyPreviousTotalCoverage,
-          averageDurationDays: yoyPreviousDuration.averageDays,
-          overdueRate: yoyPreviousOverdueRate,
-          attributionCount: yoyPreviousAttributions.length,
+          averageDurationDays: yoyPreviousAggregate.averageDurationDays,
+          overdueRate: yoyPreviousAggregate.overdueRate,
+          attributionCount: yoyPreviousAggregate.attributionCount,
         },
       },
       attributionsByGroup,
@@ -315,14 +323,20 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.resting}</span>
-              <StatLabel label={m.stats_resting_territories()} help={m.stats_resting_territories_help()} />
+              <StatLabel
+                label={m.stats_resting_territories()}
+                help={m.stats_resting_territories_help({
+                  doorDays: RESTING_PERIOD_DAYS.doorsToDoors,
+                  otherDays: RESTING_PERIOD_DAYS.campaign,
+                })}
+              />
             </CardContent>
           </Card>
         </div>
         <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <PieChart width={300} height={300} onMouseEnter={() => {}}>
+              <PieChart width={300} height={300}>
                 <Pie
                   data={pieData}
                   cx={150}
@@ -337,6 +351,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                     <Cell key={`cell-${entry.name}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
                   ))}
                 </Pie>
+                <RechartsTooltip {...CHART_TOOLTIP_STYLE} />
               </PieChart>
               <StatLabel label={m.stats_pie_label()} help={m.stats_pie_help()} />
             </CardContent>
@@ -344,7 +359,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               {attributionsByGroup.length > 0 ? (
-                <PieChart width={300} height={300} onMouseEnter={() => {}}>
+                <PieChart width={300} height={300}>
                   <Pie
                     data={attributionsByGroup.map(g => ({ name: g.groupName, value: g.count }))}
                     cx={150}
@@ -359,6 +374,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                       <Cell key={`group-${g.groupName}`} fill={GROUP_COLORS[index % GROUP_COLORS.length]} />
                     ))}
                   </Pie>
+                  <RechartsTooltip {...CHART_TOOLTIP_STYLE} />
                 </PieChart>
               ) : (
                 <span className="py-12 text-muted-foreground text-sm italic">{m.stats_no_active_attributions()}</span>
@@ -513,7 +529,10 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
             <CardTitle className="font-display text-lg">{m.stats_never_worked_title()}</CardTitle>
           </CardHeader>
           <CardContent>
-            <TerritoriesNeverWorkedList territories={coverageOverTime.neverWorked} />
+            <TerritoriesNeverWorkedList
+              territories={coverageOverTime.neverWorked.territories}
+              isCapped={coverageOverTime.neverWorked.isCapped}
+            />
           </CardContent>
         </Card>
       </div>
