@@ -1,19 +1,10 @@
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import {
-  RESTING_PERIOD_FOR_CAMPAIGN,
-  RESTING_PERIOD_FOR_DOORS_TO_DOORS,
-  RESTING_PERIOD_FOR_PHONE,
-} from './resting-periods.server'
+import { getRestPeriodCutoffs } from '~/features/territories/model/resting-periods'
 
 export async function countAvailableTerritories(db: TransactionClient, congregationId: number) {
-  const endRestPeriodForDoorsToDoors = new Date()
-  const endRestPeriodForCampaign = new Date()
-  const endRestPeriodForPhone = new Date()
+  const cutoffs = getRestPeriodCutoffs()
 
-  endRestPeriodForDoorsToDoors.setTime(endRestPeriodForDoorsToDoors.getTime() - RESTING_PERIOD_FOR_DOORS_TO_DOORS)
-  endRestPeriodForCampaign.setTime(endRestPeriodForCampaign.getTime() - RESTING_PERIOD_FOR_CAMPAIGN)
-  endRestPeriodForPhone.setTime(endRestPeriodForPhone.getTime() - RESTING_PERIOD_FOR_PHONE)
   return await db.territory.count({
     where: {
       congregationId,
@@ -23,21 +14,21 @@ export async function countAvailableTerritories(db: TransactionClient, congregat
             {
               type: TerritoryAttributionKind.Default,
               endDate: {
-                lt: endRestPeriodForDoorsToDoors,
+                lt: cutoffs.doorsToDoors,
                 not: null,
               },
             },
             {
               type: TerritoryAttributionKind.Campaign,
               endDate: {
-                lt: endRestPeriodForCampaign,
+                lt: cutoffs.campaign,
                 not: null,
               },
             },
             {
               type: TerritoryAttributionKind.Phone,
               endDate: {
-                lt: endRestPeriodForPhone,
+                lt: cutoffs.phone,
                 not: null,
               },
             },

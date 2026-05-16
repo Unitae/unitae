@@ -64,4 +64,14 @@ describe('computeAttributionsPerMonth', () => {
     expect(result[1].count).toBe(0)
     expect(result[2].count).toBe(0)
   })
+
+  it("compte une attribution démarrée le dernier jour du mois (avec une heure non-zéro)", () => {
+    // Attribution at 18:30 on the last day of September must still bucket into Sept.
+    const attributions = [makeAttribution(new Date(2025, 8, 30, 18, 30, 0), 1)]
+
+    const result = computeAttributionsPerMonth(attributions, new Date(2025, 8, 1), new Date(2025, 9, 31))
+
+    expect(result[0].count).toBe(1)
+    expect(result[1].count).toBe(0)
+  })
 })

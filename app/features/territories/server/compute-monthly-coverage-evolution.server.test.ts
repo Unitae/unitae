@@ -48,4 +48,15 @@ describe('computeMonthlyCoverageEvolution', () => {
     // Nov : mêmes territoires, toujours 20%
     expect(result[2].coverage).toBe(20)
   })
+
+  it('compte une attribution démarrée le dernier jour du mois (avec une heure non-zéro)', () => {
+    // Attribution starting on the last day of September, at noon — the old
+    // `<= monthEnd` predicate against local midnight of Sept 30 would drop it.
+    const attributions = [makeAttribution(1, new Date(2025, 8, 30, 12, 0, 0), null)]
+
+    const result = computeMonthlyCoverageEvolution(attributions, counts, new Date(2025, 8, 1), new Date(2025, 9, 31))
+
+    expect(result[0].coverage).toBe(10)
+    expect(result[1].coverage).toBe(10)
+  })
 })

@@ -16,7 +16,24 @@ interface StatsFiltersProps {
   action?: string
   phoneTypeActive?: boolean
   groups?: PublisherGroup[]
-  theocraticYear?: number
+  theocraticYear: number
+}
+
+function territoryKindLabel(kind: string): string {
+  switch (kind) {
+    case TerritoryKind.Classical:
+      return m.stats_filter_territory_door()
+    case TerritoryKind.Phone:
+      return m.stats_filter_territory_phone()
+    case TerritoryKind.Commerces:
+      return m.stats_filter_territory_commerce()
+    case TerritoryKind.Hotel:
+      return m.stats_filter_territory_hotel()
+    case TerritoryKind.Univ:
+      return m.stats_filter_territory_university()
+    default:
+      return kind
+  }
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: filter component with multiple conditional UI branches
@@ -24,18 +41,25 @@ export default function StatsFilters({
   action,
   phoneTypeActive = false,
   groups = [],
-  theocraticYear = 2025,
+  theocraticYear,
 }: StatsFiltersProps) {
   const [params] = useSearchParams()
   const [isOpen, setIsOpen] = useState(false)
 
   const startDate = params.get('startDate') ?? new Date(theocraticYear, 8, 1).toLocaleDateString('en-CA')
   const endDate = params.get('endDate') ?? new Date(theocraticYear + 1, 7, 31).toLocaleDateString('en-CA')
-  const kind = params.get('kind') ?? TerritoryKind.Classical
+
+  // Multi-kind aware: the parser supports `?kind=a&kind=b`, so the badge area
+  // renders one badge per kind. The select itself stays single-value to keep
+  // the form simple — picking a single value submits a single `kind=` param.
+  const rawKinds = params.getAll('kind')
+  const isAllTypes = rawKinds.length === 0 || rawKinds.includes('none')
+  const selectKind = rawKinds.find(k => k !== 'none') ?? TerritoryKind.Classical
+
   const attributionKinds =
     params.getAll('attributionKind').length > 0
       ? params.getAll('attributionKind')
-      : [TerritoryAttributionKind.Campaign, TerritoryAttributionKind.Default]
+      : [TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign]
   const group = params.get('group') != null && params.get('group') !== 'none' ? params.get('group') : undefined
 
   return (
@@ -44,13 +68,17 @@ export default function StatsFilters({
         <Badge variant="outline" className="border-primary text-primary">
           {new Date(startDate).toLocaleDateString('fr-FR')} - {new Date(endDate).toLocaleDateString('fr-FR')}
         </Badge>
-        <Badge variant="outline" className="border-orange-500 text-orange-500">
-          {TerritoryKind.Classical === kind && m.stats_filter_territory_door()}
-          {TerritoryKind.Phone === kind && m.stats_filter_territory_phone()}
-          {TerritoryKind.Commerces === kind && m.stats_filter_territory_commerce()}
-          {TerritoryKind.Hotel === kind && m.stats_filter_territory_hotel()}
-          {TerritoryKind.Univ === kind && m.stats_filter_territory_university()}
-        </Badge>
+        {isAllTypes ? (
+          <Badge variant="outline" className="border-orange-500 text-orange-500">
+            {m.stats_filter_territory_all_types()}
+          </Badge>
+        ) : (
+          rawKinds.map(kind => (
+            <Badge key={kind} variant="outline" className="border-orange-500 text-orange-500">
+              {territoryKindLabel(kind)}
+            </Badge>
+          ))
+        )}
         {attributionKinds.map(attribution => (
           <Badge key={attribution} variant="outline" className="border-amber-500 text-amber-500">
             {TerritoryAttributionKind.Campaign === attribution && m.stats_filter_badge_campaign()}
@@ -99,12 +127,12 @@ export default function StatsFilters({
 
                 <div className="flex flex-col gap-1.5">
                   <Label>{m.stats_filter_territory_type()}</Label>
-                  <Select name="kind" defaultValue={kind}>
+                  <Select name="kind" defaultValue={isAllTypes ? 'none' : selectKind}>
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">{m.stats_filter_territory_type_placeholder()}</SelectItem>
+                      <SelectItem value="none">{m.stats_filter_territory_all_types()}</SelectItem>
                       <SelectItem value={TerritoryKind.Classical}>{m.stats_filter_territory_door()}</SelectItem>
                       {phoneTypeActive && (
                         <SelectItem value={TerritoryKind.Phone}>{m.stats_filter_territory_phone()}</SelectItem>

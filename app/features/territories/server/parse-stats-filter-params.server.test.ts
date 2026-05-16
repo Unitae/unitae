@@ -9,7 +9,7 @@ describe('parseStatsFilterParams', () => {
     const result = parseStatsFilterParams(params, 2025)
 
     expect(result.territoryKind).toEqual([TerritoryKind.Classical])
-    expect(result.attributionKind).toEqual([TerritoryAttributionKind.Default])
+    expect(result.attributionKind).toEqual([TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign])
     expect(result.startDate).toEqual(new Date(2025, 8, 1))
     expect(result.endDate).toEqual(new Date(2026, 7, 31))
     expect(result.groupId).toBeUndefined()
@@ -28,8 +28,8 @@ describe('parseStatsFilterParams', () => {
 
     expect(result.territoryKind).toEqual([TerritoryKind.Phone, TerritoryKind.Commerces])
     expect(result.attributionKind).toEqual([TerritoryAttributionKind.Campaign])
-    expect(result.startDate).toEqual(new Date('2025-01-01'))
-    expect(result.endDate).toEqual(new Date('2025-06-30'))
+    expect(result.startDate).toEqual(new Date(2025, 0, 1))
+    expect(result.endDate).toEqual(new Date(2025, 5, 30))
     expect(result.groupId).toBe(42)
   })
 
@@ -39,5 +39,56 @@ describe('parseStatsFilterParams', () => {
 
     const result = parseStatsFilterParams(params, 2025)
     expect(result.groupId).toBeUndefined()
+  })
+
+  it('retourne un tableau vide quand kind=none ("Tous types")', () => {
+    const params = new URLSearchParams()
+    params.set('kind', 'none')
+
+    const result = parseStatsFilterParams(params, 2025)
+    expect(result.territoryKind).toEqual([])
+  })
+
+  it('parse les dates en heure locale (pas en UTC)', () => {
+    const params = new URLSearchParams()
+    params.set('startDate', '2025-09-01')
+    params.set('endDate', '2026-08-31')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    // Local midnight, identical to the constructor used by getBeginingDateOfTheocraticYear.
+    expect(result.startDate).toEqual(new Date(2025, 8, 1))
+    expect(result.endDate).toEqual(new Date(2026, 7, 31))
+  })
+
+  it('retombe sur les dates par défaut quand startDate est vide', () => {
+    const params = new URLSearchParams()
+    params.set('startDate', '')
+    params.set('endDate', '2026-08-31')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    expect(result.startDate).toEqual(new Date(2025, 8, 1))
+    expect(result.endDate).toEqual(new Date(2026, 7, 31))
+  })
+
+  it("retombe sur les dates par défaut quand startDate n'est pas une date", () => {
+    const params = new URLSearchParams()
+    params.set('startDate', 'not-a-date')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    expect(result.startDate).toEqual(new Date(2025, 8, 1))
+  })
+
+  it('échange start/end quand la plage est inversée', () => {
+    const params = new URLSearchParams()
+    params.set('startDate', '2026-01-01')
+    params.set('endDate', '2025-01-01')
+
+    const result = parseStatsFilterParams(params, 2025)
+
+    expect(result.startDate).toEqual(new Date(2025, 0, 1))
+    expect(result.endDate).toEqual(new Date(2026, 0, 1))
   })
 })

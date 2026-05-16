@@ -23,18 +23,17 @@ export function computeMonthlyCoverageEvolution(
   const end = new Date(endDate.getFullYear(), endDate.getMonth(), 1)
 
   while (current <= end) {
-    const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0) // Dernier jour du mois
+    const startOfNextMonth = new Date(current.getFullYear(), current.getMonth() + 1, 1)
     const year = current.getFullYear()
     const month = String(current.getMonth() + 1).padStart(2, '0')
     const key = `${year}-${month}`
 
-    // Territoires distincts touchés entre startDate et la fin de ce mois
+    // Attribution overlaps [startDate, end of this month] iff it starts strictly before
+    // the next month AND (its endDate is null OR >= startDate). `<` against the next
+    // month's first day is TZ-safe — same idiom as the SQL helper.
     const touchedTerritories = new Set<number>()
     for (const a of attributions) {
-      // L'attribution chevauche la période [startDate, monthEnd] si :
-      // - elle commence avant ou pendant la fin du mois
-      // - elle se termine après le début de la période (ou est en cours)
-      if (a.startDate <= monthEnd && (a.endDate == null || a.endDate >= startDate)) {
+      if (a.startDate < startOfNextMonth && (a.endDate == null || a.endDate >= startDate)) {
         touchedTerritories.add(a.territoryId)
       }
     }

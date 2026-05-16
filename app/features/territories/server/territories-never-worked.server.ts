@@ -1,5 +1,5 @@
-import type { Prisma } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
 export interface NeverWorkedTerritory {
@@ -7,24 +7,28 @@ export interface NeverWorkedTerritory {
   number: string
 }
 
+export interface NeverWorkedResult {
+  territories: NeverWorkedTerritory[]
+  isCapped: boolean
+}
+
+// Matches the UI's MAX_DISPLAY. We fetch one row past it so the caller can
+// tell whether the list was capped without doing a second COUNT query.
+export const NEVER_WORKED_MAX = 20
+
 export async function getTerritoriesNeverWorked(
   db: TransactionClient,
   params: StatsFilterParams,
   congregationId: number,
-): Promise<NeverWorkedTerritory[]> {
-  const dateOverlap: Prisma.AttributionWhereInput = {
-    startDate: { lte: params.endDate },
-    OR: [{ endDate: null }, { endDate: { gte: params.startDate } }],
-  }
-
-  const territories = await db.territory.findMany({
+): Promise<NeverWorkedResult> {
+  const rows = await db.territory.findMany({
     where: {
       congregationId,
-      type: { in: params.territoryKind },
+      ...(params.territoryKind.length > 0 ? { type: { in: params.territoryKind } } : {}),
       attributions: {
         none: {
           type: { in: params.attributionKind },
-          ...dateOverlap,
+          ...buildAttributionDateOverlapWhere(params.startDate, params.endDate),
           ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),
         },
       },
@@ -34,7 +38,11 @@ export async function getTerritoriesNeverWorked(
       number: true,
     },
     orderBy: { number: 'asc' },
+    take: NEVER_WORKED_MAX + 1,
   })
 
-  return territories
+  return {
+    territories: rows.slice(0, NEVER_WORKED_MAX),
+    isCapped: rows.length > NEVER_WORKED_MAX,
+  }
 }

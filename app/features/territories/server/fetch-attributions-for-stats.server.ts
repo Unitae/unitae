@@ -1,14 +1,7 @@
-import type { Prisma } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
 import type { StatsAttribution } from './stats-attribution.type'
 import type { StatsFilterParams } from './stats-filter-params.type'
-
-function buildDateOverlapWhere(startDate: Date, endDate: Date): Prisma.AttributionWhereInput {
-  return {
-    startDate: { lte: endDate },
-    OR: [{ endDate: null }, { endDate: { gte: startDate } }],
-  }
-}
 
 export async function fetchAttributionsForStats(
   db: TransactionClient,
@@ -18,11 +11,9 @@ export async function fetchAttributionsForStats(
   const attributions = await db.attribution.findMany({
     where: {
       congregationId,
-      territory: {
-        type: { in: params.territoryKind },
-      },
+      ...(params.territoryKind.length > 0 ? { territory: { type: { in: params.territoryKind } } } : {}),
       type: { in: params.attributionKind },
-      ...buildDateOverlapWhere(params.startDate, params.endDate),
+      ...buildAttributionDateOverlapWhere(params.startDate, params.endDate),
       ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),
     },
     select: {

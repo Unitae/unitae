@@ -24,6 +24,15 @@ const baseParams = {
   actorId: 99,
 }
 
+// Local midnight of the input — must match parseLocalDate behavior.
+const expectedStartDate = new Date(2025, 2, 15)
+
+function buildExpectedLateDate(addDays: number): Date {
+  const next = new Date(expectedStartDate)
+  next.setDate(next.getDate() + addDays)
+  return next
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getSetting).mockResolvedValue(undefined)
@@ -32,15 +41,18 @@ beforeEach(() => {
 })
 
 describe('createAttribution', () => {
+  it('stores startDate at local midnight, not UTC midnight', async () => {
+    await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
+
+    const call = mockDb.attribution.create.mock.calls[0][0]
+    expect(call.data.startDate).toEqual(expectedStartDate)
+  })
+
   it('uses default duration of 120 days when no setting exists', async () => {
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
-    const expected = new Date('2025-03-15')
-    expected.setDate(expected.getDate() + 120)
-
-    expect(call.data.lateDate).toEqual(expected)
-    expect(call.data.startDate).toEqual(new Date('2025-03-15'))
+    expect(call.data.lateDate).toEqual(buildExpectedLateDate(120))
   })
 
   it('uses configured default duration in days from setting', async () => {
@@ -49,30 +61,21 @@ describe('createAttribution', () => {
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
-    const expected = new Date('2025-03-15')
-    expected.setDate(expected.getDate() + 90)
-
-    expect(call.data.lateDate).toEqual(expected)
+    expect(call.data.lateDate).toEqual(buildExpectedLateDate(90))
   })
 
   it('uses phone duration (14 days) for phone attribution type', async () => {
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Phone })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
-    const expected = new Date('2025-03-15')
-    expected.setDate(expected.getDate() + 14)
-
-    expect(call.data.lateDate).toEqual(expected)
+    expect(call.data.lateDate).toEqual(buildExpectedLateDate(14))
   })
 
   it('uses campaign duration (60 days) for campaign attribution type', async () => {
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Campaign })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
-    const expected = new Date('2025-03-15')
-    expected.setDate(expected.getDate() + 60)
-
-    expect(call.data.lateDate).toEqual(expected)
+    expect(call.data.lateDate).toEqual(buildExpectedLateDate(60))
   })
 
   it('uses commerce duration (120 days) for commerce territory type', async () => {
@@ -81,10 +84,7 @@ describe('createAttribution', () => {
     await createAttribution(mockDb as never, { ...baseParams, type: TerritoryAttributionKind.Default })
 
     const call = mockDb.attribution.create.mock.calls[0][0]
-    const expected = new Date('2025-03-15')
-    expected.setDate(expected.getDate() + 120)
-
-    expect(call.data.lateDate).toEqual(expected)
+    expect(call.data.lateDate).toEqual(buildExpectedLateDate(120))
   })
 
   it('returns the created attribution', async () => {

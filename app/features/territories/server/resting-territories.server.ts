@@ -1,44 +1,24 @@
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import {
-  RESTING_PERIOD_FOR_CAMPAIGN,
-  RESTING_PERIOD_FOR_DOORS_TO_DOORS,
-  RESTING_PERIOD_FOR_PHONE,
-} from './resting-periods.server'
+import { getRestPeriodCutoffs } from '~/features/territories/model/resting-periods'
 
 export async function countRestingTerritories(db: TransactionClient, congregationId: number) {
-  const endRestPeriodForDoorsToDoors = new Date()
-  const endRestPeriodForCampaign = new Date()
-  const endRestPeriodForPhone = new Date()
-
-  endRestPeriodForDoorsToDoors.setTime(endRestPeriodForDoorsToDoors.getTime() - RESTING_PERIOD_FOR_DOORS_TO_DOORS)
-  endRestPeriodForCampaign.setTime(endRestPeriodForCampaign.getTime() - RESTING_PERIOD_FOR_CAMPAIGN)
-  endRestPeriodForPhone.setTime(endRestPeriodForPhone.getTime() - RESTING_PERIOD_FOR_PHONE)
+  const cutoffs = getRestPeriodCutoffs()
 
   return await db.territory.count({
     where: {
       congregationId,
       attributions: {
+        // Exclude territories with an in-progress attribution so `resting`
+        // is mutually exclusive with `working` — a territory with both an
+        // open attribution AND a past attribution still inside its rest
+        // window otherwise inflates the `État global` totals.
+        none: { endDate: null },
         some: {
           OR: [
-            {
-              type: TerritoryAttributionKind.Default,
-              endDate: {
-                gt: endRestPeriodForDoorsToDoors,
-              },
-            },
-            {
-              type: TerritoryAttributionKind.Campaign,
-              endDate: {
-                gt: endRestPeriodForCampaign,
-              },
-            },
-            {
-              type: TerritoryAttributionKind.Phone,
-              endDate: {
-                gt: endRestPeriodForPhone,
-              },
-            },
+            { type: TerritoryAttributionKind.Default, endDate: { gt: cutoffs.doorsToDoors } },
+            { type: TerritoryAttributionKind.Campaign, endDate: { gt: cutoffs.campaign } },
+            { type: TerritoryAttributionKind.Phone, endDate: { gt: cutoffs.phone } },
           ],
         },
       },

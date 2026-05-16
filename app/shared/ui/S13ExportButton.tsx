@@ -5,6 +5,8 @@ import { Button } from '~/shared/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 
 export default function S13ExportButton({ theocraticYear }: { theocraticYear: number }) {
+  const theocraticYearLabel = `${theocraticYear}/${theocraticYear + 1}`
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -16,19 +18,19 @@ export default function S13ExportButton({ theocraticYear }: { theocraticYear: nu
         <DropdownMenuItem asChild>
           <Link
             to={`/territories/attributions/export/${theocraticYear}/xlsx`}
-            title={m.export_s13_excel_title({ theocraticYear: String(theocraticYear) })}
+            title={m.export_s13_excel_title({ theocraticYear: theocraticYearLabel })}
             reloadDocument
           >
-            {m.export_s13_excel()}
+            {m.export_s13_excel({ theocraticYear: theocraticYearLabel })}
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link
             to={`/territories/attributions/export/${theocraticYear}/pdf`}
-            title={m.export_s13_pdf_title({ theocraticYear: String(theocraticYear) })}
+            title={m.export_s13_pdf_title({ theocraticYear: theocraticYearLabel })}
             reloadDocument
           >
-            {m.export_s13_pdf()}
+            {m.export_s13_pdf({ theocraticYear: theocraticYearLabel })}
           </Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
