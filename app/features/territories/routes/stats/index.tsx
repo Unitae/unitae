@@ -1,7 +1,6 @@
 import { Info } from 'lucide-react'
 import { Cell, Pie, PieChart } from 'recharts'
 import { getGroups } from '~/features/publishers/server/groups.server'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { countAvailableTerritories } from '~/features/territories/server/available-territories.server'
 import { computeAttributionsPerMonth } from '~/features/territories/server/compute-attributions-per-month.server'
@@ -107,9 +106,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         db,
         congregationId,
         filterParams.territoryKind,
-        filterParams.attributionKind.length > 0
-          ? filterParams.attributionKind
-          : [TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign],
+        filterParams.attributionKind,
         filterParams.startDate,
         filterParams.endDate,
       ),
@@ -339,7 +336,7 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
       <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_progression_heading()}</h2>
       <div className="flex flex-col gap-3">
         <div className="my-2">
-          <StatsFilters groups={groups} />
+          <StatsFilters groups={groups} theocraticYear={theocraticYear} />
         </div>
         <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1 max-md:grid-cols-2">
           <Card>

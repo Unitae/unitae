@@ -18,9 +18,7 @@ export async function fetchAttributionsForStats(
   const attributions = await db.attribution.findMany({
     where: {
       congregationId,
-      territory: {
-        type: { in: params.territoryKind },
-      },
+      ...(params.territoryKind.length > 0 ? { territory: { type: { in: params.territoryKind } } } : {}),
       type: { in: params.attributionKind },
       ...buildDateOverlapWhere(params.startDate, params.endDate),
       ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),

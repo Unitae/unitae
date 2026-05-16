@@ -20,7 +20,7 @@ export async function getTerritoriesNeverWorked(
   const territories = await db.territory.findMany({
     where: {
       congregationId,
-      type: { in: params.territoryKind },
+      ...(params.territoryKind.length > 0 ? { type: { in: params.territoryKind } } : {}),
       attributions: {
         none: {
           type: { in: params.attributionKind },

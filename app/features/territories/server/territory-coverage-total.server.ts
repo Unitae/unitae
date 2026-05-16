@@ -24,18 +24,20 @@ export async function computeTerritoryCoverageTotal(
     whereDate = { startDate: { lte: endDate } }
   }
 
+  const kindWhere = territoryKind.length > 0 ? { type: { in: territoryKind } } : {}
+
   // Count total territories of the specified kind
   const total = await db.territory.count({
     where: {
       congregationId,
-      type: { in: territoryKind },
+      ...kindWhere,
     },
   })
 
   const count = await db.territory.count({
     where: {
       congregationId,
-      type: { in: territoryKind },
+      ...kindWhere,
       attributions: {
         some: {
           type: { in: attributionKind },

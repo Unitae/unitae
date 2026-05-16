@@ -16,7 +16,7 @@ interface StatsFiltersProps {
   action?: string
   phoneTypeActive?: boolean
   groups?: PublisherGroup[]
-  theocraticYear?: number
+  theocraticYear: number
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: filter component with multiple conditional UI branches
@@ -24,7 +24,7 @@ export default function StatsFilters({
   action,
   phoneTypeActive = false,
   groups = [],
-  theocraticYear = 2025,
+  theocraticYear,
 }: StatsFiltersProps) {
   const [params] = useSearchParams()
   const [isOpen, setIsOpen] = useState(false)
@@ -35,7 +35,7 @@ export default function StatsFilters({
   const attributionKinds =
     params.getAll('attributionKind').length > 0
       ? params.getAll('attributionKind')
-      : [TerritoryAttributionKind.Campaign, TerritoryAttributionKind.Default]
+      : [TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign]
   const group = params.get('group') != null && params.get('group') !== 'none' ? params.get('group') : undefined
 
   return (
@@ -45,6 +45,7 @@ export default function StatsFilters({
           {new Date(startDate).toLocaleDateString('fr-FR')} - {new Date(endDate).toLocaleDateString('fr-FR')}
         </Badge>
         <Badge variant="outline" className="border-orange-500 text-orange-500">
+          {kind === 'none' && m.stats_filter_territory_type_placeholder()}
           {TerritoryKind.Classical === kind && m.stats_filter_territory_door()}
           {TerritoryKind.Phone === kind && m.stats_filter_territory_phone()}
           {TerritoryKind.Commerces === kind && m.stats_filter_territory_commerce()}
