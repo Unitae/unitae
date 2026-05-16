@@ -4,6 +4,7 @@ import {
 } from '~/features/events/server/allowed-roles.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
   return db.programmeTemplate.findMany({
@@ -37,7 +38,11 @@ export function updateTemplate(
     where: {
       id_congregationId: { id: templateId, congregationId },
     },
-    data,
+    data: {
+      ...data,
+      ...(data.name != null ? { name: sanitizeText(data.name) } : {}),
+      ...(data.description != null ? { description: sanitizeText(data.description) } : {}),
+    },
   })
 }
 
@@ -60,9 +65,9 @@ export async function upsertTemplatePart(
   actorId: number,
 ) {
   const baseData = {
-    name: partData.name,
-    section: partData.section,
-    track: partData.track,
+    name: sanitizeText(partData.name),
+    section: sanitizeText(partData.section),
+    track: sanitizeText(partData.track),
     trackOrder: partData.trackOrder,
     order: partData.order,
     durationMin: partData.durationMin,

@@ -1,5 +1,7 @@
 import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
+import { formatMemberName, getPartAssigneeDisplay } from '~/features/events/ui/part-display'
+import { sanitizeText } from '~/shared/utils/sanitize-text'
 
 const fontsDir = path.join(process.cwd(), 'public', 'fonts')
 
@@ -37,6 +39,7 @@ interface PartAssignment {
   topic: string
   assignee: { firstname: string | null; lastname: string | null } | null
   assistant: { firstname: string | null; lastname: string | null } | null
+  externalSpeaker: { name: string } | null
 }
 
 interface ServiceRoleAssignment {
@@ -213,12 +216,6 @@ const styles = StyleSheet.create({
   },
 })
 
-function formatName(user: { firstname: string | null; lastname: string | null } | null): string | null {
-  if (!user) return null
-  const name = `${user.firstname ?? ''} ${user.lastname ?? ''}`.trim()
-  return name || null
-}
-
 function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
@@ -300,7 +297,7 @@ function EventBlock({
             <View key={groupIdx}>
               {group.section !== '' && (
                 <View style={[styles.sectionHeader, { backgroundColor: color ?? '#64748b' }]}>
-                  <Text style={styles.sectionHeaderText}>{group.section}</Text>
+                  <Text style={styles.sectionHeaderText}>{sanitizeText(group.section)}</Text>
                 </View>
               )}
               {group.parts.map((part, partIdx) => {
@@ -317,7 +314,7 @@ function EventBlock({
           <Text style={styles.serviceSectionTitle}>Services</Text>
           <View style={styles.serviceGrid}>
             {event.serviceRoleAssignments.map((role, roleIdx) => {
-              const name = formatName(role.assignee)
+              const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
                   <Text style={styles.serviceRoleName}>{role.name}</Text>
@@ -333,25 +330,18 @@ function EventBlock({
 }
 
 function PartRow({ part, isAlt }: { part: PartAssignment; isAlt: boolean }) {
-  const assigneeName = formatName(part.assignee)
-  const assistantName = part.assistant ? formatName(part.assistant) : null
-  const displayName = part.track ? `${part.name} — ${part.track}` : part.name
+  const { primary, assistant } = getPartAssigneeDisplay(part)
+  const cleanName = sanitizeText(part.name)
+  const cleanTrack = sanitizeText(part.track)
+  const displayName = cleanTrack ? `${cleanName} — ${cleanTrack}` : cleanName
 
   return (
     <View style={[styles.partRow, isAlt ? styles.partRowAlt : {}]}>
       <Text style={styles.partName}>{displayName}</Text>
       <Text style={styles.partDuration}>{part.durationMin ? `${part.durationMin}'` : ''}</Text>
-      <Text style={styles.partTopic}>{part.topic || ''}</Text>
-      {assigneeName ? (
-        <Text style={styles.partAssignee}>{assigneeName}</Text>
-      ) : (
-        <Text style={styles.unassigned}>—</Text>
-      )}
-      {assistantName ? (
-        <Text style={styles.partAssistant}>{assistantName}</Text>
-      ) : (
-        <Text style={styles.partAssistant} />
-      )}
+      <Text style={styles.partTopic}>{part.topic ? sanitizeText(part.topic) : ''}</Text>
+      {primary ? <Text style={styles.partAssignee}>{primary}</Text> : <Text style={styles.unassigned}>—</Text>}
+      {assistant ? <Text style={styles.partAssistant}>{assistant}</Text> : <Text style={styles.partAssistant} />}
     </View>
   )
 }
