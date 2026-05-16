@@ -4,6 +4,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { getSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
+import { parseLocalDate } from '~/shared/utils/date.server'
 
 const DEFAULT_DURATION_DAYS = {
   default: 120,
@@ -67,7 +68,8 @@ export async function createAttribution(db: TransactionClient, params: CreateAtt
 
   const durationDays = await resolveDurationDays(db, params.type, territory.type, params.congregationId)
 
-  const lateDate = new Date(params.startDate)
+  const startDate = parseLocalDate(params.startDate)
+  const lateDate = new Date(startDate)
   lateDate.setDate(lateDate.getDate() + durationDays)
 
   const attribution = await db.attribution.create({
@@ -76,7 +78,7 @@ export async function createAttribution(db: TransactionClient, params: CreateAtt
       territoryId: params.territoryId,
       notes: params.notes,
       type: params.type,
-      startDate: new Date(params.startDate),
+      startDate,
       lateDate,
       congregationId: params.congregationId,
     },

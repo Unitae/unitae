@@ -1,15 +1,8 @@
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { parseLocalDate } from '~/shared/utils/date.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
-
-// Parse `YYYY-MM-DD` (the format emitted by <input type="date">) as a local-midnight Date,
-// matching the semantics of `new Date(year, monthIdx, day)` used elsewhere in the stats helpers.
-// `new Date(string)` would parse it as UTC midnight, shifting the SQL bounds by the local offset.
-function parseLocalDate(value: string): Date {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
 
 export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: number): StatsFilterParams {
   const rawKinds = params.getAll('kind')

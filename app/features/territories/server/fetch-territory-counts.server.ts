@@ -24,3 +24,22 @@ export async function fetchTerritoryCounts(
     count: g._count.id,
   }))
 }
+
+// Counts territories that existed at or before `cutoff`. Used as the
+// YoY denominator for the previous theocratic year — counting the
+// territories that already existed by that year's end avoids inflating
+// the denominator with territories created after.
+export async function countTerritoriesExistingBefore(
+  db: TransactionClient,
+  congregationId: number,
+  cutoff: Date,
+  territoryKinds?: TerritoryKind[],
+): Promise<number> {
+  return db.territory.count({
+    where: {
+      congregationId,
+      createdAt: { lte: cutoff },
+      ...(territoryKinds != null && territoryKinds.length > 0 ? { type: { in: territoryKinds } } : {}),
+    },
+  })
+}

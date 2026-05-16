@@ -23,14 +23,23 @@ describe('countRestingTerritories', () => {
   it('retourne le nombre de territoires au repos', async () => {
     vi.mocked(db.territory.count).mockResolvedValue(7)
 
-    const result = await countRestingTerritories(db, 1)
-    expect(result).toBe(7)
+    expect(await countRestingTerritories(db, 1)).toBe(7)
   })
 
   it('retourne 0 quand aucun territoire ne se repose', async () => {
     vi.mocked(db.territory.count).mockResolvedValue(0)
 
-    const result = await countRestingTerritories(db, 1)
-    expect(result).toBe(0)
+    expect(await countRestingTerritories(db, 1)).toBe(0)
+  })
+
+  it('exclut les territoires avec une attribution en cours (mutuelle exclusion avec "working")', async () => {
+    vi.mocked(db.territory.count).mockResolvedValue(0)
+
+    await countRestingTerritories(db, 1)
+
+    const where = vi.mocked(db.territory.count).mock.calls[0][0]?.where
+    const attributions = where?.attributions as { none?: unknown; some?: unknown } | undefined
+    expect(attributions?.none).toEqual({ endDate: null })
+    expect(attributions?.some).toBeDefined()
   })
 })

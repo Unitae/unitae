@@ -15,6 +15,7 @@ import { countDelayedWorkingTerritories } from '~/features/territories/server/de
 import { fetchActiveAttributionsByGroup } from '~/features/territories/server/fetch-attributions-by-group.server'
 import { fetchAttributionsForStats } from '~/features/territories/server/fetch-attributions-for-stats.server'
 import {
+  countTerritoriesExistingBefore,
   fetchTerritoryCounts,
   getTotalTerritoryCount,
 } from '~/features/territories/server/fetch-territory-counts.server'
@@ -27,7 +28,6 @@ import {
   getBeginingDateOfTheocraticYear,
   getCurrentTheocraticYear,
   getEndDateOfTheocraticYear,
-  getPreviousTheocraticYear,
 } from '~/features/territories/server/theocratic-year.server'
 import AttributionsPerMonthChart from '~/features/territories/ui/AttributionsPerMonthChart'
 import MonthlyCoverageChart from '~/features/territories/ui/MonthlyCoverageChart'
@@ -66,15 +66,22 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const theocraticYear = getCurrentTheocraticYear()
     const filterParams = parseStatsFilterParams(params, theocraticYear)
 
-    // Paramètres pour l'année précédente (comparaison annuelle)
-    const prevYear = getPreviousTheocraticYear()
-    const prevParams = {
+    // YoY card is pinned to current vs previous theocratic year — only the dates
+    // are overridden; kinds/group are inherited so drilling into a group still
+    // produces a meaningful year-over-year for that group.
+    const yoyCurrentParams = {
       ...filterParams,
-      startDate: getBeginingDateOfTheocraticYear(prevYear),
-      endDate: getEndDateOfTheocraticYear(prevYear),
+      startDate: getBeginingDateOfTheocraticYear(theocraticYear),
+      endDate: getEndDateOfTheocraticYear(theocraticYear),
     }
+    const yoyPreviousParams = {
+      ...filterParams,
+      startDate: getBeginingDateOfTheocraticYear(theocraticYear - 1),
+      endDate: getEndDateOfTheocraticYear(theocraticYear - 1),
+    }
+    // By-type breakdown shows every kind regardless of the user's filter.
+    const allKindsParams = { ...filterParams, territoryKind: [] }
 
-    // Requêtes parallèles
     const [
       activeWorkingTerritoriesCount,
       delayedWorkingTerritoriesCount,
@@ -82,10 +89,13 @@ export function loader({ request, context }: Route.LoaderArgs) {
       availableTerritoriesCount,
       percentageCovered,
       percentageTotallyCovered,
-      attributions,
-      prevAttributions,
+      filteredAttributions,
+      yoyCurrentAttributions,
+      yoyPreviousAttributions,
+      allKindsAttributions,
       territoryCounts,
       allTerritoryCounts,
+      previousYearTerritoryCount,
       neverWorked,
       attributionsByGroup,
       groups,
@@ -101,6 +111,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         filterParams.attributionKind,
         filterParams.startDate,
         filterParams.endDate,
+        filterParams.groupId,
       ),
       computeTerritoryCoverageTotal(
         db,
@@ -109,11 +120,20 @@ export function loader({ request, context }: Route.LoaderArgs) {
         filterParams.attributionKind,
         filterParams.startDate,
         filterParams.endDate,
+        filterParams.groupId,
       ),
       fetchAttributionsForStats(db, filterParams, congregationId),
-      fetchAttributionsForStats(db, prevParams, congregationId),
+      fetchAttributionsForStats(db, yoyCurrentParams, congregationId),
+      fetchAttributionsForStats(db, yoyPreviousParams, congregationId),
+      fetchAttributionsForStats(db, allKindsParams, congregationId),
       fetchTerritoryCounts(db, congregationId, filterParams.territoryKind),
       fetchTerritoryCounts(db, congregationId),
+      countTerritoriesExistingBefore(
+        db,
+        congregationId,
+        yoyPreviousParams.endDate,
+        filterParams.territoryKind,
+      ),
       getTerritoriesNeverWorked(db, filterParams, congregationId),
       fetchActiveAttributionsByGroup(db, congregationId),
       getGroups(db, congregationId),
@@ -123,28 +143,45 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const unavailableTerritoriesCount = restingTerritoriesCount + workingTerritoriesCount
     const territoriesCount = unavailableTerritoriesCount + availableTerritoriesCount
 
-    // Calculs synchrones à partir des données récupérées
-    const ranked = computeRankedTerritories(attributions)
-    const durationStats = computeDurationStats(attributions)
-    const overdueRate = computeOverdueRate(attributions)
-    const availabilityGap = computeAvailabilityGap(attributions)
-    const attributionsPerMonth = computeAttributionsPerMonth(attributions, filterParams.startDate, filterParams.endDate)
+    // Cards driven by the user's filter
+    const ranked = computeRankedTerritories(filteredAttributions)
+    const durationStats = computeDurationStats(filteredAttributions)
+    const overdueRate = computeOverdueRate(filteredAttributions)
+    const availabilityGap = computeAvailabilityGap(filteredAttributions)
+    const attributionsPerMonth = computeAttributionsPerMonth(
+      filteredAttributions,
+      filterParams.startDate,
+      filterParams.endDate,
+    )
     const monthlyCoverage = computeMonthlyCoverageEvolution(
-      attributions,
+      filteredAttributions,
       territoryCounts,
       filterParams.startDate,
       filterParams.endDate,
     )
-    const coverageByType = computeCoverageByTerritoryType(attributions, allTerritoryCounts)
-    const restUtilization = computeRestPeriodUtilization(attributions)
+    const restUtilization = computeRestPeriodUtilization(filteredAttributions)
 
-    // Métriques de l'année précédente pour la comparaison
-    const prevDuration = computeDurationStats(prevAttributions)
-    const prevOverdueRate = computeOverdueRate(prevAttributions)
-    const prevTotalCount = getTotalTerritoryCount(territoryCounts)
-    const prevTouchedTerritories = new Set(prevAttributions.map(a => a.territoryId))
-    const prevCoverage = prevTotalCount > 0 ? (prevAttributions.length / prevTotalCount) * 100 : 0
-    const prevTotalCoverage = prevTotalCount > 0 ? (prevTouchedTerritories.size / prevTotalCount) * 100 : 0
+    // By-type breakdown — always all kinds, regardless of filter.
+    const coverageByType = computeCoverageByTerritoryType(allKindsAttributions, allTerritoryCounts)
+
+    // YoY card — pinned to current vs previous theocratic year.
+    const yoyCurrentDuration = computeDurationStats(yoyCurrentAttributions)
+    const yoyCurrentOverdueRate = computeOverdueRate(yoyCurrentAttributions)
+    const yoyPreviousDuration = computeDurationStats(yoyPreviousAttributions)
+    const yoyPreviousOverdueRate = computeOverdueRate(yoyPreviousAttributions)
+
+    const currentYearTerritoryCount = getTotalTerritoryCount(territoryCounts)
+    const yoyCurrentTouched = new Set(yoyCurrentAttributions.map(a => a.territoryId))
+    const yoyPreviousTouched = new Set(yoyPreviousAttributions.map(a => a.territoryId))
+
+    const yoyCurrentCoverage =
+      currentYearTerritoryCount > 0 ? (yoyCurrentAttributions.length / currentYearTerritoryCount) * 100 : 0
+    const yoyCurrentTotalCoverage =
+      currentYearTerritoryCount > 0 ? (yoyCurrentTouched.size / currentYearTerritoryCount) * 100 : 0
+    const yoyPreviousCoverage =
+      previousYearTerritoryCount > 0 ? (yoyPreviousAttributions.length / previousYearTerritoryCount) * 100 : 0
+    const yoyPreviousTotalCoverage =
+      previousYearTerritoryCount > 0 ? (yoyPreviousTouched.size / previousYearTerritoryCount) * 100 : 0
 
     return {
       stats: {
@@ -173,18 +210,18 @@ export function loader({ request, context }: Route.LoaderArgs) {
       },
       yearOverYear: {
         current: {
-          coverage: percentageCovered,
-          totalCoverage: percentageTotallyCovered,
-          averageDurationDays: durationStats.averageDays,
-          overdueRate,
-          attributionCount: attributions.length,
+          coverage: yoyCurrentCoverage,
+          totalCoverage: yoyCurrentTotalCoverage,
+          averageDurationDays: yoyCurrentDuration.averageDays,
+          overdueRate: yoyCurrentOverdueRate,
+          attributionCount: yoyCurrentAttributions.length,
         },
         previous: {
-          coverage: prevCoverage,
-          totalCoverage: prevTotalCoverage,
-          averageDurationDays: prevDuration.averageDays,
-          overdueRate: prevOverdueRate,
-          attributionCount: prevAttributions.length,
+          coverage: yoyPreviousCoverage,
+          totalCoverage: yoyPreviousTotalCoverage,
+          averageDurationDays: yoyPreviousDuration.averageDays,
+          overdueRate: yoyPreviousOverdueRate,
+          attributionCount: yoyPreviousAttributions.length,
         },
       },
       attributionsByGroup,

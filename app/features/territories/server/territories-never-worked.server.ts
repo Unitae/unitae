@@ -1,5 +1,5 @@
-import type { Prisma } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 
 export interface NeverWorkedTerritory {
@@ -12,11 +12,6 @@ export async function getTerritoriesNeverWorked(
   params: StatsFilterParams,
   congregationId: number,
 ): Promise<NeverWorkedTerritory[]> {
-  const dateOverlap: Prisma.AttributionWhereInput = {
-    startDate: { lte: params.endDate },
-    OR: [{ endDate: null }, { endDate: { gte: params.startDate } }],
-  }
-
   const territories = await db.territory.findMany({
     where: {
       congregationId,
@@ -24,7 +19,7 @@ export async function getTerritoriesNeverWorked(
       attributions: {
         none: {
           type: { in: params.attributionKind },
-          ...dateOverlap,
+          ...buildAttributionDateOverlapWhere(params.startDate, params.endDate),
           ...(params.groupId != null ? { publisher: { publisherGroupId: params.groupId } } : {}),
         },
       },

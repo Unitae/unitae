@@ -1,3 +1,4 @@
+import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export interface AttributionsByGroup {
@@ -24,9 +25,10 @@ export async function fetchActiveAttributionsByGroup(
   })
 
   const countByGroup = new Map<string, number>()
+  const noGroupLabel = m.publishers_no_group()
 
   for (const a of attributions) {
-    const groupName = a.publisher.publisherGroup?.name ?? 'Sans groupe'
+    const groupName = a.publisher.publisherGroup?.name ?? noGroupLabel
     countByGroup.set(groupName, (countByGroup.get(groupName) ?? 0) + 1)
   }
 

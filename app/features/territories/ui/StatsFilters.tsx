@@ -45,7 +45,7 @@ export default function StatsFilters({
           {new Date(startDate).toLocaleDateString('fr-FR')} - {new Date(endDate).toLocaleDateString('fr-FR')}
         </Badge>
         <Badge variant="outline" className="border-orange-500 text-orange-500">
-          {kind === 'none' && m.stats_filter_territory_type_placeholder()}
+          {kind === 'none' && m.stats_filter_territory_all_types()}
           {TerritoryKind.Classical === kind && m.stats_filter_territory_door()}
           {TerritoryKind.Phone === kind && m.stats_filter_territory_phone()}
           {TerritoryKind.Commerces === kind && m.stats_filter_territory_commerce()}
@@ -105,7 +105,7 @@ export default function StatsFilters({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">{m.stats_filter_territory_type_placeholder()}</SelectItem>
+                      <SelectItem value="none">{m.stats_filter_territory_all_types()}</SelectItem>
                       <SelectItem value={TerritoryKind.Classical}>{m.stats_filter_territory_door()}</SelectItem>
                       {phoneTypeActive && (
                         <SelectItem value={TerritoryKind.Phone}>{m.stats_filter_territory_phone()}</SelectItem>
