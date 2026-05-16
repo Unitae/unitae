@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import type { Prisma } from '~/database/generated/client'
 import { ValidationError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -29,6 +30,18 @@ export function parseExportConfigs(raw: string): TemplateExportConfig[] {
   }
 }
 
+export const programmeExportInclude = {
+  template: true,
+  partAssignments: {
+    include: { assignee: true, assistant: true, externalSpeaker: true },
+    orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
+  },
+  serviceRoleAssignments: {
+    include: { assignee: true },
+    orderBy: { name: 'asc' },
+  },
+} satisfies Prisma.EventInclude
+
 /**
  * Fetches events with their part and service role assignments for PDF export.
  * Events are ordered by startDate ascending.
@@ -39,17 +52,7 @@ export function getEventsForExport(db: TransactionClient, templateIds: number[],
       templateId: { in: templateIds },
       startDate: { gte: startDate, lte: endDate },
     },
-    include: {
-      template: true,
-      partAssignments: {
-        include: { assignee: true, assistant: true },
-        orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
-      },
-      serviceRoleAssignments: {
-        include: { assignee: true },
-        orderBy: { name: 'asc' },
-      },
-    },
+    include: programmeExportInclude,
     orderBy: { startDate: 'asc' },
   })
 }

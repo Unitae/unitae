@@ -2,6 +2,7 @@ import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
 import type { ExportEvent, TemplateExportConfig } from '~/features/events/server/programme-export.server'
+import { formatMemberName, getPartAssigneeDisplay } from '~/features/events/ui/part-display'
 
 function ensureFontsRegistered() {
   const fontsDir = path.join(process.cwd(), 'public', 'fonts')
@@ -29,12 +30,6 @@ function sectionColor(section: string): string | null {
     if (lower.includes(pattern)) return color
   }
   return null
-}
-
-function formatName(user: { firstname: string | null; lastname: string | null } | null): string | null {
-  if (!user) return null
-  const name = `${user.firstname ?? ''} ${user.lastname ?? ''}`.trim()
-  return name || null
 }
 
 function formatDate(date: Date | string): string {
@@ -340,7 +335,7 @@ function EventCard({
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
             {event.serviceRoleAssignments.map((role, roleIdx) => {
-              const name = formatName(role.assignee)
+              const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
                   <Text style={styles.serviceRoleName}>{role.name}</Text>
@@ -370,10 +365,11 @@ function SectionHeader({ section }: { section: string }) {
 // Long dot string — the flex container + maxHeight clip it to one line
 const DOT_LEADER = ' .'.repeat(200)
 
-function formatAssigneeWithAssistant(assignee: string | null, assistant: string | null): string | null {
-  if (!assignee) return null
-  if (assistant) return `${assignee} / ${assistant}`
-  return assignee
+function formatPartRightText(part: PartAssignment): string | null {
+  const { primary, assistant } = getPartAssigneeDisplay(part)
+  if (!primary) return null
+  if (assistant) return `${primary} / ${assistant}`
+  return primary
 }
 
 function DotLeader() {
@@ -385,9 +381,7 @@ function DotLeader() {
 }
 
 function SinglePart({ part }: { part: PartAssignment }) {
-  const assigneeName = formatName(part.assignee)
-  const assistantName = formatName(part.assistant)
-  const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+  const rightText = formatPartRightText(part)
   const displayName = part.topic !== '' ? part.topic : part.name
 
   return (
@@ -417,9 +411,7 @@ function MultiTrackPart({ parts }: { parts: PartAssignment[] }) {
         </Text>
       </View>
       {parts.map((part, idx) => {
-        const assigneeName = formatName(part.assignee)
-        const assistantName = formatName(part.assistant)
-        const rightText = formatAssigneeWithAssistant(assigneeName, assistantName)
+        const rightText = formatPartRightText(part)
         const trackName = part.track || `Salle ${idx + 1}`
         return (
           <View key={idx} style={styles.trackRow}>

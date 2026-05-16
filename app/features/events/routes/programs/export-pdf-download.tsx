@@ -2,6 +2,7 @@ import { redirect } from 'react-router'
 import {
   getEventsForExport,
   parseExportConfigs,
+  programmeExportInclude,
   type TemplateExportConfig,
 } from '~/features/events/server/programme-export.server'
 import { ProgrammeBoardDocument } from '~/features/events/ui/ProgrammeBoardDocument'
@@ -103,17 +104,7 @@ function handleLegacyFormat(
         ...(templateId ? { templateId } : { templateId: { not: null } }),
         startDate: { gte: startDate, lte: endDate },
       },
-      include: {
-        template: true,
-        partAssignments: {
-          include: { assignee: true, assistant: true },
-          orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
-        },
-        serviceRoleAssignments: {
-          include: { assignee: true },
-          orderBy: { name: 'asc' },
-        },
-      },
+      include: programmeExportInclude,
       orderBy: { startDate: 'asc' },
     })
 
