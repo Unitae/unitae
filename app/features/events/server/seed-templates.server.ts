@@ -22,6 +22,8 @@ interface TemplateDefinition {
   key: string
   weekDay: number | null
   isRecurring: boolean
+  startTime: string
+  endTime: string
   parts: PartDefinition[]
   serviceRoles: ServiceRoleDefinition[]
 }
@@ -44,6 +46,8 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       key: ProgrammeTemplateKey.MidweekMeeting,
       weekDay: 2, // Tuesday
       isRecurring: true,
+      startTime: '19:00',
+      endTime: '20:45',
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
@@ -131,6 +135,8 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       key: ProgrammeTemplateKey.WeekendMeeting,
       weekDay: 6, // Saturday
       isRecurring: true,
+      startTime: '10:00',
+      endTime: '11:45',
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
@@ -169,6 +175,8 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       key: ProgrammeTemplateKey.Memorial,
       weekDay: null,
       isRecurring: false,
+      startTime: '19:00',
+      endTime: '20:30',
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
@@ -226,6 +234,8 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
         key: tpl.key,
         weekDay: tpl.weekDay,
         isRecurring: tpl.isRecurring,
+        startTime: tpl.startTime,
+        endTime: tpl.endTime,
         congregationId,
         parts: {
           create: tpl.parts.map(part => ({

@@ -1,5 +1,6 @@
 import { computeDatesForWeekdayCount } from '~/features/events/model/compute-dates'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { parseTimeString, setHoursInTimezone } from '~/shared/utils/event-time'
 
 interface AllowedRoleRow {
   roleId: number
@@ -13,6 +14,8 @@ interface TemplateWithRelations {
   id: number
   name: string
   kindId: number | null
+  startTime: string
+  endTime: string
   parts: {
     id: number
     name: string
@@ -48,11 +51,12 @@ async function createEventWithAssignments(
   createdById: number,
   congregationId: number,
   meetingKindId: number | null,
+  timezone: string,
 ) {
-  const startDate = new Date(date)
-  startDate.setHours(19, 0, 0, 0)
-  const endDate = new Date(date)
-  endDate.setHours(21, 0, 0, 0)
+  const { hour: startHour, minute: startMinute } = parseTimeString(template.startTime)
+  const { hour: endHour, minute: endMinute } = parseTimeString(template.endTime)
+  const startDate = setHoursInTimezone(date, startHour, startMinute, timezone)
+  const endDate = setHoursInTimezone(date, endHour, endMinute, timezone)
 
   const event = await db.event.create({
     data: {
@@ -124,6 +128,7 @@ export async function generateEventsFromTemplate(
   occurrences: number,
   createdById: number,
   congregationId: number,
+  timezone: string,
   startFrom?: Date,
 ) {
   const template = await loadTemplate(db, templateId, congregationId)
@@ -135,12 +140,20 @@ export async function generateEventsFromTemplate(
     where: { templateId, congregationId, startDate: { gte: dates[0] ?? new Date() } },
     select: { startDate: true },
   })
-  const existingDateStrings = new Set(existingEvents.map(e => toDateString(e.startDate)))
+  const existingDateStrings = new Set(existingEvents.map(e => toDateString(e.startDate, timezone)))
 
   const createdEvents = []
   for (const date of dates) {
-    if (existingDateStrings.has(toDateString(date))) continue
-    const event = await createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId)
+    if (existingDateStrings.has(toDateString(date, timezone))) continue
+    const event = await createEventWithAssignments(
+      db,
+      template,
+      date,
+      createdById,
+      congregationId,
+      template.kindId,
+      timezone,
+    )
     createdEvents.push(event)
   }
 
@@ -153,6 +166,7 @@ export async function createSingleEventFromTemplate(
   date: Date,
   createdById: number,
   congregationId: number,
+  timezone: string,
 ) {
   const template = await loadTemplate(db, templateId, congregationId)
   if (!template) return null
@@ -163,11 +177,21 @@ export async function createSingleEventFromTemplate(
   })
   if (existing) return null
 
-  return createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId)
+  return createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId, timezone)
 }
 
-function toDateString(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+function toDateString(date: Date, timezone: string): string {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const parts = formatter.formatToParts(date)
+  const year = parts.find(p => p.type === 'year')?.value ?? '1970'
+  const month = parts.find(p => p.type === 'month')?.value ?? '01'
+  const day = parts.find(p => p.type === 'day')?.value ?? '01'
+  return `${year}-${month}-${day}`
 }
 
 function startOfDay(date: Date): Date {

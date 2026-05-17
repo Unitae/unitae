@@ -20,6 +20,7 @@ describe('updateGeneralSettings', () => {
     await updateGeneralSettings(10, {
       displayName: 'Ma Congrégation',
       locale: 'fr',
+      timezone: 'Europe/Paris',
       domain: 'app.example.org',
     })
 
@@ -28,6 +29,7 @@ describe('updateGeneralSettings', () => {
       data: {
         displayName: 'Ma Congrégation',
         locale: 'fr',
+        timezone: 'Europe/Paris',
         domain: 'app.example.org',
       },
     })
@@ -39,6 +41,7 @@ describe('updateGeneralSettings', () => {
     await updateGeneralSettings(10, {
       displayName: '',
       locale: 'en',
+      timezone: 'America/New_York',
       domain: null,
     })
 
@@ -47,6 +50,7 @@ describe('updateGeneralSettings', () => {
       data: {
         displayName: null,
         locale: 'en',
+        timezone: 'America/New_York',
         domain: null,
       },
     })
@@ -58,6 +62,7 @@ describe('updateGeneralSettings', () => {
     await updateGeneralSettings(10, {
       displayName: 'Test',
       locale: 'fr',
+      timezone: 'Europe/Paris',
       domain: null,
     })
 
@@ -66,6 +71,7 @@ describe('updateGeneralSettings', () => {
       data: {
         displayName: 'Test',
         locale: 'fr',
+        timezone: 'Europe/Paris',
         domain: null,
       },
     })

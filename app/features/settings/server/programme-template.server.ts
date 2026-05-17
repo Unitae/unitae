@@ -6,6 +6,8 @@ export function createProgrammeTemplate(
     name: string
     key: string
     weekDay: number | null
+    startTime: string
+    endTime: string
     congregationId: number
   },
 ) {
@@ -15,6 +17,8 @@ export function createProgrammeTemplate(
       key: data.key,
       weekDay: data.weekDay,
       isRecurring: data.weekDay != null,
+      startTime: data.startTime,
+      endTime: data.endTime,
       congregationId: data.congregationId,
     },
   })

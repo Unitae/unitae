@@ -7,6 +7,7 @@ export async function updateGeneralSettings(congregationId: number, input: Gener
     data: {
       displayName: input.displayName || null,
       locale: input.locale,
+      timezone: input.timezone,
       domain: input.domain,
     },
   })

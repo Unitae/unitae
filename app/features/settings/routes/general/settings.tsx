@@ -15,6 +15,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { TIMEZONE_OPTIONS } from '~/shared/utils/timezone-options'
 import type { Route } from './+types/settings'
 
 export const meta: Route.MetaFunction = () => {
@@ -32,19 +33,20 @@ export async function loader({ context }: Route.LoaderArgs) {
 
   const fullCongregation = await unscopedDb.congregation.findUniqueOrThrow({
     where: { id: congregation.id },
-    select: { displayName: true, locale: true, domain: true },
+    select: { displayName: true, locale: true, timezone: true, domain: true },
   })
 
   return {
     displayName: fullCongregation.displayName ?? '',
     locale: fullCongregation.locale ?? 'fr',
+    timezone: fullCongregation.timezone ?? 'Europe/Paris',
     domain: fullCongregation.domain ?? '',
     showDomain: process.env.UNITAE_MULTI_TENANT === 'true',
   }
 }
 
 export default function GeneralSettingsPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { displayName, locale, domain, showDomain } = loaderData
+  const { displayName, locale, timezone, domain, showDomain } = loaderData
   const { blocker, markDirty } = useUnsavedChanges()
 
   const [form, fields] = useForm({
@@ -94,6 +96,24 @@ export default function GeneralSettingsPage({ loaderData, actionData }: Route.Co
               </Select>
               {fields.locale.errors && <p className="text-destructive text-sm">{fields.locale.errors}</p>}
               <p className="text-muted-foreground text-xs">{m.settings_general_language_hint()}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor={fields.timezone.id}>{m.settings_general_timezone_label()}</Label>
+              <Select name={fields.timezone.name} defaultValue={timezone}>
+                <SelectTrigger id={fields.timezone.id}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TIMEZONE_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fields.timezone.errors && <p className="text-destructive text-sm">{fields.timezone.errors}</p>}
+              <p className="text-muted-foreground text-xs">{m.settings_general_timezone_hint()}</p>
             </div>
           </CardContent>
         </Card>

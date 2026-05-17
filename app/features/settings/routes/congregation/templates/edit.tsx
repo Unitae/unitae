@@ -119,8 +119,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       const submission = parseWithZod(formData, { schema: updateTemplateSchema })
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-      const { name, weekDay, kindId } = submission.value
-      await updateTemplate(db, templateId, { name, weekDay, kindId }, currentUser.congregationId)
+      const { name, weekDay, kindId, startTime, endTime } = submission.value
+      await updateTemplate(
+        db,
+        templateId,
+        { name, weekDay, kindId, startTime, endTime },
+        currentUser.congregationId,
+      )
       session.flash('success', m.settings_template_edit_update_success())
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }
@@ -372,6 +377,16 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                   <SelectItem value="6">{m.settings_template_edit_day_saturday()}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="startTime">{m.settings_template_edit_start_time_label()}</Label>
+                <Input id="startTime" name="startTime" type="time" defaultValue={template.startTime} required />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="endTime">{m.settings_template_edit_end_time_label()}</Label>
+                <Input id="endTime" name="endTime" type="time" defaultValue={template.endTime} required />
+              </div>
             </div>
             {eventKinds.length > 0 && (
               <div className="flex flex-col gap-2">

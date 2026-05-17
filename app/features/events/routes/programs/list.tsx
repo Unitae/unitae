@@ -1,11 +1,20 @@
 import { CalendarOff, ChevronRight, FileDown, Loader2, MoreHorizontal, Trash2, UserCog } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
+import { EventKind } from '~/features/events/model/event-kind.type'
+import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
+import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +37,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.programs_meta_title() }]
 }
 
-export function loader({ context }: Route.LoaderArgs) {
+export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
@@ -39,10 +48,14 @@ export function loader({ context }: Route.LoaderArgs) {
 
   logger.info(`Loading program list. User ID: ${currentUser.id}.`)
 
+  const url = new URL(request.url)
+  const filters = computeFilters(url.searchParams)
+  const defaults = getDefaultDateRange()
+  const defaultFrom = defaults.from.toISOString().split('T')[0]
+  const defaultTo = defaults.to.toISOString().split('T')[0]
+
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
-    const now = new Date()
-    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
     const isProgramManager = permissions.has(Permission.ProgramManager)
     const responsibleTemplateIds = isProgramManager
@@ -52,9 +65,9 @@ export function loader({ context }: Route.LoaderArgs) {
 
     const events = await db.event.findMany({
       where: {
+        ...filters,
         congregationId,
-        startDate: { gte: startOfCurrentMonth },
-        NOT: { kind: { key: 'off' } },
+        NOT: { kind: { key: EventKind.Off } },
       },
       include: { template: true, kind: true },
       orderBy: { startDate: 'asc' },
@@ -67,6 +80,8 @@ export function loader({ context }: Route.LoaderArgs) {
 
     return {
       upcomingEvents,
+      defaults: { from: defaultFrom, to: defaultTo },
+      timezone: context.get(congregationContext).timezone,
       roles: {
         canCreatePrograms: isProgramManager || responsibleTemplateIds.length > 0,
         canViewExternalSpeakers:
@@ -108,8 +123,8 @@ function groupByWeek(events: Event[]): { weekKey: string; weekMonday: Date; even
   }))
 }
 
-function formatEventTime(date: Date): string {
-  const time = new Date(date).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+function eventTimeOrEmpty(date: Date, timezone: string): string {
+  const time = formatEventTime(date, timezone)
   return time === '00:00' ? '' : time
 }
 
@@ -149,7 +164,7 @@ function WeekCheckbox({
 }
 
 export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
-  const { upcomingEvents, roles } = loaderData
+  const { upcomingEvents, roles, defaults, timezone } = loaderData
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const bulkFetcher = useFetcher<{ ok: boolean }>()
@@ -247,6 +262,8 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
         }
       />
 
+      <EventFilters defaults={defaults} />
+
       {upcomingEvents.length > 0 ? (
         <div className="flex flex-col gap-6">
           {hasEditableEvents && selectedIds.size > 0 && (
@@ -281,7 +298,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                   <div className="flex flex-1 items-center gap-3">
                     <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
                       {m.programs_week_header_count({
-                        date: weekMonday.toLocaleDateString('fr-FR', {
+                        date: formatEventDate(weekMonday, timezone, 'fr-FR', {
                           day: 'numeric',
                           month: 'long',
                           year: 'numeric',
@@ -294,8 +311,8 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                 </div>
 
                 {events.map(event => {
-                  const weekday = new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long' })
-                  const time = formatEventTime(new Date(event.startDate))
+                  const weekday = formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long' })
+                  const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
 
                   return (
                     <div key={event.id} className="flex items-center gap-3">

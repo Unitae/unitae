@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+const TIME_REGEX = /^\d{2}:\d{2}$/
+
 export const createTemplateSchema = z.object({
   name: z.string().min(1),
   key: z.string().min(1),
@@ -8,6 +10,8 @@ export const createTemplateSchema = z.object({
     .optional()
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
+  startTime: z.string().regex(TIME_REGEX).default('19:00'),
+  endTime: z.string().regex(TIME_REGEX).default('21:00'),
 })
 
 export const updateTemplateSchema = z.object({
@@ -23,6 +27,8 @@ export const updateTemplateSchema = z.object({
     .optional()
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
+  startTime: z.string().regex(TIME_REGEX),
+  endTime: z.string().regex(TIME_REGEX),
 })
 
 const roleIdsField = z.preprocess(

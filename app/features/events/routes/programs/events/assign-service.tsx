@@ -11,7 +11,12 @@ import { assignServiceRole, getEventProgramme } from '~/features/events/server/p
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -21,6 +26,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { formatEventDate } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/assign-service'
@@ -62,7 +68,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       assigneeCandidates = eligible.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
     }
 
-    return { event, assignment, assigneeCandidates }
+    return { event, assignment, assigneeCandidates, timezone: context.get(congregationContext).timezone }
   })
 }
 
@@ -107,7 +113,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function AssignServicePage({ loaderData }: Route.ComponentProps) {
-  const { event, assignment, assigneeCandidates } = loaderData
+  const { event, assignment, assigneeCandidates, timezone } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? '')
   const { blocker, markDirty } = useUnsavedChanges()
@@ -117,7 +123,7 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_assign_service_page_title()}
-        subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        subtitle={`${event.name} — ${formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
         breadcrumbs={[
           { label: m.sidebar_programs(), to: '/programs' },
           { label: m.programs_assign_service_page_title() },

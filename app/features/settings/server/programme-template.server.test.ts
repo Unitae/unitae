@@ -21,6 +21,8 @@ describe('createProgrammeTemplate', () => {
       name: 'Reunion',
       key: 'meeting',
       weekDay: 3,
+      startTime: '19:00',
+      endTime: '21:00',
       congregationId: 10,
     })
 
@@ -31,6 +33,8 @@ describe('createProgrammeTemplate', () => {
         key: 'meeting',
         weekDay: 3,
         isRecurring: true,
+        startTime: '19:00',
+        endTime: '21:00',
         congregationId: 10,
       },
     })
@@ -44,6 +48,8 @@ describe('createProgrammeTemplate', () => {
       name: 'Special',
       key: 'special',
       weekDay: null,
+      startTime: '19:00',
+      endTime: '21:00',
       congregationId: 10,
     })
 
@@ -54,6 +60,8 @@ describe('createProgrammeTemplate', () => {
         key: 'special',
         weekDay: null,
         isRecurring: false,
+        startTime: '19:00',
+        endTime: '21:00',
         congregationId: 10,
       },
     })

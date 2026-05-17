@@ -33,10 +33,16 @@ import { PartEditSheet } from '~/features/events/ui/PartEditSheet'
 import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
 import { SortableRow } from '~/features/events/ui/SortableRow'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import { listRoles } from '~/shared/domain/roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { Permission } from '~/shared/types/permission'
+import { combineLocalDateTime, formatDateForInput, formatTimeForInput } from '~/shared/utils/event-time'
 import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
@@ -112,6 +118,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       templates,
       eventKinds,
       roles,
+      timezone: context.get(congregationContext).timezone,
     }
   })
 }
@@ -134,7 +141,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id)
+    const timezone = context.get(congregationContext).timezone
+    const result = await handleEditIntent(intent, formData, db, eventId, congregationId, currentUser.id, timezone)
     if (result && 'reply' in result) return data(result.reply(), { status: 400 })
     if (result?.message) session.flash('success', result.message)
 
@@ -151,9 +159,10 @@ function handleEditIntent(
   eventId: number,
   congregationId: number,
   userId: number,
+  timezone: string,
 ): Promise<IntentResult | null> {
   const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
-    'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId),
+    'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId, timezone),
     'add-part': () => handleAddPart(formData, db, eventId, congregationId, userId),
     'update-part': () => handleUpdatePart(formData, db, congregationId, userId),
     'delete-part': () => handleDeletePart(formData, db, congregationId),
@@ -170,6 +179,7 @@ async function handleUpdateEvent(
   db: TransactionClient,
   eventId: number,
   congregationId: number,
+  timezone: string,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updateEventSchema })
   if (submission.status !== 'success') return submission
@@ -178,11 +188,11 @@ async function handleUpdateEvent(
   const payload: Record<string, unknown> = { name, kindId }
 
   if (dateStr && startTimeStr) {
-    const startDate = new Date(`${dateStr}T${startTimeStr}`)
+    const startDate = combineLocalDateTime(dateStr, startTimeStr, timezone)
     if (!Number.isNaN(startDate.getTime())) payload.startDate = startDate
   }
   if (dateStr && endTimeStr) {
-    const endDate = new Date(`${dateStr}T${endTimeStr}`)
+    const endDate = combineLocalDateTime(dateStr, endTimeStr, timezone)
     if (!Number.isNaN(endDate.getTime())) payload.endDate = endDate
   }
 
@@ -354,7 +364,7 @@ async function handleApplyTemplate(
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates, eventKinds, roles } = loaderData
+  const { event, templates, eventKinds, roles, timezone } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -468,7 +478,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                 id="date"
                 name="date"
                 type="date"
-                defaultValue={new Date(event.startDate).toISOString().split('T')[0]}
+                defaultValue={formatDateForInput(event.startDate, timezone)}
                 required
               />
             </div>
@@ -479,7 +489,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                   id="startTime"
                   name="startTime"
                   type="time"
-                  defaultValue={new Date(event.startDate).toTimeString().slice(0, 5)}
+                  defaultValue={formatTimeForInput(event.startDate, timezone)}
                   required
                 />
               </div>
@@ -489,7 +499,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
                   id="endTime"
                   name="endTime"
                   type="time"
-                  defaultValue={new Date(event.endDate).toTimeString().slice(0, 5)}
+                  defaultValue={formatTimeForInput(event.endDate, timezone)}
                   required
                 />
               </div>

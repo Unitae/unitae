@@ -51,10 +51,12 @@ describe('computeDatesForWeekdayCount', () => {
   })
 })
 
+const TZ = 'UTC'
+
 describe('generateEventsFromTemplate', () => {
   it('returns empty array when template not found', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
-    const result = await generateEventsFromTemplate(db, 999, 2, 1, 1)
+    const result = await generateEventsFromTemplate(db, 999, 2, 1, 1, TZ)
     expect(result).toEqual([])
   })
 
@@ -62,10 +64,12 @@ describe('generateEventsFromTemplate', () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
       id: 1,
       weekDay: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
-    const result = await generateEventsFromTemplate(db, 1, 2, 1, 1)
+    const result = await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ)
     expect(result).toEqual([])
   })
 
@@ -75,6 +79,8 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion de semaine',
       weekDay: 2,
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [
         { id: 10, order: 1, allowedRoles: [] },
         { id: 11, order: 2, allowedRoles: [] },
@@ -90,7 +96,7 @@ describe('generateEventsFromTemplate', () => {
     vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
     vi.mocked(db.programmeServiceRoleAssignment.create).mockResolvedValue({} as never)
 
-    const result = await generateEventsFromTemplate(db, 1, 2, 1, 1)
+    const result = await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ)
     expect(result.length).toBeGreaterThan(0)
   })
 
@@ -100,13 +106,15 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion de semaine',
       weekDay: 2,
       kindId: 7,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
 
-    await generateEventsFromTemplate(db, 1, 1, 1, 1)
+    await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
 
     const call = vi.mocked(db.event.create).mock.calls[0]
     expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(7)
@@ -118,13 +126,15 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion de semaine',
       weekDay: 2,
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
 
-    await generateEventsFromTemplate(db, 1, 1, 1, 1)
+    await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
 
     const call = vi.mocked(db.event.create).mock.calls[0]
     expect((call[0] as { data: { kindId: unknown } }).data.kindId).toBeUndefined()
@@ -136,6 +146,8 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion du week-end',
       weekDay: 0,
       kindId: null,
+      startTime: '10:00',
+      endTime: '12:00',
       parts: [
         {
           id: 10,
@@ -154,7 +166,7 @@ describe('generateEventsFromTemplate', () => {
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
     vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
 
-    await generateEventsFromTemplate(db, 1, 2, 1, 1)
+    await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ)
 
     const calls = vi.mocked(db.programmePartAssignment.create).mock.calls
     expect(calls.length).toBeGreaterThan(0)
@@ -169,6 +181,8 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion de semaine',
       weekDay: 2,
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
@@ -180,7 +194,7 @@ describe('generateEventsFromTemplate', () => {
     }) as never)
 
     // April 14 already exists, so only April 21 is created
-    const result = await generateEventsFromTemplate(db, 1, 2, 1, 1)
+    const result = await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ)
     expect(result.length).toBe(1)
   })
 
@@ -190,6 +204,8 @@ describe('generateEventsFromTemplate', () => {
       name: 'Réunion de semaine',
       weekDay: 2,
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
@@ -201,17 +217,43 @@ describe('generateEventsFromTemplate', () => {
     }) as never)
 
     const startFrom = new Date(2026, 5, 1) // June 1, 2026 (Monday)
-    await generateEventsFromTemplate(db, 1, 2, 1, 1, startFrom)
+    await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ, startFrom)
 
     expect(createdDates[0]?.getFullYear()).toBe(2026)
     expect(createdDates[0]?.getMonth()).toBe(5) // June
+  })
+
+  it('uses the template hours in the target timezone', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      name: 'Réunion de semaine',
+      weekDay: 2,
+      kindId: null,
+      startTime: '17:30',
+      endTime: '19:00',
+      parts: [],
+      serviceRoles: [],
+    } as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+    const startDates: Date[] = []
+    const endDates: Date[] = []
+    vi.mocked(db.event.create).mockImplementation((({ data }: { data: { startDate: Date; endDate: Date } }) => {
+      startDates.push(data.startDate)
+      endDates.push(data.endDate)
+      return Promise.resolve({ id: startDates.length })
+    }) as never)
+
+    await generateEventsFromTemplate(db, 1, 1, 1, 1, 'Europe/Paris')
+
+    expect(startDates[0]?.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })).toBe('17:30')
+    expect(endDates[0]?.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })).toBe('19:00')
   })
 })
 
 describe('createSingleEventFromTemplate', () => {
   it('returns null when template not found', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
-    const result = await createSingleEventFromTemplate(db, 999, new Date(2026, 3, 20), 1, 1)
+    const result = await createSingleEventFromTemplate(db, 999, new Date(2026, 3, 20), 1, 1, TZ)
     expect(result).toBeNull()
   })
 
@@ -220,12 +262,14 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
 
-    const result = await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1)
+    const result = await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1, TZ)
     expect(result).toBeNull()
   })
 
@@ -234,6 +278,8 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [{ id: 30, allowedRoles: [] }],
       serviceRoles: [{ id: 40, allowedRoles: [] }],
     } as never)
@@ -242,7 +288,7 @@ describe('createSingleEventFromTemplate', () => {
     vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
     vi.mocked(db.programmeServiceRoleAssignment.create).mockResolvedValue({} as never)
 
-    const result = await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1)
+    const result = await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1, TZ)
     expect(result).toEqual({ id: 1, name: 'Mémorial' })
   })
 
@@ -251,13 +297,15 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: 9,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [],
       serviceRoles: [],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
 
-    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1)
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1, TZ)
 
     const call = vi.mocked(db.event.create).mock.calls[0]
     expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(9)
@@ -268,6 +316,8 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [
         {
           id: 30,
@@ -286,7 +336,7 @@ describe('createSingleEventFromTemplate', () => {
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
     vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
 
-    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1)
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1, TZ)
 
     const call = vi.mocked(db.programmePartAssignment.create).mock.calls[0]
     expect((call[0] as { data: { allowExternalSpeaker: boolean } }).data.allowExternalSpeaker).toBe(true)
@@ -297,6 +347,8 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [
         {
           id: 30,
@@ -322,7 +374,7 @@ describe('createSingleEventFromTemplate', () => {
     vi.mocked(db.programmePartAssignmentAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
     vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
-    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7)
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7, TZ)
 
     expect(vi.mocked(db.programmePartAssignmentAllowedRole.createMany)).toHaveBeenCalledWith({
       data: [
@@ -342,6 +394,8 @@ describe('createSingleEventFromTemplate', () => {
       id: 3,
       name: 'Mémorial',
       kindId: null,
+      startTime: '19:00',
+      endTime: '21:00',
       parts: [
         {
           id: 30,
@@ -362,7 +416,7 @@ describe('createSingleEventFromTemplate', () => {
     vi.mocked(db.programmePartAssignment.create).mockResolvedValue({ id: 700 } as never)
     vi.mocked(db.programmeServiceRoleAssignment.create).mockResolvedValue({ id: 800 } as never)
 
-    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7)
+    await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7, TZ)
 
     expect(vi.mocked(db.programmePartAssignmentAllowedRole.createMany)).not.toHaveBeenCalled()
     expect(vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.createMany)).not.toHaveBeenCalled()
