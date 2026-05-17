@@ -1,3 +1,5 @@
+const OFFSET_REGEX = /GMT(?<offset>[+-]\d{2}:\d{2})?/
+
 function formatOffset(date: Date, timezone: string): string {
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone,
@@ -6,7 +8,7 @@ function formatOffset(date: Date, timezone: string): string {
   })
   const parts = formatter.formatToParts(date)
   const offsetPart = parts.find(p => p.type === 'timeZoneName')?.value ?? 'GMT+00:00'
-  const match = offsetPart.match(/GMT(?<offset>[+-]\d{2}:\d{2})?/)
+  const match = offsetPart.match(OFFSET_REGEX)
   return match?.groups?.offset ?? '+00:00'
 }
 
