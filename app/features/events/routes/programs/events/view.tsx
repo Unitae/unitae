@@ -14,6 +14,7 @@ import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
 import * as m from '~/i18n/paraglide/messages'
 import {
+  congregationContext,
   currentAccountContext,
   permissionsContext,
   requirePermission,
@@ -27,6 +28,7 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
@@ -110,12 +112,20 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     logger.info(`Loading event programme. User ID: ${currentUser.id}. Event ID: ${eventId}.`)
 
-    return { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates }
+    return {
+      event,
+      canEdit,
+      users,
+      externalSpeakers,
+      partCandidates,
+      serviceCandidates,
+      timezone: context.get(congregationContext).timezone,
+    }
   })
 }
 
 export default function EventViewPage({ loaderData }: Route.ComponentProps) {
-  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates } = loaderData
+  const { event, canEdit, users, externalSpeakers, partCandidates, serviceCandidates, timezone } = loaderData
 
   const userById = new Map(users.map(u => [u.id, u]))
 
@@ -179,9 +189,9 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
 
   const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEdit ? 1 : 0)
 
-  const startTime = new Date(event.startDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  const endTime = new Date(event.endDate).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-  const dateStr = new Date(event.startDate).toLocaleDateString('fr-FR', {
+  const startTime = formatEventTime(event.startDate, timezone)
+  const endTime = formatEventTime(event.endDate, timezone)
+  const dateStr = formatEventDate(event.startDate, timezone, 'fr-FR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

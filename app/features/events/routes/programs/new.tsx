@@ -17,10 +17,16 @@ import {
 } from '~/features/events/server/programme-generation.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+import { combineLocalDateTime } from '~/shared/utils/event-time'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -71,7 +77,7 @@ export function loader({ context }: Route.LoaderArgs) {
 
     const templates = isProgramManager ? allTemplates : allTemplates.filter(t => responsibleTemplateIds.includes(t.id))
 
-    return { templates, eventKinds, isProgramManager }
+    return { templates, eventKinds, isProgramManager, timezone: context.get(congregationContext).timezone }
   })
 }
 
@@ -81,10 +87,11 @@ type ActionCtx = {
   formData: FormData
   currentUser: { id: number }
   congregationId: number
+  timezone: string
   session: Session
 }
 
-async function handleRecurringMode({ db, formData, currentUser, congregationId, session }: ActionCtx) {
+async function handleRecurringMode({ db, formData, currentUser, congregationId, timezone, session }: ActionCtx) {
   const submission = parseWithZod(formData, { schema: recurringEventSchema })
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
@@ -96,6 +103,7 @@ async function handleRecurringMode({ db, formData, currentUser, congregationId, 
     occurrences,
     currentUser.id,
     congregationId,
+    timezone,
     startFrom,
   )
   logger.info(`Generated ${events.length} events from template ${templateId}. User ID: ${currentUser.id}.`)
@@ -105,29 +113,32 @@ async function handleRecurringMode({ db, formData, currentUser, congregationId, 
   return null
 }
 
-async function handleSingleMode({ db, formData, currentUser, congregationId, session }: ActionCtx) {
+async function handleSingleMode({ db, formData, currentUser, congregationId, timezone, session }: ActionCtx) {
   const submission = parseWithZod(formData, { schema: singleEventSchema })
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { templateId, date } = submission.value
-  const event = await createSingleEventFromTemplate(db, templateId, new Date(date), currentUser.id, congregationId)
+  const event = await createSingleEventFromTemplate(
+    db,
+    templateId,
+    new Date(date),
+    currentUser.id,
+    congregationId,
+    timezone,
+  )
   logger.info(`Created single event from template ${templateId}. User ID: ${currentUser.id}.`)
   if (!event) return data({ alreadyExists: true }, { status: 409 })
   session.flash('success', m.programs_new_created_success())
   return null
 }
 
-async function handleFreeformMode({ db, formData, currentUser, congregationId, session }: ActionCtx) {
+async function handleFreeformMode({ db, formData, currentUser, congregationId, timezone, session }: ActionCtx) {
   const submission = parseWithZod(formData, { schema: freeformEventSchema })
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
   const { name, date, startTime, endTime, kindId } = submission.value
-  const [startHour, startMin] = startTime.split(':').map(Number)
-  const [endHour, endMin] = endTime.split(':').map(Number)
-  const startDate = new Date(date)
-  startDate.setHours(startHour ?? 19, startMin ?? 0, 0, 0)
-  const endDate = new Date(date)
-  endDate.setHours(endHour ?? 21, endMin ?? 0, 0, 0)
+  const startDate = combineLocalDateTime(date, startTime, timezone)
+  const endDate = combineLocalDateTime(date, endTime, timezone)
   await createFreeformEvent(db, { name, startDate, endDate, createdById: currentUser.id, congregationId, kindId })
   logger.info(`Created freeform event "${name}". User ID: ${currentUser.id}.`)
   session.flash('success', m.programs_new_created_success())
@@ -164,6 +175,7 @@ function dispatchMode(mode: FormDataEntryValue | null, ctx: ActionCtx) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
+  const congregation = context.get(congregationContext)
   const isProgramManager = permissions.has(Permission.ProgramManager)
   const session = await getSession(request.headers.get('Cookie'))
   const formData = await request.formData()
@@ -174,7 +186,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     await assertCanSubmit(db, can, isProgramManager, currentUser.id, congregationId, mode, formData)
 
-    const ctx: ActionCtx = { db, formData, currentUser, congregationId, session }
+    const ctx: ActionCtx = { db, formData, currentUser, congregationId, timezone: congregation.timezone, session }
     const modeResult = await dispatchMode(mode, ctx)
     if (modeResult) return modeResult
     return redirect('/programs', { headers: { 'Set-Cookie': await commitSession(session) } })
@@ -330,7 +342,11 @@ function SingleFields({ alreadyExists }: { alreadyExists: boolean }) {
   )
 }
 
-type Template = { id: number; name: string; weekDay: number | null }
+type Template = { id: number; name: string; weekDay: number | null; startTime: string; endTime: string }
+
+function formatTemplateRange(startTime: string, endTime: string): string {
+  return `${startTime.replace(':', 'h')}–${endTime.replace(':', 'h')}`
+}
 
 function TemplateSelectField({
   templates,
@@ -370,7 +386,7 @@ function TemplateSelectField({
       {selectedTemplate && (
         <p className="text-muted-foreground text-xs">
           {isRecurring
-            ? `Modèle récurrent · ${dayLabel(selectedTemplate.weekDay ?? 0)}s · 19h00–21h00`
+            ? `Modèle récurrent · ${dayLabel(selectedTemplate.weekDay ?? 0)}s · ${formatTemplateRange(selectedTemplate.startTime, selectedTemplate.endTime)}`
             : 'Modèle unique'}
         </p>
       )}

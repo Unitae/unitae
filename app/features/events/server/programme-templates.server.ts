@@ -31,7 +31,15 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
 export function updateTemplate(
   db: TransactionClient,
   templateId: number,
-  data: { name?: string; weekDay?: number | null; isRecurring?: boolean; description?: string; kindId?: number | null },
+  data: {
+    name?: string
+    weekDay?: number | null
+    isRecurring?: boolean
+    description?: string
+    kindId?: number | null
+    startTime?: string
+    endTime?: string
+  },
   congregationId: number,
 ) {
   return db.programmeTemplate.update({
@@ -238,6 +246,8 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
       description: source.description,
       weekDay: source.weekDay,
       isRecurring: source.isRecurring,
+      startTime: source.startTime,
+      endTime: source.endTime,
       congregationId,
       parts: {
         create: source.parts.map(part => ({

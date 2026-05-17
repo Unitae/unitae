@@ -43,7 +43,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { name, key, weekDay } = submission.value
+  const { name, key, weekDay, startTime, endTime } = submission.value
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
@@ -61,6 +61,8 @@ export async function action({ request, context }: Route.ActionArgs) {
       name,
       key,
       weekDay,
+      startTime,
+      endTime,
       congregationId: currentUser.congregationId,
     })
 
@@ -122,6 +124,16 @@ export default function NewTemplatePage() {
                   <SelectItem value="6">{m.settings_template_edit_day_saturday()}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="startTime">{m.settings_template_edit_start_time_label()}</Label>
+                <Input id="startTime" name="startTime" type="time" defaultValue="19:00" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="endTime">{m.settings_template_edit_end_time_label()}</Label>
+                <Input id="endTime" name="endTime" type="time" defaultValue="21:00" />
+              </div>
             </div>
             <SubmitButton className="w-fit">{m.settings_template_new_submit()}</SubmitButton>
           </Form>

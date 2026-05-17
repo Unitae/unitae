@@ -10,7 +10,12 @@ import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -23,6 +28,7 @@ import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { formatEventDate } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/assign-part'
@@ -84,6 +90,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       speakerCandidates,
       readerCandidates,
       externalSpeakers: sortedExternalSpeakers,
+      timezone: context.get(congregationContext).timezone,
     }
   })
 }
@@ -141,7 +148,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
-  const { event, assignment, speakerCandidates, readerCandidates, externalSpeakers } = loaderData
+  const { event, assignment, speakerCandidates, readerCandidates, externalSpeakers, timezone } = loaderData
   const [params] = useSearchParams()
   const [selectedAssignee, setSelectedAssignee] = useState(assignment?.assigneeId?.toString() ?? '')
   const [selectedAssistant, setSelectedAssistant] = useState(assignment?.assistantId?.toString() ?? '')
@@ -161,7 +168,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
       <UnsavedChangesDialog blocker={blocker} />
       <PageHeader
         title={m.programs_assign_part_page_title()}
-        subtitle={`${event.name} — ${new Date(event.startDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
+        subtitle={`${event.name} — ${formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}`}
         breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: m.programs_assign_part_page_title() }]}
         backTo={`/programs/events/${event.id}`}
       />

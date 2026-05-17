@@ -3,10 +3,16 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { deleteEvent } from '~/features/events/server/programme-events.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
+import { formatEventDate } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete'
@@ -31,7 +37,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    return { event }
+    return { event, timezone: context.get(congregationContext).timezone }
   })
 }
 
@@ -64,12 +70,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function DeleteEventPage({ loaderData }: Route.ComponentProps) {
-  const { event } = loaderData
+  const { event, timezone } = loaderData
 
   return (
     <DeleteConfirmation title={m.programs_delete_title()} submitLabel={m.programs_delete_submit()} cancelTo="/programs">
       <p>
-        {event.name} — {new Date(event.startDate).toLocaleDateString('fr-FR')}
+        {event.name} — {formatEventDate(event.startDate, timezone)}
       </p>
     </DeleteConfirmation>
   )

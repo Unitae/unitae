@@ -317,7 +317,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
     // Pre-condition: speakerPart has [elderRoleId speaker, publisherRoleId reader] from previous test
     // serviceRole has [elderRoleId] from previous test
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderAccountId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderAccountId, primaryCongId, 'UTC'),
     )
     expect(event).not.toBeNull()
     if (!event) return
@@ -371,7 +371,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
 describe('updatePartAssignment + updateServiceRoleAssignment update allowed roles (integration)', () => {
   it('replaces existing allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderAccountId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderAccountId, primaryCongId, 'UTC'),
     )
     if (!event) throw new Error('event not created')
 
@@ -412,7 +412,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
 
   it('replaces service-role allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
-      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderAccountId, primaryCongId),
+      createSingleEventFromTemplate(tx, templateId, new Date('2099-04-15'), elderAccountId, primaryCongId, 'UTC'),
     )
     if (!event) throw new Error('event not created')
 
