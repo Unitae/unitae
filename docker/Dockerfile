@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Base: Alpine + openssl + tini + pnpm ─────────────────────
-FROM node:22-alpine AS base
+FROM node:26-alpine AS base
 RUN apk add --no-cache openssl tini
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
