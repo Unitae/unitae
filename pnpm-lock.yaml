@@ -20,7 +20,7 @@ importers:
         version: 1.19.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@conform-to/zod':
         specifier: ^1.19.3
-        version: 1.19.3(zod@3.25.76)
+        version: 1.19.3(zod@4.4.3)
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -133,8 +133,8 @@ importers:
         specifier: ^3.19.0
         version: 3.19.0
       zod:
-        specifier: ^3.25.76
-        version: 3.25.76
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@biomejs/biome':
         specifier: 2.4.16
@@ -6274,6 +6274,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
+
 onlyBuiltDependencies:
   - '@prisma/engines'
   - better-sqlite3
@@ -6790,10 +6793,10 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  '@conform-to/zod@1.19.3(zod@3.25.76)':
+  '@conform-to/zod@1.19.3(zod@4.4.3)':
     dependencies:
       '@conform-to/dom': 1.19.3
-      zod: 3.25.76
+      zod: 4.4.3
 
   '@dabh/diagnostics@2.0.8':
     dependencies:
@@ -12772,3 +12775,5 @@ snapshots:
       zod: 3.25.76
 
   zod@3.25.76: {}
+
+  zod@4.4.3: {}
