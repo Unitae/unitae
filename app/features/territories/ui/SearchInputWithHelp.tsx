@@ -1,0 +1,60 @@
+import { Info } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import * as m from '~/i18n/paraglide/messages'
+import { Button } from '~/shared/ui/button'
+import { Input } from '~/shared/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '~/shared/ui/popover'
+
+interface SearchInputWithHelpProps {
+  defaultValue?: string
+}
+
+const ROTATION_INTERVAL_MS = 4000
+
+/**
+ * Search input with a rotating placeholder (cycling through name / address /
+ * proximity examples) and an inline ⓘ popover explaining the `@` proximity
+ * operator and auto-detection.
+ *
+ * Rotation pauses once the user focuses the input — we don't want the hint to
+ * change underneath them as they type.
+ */
+export default function SearchInputWithHelp({ defaultValue }: SearchInputWithHelpProps) {
+  const examples = [
+    m.territories_filter_search_example_name(),
+    m.territories_filter_search_example_address(),
+    m.territories_filter_search_example_proximity(),
+  ]
+  const [index, setIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+
+  useEffect(() => {
+    if (paused) return
+    const id = setInterval(() => setIndex(i => (i + 1) % examples.length), ROTATION_INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [paused, examples.length])
+
+  return (
+    <div className="flex items-center gap-1 max-sm:flex-1">
+      <Input
+        type="text"
+        name="search"
+        className="w-auto max-sm:flex-1"
+        placeholder={examples[index]}
+        defaultValue={defaultValue}
+        onFocus={() => setPaused(true)}
+      />
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="ghost" size="icon" aria-label={m.territories_filter_help_aria()}>
+            <Info className="size-4 text-muted-foreground" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="text-sm">
+          <p className="mb-2 font-medium">{m.territories_filter_help_title()}</p>
+          <p className="text-muted-foreground leading-relaxed">{m.territories_filter_help_body()}</p>
+        </PopoverContent>
+      </Popover>
+    </div>
+  )
+}
