@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -61,7 +62,9 @@ afterAll(async () => {
       await tx.territoryCardOverlay.deleteMany({})
     })
   }
-  // Audit logs reference the congregation via FK; clear them before dropping the test congregations.
+  // Drain fire-and-forget audit writes so the deleteMany below clears them all,
+  // otherwise an in-flight write can land after cleanup and break the congregation FK.
+  await flushPendingAuditWrites()
   await testDb.auditLog.deleteMany({ where: { congregationId: { in: [aId, bId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [aId, bId] } } })
   await testDb.$disconnect()

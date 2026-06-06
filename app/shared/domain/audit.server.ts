@@ -117,13 +117,15 @@ interface AuditEntry {
   metadata?: Record<string, unknown>
 }
 
+const pendingAuditWrites = new Set<Promise<unknown>>()
+
 /**
  * Enregistre un evenement dans le journal d'audit.
  * Utilise unscopedDb pour ecrire sans contexte RLS (l'audit est transversal).
  * Ne lance jamais d'exception — les erreurs d'audit ne doivent pas bloquer les operations.
  */
 export function audit(entry: AuditEntry): void {
-  unscopedDb.auditLog
+  const promise = unscopedDb.auditLog
     .create({
       data: {
         action: entry.action,
@@ -138,6 +140,18 @@ export function audit(entry: AuditEntry): void {
     .catch(error => {
       logger.error('Failed to write audit log', { error, auditAction: entry.action })
     })
+    .finally(() => {
+      pendingAuditWrites.delete(promise)
+    })
+  pendingAuditWrites.add(promise)
+}
+
+/**
+ * Awaits all fire-and-forget `audit()` writes started so far. Test-only — production code
+ * intentionally lets audit writes settle in the background.
+ */
+export async function flushPendingAuditWrites(): Promise<void> {
+  await Promise.all(pendingAuditWrites)
 }
 
 /**

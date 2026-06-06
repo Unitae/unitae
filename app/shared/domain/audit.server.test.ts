@@ -10,7 +10,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
   default: { info: vi.fn(), error: vi.fn(), warn: vi.fn() },
 }))
 
-const { audit, AuditAction } = await import('./audit.server')
+const { audit, AuditAction, flushPendingAuditWrites } = await import('./audit.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -62,5 +62,45 @@ describe('audit', () => {
       action: AuditAction.UserLogin,
       congregationId: 10,
     })
+  })
+})
+
+describe('flushPendingAuditWrites', () => {
+  it('resolves only after all pending audit writes settle', async () => {
+    const resolvers: Array<() => void> = []
+    vi.mocked(db.auditLog.create).mockImplementation(
+      () => new Promise(resolve => resolvers.push(() => resolve({} as never))) as never,
+    )
+
+    audit({ action: AuditAction.UserLogin, congregationId: 1 })
+    audit({ action: AuditAction.UserLogin, congregationId: 2 })
+
+    let flushed = false
+    const flush = flushPendingAuditWrites().then(() => {
+      flushed = true
+    })
+
+    await Promise.resolve()
+    expect(flushed).toBe(false)
+
+    resolvers[0]()
+    await Promise.resolve()
+    expect(flushed).toBe(false)
+
+    resolvers[1]()
+    await flush
+    expect(flushed).toBe(true)
+  })
+
+  it('resolves immediately when no writes are pending', async () => {
+    await expect(flushPendingAuditWrites()).resolves.toBeUndefined()
+  })
+
+  it('also drains writes that reject', async () => {
+    vi.mocked(db.auditLog.create).mockRejectedValue(new Error('DB error') as never)
+
+    audit({ action: AuditAction.UserLogin, congregationId: 1 })
+
+    await expect(flushPendingAuditWrites()).resolves.toBeUndefined()
   })
 })
