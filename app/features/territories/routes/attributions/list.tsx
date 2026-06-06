@@ -1,12 +1,14 @@
 import { CalendarCheck, Lock, Pencil, X } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Link, redirect, useSearchParams } from 'react-router'
 import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters.server'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
+import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
+import { buildAttributionFilterChips } from '~/features/territories/ui/build-filter-chips'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
@@ -85,6 +87,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
 export default function AttributionListPage({ loaderData }: Route.ComponentProps) {
   const { pagination, attributions, canManageTerritories, theocraticYear, groups, phoneTypeActive, canViewPublisher } =
     loaderData
+  const [searchParams] = useSearchParams()
+  const chips = buildAttributionFilterChips(searchParams, { groups })
 
   if (attributions.length < 1) {
     return (
@@ -105,6 +109,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
           }
         />
 
+        <ActiveTerritoryFilters chips={chips} />
         <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
         <EmptyState

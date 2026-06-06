@@ -2,8 +2,8 @@ import type { Prisma } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-
-const addressRegex = /^(\d+\s*(bis|ter|quarter)?)\s+(.+)$/
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
+import { addressRegex, proximityPrefix } from './address-regex'
 
 export function computeFilters(params: URLSearchParams): Prisma.BuildingWhereInput {
   let filters: Prisma.BuildingWhereInput = {}
@@ -84,18 +84,28 @@ function applyAccessFilter(filters: Prisma.BuildingWhereInput, params: URLSearch
 }
 
 function applySearchFilter(filters: Prisma.BuildingWhereInput, params: URLSearchParams): Prisma.BuildingWhereInput {
-  if (params.has('search') && (params.get('search')?.length ?? 0) > 0) {
-    const searchTerms = params.get('search') ?? ''
-    const addressTerms = searchTerms.match(addressRegex)
+  const raw = params.get('search')
+  const trimmed = raw?.replace(proximityPrefix, '').trim() ?? ''
+  if (trimmed.length === 0) return filters
 
-    return {
-      ...filters,
-      OR: [
-        addressTerms == null
-          ? { street: { contains: searchTerms } }
-          : { AND: [{ number: { contains: addressTerms?.[1] } }, { street: { contains: addressTerms?.[3] } }] },
-      ],
-    }
+  const normalized = stripDiacritics(trimmed)
+  const addressTerms = trimmed.match(addressRegex)
+  const addressNumber = addressTerms?.[1]
+  const addressStreet = addressTerms?.[3]
+  const addressStreetNormalized = addressStreet != null ? stripDiacritics(addressStreet) : null
+
+  return {
+    ...filters,
+    OR: [
+      addressTerms == null
+        ? { streetNormalized: { contains: normalized } }
+        : {
+            AND: [
+              { number: { contains: addressNumber, mode: 'insensitive' } },
+              { streetNormalized: { contains: addressStreetNormalized ?? normalized } },
+            ],
+          },
+      { number: { contains: trimmed, mode: 'insensitive' } },
+    ],
   }
-  return filters
 }

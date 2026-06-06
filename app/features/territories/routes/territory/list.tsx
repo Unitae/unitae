@@ -6,6 +6,8 @@ import { findTerritoriesWithDetailsPaginated } from '~/features/territories/serv
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 
+import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
+import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -68,6 +70,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
   const [searchParams] = useSearchParams()
   const fromQuery = searchParams.toString()
   const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
+  const chips = buildTerritoryFilterChips(searchParams)
 
   if (territories.length < 1) {
     return (
@@ -85,6 +88,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
           }
         />
 
+        <ActiveTerritoryFilters chips={chips} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <EmptyState
@@ -111,6 +115,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
+      <ActiveTerritoryFilters chips={chips} />
       <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
       <div className="flex grow flex-col gap-3">

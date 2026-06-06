@@ -8,6 +8,7 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import { type TransactionClient, unscopedDb, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import {
   EntityIdMap,
@@ -633,6 +634,8 @@ export async function importMembers(
       data: {
         firstname: record.firstname,
         lastname: record.lastname,
+        firstnameNormalized: stripDiacritics(record.firstname),
+        lastnameNormalized: stripDiacritics(record.lastname),
         isPublisher: record.isPublisher,
         type: record.type as PublisherType,
         isMale: record.isMale,
@@ -915,6 +918,7 @@ export async function importBuildings(
         data: {
           number: record.number,
           street: record.street,
+          streetNormalized: stripDiacritics(record.street),
           zip: record.zip,
           ...data,
           congregationId,

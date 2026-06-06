@@ -2,6 +2,7 @@ import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { Permission } from '~/shared/types/permission'
 
 export interface UpdateAccountParams {
@@ -62,6 +63,8 @@ export async function updateAccount(
       data: {
         firstname: params.firstname,
         lastname: params.lastname,
+        firstnameNormalized: stripDiacritics(params.firstname),
+        lastnameNormalized: stripDiacritics(params.lastname),
       },
     })
     await syncBuiltInRoleAssignments(db, existing.memberId, congregationId, actorId)

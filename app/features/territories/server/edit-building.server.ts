@@ -4,6 +4,7 @@ import { getPerimeterPaths } from '~/features/territories/server/perimeter.serve
 
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { recalculateEntranceCentroid } from './update-buildings-in-entrance.server'
 
 export async function editBuilding(
@@ -35,6 +36,7 @@ export async function editBuilding(
     data: {
       number: address.number,
       street: address.street,
+      streetNormalized: stripDiacritics(address.street),
       zip: address.zip,
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,

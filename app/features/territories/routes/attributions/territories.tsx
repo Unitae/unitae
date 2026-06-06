@@ -1,5 +1,5 @@
 import { ExternalLink, Send } from 'lucide-react'
-import { Link, redirect } from 'react-router'
+import { Link, redirect, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { Permission } from '~/shared/types/permission'
 
@@ -44,6 +44,8 @@ function territoryContentLabel(type: string, entrances: { homes: number | null; 
 import { getZips } from '~/features/territories/server/buildings.server'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
+import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
+import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
@@ -99,6 +101,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
 export default function TerritorySelectorPage({ loaderData }: Route.ComponentProps) {
   const { pagination, territories, zips } = loaderData
+  const [searchParams] = useSearchParams()
+  const chips = buildTerritoryFilterChips(searchParams)
 
   if (territories.length < 1) {
     return (
@@ -112,6 +116,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
           ]}
           backTo="/territories/attributions"
         />
+        <ActiveTerritoryFilters chips={chips} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
@@ -133,6 +138,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         ]}
         backTo="/territories/attributions"
       />
+      <ActiveTerritoryFilters chips={chips} />
       <TerritoryFilters zips={zips} showZip showAccess showSearch showType />
 
       <div className="flex grow flex-col gap-3">

@@ -2,6 +2,7 @@ import type { DetailedBuilding } from '~/features/territories/model/detailed-bui
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { getPerimeterPaths } from './perimeter.server'
 
 export async function createBuilding(
@@ -31,6 +32,7 @@ export async function createBuilding(
     data: {
       number: address.number,
       street: address.street,
+      streetNormalized: stripDiacritics(address.street),
       zip: address.zip,
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
