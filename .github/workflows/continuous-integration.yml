@@ -190,7 +190,7 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/playwright:v1.59.0-noble
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
       options: --ipc=host
     needs: [build]
     services:
