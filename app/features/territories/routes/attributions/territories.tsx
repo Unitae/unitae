@@ -41,20 +41,26 @@ function territoryContentLabel(type: string, entrances: { homes: number | null; 
     : m.territories_content_entrances_one({ count: String(count) })
 }
 
+import React from 'react'
 import { getZips } from '~/features/territories/server/buildings.server'
+import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
+import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { geocode, type GeocodeResult } from '~/shared/infra/geocoder.server'
 import logger from '~/shared/infra/logger.server'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatDistance } from '~/shared/utils/distance'
+import { sortFromUrl } from '~/shared/utils/pagination.server'
 
 import type { Route } from './+types/territories'
 
@@ -80,29 +86,58 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
-    const selectors = await computeFilters(url.searchParams)
+    const selectors = computeFilters(url.searchParams)
     selectors.attributions = { none: { endDate: null } }
 
-    const { territories, pagination } = await findAvailableTerritoriesPaginated(db, selectors, url, congregationId)
+    const search = url.searchParams.get('search') ?? ''
+    const intent = classifySearch(search)
+    const sort = sortFromUrl(url, ['number', 'proximity'], 'number')
+
+    let geocodeResult: GeocodeResult | null = null
+    if (intent.geoQuery != null) {
+      geocodeResult = await geocode(intent.geoQuery)
+    }
+    const proximityActive = geocodeResult != null && sort !== 'number'
+
+    const proximityArgs =
+      proximityActive && geocodeResult != null
+        ? { origin: { lat: geocodeResult.lat, lng: geocodeResult.lng } }
+        : undefined
+
+    const result = await findAvailableTerritoriesPaginated(db, selectors, url, congregationId, proximityArgs)
 
     const zips = await getZips(db, congregationId)
 
+    const distancesByTerritoryId: Record<number, string | null> = {}
+    if (proximityActive && 'distances' in result && result.distances != null) {
+      for (const territory of result.territories) {
+        const distance = result.distances.get(territory)
+        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance)
+      }
+    }
+
     return {
       zips,
-      stats: {
-        total: pagination.total,
-      },
-      territories,
-      pagination,
+      stats: { total: result.pagination.total },
+      territories: result.territories,
+      pagination: result.pagination,
       canManageTerritories,
+      geocodeResult: proximityActive ? geocodeResult : null,
+      distances: distancesByTerritoryId,
+      withoutCoordsCount: proximityActive && 'withoutCoordsCount' in result ? result.withoutCoordsCount : 0,
+      sort,
     }
   })
 }
 
 export default function TerritorySelectorPage({ loaderData }: Route.ComponentProps) {
-  const { pagination, territories, zips } = loaderData
+  const { pagination, territories, zips, geocodeResult, distances, withoutCoordsCount, sort } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildTerritoryFilterChips(searchParams)
+  const proximityActive = geocodeResult != null
+  const dividerIndex = proximityActive ? territories.findIndex(t => distances[t.id] == null) : -1
+  const baseCol = 5
+  const colSpan = proximityActive ? baseCol + 1 : baseCol
 
   if (territories.length < 1) {
     return (
@@ -139,13 +174,26 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         backTo="/territories/attributions"
       />
       <ActiveTerritoryFilters chips={chips} />
-      <TerritoryFilters zips={zips} showZip showAccess showSearch showType />
+      {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
+      <TerritoryFilters
+        zips={zips}
+        showZip
+        showAccess
+        showSearch
+        showType
+        showSort
+        sortValue={sort}
+        sortOptions={proximityActive ? ['number', 'proximity'] : ['number']}
+      />
 
       <div className="flex grow flex-col gap-3">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-[150px]">{m.territories_table_number()}</TableHead>
+              {proximityActive && (
+                <TableHead className="w-[120px] text-center">{m.territories_filter_distance_header()}</TableHead>
+              )}
               <TableHead className="w-[150px] text-center">{m.territories_table_type()}</TableHead>
               <TableHead className="w-[150px] text-center">{m.territories_table_content()}</TableHead>
               <TableHead className="w-[150px] text-center">{m.attributions_available_table_status()}</TableHead>
@@ -153,46 +201,69 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
             </TableRow>
           </TableHeader>
           <TableBody>
-            {territories.map(territory => (
-              <TableRow key={territory.id}>
-                <TableCell>{territory.number}</TableCell>
-                <TableCell className="text-center">{getTerritoryTypeLabel(territory.type)}</TableCell>
-                <TableCell className="text-center">
-                  {territoryContentLabel(territory.type, territory.entrances)}
-                </TableCell>
-                <TableCell className="text-center">
-                  <TerritoryAvaibilityStatus attribution={[...territory.attributions].shift()} />
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon" asChild>
-                      <Link
-                        to={`/territories/territory/${territory.id}/view`}
-                        title={m.attributions_available_view_title()}
-                      >
-                        <ExternalLink className="size-4" />
-                      </Link>
-                    </Button>
-                    {checkAvailabilityStatus([...territory.attributions].shift()) ? (
-                      <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
-                        <Link
-                          to={`/territories/attributions/new?territory=${territory.id}`}
-                          title={m.attributions_available_assign_title()}
+            {territories.map((territory, index) => {
+              const distance = distances[territory.id]
+              const showDivider = proximityActive && dividerIndex === index && index > 0
+              return (
+                <React.Fragment key={territory.id}>
+                  {showDivider && (
+                    <TableRow className="bg-muted/30">
+                      <TableCell colSpan={colSpan} className="text-center text-muted-foreground text-xs italic">
+                        {m.territories_filter_no_coordinates_count({ count: String(withoutCoordsCount) })}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell>{territory.number}</TableCell>
+                    {proximityActive && (
+                      <TableCell className="text-center">
+                        <span
+                          className="text-muted-foreground text-sm"
+                          title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
                         >
-                          <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
-                          <Send className="size-4 -rotate-12" />
-                        </Link>
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="sm" disabled className="gap-1.5">
-                        <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
-                        <Send className="size-4 -rotate-12" />
-                      </Button>
+                          {distance ?? '—'}
+                        </span>
+                      </TableCell>
                     )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+                    <TableCell className="text-center">{getTerritoryTypeLabel(territory.type)}</TableCell>
+                    <TableCell className="text-center">
+                      {territoryContentLabel(territory.type, territory.entrances)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <TerritoryAvaibilityStatus attribution={[...territory.attributions].shift()} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link
+                            to={`/territories/territory/${territory.id}/view`}
+                            title={m.attributions_available_view_title()}
+                          >
+                            <ExternalLink className="size-4" />
+                          </Link>
+                        </Button>
+                        {checkAvailabilityStatus([...territory.attributions].shift()) ? (
+                          <Button variant="ghost" size="sm" asChild className="gap-1.5 text-primary">
+                            <Link
+                              to={`/territories/attributions/new?territory=${territory.id}`}
+                              title={m.attributions_available_assign_title()}
+                            >
+                              <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
+                              <Send className="size-4 -rotate-12" />
+                            </Link>
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" size="sm" disabled className="gap-1.5">
+                            <span className="max-sm:hidden">{m.attributions_available_assign_button()}</span>
+                            <Send className="size-4 -rotate-12" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
+              )
+            })}
           </TableBody>
         </Table>
 

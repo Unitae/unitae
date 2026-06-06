@@ -1,17 +1,21 @@
 import { CalendarCheck, Lock, Pencil, X } from 'lucide-react'
+import React from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { getGroups } from '~/features/publishers/server/groups.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters.server'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions.server'
+import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { getCurrentTheocraticYear } from '~/features/territories/server/theocratic-year.server'
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { buildAttributionFilterChips } from '~/features/territories/ui/build-filter-chips'
+import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { geocode, type GeocodeResult } from '~/shared/infra/geocoder.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -21,7 +25,9 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatDistance } from '~/shared/utils/distance'
 import { formatPersonName } from '~/shared/utils/format-person-name'
+import { sortFromUrl } from '~/shared/utils/pagination.server'
 
 import type { Route } from './+types/list'
 
@@ -63,32 +69,90 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const selectors = computeFilters(url.searchParams)
     selectors.endDate = null
 
-    const { attributions, pagination } = await findActiveAttributionsPaginated(db, selectors, url, congregationId)
+    const search = url.searchParams.get('search') ?? ''
+    const intent = classifySearch(search)
+    const sort = sortFromUrl(url, ['date', 'proximity'], 'date')
+
+    let geocodeResult: GeocodeResult | null = null
+    if (intent.geoQuery != null) {
+      geocodeResult = await geocode(intent.geoQuery)
+    }
+    const proximityActive = geocodeResult != null && sort !== 'date'
+
+    const proximityArgs =
+      proximityActive && geocodeResult != null
+        ? { origin: { lat: geocodeResult.lat, lng: geocodeResult.lng } }
+        : undefined
+
+    const result = await findActiveAttributionsPaginated(db, selectors, url, congregationId, proximityArgs)
 
     const groups = await getGroups(db, congregationId)
     const theocraticYear = getCurrentTheocraticYear()
 
+    const distancesByAttributionId: Record<number, string | null> = {}
+    if (proximityActive && 'distances' in result && result.distances != null) {
+      for (const attribution of result.attributions) {
+        const distance = result.distances.get(attribution)
+        distancesByAttributionId[attribution.id] = distance == null ? null : formatDistance(distance)
+      }
+    }
+
     return {
-      stats: {
-        total: pagination.total,
-      },
-      attributions,
-      pagination,
+      stats: { total: result.pagination.total },
+      attributions: result.attributions,
+      pagination: result.pagination,
       canManageTerritories,
       canManagePublisher,
       canViewPublisher,
       groups,
       phoneTypeActive,
       theocraticYear,
+      geocodeResult: proximityActive ? geocodeResult : null,
+      distances: distancesByAttributionId,
+      withoutCoordsCount: proximityActive && 'withoutCoordsCount' in result ? result.withoutCoordsCount : 0,
+      sort,
     }
   })
 }
 
 export default function AttributionListPage({ loaderData }: Route.ComponentProps) {
-  const { pagination, attributions, canManageTerritories, theocraticYear, groups, phoneTypeActive, canViewPublisher } =
-    loaderData
+  const {
+    pagination,
+    attributions,
+    canManageTerritories,
+    theocraticYear,
+    groups,
+    phoneTypeActive,
+    canViewPublisher,
+    geocodeResult,
+    distances,
+    withoutCoordsCount,
+    sort,
+  } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildAttributionFilterChips(searchParams, { groups })
+  const proximityActive = geocodeResult != null
+  // Proximity sort already partitioned/ordered the rows server-side; the
+  // status-priority client sort below is skipped in that mode so the distance
+  // order survives.
+  const sortedAttributions = proximityActive
+    ? attributions
+    : [...attributions].sort((attrA, attrB) => {
+        const aIsOrphaned = attrA.publisher.leftAt != null || attrA.publisher.anonymizedAt != null
+        const bIsOrphaned = attrB.publisher.leftAt != null || attrB.publisher.anonymizedAt != null
+        if (aIsOrphaned && !bIsOrphaned) return -1
+        if (!aIsOrphaned && bIsOrphaned) return 1
+
+        const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
+        const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
+        if (aIsLate && !bIsLate) return -1
+        if (!aIsLate && bIsLate) return 1
+
+        return 0
+      })
+  const dividerIndex = proximityActive ? sortedAttributions.findIndex(a => distances[a.id] == null) : -1
+  const baseColCount = 7
+  const colSpan = proximityActive ? baseColCount + 1 : baseColCount
 
   if (attributions.length < 1) {
     return (
@@ -139,7 +203,15 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
         }
       />
 
-      <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
+      <ActiveTerritoryFilters chips={chips} />
+      {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
+      <AttributionFilters
+        groups={groups}
+        phoneTypeActive={phoneTypeActive}
+        showSort
+        sortValue={sort}
+        sortOptions={proximityActive ? ['date', 'proximity'] : ['date']}
+      />
 
       <div className="flex grow flex-col gap-3">
         <div className="overflow-hidden rounded-xl border">
@@ -147,6 +219,9 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
             <TableHeader>
               <TableRow>
                 <TableHead>{m.attributions_table_checkout_date()}</TableHead>
+                {proximityActive && (
+                  <TableHead className="text-center">{m.territories_filter_distance_header()}</TableHead>
+                )}
                 <TableHead className="text-center">{m.attributions_table_number()}</TableHead>
                 <TableHead className="text-center">{m.attributions_table_publisher()}</TableHead>
                 <TableHead className="text-center max-sm:hidden">{m.attributions_table_type()}</TableHead>
@@ -158,27 +233,21 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[...attributions]
-                .sort((attrA, attrB) => {
-                  // Sort priority: orphaned > late > current. Within a bucket
-                  // the order falls back to the DB ordering (startDate asc).
-                  const aIsOrphaned = attrA.publisher.leftAt != null || attrA.publisher.anonymizedAt != null
-                  const bIsOrphaned = attrB.publisher.leftAt != null || attrB.publisher.anonymizedAt != null
-                  if (aIsOrphaned && !bIsOrphaned) return -1
-                  if (!aIsOrphaned && bIsOrphaned) return 1
-
-                  const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
-                  const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
-                  if (aIsLate && !bIsLate) return -1
-                  if (!aIsLate && bIsLate) return 1
-
-                  return 0
-                })
-                .map(attribution => {
-                  const isAnonymized = attribution.publisher.anonymizedAt != null
-                  const hasLeft = attribution.publisher.leftAt != null
-                  return (
-                    <TableRow key={attribution.id}>
+              {sortedAttributions.map((attribution, index) => {
+                const isAnonymized = attribution.publisher.anonymizedAt != null
+                const hasLeft = attribution.publisher.leftAt != null
+                const distance = distances[attribution.id]
+                const showDivider = proximityActive && dividerIndex === index && index > 0
+                return (
+                  <React.Fragment key={attribution.id}>
+                    {showDivider && (
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={colSpan} className="text-center text-muted-foreground text-xs italic">
+                          {m.territories_filter_no_coordinates_count({ count: String(withoutCoordsCount) })}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow>
                       <TableCell>
                         {attribution.startDate.toLocaleDateString('fr-FR')}{' '}
                         <span className="text-muted-foreground text-xs">
@@ -189,6 +258,16 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                           )
                         </span>
                       </TableCell>
+                      {proximityActive && (
+                        <TableCell className="text-center">
+                          <span
+                            className="text-muted-foreground text-sm"
+                            title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
+                          >
+                            {distance ?? '—'}
+                          </span>
+                        </TableCell>
+                      )}
                       <TableCell className="text-center">
                         <Link
                           to={`/territories/territory/${attribution.territoryId}/view`}
@@ -270,8 +349,9 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                         </div>
                       </TableCell>
                     </TableRow>
-                  )
-                })}
+                  </React.Fragment>
+                )
+              })}
             </TableBody>
           </Table>
         </div>

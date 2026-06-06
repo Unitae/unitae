@@ -1,13 +1,16 @@
 import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
+import React from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
+import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findTerritoriesWithDetailsPaginated } from '~/features/territories/server/territories.server'
 import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
+import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -16,12 +19,15 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { geocode, type GeocodeResult } from '~/shared/infra/geocoder.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatDistance } from '~/shared/utils/distance'
+import { sortFromUrl } from '~/shared/utils/pagination.server'
 
 import type { Route } from './+types/list'
 
@@ -48,29 +54,64 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const url = new URL(request.url)
-    const selectors = await computeFilters(url.searchParams)
-    const { territories, pagination } = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId)
+    const selectors = computeFilters(url.searchParams)
+    const search = url.searchParams.get('search') ?? ''
+    const intent = classifySearch(search)
+    const sort = sortFromUrl(url, ['number', 'proximity'], 'number')
+
+    let geocodeResult: GeocodeResult | null = null
+    if (intent.geoQuery != null) {
+      geocodeResult = await geocode(intent.geoQuery)
+    }
+    const proximityActive = geocodeResult != null && sort !== 'number'
+
+    const proximityArgs =
+      proximityActive && geocodeResult != null
+        ? { origin: { lat: geocodeResult.lat, lng: geocodeResult.lng } }
+        : undefined
+
+    const result = await findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId, proximityArgs)
 
     const zips = await getZips(db, congregationId)
 
+    const distancesByTerritoryId: Record<number, string | null> = {}
+    if (proximityActive && 'distances' in result && result.distances != null) {
+      for (const territory of result.territories) {
+        const distance = result.distances.get(territory)
+        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance)
+      }
+    }
+
     return {
       zips,
-      stats: {
-        total: pagination.total,
-      },
-      territories,
-      pagination,
+      stats: { total: result.pagination.total },
+      territories: result.territories,
+      pagination: result.pagination,
       canManageTerritories,
+      geocodeResult: proximityActive ? geocodeResult : null,
+      geocodeAttempted: intent.geoQuery != null,
+      distances: distancesByTerritoryId,
+      withoutCoordsCount: proximityActive && 'withoutCoordsCount' in result ? result.withoutCoordsCount : 0,
+      withCoordsCount: proximityActive && 'withCoordsCount' in result ? result.withCoordsCount : 0,
+      sort,
     }
   })
 }
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
-  const { pagination, territories, canManageTerritories, zips } = loaderData
+  const { pagination, territories, canManageTerritories, zips, geocodeResult, distances, withoutCoordsCount, sort } =
+    loaderData
   const [searchParams] = useSearchParams()
   const fromQuery = searchParams.toString()
   const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
   const chips = buildTerritoryFilterChips(searchParams)
+  const proximityActive = geocodeResult != null
+  const colSpan = proximityActive ? 6 : 5
+  // Index of the first item in this page that falls in the "without coords"
+  // partition, so we can insert a divider row before it.
+  const dividerIndex = proximityActive
+    ? territories.findIndex(t => distances[t.id] == null)
+    : -1
 
   if (territories.length < 1) {
     return (
@@ -116,7 +157,17 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       />
 
       <ActiveTerritoryFilters chips={chips} />
-      <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
+      {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
+      <TerritoryFilters
+        zips={zips}
+        showAccess
+        showSearch
+        showType
+        showZip
+        showSort
+        sortValue={sort}
+        sortOptions={proximityActive ? ['number', 'proximity'] : ['number']}
+      />
 
       <div className="flex grow flex-col gap-3">
         <div className="overflow-hidden rounded-xl border">
@@ -124,6 +175,9 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
             <TableHeader>
               <TableRow>
                 <TableHead>{m.territories_table_number()}</TableHead>
+                {proximityActive && (
+                  <TableHead className="text-center">{m.territories_filter_distance_header()}</TableHead>
+                )}
                 <TableHead className="text-center">{m.territories_table_type()}</TableHead>
                 <TableHead className="text-center">{m.territories_table_content()}</TableHead>
                 <TableHead>{m.territories_table_assigned_to()}</TableHead>
@@ -133,12 +187,22 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {territories.map(territory => {
+              {territories.map((territory, index) => {
                 const attribution = [...territory.attributions].shift()
                 const viewHref = `./territory/${territory.id}/view${viewSuffix}`
+                const distance = distances[territory.id]
+                const showDivider = proximityActive && dividerIndex === index && index > 0
 
                 return (
-                  <TableRow key={territory.id} className="group relative cursor-pointer hover:bg-accent/30">
+                  <React.Fragment key={territory.id}>
+                    {showDivider && (
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={colSpan} className="text-center text-muted-foreground text-xs italic">
+                          {m.territories_filter_no_coordinates_count({ count: String(withoutCoordsCount) })}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    <TableRow className="group relative cursor-pointer hover:bg-accent/30">
                     <TableCell>
                       <Link
                         to={viewHref}
@@ -147,6 +211,16 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                       />
                       <span className="relative font-medium">{territory.number}</span>
                     </TableCell>
+                    {proximityActive && (
+                      <TableCell className="text-center">
+                        <span
+                          className="relative text-muted-foreground text-sm"
+                          title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
+                        >
+                          {distance ?? '—'}
+                        </span>
+                      </TableCell>
+                    )}
                     <TableCell className="text-center">
                       <span className="relative">{territoryTypeLabels[territory.type] ?? territory.type}</span>
                     </TableCell>
@@ -202,7 +276,8 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                         )}
                       </div>
                     </TableCell>
-                  </TableRow>
+                    </TableRow>
+                  </React.Fragment>
                 )
               })}
             </TableBody>

@@ -5,6 +5,7 @@ import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
+import type { SortMode } from '~/shared/utils/pagination.server'
 import { Button } from '~/shared/ui/button'
 import { Input } from '~/shared/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
@@ -17,6 +18,13 @@ interface TerritoryFiltersProps {
   showSearch?: boolean
   showZip?: boolean
   showShops?: boolean
+  showSort?: boolean
+  // Currently-selected sort mode (controls the Select's default). Required
+  // when `showSort` is true.
+  sortValue?: SortMode
+  // Which sort modes are available. `proximity` is typically only included
+  // when the loader successfully geocoded the search query.
+  sortOptions?: SortMode[]
 }
 
 export default function TerritoryFilters({
@@ -27,6 +35,9 @@ export default function TerritoryFilters({
   showType = false,
   showShops = false,
   showZip = false,
+  showSort = false,
+  sortValue,
+  sortOptions = ['number'],
 }: TerritoryFiltersProps) {
   const [params] = useSearchParams()
 
@@ -106,6 +117,24 @@ export default function TerritoryFilters({
             placeholder={m.territories_filter_search()}
             defaultValue={params.get('search') ?? undefined}
           />
+        )}
+        {showSort && sortOptions.length > 1 && (
+          <Select name="sort" defaultValue={sortValue}>
+            <SelectTrigger className="max-sm:flex-1">
+              <SelectValue placeholder={m.territories_filter_sort_label()} />
+            </SelectTrigger>
+            <SelectContent>
+              {sortOptions.includes('number') && (
+                <SelectItem value="number">{m.territories_filter_sort_number()}</SelectItem>
+              )}
+              {sortOptions.includes('date') && (
+                <SelectItem value="date">{m.territories_filter_sort_date()}</SelectItem>
+              )}
+              {sortOptions.includes('proximity') && (
+                <SelectItem value="proximity">{m.territories_filter_sort_proximity()}</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
         )}
         <Button type="submit" variant="outline" size="sm" className="gap-1.5">
           <SlidersHorizontal className="size-4" />
