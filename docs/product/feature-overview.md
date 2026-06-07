@@ -59,7 +59,7 @@ Track publisher profiles, organize them into groups, and record field service ac
 - **Field service groups** — Organize publishers into groups with a responsible and a deputy
 - **Activity tracking** — Monthly records of hours, studies, and pioneer service
 - **Reports** — Yearly activity Excel export, individual PDF reports, batch ZIP export
-- **Lifecycle** — Mark someone as left when they move away (reversible, data preserved); anonymise later for GDPR compliance
+- **Lifecycle** — Mark someone as left when they move away (reversible, data preserved); auto-flag inactive publishers after 6 consecutive missed-preach reports so they drop off the public display board without losing visibility for elders; anonymise later for GDPR compliance
 
 See [Publishers](publishers.md) for details.
 
