@@ -127,6 +127,8 @@ export default [
         route('unlink-login', 'features/publishers/routes/publishers/unlink-login.tsx'),
         route('mark-as-left', 'features/publishers/routes/publishers/mark-as-left.tsx'),
         route('mark-as-returned', 'features/publishers/routes/publishers/mark-as-returned.tsx'),
+        route('mark-as-inactive', 'features/publishers/routes/publishers/mark-as-inactive.tsx'),
+        route('mark-as-active', 'features/publishers/routes/publishers/mark-as-active.tsx'),
         route('make-publisher', 'features/publishers/routes/publishers/make-publisher.tsx'),
         route('make-student', 'features/publishers/routes/publishers/make-student.tsx'),
       ]),

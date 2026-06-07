@@ -55,7 +55,7 @@ describe('computeOverdueRate', () => {
     expect(computeOverdueRate(attributions, WINDOW_START, WINDOW_END)).toBeCloseTo(33.33, 1)
   })
 
-  it("ignore les attributions dont la `lateDate` est avant la fenêtre", () => {
+  it('ignore les attributions dont la `lateDate` est avant la fenêtre', () => {
     const attributions = [
       // Completed in window but lateDate is before windowStart — must NOT count.
       makeAttribution(new Date(2025, 6, 1), new Date(2024, 5, 1)),
@@ -65,7 +65,7 @@ describe('computeOverdueRate', () => {
     expect(computeOverdueRate(attributions, WINDOW_START, WINDOW_END)).toBe(100)
   })
 
-  it("inclut une attribution dont la `lateDate` est le dernier jour de la fenêtre", () => {
+  it('inclut une attribution dont la `lateDate` est le dernier jour de la fenêtre', () => {
     const attributions = [
       // lateDate is exactly windowEnd (Dec 31). Must be included because the
       // boundary uses startOfNextDay → strict-less than next day's midnight.

@@ -622,6 +622,7 @@ export async function importMembers(
     isServant: boolean
     isAnointed: boolean
     leftAt: string | null
+    inactiveAt: string | null
     anonymizedAt: string | null
     publisherGroupId: number | null
     createdAt: string
@@ -647,6 +648,7 @@ export async function importMembers(
         isServant: record.isServant,
         isAnointed: record.isAnointed,
         leftAt: record.leftAt ? new Date(record.leftAt) : null,
+        inactiveAt: record.inactiveAt ? new Date(record.inactiveAt) : null,
         anonymizedAt: record.anonymizedAt ? new Date(record.anonymizedAt) : null,
         congregationId,
       },

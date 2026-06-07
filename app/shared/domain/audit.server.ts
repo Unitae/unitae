@@ -72,6 +72,8 @@ export const AuditAction = {
   // Member lifecycle
   MemberLeft: 'member.left',
   MemberReturned: 'member.returned',
+  PublisherInactivated: 'publisher.inactivated',
+  PublisherReactivated: 'publisher.reactivated',
 
   // Account / Member linking
   AccountLinkedToMember: 'account.linked_to_member',

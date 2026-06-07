@@ -6,6 +6,7 @@ export async function getPublisherStats(db: TransactionClient, congregationId: n
     where: {
       congregationId,
       leftAt: null,
+      inactiveAt: null,
       activities: {
         some: {
           year,

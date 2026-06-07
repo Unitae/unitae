@@ -65,7 +65,7 @@ describe('fetchAttributionsForStats', () => {
     expect(where?.startDate).toEqual({ lt: new Date(2026, 8, 1) })
   })
 
-  it("conserve la branche `endDate >= startDate OR endDate IS NULL` du chevauchement", async () => {
+  it('conserve la branche `endDate >= startDate OR endDate IS NULL` du chevauchement', async () => {
     await fetchAttributionsForStats(db, baseParams, 1)
 
     const where = vi.mocked(db.attribution.findMany).mock.calls[0][0]?.where

@@ -6,13 +6,14 @@ import { type BreadcrumbEntry, PageBreadcrumb } from '~/shared/ui/PageBreadcrumb
 
 interface PageHeaderProps {
   title: string
+  titleBadge?: React.ReactNode
   subtitle?: string
   actions?: React.ReactNode
   breadcrumbs?: BreadcrumbEntry[]
   backTo?: string
 }
 
-export function PageHeader({ actions, title, subtitle, breadcrumbs, backTo }: PageHeaderProps) {
+export function PageHeader({ actions, title, titleBadge, subtitle, breadcrumbs, backTo }: PageHeaderProps) {
   return (
     <div className="mb-6 flex animate-fade-in-up flex-col gap-1">
       {breadcrumbs && breadcrumbs.length > 1 && <PageBreadcrumb items={breadcrumbs} />}
@@ -27,7 +28,10 @@ export function PageHeader({ actions, title, subtitle, breadcrumbs, backTo }: Pa
             </Button>
           )}
           <div>
-            <h1 className="font-display font-semibold text-2xl tracking-tight max-sm:text-xl">{title}</h1>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h1 className="font-display font-semibold text-2xl tracking-tight max-sm:text-xl">{title}</h1>
+              {titleBadge}
+            </div>
             {subtitle && <p className="mt-0.5 text-muted-foreground text-sm">{subtitle}</p>}
           </div>
         </div>

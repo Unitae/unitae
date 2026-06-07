@@ -5,11 +5,7 @@ import type { StatsAttribution } from './stats-attribution.type'
 // attributions whose `lateDate` falls inside [windowStart, windowEnd] so an
 // attribution that became late before the window opened doesn't inflate the
 // "overdue rate during the period" reading.
-export function computeOverdueRate(
-  attributions: StatsAttribution[],
-  windowStart: Date,
-  windowEnd: Date,
-): number {
+export function computeOverdueRate(attributions: StatsAttribution[], windowStart: Date, windowEnd: Date): number {
   const windowEndExclusive = startOfNextDay(windowEnd)
   const isLateDateInWindow = (date: Date) => date >= windowStart && date < windowEndExclusive
 

@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { KeyRound, RotateCcw, UnplugIcon, UserCheck, UserMinus } from 'lucide-react'
+import { KeyRound, RotateCcw, UnplugIcon, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -158,29 +158,84 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                 </Button>
               </Form>
             ) : user.isPublisher ? (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
-                    <UserMinus className="size-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {m.publishers_view_mark_as_left_dialog_description()}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-left` })}
-                    >
-                      {m.publishers_view_mark_as_left_confirm()}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <>
+                {user.inactiveAt != null ? (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="icon" title={m.publishers_view_mark_as_active_title()}>
+                        <Zap className="size-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{m.publishers_view_mark_as_active_dialog_title()}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {m.publishers_view_mark_as_active_dialog_description()}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() =>
+                            submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-active` })
+                          }
+                        >
+                          {m.publishers_view_mark_as_active_confirm()}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                ) : (
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="icon" title={m.publishers_view_mark_as_inactive_title()}>
+                        <ZapOff className="size-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>{m.publishers_view_mark_as_inactive_dialog_title()}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          {m.publishers_view_mark_as_inactive_dialog_description()}
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() =>
+                            submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-inactive` })
+                          }
+                        >
+                          {m.publishers_view_mark_as_inactive_confirm()}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="secondary" size="icon" title={m.publishers_edit_deactivate_title()}>
+                      <UserMinus className="size-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {m.publishers_view_mark_as_left_dialog_description()}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => submit(null, { method: 'post', action: `/publishers/${user.id}/mark-as-left` })}
+                      >
+                        {m.publishers_view_mark_as_left_confirm()}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
             ) : (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

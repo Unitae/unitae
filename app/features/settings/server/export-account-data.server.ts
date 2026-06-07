@@ -50,6 +50,7 @@ export async function exportAccountData(db: TransactionClient, userId: number): 
           isAnointed: true,
           publisherGroupId: true,
           leftAt: true,
+          inactiveAt: true,
           anonymizedAt: true,
         },
       },

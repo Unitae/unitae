@@ -245,8 +245,12 @@ describe('generateEventsFromTemplate', () => {
 
     await generateEventsFromTemplate(db, 1, 1, 1, 1, 'Europe/Paris')
 
-    expect(startDates[0]?.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })).toBe('17:30')
-    expect(endDates[0]?.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })).toBe('19:00')
+    expect(
+      startDates[0]?.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }),
+    ).toBe('17:30')
+    expect(
+      endDates[0]?.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' }),
+    ).toBe('19:00')
   })
 })
 

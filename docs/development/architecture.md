@@ -4,7 +4,7 @@
 
 Identity is split across two tables:
 
-- **`Member`** — a person currently part of *this* congregation. Holds identity (firstname/lastname, demographics, phone), publisher status (`isPublisher`, `type`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`), and the lifecycle flags `leftAt` (soft-leave; reversible) and `anonymizedAt` (GDPR scrub; irreversible).
+- **`Member`** — a person currently part of *this* congregation. Holds identity (firstname/lastname, demographics, phone), publisher status (`isPublisher`, `type`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`), and three orthogonal lifecycle flags: `leftAt` (soft-leave; reversible), `inactiveAt` (publisher has reported no preaching for 6 consecutive monthly reports; reversible, auto-cleared on the next hours report; see `app/features/publishers/server/evaluate-inactive-status.server.ts`), and `anonymizedAt` (GDPR scrub; irreversible).
 - **`UserAccount`** — a login. Holds email, password, tokens. Optionally points 1:1 at a `Member` via `memberId`. When `memberId` is null, the account belongs to a circuit overseer or external admin who is not in this congregation; the account carries fallback `firstname`/`lastname` for display.
 
 Four valid combinations, all real personas:
@@ -382,7 +382,7 @@ The full list lives in the `AuditAction` map in `app/shared/domain/audit.server.
 | Territories | Created, updated, deleted |
 | Entrances | Reassigned (`EntranceReassigned` — when the map editor moves an entrance from one territory to another) |
 | Attributions | Created, updated, deleted |
-| Publishers | Created, updated, status changed (publisher ↔ ministry-school student) |
+| Publishers | Created, updated, status changed (publisher ↔ ministry-school student), inactivated, reactivated |
 | Member lifecycle | Marked as left, marked as returned |
 | Account ↔ Member linking | Account linked to a Member, account unlinked from a Member |
 | Publisher groups | Created, deleted |
