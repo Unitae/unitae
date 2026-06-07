@@ -1,6 +1,6 @@
+import { getRestPeriodCutoffs } from '~/features/territories/model/resting-periods'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { getRestPeriodCutoffs } from '~/features/territories/model/resting-periods'
 
 export async function countRestingTerritories(db: TransactionClient, congregationId: number) {
   const cutoffs = getRestPeriodCutoffs()

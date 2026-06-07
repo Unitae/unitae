@@ -1,6 +1,7 @@
 import { Info } from 'lucide-react'
 import { Cell, Pie, PieChart, Tooltip as RechartsTooltip } from 'recharts'
 import { getGroups } from '~/features/publishers/server/groups.server'
+import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { aggregateAttributionStatsForWindow } from '~/features/territories/server/aggregate-attribution-stats.server'
 import { countAvailableTerritories } from '~/features/territories/server/available-territories.server'
@@ -21,7 +22,6 @@ import {
   getTotalTerritoryCount,
 } from '~/features/territories/server/fetch-territory-counts.server'
 import { parseStatsFilterParams } from '~/features/territories/server/parse-stats-filter-params.server'
-import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { countRestingTerritories } from '~/features/territories/server/resting-territories.server'
 import { getTerritoriesNeverWorked } from '~/features/territories/server/territories-never-worked.server'
 import { computeTerritoryCoverage } from '~/features/territories/server/territory-coverage.server'
@@ -183,9 +183,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const yoyCurrentTotalCoverage =
       currentYearTerritoryCount > 0 ? (yoyCurrentAggregate.distinctTerritoryCount / currentYearTerritoryCount) * 100 : 0
     const yoyPreviousCoverage =
-      previousYearTerritoryCount > 0
-        ? (yoyPreviousAggregate.attributionCount / previousYearTerritoryCount) * 100
-        : 0
+      previousYearTerritoryCount > 0 ? (yoyPreviousAggregate.attributionCount / previousYearTerritoryCount) * 100 : 0
     const yoyPreviousTotalCoverage =
       previousYearTerritoryCount > 0
         ? (yoyPreviousAggregate.distinctTerritoryCount / previousYearTerritoryCount) * 100

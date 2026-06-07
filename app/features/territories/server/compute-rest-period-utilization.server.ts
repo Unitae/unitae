@@ -1,9 +1,9 @@
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import {
   RESTING_PERIOD_FOR_CAMPAIGN,
   RESTING_PERIOD_FOR_DOORS_TO_DOORS,
   RESTING_PERIOD_FOR_PHONE,
 } from '~/features/territories/model/resting-periods'
+import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { StatsAttribution } from './stats-attribution.type'
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000

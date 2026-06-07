@@ -1,4 +1,4 @@
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'

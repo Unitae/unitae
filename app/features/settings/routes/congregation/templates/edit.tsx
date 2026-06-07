@@ -120,12 +120,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
       const { name, weekDay, kindId, startTime, endTime } = submission.value
-      await updateTemplate(
-        db,
-        templateId,
-        { name, weekDay, kindId, startTime, endTime },
-        currentUser.congregationId,
-      )
+      await updateTemplate(db, templateId, { name, weekDay, kindId, startTime, endTime }, currentUser.congregationId)
       session.flash('success', m.settings_template_edit_update_success())
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }

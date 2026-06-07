@@ -14,7 +14,6 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +29,7 @@ import { Card, CardContent } from '~/shared/ui/card'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { formatEventDate, formatEventTime } from '~/shared/utils/event-time'
 
 import type { Route } from './+types/list'
 
