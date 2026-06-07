@@ -8,6 +8,7 @@ import {
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
 
+import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 import { EntranceMarkerPin } from '~/features/territories/ui/EntranceMarkerPin'
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
 import * as m from '~/i18n/paraglide/messages'
@@ -98,6 +99,7 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant={statusVariant[attribution.status]}>{statusLabel(attribution.status)}</Badge>
+        <AttributionKindBadge type={attribution.type} />
         <span className="text-muted-foreground">
           {m.my_territories_attributed_on({ date: formatAbsoluteDate(attribution.startDate) })}
         </span>

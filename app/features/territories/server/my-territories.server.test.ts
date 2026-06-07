@@ -60,14 +60,14 @@ describe('getUserTerritoriesWithDetails', () => {
         id: 1,
         startDate: new Date(2025, 2, 1),
         lateDate: new Date(2025, 3, 10), // overdue
-        type: 'default',
+        type: 'Default',
         territory: { id: 1, number: 'T-1', type: 'doors-to-doors', entrances: [] },
       },
       {
         id: 2,
         startDate: new Date(2025, 3, 1),
         lateDate: new Date(2025, 4, 15), // on-time
-        type: 'default',
+        type: 'Phone',
         territory: { id: 2, number: 'T-2', type: 'doors-to-doors', entrances: [] },
       },
     ] as never)
@@ -76,7 +76,9 @@ describe('getUserTerritoriesWithDetails', () => {
 
     expect(result).toHaveLength(2)
     expect(result[0].status).toBe('overdue')
+    expect(result[0].type).toBe('Default')
     expect(result[1].status).toBe('on-time')
+    expect(result[1].type).toBe('Phone')
   })
 })
 

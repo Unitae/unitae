@@ -25,6 +25,7 @@ The personal list shows all territories currently attributed to the member as a 
 - **Territory number** and **type badge** (color-coded)
 - **Quantity label** — e.g., *42 households*, *12 phones*, *8 businesses*
 - **Status badge** — On time / due soon / overdue
+- **Assignment type indicator** — A pill with an icon appears for *Phones* (phone icon) and *Distribution campaign* (megaphone icon) assignments, so the publisher can tell at a glance how the territory is meant to be worked. *Door to door* — the default — shows no extra indicator. This mirrors the watermark on the printed territory card.
 - **Due date** — Displayed as relative time
 - **PDF download** — Download the territory card directly from the list
 
@@ -39,7 +40,7 @@ Clicking a territory opens a detail page with two tabs:
   - PDF download button for offline use
 - **Map** — Full-width interactive Google Map with markers for each address (when configured). Shows a consent banner before loading the map. If no API key is set, a message indicates the map is unavailable. Markers use the same blue check pin as the admin views (see [Map markers](#map-markers)).
 
-Assignment info (start date, return date with relative time, status) is shown above the tabs.
+Assignment info (start date, return date with relative time, status, and the assignment-type pill for *Phones* / *Distribution campaign*) is shown above the tabs.
 
 Members only ever see territories they currently have an active assignment for.
 
@@ -154,6 +155,8 @@ The *Assignment type* field offers:
 - **Door to door** — Standard territory assignment
 - **Phones** — Phone witnessing assignment
 - **Distribution campaign** — Special campaign assignment (e.g. memorial invitations)
+
+The assignment type is surfaced in three places so the publisher always knows how to approach the territory: as a watermark on the printed territory card, as a pill (with a phone or megaphone icon) on the publisher's `/me/territories` list cards, and again on the territory detail page. *Door to door* is the default and shows no extra indicator in any of these places.
 
 ### Overdue tracking
 

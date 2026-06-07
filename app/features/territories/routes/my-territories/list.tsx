@@ -6,6 +6,7 @@ import {
   getUserTerritoriesWithDetails,
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
+import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -90,13 +91,14 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
                   className="flex items-center gap-3 px-4 pt-4 pb-0 transition-colors hover:bg-muted/30"
                 >
                   <div className="flex flex-1 flex-col gap-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-display font-semibold text-lg">
                         {m.territory_doc_title({ name: t.territory.number })}
                       </span>
                       <Badge variant={statusVariant[t.status]} className="text-[10px]">
                         {statusLabel(t.status)}
                       </Badge>
+                      <AttributionKindBadge type={t.type} className="text-[10px]" />
                     </div>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
                       <span>{territoryTypeLabel(t.territory.type)}</span>
