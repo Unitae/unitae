@@ -79,9 +79,36 @@ describe('closestTerritoryPoint', () => {
       {
         latitude: null,
         longitude: null,
-        buildings: [{ latitude: 48.86, lng: 2.36 } as never, { latitude: 48.857, longitude: 2.353 }],
+        buildings: [
+          // Two valid buildings — the one farther from origin (48.95)
+          // should lose to the closer one (48.857).
+          { latitude: 48.95, longitude: 2.5 },
+          { latitude: 48.857, longitude: 2.353 },
+        ],
       },
     ])
     expect(point).toEqual({ lat: 48.857, lng: 2.353 })
+  })
+
+  it('rejects NaN coordinates as if they were null', () => {
+    const point = closestTerritoryPoint(origin, [
+      {
+        latitude: Number.NaN,
+        longitude: Number.NaN,
+        buildings: [{ latitude: 48.857, longitude: 2.353 }],
+      },
+    ])
+    expect(point).toEqual({ lat: 48.857, lng: 2.353 })
+  })
+
+  it('rejects Infinity coordinates', () => {
+    const point = closestTerritoryPoint(origin, [
+      {
+        latitude: Number.POSITIVE_INFINITY,
+        longitude: 2.353,
+        buildings: [],
+      },
+    ])
+    expect(point).toBeNull()
   })
 })

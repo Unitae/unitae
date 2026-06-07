@@ -59,13 +59,17 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const selectors = computeFilters(url.searchParams)
     const search = url.searchParams.get('search') ?? ''
     const intent = classifySearch(search)
-    const sort = sortFromUrl(url, ['number', 'proximity'], 'number')
 
     let geocodeResult: GeocodeResult | null = null
     if (intent.geoQuery != null) {
       geocodeResult = await geocode(intent.geoQuery)
     }
-    const proximityActive = geocodeResult != null && sort !== 'number'
+    // When the geocode hits, default the sort to `proximity` so a typed
+    // address is ranked geographically by default. The user can still flip
+    // to `number` via the Select — `sortFromUrl` whitelists either value.
+    const defaultSort = geocodeResult != null ? 'proximity' : 'number'
+    const sort = sortFromUrl(url, ['number', 'proximity'], defaultSort)
+    const proximityActive = geocodeResult != null && sort === 'proximity'
 
     const proximityArgs =
       proximityActive && geocodeResult != null
@@ -100,7 +104,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
       territories: result.territories,
       pagination: result.pagination,
       canManageTerritories,
-      geocodeResult: proximityActive ? geocodeResult : null,
+      // Banner shows whenever the geocode hit; distance column / partition
+      // are separately gated on `proximityActive`.
+      geocodeResult,
+      proximityActive,
       geocodeNotice,
       distances: distancesByTerritoryId,
       withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
@@ -117,6 +124,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
     canManageTerritories,
     zips,
     geocodeResult,
+    proximityActive,
     geocodeNotice,
     distances,
     withoutCoordsCount,
@@ -127,7 +135,6 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
   const fromQuery = searchParams.toString()
   const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
   const chips = buildTerritoryFilterChips(searchParams)
-  const proximityActive = geocodeResult != null
   const colSpan = proximityActive ? 6 : 5
   // Index of the first item in this page that falls in the "without coords"
   // partition, so we can insert a divider row before it. -1 when the whole
@@ -184,7 +191,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
       <ActiveTerritoryFilters chips={chips} />
       <GeocodeNotice notice={geocodeNotice} />
-      {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
+      {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <TerritoryFilters
         zips={zips}
         showAccess

@@ -108,6 +108,80 @@ describe('geocode', () => {
     )
   })
 
+  it('forwards the configured API key (not the Redis cache key) to Google', async () => {
+    process.env.GOOGLE_MAPS_API_KEY = 'real-api-key'
+    mockGeocode.mockResolvedValue({
+      data: {
+        status: Status.OK,
+        results: [
+          {
+            formatted_address: '12 Rue de la Paix',
+            geometry: { location: { lat: 48.87, lng: 2.33 }, location_type: 'ROOFTOP' },
+            place_id: 'p',
+          },
+        ],
+      },
+    })
+
+    const { geocode } = await import('./geocoder.server')
+    await geocode('12 rue de la Paix')
+
+    expect(mockGeocode.mock.calls[0]?.[0]?.params?.key).toBe('real-api-key')
+  })
+
+  it('falls back through a malformed cache entry to the API', async () => {
+    process.env.GOOGLE_MAPS_API_KEY = 'test-key'
+    mockGet.mockResolvedValue('{not-valid-json')
+    mockGeocode.mockResolvedValue({
+      data: {
+        status: Status.OK,
+        results: [
+          {
+            formatted_address: 'X',
+            geometry: { location: { lat: 1, lng: 2 }, location_type: 'ROOFTOP' },
+            place_id: 'x',
+          },
+        ],
+      },
+    })
+
+    const { geocode } = await import('./geocoder.server')
+    const result = await geocode('rue x')
+    expect(result?.formatted).toBe('X')
+    expect(mockGeocode).toHaveBeenCalled()
+  })
+
+  it('does not cache non-OK statuses (treats REQUEST_DENIED as transient)', async () => {
+    process.env.GOOGLE_MAPS_API_KEY = 'test-key'
+    mockGeocode.mockResolvedValue({
+      data: { status: Status.REQUEST_DENIED, results: [], error_message: 'bad key' },
+    })
+
+    const { geocode } = await import('./geocoder.server')
+    expect(await geocode('rue x')).toBeNull()
+    expect(mockSet).not.toHaveBeenCalled()
+  })
+
+  it('coerces unknown Google `location_type` to OTHER', async () => {
+    process.env.GOOGLE_MAPS_API_KEY = 'test-key'
+    mockGeocode.mockResolvedValue({
+      data: {
+        status: Status.OK,
+        results: [
+          {
+            formatted_address: 'Plus Code Land',
+            geometry: { location: { lat: 0, lng: 0 }, location_type: 'PLUS_CODE' },
+            place_id: 'pc',
+          },
+        ],
+      },
+    })
+
+    const { geocode } = await import('./geocoder.server')
+    const result = await geocode('plus code land')
+    expect(result?.locationType).toBe('OTHER')
+  })
+
   it('caches a miss as the empty sentinel and returns null', async () => {
     process.env.GOOGLE_MAPS_API_KEY = 'test-key'
     mockGeocode.mockResolvedValue({

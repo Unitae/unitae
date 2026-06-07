@@ -93,13 +93,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const search = url.searchParams.get('search') ?? ''
     const intent = classifySearch(search)
-    const sort = sortFromUrl(url, ['number', 'proximity'], 'number')
 
     let geocodeResult: GeocodeResult | null = null
     if (intent.geoQuery != null) {
       geocodeResult = await geocode(intent.geoQuery)
     }
-    const proximityActive = geocodeResult != null && sort !== 'number'
+    const defaultSort = geocodeResult != null ? 'proximity' : 'number'
+    const sort = sortFromUrl(url, ['number', 'proximity'], defaultSort)
+    const proximityActive = geocodeResult != null && sort === 'proximity'
 
     const proximityArgs =
       proximityActive && geocodeResult != null
@@ -131,7 +132,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       territories: result.territories,
       pagination: result.pagination,
       canManageTerritories,
-      geocodeResult: proximityActive ? geocodeResult : null,
+      geocodeResult,
+      proximityActive,
       geocodeNotice,
       distances: distancesByTerritoryId,
       withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
@@ -147,6 +149,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
     territories,
     zips,
     geocodeResult,
+    proximityActive,
     geocodeNotice,
     distances,
     withoutCoordsCount,
@@ -155,7 +158,6 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
   } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildTerritoryFilterChips(searchParams)
-  const proximityActive = geocodeResult != null
   const dividerIndex = proximityActive ? territories.findIndex(t => distances[t.id] == null) : -1
   const baseCol = 5
   const colSpan = proximityActive ? baseCol + 1 : baseCol
@@ -198,7 +200,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
       />
       <ActiveTerritoryFilters chips={chips} />
       <GeocodeNotice notice={geocodeNotice} />
-      {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
+      {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <TerritoryFilters
         zips={zips}
         showZip

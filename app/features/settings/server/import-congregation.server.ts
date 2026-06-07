@@ -900,6 +900,9 @@ export async function importBuildings(
     })
 
     const data = {
+      // Refresh `streetNormalized` on both create and update so legacy rows
+      // that pre-date the normalized column get backfilled when re-imported.
+      streetNormalized: stripDiacritics(record.street),
       latitude: record.latitude,
       longitude: record.longitude,
       active: record.active,
@@ -918,7 +921,6 @@ export async function importBuildings(
         data: {
           number: record.number,
           street: record.street,
-          streetNormalized: stripDiacritics(record.street),
           zip: record.zip,
           ...data,
           congregationId,

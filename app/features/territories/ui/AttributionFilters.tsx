@@ -6,7 +6,6 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import * as m from '~/i18n/paraglide/messages'
 import type { SortMode } from '~/shared/utils/pagination.server'
 import { Button } from '~/shared/ui/button'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { cn } from '~/shared/utils/utils'
 import SearchInputWithHelp from './SearchInputWithHelp'
@@ -100,7 +99,20 @@ export default function AttributionFilters({
           </Select>
         )}
 
-        <div className="contents max-sm:hidden">{advancedSelects}</div>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="justify-between sm:hidden"
+          aria-expanded={advancedOpen}
+          onClick={() => setAdvancedOpen(o => !o)}
+        >
+          <span className="flex items-center gap-2">
+            <SlidersHorizontal className="size-4" />
+            {m.territories_filter_advanced()}
+          </span>
+          <ChevronDown className={cn('size-4 transition-transform', advancedOpen && 'rotate-180')} />
+        </Button>
 
         <Button type="submit" variant="outline" size="sm" className="gap-1.5">
           <Search className="size-4" />
@@ -108,18 +120,12 @@ export default function AttributionFilters({
         </Button>
       </div>
 
-      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="sm:hidden">
-        <CollapsibleTrigger asChild>
-          <Button type="button" variant="outline" size="sm" className="w-full justify-between">
-            <span className="flex items-center gap-2">
-              <SlidersHorizontal className="size-4" />
-              {m.territories_filter_advanced()}
-            </span>
-            <ChevronDown className={cn('size-4 transition-transform', advancedOpen && 'rotate-180')} />
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="mt-1 flex flex-col gap-2">{advancedSelects}</CollapsibleContent>
-      </Collapsible>
+      {/* Render the advanced Selects only ONCE so Radix doesn't inject
+          duplicate hidden form inputs. Visible inline on `sm+`; on mobile
+          its visibility is toggled by `advancedOpen`. */}
+      <div className={cn('flex flex-wrap gap-2 max-sm:flex-col', !advancedOpen && 'max-sm:hidden')}>
+        {advancedSelects}
+      </div>
     </Form>
   )
 }

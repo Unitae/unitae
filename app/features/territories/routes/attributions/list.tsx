@@ -73,13 +73,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const search = url.searchParams.get('search') ?? ''
     const intent = classifySearch(search)
-    const sort = sortFromUrl(url, ['date', 'proximity'], 'date')
 
     let geocodeResult: GeocodeResult | null = null
     if (intent.geoQuery != null) {
       geocodeResult = await geocode(intent.geoQuery)
     }
-    const proximityActive = geocodeResult != null && sort !== 'date'
+    // Auto-flip to proximity sort when the geocode hit so a typed address is
+    // ranked geographically by default. User can flip back via the Select.
+    const defaultSort = geocodeResult != null ? 'proximity' : 'date'
+    const sort = sortFromUrl(url, ['date', 'proximity'], defaultSort)
+    const proximityActive = geocodeResult != null && sort === 'proximity'
 
     const proximityArgs =
       proximityActive && geocodeResult != null
@@ -116,7 +119,8 @@ export function loader({ request, context }: Route.LoaderArgs) {
       groups,
       phoneTypeActive,
       theocraticYear,
-      geocodeResult: proximityActive ? geocodeResult : null,
+      geocodeResult,
+      proximityActive,
       geocodeNotice,
       distances: distancesByAttributionId,
       withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
@@ -136,6 +140,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
     phoneTypeActive,
     canViewPublisher,
     geocodeResult,
+    proximityActive,
     geocodeNotice,
     distances,
     withoutCoordsCount,
@@ -144,7 +149,6 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
   } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildAttributionFilterChips(searchParams, { groups })
-  const proximityActive = geocodeResult != null
   const wholePageWithoutCoords = proximityActive && pagination.offset >= withCoordsCount && attributions.length > 0
   // Proximity sort already partitioned/ordered the rows server-side; the
   // status-priority client sort below is skipped in that mode so the distance
@@ -220,7 +224,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
 
       <ActiveTerritoryFilters chips={chips} />
       <GeocodeNotice notice={geocodeNotice} />
-      {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
+      {geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <AttributionFilters
         groups={groups}
         phoneTypeActive={phoneTypeActive}
