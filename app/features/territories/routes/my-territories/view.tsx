@@ -1,7 +1,6 @@
 import { AdvancedMarker, Map as GoogleMap, APIProvider as GoogleMapApiProvider } from '@vis.gl/react-google-maps'
 import { Download, MapPin } from 'lucide-react'
 import { redirect } from 'react-router'
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { aggregateEntrance } from '~/features/territories/server/buildings.server'
 import {
   computeStatus,
@@ -9,6 +8,7 @@ import {
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
 
+import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 import { EntranceMarkerPin } from '~/features/territories/ui/EntranceMarkerPin'
 import { TerritoryEntranceCard } from '~/features/territories/ui/TerritoryEntranceCard'
 import * as m from '~/i18n/paraglide/messages'
@@ -78,16 +78,6 @@ function statusLabel(status: TerritoryStatus): string {
   return m.dashboard_territory_overdue()
 }
 
-function attributionTypeLabel(type: TerritoryAttributionKind): string | null {
-  if (type === TerritoryAttributionKind.Campaign) return m.attributions_type_campaign()
-  if (type === TerritoryAttributionKind.Phone) return m.attributions_type_phone()
-  return null
-}
-
-function attributionTypeVariant(type: TerritoryAttributionKind): 'info' | 'success' {
-  return type === TerritoryAttributionKind.Phone ? 'success' : 'info'
-}
-
 export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
   const { territory, entrances, attribution, phoneTypeActive, mapTabActive, googleMaps } = loaderData
 
@@ -109,9 +99,7 @@ export default function MyTerritoryView({ loaderData }: Route.ComponentProps) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <Badge variant={statusVariant[attribution.status]}>{statusLabel(attribution.status)}</Badge>
-        {attributionTypeLabel(attribution.type) != null && (
-          <Badge variant={attributionTypeVariant(attribution.type)}>{attributionTypeLabel(attribution.type)}</Badge>
-        )}
+        <AttributionKindBadge type={attribution.type} />
         <span className="text-muted-foreground">
           {m.my_territories_attributed_on({ date: formatAbsoluteDate(attribution.startDate) })}
         </span>

@@ -1,12 +1,12 @@
 import { ChevronRight, Download, MapPin } from 'lucide-react'
 import { Link } from 'react-router'
 
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
   getUserTerritoriesWithDetails,
   type TerritoryStatus,
 } from '~/features/territories/server/my-territories.server'
+import { AttributionKindBadge } from '~/features/territories/ui/AttributionKindBadge'
 
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -43,16 +43,6 @@ function statusLabel(status: TerritoryStatus): string {
   if (status === 'on-time') return m.dashboard_territory_on_time()
   if (status === 'due-soon') return m.dashboard_territory_due_soon()
   return m.dashboard_territory_overdue()
-}
-
-function attributionTypeLabel(type: TerritoryAttributionKind): string | null {
-  if (type === TerritoryAttributionKind.Campaign) return m.attributions_type_campaign()
-  if (type === TerritoryAttributionKind.Phone) return m.attributions_type_phone()
-  return null
-}
-
-function attributionTypeVariant(type: TerritoryAttributionKind): 'info' | 'success' {
-  return type === TerritoryAttributionKind.Phone ? 'success' : 'info'
 }
 
 function territoryTypeLabel(type: string): string {
@@ -108,11 +98,7 @@ export default function MyTerritoriesList({ loaderData }: Route.ComponentProps) 
                       <Badge variant={statusVariant[t.status]} className="text-[10px]">
                         {statusLabel(t.status)}
                       </Badge>
-                      {attributionTypeLabel(t.type) != null && (
-                        <Badge variant={attributionTypeVariant(t.type)} className="text-[10px]">
-                          {attributionTypeLabel(t.type)}
-                        </Badge>
-                      )}
+                      <AttributionKindBadge type={t.type} className="text-[10px]" />
                     </div>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-muted-foreground text-xs">
                       <span>{territoryTypeLabel(t.territory.type)}</span>
