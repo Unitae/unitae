@@ -4,12 +4,16 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
-type Props = {
+type AttributionKindBadgeProps = {
   type: TerritoryAttributionKind
   className?: string
 }
 
-export function AttributionKindBadge({ type, className }: Props) {
+export function AttributionKindBadge({ type, className }: AttributionKindBadgeProps) {
+  if (type === TerritoryAttributionKind.Default) {
+    return null
+  }
+
   if (type === TerritoryAttributionKind.Phone) {
     return (
       <Badge variant="secondary" className={className}>
