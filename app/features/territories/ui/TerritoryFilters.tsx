@@ -1,4 +1,4 @@
-import { ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
+import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Form, useSearchParams } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
@@ -116,9 +116,10 @@ export default function TerritoryFilters({
       <div className="flex flex-wrap gap-2">
         {/* Always-visible row: search + sort + submit + (mobile) advanced toggle. */}
         {showSearch && <SearchInputWithHelp defaultValue={params.get('search') ?? undefined} />}
-        {showSort && sortOptions.length > 1 && (
+        {showSort && (
           <Select name="sort" defaultValue={sortValue}>
-            <SelectTrigger className="max-sm:flex-1">
+            <SelectTrigger className="gap-1.5 max-sm:flex-1">
+              <ArrowUpDown className="size-3.5 text-muted-foreground" />
               <SelectValue placeholder={m.territories_filter_sort_label()} />
             </SelectTrigger>
             <SelectContent>

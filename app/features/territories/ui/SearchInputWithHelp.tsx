@@ -27,12 +27,15 @@ export default function SearchInputWithHelp({ defaultValue }: SearchInputWithHel
   ]
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
+  // Once the user has typed anything the placeholder examples have served
+  // their purpose — never resume rotation, even after they clear the field.
+  const [userTyped, setUserTyped] = useState(false)
 
   useEffect(() => {
-    if (paused) return
+    if (paused || userTyped) return
     const id = setInterval(() => setIndex(i => (i + 1) % examples.length), ROTATION_INTERVAL_MS)
     return () => clearInterval(id)
-  }, [paused, examples.length])
+  }, [paused, userTyped, examples.length])
 
   return (
     <div className="relative max-sm:flex-1">
@@ -43,6 +46,7 @@ export default function SearchInputWithHelp({ defaultValue }: SearchInputWithHel
         placeholder={examples[index]}
         defaultValue={defaultValue}
         onFocus={() => setPaused(true)}
+        onInput={() => setUserTyped(true)}
       />
       <Popover>
         <PopoverTrigger asChild>
@@ -58,7 +62,13 @@ export default function SearchInputWithHelp({ defaultValue }: SearchInputWithHel
         </PopoverTrigger>
         <PopoverContent align="end" className="text-sm">
           <p className="mb-2 font-medium">{m.territories_filter_help_title()}</p>
-          <p className="text-muted-foreground leading-relaxed">{m.territories_filter_help_body()}</p>
+          <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+            <li>{m.territories_filter_help_item_name()}</li>
+            <li>{m.territories_filter_help_item_number()}</li>
+            <li>{m.territories_filter_help_item_address()}</li>
+            <li>{m.territories_filter_help_item_proximity()}</li>
+          </ul>
+          <p className="mt-2 text-muted-foreground text-xs">{m.territories_filter_help_disclaimer()}</p>
         </PopoverContent>
       </Popover>
     </div>
