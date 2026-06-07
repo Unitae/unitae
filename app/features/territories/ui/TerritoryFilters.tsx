@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from 'lucide-react'
+import { ChevronDown, Search, SlidersHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import { Form, useSearchParams } from 'react-router'
 import type { Prisma } from '~/database/generated/client'
@@ -10,6 +10,7 @@ import type { SortMode } from '~/shared/utils/pagination.server'
 import { Button } from '~/shared/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/shared/ui/collapsible'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { cn } from '~/shared/utils/utils'
 import SearchInputWithHelp from './SearchInputWithHelp'
 
 interface TerritoryFiltersProps {
@@ -138,7 +139,7 @@ export default function TerritoryFilters({
         <div className="contents max-sm:hidden">{advancedSelects}</div>
 
         <Button type="submit" variant="outline" size="sm" className="gap-1.5">
-          <SlidersHorizontal className="size-4" />
+          <Search className="size-4" />
           {m.territories_filter_submit()}
         </Button>
       </div>
@@ -146,8 +147,12 @@ export default function TerritoryFilters({
       {/* Mobile-only advanced filters: same Selects, just toggleable. */}
       <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen} className="sm:hidden">
         <CollapsibleTrigger asChild>
-          <Button type="button" variant="ghost" size="sm" className="w-full justify-start text-muted-foreground text-xs">
-            {m.territories_filter_advanced()}
+          <Button type="button" variant="outline" size="sm" className="w-full justify-between">
+            <span className="flex items-center gap-2">
+              <SlidersHorizontal className="size-4" />
+              {m.territories_filter_advanced()}
+            </span>
+            <ChevronDown className={cn('size-4 transition-transform', advancedOpen && 'rotate-180')} />
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-1 flex flex-col gap-2">{advancedSelects}</CollapsibleContent>

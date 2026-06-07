@@ -1822,7 +1822,7 @@
     "territories_filter_distance_header": "Distance",
     "territories_filter_distance_unknown_tooltip": "No geocoded address",
     "territories_filter_proximity_banner": "Results near",
-    "territories_filter_proximity_change": "Change point",
+    "territories_filter_proximity_change": "Clear proximity",
     "territories_filter_proximity_did_you_mean": "Did you mean:",
     "territories_filter_no_coordinates_group": "Without coordinates",
     "territories_filter_no_coordinates_count": "Without coordinates ({count})",

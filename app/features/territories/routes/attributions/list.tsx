@@ -237,7 +237,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
               <TableRow>
                 <TableHead>{m.attributions_table_checkout_date()}</TableHead>
                 {proximityActive && (
-                  <TableHead className="text-center">{m.territories_filter_distance_header()}</TableHead>
+                  <TableHead className="text-right">{m.territories_filter_distance_header()}</TableHead>
                 )}
                 <TableHead className="text-center">{m.attributions_table_number()}</TableHead>
                 <TableHead className="text-center">{m.attributions_table_publisher()}</TableHead>
@@ -270,11 +270,8 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                         </span>
                       </TableCell>
                       {proximityActive && (
-                        <TableCell className="text-center">
-                          <span
-                            className="text-muted-foreground text-sm"
-                            title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
-                          >
+                        <TableCell className="text-right tabular-nums text-foreground/80">
+                          <span title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}>
                             {distance ?? '—'}
                           </span>
                         </TableCell>

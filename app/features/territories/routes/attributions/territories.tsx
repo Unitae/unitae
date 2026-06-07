@@ -217,7 +217,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
             <TableRow>
               <TableHead className="w-[150px]">{m.territories_table_number()}</TableHead>
               {proximityActive && (
-                <TableHead className="w-[120px] text-center">{m.territories_filter_distance_header()}</TableHead>
+                <TableHead className="w-[120px] text-right">{m.territories_filter_distance_header()}</TableHead>
               )}
               <TableHead className="w-[150px] text-center">{m.territories_table_type()}</TableHead>
               <TableHead className="w-[150px] text-center">{m.territories_table_content()}</TableHead>
@@ -235,11 +235,8 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                   <TableRow>
                     <TableCell>{territory.number}</TableCell>
                     {proximityActive && (
-                      <TableCell className="text-center">
-                        <span
-                          className="text-muted-foreground text-sm"
-                          title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
-                        >
+                      <TableCell className="text-right tabular-nums text-foreground/80">
+                        <span title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}>
                           {distance ?? '—'}
                         </span>
                       </TableCell>

@@ -33,10 +33,10 @@ export default function ProximityBanner({ geocode }: ProximityBannerProps) {
   return (
     <section
       aria-label={m.territories_filter_proximity_banner()}
-      className="rounded-lg border bg-muted/40 px-4 py-3 text-sm"
+      className="rounded-md border border-l-4 border-l-blue-500 bg-blue-50/60 px-4 py-3 text-sm dark:bg-blue-950/30"
     >
       <div className="flex flex-wrap items-center gap-2">
-        <MapPin className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+        <MapPin className="size-4 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true" />
         <span className="text-muted-foreground">{m.territories_filter_proximity_banner()}</span>
         <span className="font-medium">{geocode.formatted}</span>
         <Link
@@ -52,7 +52,12 @@ export default function ProximityBanner({ geocode }: ProximityBannerProps) {
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <span className="text-muted-foreground text-xs">{m.territories_filter_proximity_did_you_mean()}</span>
           {geocode.alternates.map(alternate => (
-            <Badge key={alternate.placeId} variant="outline" asChild className="text-xs">
+            <Badge
+              key={alternate.placeId}
+              variant="outline"
+              asChild
+              className="text-muted-foreground text-xs hover:text-foreground"
+            >
               <Link to={alternateTo(alternate.formatted)}>{alternate.formatted}</Link>
             </Badge>
           ))}

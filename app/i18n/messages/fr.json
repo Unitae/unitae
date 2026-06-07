@@ -1825,7 +1825,7 @@
     "territories_filter_distance_header": "Distance",
     "territories_filter_distance_unknown_tooltip": "Aucune adresse géolocalisée",
     "territories_filter_proximity_banner": "Résultats à proximité de",
-    "territories_filter_proximity_change": "Modifier le point",
+    "territories_filter_proximity_change": "Effacer la proximité",
     "territories_filter_proximity_did_you_mean": "Vouliez-vous dire :",
     "territories_filter_no_coordinates_group": "Sans coordonnées",
     "territories_filter_no_coordinates_count": "Sans coordonnées ({count})",

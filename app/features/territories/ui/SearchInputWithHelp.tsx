@@ -35,19 +35,25 @@ export default function SearchInputWithHelp({ defaultValue }: SearchInputWithHel
   }, [paused, examples.length])
 
   return (
-    <div className="flex items-center gap-1 max-sm:flex-1">
+    <div className="relative max-sm:flex-1">
       <Input
         type="text"
         name="search"
-        className="w-auto max-sm:flex-1"
+        className="w-auto pr-9 max-sm:flex-1"
         placeholder={examples[index]}
         defaultValue={defaultValue}
         onFocus={() => setPaused(true)}
       />
       <Popover>
         <PopoverTrigger asChild>
-          <Button type="button" variant="ghost" size="icon" aria-label={m.territories_filter_help_aria()}>
-            <Info className="size-4 text-muted-foreground" />
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={m.territories_filter_help_aria()}
+            className="absolute inset-y-0 right-0 my-auto h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <Info className="size-4" />
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="text-sm">
