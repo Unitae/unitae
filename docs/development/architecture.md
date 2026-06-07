@@ -214,6 +214,81 @@ When not set, on-screen interactive maps are hidden, the PDF map page is skipped
 - Vite's SSR pipeline must bundle `@googlemaps/markerclusterer` (it ships a CommonJS main entry) — `vite.config.ts` has it in `ssr.noExternal`.
 - The editor's reassignment flow validates source territory + entrance link before disconnect/connect, runs everything in a single Prisma transaction, and audits each move as `EntranceReassigned` (see [Audit Logging](#audit-logging)).
 
+## Territory Search & Geocoding
+
+The shared filter row on `/territories`, `/territories/attributions`, `/territories/attributions/new/available-territories`, `/territories/buildings` and `/territories/split-tool/*` is a single search input with three resolution paths: text-only, address-or-place auto-detect, and `@`-forced proximity. Each path produces a stable URL query (`?search=`, `?sort=`, `?page=`) so loaders are pure functions of the URL.
+
+### Diacritic-folded text search
+
+Names and street names are matched against **pre-normalized** lowercase + diacritic-stripped copies of the original columns, so runtime queries stay in pure Prisma `contains` (no `unaccent` extension, no raw SQL):
+
+- `Member.firstnameNormalized`, `Member.lastnameNormalized`, `Building.streetNormalized` are NOT NULL with `''` default.
+- Maintained at write-time by `app/shared/utils/strip-diacritics.ts` (`stripDiacritics(s)` = `s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()`) — called from every write path that touches the source columns: `createMember`, `updateMember`, `anonymizeMember`, `linkMemberToAccount`, `updateAccount`, `createBuilding`, `editBuilding`, `import-congregation`, `import-open-data`, and the marketing seed.
+- The migration `20260606000000_add_normalized_search_columns` backfills pre-existing rows in pure SQL via Postgres `translate(lower(...), 'àáâã…', 'aaaa…')` — no `unaccent` extension required, runs cleanly on managed Postgres without superuser. The SQL/JS parity of the translate map is locked by `backfill-parity.integration.test.ts`.
+- Composite B-tree indexes `(congregationId, *Normalized)` match the RLS-scoped `where` shape so filter queries stay on the index.
+
+### Address parsing
+
+`app/features/territories/server/address-regex.ts` exposes `addressRegex = /^(\d+\s*(bis|ter|quater)?)\s+(.+)$/` — splits `12 bis Rue de la Paix` into `[number, repeater?, street]`. Used by all three filter files (`territory-filters`, `attribution-filters`, `building-filters`) to split a leading number from the street so each piece can be matched against `Building.number` and `streetNormalized` separately, while still allowing a plain text search to fall back to `streetNormalized.contains` only.
+
+### Server-side geocoder
+
+`app/shared/infra/geocoder.server.ts` wraps `@googlemaps/google-maps-services-js`:
+
+- `geocode(query: string): Promise<GeocodeResult | null>` returns `null` for empty input, missing `GOOGLE_MAPS_API_KEY`, network errors, and non-OK Google statuses (`REQUEST_DENIED`, `OVER_QUERY_LIMIT`, …). Non-OK statuses are logged at error level and **not** cached.
+- Results (including `ZERO_RESULTS`) are cached in Redis under `geocode:v1:<stripDiacritics(query)>` with a 90-day TTL. Empty-string sentinel for misses.
+- `Client` instance is lazy so test mocks can install before construction.
+- 5-second request timeout via `params.timeout`.
+- `locationType` is normalized at the boundary — unknown Google enum values (e.g. a future `PLUS_CODE`) coerce to `'OTHER'` rather than corrupting the union type.
+
+### Search intent classifier
+
+`app/features/territories/server/search-intent.server.ts` decides whether to spend an API call:
+
+```ts
+classifySearch(raw): { freeText: string; geoQuery: string | null; forced: boolean }
+```
+
+- A leading `@` forces proximity (`forced: true`, `geoQuery = trimmed-after-@`); `@` alone returns `geoQuery: null, forced: true` so the UI can prompt for a place.
+- Otherwise the geocoder is only called when the query has ≥3 tokens, contains a French street word (`rue|avenue|boulevard|place|chemin|impasse|allee|cours|quai|route|square|voie|pont`), or matches the address regex. Short ambiguous strings (`12`, `D012`, single-token surnames) stay text-only.
+
+### Distance ranking and partitioning
+
+`app/features/territories/server/proximity-sort.server.ts`:
+
+- `closestTerritoryPoint(origin, entrances)` returns the closest `BuildingEntrance.{latitude,longitude}` falling back to the parent `Building.{latitude,longitude}`. `Number.isFinite` guards reject NaN coords from open-data CSV imports.
+- `paginateByProximity(items, origin, getCoords, url)` Haversine-sorts items with coords ascending, appends items without coords in their original order, and paginates the combined list using `paginationFromUrl`.
+- `app/shared/utils/distance.ts` exposes `haversineMeters(a, b)` and `formatDistance(meters, locale)` — the formatter cache is keyed per locale so the loader can pass `getLocale()` from Paraglide.
+
+The two pagination service functions accept an optional `proximity: { origin: LatLng }`:
+
+- `findTerritoriesWithDetailsPaginated(db, selectors, url, congregationId, proximity?)` and `findAvailableTerritoriesPaginated(...)` fetch every matching row with the full `entrances → buildings` include shape, then partition; without `proximity` they fall back to standard `skip`/`take` Prisma pagination.
+- `findActiveAttributionsPaginated(db, selectors, url, congregationId, proximity?)` does the same for attributions, joining through `Attribution.territory.entrances.buildings` to derive coords.
+
+### Loader wiring
+
+The three list routes (`territory/list.tsx`, `attributions/list.tsx`, `attributions/territories.tsx`) follow the same shape:
+
+1. `classifySearch(?search)` → `intent`
+2. If `intent.geoQuery != null`, call `geocode(intent.geoQuery)` → `geocodeResult`
+3. Default sort = `'proximity'` when `geocodeResult != null`, else `'number'` or `'date'` (per-route default); `sortFromUrl` clamps to the per-route allowlist
+4. `proximityActive = geocodeResult != null && sort === 'proximity'`
+5. `geocodeNotice` is the discriminated union `{ kind: 'failed', query } | { kind: 'missing-query' }` rendered by the `GeocodeNotice` component above the filters
+6. The `ProximityBanner` renders whenever `geocodeResult != null` — even when the user reverted to the default sort — so the resolved address stays visible
+7. The Distance column and the `Sans coordonnées` divider/banner are gated on `proximityActive`
+
+`paginationFromUrl` clamps the page to `[1, max(1, pages)]` so an out-of-range `?page=99` lands on the last page instead of rendering an empty table.
+
+### Mobile filter form
+
+`TerritoryFilters` / `AttributionFilters` render the advanced Selects **exactly once** inside the `<Form>`. Visibility on small screens is a CSS toggle driven by the *Filtres avancés* button — rendering the Selects twice (one copy `max-sm:hidden`, one inside a Collapsible) caused Radix to inject duplicate hidden form inputs, and mobile submissions lost the user's choice to the desktop default. Single-render + CSS-only toggling avoids that whole class of bug.
+
+### Test coverage
+
+- Unit: `stripDiacritics`, `haversineMeters`, `formatDistance`, `classifySearch` (incl. adversarial cases — `@@`, leading whitespace, single-token street words), `paginateByProximity`, `closestTerritoryPoint` (incl. NaN/Infinity), all three filter compute functions, `paginationFromUrl` (incl. clamp), `build-filter-chips`, `geocoder.server` (mocked Redis + Google client — cache hit/miss/malformed, `ZERO_RESULTS`, non-OK status no-cache, API throw, API key forwarding, unknown `location_type` → `OTHER`).
+- Integration (require live DB): `backfill-parity` (SQL ↔ JS map equivalence), `normalized-columns` (write-through for Member create/update/anonymize), `building-normalized-columns` (Building create/edit + import-update path), `proximity-loader` (full Prisma path for both service functions).
+- E2E (Playwright): `territories-search.spec.ts` — search → URL → chip → *Tout effacer*.
+
 ## PDF Generation
 
 All PDF generation runs **server-side only** using `@react-pdf/renderer`. The library references Node.js globals (`process.env`) that are unavailable in the browser — never use `PDFDownloadLink` or `PDFViewer` in client components.

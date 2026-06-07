@@ -38,6 +38,7 @@ See [Display Board](display-board.md) for details.
 Manage the congregation's geographic territories and track assignments to publishers.
 
 - **Personal territory view** — Every member can view their assigned territories at `/me/territories` with HTML entrance cards, PDF download, and interactive map — no special role required
+- **Unified search** — A single search input across every territory list handles publisher names, territory numbers, building addresses, postal codes, and neighbourhoods. Case- and accent-insensitive. Type an address (or `@Bastille`) and, with a Google Maps API key configured, the results are ranked by distance from that point — with a *Distance* column and a *Sans coordonnées* tail for territories with no geocoded address. See [Search and Filtering](territories.md#search-and-filtering)
 - **Territory types** — Door to door, Universities, Businesses, Phones, Hotels
 - **Map-driven territory editing** — When a Google Maps API key is set, managers edit a territory by clicking markers on the map (add green, remove blue, reassign grey) with an in-place address search, marker clustering, and an atomic Save that audits each cross-territory reassignment
 - **Attributions** — Assign territories to publishers with start, end, and late dates

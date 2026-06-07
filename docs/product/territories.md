@@ -43,6 +43,44 @@ Assignment info (start date, return date with relative time, status) is shown ab
 
 Members only ever see territories they currently have an active assignment for.
 
+## Search and Filtering
+
+Every territory list page — the main territory list, the attribution list, the *Available territories* picker shown when assigning a new territory, the prospection list, and the split-tool — shares the same search and filter row.
+
+### One search box, several intents
+
+A single search input recognises what you type:
+
+- **A name** — `Pajot` or `Pajot Jean` matches a publisher's first or last name; the result is the territories that person is currently assigned to (on the attribution list, the matching attributions). Search is case-insensitive and accent-insensitive — `pajot` matches `Päjot`, `dupont` matches `Dupond`.
+- **A territory number** — `D012`, `T-42`, etc.
+- **An address or part of one** — `12 rue de la Paix`, `Rue Mouffetard`, `75011`. Matches the building's number, street, and postal code.
+- **A neighbourhood or place** — `Bastille`, `Montparnasse`. Treated as a place hint when long enough or when prefixed with `@`.
+
+You can also force the *place* interpretation explicitly by prefixing your query with `@`, for example `@Bastille`. Useful for very short place names that would otherwise be read as a publisher name.
+
+The little ⓘ button next to the search input opens a quick-reference popover with these examples.
+
+### Proximity ranking (requires Google Maps)
+
+When you type an address or a place name and a Google Maps API key is configured, Unitae resolves the location and **ranks the matching territories by distance** from that point:
+
+- A confirmation banner shows the resolved address ("Résultats à proximité de 12 Rue de la Paix, 75002 Paris"). If Google returns several possibilities, up to two *Did you mean?* chips appear so you can pick another match in one click. The same banner has an *Effacer la proximité* link to drop the geographic ranking and return to the default sort.
+- A **Distance** column appears with the distance to each territory, right-aligned and formatted in metres or kilometres depending on locale.
+- Territories whose addresses haven't been geo-coded yet are pushed below the ranked rows behind a *Sans coordonnées* divider, so you can still see them but won't mistake them for "the closest". On pages past the boundary, a banner at the top of the table reminds you that you're browsing the un-coord tail.
+- A **sort selector** lets you flip between *Numéro / Date* and *Proximité*. Proximity is preselected the moment Google returns a result.
+
+Geocoded addresses are cached for 90 days — repeating the same search doesn't re-query the API. When no API key is configured, proximity ranking is silently disabled, and a small warning banner explains the fallback (text-only search still works).
+
+### Active filter chips
+
+Whenever you apply a filter (type, postal code, access type, group, status, search, etc.), the current value appears as a chip above the filter row. Each chip shows `Label : value` and a ✕ to drop *just* that filter. The chip body is not clickable — only the ✕ is — so accidentally scanning the row doesn't wipe a filter.
+
+A trailing *Tout effacer* chip clears every filter (including the current page) and returns the list to its default view.
+
+### Mobile
+
+On phones, the *Filtres avancés* button collapses the secondary Selects (postal code, type, access, etc.) so the search input and Submit button stay prominent. A chevron rotates when the panel opens to make the state obvious.
+
 ## Admin Territory View
 
 The admin territory detail page is the read-only counterpart to the editor. It is laid out as stacked cards on the left with the map on the right. On large screens the map sticks to the top of the viewport while the cards scroll past it.

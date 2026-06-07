@@ -47,7 +47,7 @@ All other dependencies (Node.js, PostgreSQL, Redis) are included in the Docker i
 - **Outbound HTTPS** (optional, depending on features used):
   - BANO open data servers — for building address sync
   - Resend API (`api.resend.com`) — for email notifications
-  - Google Maps APIs (`maps.googleapis.com`) — for territory maps
+  - Google Maps APIs (`maps.googleapis.com`) — for territory maps and proximity search geocoding
 
 ## Reverse Proxy
 
