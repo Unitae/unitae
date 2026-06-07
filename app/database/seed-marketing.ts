@@ -24,6 +24,7 @@ import { TerritoryAttributionKind } from '../features/territories/model/territor
 import { TerritoryKind } from '../features/territories/model/territory-kind.type'
 import { Permission } from '../shared/types/permission'
 import { PublisherType } from '../shared/types/publisher-type'
+import { stripDiacritics } from '../shared/utils/strip-diacritics'
 import { PrismaClient } from './generated/client'
 
 const adapter = new PrismaPg({ connectionString: process.env.DB_URL })
@@ -687,6 +688,8 @@ async function main() {
       data: {
         firstname: pub.firstname,
         lastname: pub.lastname,
+        firstnameNormalized: stripDiacritics(pub.firstname),
+        lastnameNormalized: stripDiacritics(pub.lastname),
         isPublisher: true,
         type: pub.type,
         isMale: pub.isMale,
@@ -881,6 +884,7 @@ async function main() {
         data: {
           number: buildingNumber,
           street: streetInfo.street,
+          streetNormalized: stripDiacritics(streetInfo.street),
           zip: streetInfo.zip,
           latitude: coords.latitude,
           longitude: coords.longitude,
