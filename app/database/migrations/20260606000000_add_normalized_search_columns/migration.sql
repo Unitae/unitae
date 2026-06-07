@@ -35,17 +35,17 @@ ALTER TABLE "Building"
 UPDATE "Member"
 SET
   "firstnameNormalized" = translate(lower("firstname"),
-    'àáâãäåçèéêëìíîïñòóôõöøùúûüýÿ',
-    'aaaaaaceeeeiiiinooooooouuuuyy'),
+    'àáâãäåçèéêëìíîïñòóôõöùúûüýÿ',
+    'aaaaaaceeeeiiiinooooouuuuyy'),
   "lastnameNormalized"  = translate(lower("lastname"),
-    'àáâãäåçèéêëìíîïñòóôõöøùúûüýÿ',
-    'aaaaaaceeeeiiiinooooooouuuuyy')
+    'àáâãäåçèéêëìíîïñòóôõöùúûüýÿ',
+    'aaaaaaceeeeiiiinooooouuuuyy')
 WHERE "firstnameNormalized" = '' OR "lastnameNormalized" = '';
 
 UPDATE "Building"
 SET "streetNormalized" = translate(lower("street"),
-  'àáâãäåçèéêëìíîïñòóôõöøùúûüýÿ',
-  'aaaaaaceeeeiiiinooooooouuuuyy')
+  'àáâãäåçèéêëìíîïñòóôõöùúûüýÿ',
+  'aaaaaaceeeeiiiinooooouuuuyy')
 WHERE "streetNormalized" = '';
 
 -- =========================================================================
