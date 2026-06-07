@@ -10,18 +10,19 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
-import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
 import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import {
   currentAccountContext,
   permissionsContext,
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
-import { geocode, type GeocodeResult } from '~/shared/infra/geocoder.server'
+import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
@@ -80,18 +81,19 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const zips = await getZips(db, congregationId)
 
+    const locale = getLocale()
     const distancesByTerritoryId: Record<number, string | null> = {}
     if (proximityActive && 'distances' in result && result.distances != null) {
       for (const territory of result.territories) {
         const distance = result.distances.get(territory)
-        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance)
+        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance, locale)
       }
     }
 
     // Build the failure notice the UI renders above the filters: tells the
     // user *why* proximity didn't kick in, instead of silently degrading to
     // text-only.
-    const geocodeNotice: { kind: 'failed' | 'missing-query'; query?: string } | null =
+    const geocodeNotice: GeocodeNoticeData | null =
       intent.forced && intent.geoQuery == null
         ? { kind: 'missing-query' }
         : intent.geoQuery != null && geocodeResult == null
@@ -232,79 +234,82 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                   <React.Fragment key={territory.id}>
                     {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
                     <TableRow className="group relative cursor-pointer hover:bg-accent/30">
-                    <TableCell>
-                      <Link
-                        to={viewHref}
-                        className="absolute inset-0 z-0"
-                        aria-label={m.territories_view_row_link({ number: territory.number })}
-                      />
-                      <span className="relative font-medium">{territory.number}</span>
-                    </TableCell>
-                    {proximityActive && (
-                      <TableCell className="text-right tabular-nums text-foreground/80">
-                        <span
-                          className="relative"
-                          title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
-                        >
-                          {distance ?? '—'}
+                      <TableCell>
+                        <Link
+                          to={viewHref}
+                          className="absolute inset-0 z-0"
+                          aria-label={m.territories_view_row_link({ number: territory.number })}
+                        />
+                        <span className="relative font-medium">{territory.number}</span>
+                      </TableCell>
+                      {proximityActive && (
+                        <TableCell className="text-right tabular-nums text-foreground/80">
+                          <span
+                            className="relative"
+                            title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
+                          >
+                            {distance ?? '—'}
+                          </span>
+                        </TableCell>
+                      )}
+                      <TableCell className="text-center">
+                        <span className="relative">{territoryTypeLabels[territory.type] ?? territory.type}</span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="relative">{territoryContentLabel(territory.type, territory.entrances)}</span>
+                      </TableCell>
+                      <TableCell>
+                        <span className="relative">
+                          {attribution ? (
+                            <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
+                              {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
+                              {' — '}
+                              {m.territories_assigned_until({
+                                date: attribution.lateDate.toLocaleDateString('fr-FR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                }),
+                              })}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">{m.territories_available()}</span>
+                          )}
                         </span>
                       </TableCell>
-                    )}
-                    <TableCell className="text-center">
-                      <span className="relative">{territoryTypeLabels[territory.type] ?? territory.type}</span>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <span className="relative">{territoryContentLabel(territory.type, territory.entrances)}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="relative">
-                        {attribution ? (
-                          <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
-                            {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
-                            {' — '}
-                            {m.territories_assigned_until({
-                              date: attribution.lateDate.toLocaleDateString('fr-FR', {
-                                day: '2-digit',
-                                month: '2-digit',
-                              }),
-                            })}
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground">{m.territories_available()}</span>
-                        )}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="relative z-10 flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" asChild>
-                          <a
-                            href={`/territories/territory/${territory.id}/pdf`}
-                            title={m.territories_download_pdf_title()}
-                          >
-                            <Download className="size-4" />
-                          </a>
-                        </Button>
-                        {canManageTerritories && (
-                          <>
-                            <Button variant="ghost" size="icon" asChild>
-                              <Link to={`./territory/${territory.id}/edit`} title={m.territories_edit_title_attr()}>
-                                <Pencil className="size-4" />
-                              </Link>
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              asChild
-                              className="text-destructive hover:text-destructive max-sm:hidden"
+                      <TableCell className="text-right">
+                        <div className="relative z-10 flex items-center justify-end gap-1">
+                          <Button variant="ghost" size="icon" asChild>
+                            <a
+                              href={`/territories/territory/${territory.id}/pdf`}
+                              title={m.territories_download_pdf_title()}
                             >
-                              <Link to={`./territory/${territory.id}/delete`} title={m.territories_delete_title_attr()}>
-                                <Trash2 className="size-4" />
-                              </Link>
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
+                              <Download className="size-4" />
+                            </a>
+                          </Button>
+                          {canManageTerritories && (
+                            <>
+                              <Button variant="ghost" size="icon" asChild>
+                                <Link to={`./territory/${territory.id}/edit`} title={m.territories_edit_title_attr()}>
+                                  <Pencil className="size-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                asChild
+                                className="text-destructive hover:text-destructive max-sm:hidden"
+                              >
+                                <Link
+                                  to={`./territory/${territory.id}/delete`}
+                                  title={m.territories_delete_title_attr()}
+                                >
+                                  <Trash2 className="size-4" />
+                                </Link>
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
                     </TableRow>
                   </React.Fragment>
                 )

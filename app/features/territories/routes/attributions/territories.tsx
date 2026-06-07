@@ -1,68 +1,39 @@
 import { ExternalLink, Send } from 'lucide-react'
+import React from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { Permission } from '~/shared/types/permission'
-
-function getTerritoryTypeLabel(type: string): string {
-  const labels: Record<string, () => string> = {
-    [TerritoryKind.Classical]: () => m.territories_type_classical(),
-    [TerritoryKind.Commerces]: () => m.territories_type_commerces(),
-    [TerritoryKind.Phone]: () => m.territories_type_phone(),
-    [TerritoryKind.Hotel]: () => m.territories_type_hotel(),
-    [TerritoryKind.Univ]: () => m.territories_type_university(),
-  }
-  return labels[type]?.() ?? type
-}
-
-function territoryContentLabel(type: string, entrances: { homes: number | null; phones: number | null }[]): string {
-  const count = entrances.length
-  if (type === TerritoryKind.Phone) {
-    const phones = entrances.reduce((s, e) => s + (e.phones ?? 0), 0)
-    return m.territories_content_phones({ count: String(phones) })
-  }
-  if (type === TerritoryKind.Classical || type === TerritoryKind.Univ) {
-    const homes = entrances.reduce((s, e) => s + ((e.homes ?? 0) || (e.phones ?? 0)), 0)
-    return homes > 1
-      ? m.territories_content_homes_other({ count: String(homes) })
-      : m.territories_content_homes_one({ count: String(homes) })
-  }
-  if (type === TerritoryKind.Commerces) {
-    return count > 1
-      ? m.territories_content_commerces_other({ count: String(count) })
-      : m.territories_content_commerces_one({ count: String(count) })
-  }
-  if (type === TerritoryKind.Hotel) {
-    return count > 1
-      ? m.territories_content_hotels_other({ count: String(count) })
-      : m.territories_content_hotels_one({ count: String(count) })
-  }
-  return count > 1
-    ? m.territories_content_entrances_other({ count: String(count) })
-    : m.territories_content_entrances_one({ count: String(count) })
-}
-
-import React from 'react'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
 import { findAvailableTerritoriesPaginated } from '~/features/territories/server/territories.server'
+import { territoryContentLabel } from '~/features/territories/server/territory-content-label'
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
-import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
 import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
-import { geocode, type GeocodeResult } from '~/shared/infra/geocoder.server'
+import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import logger from '~/shared/infra/logger.server'
+import { Permission } from '~/shared/types/permission'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import Pagination from '~/shared/ui/Pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { formatDistance } from '~/shared/utils/distance'
 import { sortFromUrl } from '~/shared/utils/pagination.server'
+
+const territoryTypeLabels: Record<string, string> = {
+  [TerritoryKind.Classical]: m.territories_type_classical(),
+  [TerritoryKind.Commerces]: m.territories_type_commerces(),
+  [TerritoryKind.Phone]: m.territories_type_phone(),
+  [TerritoryKind.Hotel]: m.territories_type_hotel(),
+  [TerritoryKind.Univ]: m.territories_type_university(),
+}
 
 import type { Route } from './+types/territories'
 
@@ -111,15 +82,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     const zips = await getZips(db, congregationId)
 
+    const locale = getLocale()
     const distancesByTerritoryId: Record<number, string | null> = {}
     if (proximityActive && 'distances' in result && result.distances != null) {
       for (const territory of result.territories) {
         const distance = result.distances.get(territory)
-        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance)
+        distancesByTerritoryId[territory.id] = distance == null ? null : formatDistance(distance, locale)
       }
     }
 
-    const geocodeNotice: { kind: 'failed' | 'missing-query'; query?: string } | null =
+    const geocodeNotice: GeocodeNoticeData | null =
       intent.forced && intent.geoQuery == null
         ? { kind: 'missing-query' }
         : intent.geoQuery != null && geocodeResult == null
@@ -243,7 +215,9 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
                         </span>
                       </TableCell>
                     )}
-                    <TableCell className="text-center">{getTerritoryTypeLabel(territory.type)}</TableCell>
+                    <TableCell className="text-center">
+                      {territoryTypeLabels[territory.type] ?? territory.type}
+                    </TableCell>
                     <TableCell className="text-center">
                       {territoryContentLabel(territory.type, territory.entrances)}
                     </TableCell>

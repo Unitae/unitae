@@ -11,13 +11,14 @@ import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFil
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { buildAttributionFilterChips } from '~/features/territories/ui/build-filter-chips'
-import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import GeocodeNotice, { type GeocodeNoticeData } from '~/features/territories/ui/GeocodeNotice'
 import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import * as m from '~/i18n/paraglide/messages'
+import { getLocale } from '~/i18n/paraglide/runtime'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
-import { geocode, type GeocodeResult } from '~/shared/infra/geocoder.server'
+import { type GeocodeResult, geocode } from '~/shared/infra/geocoder.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
@@ -94,15 +95,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const groups = await getGroups(db, congregationId)
     const theocraticYear = getCurrentTheocraticYear()
 
+    const locale = getLocale()
     const distancesByAttributionId: Record<number, string | null> = {}
     if (proximityActive && 'distances' in result && result.distances != null) {
       for (const attribution of result.attributions) {
         const distance = result.distances.get(attribution)
-        distancesByAttributionId[attribution.id] = distance == null ? null : formatDistance(distance)
+        distancesByAttributionId[attribution.id] = distance == null ? null : formatDistance(distance, locale)
       }
     }
 
-    const geocodeNotice: { kind: 'failed' | 'missing-query'; query?: string } | null =
+    const geocodeNotice: GeocodeNoticeData | null =
       intent.forced && intent.geoQuery == null
         ? { kind: 'missing-query' }
         : intent.geoQuery != null && geocodeResult == null
@@ -161,8 +163,8 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
         if (aIsOrphaned && !bIsOrphaned) return -1
         if (!aIsOrphaned && bIsOrphaned) return 1
 
-        const aIsLate = attrA.lateDate == null || attrA.lateDate < new Date()
-        const bIsLate = attrB.lateDate == null || attrB.lateDate < new Date()
+        const aIsLate = attrA.lateDate < new Date()
+        const bIsLate = attrB.lateDate < new Date()
         if (aIsLate && !bIsLate) return -1
         if (!aIsLate && bIsLate) return 1
 

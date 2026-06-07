@@ -25,27 +25,45 @@ export function haversineMeters(a: LatLng, b: LatLng): number {
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
-const metersFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'unit',
-  unit: 'meter',
-  unitDisplay: 'short',
-  maximumFractionDigits: 0,
-})
+// Memoize formatter instances per-locale: `Intl.NumberFormat` is heavy to
+// construct (CLDR lookup), and the call sites render a Distance column per
+// row.
+const metersFormatters = new Map<string, Intl.NumberFormat>()
+const kilometersFormatters = new Map<string, Intl.NumberFormat>()
 
-const kilometersFormatter = new Intl.NumberFormat('fr-FR', {
-  style: 'unit',
-  unit: 'kilometer',
-  unitDisplay: 'short',
-  maximumFractionDigits: 1,
-})
+function getMetersFormatter(locale: string): Intl.NumberFormat {
+  const cached = metersFormatters.get(locale)
+  if (cached != null) return cached
+  const formatter = new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit: 'meter',
+    unitDisplay: 'short',
+    maximumFractionDigits: 0,
+  })
+  metersFormatters.set(locale, formatter)
+  return formatter
+}
+
+function getKilometersFormatter(locale: string): Intl.NumberFormat {
+  const cached = kilometersFormatters.get(locale)
+  if (cached != null) return cached
+  const formatter = new Intl.NumberFormat(locale, {
+    style: 'unit',
+    unit: 'kilometer',
+    unitDisplay: 'short',
+    maximumFractionDigits: 1,
+  })
+  kilometersFormatters.set(locale, formatter)
+  return formatter
+}
 
 /**
- * Formats a distance in meters as a French string. Below 1000m the value is
- * shown in meters (no decimals); from 1km up it shifts to kilometers with one
- * decimal place.
+ * Below 1000m the value is shown in meters (no decimals); from 1km up it
+ * shifts to kilometers with one decimal. Locale controls the decimal/group
+ * separator (e.g. `1,2 km` in `fr-FR`, `1.2 km` in `en-GB`).
  */
-export function formatDistance(meters: number): string {
+export function formatDistance(meters: number, locale = 'fr-FR'): string {
   if (!Number.isFinite(meters) || meters < 0) return ''
-  if (meters < 1000) return metersFormatter.format(Math.round(meters))
-  return kilometersFormatter.format(meters / 1000)
+  if (meters < 1000) return getMetersFormatter(locale).format(Math.round(meters))
+  return getKilometersFormatter(locale).format(meters / 1000)
 }

@@ -73,7 +73,8 @@
         {
             "includes": [
                 "app/database/seed.ts",
-                "app/database/seed-marketing.ts"
+                "app/database/seed-marketing.ts",
+                "app/database/backfill-normalized.ts"
             ],
             "linter": {
                 "rules": {

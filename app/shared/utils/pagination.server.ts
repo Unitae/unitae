@@ -1,8 +1,13 @@
 export function paginationFromUrl(url: URL, count: number) {
-  const page = Number.parseInt(url.searchParams.get('page') || '1', 10)
+  const rawPage = Number.parseInt(url.searchParams.get('page') || '1', 10)
   const size = Number.parseInt(url.searchParams.get('pageSize') || '25', 10)
-  const offset = (page - 1) * size
   const pages = Math.ceil(count / size)
+  // Clamp to [1, pages] when there are results — protects against `?page=99`
+  // after a filter or geocode hit drops the total. Without this an
+  // out-of-range page silently rendered an empty table with no signal.
+  const maxPage = Math.max(1, pages)
+  const page = Number.isFinite(rawPage) ? Math.min(Math.max(1, rawPage), maxPage) : 1
+  const offset = (page - 1) * size
 
   return {
     total: count,
