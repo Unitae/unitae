@@ -43,7 +43,10 @@ export function classifySearch(raw: string): SearchIntent {
 
   if (proximityPrefix.test(trimmed)) {
     const geoQuery = trimmed.replace(proximityPrefix, '').trim()
-    if (geoQuery.length === 0) return { freeText: '', geoQuery: null, forced: false }
+    // `@` alone still signals forced-proximity intent so the UI can prompt
+    // the user to type a place — silently treating it as empty would hide
+    // the operator mode entirely.
+    if (geoQuery.length === 0) return { freeText: '', geoQuery: null, forced: true }
     return { freeText: '', geoQuery, forced: true }
   }
 

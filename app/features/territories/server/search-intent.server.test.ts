@@ -10,8 +10,8 @@ describe('classifySearch', () => {
     expect(classifySearch('@Bastille')).toEqual({ freeText: '', geoQuery: 'Bastille', forced: true })
   })
 
-  it('treats @ followed by whitespace as empty', () => {
-    expect(classifySearch('@   ')).toEqual({ freeText: '', geoQuery: null, forced: false })
+  it('treats @ followed by whitespace as forced but missing — UI prompts for a place', () => {
+    expect(classifySearch('@   ')).toEqual({ freeText: '', geoQuery: null, forced: true })
   })
 
   it('does not geocode short ambiguous strings', () => {

@@ -10,6 +10,8 @@ import { computeFilters } from '~/features/territories/server/territory-filters.
 
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
+import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
@@ -82,6 +84,16 @@ export function loader({ request, context }: Route.LoaderArgs) {
       }
     }
 
+    // Build the failure notice the UI renders above the filters: tells the
+    // user *why* proximity didn't kick in, instead of silently degrading to
+    // text-only.
+    const geocodeNotice: { kind: 'failed' | 'missing-query'; query?: string } | null =
+      intent.forced && intent.geoQuery == null
+        ? { kind: 'missing-query' }
+        : intent.geoQuery != null && geocodeResult == null
+          ? { kind: 'failed', query: intent.geoQuery }
+          : null
+
     return {
       zips,
       stats: { total: result.pagination.total },
@@ -89,18 +101,28 @@ export function loader({ request, context }: Route.LoaderArgs) {
       pagination: result.pagination,
       canManageTerritories,
       geocodeResult: proximityActive ? geocodeResult : null,
-      geocodeAttempted: intent.geoQuery != null,
+      geocodeNotice,
       distances: distancesByTerritoryId,
-      withoutCoordsCount: proximityActive && 'withoutCoordsCount' in result ? result.withoutCoordsCount : 0,
-      withCoordsCount: proximityActive && 'withCoordsCount' in result ? result.withCoordsCount : 0,
+      withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
+      withCoordsCount: (proximityActive && 'withCoordsCount' in result && result.withCoordsCount) || 0,
       sort,
     }
   })
 }
 
 export default function TerritoryListPage({ loaderData }: Route.ComponentProps) {
-  const { pagination, territories, canManageTerritories, zips, geocodeResult, distances, withoutCoordsCount, sort } =
-    loaderData
+  const {
+    pagination,
+    territories,
+    canManageTerritories,
+    zips,
+    geocodeResult,
+    geocodeNotice,
+    distances,
+    withoutCoordsCount,
+    withCoordsCount,
+    sort,
+  } = loaderData
   const [searchParams] = useSearchParams()
   const fromQuery = searchParams.toString()
   const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
@@ -108,10 +130,13 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
   const proximityActive = geocodeResult != null
   const colSpan = proximityActive ? 6 : 5
   // Index of the first item in this page that falls in the "without coords"
-  // partition, so we can insert a divider row before it.
-  const dividerIndex = proximityActive
-    ? territories.findIndex(t => distances[t.id] == null)
-    : -1
+  // partition, so we can insert a divider row before it. -1 when the whole
+  // page is on one side of the partition.
+  const dividerIndex = proximityActive ? territories.findIndex(t => distances[t.id] == null) : -1
+  // True when *every* row on this page is past the coords/no-coords boundary
+  // — the in-table divider never renders, so we show a banner above the table
+  // so users understand why distances are missing.
+  const wholePageWithoutCoords = proximityActive && pagination.offset >= withCoordsCount && territories.length > 0
 
   if (territories.length < 1) {
     return (
@@ -130,6 +155,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
         />
 
         <ActiveTerritoryFilters chips={chips} />
+        <GeocodeNotice notice={geocodeNotice} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <EmptyState
@@ -157,6 +183,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       />
 
       <ActiveTerritoryFilters chips={chips} />
+      <GeocodeNotice notice={geocodeNotice} />
       {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <TerritoryFilters
         zips={zips}
@@ -170,6 +197,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
       />
 
       <div className="flex grow flex-col gap-3">
+        {wholePageWithoutCoords && <NoCoordinatesPageBanner count={withoutCoordsCount} />}
         <div className="overflow-hidden rounded-xl border">
           <Table>
             <TableHeader>
@@ -195,13 +223,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
 
                 return (
                   <React.Fragment key={territory.id}>
-                    {showDivider && (
-                      <TableRow className="bg-muted/30">
-                        <TableCell colSpan={colSpan} className="text-center text-muted-foreground text-xs italic">
-                          {m.territories_filter_no_coordinates_count({ count: String(withoutCoordsCount) })}
-                        </TableCell>
-                      </TableRow>
-                    )}
+                    {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
                     <TableRow className="group relative cursor-pointer hover:bg-accent/30">
                     <TableCell>
                       <Link

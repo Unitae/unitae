@@ -48,6 +48,8 @@ import { findAvailableTerritoriesPaginated } from '~/features/territories/server
 import { computeFilters } from '~/features/territories/server/territory-filters.server'
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
+import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import { checkAvailabilityStatus, TerritoryAvaibilityStatus } from '~/features/territories/ui/TerritoryAvaibilityStatus'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -116,6 +118,13 @@ export function loader({ request, context }: Route.LoaderArgs) {
       }
     }
 
+    const geocodeNotice: { kind: 'failed' | 'missing-query'; query?: string } | null =
+      intent.forced && intent.geoQuery == null
+        ? { kind: 'missing-query' }
+        : intent.geoQuery != null && geocodeResult == null
+          ? { kind: 'failed', query: intent.geoQuery }
+          : null
+
     return {
       zips,
       stats: { total: result.pagination.total },
@@ -123,21 +132,34 @@ export function loader({ request, context }: Route.LoaderArgs) {
       pagination: result.pagination,
       canManageTerritories,
       geocodeResult: proximityActive ? geocodeResult : null,
+      geocodeNotice,
       distances: distancesByTerritoryId,
-      withoutCoordsCount: proximityActive && 'withoutCoordsCount' in result ? result.withoutCoordsCount : 0,
+      withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
+      withCoordsCount: (proximityActive && 'withCoordsCount' in result && result.withCoordsCount) || 0,
       sort,
     }
   })
 }
 
 export default function TerritorySelectorPage({ loaderData }: Route.ComponentProps) {
-  const { pagination, territories, zips, geocodeResult, distances, withoutCoordsCount, sort } = loaderData
+  const {
+    pagination,
+    territories,
+    zips,
+    geocodeResult,
+    geocodeNotice,
+    distances,
+    withoutCoordsCount,
+    withCoordsCount,
+    sort,
+  } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildTerritoryFilterChips(searchParams)
   const proximityActive = geocodeResult != null
   const dividerIndex = proximityActive ? territories.findIndex(t => distances[t.id] == null) : -1
   const baseCol = 5
   const colSpan = proximityActive ? baseCol + 1 : baseCol
+  const wholePageWithoutCoords = proximityActive && pagination.offset >= withCoordsCount && territories.length > 0
 
   if (territories.length < 1) {
     return (
@@ -152,6 +174,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
           backTo="/territories/attributions"
         />
         <ActiveTerritoryFilters chips={chips} />
+        <GeocodeNotice notice={geocodeNotice} />
         <TerritoryFilters zips={zips} showAccess showSearch showType showZip />
 
         <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
@@ -174,6 +197,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
         backTo="/territories/attributions"
       />
       <ActiveTerritoryFilters chips={chips} />
+      <GeocodeNotice notice={geocodeNotice} />
       {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <TerritoryFilters
         zips={zips}
@@ -187,6 +211,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
       />
 
       <div className="flex grow flex-col gap-3">
+        {wholePageWithoutCoords && <NoCoordinatesPageBanner count={withoutCoordsCount} />}
         <Table>
           <TableHeader>
             <TableRow>
@@ -206,13 +231,7 @@ export default function TerritorySelectorPage({ loaderData }: Route.ComponentPro
               const showDivider = proximityActive && dividerIndex === index && index > 0
               return (
                 <React.Fragment key={territory.id}>
-                  {showDivider && (
-                    <TableRow className="bg-muted/30">
-                      <TableCell colSpan={colSpan} className="text-center text-muted-foreground text-xs italic">
-                        {m.territories_filter_no_coordinates_count({ count: String(withoutCoordsCount) })}
-                      </TableCell>
-                    </TableRow>
-                  )}
+                  {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
                   <TableRow>
                     <TableCell>{territory.number}</TableCell>
                     {proximityActive && (

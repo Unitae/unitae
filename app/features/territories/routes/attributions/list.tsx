@@ -11,6 +11,8 @@ import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFil
 import AttributionFilters from '~/features/territories/ui/AttributionFilters'
 import { AttributionStatus } from '~/features/territories/ui/AttributionStatus'
 import { buildAttributionFilterChips } from '~/features/territories/ui/build-filter-chips'
+import GeocodeNotice from '~/features/territories/ui/GeocodeNotice'
+import { NoCoordinatesDivider, NoCoordinatesPageBanner } from '~/features/territories/ui/NoCoordinatesNotice'
 import ProximityBanner from '~/features/territories/ui/ProximityBanner'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -97,6 +99,13 @@ export function loader({ request, context }: Route.LoaderArgs) {
       }
     }
 
+    const geocodeNotice: { kind: 'failed' | 'missing-query'; query?: string } | null =
+      intent.forced && intent.geoQuery == null
+        ? { kind: 'missing-query' }
+        : intent.geoQuery != null && geocodeResult == null
+          ? { kind: 'failed', query: intent.geoQuery }
+          : null
+
     return {
       stats: { total: result.pagination.total },
       attributions: result.attributions,
@@ -108,8 +117,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
       phoneTypeActive,
       theocraticYear,
       geocodeResult: proximityActive ? geocodeResult : null,
+      geocodeNotice,
       distances: distancesByAttributionId,
-      withoutCoordsCount: proximityActive && 'withoutCoordsCount' in result ? result.withoutCoordsCount : 0,
+      withoutCoordsCount: (proximityActive && 'withoutCoordsCount' in result && result.withoutCoordsCount) || 0,
+      withCoordsCount: (proximityActive && 'withCoordsCount' in result && result.withCoordsCount) || 0,
       sort,
     }
   })
@@ -125,13 +136,16 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
     phoneTypeActive,
     canViewPublisher,
     geocodeResult,
+    geocodeNotice,
     distances,
     withoutCoordsCount,
+    withCoordsCount,
     sort,
   } = loaderData
   const [searchParams] = useSearchParams()
   const chips = buildAttributionFilterChips(searchParams, { groups })
   const proximityActive = geocodeResult != null
+  const wholePageWithoutCoords = proximityActive && pagination.offset >= withCoordsCount && attributions.length > 0
   // Proximity sort already partitioned/ordered the rows server-side; the
   // status-priority client sort below is skipped in that mode so the distance
   // order survives.
@@ -174,6 +188,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
         />
 
         <ActiveTerritoryFilters chips={chips} />
+        <GeocodeNotice notice={geocodeNotice} />
         <AttributionFilters groups={groups} phoneTypeActive={phoneTypeActive} />
 
         <EmptyState
@@ -204,6 +219,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       />
 
       <ActiveTerritoryFilters chips={chips} />
+      <GeocodeNotice notice={geocodeNotice} />
       {proximityActive && geocodeResult != null && <ProximityBanner geocode={geocodeResult} />}
       <AttributionFilters
         groups={groups}
@@ -214,6 +230,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
       />
 
       <div className="flex grow flex-col gap-3">
+        {wholePageWithoutCoords && <NoCoordinatesPageBanner count={withoutCoordsCount} />}
         <div className="overflow-hidden rounded-xl border">
           <Table>
             <TableHeader>
@@ -240,13 +257,7 @@ export default function AttributionListPage({ loaderData }: Route.ComponentProps
                 const showDivider = proximityActive && dividerIndex === index && index > 0
                 return (
                   <React.Fragment key={attribution.id}>
-                    {showDivider && (
-                      <TableRow className="bg-muted/30">
-                        <TableCell colSpan={colSpan} className="text-center text-muted-foreground text-xs italic">
-                          {m.territories_filter_no_coordinates_count({ count: String(withoutCoordsCount) })}
-                        </TableCell>
-                      </TableRow>
-                    )}
+                    {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
                     <TableRow>
                       <TableCell>
                         {attribution.startDate.toLocaleDateString('fr-FR')}{' '}

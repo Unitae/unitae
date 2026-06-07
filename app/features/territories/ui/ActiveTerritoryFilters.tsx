@@ -2,7 +2,6 @@ import { X } from 'lucide-react'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
-import { Button } from '~/shared/ui/button'
 
 export interface ActiveTerritoryFilterChip {
   // URL query parameter this chip clears when X is clicked.
@@ -22,6 +21,9 @@ interface ActiveTerritoryFiltersProps {
  * forms, plus a "Tout effacer" link that drops every query parameter (including
  * pagination). Returns `null` when no chips are active so callers can mount it
  * unconditionally.
+ *
+ * The chip body is inert — only the trailing X removes the filter — so users
+ * can't accidentally drop a filter by clicking the label/value.
  */
 export default function ActiveTerritoryFilters({ chips }: ActiveTerritoryFiltersProps) {
   const [params] = useSearchParams()
@@ -43,30 +45,35 @@ export default function ActiveTerritoryFilters({ chips }: ActiveTerritoryFilters
         const to = `${location.pathname}${search.length > 0 ? `?${search}` : ''}`
 
         return (
-          <Badge key={chip.key} variant="outline" asChild className="gap-1 py-1 pr-1 pl-2 text-sm">
+          <Badge
+            key={chip.key}
+            variant="outline"
+            className="h-7 gap-1 py-0 pr-0.5 pl-2 text-sm"
+            title={`${chip.label} : ${chip.value}`}
+          >
+            <span className="text-muted-foreground">{chip.label} :</span>
+            <span className="block max-w-[16ch] truncate sm:max-w-[24ch]">{chip.value}</span>
             <Link
               to={to}
               aria-label={m.territories_filter_chip_remove({ label: chip.label, value: chip.value })}
-              title={`${chip.label} : ${chip.value}`}
+              className="ml-0.5 inline-flex size-5 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/30"
             >
-              <span className="text-muted-foreground">{chip.label} :</span>
-              <span className="block max-w-[16ch] truncate sm:max-w-[24ch]">{chip.value}</span>
-              <span
-                className="ml-1 inline-flex size-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                aria-hidden="true"
-              >
-                <X className="size-3" />
-              </span>
+              <X className="size-3.5" aria-hidden="true" />
             </Link>
           </Badge>
         )
       })}
 
-      <Button asChild variant="ghost" size="sm" className="ml-auto h-7 px-2 text-muted-foreground text-sm">
-        <Link to={location.pathname} aria-label={m.territories_filter_clear_all()}>
+      <Badge variant="outline" className="h-7 gap-1 py-0 pr-2 pl-2 text-muted-foreground text-sm" asChild>
+        <Link
+          to={location.pathname}
+          aria-label={m.territories_filter_clear_all()}
+          className="hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="size-3.5" aria-hidden="true" />
           {m.territories_filter_clear_all()}
         </Link>
-      </Button>
+      </Badge>
     </section>
   )
 }
