@@ -3,12 +3,14 @@ import { Link, useLocation, useSearchParams } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 
+// URL query parameter the chip's X clears. Constrained to the parameters
+// the filter forms actually parse so a typo (`'zipcode'`) can't silently
+// produce a chip whose X clears nothing.
+export type TerritoryFilterKey = 'search' | 'zip' | 'type' | 'access' | 'shops' | 'group' | 'status'
+
 export interface ActiveTerritoryFilterChip {
-  // URL query parameter this chip clears when X is clicked.
-  key: string
-  // French label (e.g. "Type", "Recherche") — left side of the colon.
+  key: TerritoryFilterKey
   label: string
-  // Human-readable current value (e.g. "Tertiaire", "muguets") — right side.
   value: string
 }
 

@@ -46,4 +46,26 @@ describe('classifySearch', () => {
     expect(classifySearch('Bastille').geoQuery).toBeNull()
     expect(classifySearch('Montparnasse').geoQuery).toBeNull()
   })
+
+  it('trims surrounding whitespace before classifying', () => {
+    expect(classifySearch('  @  Bastille  ')).toEqual({ freeText: '', geoQuery: 'Bastille', forced: true })
+  })
+
+  it('keeps extra @ inside the query verbatim', () => {
+    // Documents current behaviour: `@@bastille` → forced, geoQuery = '@bastille'.
+    // The geocoder sees `@bastille` — Google ignores the prefix harmlessly.
+    expect(classifySearch('@@bastille')).toEqual({ freeText: '', geoQuery: '@bastille', forced: true })
+  })
+
+  it('does not geocode a 2-token query with no street word and no number prefix', () => {
+    // `Jean Dupont` is 2 tokens, lacks a street word, has no leading digit
+    // — likely a publisher name, should stay text-only.
+    expect(classifySearch('Jean Dupont').geoQuery).toBeNull()
+  })
+
+  it('geocodes a 1-token query that IS a street word', () => {
+    // `Rue` alone is uncommon but documents the heuristic: presence of a
+    // street word in the tokens triggers a geocode.
+    expect(classifySearch('Rue').geoQuery).toBe('Rue')
+  })
 })

@@ -3,7 +3,7 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
-import type { ActiveTerritoryFilterChip } from './ActiveTerritoryFilters'
+import type { ActiveTerritoryFilterChip, TerritoryFilterKey } from './ActiveTerritoryFilters'
 
 interface BuildChipsOptions {
   // Map of publisherGroupId → display name, supplied by pages showing the
@@ -104,7 +104,7 @@ function searchChipValue(raw: string): string {
 function appendChip(
   chips: ActiveTerritoryFilterChip[],
   params: URLSearchParams,
-  key: string,
+  key: TerritoryFilterKey,
   label: string,
   display: (raw: string) => string | null,
 ) {

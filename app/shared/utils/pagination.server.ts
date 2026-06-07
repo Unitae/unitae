@@ -27,10 +27,12 @@ export type SortMode = 'number' | 'date' | 'proximity'
 
 /**
  * Reads `?sort=` and returns it if valid, otherwise the supplied default.
- * Validation guards against arbitrary user input flowing into orderBy.
+ * Generic over the allowed subset so callers can narrow downstream branches
+ * — `sortFromUrl(url, ['number', 'proximity'], 'number')` returns
+ * `'number' | 'proximity'` instead of the wider `SortMode`.
  */
-export function sortFromUrl(url: URL, allowed: SortMode[], fallback: SortMode): SortMode {
+export function sortFromUrl<A extends SortMode>(url: URL, allowed: readonly A[], fallback: A): A {
   const raw = url.searchParams.get('sort')
-  if (raw != null && (allowed as string[]).includes(raw)) return raw as SortMode
+  if (raw != null && (allowed as readonly string[]).includes(raw)) return raw as A
   return fallback
 }
