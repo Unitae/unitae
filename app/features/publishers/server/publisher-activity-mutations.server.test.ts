@@ -4,10 +4,19 @@ import { PublisherType } from '~/shared/types/publisher-type'
 const mockCreate = vi.fn()
 const mockUpdate = vi.fn()
 const mockDelete = vi.fn()
+const mockMemberFindUnique = vi.fn().mockResolvedValue(null)
+const mockMemberUpdate = vi.fn()
+const mockActivityFindMany = vi.fn().mockResolvedValue([])
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    publisherActivity: { create: mockCreate, update: mockUpdate, delete: mockDelete },
+    publisherActivity: {
+      create: mockCreate,
+      update: mockUpdate,
+      delete: mockDelete,
+      findMany: mockActivityFindMany,
+    },
+    member: { findUnique: mockMemberFindUnique, update: mockMemberUpdate },
     auditLog: { create: vi.fn() },
   },
 }))
@@ -20,6 +29,8 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  mockMemberFindUnique.mockResolvedValue(null)
+  mockActivityFindMany.mockResolvedValue([])
 })
 
 describe('createPublisherActivity', () => {

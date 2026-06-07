@@ -8,6 +8,7 @@ import { currentAccountContext, permissionsContext, withScopeFromContext } from 
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
@@ -203,12 +204,25 @@ function PublisherRow({
   return (
     <TableRow
       key={publisher.id}
-      className={publisher.notRegular ? 'bg-destructive/10 text-destructive dark:bg-destructive/5' : ''}
+      className={
+        publisher.inactiveAt != null
+          ? 'bg-muted/40 text-muted-foreground'
+          : publisher.notRegular
+            ? 'bg-destructive/10 text-destructive dark:bg-destructive/5'
+            : ''
+      }
     >
       <TableCell className="text-center max-sm:text-left">
-        <Link to={`/publishers/${publisher.id}/view`} className="hover:text-primary">
-          {publisher.firstname}
-        </Link>
+        <div className="flex items-center justify-center gap-2 max-sm:justify-start">
+          <Link to={`/publishers/${publisher.id}/view`} className="hover:text-primary">
+            {publisher.firstname}
+          </Link>
+          {publisher.inactiveAt != null && (
+            <Badge variant="outline" className="text-xs">
+              {m.activity_table_inactive()}
+            </Badge>
+          )}
+        </div>
       </TableCell>
       <TableCell className="text-center">
         <Link to={`/publishers/${publisher.id}/view`} className="hover:text-primary">

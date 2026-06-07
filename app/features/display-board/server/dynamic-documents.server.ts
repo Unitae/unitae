@@ -298,7 +298,7 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
       responsible: { select: userSelect },
       deputy: { select: userSelect },
       members: {
-        where: { leftAt: null, isPublisher: true },
+        where: { leftAt: null, isPublisher: true, inactiveAt: null },
         select: { ...userSelect, type: true },
         orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
       },
@@ -309,7 +309,7 @@ function fetchPublisherGroups(db: TransactionClient, congregationId: number) {
 
 function fetchPioneers(db: TransactionClient, congregationId: number) {
   return db.member.findMany({
-    where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null },
+    where: { congregationId, type: { in: PIONEER_TYPES }, leftAt: null, inactiveAt: null },
     select: { ...userSelect, type: true },
     orderBy: [{ type: 'asc' }, { lastname: 'asc' }, { firstname: 'asc' }],
   })

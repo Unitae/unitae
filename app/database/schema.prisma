@@ -154,10 +154,15 @@ model Member {
   responsibleFor   PublisherGroup? @relation("groupResponsible")
   deputyFor        PublisherGroup? @relation("groupDeputy")
 
-  // Lifecycle. Two orthogonal dimensions:
+  // Lifecycle. Three orthogonal dimensions:
   //   leftAt        — soft-leave; reversible. Hides Member from publisher-facing lists.
+  //   inactiveAt    — publisher hasn't preached for 6 consecutive monthly reports. Hides them
+  //                   from public display-board surfaces (groups, pioneers) and from active-publisher
+  //                   stats. Auto-set by evaluateInactiveStatus on activity writes; cleared when an
+  //                   hours report arrives. Reversible; can also be set manually by a publisher manager.
   //   anonymizedAt  — GDPR scrub; irreversible. PII fields cleared, activity rows preserved.
   leftAt       DateTime?
+  inactiveAt   DateTime?
   anonymizedAt DateTime?
 
   // Optional 1:1 to a login account

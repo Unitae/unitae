@@ -1,4 +1,4 @@
-import { Download, Pencil, RotateCcw, UserCheck, UserMinus } from 'lucide-react'
+import { Download, Pause, Pencil, Play, RotateCcw, UserCheck, UserMinus } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -20,6 +20,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/shared/ui/alert-dialog'
+import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
@@ -89,10 +90,12 @@ function LifecycleAction({
   publisherId,
   leftAt,
   isPublisher,
+  inactiveAt,
 }: {
   publisherId: number
   leftAt: Date | null
   isPublisher: boolean
+  inactiveAt: Date | null
 }) {
   const submit = useSubmit()
 
@@ -107,27 +110,30 @@ function LifecycleAction({
   }
   if (isPublisher) {
     return (
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
-            <UserMinus className="size-4" />
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
-            <AlertDialogDescription>{m.publishers_view_mark_as_left_dialog_description()}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => submit(null, { method: 'post', action: `/publishers/${publisherId}/mark-as-left` })}
-            >
-              {m.publishers_view_mark_as_left_confirm()}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <>
+        <InactiveToggle publisherId={publisherId} inactiveAt={inactiveAt} />
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="secondary" size="icon" title={m.publishers_view_deactivate_title()}>
+              <UserMinus className="size-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{m.publishers_view_mark_as_left_dialog_title()}</AlertDialogTitle>
+              <AlertDialogDescription>{m.publishers_view_mark_as_left_dialog_description()}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => submit(null, { method: 'post', action: `/publishers/${publisherId}/mark-as-left` })}
+              >
+                {m.publishers_view_mark_as_left_confirm()}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </>
     )
   }
   return (
@@ -155,6 +161,60 @@ function LifecycleAction({
   )
 }
 
+function InactiveToggle({ publisherId, inactiveAt }: { publisherId: number; inactiveAt: Date | null }) {
+  const submit = useSubmit()
+
+  if (inactiveAt != null) {
+    return (
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button variant="outline" size="icon" title={m.publishers_view_mark_as_active_title()}>
+            <Play className="size-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{m.publishers_view_mark_as_active_dialog_title()}</AlertDialogTitle>
+            <AlertDialogDescription>{m.publishers_view_mark_as_active_dialog_description()}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => submit(null, { method: 'post', action: `/publishers/${publisherId}/mark-as-active` })}
+            >
+              {m.publishers_view_mark_as_active_confirm()}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    )
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="outline" size="icon" title={m.publishers_view_mark_as_inactive_title()}>
+          <Pause className="size-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{m.publishers_view_mark_as_inactive_dialog_title()}</AlertDialogTitle>
+          <AlertDialogDescription>{m.publishers_view_mark_as_inactive_dialog_description()}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{m.common_cancel()}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => submit(null, { method: 'post', action: `/publishers/${publisherId}/mark-as-inactive` })}
+          >
+            {m.publishers_view_mark_as_inactive_confirm()}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
 export default function PublisherPage({ loaderData }: Route.ComponentProps) {
   const { publisher, attributions, roles } = loaderData
 
@@ -162,6 +222,9 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={`${publisher.firstname} ${publisher.lastname}`}
+        titleBadge={
+          publisher.inactiveAt != null && <Badge variant="warning">{m.publishers_view_inactive_badge()}</Badge>
+        }
         subtitle={m.publishers_view_subtitle()}
         breadcrumbs={[
           { label: m.sidebar_publishers(), to: '/publishers' },
@@ -187,6 +250,7 @@ export default function PublisherPage({ loaderData }: Route.ComponentProps) {
                 publisherId={publisher.id}
                 leftAt={publisher.leftAt}
                 isPublisher={publisher.isPublisher}
+                inactiveAt={publisher.inactiveAt}
               />
             </>
           )
