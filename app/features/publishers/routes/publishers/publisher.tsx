@@ -1,4 +1,4 @@
-import { Download, Pause, Pencil, Play, RotateCcw, UserCheck, UserMinus } from 'lucide-react'
+import { Download, Pencil, RotateCcw, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { Form, Link, redirect, useSubmit } from 'react-router'
 import { getPublisherById } from '~/features/publishers/server/publishers.server'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
@@ -169,7 +169,7 @@ function InactiveToggle({ publisherId, inactiveAt }: { publisherId: number; inac
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button variant="outline" size="icon" title={m.publishers_view_mark_as_active_title()}>
-            <Play className="size-4" />
+            <Zap className="size-4" />
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
@@ -194,7 +194,7 @@ function InactiveToggle({ publisherId, inactiveAt }: { publisherId: number; inac
     <AlertDialog>
       <AlertDialogTrigger asChild>
         <Button variant="outline" size="icon" title={m.publishers_view_mark_as_inactive_title()}>
-          <Pause className="size-4" />
+          <ZapOff className="size-4" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>

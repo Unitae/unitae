@@ -201,6 +201,7 @@ function PublisherRow({
   publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']>
   canManageActivities: boolean
 }) {
+  const nameHover = publisher.inactiveAt != null ? 'hover:text-foreground' : 'hover:text-primary'
   return (
     <TableRow
       key={publisher.id}
@@ -214,7 +215,7 @@ function PublisherRow({
     >
       <TableCell className="text-center max-sm:text-left">
         <div className="flex items-center justify-center gap-2 max-sm:justify-start">
-          <Link to={`/publishers/${publisher.id}/view`} className="hover:text-primary">
+          <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
             {publisher.firstname}
           </Link>
           {publisher.inactiveAt != null && (
@@ -225,13 +226,13 @@ function PublisherRow({
         </div>
       </TableCell>
       <TableCell className="text-center">
-        <Link to={`/publishers/${publisher.id}/view`} className="hover:text-primary">
+        <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
           {publisher.lastname?.toLocaleUpperCase()}
         </Link>
       </TableCell>
       <TableCell className="text-center">
         {publisher.publisherGroup != null && (
-          <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className="hover:text-primary">
+          <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className={nameHover}>
             {publisher.publisherGroup.name}
           </Link>
         )}

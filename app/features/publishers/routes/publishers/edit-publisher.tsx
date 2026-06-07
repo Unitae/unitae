@@ -1,5 +1,5 @@
 import { parseWithZod } from '@conform-to/zod'
-import { KeyRound, Pause, Play, RotateCcw, UnplugIcon, UserCheck, UserMinus } from 'lucide-react'
+import { KeyRound, RotateCcw, UnplugIcon, UserCheck, UserMinus, Zap, ZapOff } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, redirect, useSubmit } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/server/session.server'
@@ -163,7 +163,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="icon" title={m.publishers_view_mark_as_active_title()}>
-                        <Play className="size-4" />
+                        <Zap className="size-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -189,7 +189,7 @@ export default function EditPublisher({ loaderData }: Route.ComponentProps) {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="outline" size="icon" title={m.publishers_view_mark_as_inactive_title()}>
-                        <Pause className="size-4" />
+                        <ZapOff className="size-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>

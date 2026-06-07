@@ -31,6 +31,21 @@ export interface EvaluateInactiveStatusParams {
  *
  * No-ops when the member has left or isn't a publisher (those states already
  * exclude them from the relevant surfaces).
+ *
+ * Precedence with sibling lifecycle columns:
+ *
+ *   - `leftAt` and `inactiveAt` are orthogonal — both can be non-null at once.
+ *     The evaluator no-ops when `leftAt != null`; we never auto-flip inactive
+ *     on a member who has left.
+ *   - `setMemberLeft`, `make-student`, and `togglePublisherStatus` do NOT
+ *     clear `inactiveAt`. Rationale: if the member returns later (via
+ *     `mark-as-returned` or a re-promotion to publisher), restoring their
+ *     prior inactive state preserves history. A subsequent hours report will
+ *     clear it through the normal path.
+ *   - The UI subordinates inactive to left: the `LifecycleAction` component
+ *     in `publisher.tsx` only renders `InactiveToggle` when
+ *     `leftAt == null && isPublisher == true`. A left-and-inactive member
+ *     shows no inactive UI; on return, the badge resurfaces automatically.
  */
 export async function evaluateInactiveStatus(
   db: TransactionClient,

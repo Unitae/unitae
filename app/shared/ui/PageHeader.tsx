@@ -28,7 +28,7 @@ export function PageHeader({ actions, title, titleBadge, subtitle, breadcrumbs, 
             </Button>
           )}
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
               <h1 className="font-display font-semibold text-2xl tracking-tight max-sm:text-xl">{title}</h1>
               {titleBadge}
             </div>
