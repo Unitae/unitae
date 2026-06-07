@@ -46,6 +46,7 @@ beforeAll(async () => {
         firstname: 'Alice',
         lastname: 'Dupont',
         isPublisher: true,
+        inactiveAt: new Date('2026-03-15T00:00:00Z'),
         congregationId: sourceId,
       },
     })
@@ -633,6 +634,8 @@ describe('Export/Import round-trip', () => {
       const bobMember = members.find(m => m.firstname === 'Bob')!
       expect(aliceMember.lastname).toBe('Dupont')
       expect(aliceMember.isPublisher).toBe(true)
+      expect(aliceMember.inactiveAt).toEqual(new Date('2026-03-15T00:00:00Z'))
+      expect(bobMember.inactiveAt).toBeNull()
 
       const accounts = await tx.userAccount.findMany({ include: { member: true } })
       expect(accounts).toHaveLength(2)

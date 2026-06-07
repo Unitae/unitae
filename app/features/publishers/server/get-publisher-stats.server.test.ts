@@ -96,4 +96,21 @@ describe('getPublisherStats', () => {
     // mais publishers.hours contient bien les heures des normaux
     expect(result.publishers.hours).toBe(100)
   })
+
+  it('exclut les proclamateurs inactifs du compte total via le filtre Prisma', async () => {
+    vi.mocked(db.member.count).mockResolvedValue(0)
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
+
+    await getPublisherStats(db, 1, 3, 2025)
+
+    expect(db.member.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          inactiveAt: null,
+          leftAt: null,
+          congregationId: 1,
+        }),
+      }),
+    )
+  })
 })
