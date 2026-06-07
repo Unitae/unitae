@@ -54,26 +54,52 @@ describe('computeFilters', () => {
     expect(result).not.toHaveProperty('entrances')
   })
 
-  it('applies search filter matching territory number', () => {
-    const result = computeFilters(new URLSearchParams({ search: 'T-42' }))
+  it('applies search filter matching territory number case-insensitively', () => {
+    const result = computeFilters(new URLSearchParams({ search: 'D012' }))
     const or = result.OR as unknown[]
-    expect(or).toContainEqual({ number: { contains: 'T-42' } })
+    expect(or).toContainEqual({ number: { contains: 'D012', mode: 'insensitive' } })
   })
 
-  it('applies search filter matching street in nested buildings', () => {
-    const result = computeFilters(new URLSearchParams({ search: 'Rue de la Paix' }))
-    const or = result.OR as { entrances?: unknown }[]
-    const entranceClause = or.find(c => (c as { entrances?: unknown }).entrances)
-    expect(entranceClause).toBeDefined()
+  it('strips diacritics and lowercases the street branch', () => {
+    const result = computeFilters(new URLSearchParams({ search: 'Pâix' }))
+    const or = result.OR as { entrances?: { some?: { buildings?: { some?: { streetNormalized?: unknown } } } } }[]
+    const buildingsClause = or.find(c => c.entrances)
+    expect(buildingsClause?.entrances?.some?.buildings?.some).toMatchObject({
+      streetNormalized: { contains: 'paix' },
+    })
+  })
+
+  it('trims whitespace before searching', () => {
+    const result = computeFilters(new URLSearchParams({ search: '   muguets   ' }))
+    const or = result.OR as { number?: { contains: string } }[]
+    expect(or).toContainEqual({ number: { contains: 'muguets', mode: 'insensitive' } })
+  })
+
+  it('strips a leading @ proximity marker', () => {
+    const result = computeFilters(new URLSearchParams({ search: '@bastille' }))
+    const or = result.OR as { number?: { contains: string } }[]
+    expect(or).toContainEqual({ number: { contains: 'bastille', mode: 'insensitive' } })
   })
 
   it('applies AND(number, street) when search starts with a number', () => {
     const result = computeFilters(new URLSearchParams({ search: '42 Rue de la Paix' }))
-    const or = result.OR as { entrances?: { some?: { buildings?: { some?: { OR?: unknown[] } } } } }[]
-    const entranceClause = or.find(c => c.entrances)
-    const buildingOr = entranceClause?.entrances?.some?.buildings?.some?.OR
-    expect(buildingOr).toBeDefined()
-    expect(buildingOr![0]).toHaveProperty('AND')
+    const or = result.OR as { entrances?: { some?: { buildings?: { some?: { AND?: unknown[] } } } } }[]
+    const buildingsClause = or.find(c => c.entrances)
+    const buildingsAnd = buildingsClause?.entrances?.some?.buildings?.some?.AND
+    expect(buildingsAnd).toBeDefined()
+  })
+
+  it('searches publisher first/last name on current attribution', () => {
+    const result = computeFilters(new URLSearchParams({ search: 'Päjot' }))
+    const or = result.OR as { attributions?: { some?: { publisher?: { OR?: Record<string, unknown>[] } } } }[]
+    const publisherClause = or.find(c => c.attributions)
+    const publisherOr = publisherClause?.attributions?.some?.publisher?.OR
+    expect(publisherOr).toEqual(
+      expect.arrayContaining([
+        { firstnameNormalized: { contains: 'pajot' } },
+        { lastnameNormalized: { contains: 'pajot' } },
+      ]),
+    )
   })
 
   it('ignores search filter when search is empty', () => {
@@ -81,16 +107,19 @@ describe('computeFilters', () => {
     expect(result).not.toHaveProperty('OR')
   })
 
+  it('ignores search filter when query is only whitespace', () => {
+    const result = computeFilters(new URLSearchParams({ search: '   ' }))
+    expect(result).not.toHaveProperty('OR')
+  })
+
   it('combines zip and access filters merging into entrances without losing fields', () => {
     const result = computeFilters(new URLSearchParams({ zip: '75001', access: '2' }))
-    // zip adds nested buildings, access adds access field — both under entrances.some
     expect(result).toHaveProperty('entrances')
   })
 
-  it('search extends existing OR clauses, not replacing them', () => {
+  it('search OR has territory-number, buildings and publisher branches', () => {
     const result = computeFilters(new URLSearchParams({ search: 'Test' }))
     const or = result.OR as unknown[]
-    // Must include both the buildings clause and the territory number clause
-    expect(or.length).toBeGreaterThanOrEqual(2)
+    expect(or.length).toBe(3)
   })
 })

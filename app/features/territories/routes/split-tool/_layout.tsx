@@ -1,7 +1,9 @@
-import { NavLink, Outlet } from 'react-router'
+import { NavLink, Outlet, useSearchParams } from 'react-router'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
+import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
+import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -98,6 +100,8 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   const { stats, phoneTypeActive, zips } = loaderData
+  const [searchParams] = useSearchParams()
+  const chips = buildTerritoryFilterChips(searchParams)
 
   return (
     <div className="flex flex-col gap-7">
@@ -192,6 +196,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         </NavLink>
       </div>
 
+      <ActiveTerritoryFilters chips={chips} />
       <TerritoryFilters zips={zips} showAccess showSearch showZip />
 
       <div className="flex grow flex-col gap-3">

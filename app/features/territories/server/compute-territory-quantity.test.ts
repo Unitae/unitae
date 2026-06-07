@@ -31,6 +31,7 @@ function makeEntrance(overrides: { homes?: number; phones?: number } = {}): Aggr
         id: 1,
         number: '1',
         street: 'Rue de la Paix',
+        streetNormalized: 'rue de la paix',
         zip: '75001',
         latitude: null,
         longitude: null,

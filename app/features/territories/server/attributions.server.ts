@@ -1,20 +1,57 @@
 import type { Prisma, TerritoryKind } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { LatLng } from '~/shared/utils/distance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
+import { closestTerritoryPoint, paginateByProximity } from './proximity-sort.server'
+
+interface ProximityOptions {
+  origin: LatLng
+}
 
 export async function findActiveAttributionsPaginated(
   db: TransactionClient,
   selectors: Prisma.AttributionWhereInput,
   url: URL,
   congregationId: number,
+  proximity?: ProximityOptions,
 ) {
-  const total = await db.attribution.count({ where: { ...selectors, congregationId } })
+  const where = { ...selectors, congregationId }
+
+  if (proximity != null) {
+    const all = await db.attribution.findMany({
+      where,
+      include: {
+        territory: {
+          include: {
+            entrances: { include: { buildings: { where: { active: true } } } },
+          },
+        },
+        publisher: true,
+      },
+      orderBy: [{ startDate: 'asc' }],
+    })
+    const result = paginateByProximity(
+      all,
+      proximity.origin,
+      a => closestTerritoryPoint(proximity.origin, a.territory.entrances),
+      url,
+    )
+    return {
+      attributions: result.items,
+      pagination: result.pagination,
+      distances: result.distances,
+      withCoordsCount: result.withCoordsCount,
+      withoutCoordsCount: result.withoutCoordsCount,
+    }
+  }
+
+  const total = await db.attribution.count({ where })
   const pagination = paginationFromUrl(url, total)
 
   const attributions = await db.attribution.findMany({
     skip: pagination.offset,
     take: pagination.size,
-    where: { ...selectors, congregationId },
+    where,
     include: { territory: true, publisher: true },
     orderBy: [{ startDate: 'asc' }],
   })

@@ -132,12 +132,17 @@ model Member {
   congregationId Int
 
   // Identity
-  firstname String
-  lastname  String
-  isMale    Boolean?
-  birthDate DateTime?
-  phone     String   @default("")
-  address   String   @default("")
+  firstname           String
+  lastname            String
+  // Search aids: lowercased, diacritic-stripped copies of firstname/lastname.
+  // Maintained at write-time so search queries can stay in pure Prisma without
+  // needing the `unaccent` extension at runtime.
+  firstnameNormalized String   @default("")
+  lastnameNormalized  String   @default("")
+  isMale              Boolean?
+  birthDate           DateTime?
+  phone               String   @default("")
+  address             String   @default("")
 
   // Domain status. `isPublisher = false` means ministry-school student.
   // `type` is only meaningful when `isPublisher = true`.
@@ -179,6 +184,8 @@ model Member {
 
   @@unique([id, congregationId])
   @@index([congregationId, leftAt])
+  @@index([congregationId, firstnameNormalized])
+  @@index([congregationId, lastnameNormalized])
 }
 
 // A login. Always has an email + password. Optionally points at a Member.
@@ -549,12 +556,15 @@ model BuildingResidentialData {
 }
 
 model Building {
-  id          Int      @id @default(autoincrement())
-  number      String
-  street      String
-  zip         String
-  latitude    Float?
-  longitude   Float?
+  id               Int     @id @default(autoincrement())
+  number           String
+  street           String
+  // Search aid: lowercased, diacritic-stripped copy of street.
+  // Maintained at write-time so search queries can stay in pure Prisma.
+  streetNormalized String  @default("")
+  zip              String
+  latitude         Float?
+  longitude        Float?
   active      Boolean  @default(true)
   inTerritory Boolean  @default(true)
   inOpenData  Boolean  @default(false)
@@ -573,6 +583,7 @@ model Building {
 
   @@unique([number, street, zip, congregationId], name: "address")
   @@unique([id, congregationId])
+  @@index([congregationId, streetNormalized])
 }
 
 model Setting {

@@ -54,6 +54,8 @@ describe('updateMember', () => {
       data: {
         firstname: 'Jean',
         lastname: 'Dupont',
+        firstnameNormalized: 'jean',
+        lastnameNormalized: 'dupont',
         isMale: true,
         baptismDate: new Date('2010-03-20'),
         birthDate: new Date('1990-05-15'),

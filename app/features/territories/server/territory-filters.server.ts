@@ -1,7 +1,7 @@
 import type { Prisma } from '~/database/generated/client'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-
-const addressRegex = /^(\d+\s*(bis|ter|quarter)?)\s+(.+)$/
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
+import { addressRegex, proximityPrefix } from './address-regex'
 
 export function computeFilters(params: URLSearchParams): Prisma.TerritoryWhereInput {
   let filters: Prisma.TerritoryWhereInput = {}
@@ -66,40 +66,56 @@ function applyAccessFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
 }
 
 function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearchParams): Prisma.TerritoryWhereInput {
-  if (params.has('search') && (params.get('search')?.length ?? 0) > 0) {
-    const searchTerms = params.get('search') ?? ''
-    const addressTerms = searchTerms.match(addressRegex)
+  const raw = params.get('search')
+  // Strip a leading `@` proximity marker so the text branch still runs even
+  // when the user wanted geolocation — the loader handles geocoding/ranking;
+  // here we only need to keep textual matches sensible.
+  const trimmed = raw?.replace(proximityPrefix, '').trim() ?? ''
+  if (trimmed.length === 0) return filters
 
-    return {
-      ...filters,
-      OR: [
-        ...(filters.OR ?? []),
-        {
-          entrances: {
-            some: {
-              buildings: {
-                some: {
-                  OR: [
-                    addressTerms == null
-                      ? { street: { contains: searchTerms } }
-                      : {
-                          AND: [
-                            { number: { contains: addressTerms?.[1] } },
-                            { street: { contains: addressTerms?.[3] } },
-                          ],
-                        },
-                  ],
-                },
-              },
+  const normalized = stripDiacritics(trimmed)
+  const addressTerms = trimmed.match(addressRegex)
+  const addressNumber = addressTerms?.[1]
+  const addressStreet = addressTerms?.[3]
+  const addressStreetNormalized = addressStreet != null ? stripDiacritics(addressStreet) : null
+
+  return {
+    ...filters,
+    OR: [
+      ...(filters.OR ?? []),
+      // Territory number — case-insensitive direct match
+      { number: { contains: trimmed, mode: 'insensitive' } },
+      // Building street / number — match via nested entrances → buildings
+      {
+        entrances: {
+          some: {
+            buildings: {
+              some:
+                addressTerms == null
+                  ? { streetNormalized: { contains: normalized } }
+                  : {
+                      AND: [
+                        { number: { contains: addressNumber, mode: 'insensitive' } },
+                        { streetNormalized: { contains: addressStreetNormalized ?? normalized } },
+                      ],
+                    },
             },
           },
         },
-        {
-          number: { contains: searchTerms },
+      },
+      // Current attributee — first/last name on the publisher Member
+      {
+        attributions: {
+          some: {
+            publisher: {
+              OR: [
+                { firstnameNormalized: { contains: normalized } },
+                { lastnameNormalized: { contains: normalized } },
+              ],
+            },
+          },
         },
-      ],
-    }
+      },
+    ],
   }
-
-  return filters
 }

@@ -84,4 +84,29 @@ describe('paginationFromUrl', () => {
 
     expect(result.offset).toBe(80)
   })
+
+  it('clamps an out-of-range page to the last available page', () => {
+    const url = new URL('http://localhost/?page=99&pageSize=10')
+    const result = paginationFromUrl(url, 25)
+
+    expect(result.pages).toBe(3)
+    expect(result.page).toBe(3)
+    expect(result.offset).toBe(20)
+    expect(result.next).toBeNull()
+  })
+
+  it('clamps a page < 1 to page 1', () => {
+    const url = new URL('http://localhost/?page=-5')
+    const result = paginationFromUrl(url, 100)
+
+    expect(result.page).toBe(1)
+    expect(result.offset).toBe(0)
+  })
+
+  it('falls back to page 1 when ?page is non-numeric', () => {
+    const url = new URL('http://localhost/?page=abc')
+    const result = paginationFromUrl(url, 100)
+
+    expect(result.page).toBe(1)
+  })
 })

@@ -2,6 +2,7 @@ import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { getAllowedZips } from '~/features/territories/server/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { pointInPolygon } from '~/shared/utils/point-in-polygon.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 import { fetchOpenData } from './fetch-open-data.server'
 import { getPerimeterPaths } from './perimeter.server'
@@ -61,6 +62,7 @@ export async function importOpenData(
           create: {
             number,
             street,
+            streetNormalized: stripDiacritics(street),
             zip,
             latitude: Number(lat),
             longitude: Number(long),

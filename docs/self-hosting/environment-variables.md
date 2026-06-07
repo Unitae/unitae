@@ -72,12 +72,12 @@ By default, uploaded files are stored on the local filesystem. Set `S3_ENDPOINT`
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables maps on territory pages, in PDF exports, and the visual drawing editor on the *Carte de l'assemblée* settings page |
+| `GOOGLE_MAPS_API_KEY` | — | Google Maps API key. Enables maps on territory pages, in PDF exports, the visual drawing editor on the *Carte de l'assemblée* settings page, and **proximity ranking in the territory/attribution search** (typing an address ranks the matching territories by distance) |
 | `GOOGLE_MAPS_MAP_ID` | — | Google Maps Map ID for custom styled maps. Requires `GOOGLE_MAPS_API_KEY` |
 
-The API key needs the **Maps JavaScript API**, **Maps Static API**, and **Drawing Library** enabled in the Google Cloud Console.
+The API key needs the **Maps JavaScript API**, **Maps Static API**, **Drawing Library**, and **Geocoding API** enabled in the Google Cloud Console. The Geocoding API powers the proximity search; geocoded addresses are cached in Redis for 90 days so repeat searches don't re-query the API.
 
-When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, the PDF map page is skipped, and the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result.
+When `GOOGLE_MAPS_API_KEY` is not set, on-screen interactive maps are hidden, the PDF map page is skipped, the *Carte de l'assemblée* page falls back to the GeoJSON import/export workflow only — assemblies can still author their map in an external tool (geojson.io, Google My Maps, QGIS) and paste the result — and the proximity ranking in the territory search degrades silently to text-only matches.
 
 ## Docker Compose
 

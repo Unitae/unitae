@@ -1,7 +1,9 @@
 import { Map as MapIcon, RefreshCw } from 'lucide-react'
-import { Form, Link, NavLink, Outlet, redirect } from 'react-router'
+import { Form, Link, NavLink, Outlet, redirect, useSearchParams } from 'react-router'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { getZips } from '~/features/territories/server/buildings.server'
+import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
+import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -122,6 +124,8 @@ export function loader({ context }: Route.LoaderArgs) {
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
   const { openDataAvailable, stats, staleDate, canManageTerritories, zips, canManageProspection } = loaderData
+  const [searchParams] = useSearchParams()
+  const chips = buildTerritoryFilterChips(searchParams)
 
   return (
     <div className="flex flex-col gap-7">
@@ -233,6 +237,7 @@ export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
         )}
       </div>
 
+      <ActiveTerritoryFilters chips={chips} />
       <TerritoryFilters
         action="/territories/buildings/all"
         zips={zips}

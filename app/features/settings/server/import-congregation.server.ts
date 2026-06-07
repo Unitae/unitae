@@ -8,6 +8,7 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import { type TransactionClient, unscopedDb, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import {
   EntityIdMap,
@@ -633,6 +634,8 @@ export async function importMembers(
       data: {
         firstname: record.firstname,
         lastname: record.lastname,
+        firstnameNormalized: stripDiacritics(record.firstname),
+        lastnameNormalized: stripDiacritics(record.lastname),
         isPublisher: record.isPublisher,
         type: record.type as PublisherType,
         isMale: record.isMale,
@@ -897,6 +900,9 @@ export async function importBuildings(
     })
 
     const data = {
+      // Refresh `streetNormalized` on both create and update so legacy rows
+      // that pre-date the normalized column get backfilled when re-imported.
+      streetNormalized: stripDiacritics(record.street),
       latitude: record.latitude,
       longitude: record.longitude,
       active: record.active,

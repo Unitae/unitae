@@ -1,6 +1,7 @@
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { PublisherType } from '~/shared/types/publisher-type'
 
 export interface UpdateMemberParams {
@@ -37,6 +38,8 @@ export async function updateMember(
     data: {
       firstname: params.firstname,
       lastname: params.lastname,
+      firstnameNormalized: stripDiacritics(params.firstname),
+      lastnameNormalized: stripDiacritics(params.lastname),
       isMale: params.gender === 'male',
       baptismDate: params.baptismDate ? new Date(params.baptismDate) : null,
       birthDate: params.birthDate ? new Date(params.birthDate) : null,

@@ -75,27 +75,41 @@ describe('computeFilters', () => {
     expect(result).not.toHaveProperty('entrances')
   })
 
-  it('applies plain street search when search has no number prefix', () => {
-    const result = computeFilters(new URLSearchParams({ search: 'Rue de la Paix' }))
+  it('applies normalized street search when search has no number prefix', () => {
+    const result = computeFilters(new URLSearchParams({ search: 'Rue de la Päix' }))
     expect(result).toMatchObject({
-      OR: [{ street: { contains: 'Rue de la Paix' } }],
+      OR: [
+        { streetNormalized: { contains: 'rue de la paix' } },
+        { number: { contains: 'Rue de la Päix', mode: 'insensitive' } },
+      ],
     })
   })
 
-  it('applies AND(number, street) when search starts with a number', () => {
+  it('applies AND(number, streetNormalized) when search starts with a number', () => {
     const result = computeFilters(new URLSearchParams({ search: '42 Rue de la Paix' }))
-    const or = result.OR as Array<{ AND?: unknown[] }>
-    expect(or[0]).toHaveProperty('AND')
+    const or = result.OR as { AND?: Record<string, unknown>[] }[]
     const and = or[0].AND!
-    expect(and).toContainEqual({ number: { contains: '42' } })
-    expect(and).toContainEqual({ street: { contains: 'Rue de la Paix' } })
+    expect(and).toContainEqual({ number: { contains: '42', mode: 'insensitive' } })
+    expect(and).toContainEqual({ streetNormalized: { contains: 'rue de la paix' } })
   })
 
   it('parses address with bis suffix', () => {
     const result = computeFilters(new URLSearchParams({ search: '42 bis Rue de la Paix' }))
-    const or = result.OR as Array<{ AND?: unknown[] }>
+    const or = result.OR as { AND?: Record<string, unknown>[] }[]
     const and = or[0].AND!
-    expect(and).toContainEqual({ number: { contains: '42 bis' } })
+    expect(and).toContainEqual({ number: { contains: '42 bis', mode: 'insensitive' } })
+  })
+
+  it('trims whitespace before searching', () => {
+    const result = computeFilters(new URLSearchParams({ search: '   paix   ' }))
+    const or = result.OR as { streetNormalized?: unknown }[]
+    expect(or[0]).toMatchObject({ streetNormalized: { contains: 'paix' } })
+  })
+
+  it('strips a leading @ proximity marker', () => {
+    const result = computeFilters(new URLSearchParams({ search: '@bastille' }))
+    const or = result.OR as { streetNormalized?: unknown }[]
+    expect(or[0]).toMatchObject({ streetNormalized: { contains: 'bastille' } })
   })
 
   it('ignores search filter when search is empty', () => {
