@@ -102,6 +102,8 @@ Enforced by [Biome](https://biomejs.dev/). Run `pnpm build:format` to auto-fix.
 
 Business logic belongs in **service functions** (`features/*/server/*.server.ts`), not in route loaders or actions.
 
+For the *structural* rules — per-feature folder shape, `index.ts` boundaries between features, aggregate doctrine for `Member`/`Attribution`/`ProgrammeAssignment`, CQRS-lite read/write split, and file-size budgets — see [Architecture Conventions](architecture-conventions.md). This section covers the mechanics of an individual service function; the architecture doc covers where the file lives and what it's allowed to touch.
+
 ### Rules
 
 - Service functions take **typed parameters**, never the `Request` object
@@ -142,7 +144,7 @@ Display names: when reading from a session-loaded `currentUser`, name lives on `
 
 ### Cross-Feature Import Rule
 
-Files in `app/features/X/server/` **must not** import from `app/features/Y/server/` where X ≠ Y. Cross-feature data needs go through `app/shared/`. Type-only imports (`import type`) from other features are allowed.
+Files in `app/features/X/` may only import from another feature `Y` through `app/features/Y/index.ts` — the feature's public boundary. Deep imports into `features/Y/server/`, `features/Y/ui/`, or `features/Y/model/` are forbidden. Type-only imports (`import type`) into another feature are tolerated but prefer re-exporting types from `index.ts`. The only exemption is `features/dashboard/`, the documented cross-feature aggregator. See [Architecture Conventions › Feature Boundary Rule](architecture-conventions.md#feature-boundary-rule). The `index.ts` boundary files and the lint rule that enforces this ship in Wave 3 of `refactor/architecture-conventions`.
 
 ## Database Patterns
 
@@ -277,6 +279,7 @@ docs: add open data sync documentation
 
 ## Related
 
+- [Architecture Conventions](architecture-conventions.md) — Feature shape, `index.ts` boundaries, aggregate doctrine, CQRS-lite, file-size budgets, TDD discipline
 - [Architecture](architecture.md) — System design, request flow, and data isolation
 - [Getting Started](getting-started.md) — Set up a development environment
 - [Testing](testing.md) — Unit, integration, and E2E test setup
