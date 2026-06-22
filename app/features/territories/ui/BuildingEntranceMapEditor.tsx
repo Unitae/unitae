@@ -245,6 +245,8 @@ function MapContents({
       const previous = markerRefs.current.get(id) ?? null
       if (marker === previous) return
       const clusterer = clustererRef.current
+      // noDraw=true on add/remove — the coalesced render effect below calls clusterer.render()
+      // once per visibleEntrances change, instead of N times during a single commit.
       if (previous != null && clusterer != null) clusterer.removeMarker(previous, true)
       if (marker != null) {
         markerRefs.current.set(id, marker)
@@ -252,11 +254,16 @@ function MapContents({
       } else {
         markerRefs.current.delete(id)
       }
-      clusterer?.render()
     }
     refCallbacks.current.set(id, cb)
     return cb
   }, [])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: visibleEntrances is a re-trigger signal, not consumed
+  useEffect(() => {
+    if (clustererRef.current == null) return
+    clustererRef.current.render()
+  }, [visibleEntrances])
 
   const focusEntranceById = useCallback(
     (entranceId: number) => {

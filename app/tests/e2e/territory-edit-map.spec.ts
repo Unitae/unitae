@@ -49,4 +49,54 @@ test.describe('Territory edit page', () => {
       expect(body).toBeDefined()
     }
   })
+
+  test('edit page stays interactive after the map loads many entrances', async ({ page }) => {
+    // Synthesize a large entrance set without depending on seed data, by intercepting the bbox endpoint.
+    await page.route('**/territories/api/entrances-in-bbox*', async route => {
+      const entrances = Array.from({ length: 1500 }, (_, i) => ({
+        id: 10_000_000 + i,
+        latitude: 45.74 + (i % 40) * 0.0005,
+        longitude: 4.83 + Math.floor(i / 40) * 0.0005,
+        kind: 'home',
+        shopKind: null,
+        homes: 1,
+        phones: 0,
+        liberals: 0,
+        address: { number: String(i), street: 'Rue de Test', zip: '69000' },
+        status: 'available',
+        otherTerritory: null,
+      }))
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ entrances, truncated: false, total: null }),
+      })
+    })
+
+    const response = await page.goto('/territories')
+    if ((response?.status() ?? 500) >= 500) test.skip()
+
+    const editLink = page.locator('a[href*="/territories/territory/"][href$="/edit"]').first()
+    if (!(await editLink.isVisible({ timeout: 3000 }).catch(() => false))) {
+      test.skip()
+      return
+    }
+    await editLink.click()
+    await expect(page).toHaveURL(EDIT_URL_RE)
+
+    const textarea = page.locator('textarea[name="notes"]')
+    await expect(textarea).toBeVisible()
+
+    // If Google Maps isn't configured, the map block isn't rendered and there's nothing to stress here.
+    const mapCard = page.locator('.gm-style, [data-testid="map-consent-banner"]').first()
+    if (!(await mapCard.isVisible({ timeout: 3000 }).catch(() => false))) {
+      test.skip()
+      return
+    }
+
+    // The textarea must accept input within a short window — proves the main thread isn't blocked
+    // by the clusterer rebuilding once per marker mount.
+    await textarea.fill('still responsive', { timeout: 2000 })
+    await expect(textarea).toHaveValue('still responsive')
+  })
 })
