@@ -1,7 +1,5 @@
-import { MarkerClusterer } from '@googlemaps/markerclusterer'
 import {
   AdvancedMarker,
-  type AdvancedMarkerRef,
   ControlPosition,
   Map as GoogleMap,
   APIProvider as GoogleMapApiProvider,
@@ -17,6 +15,7 @@ import EntrancePopup, { type EntrancePendingState } from '~/features/territories
 import { pinVariantFor } from '~/features/territories/ui/entrance-pin-variant'
 import MapSearchBox from '~/features/territories/ui/MapSearchBox'
 import MarkerLegend from '~/features/territories/ui/MarkerLegend'
+import { useMarkerClusterer } from '~/features/territories/ui/use-marker-clusterer'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 import MapConsentBanner, { useMapConsent } from '~/shared/ui/MapConsentBanner'
@@ -30,8 +29,8 @@ type Props = {
   territoryId: number
   territoryType: TerritoryKind
   ownEntrances: BboxEntrance[]
-  pendingAdditions: ReadonlySet<number>
-  pendingRemovals: ReadonlySet<number>
+  pendingAdditions: ReadonlyMap<number, unknown>
+  pendingRemovals: ReadonlyMap<number, unknown>
   pendingReassignments: ReadonlyMap<number, { fromTerritoryId: number; fromTerritoryNumber: string }>
   focusRequest?: EntranceFocusRequest | null
   onAct: (entrance: BboxEntrance, action: EntranceAction) => void
@@ -51,8 +50,8 @@ function gridKey(bbox: { swLat: number; swLng: number; neLat: number; neLng: num
 
 function pendingStateFor(
   entrance: BboxEntrance,
-  pendingAdditions: ReadonlySet<number>,
-  pendingRemovals: ReadonlySet<number>,
+  pendingAdditions: ReadonlyMap<number, unknown>,
+  pendingRemovals: ReadonlyMap<number, unknown>,
   pendingReassignments: ReadonlyMap<number, unknown>,
 ): EntrancePendingState {
   if (pendingRemovals.has(entrance.id)) return 'pending-remove'
@@ -82,9 +81,7 @@ function MapContents({
   onAct,
 }: Omit<Props, 'apiKey' | 'className'>) {
   const map = useMap()
-  const clustererRef = useRef<MarkerClusterer | null>(null)
-  const markerRefs = useRef<Map<number, AdvancedMarkerRef>>(new Map())
-  const refCallbacks = useRef<Map<number, (marker: AdvancedMarkerRef) => void>>(new Map())
+  const getMarkerRef = useMarkerClusterer(map)
   const fetchAbort = useRef<AbortController | null>(null)
   const cacheRef = useRef<Map<string, BboxEntrance[]>>(new Map())
   const entranceToKeysRef = useRef<Map<number, Set<string>>>(new Map())
@@ -180,10 +177,10 @@ function MapContents({
   // Invalidate cached bbox tiles whenever local pending state mutates an entrance — keeps
   // status badges accurate if the user pans away and returns to a tile they've already loaded.
   useEffect(() => {
-    for (const id of pendingAdditions) invalidateCacheFor(id)
+    for (const id of pendingAdditions.keys()) invalidateCacheFor(id)
   }, [pendingAdditions, invalidateCacheFor])
   useEffect(() => {
-    for (const id of pendingRemovals) invalidateCacheFor(id)
+    for (const id of pendingRemovals.keys()) invalidateCacheFor(id)
   }, [pendingRemovals, invalidateCacheFor])
   useEffect(() => {
     for (const id of pendingReassignments.keys()) invalidateCacheFor(id)
@@ -222,49 +219,6 @@ function MapContents({
     }
   }, [map, handleIdle])
 
-  // Initialize the clusterer once we have a map. Cleanup clears all markers.
-  useEffect(() => {
-    if (map == null) return
-    const clusterer = new MarkerClusterer({ map })
-    clustererRef.current = clusterer
-    // Re-register any markers that mounted before the clusterer was ready.
-    for (const marker of markerRefs.current.values()) {
-      if (marker != null) clusterer.addMarker(marker, true)
-    }
-    clusterer.render()
-    return () => {
-      clusterer.clearMarkers()
-      if (clustererRef.current === clusterer) clustererRef.current = null
-    }
-  }, [map])
-
-  const getRefCallback = useCallback((id: number) => {
-    const cached = refCallbacks.current.get(id)
-    if (cached != null) return cached
-    const cb = (marker: AdvancedMarkerRef) => {
-      const previous = markerRefs.current.get(id) ?? null
-      if (marker === previous) return
-      const clusterer = clustererRef.current
-      // noDraw=true on add/remove — the coalesced render effect below calls clusterer.render()
-      // once per visibleEntrances change, instead of N times during a single commit.
-      if (previous != null && clusterer != null) clusterer.removeMarker(previous, true)
-      if (marker != null) {
-        markerRefs.current.set(id, marker)
-        if (clusterer != null) clusterer.addMarker(marker, true)
-      } else {
-        markerRefs.current.delete(id)
-      }
-    }
-    refCallbacks.current.set(id, cb)
-    return cb
-  }, [])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: visibleEntrances is a re-trigger signal, not consumed
-  useEffect(() => {
-    if (clustererRef.current == null) return
-    clustererRef.current.render()
-  }, [visibleEntrances])
-
   const focusEntranceById = useCallback(
     (entranceId: number) => {
       if (map == null) return
@@ -298,7 +252,7 @@ function MapContents({
           return (
             <AdvancedMarker
               key={display.id}
-              ref={getRefCallback(display.id)}
+              ref={getMarkerRef(display.id)}
               position={{ lat: display.latitude, lng: display.longitude }}
               onClick={() => setSelected(display)}
             >

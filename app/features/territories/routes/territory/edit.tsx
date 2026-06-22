@@ -406,19 +406,6 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
     [savedTerritoryEntrances],
   )
 
-  const pendingAdditionIds = useMemo(() => new Set(pendingAdditions.keys()), [pendingAdditions])
-  const pendingRemovalIds = useMemo(() => new Set(pendingRemovals.keys()), [pendingRemovals])
-  const pendingReassignmentSummary = useMemo(
-    () =>
-      new Map(
-        [...pendingReassignments.entries()].map(([id, value]) => [
-          id,
-          { fromTerritoryId: value.fromTerritoryId, fromTerritoryNumber: value.fromTerritoryNumber },
-        ]),
-      ),
-    [pendingReassignments],
-  )
-
   return (
     <div className="flex flex-col gap-6">
       <UnsavedChangesDialog blocker={blocker} />
@@ -469,9 +456,9 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             territoryId={territory.id}
             territoryType={territory.type}
             ownEntrances={ownBboxEntrances}
-            pendingAdditions={pendingAdditionIds}
-            pendingRemovals={pendingRemovalIds}
-            pendingReassignments={pendingReassignmentSummary}
+            pendingAdditions={pendingAdditions}
+            pendingRemovals={pendingRemovals}
+            pendingReassignments={pendingReassignments}
             focusRequest={focusRequest}
             onAct={handleAct}
             className="h-[calc(100vh-12rem)] flex-1 lg:sticky lg:top-4 lg:self-start max-lg:h-[60vh]"

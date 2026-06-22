@@ -5,6 +5,7 @@ const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
 const EDIT_URL_RE = /\/territories\/territory\/\d+\/edit/
 const RAIL_HEADING_RE = /modifications? en attente|pending changes/i
+const BBOX_REQUEST_RE = /entrances-in-bbox/
 
 test.describe('Territory edit page', () => {
   test.beforeEach(async ({ page }) => {
@@ -51,14 +52,20 @@ test.describe('Territory edit page', () => {
   })
 
   test('edit page stays interactive after the map loads many entrances', async ({ page }) => {
-    // Synthesize a large entrance set without depending on seed data, by intercepting the bbox endpoint.
+    // Pre-grant map consent so the consent banner doesn't gate the map mount.
+    // The key matches CONSENT_KEY in app/shared/ui/MapConsentBanner.tsx.
+    await page.addInitScript(() => {
+      window.localStorage.setItem('unitae_map_consent', 'true')
+    })
+
+    // 1500 stubbed entrances so the test doesn't depend on seed volume.
     await page.route('**/territories/api/entrances-in-bbox*', async route => {
       const entrances = Array.from({ length: 1500 }, (_, i) => ({
         id: 10_000_000 + i,
         latitude: 45.74 + (i % 40) * 0.0005,
         longitude: 4.83 + Math.floor(i / 40) * 0.0005,
-        kind: 'home',
-        shopKind: null,
+        kind: 'Residential',
+        shopKind: '',
         homes: 1,
         phones: 0,
         liberals: 0,
@@ -81,21 +88,28 @@ test.describe('Territory edit page', () => {
       test.skip()
       return
     }
+
+    const bboxRequest = page.waitForRequest(BBOX_REQUEST_RE)
     await editLink.click()
     await expect(page).toHaveURL(EDIT_URL_RE)
 
     const textarea = page.locator('textarea[name="notes"]')
     await expect(textarea).toBeVisible()
 
-    // If Google Maps isn't configured, the map block isn't rendered and there's nothing to stress here.
-    const mapCard = page.locator('.gm-style, [data-testid="map-consent-banner"]').first()
-    if (!(await mapCard.isVisible({ timeout: 3000 }).catch(() => false))) {
-      test.skip()
+    // Skip cleanly when Google Maps isn't configured — `.gm-style` only mounts once the Maps script loads.
+    const mapLoaded = await page
+      .waitForSelector('.gm-style', { timeout: 5000 })
+      .then(() => true)
+      .catch(() => false)
+    if (!mapLoaded) {
+      test.skip(true, 'Google Maps not configured (.gm-style never mounted)')
       return
     }
 
-    // The textarea must accept input within a short window — proves the main thread isn't blocked
-    // by the clusterer rebuilding once per marker mount.
+    // Fails loudly if the bbox interception ever stops matching — otherwise zero markers would mount.
+    await bboxRequest
+
+    // Many markers, main thread stays free — textarea must accept input within a short budget.
     await textarea.fill('still responsive', { timeout: 2000 })
     await expect(textarea).toHaveValue('still responsive')
   })
