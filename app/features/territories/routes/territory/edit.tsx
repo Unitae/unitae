@@ -456,19 +456,9 @@ export default function EditTerritoryPage({ loaderData }: Route.ComponentProps) 
             territoryId={territory.id}
             territoryType={territory.type}
             ownEntrances={ownBboxEntrances}
-            pendingAdditions={new Set(pendingAdditions.keys())}
-            pendingRemovals={new Set(pendingRemovals.keys())}
-            pendingReassignments={
-              new Map(
-                [...pendingReassignments.entries()].map(([id, value]) => [
-                  id,
-                  {
-                    fromTerritoryId: value.fromTerritoryId,
-                    fromTerritoryNumber: value.fromTerritoryNumber,
-                  },
-                ]),
-              )
-            }
+            pendingAdditions={pendingAdditions}
+            pendingRemovals={pendingRemovals}
+            pendingReassignments={pendingReassignments}
             focusRequest={focusRequest}
             onAct={handleAct}
             className="h-[calc(100vh-12rem)] flex-1 lg:sticky lg:top-4 lg:self-start max-lg:h-[60vh]"
