@@ -1,6 +1,6 @@
 import { Download, Map as MapIcon, Pencil, Trash2 } from 'lucide-react'
 import React from 'react'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { getZips } from '~/features/territories/server/buildings.server'
 import { classifySearch } from '~/features/territories/server/search-intent.server'
@@ -134,6 +134,7 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
     sort,
   } = loaderData
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const fromQuery = searchParams.toString()
   const viewSuffix = fromQuery.length > 0 ? `?from=${encodeURIComponent(fromQuery)}` : ''
   const chips = buildTerritoryFilterChips(searchParams)
@@ -233,51 +234,56 @@ export default function TerritoryListPage({ loaderData }: Route.ComponentProps) 
                 return (
                   <React.Fragment key={territory.id}>
                     {showDivider && <NoCoordinatesDivider count={withoutCoordsCount} colSpan={colSpan} />}
-                    <TableRow className="group relative cursor-pointer hover:bg-accent/30">
+                    <TableRow
+                      data-testid="territory-row"
+                      className="group cursor-pointer hover:bg-accent/30"
+                      onClick={event => {
+                        if (event.defaultPrevented) return
+                        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                        if ((event.target as HTMLElement).closest('a, button, [role="button"]')) return
+                        navigate(viewHref)
+                      }}
+                    >
                       <TableCell>
                         <Link
                           to={viewHref}
-                          className="absolute inset-0 z-0"
+                          className="font-medium hover:underline"
                           aria-label={m.territories_view_row_link({ number: territory.number })}
-                        />
-                        <span className="relative font-medium">{territory.number}</span>
+                        >
+                          {territory.number}
+                        </Link>
                       </TableCell>
                       {proximityActive && (
                         <TableCell className="text-right tabular-nums text-foreground/80">
-                          <span
-                            className="relative"
-                            title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}
-                          >
+                          <span title={distance == null ? m.territories_filter_distance_unknown_tooltip() : undefined}>
                             {distance ?? '—'}
                           </span>
                         </TableCell>
                       )}
                       <TableCell className="text-center">
-                        <span className="relative">{territoryTypeLabels[territory.type] ?? territory.type}</span>
+                        {territoryTypeLabels[territory.type] ?? territory.type}
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="relative">{territoryContentLabel(territory.type, territory.entrances)}</span>
+                        {territoryContentLabel(territory.type, territory.entrances)}
                       </TableCell>
                       <TableCell>
-                        <span className="relative">
-                          {attribution ? (
-                            <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
-                              {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
-                              {' — '}
-                              {m.territories_assigned_until({
-                                date: attribution.lateDate.toLocaleDateString('fr-FR', {
-                                  day: '2-digit',
-                                  month: '2-digit',
-                                }),
-                              })}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">{m.territories_available()}</span>
-                          )}
-                        </span>
+                        {attribution ? (
+                          <span className={attribution.lateDate < new Date() ? 'text-destructive' : ''}>
+                            {attribution.publisher.firstname} {attribution.publisher.lastname?.toUpperCase().at(0)}.
+                            {' — '}
+                            {m.territories_assigned_until({
+                              date: attribution.lateDate.toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                              }),
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">{m.territories_available()}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="relative z-10 flex items-center justify-end gap-1">
+                        <div className="flex items-center justify-end gap-1">
                           <Button variant="ghost" size="icon" asChild>
                             <a
                               href={`/territories/territory/${territory.id}/pdf`}
