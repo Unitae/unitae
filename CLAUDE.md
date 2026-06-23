@@ -185,9 +185,13 @@ Files have soft (warning) and hard (CI failure) line limits. See [Architecture C
 
 Tests and generated code are exempt. The CI check ships in Wave 2 of `refactor/architecture-conventions`.
 
-### Pre-commit hooks (target — Wave 2)
+### Pre-commit and pre-push hooks (target — Wave 2)
 
-`lefthook` runs on every commit: Biome lint on staged files, full typecheck, and unit tests for changed files. Installed automatically via `pnpm install` (triggers `lefthook install` from the `prepare` script). Bypass with `--no-verify` only for trivial commits; CI gates the merge regardless.
+`lefthook` runs two stages:
+- **Pre-commit** (fast — keeps the inner loop tight): Biome lint on staged files + unit tests for changed files.
+- **Pre-push** (heavier — catches before CI): full typecheck + file-size budget check.
+
+Installed automatically via `pnpm install` (triggers `lefthook install` from the `prepare` script). `--no-verify` is allowed only when the hook itself is broken; CI gates the merge regardless of bypass.
 
 ## Testing Strategy
 
