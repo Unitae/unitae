@@ -4,6 +4,38 @@ Structural rules for how the Unitae codebase is organized. Orthogonal to [Coding
 
 This document is **part target state, part current rule**. The migration is tracked in waves on the `refactor/architecture-conventions` branch. Sections labelled *target* describe the destination; sections without that label apply today.
 
+## Migration Status
+
+| Wave | Scope | Status |
+|---|---|---|
+| 0 | This doc + CLAUDE.md updates | ✅ landed |
+| 1 | 4 production bug fixes (TDD-first) | ⏳ pending |
+| 2 | lefthook + file-size CI guard | ⏳ pending |
+| 3 | Feature `index.ts` boundaries + cross-feature import lint | ⏳ pending |
+| 4 | Split mega-files | ⏳ pending |
+| 5 | Three aggregates + CQRS-lite lint enforcement | ⏳ pending |
+| 6 | Constants files + `any` triage | ⏳ pending |
+| 7 | TDD rollout + coverage backfill | ⏳ pending |
+| 8 | Stress-case fixes (locale, name/phone validation, anonymization) | ⏳ pending |
+| 9 | Delivery-metrics script | ⏳ pending |
+
+Update this table when a wave merges.
+
+## Table of Contents
+
+- [Goals](#goals)
+- [Aggregate Doctrine](#aggregate-doctrine)
+- [CQRS-lite: read/write split within a feature](#cqrs-lite-readwrite-split-within-a-feature)
+- [Canonical Feature Shape](#canonical-feature-shape)
+- [Service File Naming](#service-file-naming)
+- [Feature Boundary Rule](#feature-boundary-rule)
+- [File-size Budgets](#file-size-budgets)
+- [TDD Discipline](#tdd-discipline)
+- [Pre-commit Contract](#pre-commit-contract)
+- [Constants Policy](#constants-policy)
+- [Delivery Metrics](#delivery-metrics)
+- [Related](#related)
+
 ## Goals
 
 Two goals, in order:
@@ -12,6 +44,168 @@ Two goals, in order:
 2. **Centralize invariants so they're hard to forget.** Bugs that take the form "developer forgot to call X after Y" are eliminated by giving Y a single entry point that calls X internally.
 
 Everything below serves one or both of these goals. When a rule does not serve either, it does not belong here.
+
+## Aggregate Doctrine
+
+An **aggregate** is a single file that owns all mutations to a domain entity (or cluster of entities) and enforces the entity's invariants. Outside code mutates the entity only through the aggregate's exported functions.
+
+### What counts as an invariant
+
+> An **invariant** is a rule whose violation produces incorrect domain state — orphaned role assignments, overlapping attributions, a member assigned a role they're not eligible for. Audit logging, structured logging, and metrics are *not* invariants; they're cross-cutting concerns handled separately (by `audit()`, `createLogger()`, etc.) and verified by lint/tests, not by aggregates.
+
+### When to introduce an aggregate
+
+Introduce one when **either** is true:
+
+- **3+ mutation entry points must coordinate an invariant.** Example: 9+ places mutate `Member` fields that must trigger `syncBuiltInRoleAssignments`; without an aggregate, every developer (and every AI agent) must remember the rule. Count distinct entry points, not lines of code.
+- **The entity has an explicit state machine.** Example: `Attribution` has a lifecycle (assigned → returned → archived) with overlap rules that bridge create and update.
+
+Do not introduce aggregates speculatively. Most CRUD entities (Board documents, Settings, Notifications) have neither property — adding an aggregate is pure ceremony.
+
+### Aggregates vs Policies
+
+When the rules are duplicated across multiple writers but extracting an aggregate would prematurely lock the design, extract a **policy** instead.
+
+- An **aggregate** owns the mutation: callers invoke `member.aggregate.updateFlags(...)`; the aggregate writes, asserts, audits.
+- A **policy** owns the rule: callers still write directly (or via existing service functions) but call `programmeAssignmentPolicy.assertAssignable(...)` before the write.
+
+Promote a policy to an aggregate when a third writer appears or when the rule set grows beyond pure assertions.
+
+### Current aggregates and policies
+
+| Name | Kind | Location | Reason |
+|---|---|---|---|
+| `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` *(target — Wave 5)* | 9+ mutation sites must call `syncBuiltInRoleAssignments` after editing identity flags |
+| `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` *(target — Wave 5)* | State machine + overlap invariant (one active per building × publisher × type) |
+| `ProgrammeAssignment` | policy | `app/features/events/server/programme-assignment.policy.ts` *(target — Wave 5)* | Eligibility + distinctness rules duplicated across `assignPart` and `assignServiceRole` |
+
+### Aggregate contract
+
+Aggregate files (`*.aggregate.ts`) follow this contract:
+
+1. **Export only mutation functions.** Each takes `(db: TransactionClient, ...domainParams, actorId: number)` and returns the affected entity (or `null` for not-found, per the existing service-layer convention).
+2. **Reads inside aggregates** are classified into three categories:
+   - **Precondition lookups** — fetching the entity to mutate, or checking related state before the write. Allowed without naming convention.
+   - **Invariant assertions** — pure-function checks that throw on violation. Prefixed `_assert*` (private convention) and called from the mutation function before the write.
+   - **UI / report queries** — listing, paginating, projecting for the UI. **Forbidden in aggregates.** Move to the query side (`*.queries.ts` or unsuffixed `<feature>.server.ts`).
+3. **Side effects after the write**: call `audit()` (fire-and-forget) or `auditInTransaction(tx, ...)` if the audit must be atomic with the write (see [Transaction boundaries](#transaction-boundaries)).
+4. **Direct `db.<model>.create/update/updateMany/delete/deleteMany/upsert`** on the aggregate's primary model is forbidden outside the aggregate file. Enforced by lint (Wave 5).
+
+### Cross-aggregate workflows
+
+When a single user action mutates more than one aggregate (e.g., marking a member as left also archives their open attributions), the orchestration lives in a `*.workflow.ts` file in the calling feature:
+
+```typescript
+// app/features/publishers/server/leave-publisher.workflow.ts
+export async function leavePublisher(db, memberId, congregationId, actorId) {
+  const member = await memberAggregate.markLeft(db, memberId, congregationId, actorId)
+  if (member) {
+    await attributionAggregate.archiveAllForPublisher(db, memberId, actorId)
+  }
+  return member
+}
+```
+
+Workflows:
+- May import other features' aggregates **via the feature `index.ts`** (which re-exports the aggregate's public mutation functions).
+- Run inside a single `withScope` transaction opened by the route, so partial failure rolls back both aggregates' writes.
+- Should not contain business logic of their own — pure orchestration. If a workflow grows logic, promote it into one of the aggregates.
+
+### Transaction boundaries
+
+- `withScope(congregationId, fn)` opens one Postgres transaction and sets `app.congregation_id` for RLS. All `db.*` calls inside `fn` share that transaction.
+- Multiple aggregate calls inside one `withScope` block share the transaction. Partial failure rolls back all writes.
+- `audit()` is fire-and-forget and writes outside the caller's transaction — fine when the audit is informational. Use `auditInTransaction(tx, entry)` when the audit must succeed or fail atomically with the mutation (e.g., legally-required deletion records).
+- Aggregates **accept** a transaction client; they do not open their own. The caller (route, workflow, or job handler) owns the transaction boundary via `withScopeFromContext` / `withScope`.
+
+### How to introduce a new aggregate
+
+1. Create `app/features/<feature>/server/<entity>.aggregate.ts`.
+2. Move every existing `db.<entity>.create/update/updateMany/delete/deleteMany/upsert` call into named exports on the aggregate. Each function takes `(db, ...domainParams, actorId)`, performs the write, calls `audit()`.
+3. Extract invariant checks into private `_assert*` helpers. Call them from the mutation functions before the write.
+4. Add `*.aggregate.integration.test.ts` covering: every happy-path mutation, every invariant violation (assert the aggregate throws), every audit call (assert via fixture inspection).
+5. Add the model to the lint allowlist file (Wave 5) so direct `db.<model>.create/update/…` outside the aggregate is blocked.
+6. Update the [Current aggregates](#current-aggregates-and-policies) table in this doc, the call sites at consumer routes/jobs, and the relevant feature's `index.ts` re-exports.
+
+### Aggregate testing
+
+Aggregates get both unit and integration tests:
+
+```typescript
+// member.aggregate.test.ts  (unit, fast — covers invariant logic)
+vi.mock('~/shared/infra/db.server')
+
+test('updateFlags throws when isMale is null but a male-only role is being assigned', () => {
+  vi.mocked(db.member.findFirst).mockResolvedValue({ id: 1, isMale: null, /* ... */ })
+
+  expect(memberAggregate.updateFlags(db, 1, congregationId, actorId, { roleId: ELDER_ROLE_ID }))
+    .rejects.toThrow(InvariantError)
+})
+
+// member.aggregate.integration.test.ts  (slow — covers sync side-effect)
+test('updateFlags triggers syncBuiltInRoleAssignments', async () => {
+  const { member } = await seedMember({ isPublisher: false })
+
+  await memberAggregate.updateFlags(testDb, member.id, congregationId, actorId, { isPublisher: true })
+
+  const roles = await testDb.memberRoleAssignment.findMany({ where: { memberId: member.id } })
+  expect(roles.map(r => r.roleKey)).toContain('publisher')
+})
+```
+
+Aim for 100% branch coverage on `_assert*` helpers. Mutation happy paths can rely on integration tests.
+
+### Error messages
+
+Invariant violations throw `AppError` subclasses from `app/shared/errors/`:
+
+- **Internal message in English** (the `Error.message`) — for logs, stack traces, and developer tooling.
+- **User-facing translation in French** happens at the route boundary, via the existing flash-message + Paraglide flow.
+
+```typescript
+// In the aggregate:
+throw new ConflictError('attribution_overlap', { buildingId, publisherId })
+
+// In the route:
+catch (err) {
+  if (err instanceof ConflictError && err.code === 'attribution_overlap') {
+    return session.flash('error', m.territories_attribution_overlap_error())
+  }
+  throw err
+}
+```
+
+### Allowed bypass: import orchestrators
+
+`import-*.server.ts` files (e.g., `import-members.server.ts`) bulk-load data from archive files. They may call `db.<model>.create` directly because they replay an external source of truth, not user actions, and they call `syncBuiltInRoleAssignments` in a single post-import pass. These files are on the lint allowlist (Wave 5).
+
+## CQRS-lite: read/write split within a feature
+
+Within each feature, **writes go through `*.aggregate.ts` files; reads go through `*.queries.ts` (or unsuffixed `<feature>.server.ts`) files**. Both share the same Postgres database — no separate datastore, no event bus, no eventual consistency.
+
+| File suffix | Allowed | Forbidden |
+|---|---|---|
+| `*.aggregate.ts` | mutations on the primary model; precondition lookups; `_assert*` invariant helpers; `audit()`; `syncBuiltInRoleAssignments` | UI / report queries (`findMany`, paginated lists, joined projections for views) |
+| `*.queries.ts`, `*.policy.ts`, or `{feature}.server.ts` | all read operations; pagination; aggregation; joins for UI | `create`, `update`, `updateMany`, `delete`, `deleteMany`, `upsert` |
+| Other `*.server.ts` (single-purpose) *(grandfathered until Wave 5)* | one of the above sets, picked by the file's purpose | the other set |
+
+This gives the navigability benefit of CQRS — a contributor or AI agent knows from the file name whether they're looking at a mutation or a query — without the synchronization cost of full CQRS.
+
+### What this is not
+
+- **Not full CQRS.** No separate read database. No event bus. No projection lag. A query reads the row right after the aggregate wrote it.
+- **Not Event Sourcing.** Current state is the source of truth. `AuditLog` is a side-record, not a replay log.
+- **Not a hard constraint on read shape.** Queries can be as ad-hoc as the UI needs — sorting, filtering, joining, paginating. The constraint is *what they don't do* (mutate).
+
+### Migration of existing files
+
+Grab-bag files (`publishers.server.ts`, `attributions.server.ts`, `buildings.server.ts`, `groups.server.ts`) are predominantly read-side and stay as the feature's query surface. Their write functions migrate to the corresponding aggregate during Wave 5.
+
+### Lint enforcement (target — Wave 5)
+
+A Biome rule enforces:
+- `db.<model>.create|update|updateMany|delete|deleteMany|upsert` on a primary aggregate model is forbidden outside files matching `*.aggregate.ts` (or on the allowlist).
+- `db.<model>.findMany|findFirst|findUnique|count|aggregate` is forbidden inside `*.aggregate.ts` **except** as precondition lookups (any name) or inside functions prefixed `_assert` (invariant checks).
 
 ## Canonical Feature Shape
 
@@ -22,36 +216,16 @@ app/features/{name}/
 ├── index.ts                         # Required (target). Public boundary — re-exports.
 ├── routes/                          # Required. Route loaders, actions, components.
 ├── schemas/                         # Required. Conform + Zod form validation.
-├── server/                          # Optional. Service functions (aggregates, queries, helpers).
+├── server/                          # Optional. Service functions, aggregates, queries, workflows.
 ├── ui/                              # Optional. Feature-specific React components.
 ├── model/                           # Optional. TypeScript type definitions shared with client.
 ├── jobs/                            # Optional. BullMQ background-job handlers.
 └── emails/                          # Optional. React Email templates.
 ```
 
-A feature with no business logic (e.g., `congregation/`) may omit `server/`. A feature with no UI of its own (e.g., a pure API surface) may omit `ui/`. Do not create empty folders.
+A feature with no business logic (e.g., `congregation/`) may omit `server/`. A feature with no UI of its own may omit `ui/`. Do not create empty folders.
 
-**No other top-level subfolders.** Don't add `helpers/`, `lib/`, `utils/` inside a feature — those names attract grab-bag files. Cross-cutting utilities go in `app/shared/`.
-
-## Feature Boundary Rule
-
-Features may only import each other through their `index.ts`. Deep imports into another feature's `server/`, `ui/`, or `model/` are forbidden.
-
-```typescript
-// Allowed
-import { getProgrammeTemplate } from '~/features/events'
-
-// Forbidden (target)
-import { getProgrammeTemplate } from '~/features/events/server/programme-templates.server'
-```
-
-Each feature's `index.ts` re-exports exactly the public surface other features need — typically a few service functions and types. If feature A needs something private to feature B, that's a signal to either (a) promote the function to B's public API, or (b) move the shared concern into `app/shared/domain/`.
-
-**Type-only imports** (`import type ...`) into another feature are tolerated, but prefer re-exporting types from `index.ts` when possible.
-
-**Dashboard exemption**: `features/dashboard/` is an aggregator by design — it composes data across territories, events, board, and publishers for the homepage. It is allowed to deep-import from other features, but the exemption must be documented in `features/dashboard/index.ts` and is the only exemption.
-
-A Biome lint rule blocks new violations once the migration completes (Wave 3).
+**No other top-level subfolders.** Don't add `helpers/`, `lib/`, `utils/` inside a feature — those names attract grab-bag files. Cross-cutting utilities go in `app/shared/`. Feature-internal pure-function helpers used by multiple files in `server/` may live as `<helper>.ts` (no `.server.ts` suffix needed for pure helpers) directly inside `server/`.
 
 ## Service File Naming
 
@@ -66,7 +240,6 @@ server/
 ├── create-member.server.ts
 ├── update-member.server.ts
 ├── set-member-left.server.ts
-├── set-member-returned.server.ts
 └── toggle-publisher-status.server.ts
 ```
 
@@ -74,92 +247,55 @@ The verb-noun pattern makes service functions discoverable by file name alone. A
 
 **Grab-bag (grandfathered, not for new files)**
 
-Existing files like `publishers.server.ts`, `groups.server.ts`, `buildings.server.ts`, `attributions.server.ts` bundle multiple related functions in one file. These remain because rewriting them has no payoff, but **no new grab-bag files**. Add new functions to the verb-noun pattern instead, even if related to an existing grab-bag domain.
+Existing files like `publishers.server.ts`, `groups.server.ts`, `buildings.server.ts`, `attributions.server.ts` bundle multiple related functions in one file. These remain; rewriting them has no payoff. **No new grab-bag files.** Add new functions to the verb-noun pattern instead.
 
-When the [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature) is applied to a feature, the grab-bag file becomes the feature's read-side surface (it should already be mostly queries) and any write functions migrate to the corresponding aggregate.
+When the [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature) is applied (Wave 5), the grab-bag file becomes the feature's read-side surface and any write functions migrate to the corresponding aggregate.
 
-## Aggregate Doctrine
+## Feature Boundary Rule
 
-An **aggregate** is a single file that owns all mutations to a domain entity (or cluster of entities) and enforces the entity's invariants. Outside code mutates the entity only through the aggregate's exported functions.
+Features may only import each other through their `index.ts`. Deep imports into another feature's `server/`, `ui/`, or `model/` are forbidden.
 
-### When to introduce an aggregate
+```typescript
+// Allowed
+import { getProgrammeTemplate } from '~/features/events'
 
-Introduce one when **either** is true:
+// Forbidden (target — Wave 3)
+import { getProgrammeTemplate } from '~/features/events/server/programme-templates.server'
+```
 
-- **3+ call sites must coordinate an invariant.** Example: 9+ places mutate `Member` fields that must trigger `syncBuiltInRoleAssignments`; without an aggregate, every developer (and every AI agent) must remember the rule, and the audit confirmed one site already forgets.
-- **The entity has an explicit state machine.** Example: `Attribution` has a lifecycle (assigned → returned → archived) with overlap invariants that bridge create and update; the rules live in one file so the state transitions are obvious.
+### `index.ts` re-export shape
 
-Do not introduce aggregates speculatively. Most CRUD entities (Board documents, Settings, Notifications) don't have either property — adding an aggregate is pure ceremony.
+- **Named re-exports only**: `export { fn, type Foo } from './server/foo.server'`. No `export *`.
+- **Type re-exports use `export type`** (avoids accidental value-side coupling).
+- **Job handlers are not re-exported** from `index.ts` — workers import them directly from `app/workers/worker.server.ts`.
+- The `index.ts` file should be the **only** place that mentions another feature's internal paths to outsiders.
 
-### Current aggregates
+### Aggregator exemption
 
-| Aggregate | Location | Reason |
-|---|---|---|
-| `Member` | `app/features/publishers/server/member.aggregate.ts` | 9+ mutation sites must call `syncBuiltInRoleAssignments` after editing identity flags |
-| `Attribution` | `app/features/territories/server/attribution.aggregate.ts` | State machine + overlap invariant (one active per building × publisher × type) |
-| `ProgrammeAssignment` (policy, not aggregate) | `app/features/events/server/programme-assignment.policy.ts` | Eligibility + distinctness rules duplicated across `assignPart` and `assignServiceRole` |
-
-`ProgrammeAssignment` is a *policy* (pure functions called by mutators), not a full aggregate, because the mutation still happens in `programme-assignments.server.ts`. The boundary is the same — the policy is the only place where eligibility rules live.
-
-### Aggregate contract
-
-- **Exports only mutation functions.** Read queries do not live in aggregates; they belong in the query side ([CQRS-lite](#cqrs-lite-readwrite-split-within-a-feature)).
-- **Each mutation function** takes `(db, ...domain params, actorId)`, performs the write inside the transaction, calls `audit()`, and (for `Member`) calls `syncBuiltInRoleAssignments`.
-- **Internal invariant helpers** are private (not exported) or prefixed with `_assert*` to be obviously aggregate-internal.
-- **Direct `db.<model>.create/update/updateMany/delete/deleteMany/upsert`** on the aggregate's primary model is forbidden outside the aggregate file. Enforced by lint (Wave 5).
-
-### Allowed bypass: import orchestrators
-
-`import-*.server.ts` files (e.g., `import-members.server.ts`) bulk-load data from archive files. They may call `db.member.create` directly because they replay an external source of truth, not user actions, and they call `syncBuiltInRoleAssignments` in a single post-import pass. These files are on the lint allowlist.
-
-## CQRS-lite: read/write split within a feature
-
-Within each feature, **writes go through `*.aggregate.ts` files; reads go through `*.queries.ts` (or unsuffixed `<feature>.server.ts`) files**. Both share the same Postgres database — no separate datastore, no event bus, no eventual consistency.
-
-| File suffix | Allowed to | Forbidden from |
-|---|---|---|
-| `*.aggregate.ts` | `db.*.create/update/delete/upsert`, `audit()`, invariant checks, role-sync triggers | `findMany`, `findFirst`, `count`, `aggregate` (except as part of invariant checks via private `_assert*` helpers) |
-| `*.queries.ts` or `{feature}.server.ts` | `findMany`, `findFirst`, `findUnique`, `count`, `aggregate`, joins, projections for the UI | `create`, `update`, `updateMany`, `delete`, `deleteMany`, `upsert` |
-| Other `*.server.ts` (single-purpose) | One of the above sets, picked by the file's purpose | The other set |
-
-This gives the navigability benefit of CQRS — a contributor or AI agent knows from the file name whether they're looking at a mutation or a query — without the synchronization cost of full CQRS (separate read models, eventual consistency, projection lag).
-
-### What this is not
-
-- **Not full CQRS.** No separate read database. No event bus. No projection lag. A query reads the row right after the aggregate wrote it, in the same transaction if needed.
-- **Not Event Sourcing.** The current state is the source of truth. The `AuditLog` table is a side-record, not a replay log.
-- **Not a hard constraint on read side.** Queries can be as ad-hoc as they need to be — sorting, filtering, joining, paginating. The constraint is *what they don't do* (mutate).
-
-### Migration of existing files
-
-Existing grab-bag files (`publishers.server.ts`, `attributions.server.ts`, `buildings.server.ts`, `groups.server.ts`) are predominantly read-side already and stay as the feature's query surface. The few write functions they contain migrate to the corresponding aggregate during Wave 5.
-
-### Lint enforcement (target)
-
-A Biome rule (Wave 5) enforces:
-- `db.<model>.create|update|updateMany|delete|deleteMany|upsert` is forbidden outside files matching `*.aggregate.ts` (or on an explicit allowlist).
-- `db.<model>.findMany|findFirst|findUnique|count|aggregate` is forbidden inside `*.aggregate.ts` except in functions prefixed with `_assert` (the convention for internal invariant checks).
+`features/dashboard/` aggregates data across territories, events, board, and publishers for the homepage. It is allowed to deep-import from other features, but the exemption is encoded in the lint rule's allowlist (Wave 3), not in a code comment. Adding a new exemption requires a doc PR + lint config change — there is no informal escape hatch.
 
 ## File-size Budgets
 
-Files have soft and hard size limits. **Soft** triggers a CI warning; **hard** fails CI.
+Files have soft (CI warning) and hard (CI failure) line limits.
 
 | File pattern | Soft | Hard |
 |---|---|---|
-| `*.server.ts`, `*.aggregate.ts` | 200 lines | 350 lines |
+| `*.server.ts`, `*.aggregate.ts`, `*.queries.ts`, `*.policy.ts` | 200 lines | 350 lines |
 | Route `*.tsx` (in `features/*/routes/`) | 150 lines | 300 lines |
 | Component `*.tsx` (in `ui/` or `shared/ui/`) | 200 lines | 400 lines |
 | `*.test.ts`, `*.integration.test.ts`, `*.spec.ts` | exempt | exempt |
 | Generated code (`app/database/generated/`) | exempt | exempt |
 | Migration SQL | exempt | exempt |
 
-The budget exists to enforce a principle: **a service file should hold one concept; a route file should orchestrate, not implement; a component file should render one piece of UI**. When a file approaches the hard limit, the right answer is almost always to split it into smaller files with clear responsibilities — not to compress the existing code.
+The budget exists to enforce a principle: a service file should hold one concept; a route file should orchestrate, not implement; a component file should render one piece of UI. When a file approaches the hard limit, the right answer is almost always to split it into smaller files with clear responsibilities — not to compress the existing code.
 
-The CI check lives at `scripts/check-file-sizes.ts` and runs in the `file-size-check` job of `.github/workflows/continuous-integration.yml`.
+### Grandfathering
+
+Files exceeding the hard limit when Wave 2 lands are auto-added to `scripts/check-file-sizes.ts`'s `EXEMPT_FILES` array with the commit SHA recorded. The exemption is removed when the file is split (Wave 4 covers the largest ones). **New files have no grandfathering.**
 
 ### Explicit overrides
 
-If a file genuinely cannot be split (very rare — usually a generated config, a large constants table, or a complex SQL query in code), add an entry to `scripts/check-file-sizes.ts`'s `EXEMPT_FILES` array with a one-line justification. New exemptions require reviewer approval.
+If a file genuinely cannot be split (rare — usually a generated config or a large constants table), add an entry to `EXEMPT_FILES` with a one-line justification. New exemptions require reviewer approval.
 
 ## TDD Discipline
 
@@ -167,12 +303,12 @@ Test-Driven Development applies to **two situations**, not the whole codebase:
 
 ### Required
 
-- **New service functions** (in `features/*/server/`) — write the test first. The test describes the function's contract (inputs, outputs, errors thrown). Implementing to a written test forces the function to have a small, well-defined surface.
-- **Bug regressions** — when fixing any bug, write a failing test that reproduces the bug *before* writing the fix. The test stays in the codebase as a regression guard.
+- **New service functions** (in `features/*/server/`) — write the test first. The test describes the contract (inputs, outputs, errors thrown). Implementing to a written test forces a small, well-defined surface.
+- **Bug regressions** — when fixing any bug, write a failing test reproducing the bug *before* writing the fix. The test stays as a regression guard.
 
 ### Encouraged
 
-- **Aggregate invariant tests** — every invariant enforced by an aggregate should have a test that tries to violate it and verifies the aggregate throws. Aim for 100% branch coverage of invariant checks.
+- **Aggregate invariant tests** — every invariant has a test that tries to violate it and asserts the aggregate throws. Aim for 100% branch coverage of `_assert*` helpers.
 
 ### Not required
 
@@ -180,11 +316,11 @@ Test-Driven Development applies to **two situations**, not the whole codebase:
 
 ### Test style
 
-Black-box: assert on what a function returns or throws. Don't assert on internal call counts unless that delegation *is* the contract (e.g., "ensures `congregationId` is passed to the DB query"). See [Coding Conventions › Testing](coding-conventions.md#testing) for the full rules.
+Black-box: assert on what a function returns or throws. Don't assert on internal call counts unless that delegation *is* the contract (e.g., "ensures `congregationId` is passed to the DB query"). See [Coding Conventions › Testing](coding-conventions.md#testing). For aggregate test examples, see [Aggregate Doctrine › Aggregate testing](#aggregate-testing).
 
 ## Pre-commit Contract
 
-A pre-commit hook (lefthook) runs locally before every commit:
+Two hooks shipped via lefthook (Wave 2):
 
 ```yaml
 # lefthook.yml (Wave 2)
@@ -194,19 +330,30 @@ pre-commit:
     lint:
       glob: '*.{ts,tsx,js,jsx,json}'
       run: pnpm biome check --staged {staged_files}
-    typecheck:
-      run: pnpm test:typecheck
     unit-tests:
       run: pnpm test:unit --changed
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: pnpm test:typecheck
+    file-sizes:
+      run: pnpm test:file-sizes
 ```
 
-The hook ships in Wave 2. After install (`pnpm install` triggers `lefthook install` via the `prepare` script), commits with lint, type, or unit-test failures are blocked locally. CI runs the same checks plus integration and E2E — the pre-commit hook shortens the feedback loop, it doesn't replace CI.
+The split is deliberate: **pre-commit must be fast** so developers don't reach for `--no-verify` reflexively. Linting staged files and running tests for changed modules typically completes in seconds. **Pre-push catches the slower checks** (full typecheck, file-size budget) before they hit CI but doesn't gate every save-and-commit cycle.
 
-Bypassing with `--no-verify` is allowed for trivial typo commits but the CI check still gates the merge.
+Bypassing with `--no-verify` is allowed only when the hook itself is broken; CI gates the merge regardless of bypass.
 
 ## Constants Policy
 
-Magic numbers that carry domain meaning are extracted to `app/shared/constants/`:
+Magic numbers in business logic are extracted to `app/shared/constants/` when:
+
+- The same value is used in **2+ places**, OR
+- The value's meaning is **non-obvious from context** (e.g., `10_000` for a queue delay vs `10` for a `take()` limit)
+
+Single-use, self-evident numbers (`take(10)`, `splice(0, 1)`) stay inline.
 
 ```
 app/shared/constants/
@@ -215,26 +362,34 @@ app/shared/constants/
 └── limits.ts            # MAX_IMPORT_SIZE_BYTES = 500 * 1024 * 1024
 ```
 
-A bare `1500` in business code is a smell — the reader can't tell whether it's a pagination limit, a timeout, or a coincidence. A named import (`MAX_BUILDINGS_PER_PAGE`) carries intent.
-
 ### Not constants
 
-Variant strings constrained by TypeScript literal types (`'asc' | 'desc'`, `'ghost' | 'outline' | 'default'`) do **not** need to be enums. The type system already prevents typos and the string value is self-documenting. Don't enum-ify for the sake of it.
+Variant strings constrained by TypeScript literal types (`'asc' | 'desc'`, `'ghost' | 'outline'`) don't need enums. The type system prevents typos; the string is self-documenting. Don't enum-ify for the sake of it.
 
-### Generated/external constants
+### Generated / external constants
 
 Stripe prices, AWS bucket names, env var keys — these belong with the code that uses them, not in `shared/constants/`. The folder is for domain constants only.
 
-## DORA Hooks
+## Delivery Metrics
 
-A weekly script (`scripts/dora-metrics.ts`, Wave 9) computes the four DORA metrics from git history and Conventional Commits:
+A weekly script (`scripts/dora-metrics.ts`, Wave 9) computes proxies for software-delivery performance from git history and Conventional Commits.
 
-- **Deploy frequency** — count of pushes to `main` per week
-- **Lead time for changes** — median (PR merge timestamp − first commit timestamp)
-- **Change failure rate** — count of `fix:` commits / count of `feat:` commits in the window
-- **Mean time to restore** — median time between a `feat:` and the `fix:` that patches it (identified by issue references or commit body)
+> **Disclaimer**: these are *proxies*, not the canonical [DORA metrics](https://dora.dev). True Change Failure Rate and MTTR require production-incident tracking that we don't have yet. The proxies are useful for spotting trends; don't read them as absolute industry benchmarks.
 
-Output lands in `.planning/dora/<YYYY-WW>.md` (gitignored) or is posted to the team's tracking surface. The point is not the absolute numbers — it's catching regressions ("our lead time doubled this quarter, what changed?").
+| Proxy | Definition | Caveat |
+|---|---|---|
+| **Deploy frequency** | Count of pushes to `main` per week | Each push deploys per the CD workflow, so this is real deploy frequency |
+| **Lead time for changes** | Median of (PR merge timestamp − first commit timestamp) per week | Underestimates lead time when commits sit unmerged for a long time without surfacing as PRs |
+| **Fix-to-feat ratio** | Count of `fix:` commits / count of `feat:` commits in the window | A proxy for CFR. Not the same — most `fix:` commits patch bugs introduced long before any recent `feat:` deploy. Use trends, not absolutes |
+| **Hotfix turnaround** | Median time between a `feat:` and the first `fix:` referencing it (via issue or commit body) | Proxy for MTTR. Only catches fixes that explicitly reference the feature; silent regressions are invisible |
+
+### Ownership and response
+
+- **Owner**: tech lead reviews weekly during sprint review.
+- **Output**: `.planning/dora/<YYYY-WW>.md` (gitignored — local artifact, summarized to the team channel manually).
+- **Response threshold**: if any metric crosses 2× the trailing 4-week median, raise it as a retro item.
+
+If incident tracking lands later, replace the proxies with real CFR and MTTR. Until then, these are decoration-resistant only when used as trend indicators.
 
 ## Related
 
