@@ -229,7 +229,7 @@ A feature with no business logic (e.g., `congregation/`) may omit `server/`. A f
 
 ## Service File Naming
 
-Service functions live in `features/{name}/server/`. File names follow one of two patterns:
+Service functions live in `app/features/{name}/server/`. File names follow one of two patterns:
 
 **Verb-noun per file (preferred for new code)**
 
@@ -272,7 +272,7 @@ import { getProgrammeTemplate } from '~/features/events/server/programme-templat
 
 ### Aggregator exemption
 
-`features/dashboard/` aggregates data across territories, events, board, and publishers for the homepage. It is allowed to deep-import from other features, but the exemption is encoded in the lint rule's allowlist (Wave 3), not in a code comment. Adding a new exemption requires a doc PR + lint config change — there is no informal escape hatch.
+`app/features/dashboard/` aggregates data across territories, events, board, and publishers for the homepage. It is allowed to deep-import from other features, but the exemption is encoded in the lint rule's allowlist (Wave 3), not in a code comment. Adding a new exemption requires a doc PR + lint config change — there is no informal escape hatch.
 
 ## File-size Budgets
 
@@ -281,7 +281,7 @@ Files have soft (CI warning) and hard (CI failure) line limits.
 | File pattern | Soft | Hard |
 |---|---|---|
 | `*.server.ts`, `*.aggregate.ts`, `*.queries.ts`, `*.policy.ts` | 200 lines | 350 lines |
-| Route `*.tsx` (in `features/*/routes/`) | 150 lines | 300 lines |
+| Route `*.tsx` (in `app/features/*/routes/`) | 150 lines | 300 lines |
 | Component `*.tsx` (in `ui/` or `shared/ui/`) | 200 lines | 400 lines |
 | `*.test.ts`, `*.integration.test.ts`, `*.spec.ts` | exempt | exempt |
 | Generated code (`app/database/generated/`) | exempt | exempt |
@@ -303,7 +303,7 @@ Test-Driven Development applies to **two situations**, not the whole codebase:
 
 ### Required
 
-- **New service functions** (in `features/*/server/`) — write the test first. The test describes the contract (inputs, outputs, errors thrown). Implementing to a written test forces a small, well-defined surface.
+- **New service functions** (in `app/features/*/server/`) — write the test first. The test describes the contract (inputs, outputs, errors thrown). Implementing to a written test forces a small, well-defined surface.
 - **Bug regressions** — when fixing any bug, write a failing test reproducing the bug *before* writing the fix. The test stays as a regression guard.
 
 ### Encouraged
