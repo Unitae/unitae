@@ -4,6 +4,7 @@ import {
   getServiceRoleAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
+import { areParticipantsDistinct } from '~/features/events/server/programme-assignment.policy'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -61,6 +62,10 @@ export async function assignPart(
       data: { assigneeId: null, assistantId: null, externalSpeakerId, topic: cleanTopic, hasConflict: false },
     })
     return { assignment }
+  }
+
+  if (!areParticipantsDistinct(assigneeId, assistantId)) {
+    return { error: "L'orateur et le lecteur ne peuvent pas être la même personne." }
   }
 
   if (assigneeId != null) {
