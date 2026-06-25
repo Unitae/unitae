@@ -2,8 +2,8 @@ import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import { Permission } from '~/shared/types/permission'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export interface UpdateAccountParams {
   firstname: string

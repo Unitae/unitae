@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { Archive, ArchiveRestore, ShieldAlert } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
 import { z } from 'zod'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import { externalSpeakerSchema } from '~/features/events/schemas/external-speaker.schema'
 import {
   archiveExternalSpeaker,

@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { BarChart3, Eye, Mail, Pencil, Plus } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import { updateGroupSchema } from '~/features/publishers/schemas/group.schema'
 import { getGroup } from '~/features/publishers/server/groups.server'
 import { updateGroup } from '~/features/publishers/server/update-group.server'

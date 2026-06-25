@@ -1,15 +1,13 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
-import type { EntranceKind } from '~/features/territories/model/entrance-kind.type'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { EntranceKind, TerritoryAttributionKind, TerritoryKind } from '~/features/territories'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import { type TransactionClient, unscopedDb, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
 import { createLogger } from '~/shared/infra/logger.server'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { PublisherType } from '~/shared/types/publisher-type'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import {
   EntityIdMap,
   type ImportConflict,

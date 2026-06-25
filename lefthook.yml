@@ -29,3 +29,5 @@ pre-push:
       run: pnpm test:typecheck
     file-sizes:
       run: pnpm test:file-sizes
+    boundaries:
+      run: pnpm test:boundaries

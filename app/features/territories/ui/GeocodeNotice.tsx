@@ -2,9 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 import * as m from '~/i18n/paraglide/messages'
 import { Alert, AlertDescription, AlertTitle } from '~/shared/ui/alert'
 
-export type GeocodeNoticeData =
-  | { kind: 'failed'; query: string }
-  | { kind: 'missing-query' }
+export type GeocodeNoticeData = { kind: 'failed'; query: string } | { kind: 'missing-query' }
 
 interface GeocodeNoticeProps {
   notice: GeocodeNoticeData | null

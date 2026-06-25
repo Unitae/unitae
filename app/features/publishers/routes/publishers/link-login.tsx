@@ -1,9 +1,12 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 import { z } from 'zod'
-import ResetPasswordRequired from '~/features/authentication/emails/reset-password-required'
-import { sendResetAccountPasswordEmail } from '~/features/authentication/server/send-reset-account-password-email.server'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import {
+  commitSession,
+  getSession,
+  ResetPasswordRequired,
+  sendResetAccountPasswordEmail,
+} from '~/features/authentication'
 import { linkAccountToMember } from '~/features/publishers/server/link-account-to-member.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'

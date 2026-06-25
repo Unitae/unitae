@@ -1,6 +1,6 @@
 import { Info } from 'lucide-react'
 import { Cell, Pie, PieChart, Tooltip as RechartsTooltip } from 'recharts'
-import { getGroups } from '~/features/publishers/server/groups.server'
+import { getGroups } from '~/features/publishers'
 import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { aggregateAttributionStatsForWindow } from '~/features/territories/server/aggregate-attribution-stats.server'

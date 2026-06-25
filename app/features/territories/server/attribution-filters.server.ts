@@ -83,10 +83,7 @@ function applySearchFilter(
     OR: [
       {
         publisher: {
-          OR: [
-            { firstnameNormalized: { contains: normalized } },
-            { lastnameNormalized: { contains: normalized } },
-          ],
+          OR: [{ firstnameNormalized: { contains: normalized } }, { lastnameNormalized: { contains: normalized } }],
         },
       },
       { territory: { number: { contains: trimmed, mode: 'insensitive' } } },

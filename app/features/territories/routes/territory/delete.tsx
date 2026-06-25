@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import { deleteTerritory } from '~/features/territories/server/delete-territory.server'
 import * as m from '~/i18n/paraglide/messages'
 import {

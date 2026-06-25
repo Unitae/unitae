@@ -5,22 +5,22 @@ import { z } from 'zod'
 import {
   buildGeoJsonExport,
   type CardOverlay,
+  CardOverlayMap,
   type CardOverlayPath,
+  ColorPicker,
   cardOverlayColorSchema,
   cardOverlayNameSchema,
   cardOverlayPathsSchema,
-  GeoJsonValidationError,
-  parseGeoJsonImport,
-} from '~/features/territories/model/card-overlay'
-import {
+  clearPerimeter,
   createCardOverlay,
   deleteCardOverlay,
+  GeoJsonValidationError,
+  getPerimeter,
   listCardOverlays,
+  parseGeoJsonImport,
+  setPerimeter,
   updateCardOverlay,
-} from '~/features/territories/server/card-overlays.server'
-import { clearPerimeter, getPerimeter, setPerimeter } from '~/features/territories/server/perimeter.server'
-import CardOverlayMap from '~/features/territories/ui/CardOverlayMap'
-import { ColorPicker } from '~/features/territories/ui/ColorPicker'
+} from '~/features/territories'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,

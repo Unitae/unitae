@@ -108,10 +108,7 @@ function applySearchFilter(filters: Prisma.TerritoryWhereInput, params: URLSearc
         attributions: {
           some: {
             publisher: {
-              OR: [
-                { firstnameNormalized: { contains: normalized } },
-                { lastnameNormalized: { contains: normalized } },
-              ],
+              OR: [{ firstnameNormalized: { contains: normalized } }, { lastnameNormalized: { contains: normalized } }],
             },
           },
         },

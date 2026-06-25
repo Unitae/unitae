@@ -1,11 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import {
-  getTemplateById,
-  removeTemplateResponsible,
-  setTemplateResponsible,
-} from '~/features/events/server/programme-templates.server'
+import { commitSession, getSession } from '~/features/authentication'
+import { getTemplateById, removeTemplateResponsible, setTemplateResponsible } from '~/features/events'
 import { templateResponsibleSchema } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'

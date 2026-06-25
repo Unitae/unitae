@@ -15,10 +15,7 @@ interface NoCoordinatesDividerProps {
 export function NoCoordinatesDivider({ count, colSpan }: NoCoordinatesDividerProps) {
   return (
     <TableRow className="border-b-0 border-t-2 border-dashed border-border bg-transparent hover:bg-transparent">
-      <TableCell
-        colSpan={colSpan}
-        className="py-2 text-muted-foreground text-xs font-medium uppercase tracking-wide"
-      >
+      <TableCell colSpan={colSpan} className="py-2 text-muted-foreground text-xs font-medium uppercase tracking-wide">
         <span>{m.territories_filter_no_coordinates_group_full()}</span>
         <Badge variant="secondary" className="ml-2">
           {count}

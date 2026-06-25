@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import { deleteAccount } from '~/features/settings/server/delete-account.server'
 import * as m from '~/i18n/paraglide/messages'
 import {

@@ -1,7 +1,7 @@
 import { MapPin, X } from 'lucide-react'
 import { Link, useLocation, useSearchParams } from 'react-router'
-import type { GeocodeResult } from '~/shared/infra/geocoder.server'
 import * as m from '~/i18n/paraglide/messages'
+import type { GeocodeResult } from '~/shared/infra/geocoder.server'
 import { Badge } from '~/shared/ui/badge'
 
 interface ProximityBannerProps {
