@@ -11,6 +11,7 @@
     ],
     "type": "module",
     "scripts": {
+        "prepare": "lefthook install || true",
         "build": "react-router build",
         "build:format": "biome check --write",
         "build:db": "prisma generate",
@@ -30,7 +31,8 @@
         "test:integration": "react-router typegen && vitest run --config app/tests/vitest.config.integration.ts",
         "test:e2e": "playwright test --config app/tests/playwright.config.ts",
         "test:e2e:headed": "playwright test --headed --config app/tests/playwright.config.ts",
-        "test:boundaries": "eslint --no-error-on-unmatched-pattern app/features/"
+        "test:boundaries": "eslint --no-error-on-unmatched-pattern app/features/",
+        "test:file-sizes": "tsx scripts/check-file-sizes.ts"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1063.0",
@@ -88,6 +90,7 @@
         "@vitest/coverage-v8": "^4.1.8",
         "eslint": "^10.4.1",
         "eslint-plugin-boundaries": "^6.0.2",
+        "lefthook": "^2.1.9",
         "prisma": "^7.8.0",
         "shadcn": "^4.10.0",
         "tailwindcss": "^4.3.0",
@@ -103,6 +106,7 @@
             "@prisma/engines",
             "better-sqlite3",
             "esbuild",
+            "lefthook",
             "msgpackr-extract",
             "msw",
             "prisma"
