@@ -107,6 +107,21 @@ describe('BUILT_IN_ROLE_PREDICATES', () => {
     expect(BUILT_IN_ROLE_PREDICATES.elder({ ...BASE, baptismDate: null, isMale: true, isHelder: true })).toBe(false)
   })
 
+  // Regression lock-in: a Member whose `isMale` flag is null (not yet set,
+  // anonymized, or imported without gender) must NEVER hold a male-only
+  // built-in role. Predicates use strict `=== true`, not `!== false`.
+  it('male-only roles (brother, elder, assistant-servant) reject isMale === null', () => {
+    const baptized = new Date()
+    const ungendered = { ...BASE, baptismDate: baptized, isMale: null, isHelder: true, isServant: true }
+
+    expect(BUILT_IN_ROLE_PREDICATES.brother(ungendered)).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES.elder(ungendered)).toBe(false)
+    expect(BUILT_IN_ROLE_PREDICATES['assistant-servant'](ungendered)).toBe(false)
+
+    // And `sister` (which uses `=== false`) also rejects null
+    expect(BUILT_IN_ROLE_PREDICATES.sister(ungendered)).toBe(false)
+  })
+
   it('anointed requires publisher + baptism + isAnointed', () => {
     const baptized = new Date()
     expect(
