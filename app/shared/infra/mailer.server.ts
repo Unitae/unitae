@@ -1,16 +1,7 @@
 import { Resend } from 'resend'
 
-// Lazy-initialized Resend client.
-//
-// Constructing `new Resend(undefined)` throws "Missing API key", which
-// breaks ESM module loading in environments where RESEND_API_KEY isn't
-// set at import time — most notably in test files that pull this module
-// in transitively (e.g. via the `authentication` feature barrel) before
-// vitest's mock setup has run.
-//
-// The Proxy preserves the existing `mailer.emails.send(...)` call shape
-// for callers; the underlying client is only constructed on first
-// property access.
+// Lazy so `new Resend(undefined)` — which throws — doesn't run at module
+// load time in tests that pull this in transitively before mocks are set up.
 
 let _instance: Resend | undefined
 
