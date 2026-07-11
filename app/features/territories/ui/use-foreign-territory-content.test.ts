@@ -36,8 +36,13 @@ function mockFetch(impl: (input: string, init?: { signal?: AbortSignal }) => Pro
   globalThis.fetch = vi.fn(impl as never) as never
 }
 
-async function flushMicrotasks(times = 3) {
-  for (let i = 0; i < times; i++) await Promise.resolve()
+// Wait until the hook's last recorded state leaves the transient states.
+// CI schedulers are slower than local — a fixed microtask flush is unreliable.
+async function waitForSettled(): Promise<void> {
+  await vi.waitFor(() => {
+    const last = stateHistory.at(-1) as { status: string } | undefined
+    expect(last?.status === 'ready' || last?.status === 'error').toBe(true)
+  })
 }
 
 beforeEach(() => {
@@ -63,7 +68,7 @@ describe('useForeignTerritoryContent', () => {
     mockFetch(async () => new Response(JSON.stringify(okContent), { status: 200 }))
     useForeignTerritoryContent(7)
     capturedEffect?.()
-    await flushMicrotasks()
+    await waitForSettled()
     expect(stateHistory.at(-1)).toEqual({ status: 'ready', content: okContent })
   })
 
@@ -71,7 +76,7 @@ describe('useForeignTerritoryContent', () => {
     mockFetch(async () => new Response(JSON.stringify({ error: 'territory_not_found' }), { status: 404 }))
     useForeignTerritoryContent(7)
     capturedEffect?.()
-    await flushMicrotasks()
+    await waitForSettled()
     expect(stateHistory.at(-1)).toEqual({ status: 'error', reason: 'not-found' })
   })
 
@@ -79,7 +84,7 @@ describe('useForeignTerritoryContent', () => {
     mockFetch(async () => new Response('boom', { status: 500 }))
     useForeignTerritoryContent(7)
     capturedEffect?.()
-    await flushMicrotasks()
+    await waitForSettled()
     expect(stateHistory.at(-1)).toEqual({ status: 'error', reason: 'server' })
   })
 
@@ -87,7 +92,7 @@ describe('useForeignTerritoryContent', () => {
     mockFetch(async () => new Response(JSON.stringify({ id: 'not-a-number' }), { status: 200 }))
     useForeignTerritoryContent(7)
     capturedEffect?.()
-    await flushMicrotasks()
+    await waitForSettled()
     expect(stateHistory.at(-1)).toEqual({ status: 'error', reason: 'unexpected' })
   })
 
@@ -95,7 +100,7 @@ describe('useForeignTerritoryContent', () => {
     mockFetch(() => Promise.reject(new Error('network fail')))
     useForeignTerritoryContent(7)
     capturedEffect?.()
-    await flushMicrotasks()
+    await waitForSettled()
     expect(stateHistory.at(-1)).toEqual({ status: 'error', reason: 'network' })
   })
 
@@ -109,8 +114,9 @@ describe('useForeignTerritoryContent', () => {
     useForeignTerritoryContent(7)
     const cleanup = capturedEffect?.()
     cleanup?.()
-    await flushMicrotasks()
-    // The last state pushed should be the initial 'loading', not any 'error' entry.
+    // The abort path never resolves to ready/error, so give the microtask queue enough
+    // time to run the rejected promise's .catch and confirm nothing pushed 'error'.
+    await new Promise(resolve => setTimeout(resolve, 50))
     expect(stateHistory.some(s => (s as { status?: string }).status === 'error')).toBe(false)
   })
 })
