@@ -3,20 +3,23 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 /**
- * TR-MAP-VISIBILITY — What entrances appear on the territory edit map.
+ * Which entrances appear on the territory edit map, as a Prisma `where` fragment.
  *
- * An entrance is visible to a territory manager when either:
- *   1. it already belongs to this territory (own entrances are always shown), or
- *   2. at least one of its buildings has a prospection date AND the content-present
- *      clause holds. The content-present clause varies by territory kind and by the
- *      congregation-level `phone-territory-active` toggle.
+ * Visible when *either* branch holds:
+ *   1. the entrance already belongs to this territory (own bypass), or
+ *   2. at least one of its buildings has a prospection date **and**, for
+ *      residential territories only (Classical / Phone), the content-present
+ *      clause holds. Commerces / Hotel / Univ have no content clause —
+ *      prospection alone is sufficient.
  *
- * Digicode fallback: residential entrances with `homes = null` and an access of type
- * `Code` remain visible under any tightened rule — the entry was blocked by the code,
- * so the count is "unknown, not empty".
+ * Content-present matrix (residential only):
+ *   Phone     ON  → phones > 0
+ *   Classical ON  → homes  > 0
+ *   Classical OFF → homes  > 0 OR phones > 0
  *
- * Consumers:
- *  - `getEntrancesInBbox` in `buildings.server.ts`
+ * Digicode fallback: residential entrances with `homes = null` **and** an
+ * access of type `Code` remain visible under any tightened rule. Entry was
+ * blocked by the code, so the count is "unknown, not empty".
  */
 
 export type MapVisibilityContext = { phoneTypeActive: boolean }
@@ -29,23 +32,22 @@ export function contentPresentClause(
   territoryType: TerritoryKind,
   { phoneTypeActive }: MapVisibilityContext,
 ): Prisma.BuildingEntranceWhereInput | null {
-  if (
-    territoryType === TerritoryKind.Commerces ||
-    territoryType === TerritoryKind.Hotel ||
-    territoryType === TerritoryKind.Univ
-  ) {
-    return null
+  switch (territoryType) {
+    case TerritoryKind.Commerces:
+    case TerritoryKind.Hotel:
+    case TerritoryKind.Univ:
+      return null
+    case TerritoryKind.Phone:
+      return { OR: [{ phones: { gt: 0 } }, digicodeUnknown] }
+    case TerritoryKind.Classical:
+      return phoneTypeActive
+        ? { OR: [{ homes: { gt: 0 } }, digicodeUnknown] }
+        : { OR: [{ homes: { gt: 0 } }, { phones: { gt: 0 } }, digicodeUnknown] }
+    default: {
+      const exhaustiveCheck: never = territoryType
+      throw new Error(`Unhandled TerritoryKind in contentPresentClause: ${String(exhaustiveCheck)}`)
+    }
   }
-
-  if (territoryType === TerritoryKind.Phone) {
-    return { OR: [{ phones: { gt: 0 } }, digicodeUnknown] }
-  }
-
-  if (phoneTypeActive) {
-    return { OR: [{ homes: { gt: 0 } }, digicodeUnknown] }
-  }
-
-  return { OR: [{ homes: { gt: 0 } }, { phones: { gt: 0 } }, digicodeUnknown] }
 }
 
 export function mapVisibleWhere(

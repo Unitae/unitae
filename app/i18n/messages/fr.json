@@ -1532,6 +1532,7 @@
     "territories_map_popup_impact_title": "Contenu actuel du territoire #{number}",
     "territories_map_popup_impact_loading": "Chargement…",
     "territories_map_popup_impact_error": "Impossible de charger le contenu du territoire",
+    "territories_map_popup_impact_not_found": "Territoire introuvable",
     "territories_map_popup_impact_homes": "{count} foyer(s)",
     "territories_map_popup_impact_phones": "{count} numéro(s) de téléphone",
     "territories_map_popup_impact_addresses": "{count} adresse(s)",

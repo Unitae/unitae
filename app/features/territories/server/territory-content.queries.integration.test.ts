@@ -22,8 +22,10 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
 
 const ts = Date.now()
 let congId: number
+let otherCongId: number
 let classicalTerritoryId: number
 let commerceTerritoryId: number
+let otherCongTerritoryId: number
 
 const { getTerritoryContent } = await import('./territory-content.queries')
 
@@ -32,6 +34,11 @@ beforeAll(async () => {
     data: { name: `Content ${ts}`, slug: `content-${ts}`, active: true },
   })
   congId = cong.id
+
+  const otherCong = await testDb.congregation.create({
+    data: { name: `Content Other ${ts}`, slug: `content-other-${ts}`, active: true },
+  })
+  otherCongId = otherCong.id
 
   await withScope(congId, async tx => {
     const classical = await tx.territory.create({
@@ -49,6 +56,7 @@ beforeAll(async () => {
           number: `${i + 1}`,
           street: 'Rue Content',
           zip: '75001',
+          active: true,
           congregationId: congId,
         },
       })
@@ -69,6 +77,7 @@ beforeAll(async () => {
           number: `c${i + 1}`,
           street: 'Rue Commerce',
           zip: '75002',
+          active: true,
           congregationId: congId,
         },
       })
@@ -83,20 +92,46 @@ beforeAll(async () => {
       })
     }
   })
+
+  await withScope(otherCongId, async tx => {
+    const foreign = await tx.territory.create({
+      data: { number: `O-${ts}`, type: TerritoryKind.Classical, congregationId: otherCongId },
+    })
+    otherCongTerritoryId = foreign.id
+    const b = await tx.building.create({
+      data: {
+        number: '1',
+        street: 'Rue Other',
+        zip: '69001',
+        active: true,
+        congregationId: otherCongId,
+      },
+    })
+    await tx.buildingEntrance.create({
+      data: {
+        kind: EntranceKind.Residential,
+        homes: 99,
+        congregationId: otherCongId,
+        buildings: { connect: { id: b.id } },
+        territories: { connect: { id: otherCongTerritoryId } },
+      },
+    })
+  })
 })
 
 afterAll(async () => {
-  if (congId != null) {
-    await withScope(congId, async tx => {
+  for (const cid of [congId, otherCongId]) {
+    if (cid == null) continue
+    await withScope(cid, async tx => {
       await tx.buildingAccess.deleteMany({})
       await tx.buildingResidentialData.deleteMany({})
       await tx.buildingEntrance.deleteMany({})
       await tx.building.deleteMany({})
       await tx.territory.deleteMany({})
     })
-    await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
-    await testDb.congregation.deleteMany({ where: { id: congId } })
+    await testDb.auditLog.deleteMany({ where: { congregationId: cid } })
   }
+  await testDb.congregation.deleteMany({ where: { id: { in: [congId, otherCongId] } } })
   await testDb.$disconnect()
 })
 
@@ -119,6 +154,11 @@ describe('getTerritoryContent', () => {
 
   it('returns null when the territory does not exist', async () => {
     const result = await withScope(congId, tx => getTerritoryContent(tx as never, 999_999_999))
+    expect(result).toBeNull()
+  })
+
+  it('returns null when the requested territory belongs to another congregation (RLS)', async () => {
+    const result = await withScope(congId, tx => getTerritoryContent(tx as never, otherCongTerritoryId))
     expect(result).toBeNull()
   })
 })

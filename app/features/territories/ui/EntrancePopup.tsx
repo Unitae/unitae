@@ -1,11 +1,29 @@
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { z } from 'zod'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
 import type { TerritoryContent } from '~/features/territories/server/territory-content.queries'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
+
+const territoryContentSchema = z.object({
+  id: z.number(),
+  number: z.string(),
+  kind: z.enum([
+    TerritoryKind.Classical,
+    TerritoryKind.Phone,
+    TerritoryKind.Commerces,
+    TerritoryKind.Hotel,
+    TerritoryKind.Univ,
+  ]),
+  entranceCount: z.number().nonnegative(),
+  quantity: z.number().nonnegative(),
+  homes: z.number().nonnegative(),
+  phones: z.number().nonnegative(),
+  liberals: z.number().nonnegative(),
+}) satisfies z.ZodType<TerritoryContent>
 
 export type EntrancePendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign'
 
@@ -69,16 +87,25 @@ function accentClassFor(entrance: BboxEntrance, pending: EntrancePendingState): 
   return 'bg-slate-300'
 }
 
-type ForeignContentState =
+export type ForeignContentErrorReason = 'not-found' | 'server' | 'network' | 'unexpected'
+
+export type ForeignContentState =
   | { status: 'idle' }
   | { status: 'loading' }
   | { status: 'ready'; content: TerritoryContent }
-  | { status: 'error' }
+  | { status: 'error'; reason: ForeignContentErrorReason }
+
+function reasonForResponse(status: number): ForeignContentErrorReason {
+  if (status === 404) return 'not-found'
+  if (status >= 500) return 'server'
+  return 'unexpected'
+}
 
 // Fetches the current content of a foreign territory so the manager can gauge
 // the impact of moving an entrance away from it. One request per popup lifetime;
-// aborted on unmount to avoid setState on an unmounted component.
-function useForeignTerritoryContent(territoryId: number | null): ForeignContentState {
+// checks signal.aborted (not err.name) so custom-reason aborts don't leak into
+// the error state.
+export function useForeignTerritoryContent(territoryId: number | null): ForeignContentState {
   const [state, setState] = useState<ForeignContentState>({ status: 'idle' })
 
   useEffect(() => {
@@ -94,19 +121,32 @@ function useForeignTerritoryContent(territoryId: number | null): ForeignContentS
       headers: { Accept: 'application/json' },
     })
       .then(async response => {
-        if (!response.ok) throw new Error(`status ${response.status}`)
-        const content = (await response.json()) as TerritoryContent
-        setState({ status: 'ready', content })
+        if (!response.ok) {
+          setState({ status: 'error', reason: reasonForResponse(response.status) })
+          return
+        }
+        const body = (await response.json()) as unknown
+        const parsed = territoryContentSchema.safeParse(body)
+        if (!parsed.success) {
+          setState({ status: 'error', reason: 'unexpected' })
+          return
+        }
+        setState({ status: 'ready', content: parsed.data })
       })
-      .catch(err => {
-        if ((err as { name?: string }).name === 'AbortError') return
-        setState({ status: 'error' })
+      .catch(() => {
+        if (controller.signal.aborted) return
+        setState({ status: 'error', reason: 'network' })
       })
 
     return () => controller.abort()
   }, [territoryId])
 
   return state
+}
+
+function errorLine(reason: ForeignContentErrorReason): string {
+  if (reason === 'not-found') return m.territories_map_popup_impact_not_found()
+  return m.territories_map_popup_impact_error()
 }
 
 function contentSummaryLine(content: TerritoryContent): string {
@@ -127,9 +167,7 @@ function ImpactBlock({ territoryId, territoryNumber }: { territoryId: number; te
       {state.status === 'loading' || state.status === 'idle' ? (
         <p className="mt-1 text-muted-foreground text-xs italic">{m.territories_map_popup_impact_loading()}</p>
       ) : null}
-      {state.status === 'error' ? (
-        <p className="mt-1 text-destructive text-xs">{m.territories_map_popup_impact_error()}</p>
-      ) : null}
+      {state.status === 'error' ? <p className="mt-1 text-destructive text-xs">{errorLine(state.reason)}</p> : null}
       {state.status === 'ready' ? (
         <p className="mt-1 text-muted-foreground text-xs">{contentSummaryLine(state.content)}</p>
       ) : null}

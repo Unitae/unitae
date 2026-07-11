@@ -37,6 +37,9 @@ let availablePhonesOnly: number
 let onOtherTerritory: number
 let availableCommerce: number
 let unprospected: number
+let dualAttribution: number
+let multiBuildingEntrance: number
+let multiBuildingSecondaryBuildingId: number
 
 const { getEntrancesInBbox } = await import('./buildings.server')
 const BBOX = { swLat: 45.7, swLng: 4.8, neLat: 45.8, neLng: 4.9 }
@@ -180,6 +183,51 @@ beforeAll(async () => {
       prospected: false,
       address: '9',
     })
+    // An entrance simultaneously attached to a Classical AND a Phone territory —
+    // both perspectives should treat it as "own".
+    dualAttribution = await seedEntrance(tx, {
+      lat: 45.78,
+      lng: 4.83,
+      homes: null,
+      phones: null,
+      prospected: false,
+      territoryIds: [ownClassicalId, phoneTerritoryId],
+      address: '10',
+    })
+    // A multi-building entrance — the returned buildingId must belong to one of
+    // the attached buildings, deterministically the first (take: 1).
+    const buildingA = await tx.building.create({
+      data: {
+        number: '11a',
+        street: 'Rue Test',
+        zip: '69001',
+        active: true,
+        prospectionDate: new Date('2024-06-01'),
+        congregationId: congId,
+      },
+    })
+    const buildingB = await tx.building.create({
+      data: {
+        number: '11b',
+        street: 'Rue Test',
+        zip: '69001',
+        active: true,
+        prospectionDate: new Date('2024-06-01'),
+        congregationId: congId,
+      },
+    })
+    multiBuildingSecondaryBuildingId = buildingB.id
+    const dual = await tx.buildingEntrance.create({
+      data: {
+        kind: EntranceKind.Residential,
+        homes: 4,
+        latitude: 45.78,
+        longitude: 4.84,
+        congregationId: congId,
+        buildings: { connect: [{ id: buildingA.id }, { id: buildingB.id }] },
+      },
+    })
+    multiBuildingEntrance = dual.id
   })
 })
 
@@ -244,5 +292,28 @@ describe('getEntrancesInBbox — map-visibility rule', () => {
     for (const entrance of result.entrances) {
       expect(entrance.buildingId).toBeGreaterThan(0)
     }
+  })
+
+  it('shows an entrance attached to multiple territories as own from each perspective (Classical and Phone)', async () => {
+    const classicalIds = await idsFor(ownClassicalId, TerritoryKind.Classical, true)
+    const phoneIds = await idsFor(phoneTerritoryId, TerritoryKind.Phone, true)
+    // Content clause would exclude the dual entrance (homes=null, phones=null, no code, no prospection).
+    // Only the own-visible OR branch can surface it.
+    expect(classicalIds).toContain(dualAttribution)
+    expect(phoneIds).toContain(dualAttribution)
+  })
+
+  it('returns the first building id for entrances attached to multiple buildings', async () => {
+    const result = await withScope(congId, async tx =>
+      getEntrancesInBbox(tx as never, congId, ownClassicalId, TerritoryKind.Classical, BBOX, {
+        phoneTypeActive: true,
+      }),
+    )
+    const multi = result.entrances.find(e => e.id === multiBuildingEntrance)
+    // Should surface a valid building id (kind gate passes + prospected+homes>0), and it must
+    // be one of the connected buildings — not the second-connected one (Prisma order by insertion).
+    expect(multi).toBeDefined()
+    expect(multi?.buildingId).toBeGreaterThan(0)
+    expect(multi?.buildingId).not.toBe(multiBuildingSecondaryBuildingId)
   })
 })

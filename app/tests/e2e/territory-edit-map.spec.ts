@@ -52,6 +52,31 @@ test.describe('Territory edit page', () => {
     }
   })
 
+  test('the territory-content API endpoint rejects unauthenticated requests', async ({ playwright }) => {
+    const anonRequest = await playwright.request.newContext()
+    const response = await anonRequest.get('/territories/api/territory/1/content')
+    // Either a redirect (30x) or an auth error (401/403). What matters is it is NOT a plain 200 JSON body.
+    if (response.ok()) {
+      const body = await response.json().catch(() => null)
+      // Loader must not leak the aggregate shape without an authenticated session.
+      expect(body).not.toHaveProperty('entranceCount')
+    } else {
+      expect(response.status()).toBeGreaterThanOrEqual(300)
+      expect(response.status()).toBeLessThan(500)
+    }
+    await anonRequest.dispose()
+  })
+
+  test('the territory-content API endpoint returns 400 for a malformed id (not an HTML redirect)', async ({ page }) => {
+    const goto = await page.goto('/territories')
+    if ((goto?.status() ?? 500) >= 500) test.skip()
+
+    const response = await page.request.get('/territories/api/territory/not-a-number/content')
+    expect(response.status()).toBe(400)
+    const body = await response.json()
+    expect(body).toEqual({ error: 'invalid_id' })
+  })
+
   test('the territory-content API endpoint returns aggregates when the territory exists', async ({ page }) => {
     const goto = await page.goto('/territories')
     if ((goto?.status() ?? 500) >= 500) test.skip()
