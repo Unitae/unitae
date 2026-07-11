@@ -7,6 +7,14 @@ import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { Textarea } from '~/shared/ui/textarea'
 
+export const GEOJSON_FILE_ACCEPT = '.geojson,application/geo+json,application/json'
+
+export async function readGeoJsonFileText(files: FileList | null): Promise<string | null> {
+  const file = files?.[0]
+  if (file == null) return null
+  return file.text()
+}
+
 type CardOverlayImportDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -38,12 +46,10 @@ export function CardOverlayImportDialog({ open, onOpenChange }: CardOverlayImpor
             <Input
               id="card-overlay-geojson-file"
               type="file"
-              accept=".geojson,application/geo+json,application/json"
+              accept={GEOJSON_FILE_ACCEPT}
               onChange={async event => {
-                const file = event.target.files?.[0]
-                if (file == null) return
-                const text = await file.text()
-                setImportText(text)
+                const text = await readGeoJsonFileText(event.target.files)
+                if (text != null) setImportText(text)
               }}
             />
             <p className="text-muted-foreground text-xs">{m.settings_territories_card_overlays_import_or_paste()}</p>
