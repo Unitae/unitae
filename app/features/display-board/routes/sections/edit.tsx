@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import { updateSectionSchema } from '~/features/display-board/schemas/board-section.schema'
 import { updateBoardSection } from '~/features/display-board/server/board-section.server'
 import {

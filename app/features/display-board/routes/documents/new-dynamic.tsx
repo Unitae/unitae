@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Calendar, Info, Star, Users } from 'lucide-react'
 import { data, Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
 import { type AvailableDynamicType, DynamicType } from '~/features/display-board/model/dynamic-document.type'
 import { createDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
