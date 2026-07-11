@@ -1,32 +1,14 @@
 import { ExternalLink } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
-import { z } from 'zod'
+import { useState } from 'react'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
-import type { TerritoryContent } from '~/features/territories/server/territory-content.queries'
+import { EntranceImpactBlock } from '~/features/territories/ui/EntranceImpactBlock'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
-
-const territoryContentSchema = z.object({
-  id: z.number(),
-  number: z.string(),
-  kind: z.enum([
-    TerritoryKind.Classical,
-    TerritoryKind.Phone,
-    TerritoryKind.Commerces,
-    TerritoryKind.Hotel,
-    TerritoryKind.Univ,
-  ]),
-  entranceCount: z.number().nonnegative(),
-  quantity: z.number().nonnegative(),
-  homes: z.number().nonnegative(),
-  phones: z.number().nonnegative(),
-  liberals: z.number().nonnegative(),
-}) satisfies z.ZodType<TerritoryContent>
 
 export type EntrancePendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign'
 
@@ -60,140 +42,6 @@ function accentClassFor(entrance: BboxEntrance, pending: EntrancePendingState): 
   if (entrance.status === 'in-this-territory') return 'bg-blue-600'
   if (entrance.status === 'available') return 'bg-emerald-500'
   return 'bg-slate-300'
-}
-
-// ─── Foreign territory content — lazy fetch + typed errors ────────────────
-
-export type ForeignContentErrorReason = 'not-found' | 'server' | 'network' | 'unexpected'
-
-export type ForeignContentState =
-  | { status: 'idle' }
-  | { status: 'loading' }
-  | { status: 'ready'; content: TerritoryContent }
-  | { status: 'error'; reason: ForeignContentErrorReason }
-
-function reasonForResponse(status: number): ForeignContentErrorReason {
-  if (status === 404) return 'not-found'
-  if (status >= 500) return 'server'
-  return 'unexpected'
-}
-
-// Fetches the current content of a foreign territory so the manager can gauge
-// the impact of moving an entrance away from it. One request per popup lifetime;
-// checks signal.aborted (not err.name) so custom-reason aborts don't leak into
-// the error state.
-export function useForeignTerritoryContent(territoryId: number | null): ForeignContentState {
-  const [state, setState] = useState<ForeignContentState>({ status: 'idle' })
-
-  useEffect(() => {
-    if (territoryId == null) {
-      setState({ status: 'idle' })
-      return
-    }
-    const controller = new AbortController()
-    setState({ status: 'loading' })
-
-    fetch(`/territories/api/territory/${territoryId}/content`, {
-      signal: controller.signal,
-      headers: { Accept: 'application/json' },
-    })
-      .then(async response => {
-        if (!response.ok) {
-          setState({ status: 'error', reason: reasonForResponse(response.status) })
-          return
-        }
-        const body = (await response.json()) as unknown
-        const parsed = territoryContentSchema.safeParse(body)
-        if (!parsed.success) {
-          setState({ status: 'error', reason: 'unexpected' })
-          return
-        }
-        setState({ status: 'ready', content: parsed.data })
-      })
-      .catch(() => {
-        if (controller.signal.aborted) return
-        setState({ status: 'error', reason: 'network' })
-      })
-
-    return () => controller.abort()
-  }, [territoryId])
-
-  return state
-}
-
-function errorLine(reason: ForeignContentErrorReason): string {
-  if (reason === 'not-found') return m.territories_map_popup_impact_not_found()
-  return m.territories_map_popup_impact_error()
-}
-
-// ─── Impact block ─────────────────────────────────────────────────────────
-
-type ImpactSummary = { current: string; afterRemoval: string }
-
-function summariseImpact(content: TerritoryContent, entrance: BboxEntrance): ImpactSummary {
-  if (content.kind === TerritoryKind.Phone) {
-    const after = Math.max(0, content.phones - entrance.phones)
-    return {
-      current: m.territories_map_popup_impact_phones({ count: content.phones }),
-      afterRemoval: m.territories_map_popup_impact_after_removal_phones({ count: after }),
-    }
-  }
-  if (content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ) {
-    // Mirror computeTerritoryQuantity — Classical/Univ aggregate as `homes || phones` per entrance.
-    const contribution = entrance.homes || entrance.phones
-    const after = Math.max(0, content.quantity - contribution)
-    return {
-      current: m.territories_map_popup_impact_homes({ count: content.quantity }),
-      afterRemoval: m.territories_map_popup_impact_after_removal_homes({ count: after }),
-    }
-  }
-  const after = Math.max(0, content.entranceCount - 1)
-  return {
-    current: m.territories_map_popup_impact_addresses({ count: content.entranceCount }),
-    afterRemoval: m.territories_map_popup_impact_after_removal_addresses({ count: after }),
-  }
-}
-
-function secondaryAggregates(content: TerritoryContent): string[] {
-  const isPhonePrimary = content.kind === TerritoryKind.Phone
-  const isHomesPrimary = content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ
-  const isEntrancePrimary = !isPhonePrimary && !isHomesPrimary
-
-  const parts: string[] = []
-  if (!isHomesPrimary && content.homes > 0) parts.push(m.territories_map_popup_impact_homes({ count: content.homes }))
-  if (!isPhonePrimary && content.phones > 0)
-    parts.push(m.territories_map_popup_impact_phones({ count: content.phones }))
-  if (content.liberals > 0) parts.push(m.territories_map_popup_impact_liberals({ count: content.liberals }))
-  if (!isEntrancePrimary) parts.push(m.territories_map_popup_impact_addresses({ count: content.entranceCount }))
-  return parts
-}
-
-function ImpactReadyView({ content, entrance }: { content: TerritoryContent; entrance: BboxEntrance }) {
-  const summary = summariseImpact(content, entrance)
-  const secondary = secondaryAggregates(content)
-  return (
-    <>
-      <p className="mt-1 text-muted-foreground text-xs">{summary.current}</p>
-      <p className="text-muted-foreground text-xs italic">{summary.afterRemoval}</p>
-      {secondary.length > 0 ? (
-        <p className="mt-0.5 text-[10px] text-muted-foreground">{secondary.join(' · ')}</p>
-      ) : null}
-    </>
-  )
-}
-
-function ImpactBlock({ entrance, territoryNumber }: { entrance: BboxEntrance; territoryNumber: string }) {
-  const state = useForeignTerritoryContent(entrance.otherTerritory?.id ?? null)
-  return (
-    <div className="mt-1 rounded-md border bg-muted/40 p-2">
-      <p className="font-medium text-xs">{m.territories_map_popup_impact_title({ number: territoryNumber })}</p>
-      {state.status === 'loading' || state.status === 'idle' ? (
-        <p className="mt-1 text-muted-foreground text-xs italic">{m.territories_map_popup_impact_loading()}</p>
-      ) : null}
-      {state.status === 'error' ? <p className="mt-1 text-destructive text-xs">{errorLine(state.reason)}</p> : null}
-      {state.status === 'ready' ? <ImpactReadyView content={state.content} entrance={entrance} /> : null}
-    </div>
-  )
 }
 
 // ─── Access badges + prospection date ─────────────────────────────────────
@@ -355,7 +203,7 @@ function OnOtherBody({ entrance, pending, onAct, onConfirmReassign }: BodyProps 
   return (
     <>
       <p className="text-muted-foreground text-xs">{status}</p>
-      <ImpactBlock entrance={entrance} territoryNumber={otherTerritory.number} />
+      <EntranceImpactBlock entrance={entrance} territoryNumber={otherTerritory.number} />
       <NavigationLinks entrance={entrance} />
       <PopupFooter
         label={

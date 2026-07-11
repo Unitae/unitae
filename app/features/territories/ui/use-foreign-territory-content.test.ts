@@ -19,7 +19,7 @@ vi.mock('react', () => {
   }
 })
 
-const { useForeignTerritoryContent } = await import('./EntrancePopup')
+const { useForeignTerritoryContent } = await import('./use-foreign-territory-content')
 
 const okContent: TerritoryContent = {
   id: 7,
