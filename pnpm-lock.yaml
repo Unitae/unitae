@@ -85,8 +85,8 @@ importers:
         specifier: ^4.4.0
         version: 4.4.0
       ical-generator:
-        specifier: ^10.2.0
-        version: 10.2.0(@types/node@25.9.2)(dayjs@1.11.13)(luxon@3.7.2)
+        specifier: ^11.0.0
+        version: 11.0.0(@types/node@25.9.2)(dayjs@1.11.13)(luxon@3.7.2)
       ioredis:
         specifier: ^5.11.1
         version: 5.11.1
@@ -4130,9 +4130,9 @@ packages:
   hyphen@1.14.1:
     resolution: {integrity: sha512-kvL8xYl5QMTh+LwohVN72ciOxC0OEV79IPdJSTwEXok9y9QHebXGdFgrED4sWfiax/ODx++CAMk3hMy4XPJPOw==}
 
-  ical-generator@10.2.0:
-    resolution: {integrity: sha512-XR5FsiDWCsz5MwBwMA/sQqR3A9H240xkXIeXOabV7uNAiieP+TA9rleVvlwPLRXMz+CXME8cGuDd7cdnE5At6w==}
-    engines: {node: 20 || 22 || >=24}
+  ical-generator@11.0.0:
+    resolution: {integrity: sha512-OScZbXduIbjqtJzq0WLyPpAuKnc106+l28wszD+Wi2O9jXn76NVBfr4Ksv2XFyQn4JNZ9vWr5xAac0uT/FhVag==}
+    engines: {node: 22 || >=24.0.0}
     peerDependencies:
       '@touch4it/ical-timezones': '>=1.6.0'
       '@types/luxon': '>= 1.26.0'
@@ -10649,7 +10649,7 @@ snapshots:
 
   hyphen@1.14.1: {}
 
-  ical-generator@10.2.0(@types/node@25.9.2)(dayjs@1.11.13)(luxon@3.7.2):
+  ical-generator@11.0.0(@types/node@25.9.2)(dayjs@1.11.13)(luxon@3.7.2):
     optionalDependencies:
       '@types/node': 25.9.2
       dayjs: 1.11.13
