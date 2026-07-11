@@ -4,9 +4,9 @@ import { Form, useSearchParams } from 'react-router'
 import type { PublisherGroup } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import * as m from '~/i18n/paraglide/messages'
-import type { SortMode } from '~/shared/utils/pagination.server'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import type { SortMode } from '~/shared/utils/pagination.server'
 import { cn } from '~/shared/utils/utils'
 import SearchInputWithHelp from './SearchInputWithHelp'
 
@@ -86,9 +86,7 @@ export default function AttributionFilters({
               <SelectValue placeholder={m.territories_filter_sort_label()} />
             </SelectTrigger>
             <SelectContent>
-              {sortOptions.includes('date') && (
-                <SelectItem value="date">{m.territories_filter_sort_date()}</SelectItem>
-              )}
+              {sortOptions.includes('date') && <SelectItem value="date">{m.territories_filter_sort_date()}</SelectItem>}
               {sortOptions.includes('number') && (
                 <SelectItem value="number">{m.territories_filter_sort_number()}</SelectItem>
               )}

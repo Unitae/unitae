@@ -1,4 +1,4 @@
-import { seedDefaultTemplates } from '~/features/events/server/seed-templates.server'
+import { seedDefaultTemplates } from '~/features/events'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'

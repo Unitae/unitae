@@ -34,7 +34,7 @@ describe('createCoalescedRenderer', () => {
   })
 
   it('no-ops when the clusterer accessor returns null', async () => {
-    let renderCalls = 0
+    const renderCalls = 0
     const schedule = createCoalescedRenderer(() => null)
 
     schedule()

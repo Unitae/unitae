@@ -6,9 +6,9 @@ import { ShopKind } from '~/features/territories/model/shop-kind.type'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
-import type { SortMode } from '~/shared/utils/pagination.server'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import type { SortMode } from '~/shared/utils/pagination.server'
 import { cn } from '~/shared/utils/utils'
 import SearchInputWithHelp from './SearchInputWithHelp'
 
@@ -125,9 +125,7 @@ export default function TerritoryFilters({
               {sortOptions.includes('number') && (
                 <SelectItem value="number">{m.territories_filter_sort_number()}</SelectItem>
               )}
-              {sortOptions.includes('date') && (
-                <SelectItem value="date">{m.territories_filter_sort_date()}</SelectItem>
-              )}
+              {sortOptions.includes('date') && <SelectItem value="date">{m.territories_filter_sort_date()}</SelectItem>}
               {sortOptions.includes('proximity') && (
                 <SelectItem value="proximity">{m.territories_filter_sort_proximity()}</SelectItem>
               )}

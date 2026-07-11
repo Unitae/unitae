@@ -1,4 +1,4 @@
-import { togglePublisherStatus } from '~/features/settings/server/publisher-status.server'
+import { togglePublisherStatus } from '~/features/settings'
 import * as m from '~/i18n/paraglide/messages'
 
 import { runLifecycleAction } from './_lifecycle-action.server'

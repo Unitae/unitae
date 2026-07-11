@@ -44,7 +44,7 @@ describe('migration backfill — SQL/JS parity', () => {
     'François',
     'Hélène',
     "L'Hôpital-Saint-Louis",
-    "Boulevard Saint-Germain",
+    'Boulevard Saint-Germain',
     'Champs-Élysées',
     'Mañana',
     'Müller',

@@ -1,7 +1,6 @@
 import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { dayLabelShort } from '~/features/events/model/day-label'
-import { getTemplates } from '~/features/events/server/programme-templates.server'
+import { dayLabelShort, getTemplates } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'

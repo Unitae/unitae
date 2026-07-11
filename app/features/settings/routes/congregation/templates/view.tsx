@@ -1,12 +1,7 @@
 import { Calendar, Clock, Copy, Pencil, UserCog } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
-import { dayLabel } from '~/features/events/model/day-label'
-import {
-  duplicateTemplate,
-  getTemplateById,
-  isTemplateResponsible,
-} from '~/features/events/server/programme-templates.server'
+import { commitSession, getSession } from '~/features/authentication'
+import { dayLabel, duplicateTemplate, getTemplateById, isTemplateResponsible } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,

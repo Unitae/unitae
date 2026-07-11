@@ -4,7 +4,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import {
   addPartSchema,
   addServiceSchema,

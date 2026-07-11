@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Plus, Shield } from 'lucide-react'
 import { data, Form, Link, redirect, useSubmit } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication'
 import { type BuiltInFilterKey, toggleSchema } from '~/features/congregation/schemas/role.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
