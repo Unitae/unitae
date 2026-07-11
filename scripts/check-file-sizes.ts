@@ -56,15 +56,14 @@ const EXEMPT_PATTERNS: RegExp[] = [
 // grandfathered — they must respect the budgets at creation time.
 // Remove an entry when its file has been split below the hard limit.
 const EXEMPT_FILES = new Set<string>([
-  // Service files >350L (6) — Wave 4 splits import-congregation.
+  // Service files >350L (5) — remaining after Wave 4.
   'app/features/dashboard/server/dashboard.server.ts', //                  351
   'app/features/display-board/server/dynamic-documents.server.ts', //      375
   'app/features/settings/server/export-congregation.server.ts', //         657
-  'app/features/settings/server/import-congregation.server.ts', //         1926 — Wave 4
   'app/features/territories/server/buildings.server.ts', //                366
   'app/shared/domain/roles.server.ts', //                                  421
 
-  // Route components >300L (24) — Wave 4 splits the largest five.
+  // Route components >300L (21) — remaining after Wave 4.
   'app/features/congregation/routes/roles/role-list.tsx', //               316
   'app/features/dashboard/routes/index.tsx', //                            474
   'app/features/display-board/routes/documents/edit.tsx', //               330
@@ -73,7 +72,6 @@ const EXEMPT_FILES = new Set<string>([
   'app/features/display-board/routes/dynamic/edit.tsx', //                 386
   'app/features/display-board/routes/index.tsx', //                        305
   'app/features/events/routes/programs/days-off.tsx', //                   345
-  'app/features/events/routes/programs/events/edit.tsx', //                762 — Wave 4
   'app/features/events/routes/programs/events/view.tsx', //                585
   'app/features/events/routes/programs/list.tsx', //                       374
   'app/features/events/routes/programs/new.tsx', //                        487
@@ -81,21 +79,18 @@ const EXEMPT_FILES = new Set<string>([
   'app/features/publishers/routes/publishers/edit-publisher.tsx', //       336
   'app/features/publishers/routes/publishers/publisher.tsx', //            408
   'app/features/settings/routes/congregation/templates/edit.tsx', //       617
-  'app/features/settings/routes/territories/card-overlays.tsx', //         925 — Wave 4
   'app/features/settings/routes/territories/settings.tsx', //              351
   'app/features/settings/routes/users/edit-user.tsx', //                   457
   'app/features/territories/routes/attributions/list.tsx', //              377
   'app/features/territories/routes/stats/index.tsx', //                    560
-  'app/features/territories/routes/territory/edit.tsx', //                 715 — Wave 4
   'app/features/territories/routes/territory/list.tsx', //                 331
   'app/features/territories/routes/territory/view.tsx', //                 440
 
-  // UI components >400L (5) — Wave 4 splits sidebar.tsx.
+  // UI components >400L (4) — remaining after Wave 4.
   'app/features/display-board/ui/dynamic/ProgrammeView.tsx', //            536
   'app/features/events/ui/ProgrammeBoardDocument.tsx', //                  432
   'app/features/territories/ui/BuildingEntranceMapEditor.tsx', //          412
   'app/features/territories/ui/TerritoryAttributionDocument.tsx', //       409
-  'app/shared/ui/sidebar.tsx', //                                          676 — Wave 4
 ])
 
 interface Violation {
