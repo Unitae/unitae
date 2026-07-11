@@ -13,6 +13,7 @@ const baseEntrance = (status: BboxEntrance['status']): BboxEntrance => ({
   phones: 0,
   liberals: 0,
   address: { number: '1', street: 'Rue X', zip: '75001' },
+  buildingId: 1,
   status,
   otherTerritory: status === 'on-other-territory' ? { id: 99, number: 'T99' } : null,
 })

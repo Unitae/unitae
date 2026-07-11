@@ -4,8 +4,8 @@ import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.serve
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { PublisherType } from '~/shared/types/publisher-type'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export interface CreateMemberParams {
   firstname: string

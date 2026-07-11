@@ -1,7 +1,9 @@
-import { useState } from 'react'
-import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { ExternalLink } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
+import type { TerritoryContent } from '~/features/territories/server/territory-content.queries'
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
@@ -67,10 +69,106 @@ function accentClassFor(entrance: BboxEntrance, pending: EntrancePendingState): 
   return 'bg-slate-300'
 }
 
+type ForeignContentState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ready'; content: TerritoryContent }
+  | { status: 'error' }
+
+// Fetches the current content of a foreign territory so the manager can gauge
+// the impact of moving an entrance away from it. One request per popup lifetime;
+// aborted on unmount to avoid setState on an unmounted component.
+function useForeignTerritoryContent(territoryId: number | null): ForeignContentState {
+  const [state, setState] = useState<ForeignContentState>({ status: 'idle' })
+
+  useEffect(() => {
+    if (territoryId == null) {
+      setState({ status: 'idle' })
+      return
+    }
+    const controller = new AbortController()
+    setState({ status: 'loading' })
+
+    fetch(`/territories/api/territory/${territoryId}/content`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    })
+      .then(async response => {
+        if (!response.ok) throw new Error(`status ${response.status}`)
+        const content = (await response.json()) as TerritoryContent
+        setState({ status: 'ready', content })
+      })
+      .catch(err => {
+        if ((err as { name?: string }).name === 'AbortError') return
+        setState({ status: 'error' })
+      })
+
+    return () => controller.abort()
+  }, [territoryId])
+
+  return state
+}
+
+function contentSummaryLine(content: TerritoryContent): string {
+  if (content.kind === TerritoryKind.Phone) {
+    return m.territories_map_popup_impact_phones({ count: content.phones })
+  }
+  if (content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ) {
+    return m.territories_map_popup_impact_homes({ count: content.quantity })
+  }
+  return m.territories_map_popup_impact_addresses({ count: content.entranceCount })
+}
+
+function ImpactBlock({ territoryId, territoryNumber }: { territoryId: number; territoryNumber: string }) {
+  const state = useForeignTerritoryContent(territoryId)
+  return (
+    <div className="mt-1 rounded-md border bg-muted/40 p-2">
+      <p className="font-medium text-xs">{m.territories_map_popup_impact_title({ number: territoryNumber })}</p>
+      {state.status === 'loading' || state.status === 'idle' ? (
+        <p className="mt-1 text-muted-foreground text-xs italic">{m.territories_map_popup_impact_loading()}</p>
+      ) : null}
+      {state.status === 'error' ? (
+        <p className="mt-1 text-destructive text-xs">{m.territories_map_popup_impact_error()}</p>
+      ) : null}
+      {state.status === 'ready' ? (
+        <p className="mt-1 text-muted-foreground text-xs">{contentSummaryLine(state.content)}</p>
+      ) : null}
+    </div>
+  )
+}
+
+function NavigationLinks({ entrance }: { entrance: BboxEntrance }) {
+  return (
+    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+      <a
+        href={`/territories/building/${entrance.buildingId}/view`}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 text-primary hover:underline"
+      >
+        <ExternalLink className="size-3" aria-hidden="true" />
+        {m.territories_map_popup_view_building()}
+      </a>
+      {entrance.otherTerritory != null ? (
+        <a
+          href={`/territories/territory/${entrance.otherTerritory.id}/view`}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-primary hover:underline"
+        >
+          <ExternalLink className="size-3" aria-hidden="true" />
+          {m.territories_map_popup_view_other_territory({ number: entrance.otherTerritory.number })}
+        </a>
+      ) : null}
+    </div>
+  )
+}
+
 export default function EntrancePopup({ entrance, territoryType, pending, onAct }: Props) {
   const [confirmingReassign, setConfirmingReassign] = useState(false)
   const isReassignFlow =
     pending === 'none' && entrance.status === 'on-other-territory' && entrance.otherTerritory != null
+  const showImpactBlock = entrance.status === 'on-other-territory' && entrance.otherTerritory != null
 
   if (confirmingReassign && entrance.otherTerritory != null) {
     return (
@@ -117,6 +215,10 @@ export default function EntrancePopup({ entrance, territoryType, pending, onAct 
       </p>
       <p className="text-muted-foreground text-xs">{entranceContentLabel(territoryType, entrance)}</p>
       <p className="text-muted-foreground text-xs">{statusLine(entrance, pending)}</p>
+      {showImpactBlock && entrance.otherTerritory != null ? (
+        <ImpactBlock territoryId={entrance.otherTerritory.id} territoryNumber={entrance.otherTerritory.number} />
+      ) : null}
+      <NavigationLinks entrance={entrance} />
       <div className="-mx-3 -mb-3 mt-1 border-t px-3 py-2">
         <Button
           type="button"

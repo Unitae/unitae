@@ -115,6 +115,8 @@ function PendingBadge({ entry }: { entry: ListEntry }) {
 
 function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
   if (entrance.latitude == null || entrance.longitude == null) return null
+  const buildingId = entrance.buildings[0]?.id
+  if (buildingId == null) return null
   return {
     id: entrance.id,
     latitude: entrance.latitude,
@@ -129,6 +131,7 @@ function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
       street: entrance.street,
       zip: entrance.zip,
     },
+    buildingId,
     status: 'in-this-territory',
     otherTerritory: null,
   }

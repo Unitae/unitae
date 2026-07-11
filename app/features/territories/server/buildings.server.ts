@@ -1,6 +1,7 @@
 import type { Building, Prisma } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { type MapVisibilityContext, mapVisibleWhere } from '~/features/territories/server/map-visibility'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
@@ -25,6 +26,7 @@ export type BboxEntrance = {
   phones: number
   liberals: number
   address: { number: string; street: string; zip: string }
+  buildingId: number
   status: BboxEntranceStatus
   otherTerritory: { id: number; number: string } | null
 }
@@ -311,6 +313,7 @@ export async function getEntrancesInBbox(
   territoryId: number,
   territoryType: TerritoryKind,
   bbox: { swLat: number; swLng: number; neLat: number; neLng: number },
+  ctx: MapVisibilityContext,
   limit = 1500,
 ): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
   const expectedKind = entranceKindForTerritoryType[territoryType]
@@ -319,13 +322,14 @@ export async function getEntrancesInBbox(
     kind: expectedKind,
     latitude: { gte: bbox.swLat, lte: bbox.neLat },
     longitude: { gte: bbox.swLng, lte: bbox.neLng },
+    ...mapVisibleWhere(territoryType, territoryId, ctx),
   } satisfies Prisma.BuildingEntranceWhereInput
 
   const rows = await db.buildingEntrance.findMany({
     where,
     include: {
       territories: { where: { type: territoryType }, select: { id: true, number: true } },
-      buildings: { take: 1, select: { number: true, street: true, zip: true } },
+      buildings: { take: 1, select: { id: true, number: true, street: true, zip: true } },
     },
     take: limit + 1,
   })
@@ -357,6 +361,7 @@ export async function getEntrancesInBbox(
         phones: row.phones ?? 0,
         liberals: row.liberals ?? 0,
         address: { number: building.number, street: building.street, zip: building.zip },
+        buildingId: building.id,
         status,
         otherTerritory: otherTerritory != null ? { id: otherTerritory.id, number: otherTerritory.number } : null,
       }

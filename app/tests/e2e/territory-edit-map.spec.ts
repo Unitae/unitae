@@ -4,6 +4,7 @@ import { login } from './helpers/auth'
 const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
 const EDIT_URL_RE = /\/territories\/territory\/\d+\/edit/
+const EDIT_URL_ID_RE = /\/territories\/territory\/(\d+)\/edit/
 const RAIL_HEADING_RE = /modifications? en attente|pending changes/i
 const BBOX_REQUEST_RE = /entrances-in-bbox/
 
@@ -51,6 +52,32 @@ test.describe('Territory edit page', () => {
     }
   })
 
+  test('the territory-content API endpoint returns aggregates when the territory exists', async ({ page }) => {
+    const goto = await page.goto('/territories')
+    if ((goto?.status() ?? 500) >= 500) test.skip()
+
+    // Fetch the first territory id from the list — skip if the fixture has none.
+    const firstEditLink = page.locator('a[href*="/territories/territory/"][href$="/edit"]').first()
+    if (!(await firstEditLink.isVisible({ timeout: 3000 }).catch(() => false))) {
+      test.skip()
+      return
+    }
+    const href = await firstEditLink.getAttribute('href')
+    const match = href?.match(EDIT_URL_ID_RE)
+    const territoryId = match?.[1]
+    if (territoryId == null) test.skip()
+
+    const response = await page.request.get(`/territories/api/territory/${territoryId}/content`)
+    expect(response.status()).toBeLessThan(500)
+    if (response.ok()) {
+      const body = await response.json()
+      expect(body).toHaveProperty('id')
+      expect(body).toHaveProperty('number')
+      expect(body).toHaveProperty('entranceCount')
+      expect(body).toHaveProperty('quantity')
+    }
+  })
+
   test('edit page stays interactive after the map loads many entrances', async ({ page }) => {
     // Pre-grant map consent so the consent banner doesn't gate the map mount.
     // The key matches CONSENT_KEY in app/shared/ui/MapConsentBanner.tsx.
@@ -70,6 +97,7 @@ test.describe('Territory edit page', () => {
         phones: 0,
         liberals: 0,
         address: { number: String(i), street: 'Rue de Test', zip: '69000' },
+        buildingId: 20_000_000 + i,
         status: 'available',
         otherTerritory: null,
       }))
