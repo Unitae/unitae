@@ -1,5 +1,5 @@
 import { data } from 'react-router'
-import { getPhoneTerritoryActive } from '~/features/settings/server/territory-settings.queries'
+import { getPhoneTerritoryActive } from '~/features/settings'
 import { getEntrancesInBbox } from '~/features/territories/server/buildings.server'
 import {
   currentAccountContext,
