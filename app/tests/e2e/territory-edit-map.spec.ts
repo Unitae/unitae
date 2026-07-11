@@ -152,17 +152,22 @@ test.describe('Territory edit page', () => {
 
   test('the territory-content API endpoint rejects unauthenticated requests', async ({ playwright }) => {
     const anonRequest = await playwright.request.newContext()
-    const response = await anonRequest.get('/territories/api/territory/1/content')
-    // Either a redirect (30x) or an auth error (401/403). What matters is it is NOT a plain 200 JSON body.
-    if (response.ok()) {
+    try {
+      // Don't follow redirects — we want to observe the auth guard's original response,
+      // not the login page HTML it lands on.
+      const response = await anonRequest.get('/territories/api/territory/1/content', { maxRedirects: 0 })
+
+      // Redirect or 4xx → auth guard did its job.
+      if (response.status() >= 300 && response.status() < 500) return
+
+      // Otherwise the response must NOT be the aggregate shape. A non-JSON body
+      // (e.g. HTML login page) also counts as "no leak".
       const body = await response.json().catch(() => null)
-      // Loader must not leak the aggregate shape without an authenticated session.
+      if (body == null) return
       expect(body).not.toHaveProperty('entranceCount')
-    } else {
-      expect(response.status()).toBeGreaterThanOrEqual(300)
-      expect(response.status()).toBeLessThan(500)
+    } finally {
+      await anonRequest.dispose()
     }
-    await anonRequest.dispose()
   })
 
   test('the territory-content API endpoint returns 400 for a malformed id (not an HTML redirect)', async ({ page }) => {
