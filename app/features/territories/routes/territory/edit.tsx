@@ -115,6 +115,8 @@ function PendingBadge({ entry }: { entry: ListEntry }) {
 
 function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
   if (entrance.latitude == null || entrance.longitude == null) return null
+  const building = entrance.buildings[0]
+  if (building == null) return null
   return {
     id: entrance.id,
     latitude: entrance.latitude,
@@ -129,8 +131,15 @@ function ownEntranceToBbox(entrance: AggregatedEntrance): BboxEntrance | null {
       street: entrance.street,
       zip: entrance.zip,
     },
+    buildingId: building.id,
     status: 'in-this-territory',
     otherTerritory: null,
+    access: entrance.access,
+    accesses: (entrance.accesses ?? []).map(a => ({ type: a.type })),
+    isPMR: entrance.isPMR,
+    isOpenEarly: entrance.isOpenEarly,
+    isMailboxOpen: entrance.isMailboxOpen,
+    prospectionDate: building.prospectionDate?.toISOString() ?? null,
   }
 }
 
@@ -153,7 +162,10 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       include: {
         entrances: {
           where: { buildings: { some: { active: true } } },
-          include: { buildings: { where: { active: true } } },
+          include: {
+            buildings: { where: { active: true } },
+            accesses: { orderBy: { position: 'asc' as const } },
+          },
         },
       },
     })

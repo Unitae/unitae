@@ -130,6 +130,7 @@ beforeAll(async () => {
         type: TerritoryAttributionKind.Default,
         startDate: new Date(2025, 9, 1),
         lateDate: new Date(2026, 1, 1),
+        endDate: new Date(2026, 0, 20), // completed before its lateDate — in-window, not overdue
         congregationId,
       },
     })

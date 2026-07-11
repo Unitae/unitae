@@ -108,6 +108,7 @@ app/
 | AppError classes | `app/shared/errors/app-error.server.ts` |
 | Permission enum | `app/shared/types/permission.ts` |
 | Role helpers (display names, built-in keys, custom-role CRUD) | `app/shared/types/role.ts`, `app/shared/domain/built-in-roles.server.ts`, `app/shared/domain/roles.server.ts` |
+| Territory edit map — which entrances show as candidates | `app/features/territories/server/map-visibility.ts` |
 
 ## Build and Test Commands
 

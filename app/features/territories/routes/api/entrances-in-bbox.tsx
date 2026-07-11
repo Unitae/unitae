@@ -1,4 +1,5 @@
 import { data } from 'react-router'
+import { getPhoneTerritoryActive } from '~/features/settings/server/territory-settings.queries'
 import { getEntrancesInBbox } from '~/features/territories/server/buildings.server'
 import {
   currentAccountContext,
@@ -37,6 +38,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     if (territory == null) {
       return data({ error: 'territory_not_found' }, { status: 404 })
     }
-    return getEntrancesInBbox(db, congregationId, territoryId, territory.type, bbox)
+    const phoneTypeActive = await getPhoneTerritoryActive(db, congregationId)
+    return getEntrancesInBbox(db, congregationId, territoryId, territory.type, bbox, { phoneTypeActive })
   })
 }

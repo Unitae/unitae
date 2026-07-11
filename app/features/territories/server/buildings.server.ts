@@ -1,6 +1,7 @@
 import type { Building, Prisma } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { type MapVisibilityContext, mapVisibleWhere } from '~/features/territories/server/map-visibility'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
@@ -25,8 +26,20 @@ export type BboxEntrance = {
   phones: number
   liberals: number
   address: { number: string; street: string; zip: string }
+  buildingId: number
   status: BboxEntranceStatus
   otherTerritory: { id: number; number: string } | null
+  // Access data — populated for residential entrances so the popup can render badges
+  // (intercom / digicode / doorbell / open-early / mailbox-open / PMR).
+  access: number | null
+  accesses: { type: number }[]
+  isPMR: boolean | null
+  isOpenEarly: boolean | null
+  isMailboxOpen: boolean | null
+  // Last prospection date of the primary building. Serialised as ISO string so the
+  // JSON round-trip keeps it as a plain string on the client (Date objects don't
+  // survive JSON.stringify → JSON.parse).
+  prospectionDate: string | null
 }
 
 function sortBuildingsByAddress<T extends { zip: string; street: string; number: string }>(buildings: T[]) {
@@ -311,6 +324,7 @@ export async function getEntrancesInBbox(
   territoryId: number,
   territoryType: TerritoryKind,
   bbox: { swLat: number; swLng: number; neLat: number; neLng: number },
+  ctx: MapVisibilityContext,
   limit = 1500,
 ): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
   const expectedKind = entranceKindForTerritoryType[territoryType]
@@ -319,13 +333,15 @@ export async function getEntrancesInBbox(
     kind: expectedKind,
     latitude: { gte: bbox.swLat, lte: bbox.neLat },
     longitude: { gte: bbox.swLng, lte: bbox.neLng },
+    ...mapVisibleWhere(territoryType, territoryId, ctx),
   } satisfies Prisma.BuildingEntranceWhereInput
 
   const rows = await db.buildingEntrance.findMany({
     where,
     include: {
       territories: { where: { type: territoryType }, select: { id: true, number: true } },
-      buildings: { take: 1, select: { number: true, street: true, zip: true } },
+      buildings: { take: 1, select: { id: true, number: true, street: true, zip: true, prospectionDate: true } },
+      accesses: { orderBy: { position: 'asc' as const }, select: { type: true } },
     },
     take: limit + 1,
   })
@@ -357,8 +373,15 @@ export async function getEntrancesInBbox(
         phones: row.phones ?? 0,
         liberals: row.liberals ?? 0,
         address: { number: building.number, street: building.street, zip: building.zip },
+        buildingId: building.id,
         status,
         otherTerritory: otherTerritory != null ? { id: otherTerritory.id, number: otherTerritory.number } : null,
+        access: row.access,
+        accesses: row.accesses.map(a => ({ type: a.type })),
+        isPMR: row.isPMR,
+        isOpenEarly: row.isOpenEarly,
+        isMailboxOpen: row.isMailboxOpen,
+        prospectionDate: building.prospectionDate?.toISOString() ?? null,
       }
     })
 

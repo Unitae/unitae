@@ -63,6 +63,7 @@ beforeAll(async () => {
         zip: '75001',
         latitude: 48.85,
         longitude: 2.35,
+        prospectionDate: new Date('2024-06-01'),
         congregationId: primaryCongId,
       },
     })
@@ -86,6 +87,7 @@ beforeAll(async () => {
         zip: '75001',
         latitude: 48.86,
         longitude: 2.36,
+        prospectionDate: new Date('2024-06-01'),
         congregationId: primaryCongId,
       },
     })
@@ -109,6 +111,7 @@ beforeAll(async () => {
         zip: '75001',
         latitude: 48.87,
         longitude: 2.37,
+        prospectionDate: new Date('2024-06-01'),
         congregationId: primaryCongId,
       },
     })
@@ -197,7 +200,9 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('classifies entrances by status relative to the requested territory', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox),
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+        phoneTypeActive: true,
+      }),
     )
 
     expect(result.truncated).toBe(false)
@@ -214,7 +219,9 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('filters out entrances whose kind does not match the territory type', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox),
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+        phoneTypeActive: true,
+      }),
     )
     expect(result.entrances.find(e => e.id === entranceWrongKindId)).toBeUndefined()
   })
@@ -222,21 +229,35 @@ describe('getEntrancesInBbox (integration)', () => {
   it('only returns entrances whose centroid falls within the bbox', async () => {
     const tightBbox = { swLat: 48.849, swLng: 2.349, neLat: 48.851, neLng: 2.351 }
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, tightBbox),
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, tightBbox, {
+        phoneTypeActive: true,
+      }),
     )
     expect(result.entrances.map(e => e.id)).toEqual([entranceInPrimaryId])
   })
 
   it('does not leak entrances from another congregation', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox),
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+        phoneTypeActive: true,
+      }),
     )
     expect(result.entrances.find(e => e.id === entranceCrossCongId)).toBeUndefined()
   })
 
   it('flags truncated when the result exceeds the limit', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, 1),
+      getEntrancesInBbox(
+        tx,
+        primaryCongId,
+        primaryTerritoryId,
+        TerritoryKind.Classical,
+        wideBbox,
+        {
+          phoneTypeActive: true,
+        },
+        1,
+      ),
     )
     expect(result.truncated).toBe(true)
     expect(result.entrances).toHaveLength(1)
@@ -245,7 +266,9 @@ describe('getEntrancesInBbox (integration)', () => {
 
   it('returns total=null when not truncated', async () => {
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox),
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, wideBbox, {
+        phoneTypeActive: true,
+      }),
     )
     expect(result.truncated).toBe(false)
     expect(result.total).toBeNull()
@@ -254,7 +277,9 @@ describe('getEntrancesInBbox (integration)', () => {
   it('returns an empty array when no entrance is in the bbox', async () => {
     const emptyBbox = { swLat: 0, swLng: 0, neLat: 1, neLng: 1 }
     const result = await withScope(primaryCongId, tx =>
-      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, emptyBbox),
+      getEntrancesInBbox(tx, primaryCongId, primaryTerritoryId, TerritoryKind.Classical, emptyBbox, {
+        phoneTypeActive: true,
+      }),
     )
     expect(result.entrances).toEqual([])
     expect(result.truncated).toBe(false)

@@ -4,9 +4,9 @@ import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import type { AccountId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export interface LinkMemberToAccountParams {
   accountId: AccountId
