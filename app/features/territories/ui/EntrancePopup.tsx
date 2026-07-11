@@ -1,4 +1,5 @@
 import { ExternalLink } from 'lucide-react'
+import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
@@ -36,49 +37,21 @@ type Props = {
   onAct: () => void
 }
 
-function statusLine(entrance: BboxEntrance, pending: EntrancePendingState) {
-  if (pending === 'pending-add') {
-    return m.territories_map_status_pending_add()
-  }
-  if (pending === 'pending-remove') {
-    return m.territories_map_status_pending_remove()
-  }
+type BodyProps = {
+  entrance: BboxEntrance
+  pending: EntrancePendingState
+  onAct: () => void
+}
+
+// ─── Shared status / accent helpers ───────────────────────────────────────
+
+function pendingStatusText(pending: EntrancePendingState, entrance: BboxEntrance): string | null {
+  if (pending === 'pending-add') return m.territories_map_status_pending_add()
+  if (pending === 'pending-remove') return m.territories_map_status_pending_remove()
   if (pending === 'pending-reassign' && entrance.otherTerritory != null) {
-    return m.territories_map_status_pending_reassign({
-      number: entrance.otherTerritory.number,
-    })
+    return m.territories_map_status_pending_reassign({ number: entrance.otherTerritory.number })
   }
-  if (entrance.status === 'in-this-territory') {
-    return m.territories_map_status_in_territory()
-  }
-  if (entrance.status === 'available') {
-    return m.territories_map_status_available()
-  }
-  if (entrance.otherTerritory != null) {
-    return m.territories_map_status_on_other_territory({
-      number: entrance.otherTerritory.number,
-    })
-  }
-  return m.territories_map_status_available()
-}
-
-function actionLabel(entrance: BboxEntrance, pending: EntrancePendingState) {
-  if (pending !== 'none') return m.territories_map_action_undo()
-  if (entrance.status === 'in-this-territory') return m.territories_map_action_remove()
-  if (entrance.status === 'available') return m.territories_map_action_add()
-  if (entrance.otherTerritory != null) {
-    return m.territories_map_action_reassign_with_source({
-      number: entrance.otherTerritory.number,
-    })
-  }
-  return m.territories_map_action_reassign()
-}
-
-function actionVariant(entrance: BboxEntrance, pending: EntrancePendingState) {
-  if (pending !== 'none') return 'outline' as const
-  if (entrance.status === 'in-this-territory') return 'destructive' as const
-  if (entrance.status === 'on-other-territory') return 'destructive' as const
-  return 'default' as const
+  return null
 }
 
 function accentClassFor(entrance: BboxEntrance, pending: EntrancePendingState): string {
@@ -88,6 +61,8 @@ function accentClassFor(entrance: BboxEntrance, pending: EntrancePendingState): 
   if (entrance.status === 'available') return 'bg-emerald-500'
   return 'bg-slate-300'
 }
+
+// ─── Foreign territory content — lazy fetch + typed errors ────────────────
 
 export type ForeignContentErrorReason = 'not-found' | 'server' | 'network' | 'unexpected'
 
@@ -151,6 +126,8 @@ function errorLine(reason: ForeignContentErrorReason): string {
   return m.territories_map_popup_impact_error()
 }
 
+// ─── Impact block ─────────────────────────────────────────────────────────
+
 type ImpactSummary = { current: string; afterRemoval: string }
 
 function summariseImpact(content: TerritoryContent, entrance: BboxEntrance): ImpactSummary {
@@ -177,6 +154,34 @@ function summariseImpact(content: TerritoryContent, entrance: BboxEntrance): Imp
   }
 }
 
+function secondaryAggregates(content: TerritoryContent): string[] {
+  const isPhonePrimary = content.kind === TerritoryKind.Phone
+  const isHomesPrimary = content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ
+  const isEntrancePrimary = !isPhonePrimary && !isHomesPrimary
+
+  const parts: string[] = []
+  if (!isHomesPrimary && content.homes > 0) parts.push(m.territories_map_popup_impact_homes({ count: content.homes }))
+  if (!isPhonePrimary && content.phones > 0)
+    parts.push(m.territories_map_popup_impact_phones({ count: content.phones }))
+  if (content.liberals > 0) parts.push(m.territories_map_popup_impact_liberals({ count: content.liberals }))
+  if (!isEntrancePrimary) parts.push(m.territories_map_popup_impact_addresses({ count: content.entranceCount }))
+  return parts
+}
+
+function ImpactReadyView({ content, entrance }: { content: TerritoryContent; entrance: BboxEntrance }) {
+  const summary = summariseImpact(content, entrance)
+  const secondary = secondaryAggregates(content)
+  return (
+    <>
+      <p className="mt-1 text-muted-foreground text-xs">{summary.current}</p>
+      <p className="text-muted-foreground text-xs italic">{summary.afterRemoval}</p>
+      {secondary.length > 0 ? (
+        <p className="mt-0.5 text-[10px] text-muted-foreground">{secondary.join(' · ')}</p>
+      ) : null}
+    </>
+  )
+}
+
 function ImpactBlock({ entrance, territoryNumber }: { entrance: BboxEntrance; territoryNumber: string }) {
   const state = useForeignTerritoryContent(entrance.otherTerritory?.id ?? null)
   return (
@@ -186,17 +191,12 @@ function ImpactBlock({ entrance, territoryNumber }: { entrance: BboxEntrance; te
         <p className="mt-1 text-muted-foreground text-xs italic">{m.territories_map_popup_impact_loading()}</p>
       ) : null}
       {state.status === 'error' ? <p className="mt-1 text-destructive text-xs">{errorLine(state.reason)}</p> : null}
-      {state.status === 'ready' ? (
-        <>
-          <p className="mt-1 text-muted-foreground text-xs">{summariseImpact(state.content, entrance).current}</p>
-          <p className="text-muted-foreground text-xs italic">
-            {summariseImpact(state.content, entrance).afterRemoval}
-          </p>
-        </>
-      ) : null}
+      {state.status === 'ready' ? <ImpactReadyView content={state.content} entrance={entrance} /> : null}
     </div>
   )
 }
+
+// ─── Access badges + prospection date ─────────────────────────────────────
 
 function accessBadges(entrance: BboxEntrance): string[] {
   if (entrance.kind !== EntranceKind.Residential) return []
@@ -221,6 +221,65 @@ function formatProspectionDate(iso: string | null): string | null {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return null
   return date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+// ─── Shared presentational pieces ─────────────────────────────────────────
+
+function PopupFrame({ accent, children }: { accent: string; children: ReactNode }) {
+  return (
+    <div className="flex min-w-[280px] max-w-[340px] flex-col gap-1.5 m-3">
+      <div className={`-mx-3 -mt-3 mb-1 h-1 rounded-t-lg ${accent}`} aria-hidden="true" />
+      {children}
+    </div>
+  )
+}
+
+function PopupHeader({ entrance, territoryType }: { entrance: BboxEntrance; territoryType: TerritoryKind }) {
+  const badges = accessBadges(entrance)
+  const prospectedOn = formatProspectionDate(entrance.prospectionDate)
+  return (
+    <>
+      <p className="font-semibold text-base">
+        {entrance.address.number} {entrance.address.street}, {entrance.address.zip}
+      </p>
+      <p className="text-muted-foreground text-xs">{entranceContentLabel(territoryType, entrance)}</p>
+      {badges.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {badges.map(badge => (
+            <span
+              key={badge}
+              className="inline-flex items-center rounded-full border bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {prospectedOn != null ? (
+        <p className="text-muted-foreground text-xs italic">
+          {m.territories_map_popup_last_prospection({ date: prospectedOn })}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
+function PopupFooter({
+  label,
+  variant,
+  onClick,
+}: {
+  label: string
+  variant: 'default' | 'outline' | 'destructive'
+  onClick: () => void
+}) {
+  return (
+    <div className="-mx-3 -mb-3 mt-1 border-t px-3 py-2">
+      <Button type="button" size="sm" variant={variant} onClick={onClick} className="w-full">
+        {label}
+      </Button>
+    </div>
+  )
 }
 
 function NavigationLinks({ entrance }: { entrance: BboxEntrance }) {
@@ -250,98 +309,134 @@ function NavigationLinks({ entrance }: { entrance: BboxEntrance }) {
   )
 }
 
-export default function EntrancePopup({ entrance, territoryType, pending, onAct }: Props) {
-  const [confirmingReassign, setConfirmingReassign] = useState(false)
-  const isReassignFlow =
-    pending === 'none' && entrance.status === 'on-other-territory' && entrance.otherTerritory != null
-  const showImpactBlock = entrance.status === 'on-other-territory' && entrance.otherTerritory != null
+// ─── Per-status bodies ────────────────────────────────────────────────────
 
-  if (confirmingReassign && entrance.otherTerritory != null) {
-    return (
-      <div className="flex min-w-[280px] max-w-[340px] flex-col gap-2 m-[12px]">
-        <div className={`-mx-3 -mt-3 mb-1 h-1 rounded-t ${accentClassFor(entrance, pending)}`} aria-hidden="true" />
-        <p className="font-semibold text-base">{m.territories_map_reassign_confirm_title()}</p>
-        <p className="text-muted-foreground text-xs">
-          {m.territories_map_reassign_confirm_body({
-            number: entrance.otherTerritory.number,
-          })}
-        </p>
-        <div className="-mx-3 -mb-3 mt-1 flex gap-2 border-t px-3 py-2">
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            onClick={() => setConfirmingReassign(false)}
-            className="flex-1"
-          >
-            {m.territories_map_reassign_confirm_cancel()}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="destructive"
-            onClick={() => {
-              setConfirmingReassign(false)
-              onAct()
-            }}
-            className="flex-1"
-          >
-            {m.territories_map_reassign_confirm_submit()}
-          </Button>
-        </div>
-      </div>
-    )
-  }
+function AvailableBody({ entrance, pending, onAct }: BodyProps) {
+  const isPending = pending !== 'none'
+  const status = pendingStatusText(pending, entrance) ?? m.territories_map_status_available()
+  return (
+    <>
+      <p className="text-muted-foreground text-xs">{status}</p>
+      <NavigationLinks entrance={entrance} />
+      <PopupFooter
+        label={isPending ? m.territories_map_action_undo() : m.territories_map_action_add()}
+        variant={isPending ? 'outline' : 'default'}
+        onClick={onAct}
+      />
+    </>
+  )
+}
 
-  const badges = accessBadges(entrance)
-  const prospectedOn = formatProspectionDate(entrance.prospectionDate)
+function InTerritoryBody({ entrance, pending, onAct }: BodyProps) {
+  const isPending = pending !== 'none'
+  const status = pendingStatusText(pending, entrance) ?? m.territories_map_status_in_territory()
+  return (
+    <>
+      <p className="text-muted-foreground text-xs">{status}</p>
+      <NavigationLinks entrance={entrance} />
+      <PopupFooter
+        label={isPending ? m.territories_map_action_undo() : m.territories_map_action_remove()}
+        variant={isPending ? 'outline' : 'destructive'}
+        onClick={onAct}
+      />
+    </>
+  )
+}
+
+function OnOtherBody({ entrance, pending, onAct, onConfirmReassign }: BodyProps & { onConfirmReassign: () => void }) {
+  const isPending = pending !== 'none'
+  const otherTerritory = entrance.otherTerritory
+  if (otherTerritory == null) return null
+
+  const status =
+    pendingStatusText(pending, entrance) ??
+    m.territories_map_status_on_other_territory({ number: otherTerritory.number })
 
   return (
-    <div className="flex min-w-[280px] max-w-[340px] flex-col gap-1.5 m-3">
-      <div className={`-mx-3 -mt-3 mb-1 h-1 rounded-t-lg ${accentClassFor(entrance, pending)}`} aria-hidden="true" />
-      <p className="font-semibold text-base">
-        {entrance.address.number} {entrance.address.street}, {entrance.address.zip}
-      </p>
-      <p className="text-muted-foreground text-xs">{entranceContentLabel(territoryType, entrance)}</p>
-      {badges.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {badges.map(badge => (
-            <span
-              key={badge}
-              className="inline-flex items-center rounded-full border bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
-            >
-              {badge}
-            </span>
-          ))}
-        </div>
-      ) : null}
-      {prospectedOn != null ? (
-        <p className="text-muted-foreground text-xs italic">
-          {m.territories_map_popup_last_prospection({ date: prospectedOn })}
-        </p>
-      ) : null}
-      <p className="text-muted-foreground text-xs">{statusLine(entrance, pending)}</p>
-      {showImpactBlock && entrance.otherTerritory != null ? (
-        <ImpactBlock entrance={entrance} territoryNumber={entrance.otherTerritory.number} />
-      ) : null}
+    <>
+      <p className="text-muted-foreground text-xs">{status}</p>
+      <ImpactBlock entrance={entrance} territoryNumber={otherTerritory.number} />
       <NavigationLinks entrance={entrance} />
-      <div className="-mx-3 -mb-3 mt-1 border-t px-3 py-2">
-        <Button
-          type="button"
-          size="sm"
-          variant={actionVariant(entrance, pending)}
-          onClick={() => {
-            if (isReassignFlow) {
-              setConfirmingReassign(true)
-            } else {
-              onAct()
-            }
-          }}
-          className="w-full"
-        >
-          {actionLabel(entrance, pending)}
+      <PopupFooter
+        label={
+          isPending
+            ? m.territories_map_action_undo()
+            : m.territories_map_action_reassign_with_source({ number: otherTerritory.number })
+        }
+        variant={isPending ? 'outline' : 'destructive'}
+        onClick={isPending ? onAct : onConfirmReassign}
+      />
+    </>
+  )
+}
+
+// ─── Reassign confirm dialog ──────────────────────────────────────────────
+
+function ReassignConfirmDialog({
+  otherTerritory,
+  accent,
+  onCancel,
+  onConfirm,
+}: {
+  otherTerritory: { id: number; number: string }
+  accent: string
+  onCancel: () => void
+  onConfirm: () => void
+}) {
+  return (
+    <div className="flex min-w-[280px] max-w-[340px] flex-col gap-2 m-[12px]">
+      <div className={`-mx-3 -mt-3 mb-1 h-1 rounded-t ${accent}`} aria-hidden="true" />
+      <p className="font-semibold text-base">{m.territories_map_reassign_confirm_title()}</p>
+      <p className="text-muted-foreground text-xs">
+        {m.territories_map_reassign_confirm_body({ number: otherTerritory.number })}
+      </p>
+      <div className="-mx-3 -mb-3 mt-1 flex gap-2 border-t px-3 py-2">
+        <Button type="button" size="sm" variant="outline" onClick={onCancel} className="flex-1">
+          {m.territories_map_reassign_confirm_cancel()}
+        </Button>
+        <Button type="button" size="sm" variant="destructive" onClick={onConfirm} className="flex-1">
+          {m.territories_map_reassign_confirm_submit()}
         </Button>
       </div>
     </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────
+
+export default function EntrancePopup({ entrance, territoryType, pending, onAct }: Props) {
+  const [confirmingReassign, setConfirmingReassign] = useState(false)
+  const accent = accentClassFor(entrance, pending)
+
+  if (confirmingReassign && entrance.otherTerritory != null) {
+    return (
+      <ReassignConfirmDialog
+        otherTerritory={entrance.otherTerritory}
+        accent={accent}
+        onCancel={() => setConfirmingReassign(false)}
+        onConfirm={() => {
+          setConfirmingReassign(false)
+          onAct()
+        }}
+      />
+    )
+  }
+
+  return (
+    <PopupFrame accent={accent}>
+      <PopupHeader entrance={entrance} territoryType={territoryType} />
+      {entrance.status === 'in-this-territory' ? (
+        <InTerritoryBody entrance={entrance} pending={pending} onAct={onAct} />
+      ) : entrance.status === 'on-other-territory' ? (
+        <OnOtherBody
+          entrance={entrance}
+          pending={pending}
+          onAct={onAct}
+          onConfirmReassign={() => setConfirmingReassign(true)}
+        />
+      ) : (
+        <AvailableBody entrance={entrance} pending={pending} onAct={onAct} />
+      )}
+    </PopupFrame>
   )
 }

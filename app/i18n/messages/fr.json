@@ -1536,6 +1536,7 @@
     "territories_map_popup_impact_homes": "{count} foyer(s)",
     "territories_map_popup_impact_phones": "{count} numéro(s) de téléphone",
     "territories_map_popup_impact_addresses": "{count} adresse(s)",
+    "territories_map_popup_impact_liberals": "{count} libéral(aux)",
     "territories_map_popup_impact_after_removal_homes": "→ {count} après retrait",
     "territories_map_popup_impact_after_removal_phones": "→ {count} après retrait",
     "territories_map_popup_impact_after_removal_addresses": "→ {count} après retrait",

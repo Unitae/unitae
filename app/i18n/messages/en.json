@@ -1533,6 +1533,7 @@
     "territories_map_popup_impact_homes": "{count} household(s)",
     "territories_map_popup_impact_phones": "{count} phone number(s)",
     "territories_map_popup_impact_addresses": "{count} address(es)",
+    "territories_map_popup_impact_liberals": "{count} professional(s)",
     "territories_map_popup_impact_after_removal_homes": "→ {count} after removal",
     "territories_map_popup_impact_after_removal_phones": "→ {count} after removal",
     "territories_map_popup_impact_after_removal_addresses": "→ {count} after removal",
