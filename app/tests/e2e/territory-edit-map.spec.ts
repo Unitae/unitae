@@ -125,6 +125,12 @@ test.describe('Territory edit page', () => {
         buildingId: 20_000_000 + i,
         status: 'available',
         otherTerritory: null,
+        access: null,
+        accesses: [],
+        isPMR: null,
+        isOpenEarly: null,
+        isMailboxOpen: null,
+        prospectionDate: null,
       }))
       await route.fulfill({
         status: 200,

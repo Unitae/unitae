@@ -29,6 +29,17 @@ export type BboxEntrance = {
   buildingId: number
   status: BboxEntranceStatus
   otherTerritory: { id: number; number: string } | null
+  // Access data — populated for residential entrances so the popup can render badges
+  // (intercom / digicode / doorbell / open-early / mailbox-open / PMR).
+  access: number | null
+  accesses: { type: number }[]
+  isPMR: boolean | null
+  isOpenEarly: boolean | null
+  isMailboxOpen: boolean | null
+  // Last prospection date of the primary building. Serialised as ISO string so the
+  // JSON round-trip keeps it as a plain string on the client (Date objects don't
+  // survive JSON.stringify → JSON.parse).
+  prospectionDate: string | null
 }
 
 function sortBuildingsByAddress<T extends { zip: string; street: string; number: string }>(buildings: T[]) {
@@ -329,7 +340,8 @@ export async function getEntrancesInBbox(
     where,
     include: {
       territories: { where: { type: territoryType }, select: { id: true, number: true } },
-      buildings: { take: 1, select: { id: true, number: true, street: true, zip: true } },
+      buildings: { take: 1, select: { id: true, number: true, street: true, zip: true, prospectionDate: true } },
+      accesses: { orderBy: { position: 'asc' as const }, select: { type: true } },
     },
     take: limit + 1,
   })
@@ -364,6 +376,12 @@ export async function getEntrancesInBbox(
         buildingId: building.id,
         status,
         otherTerritory: otherTerritory != null ? { id: otherTerritory.id, number: otherTerritory.number } : null,
+        access: row.access,
+        accesses: row.accesses.map(a => ({ type: a.type })),
+        isPMR: row.isPMR,
+        isOpenEarly: row.isOpenEarly,
+        isMailboxOpen: row.isMailboxOpen,
+        prospectionDate: building.prospectionDate?.toISOString() ?? null,
       }
     })
 

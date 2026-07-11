@@ -16,6 +16,12 @@ const baseEntrance = (status: BboxEntrance['status']): BboxEntrance => ({
   buildingId: 1,
   status,
   otherTerritory: status === 'on-other-territory' ? { id: 99, number: 'T99' } : null,
+  access: null,
+  accesses: [],
+  isPMR: null,
+  isOpenEarly: null,
+  isMailboxOpen: null,
+  prospectionDate: null,
 })
 
 describe('pinVariantFor', () => {

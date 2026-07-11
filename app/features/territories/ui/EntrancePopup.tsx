@@ -1,6 +1,8 @@
 import { ExternalLink } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
+import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
+import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
@@ -149,18 +151,34 @@ function errorLine(reason: ForeignContentErrorReason): string {
   return m.territories_map_popup_impact_error()
 }
 
-function contentSummaryLine(content: TerritoryContent): string {
+type ImpactSummary = { current: string; afterRemoval: string }
+
+function summariseImpact(content: TerritoryContent, entrance: BboxEntrance): ImpactSummary {
   if (content.kind === TerritoryKind.Phone) {
-    return m.territories_map_popup_impact_phones({ count: content.phones })
+    const after = Math.max(0, content.phones - entrance.phones)
+    return {
+      current: m.territories_map_popup_impact_phones({ count: content.phones }),
+      afterRemoval: m.territories_map_popup_impact_after_removal_phones({ count: after }),
+    }
   }
   if (content.kind === TerritoryKind.Classical || content.kind === TerritoryKind.Univ) {
-    return m.territories_map_popup_impact_homes({ count: content.quantity })
+    // Mirror computeTerritoryQuantity — Classical/Univ aggregate as `homes || phones` per entrance.
+    const contribution = entrance.homes || entrance.phones
+    const after = Math.max(0, content.quantity - contribution)
+    return {
+      current: m.territories_map_popup_impact_homes({ count: content.quantity }),
+      afterRemoval: m.territories_map_popup_impact_after_removal_homes({ count: after }),
+    }
   }
-  return m.territories_map_popup_impact_addresses({ count: content.entranceCount })
+  const after = Math.max(0, content.entranceCount - 1)
+  return {
+    current: m.territories_map_popup_impact_addresses({ count: content.entranceCount }),
+    afterRemoval: m.territories_map_popup_impact_after_removal_addresses({ count: after }),
+  }
 }
 
-function ImpactBlock({ territoryId, territoryNumber }: { territoryId: number; territoryNumber: string }) {
-  const state = useForeignTerritoryContent(territoryId)
+function ImpactBlock({ entrance, territoryNumber }: { entrance: BboxEntrance; territoryNumber: string }) {
+  const state = useForeignTerritoryContent(entrance.otherTerritory?.id ?? null)
   return (
     <div className="mt-1 rounded-md border bg-muted/40 p-2">
       <p className="font-medium text-xs">{m.territories_map_popup_impact_title({ number: territoryNumber })}</p>
@@ -169,10 +187,40 @@ function ImpactBlock({ territoryId, territoryNumber }: { territoryId: number; te
       ) : null}
       {state.status === 'error' ? <p className="mt-1 text-destructive text-xs">{errorLine(state.reason)}</p> : null}
       {state.status === 'ready' ? (
-        <p className="mt-1 text-muted-foreground text-xs">{contentSummaryLine(state.content)}</p>
+        <>
+          <p className="mt-1 text-muted-foreground text-xs">{summariseImpact(state.content, entrance).current}</p>
+          <p className="text-muted-foreground text-xs italic">
+            {summariseImpact(state.content, entrance).afterRemoval}
+          </p>
+        </>
       ) : null}
     </div>
   )
+}
+
+function accessBadges(entrance: BboxEntrance): string[] {
+  if (entrance.kind !== EntranceKind.Residential) return []
+  const parts: string[] = []
+  const hasCode =
+    entrance.access === TerritoryAccess.Code || entrance.accesses.some(a => a.type === TerritoryAccess.Code)
+  const hasIntercom =
+    entrance.access === TerritoryAccess.Intercom || entrance.accesses.some(a => a.type === TerritoryAccess.Intercom)
+  const hasDoorbell =
+    entrance.access === TerritoryAccess.Doorbell || entrance.accesses.some(a => a.type === TerritoryAccess.Doorbell)
+  if (hasIntercom) parts.push(m.territories_map_popup_access_intercom())
+  if (hasCode) parts.push(m.territories_map_popup_access_digicode())
+  if (hasDoorbell) parts.push(m.territories_map_popup_access_doorbell())
+  if (hasCode && entrance.isOpenEarly) parts.push(m.territories_map_popup_access_open_early())
+  if (hasCode && entrance.isMailboxOpen) parts.push(m.territories_map_popup_access_mailbox_open())
+  if (entrance.isPMR) parts.push(m.territories_map_popup_access_pmr())
+  return parts
+}
+
+function formatProspectionDate(iso: string | null): string | null {
+  if (iso == null) return null
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return null
+  return date.toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 function NavigationLinks({ entrance }: { entrance: BboxEntrance }) {
@@ -245,6 +293,9 @@ export default function EntrancePopup({ entrance, territoryType, pending, onAct 
     )
   }
 
+  const badges = accessBadges(entrance)
+  const prospectedOn = formatProspectionDate(entrance.prospectionDate)
+
   return (
     <div className="flex min-w-[280px] max-w-[340px] flex-col gap-1.5 m-3">
       <div className={`-mx-3 -mt-3 mb-1 h-1 rounded-t-lg ${accentClassFor(entrance, pending)}`} aria-hidden="true" />
@@ -252,9 +303,26 @@ export default function EntrancePopup({ entrance, territoryType, pending, onAct 
         {entrance.address.number} {entrance.address.street}, {entrance.address.zip}
       </p>
       <p className="text-muted-foreground text-xs">{entranceContentLabel(territoryType, entrance)}</p>
+      {badges.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {badges.map(badge => (
+            <span
+              key={badge}
+              className="inline-flex items-center rounded-full border bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+            >
+              {badge}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {prospectedOn != null ? (
+        <p className="text-muted-foreground text-xs italic">
+          {m.territories_map_popup_last_prospection({ date: prospectedOn })}
+        </p>
+      ) : null}
       <p className="text-muted-foreground text-xs">{statusLine(entrance, pending)}</p>
       {showImpactBlock && entrance.otherTerritory != null ? (
-        <ImpactBlock territoryId={entrance.otherTerritory.id} territoryNumber={entrance.otherTerritory.number} />
+        <ImpactBlock entrance={entrance} territoryNumber={entrance.otherTerritory.number} />
       ) : null}
       <NavigationLinks entrance={entrance} />
       <div className="-mx-3 -mb-3 mt-1 border-t px-3 py-2">
