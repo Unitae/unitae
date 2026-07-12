@@ -9,11 +9,11 @@ This document is **part target state, part current rule**. The migration is trac
 | Wave | Scope | Status |
 |---|---|---|
 | 0 | This doc + CLAUDE.md updates | ✅ landed |
-| 1 | 4 production bug fixes (TDD-first) | ⏳ pending |
-| 2 | lefthook + file-size CI guard | ⏳ pending |
-| 3 | Feature `index.ts` boundaries + cross-feature import lint | ⏳ pending |
-| 4 | Split mega-files | ⏳ pending |
-| 5 | Three aggregates + CQRS-lite lint enforcement | ⏳ pending |
+| 1 | 4 production bug fixes (TDD-first) | ✅ landed |
+| 2 | lefthook + file-size CI guard | ✅ landed |
+| 3 | Feature `index.ts` boundaries + cross-feature import lint | ✅ landed |
+| 4 | Split mega-files | ✅ landed |
+| 5 | Three aggregates + CQRS-lite lint enforcement | ✅ landed |
 | 6 | Constants files + `any` triage | ⏳ pending |
 | 7 | TDD rollout + coverage backfill | ⏳ pending |
 | 8 | Stress-case fixes (locale, name/phone validation, anonymization) | ⏳ pending |
@@ -75,9 +75,9 @@ Promote a policy to an aggregate when a third writer appears or when the rule se
 
 | Name | Kind | Location | Reason |
 |---|---|---|---|
-| `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` *(target — Wave 5)* | 9+ mutation sites must call `syncBuiltInRoleAssignments` after editing identity flags |
-| `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` *(target — Wave 5)* | State machine + overlap invariant (one active per building × publisher × type) |
-| `ProgrammeAssignment` | policy | `app/features/events/server/programme-assignment.policy.ts` *(target — Wave 5)* | Eligibility + distinctness rules duplicated across `assignPart` and `assignServiceRole` |
+| `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change |
+| `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + overlap invariant (one active per publisher × territory time-window) |
+| `ProgrammeAssignment` | policy | `app/features/events/server/programme-assignment.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServiceRole` |
 
 ### Aggregate contract
 
@@ -89,7 +89,7 @@ Aggregate files (`*.aggregate.ts`) follow this contract:
    - **Invariant assertions** — pure-function checks that throw on violation. Prefixed `_assert*` (private convention) and called from the mutation function before the write.
    - **UI / report queries** — listing, paginating, projecting for the UI. **Forbidden in aggregates.** Move to the query side (`*.queries.ts` or unsuffixed `<feature>.server.ts`).
 3. **Side effects after the write**: call `audit()` (fire-and-forget) or `auditInTransaction(tx, ...)` if the audit must be atomic with the write (see [Transaction boundaries](#transaction-boundaries)).
-4. **Direct `db.<model>.create/update/updateMany/delete/deleteMany/upsert`** on the aggregate's primary model is forbidden outside the aggregate file. Enforced by lint (Wave 5).
+4. **Direct `db.<model>.create/update/updateMany/delete/deleteMany/upsert`** on the aggregate's primary model is forbidden outside the aggregate file. Enforced by `pnpm test:aggregate-boundaries` (see [Lint enforcement](#lint-enforcement)).
 
 ### Cross-aggregate workflows
 
@@ -124,7 +124,7 @@ Workflows:
 2. Move every existing `db.<entity>.create/update/updateMany/delete/deleteMany/upsert` call into named exports on the aggregate. Each function takes `(db, ...domainParams, actorId)`, performs the write, calls `audit()`.
 3. Extract invariant checks into private `_assert*` helpers. Call them from the mutation functions before the write.
 4. Add `*.aggregate.integration.test.ts` covering: every happy-path mutation, every invariant violation (assert the aggregate throws), every audit call (assert via fixture inspection).
-5. Add the model to the lint allowlist file (Wave 5) so direct `db.<model>.create/update/…` outside the aggregate is blocked.
+5. Add the model to `AGGREGATE_MODELS` in `scripts/check-aggregate-boundaries.ts` so direct `db.<model>.create/update/…` outside the aggregate is blocked.
 6. Update the [Current aggregates](#current-aggregates-and-policies) table in this doc, the call sites at consumer routes/jobs, and the relevant feature's `index.ts` re-exports.
 
 ### Aggregate testing
@@ -177,7 +177,7 @@ catch (err) {
 
 ### Allowed bypass: import orchestrators
 
-`import-*.server.ts` files (e.g., `import-members.server.ts`) bulk-load data from archive files. They may call `db.<model>.create` directly because they replay an external source of truth, not user actions, and they call `syncBuiltInRoleAssignments` in a single post-import pass. These files are on the lint allowlist (Wave 5).
+`import-*.server.ts` files (e.g., `import-user-accounts.server.ts`) bulk-load data from archive files. They may call `db.<model>.create` directly because they replay an external source of truth, not user actions, and they call `syncBuiltInRoleAssignments` in a single post-import pass. These files are on the `check-aggregate-boundaries.ts` allowlist.
 
 ## CQRS-lite: read/write split within a feature
 
@@ -187,7 +187,7 @@ Within each feature, **writes go through `*.aggregate.ts` files; reads go throug
 |---|---|---|
 | `*.aggregate.ts` | mutations on the primary model; precondition lookups; `_assert*` invariant helpers; `audit()`; `syncBuiltInRoleAssignments` | UI / report queries (`findMany`, paginated lists, joined projections for views) |
 | `*.queries.ts`, `*.policy.ts`, or `{feature}.server.ts` | all read operations; pagination; aggregation; joins for UI | `create`, `update`, `updateMany`, `delete`, `deleteMany`, `upsert` |
-| Other `*.server.ts` (single-purpose) *(grandfathered until Wave 5)* | one of the above sets, picked by the file's purpose | the other set |
+| Other `*.server.ts` (single-purpose) | one of the above sets, picked by the file's purpose | the other set |
 
 This gives the navigability benefit of CQRS — a contributor or AI agent knows from the file name whether they're looking at a mutation or a query — without the synchronization cost of full CQRS.
 
@@ -199,13 +199,17 @@ This gives the navigability benefit of CQRS — a contributor or AI agent knows 
 
 ### Migration of existing files
 
-Grab-bag files (`publishers.server.ts`, `attributions.server.ts`, `buildings.server.ts`, `groups.server.ts`) are predominantly read-side and stay as the feature's query surface. Their write functions migrate to the corresponding aggregate during Wave 5.
+Grab-bag files (`publishers.server.ts`, `attributions.server.ts`, `buildings.server.ts`, `groups.server.ts`) are predominantly read-side and stay as the feature's query surface. Write functions on `Member` and `Attribution` have migrated to their aggregates; any future aggregate promotion follows the same pattern.
 
-### Lint enforcement (target — Wave 5)
+### Lint enforcement
 
-A Biome rule enforces:
-- `db.<model>.create|update|updateMany|delete|deleteMany|upsert` on a primary aggregate model is forbidden outside files matching `*.aggregate.ts` (or on the allowlist).
-- `db.<model>.findMany|findFirst|findUnique|count|aggregate` is forbidden inside `*.aggregate.ts` **except** as precondition lookups (any name) or inside functions prefixed `_assert` (invariant checks).
+`scripts/check-aggregate-boundaries.ts` (run via `pnpm test:aggregate-boundaries` — wired into `pre-push` and the CI `lint` job) enforces:
+
+- **Writes**: `db.<aggregate-model>.create|update|updateMany|delete|deleteMany|upsert` is forbidden outside `*.aggregate.ts` files. Allowlisted: `import-*.server.ts` orchestrators, `*.test.*` files, and the `app/tests/` infrastructure directory.
+- **UI-shape reads**: `findMany|count|aggregate` inside `*.aggregate.ts` is forbidden unless the enclosing function is prefixed `_assert*` (invariant check) OR the call is preceded by `// aggregate-boundaries-allow: <reason>` (documented precondition lookup).
+- `findFirst` and `findUnique` are always allowed — single-row shapes are precondition lookups by design.
+
+Why a custom script and not a Biome rule: Biome doesn't support user-defined custom rules today, and ESLint AST selectors are fragile for this shape. The script mirrors `check-file-sizes.ts` in shape + UX.
 
 ## Canonical Feature Shape
 
@@ -249,7 +253,7 @@ The verb-noun pattern makes service functions discoverable by file name alone. A
 
 Existing files like `publishers.server.ts`, `groups.server.ts`, `buildings.server.ts`, `attributions.server.ts` bundle multiple related functions in one file. These remain; rewriting them has no payoff. **No new grab-bag files.** Add new functions to the verb-noun pattern instead.
 
-When the [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature) is applied (Wave 5), the grab-bag file becomes the feature's read-side surface and any write functions migrate to the corresponding aggregate.
+Under the [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature), the grab-bag file becomes the feature's read-side surface; write functions move to the corresponding aggregate.
 
 ## Feature Boundary Rule
 
@@ -259,7 +263,7 @@ Features may only import each other through their `index.ts`. Deep imports into 
 // Allowed
 import { getProgrammeTemplate } from '~/features/events'
 
-// Forbidden (target — Wave 3)
+// Forbidden — fails `pnpm test:boundaries`
 import { getProgrammeTemplate } from '~/features/events/server/programme-templates.server'
 ```
 

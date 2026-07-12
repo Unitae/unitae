@@ -35,7 +35,7 @@ Core features: territory management with building prospection, publisher activit
 7. **No `throw redirect()` in service functions** — Redirects are only allowed in route guards, middleware, and session validation
 8. **Black-box testing** — Assert on observable outcomes; never spy on implementations
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
-10. **Mutations to aggregate-owned entities go through the aggregate** (*target*, see Wave 5) — `Member`, `Attribution`, and `ProgrammeAssignment` invariants live in `*.aggregate.ts` / `*.policy.ts` files. Direct `db.member.update`/`db.attribution.create` outside those files is a lint violation.
+10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `ProgrammeAssignment` invariants live in `*.aggregate.ts` / `*.policy.ts` files. Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
 
 ### After Making Changes
 
@@ -164,6 +164,7 @@ Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
 |---------|---------|
 | `*.server.ts` | Server-only code (not importable from client bundles) |
 | `*.aggregate.ts` | Aggregate root — owns mutations + invariants for a domain entity (e.g., `member.aggregate.ts`) |
+| `*.workflow.ts` | Cross-aggregate orchestration for a single user action (e.g., `anonymize-member.workflow.ts` calls both `memberAggregate.anonymize` and `attributionAggregate.markReturnedForPublisher`) |
 | `*.queries.ts` | Read-only query helpers (CQRS-lite read side) |
 | `*.policy.ts` | Pure-function invariant checks shared across mutators (e.g., `programme-assignment.policy.ts`) |
 | `*.type.ts` | TypeScript type/interface definitions |
@@ -184,9 +185,9 @@ Files have soft (warning) and hard (CI failure) line limits. See [Architecture C
 | Route `*.tsx` | 150 | 300 |
 | Component `*.tsx` | 200 | 400 |
 
-Tests and generated code are exempt. The CI check ships in Wave 2 of `refactor/architecture-conventions`.
+Tests and generated code are exempt.
 
-### Pre-commit and pre-push hooks (target — Wave 2)
+### Pre-commit and pre-push hooks
 
 `lefthook` runs two stages:
 - **Pre-commit** (fast — keeps the inner loop tight): Biome lint on staged files + unit tests for changed files.
@@ -330,9 +331,9 @@ await createTerritory(db, ...)
 
 - ❌ **Don't put business logic in routes** — Delegate to service functions in `features/*/server/`
 - ❌ **Don't write `db.*.create/update/delete` in route files** — Zero inline DB writes in routes
-- ❌ **Don't bypass aggregates** (*target*, Wave 5) — `db.member.update`, `db.attribution.create`, etc. outside their respective `*.aggregate.ts` files is a lint violation. Call the aggregate's exported function instead. Allowlist: bulk-import orchestrators (`import-*.server.ts`) and the aggregate file itself.
-- ❌ **Don't mix reads and writes in one file** (*target*, Wave 5) — `*.aggregate.ts` files do not export `findMany`/`findFirst` helpers; query files do not call `create`/`update`/`delete`. See [CQRS-lite](docs/development/architecture-conventions.md#cqrs-lite-readwrite-split-within-a-feature).
-- ❌ **Don't deep-import another feature** (*target*, Wave 3) — Import from `~/features/X` (the `index.ts`), not `~/features/X/server/...` or `~/features/X/ui/...`.
+- ❌ **Don't bypass aggregates** — `db.member.update`, `db.attribution.create`, etc. outside their respective `*.aggregate.ts` files fails `pnpm test:aggregate-boundaries`. Call the aggregate's exported function instead. Allowlist: `import-*.server.ts` orchestrators, `*.test.*` files, and `app/tests/` infra.
+- ❌ **Don't mix reads and writes in one file** — `*.aggregate.ts` files do not export `findMany`/`count`/`aggregate` helpers (single-row `findFirst`/`findUnique` are fine for preconditions); query files do not call `create`/`update`/`delete`. See [CQRS-lite](docs/development/architecture-conventions.md#cqrs-lite-readwrite-split-within-a-feature).
+- ❌ **Don't deep-import another feature** — Import from `~/features/X` (the `index.ts`), not `~/features/X/server/...` or `~/features/X/ui/...`. Enforced by `pnpm test:boundaries`.
 - ❌ **Don't `throw redirect()` from service functions** — Only in route guards and middleware
 - ❌ **Don't use `findUnique` on compound keys** — `Setting` and `EventKind` have `[key, congregationId]` compound unique; use `findFirst({ where: { key } })` instead
 - ❌ **Don't use `prisma migrate dev` in CI/scripts** — Non-interactive; use `migrate diff` + `migrate deploy`
@@ -347,7 +348,7 @@ await createTerritory(db, ...)
 - **`.env` files are not readable** via the Read tool or `cat` — derive env vars by grepping `process.env\.` in `app/`.
 - **Job handlers** live in `app/features/{feature}/jobs/handle-*-work.server.ts`, not under `server/`. Worker imports them from `app/workers/worker.server.ts`.
 - **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.
-- **Built-in role memberships are auto-synced** from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`). **Target state (Wave 5):** all `Member` mutations go through `app/features/publishers/server/member.aggregate.ts`, which calls `syncBuiltInRoleAssignments` internally — callers never invoke it directly. **Today:** call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` from `app/shared/domain/built-in-roles.server.ts` after every mutation to those fields. Bulk operations (`updateMany`) must iterate and call sync per affected member — there is already one known missed site (`app/features/settings/server/congregation-settings.server.ts:23-31`, fixed in Wave 1). Identity-role assignments live on `MemberRoleAssignment`; management/custom roles on `UserRoleAssignment` (UserAccount-bound).
+- **Built-in role memberships are auto-synced** from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`). All `Member` mutations go through `app/features/publishers/server/member.aggregate.ts`, which calls `syncBuiltInRoleAssignments` internally — callers never invoke it directly. Route callers use `memberAggregate.setLifecycle('left'|'returned'|'active'|'inactive')`, `togglePublisher`, `updateIdentity`, etc. Identity-role assignments live on `MemberRoleAssignment`; management/custom roles on `UserRoleAssignment` (UserAccount-bound).
 - **Member vs UserAccount FK rule of thumb**: action requires login → `UserAccount`; subject is a person in the congregation → `Member`. See `docs/development/coding-conventions.md` for the full table.
 
 ## Known gaps
