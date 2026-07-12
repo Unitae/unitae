@@ -39,10 +39,6 @@ export function assertDistinctParticipants(assigneeId: number | null, assistantI
   }
 }
 
-export function checkAssignmentExists<T>(assignment: T | null): Rejection | null {
-  return assignment == null ? { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound } : null
-}
-
 export function checkExternalSpeakerValid(speaker: { archivedAt: Date | null } | null): Rejection | null {
   if (speaker == null || speaker.archivedAt != null) {
     return { error: PROGRAMME_ASSIGNMENT_ERRORS.externalSpeakerInvalid }

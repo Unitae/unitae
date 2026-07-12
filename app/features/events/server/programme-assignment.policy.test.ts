@@ -3,10 +3,10 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 import {
   areParticipantsDistinct,
   assertDistinctParticipants,
-  checkAssignmentExists,
   checkEligibleForRole,
   checkExternalSpeakerValid,
   checkNoDayOffConflict,
+  checkParticipantsDistinct,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from './programme-assignment.policy'
 
@@ -48,13 +48,21 @@ describe('assertDistinctParticipants', () => {
   })
 })
 
-describe('checkAssignmentExists', () => {
-  it('returns null when the assignment is present', () => {
-    expect(checkAssignmentExists({ id: 1 })).toBeNull()
+describe('checkParticipantsDistinct', () => {
+  it('returns null for distinct ids', () => {
+    expect(checkParticipantsDistinct(5, 6)).toBeNull()
   })
 
-  it('returns a rejection when the assignment is null', () => {
-    expect(checkAssignmentExists(null)).toEqual({ error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound })
+  it('returns null when either side is null', () => {
+    expect(checkParticipantsDistinct(null, null)).toBeNull()
+    expect(checkParticipantsDistinct(null, 5)).toBeNull()
+    expect(checkParticipantsDistinct(5, null)).toBeNull()
+  })
+
+  it('returns a rejection when assignee and assistant are the same person', () => {
+    expect(checkParticipantsDistinct(5, 5)).toEqual({
+      error: PROGRAMME_ASSIGNMENT_ERRORS.participantsNotDistinct,
+    })
   })
 })
 
