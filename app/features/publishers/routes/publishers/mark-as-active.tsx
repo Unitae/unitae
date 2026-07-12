@@ -1,4 +1,4 @@
-import { setMemberActive } from '~/features/publishers/server/set-member-active.server'
+import { memberAggregate } from '~/features/publishers'
 import * as m from '~/i18n/paraglide/messages'
 
 import { runLifecycleAction } from './_lifecycle-action.server'
@@ -9,7 +9,8 @@ export function action({ request, params, context }: Route.ActionArgs) {
     request,
     params,
     context,
-    action: setMemberActive,
+    action: (db, memberId, congregationId, actorId) =>
+      memberAggregate.setLifecycle(db, memberId, congregationId, actorId, 'active'),
     successMessage: name => m.publishers_view_mark_as_active_success({ name }),
     errorMessage: name => m.publishers_view_mark_as_active_error({ name }),
   })
