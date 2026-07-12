@@ -322,6 +322,7 @@ export async function bulkUpdateType(
   from: PublisherType,
   to: PublisherType,
 ): Promise<void> {
+  // aggregate-boundaries-allow: precondition read — capture affected ids so we can re-sync each after the bulk update
   const affected = await db.member.findMany({
     where: { congregationId, type: from },
     select: { id: true },

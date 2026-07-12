@@ -229,6 +229,7 @@ export async function markReturnedForPublisher(
   congregationId: number,
   actorId: number,
 ): Promise<number> {
+  // aggregate-boundaries-allow: precondition read — collect closed ids for the per-row audit fan-out
   const open = await db.attribution.findMany({
     where: { publisherId, congregationId, endDate: null },
     select: { id: true },

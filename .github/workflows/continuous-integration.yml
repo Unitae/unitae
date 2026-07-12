@@ -34,6 +34,9 @@ jobs:
       - name: Check cross-feature import boundaries
         run: pnpm test:boundaries
 
+      - name: Check aggregate boundaries (CQRS-lite)
+        run: pnpm test:aggregate-boundaries
+
       - name: Security audit
         run: pnpm audit --audit-level=high
 
