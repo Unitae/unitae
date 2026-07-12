@@ -1654,6 +1654,7 @@
     "attributions_edit_late_date_label": "À rentrer le :",
     "attributions_edit_return_submit": "Rentrer le territoire",
     "attributions_edit_save_submit": "Enregistrer l'attribution",
+    "attributions_overlap_error": "Ce proclamateur a déjà une attribution active sur ce territoire pour cette période.",
     "attributions_delete_card_title": "Annuler l'attribution",
     "attributions_delete_confirm_message": "Êtes-vous sûr de vouloir annuler l'attribution de {name} ? Cette action est irréversible.",
     "attributions_delete_submit": "Annuler l'attribution du territoire {number}",

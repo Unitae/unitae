@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
+const mockMemberFindFirst = vi.fn()
 const mockMemberUpdate = vi.fn()
 const mockAccountFindUnique = vi.fn()
 const mockAccountUpdate = vi.fn()
@@ -12,14 +13,28 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
 }))
 
 const mockDb = {
-  member: { update: mockMemberUpdate },
+  // aggregate.updateIdentity pre-loads the identity-flag snapshot before the
+  // update so `haveIdentityFlagsChanged` can decide whether sync must fire.
+  member: { findFirst: mockMemberFindFirst, update: mockMemberUpdate },
   userAccount: { findUnique: mockAccountFindUnique, update: mockAccountUpdate },
 }
 
 const { updateMember } = await import('./update-member.server')
 
+const BEFORE_IDENTITY = {
+  isPublisher: true,
+  type: 'Normal',
+  isMale: false,
+  baptismDate: null,
+  isAnointed: false,
+  isHelder: false,
+  isServant: false,
+  leftAt: null,
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
+  mockMemberFindFirst.mockResolvedValue(BEFORE_IDENTITY)
 })
 
 describe('updateMember', () => {
@@ -130,12 +145,33 @@ describe('updateMember', () => {
     expect(mockAccountUpdate).not.toHaveBeenCalled()
   })
 
-  it('syncs built-in role assignments after the update', async () => {
-    mockMemberUpdate.mockResolvedValue({ id: 1 } as never)
+  it('syncs built-in role assignments when an identity flag changed', async () => {
+    // Before: not a helder. baseParams flips isHelder to true → sync must fire.
+    const AFTER = { ...BEFORE_IDENTITY, isHelder: true, isMale: true, baptismDate: new Date('2010-03-20') }
+    mockMemberUpdate.mockResolvedValue({ id: 1, ...AFTER } as never)
     mockAccountFindUnique.mockResolvedValue(null)
 
     await updateMember(mockDb as never, 1, 10, 99, baseParams)
 
     expect(mockSync).toHaveBeenCalledWith(mockDb, 1, 10, 99)
+  })
+
+  it('skips the sync when only non-identity fields (phone/address/name) changed', async () => {
+    // Before AND after keep the same 8 identity flags. Only names / phone / address differ.
+    mockMemberUpdate.mockResolvedValue({ id: 1, ...BEFORE_IDENTITY } as never)
+    mockAccountFindUnique.mockResolvedValue(null)
+
+    await updateMember(mockDb as never, 1, 10, 99, {
+      ...baseParams,
+      email: null,
+      gender: 'female', // matches BEFORE.isMale=false
+      baptismDate: null, // matches BEFORE
+      isHelder: false, // matches BEFORE
+      firstname: 'Renamed',
+      phone: '0700000000',
+      address: 'New address',
+    })
+
+    expect(mockSync).not.toHaveBeenCalled()
   })
 })

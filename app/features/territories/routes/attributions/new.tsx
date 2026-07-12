@@ -15,6 +15,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Card, CardContent } from '~/shared/ui/card'
@@ -186,16 +187,23 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    const attribution = await createAttribution(db, {
-      publisherId,
-      territoryId,
-      startDate,
-      notes,
-      type,
-      congregationId: congregation.id,
-      actorId,
-    })
+    try {
+      const attribution = await createAttribution(db, {
+        publisherId,
+        territoryId,
+        startDate,
+        notes,
+        type,
+        congregationId: congregation.id,
+        actorId,
+      })
 
-    return redirect(`/territories/attributions/${attribution.id}/edit`)
+      return redirect(`/territories/attributions/${attribution.id}/edit`)
+    } catch (err) {
+      if (err instanceof ConflictError && err.message === 'attribution_overlap') {
+        return data(submission.reply({ formErrors: [m.attributions_overlap_error()] }), { status: 409 })
+      }
+      throw err
+    }
   })
 }
