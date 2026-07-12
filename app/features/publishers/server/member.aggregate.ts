@@ -8,7 +8,26 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
-import { type MemberFormFields, memberDataFromForm } from './member-identity'
+import {
+  haveIdentityFlagsChanged,
+  MEMBER_IDENTITY_SELECT,
+  type MemberFormFields,
+  type MemberIdentityFlags,
+  memberDataFromForm,
+} from './member-identity'
+
+async function _loadMemberIdentity(
+  db: TransactionClient,
+  memberId: number,
+  congregationId: number,
+): Promise<MemberIdentityFlags> {
+  const member = await db.member.findFirst({
+    where: { id: memberId, congregationId },
+    select: MEMBER_IDENTITY_SELECT,
+  })
+  if (!member) throw new NotFoundError('Member')
+  return member
+}
 
 export type CreateMemberParams = MemberFormFields & {
   email: string | null
@@ -94,6 +113,8 @@ export async function updateIdentity(
   actorId: number,
   params: UpdateIdentityParams,
 ) {
+  const before = await _loadMemberIdentity(db, id, congregationId)
+
   const member = await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },
@@ -110,7 +131,9 @@ export async function updateIdentity(
     }
   }
 
-  await syncBuiltInRoleAssignments(db, id, congregationId, actorId)
+  if (haveIdentityFlagsChanged(before, member)) {
+    await syncBuiltInRoleAssignments(db, id, congregationId, actorId)
+  }
 
   audit({
     action: AuditAction.PublisherUpdated,

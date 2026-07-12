@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PublisherType } from '~/shared/types/publisher-type'
 
+const mockMemberFindFirst = vi.fn()
 const mockMemberUpdate = vi.fn()
 const mockAccountFindUnique = vi.fn()
 const mockAccountUpdate = vi.fn()
@@ -12,14 +13,28 @@ vi.mock('~/shared/domain/built-in-roles.server', () => ({
 }))
 
 const mockDb = {
-  member: { update: mockMemberUpdate },
+  // aggregate.updateIdentity pre-loads the identity-flag snapshot before the
+  // update so `haveIdentityFlagsChanged` can decide whether sync must fire.
+  member: { findFirst: mockMemberFindFirst, update: mockMemberUpdate },
   userAccount: { findUnique: mockAccountFindUnique, update: mockAccountUpdate },
 }
 
 const { updateMember } = await import('./update-member.server')
 
+const BEFORE_IDENTITY = {
+  isPublisher: true,
+  type: 'Normal',
+  isMale: false,
+  baptismDate: null,
+  isAnointed: false,
+  isHelder: false,
+  isServant: false,
+  leftAt: null,
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
+  mockMemberFindFirst.mockResolvedValue(BEFORE_IDENTITY)
 })
 
 describe('updateMember', () => {
