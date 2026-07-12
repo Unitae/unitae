@@ -30,6 +30,8 @@ interface MockActivityRow {
 const mockDb = {
   member: {
     findUnique: vi.fn<(...args: unknown[]) => Promise<MockMemberRow | null>>(),
+    // setLifecycle inside the aggregate does a precondition findFirst
+    findFirst: vi.fn<(...args: unknown[]) => Promise<{ id: number; inactiveAt: Date | null } | null>>(),
     update: vi.fn<(...args: unknown[]) => Promise<unknown>>(),
   },
   publisherActivity: {
@@ -52,6 +54,8 @@ function preached(hours = 5): MockActivityRow {
 beforeEach(() => {
   vi.resetAllMocks()
   mockDb.member.update.mockResolvedValue(undefined)
+  // setLifecycle precondition — return the member so the transition proceeds
+  mockDb.member.findFirst.mockResolvedValue({ id: publisherId, inactiveAt: null })
 })
 
 describe('evaluateInactiveStatus', () => {
@@ -180,6 +184,8 @@ describe('evaluateInactiveStatus', () => {
       isPublisher: true,
       leftAt: null,
     })
+    // setLifecycle('active') precondition needs to see inactiveAt != null to transition
+    mockDb.member.findFirst.mockResolvedValue({ id: publisherId, inactiveAt: new Date('2026-01-01') })
 
     await evaluateInactiveStatus(mockDb as never, {
       publisherId,

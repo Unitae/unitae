@@ -1,46 +1,17 @@
-import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { memberAggregate } from '~/features/publishers'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 
 /**
- * Toggle a Member's `isPublisher` status (publisher ↔ ministry-school student).
- *
- * Distinct from leaving the congregation (`set-member-left`). Both publisher
- * and ministry-school student are current Members; this only flips which one
- * they are.
+ * Toggle a Member's `isPublisher` status. Thin delegator; invariant lives
+ * in `member.aggregate.togglePublisher`.
  */
-export async function togglePublisherStatus(
+export function togglePublisherStatus(
   db: TransactionClient,
   memberId: MemberId,
   congregationId: number,
   isPublisher: boolean,
   actorId: number,
 ) {
-  const existing = await db.member.findFirst({
-    where: { id: memberId, congregationId },
-    select: { id: true },
-  })
-  if (!existing) throw new NotFoundError('Member')
-
-  const member = await db.member.update({
-    where: {
-      id_congregationId: { id: memberId, congregationId },
-    },
-    data: { isPublisher },
-  })
-
-  await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
-
-  audit({
-    action: AuditAction.PublisherStatusChanged,
-    congregationId,
-    actorId,
-    entityType: 'Member',
-    entityId: memberId,
-    metadata: { isPublisher },
-  })
-
-  return member
+  return memberAggregate.togglePublisher(db, memberId, congregationId, isPublisher, actorId)
 }
