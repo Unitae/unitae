@@ -8,9 +8,10 @@ import type { MemberId } from '~/shared/types/branded'
  *   1. Close every open attribution for the publisher (Attribution invariant).
  *   2. Scrub the Member's PII + drop role assignments (Member invariant).
  *
- * The order matters: closing attributions first preserves referential
- * accuracy in the audit trail — the closed rows still reference a Member
- * whose identity flags are intact at the moment of closure.
+ * The two writes commute — the resulting DB state is identical either way —
+ * but attribution-close-first mirrors the real-world sequence a user sees
+ * on the audit log timeline (territories handed back, then the person left
+ * the roster).
  */
 export async function anonymizeMemberWorkflow(
   db: TransactionClient,

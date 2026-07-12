@@ -115,6 +115,10 @@ export async function updateIdentity(
 ) {
   const before = await _loadMemberIdentity(db, id, congregationId)
 
+  // No `select:` here — `haveIdentityFlagsChanged` below diffs `before` against
+  // this row's identity fields. Adding a `select` that omits any of the 8
+  // fields in MEMBER_IDENTITY_SELECT would silently break the diff (every
+  // omitted field reads as `undefined !== value`, always forcing a sync).
   const member = await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id, congregationId } },
@@ -200,13 +204,16 @@ export async function setLifecycle(
   trigger?: string,
 ) {
   const spec = LIFECYCLE_MUTATION[state]
+  // Full row (no select) so the idempotent early-return below has the same
+  // shape as the mutating path — callers reading e.g. `member.leftAt` on the
+  // no-op branch must get a real value, not undefined.
   const current = await db.member.findFirst({
     where: { id: memberId, congregationId },
-    select: { id: true, [spec.field]: true, account: state === 'left' ? { select: { id: true } } : false },
+    include: state === 'left' ? { account: { select: { id: true } } } : undefined,
   })
   if (!current) throw new NotFoundError('Member')
 
-  const currentValue = (current as Record<string, unknown>)[spec.field] as Date | null
+  const currentValue = current[spec.field]
   if (spec.setNull ? currentValue == null : currentValue != null) return current
 
   const updated = await db.member.update({

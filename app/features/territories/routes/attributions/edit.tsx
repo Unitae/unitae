@@ -17,6 +17,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { getBoolSetting } from '~/shared/domain/settings.server'
+import { ConflictError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
 import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { Button } from '~/shared/ui/button'
@@ -239,21 +240,28 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const { congregationId, id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    const attribution = await updateAttribution(
-      db,
-      requireParamId(params.attributionId, '/territories/attributions'),
-      congregationId,
-      actorId,
-      {
-        publisherId,
-        notes,
-        type,
-        startDate: new Date(startDateText),
-        lateDate: hasLateDate ? new Date(lateDateText) : undefined,
-        endDate: hasEndDate ? new Date(endDateText) : undefined,
-      },
-    )
+    try {
+      const attribution = await updateAttribution(
+        db,
+        requireParamId(params.attributionId, '/territories/attributions'),
+        congregationId,
+        actorId,
+        {
+          publisherId,
+          notes,
+          type,
+          startDate: new Date(startDateText),
+          lateDate: hasLateDate ? new Date(lateDateText) : undefined,
+          endDate: hasEndDate ? new Date(endDateText) : undefined,
+        },
+      )
 
-    return redirect(hasEndDate ? '/territories/attributions' : `/territories/attributions/${attribution.id}/edit`)
+      return redirect(hasEndDate ? '/territories/attributions' : `/territories/attributions/${attribution.id}/edit`)
+    } catch (err) {
+      if (err instanceof ConflictError && err.message === 'attribution_overlap') {
+        return data(submission.reply({ formErrors: [m.attributions_overlap_error()] }), { status: 409 })
+      }
+      throw err
+    }
   })
 }

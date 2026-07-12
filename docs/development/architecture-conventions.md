@@ -243,11 +243,13 @@ One service function per file, named for the action it performs:
 server/
 ├── create-member.server.ts
 ├── update-member.server.ts
-├── set-member-left.server.ts
-└── toggle-publisher-status.server.ts
+├── link-account-to-member.server.ts
+└── evaluate-inactive-status.server.ts
 ```
 
-The verb-noun pattern makes service functions discoverable by file name alone. An agent asked "where is the code that marks a member as left?" finds `set-member-left.server.ts` without reading any contents.
+The verb-noun pattern makes service functions discoverable by file name alone. An agent asked "where is the code that links a user account to a member?" finds `link-account-to-member.server.ts` without reading any contents.
+
+Aggregate-owned mutations (see [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature)) live inside `<entity>.aggregate.ts` — one file per aggregate, action verbs as exported functions (`setLifecycle`, `updateIdentity`). The verb-noun-per-file rule doesn't apply *inside* the aggregate; the file itself is the unit.
 
 **Grab-bag (grandfathered, not for new files)**
 

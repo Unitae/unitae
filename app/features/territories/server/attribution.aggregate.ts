@@ -19,6 +19,13 @@ const DEFAULT_DURATION_DAYS = {
  * Two attribution intervals overlap iff each starts on or before the other
  * ends. A null endDate represents "still active" (treated as +∞).
  *
+ * Endpoint-inclusive: intervals that only touch at a single endpoint
+ * (`a.endDate === b.startDate`) count as overlapping — the `>=` comparison
+ * treats a shared day as a conflict. Rationale: an attribution is considered
+ * open for the whole of its endDate day, so a new one starting the same day
+ * would run alongside it. Callers who need "next-day pickup" semantics must
+ * add a day to the returning attribution's endDate before comparing.
+ *
  * Pure predicate — exported for unit testing. The DB-side query in
  * `_assertNoActiveOverlap` uses the same semantics.
  */

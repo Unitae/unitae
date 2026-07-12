@@ -1651,6 +1651,7 @@
     "attributions_edit_late_date_label": "Due by:",
     "attributions_edit_return_submit": "Return territory",
     "attributions_edit_save_submit": "Save assignment",
+    "attributions_overlap_error": "This publisher already has an active attribution on this territory for that period.",
     "attributions_delete_card_title": "Cancel assignment",
     "attributions_delete_confirm_message": "Are you sure you want to cancel the assignment of {name}? This action cannot be undone.",
     "attributions_delete_submit": "Cancel assignment of territory {number}",

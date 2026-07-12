@@ -147,6 +147,53 @@ describe('attribution.aggregate — integration', () => {
     await testDb.attribution.deleteMany({ where: { id: { in: [a1.id, a2.id] } } })
   })
 
+  it('update throws ConflictError when the new dates would overlap another attribution', async () => {
+    // Two closed attributions for the same publisher/territory in different windows.
+    const first = await withScope(congId, tx =>
+      attributionAggregate.assign(tx, makeAssignParams({ startDate: '2026-01-01' })),
+    )
+    await withScope(congId, tx => attributionAggregate.markReturned(tx, first.id, new Date('2026-01-31'), congId, 1))
+    const second = await withScope(congId, tx =>
+      attributionAggregate.assign(tx, makeAssignParams({ startDate: '2026-03-01' })),
+    )
+    await withScope(congId, tx => attributionAggregate.markReturned(tx, second.id, new Date('2026-03-31'), congId, 1))
+
+    // Try to stretch `second` backwards into `first`'s window.
+    await expect(
+      withScope(congId, tx =>
+        attributionAggregate.update(tx, second.id, congId, 1, {
+          publisherId,
+          notes: '',
+          type: TerritoryAttributionKind.Default,
+          startDate: new Date('2026-01-15'),
+          endDate: new Date('2026-03-31'),
+        }),
+      ),
+    ).rejects.toBeInstanceOf(ConflictError)
+
+    await testDb.attribution.deleteMany({ where: { id: { in: [first.id, second.id] } } })
+  })
+
+  it('update allows a row to shift its own window (excludeId skips self-conflict)', async () => {
+    const attr = await withScope(congId, tx =>
+      attributionAggregate.assign(tx, makeAssignParams({ startDate: '2026-01-01' })),
+    )
+
+    // Shift start forward without overlapping anything else — must not self-conflict.
+    const updated = await withScope(congId, tx =>
+      attributionAggregate.update(tx, attr.id, congId, 1, {
+        publisherId,
+        notes: 'shifted',
+        type: TerritoryAttributionKind.Default,
+        startDate: new Date('2026-02-01'),
+      }),
+    )
+    expect(updated.startDate).toEqual(new Date('2026-02-01'))
+    expect(updated.notes).toBe('shifted')
+
+    await testDb.attribution.delete({ where: { id: attr.id } })
+  })
+
   it('archive hard-deletes the row and audits AttributionDeleted', async () => {
     const attr = await withScope(congId, tx => attributionAggregate.assign(tx, makeAssignParams()))
     auditMock.mockClear()
