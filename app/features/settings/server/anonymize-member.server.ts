@@ -1,26 +1,17 @@
-import { memberAggregate } from '~/features/publishers'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
+import { anonymizeMemberWorkflow } from './anonymize-member.workflow'
 
 /**
- * Anonymize a Member: scrub PII, clear identity flags, stamp `anonymizedAt`,
- * and close any open attribution.
- *
- * Wave 5 delegator. Member-side invariants (PII scrub, identity flag reset,
- * role-assignment recompute, deletion record, audit) live in
- * `member.aggregate.anonymize`. The attribution close stays here until Wave 5
- * commit 2 introduces the Attribution aggregate + `anonymize-member.workflow`.
+ * Anonymize a Member. Thin delegator; the cross-aggregate orchestration
+ * (Attribution close + Member PII scrub) lives in
+ * `anonymize-member.workflow.ts`.
  */
-export async function anonymizeMember(
+export function anonymizeMember(
   db: TransactionClient,
   memberId: MemberId,
   congregationId: number,
   actorId: number,
 ): Promise<void> {
-  await memberAggregate.anonymize(db, memberId, congregationId, actorId)
-
-  await db.attribution.updateMany({
-    where: { publisherId: memberId, endDate: null },
-    data: { endDate: new Date() },
-  })
+  return anonymizeMemberWorkflow(db, memberId, congregationId, actorId)
 }

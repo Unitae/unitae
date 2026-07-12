@@ -13,6 +13,7 @@ export {
 export type { EntranceKind } from './model/entrance-kind.type'
 export type { TerritoryAttributionKind } from './model/territory-attribution-kind.type'
 export { TerritoryKind } from './model/territory-kind.type'
+export * as attributionAggregate from './server/attribution.aggregate'
 export { findActiveAttributionsForPublisher } from './server/attributions.server'
 export {
   createCardOverlay,
