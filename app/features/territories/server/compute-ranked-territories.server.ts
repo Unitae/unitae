@@ -1,6 +1,7 @@
 import type { StatsAttribution } from './stats-attribution.type'
 
 interface RankedTerritory {
+  id: number
   number: string
   count: number
 }
@@ -15,20 +16,25 @@ export function computeRankedTerritories(attributions: StatsAttribution[]): Rank
     return { most: null, least: null }
   }
 
-  const countByTerritory = new Map<string, number>()
+  const byTerritory = new Map<number, { id: number; number: string; count: number }>()
   for (const a of attributions) {
-    countByTerritory.set(a.territoryNumber, (countByTerritory.get(a.territoryNumber) ?? 0) + 1)
+    const existing = byTerritory.get(a.territoryId)
+    if (existing == null) {
+      byTerritory.set(a.territoryId, { id: a.territoryId, number: a.territoryNumber, count: 1 })
+    } else {
+      existing.count += 1
+    }
   }
 
   let most: RankedTerritory | null = null
   let least: RankedTerritory | null = null
 
-  for (const [number, count] of countByTerritory) {
-    if (most == null || count > most.count) {
-      most = { number, count }
+  for (const territory of byTerritory.values()) {
+    if (most == null || territory.count > most.count) {
+      most = territory
     }
-    if (least == null || count < least.count) {
-      least = { number, count }
+    if (least == null || territory.count < least.count) {
+      least = territory
     }
   }
 

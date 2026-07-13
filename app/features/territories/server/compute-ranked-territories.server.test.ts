@@ -26,8 +26,8 @@ describe('computeRankedTerritories', () => {
 
   it('retourne le même territoire pour most et least avec une seule attribution', () => {
     const result = computeRankedTerritories([makeAttribution()])
-    expect(result.most).toEqual({ number: 'T-1', count: 1 })
-    expect(result.least).toEqual({ number: 'T-1', count: 1 })
+    expect(result.most).toEqual({ id: 1, number: 'T-1', count: 1 })
+    expect(result.least).toEqual({ id: 1, number: 'T-1', count: 1 })
   })
 
   it('identifie le territoire le plus et le moins travaillé', () => {
@@ -41,7 +41,7 @@ describe('computeRankedTerritories', () => {
     ]
 
     const result = computeRankedTerritories(attributions)
-    expect(result.most).toEqual({ number: 'T-1', count: 3 })
-    expect(result.least).toEqual({ number: 'T-2', count: 1 })
+    expect(result.most).toEqual({ id: 1, number: 'T-1', count: 3 })
+    expect(result.least).toEqual({ id: 2, number: 'T-2', count: 1 })
   })
 })
