@@ -78,7 +78,6 @@ export const EXEMPT_FILES = new Set<string>([
   'app/features/display-board/server/document-versions.server.ts',
   'app/features/display-board/server/thumbnail.server.ts',
   'app/features/notifications/server/notification-types.server.ts',
-  'app/features/publishers/server/groups.server.ts',
   'app/features/settings/server/anonymize-account.server.ts',
   'app/features/settings/server/anonymize-member.server.ts',
   'app/features/settings/server/anonymize-member.workflow.ts',
