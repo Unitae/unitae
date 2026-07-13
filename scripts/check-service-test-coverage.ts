@@ -92,10 +92,6 @@ export const EXEMPT_FILES = new Set<string>([
   'app/features/settings/server/audit-log.server.ts',
   'app/features/settings/server/link-member-to-account.server.ts',
   'app/features/settings/server/load-territory-settings.server.ts',
-  'app/features/territories/server/attribution-date-overlap.server.ts',
-  'app/features/territories/server/fetch-open-data.server.ts',
-  'app/features/territories/server/s13-export.server.ts',
-  'app/features/territories/server/settings.server.ts',
 ])
 
 export type Classification =
