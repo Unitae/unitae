@@ -15,7 +15,7 @@ This document is **part target state, part current rule**. The migration is trac
 | 4 | Split mega-files | ✅ landed |
 | 5 | Three aggregates + CQRS-lite lint enforcement | ✅ landed |
 | 6 | Constants files + `any` triage + client/server barrel split | ✅ landed |
-| 7 | TDD rollout + coverage backfill | ⏳ pending |
+| 7 | TDD rollout + coverage backfill + colocation check | ✅ landed |
 | 8 | Stress-case fixes (locale, name/phone validation, anonymization) | ⏳ pending |
 | 9 | Delivery-metrics script | ⏳ pending |
 
@@ -345,6 +345,24 @@ Test-Driven Development applies to **two situations**, not the whole codebase:
 ### Test style
 
 Black-box: assert on what a function returns or throws. Don't assert on internal call counts unless that delegation *is* the contract (e.g., "ensures `congregationId` is passed to the DB query"). See [Coding Conventions › Testing](coding-conventions.md#testing). For aggregate test examples, see [Aggregate Doctrine › Aggregate testing](#aggregate-testing).
+
+### Enforcement (Wave 7)
+
+Two independent guards run in CI + `lefthook pre-push`:
+
+- **Colocation check** — `pnpm test:service-test-coverage` (`scripts/check-service-test-coverage.ts`). Fails when a service file (`*.server.ts` / `*.aggregate.ts` / `*.workflow.ts` / `*.queries.ts` / `*.policy.ts`) under `app/features/` has no adjacent `*.test.ts` or `*.integration.test.ts`. New files added after Wave 7 do **not** get grandfathered — either add a test or add the path to `EXEMPT_FILES` with a one-line justification.
+- **Coverage threshold** — `pnpm test:unit:coverage` (Vitest v8 coverage). Configured in `vitest.config.ts` under `coverage.thresholds`. The threshold is set below the Wave 7 baseline (55% lines/branches/statements, 60% functions) so backfill work can land safely; future waves may ratchet it upward.
+
+Colocation catches "no test at all"; the threshold catches "weak test that exercises only 20% of the file". Two guards, independent signal.
+
+### For AI-agent contributors
+
+The rules above are unchanged from the human contract. They are written down here explicitly so agents don't optimise past the fail-observation step:
+
+- When you add a new service function under `app/features/*/server/`, **write the test first**. Run it. Watch it fail (module not found, missing export, or wrong return). *Then* write the implementation. Never author test + code in the same file save.
+- When you fix a bug, **write a failing test that reproduces the bug first**. Run it. Watch it fail with the observable symptom. *Then* fix the source. The test stays as a regression guard.
+- Neither step ("write test", "watch fail") is optional. Skipping the fail-observation makes the test worthless as a change signal.
+- If the TDD rules don't apply (route glue, migration, script, one-line constant), say so in the PR body when creating the file. Don't add it to `EXEMPT_FILES` without a written justification adjacent to the entry.
 
 ## Pre-commit Contract
 

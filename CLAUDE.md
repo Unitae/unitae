@@ -36,6 +36,7 @@ Core features: territory management with building prospection, publisher activit
 8. **Black-box testing** — Assert on observable outcomes; never spy on implementations
 9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
 10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `ProgrammeAssignment` invariants live in `*.aggregate.ts` / `*.policy.ts` files. Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
+11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
 
 ### After Making Changes
 
@@ -43,6 +44,12 @@ Run the complete quality check:
 
 ```bash
 pnpm test:unit && pnpm test:lint && pnpm test:typecheck
+```
+
+New service files must have a co-located test — verify with:
+
+```bash
+pnpm test:service-test-coverage
 ```
 
 For integration tests (require a live database):
