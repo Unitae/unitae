@@ -1,36 +1,9 @@
 import type { NotificationTypeConfig } from '../model/notification-event.type'
+import { NOTIFICATION_REGISTRY } from './registry.server'
 
-// All notification types — notify() reads this to decide the routing path.
-// debounceMinutes > 0 → PostgreSQL buffer, debounceMinutes === 0 → straight to BullMQ.
-// Types with `cancels` cancel pending events; if nothing to cancel, send `fallback`.
-export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
-  // Board document — migrated from existing direct emailQueue.add()
-  'board.document.created': {
-    debounceMinutes: 10,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'board.document.updated': {
-    debounceMinutes: 10,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'board.document.deleted': {
-    cancels: ['board.document.created', 'board.document.updated'],
-    fallback: {
-      debounceMinutes: 0,
-      recipientStrategy: 'role',
-      recipientRole: 'board-validator',
-    },
-  },
-  'board.document.expiring': {
-    debounceMinutes: 0,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-
-  'territory.sync.completed': {
-    debounceMinutes: 0,
-    recipientStrategy: 'entity-user',
-  },
-}
+// Derived from the registry. Each definition's `routing` field is the same
+// shape callers used to write into a hand-maintained map — the pipeline reads
+// this to decide debounce/cancellation behavior.
+export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = Object.fromEntries(
+  [...NOTIFICATION_REGISTRY].map(([type, def]) => [type, def.routing]),
+)

@@ -1,8 +1,10 @@
-// Contract test: every entry in NOTIFICATION_TYPES must have a renderer that
-// produces a non-null React element for a valid payload. Adding a type to the
-// registry without wiring its render case fails silently at runtime (missing
-// template just logs a warning and drops the email). This test catches that
-// at CI time.
+// Contract test: every definition registered in NOTIFICATION_REGISTRY must
+// ship an `example` payload that (a) satisfies its own Zod schema and (b)
+// produces a non-null React element when passed through renderNotificationEmail.
+//
+// Under the plugin registry, the example lives on the definition itself — so
+// this test just iterates the registry and asserts the two invariants. Adding
+// a new definition to a consumer feature is automatically covered.
 
 import { describe, expect, it, vi } from 'vitest'
 
@@ -15,7 +17,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
 }))
 
 const { renderNotificationEmail } = await import('./render-notification-email.server')
-const { NOTIFICATION_TYPES } = await import('./notification-types.server')
+const { NOTIFICATION_REGISTRY } = await import('./registry.server')
 
 const RECIPIENT = { email: 'r@test.org', firstname: 'Test' }
 const CONGREGATION = {
@@ -26,30 +28,18 @@ const CONGREGATION = {
   locale: 'en',
 }
 
-// Fixture payload per notification type. Every key in NOTIFICATION_TYPES must
-// appear here — the test below enforces that.
-const VALID_PAYLOADS: Record<string, unknown> = {
-  'board.document.created': { title: 'Doc', documentId: 42 },
-  'board.document.updated': { title: 'Doc', documentId: 42 },
-  'board.document.deleted': { title: 'Doc' },
-  'board.document.expiring': { documents: [{ id: 1, title: 'Doc' }] },
-  'territory.sync.completed': {},
-}
-
 describe('renderNotificationEmail contract', () => {
-  it('has a fixture for every registered notification type', () => {
-    const registered = Object.keys(NOTIFICATION_TYPES).sort()
-    const fixtured = Object.keys(VALID_PAYLOADS).sort()
-    expect(fixtured).toEqual(registered)
-  })
+  for (const [type, def] of NOTIFICATION_REGISTRY) {
+    describe(type, () => {
+      it('example payload satisfies its own schema', () => {
+        expect(def.payload.safeParse(def.example).success).toBe(true)
+      })
 
-  for (const type of Object.keys(NOTIFICATION_TYPES)) {
-    it(`renders a non-null template for ${type}`, () => {
-      const payload = VALID_PAYLOADS[type]
-      const result = renderNotificationEmail(type, payload, RECIPIENT, CONGREGATION as never)
-
-      expect(result.react).not.toBeNull()
-      expect(result.subject).toBeTruthy()
+      it('renders a non-null React element with a non-empty subject', () => {
+        const result = renderNotificationEmail(type, def.example, RECIPIENT, CONGREGATION as never)
+        expect(result.react).not.toBeNull()
+        expect(result.subject).toBeTruthy()
+      })
     })
   }
 })

@@ -6,24 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Switch } from '~/shared/ui/switch'
-import { NOTIFICATION_CATEGORIES } from '../model/notification-preference.type'
 import { togglePreferenceSchema } from '../schemas/preference.schema'
+import { derivePreferenceCategories } from '../server/preference-categories.server'
 import { getUserPreferences, togglePreference } from '../server/preferences.server'
 
 import type { Route } from './+types/preferences'
-
-const CATEGORY_LABELS: Record<string, () => string> = {
-  board: () => m.notification_category_board(),
-  territory: () => m.notification_category_territory(),
-}
-
-const TYPE_LABELS: Record<string, () => string> = {
-  'board.document.created': () => m.notification_board_document_created(),
-  'board.document.updated': () => m.notification_board_document_updated(),
-  'board.document.deleted': () => m.notification_board_document_deleted(),
-  'board.document.expiring': () => m.notification_board_document_expiring(),
-  'territory.sync.completed': () => m.notification_territory_sync_completed(),
-}
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: `${m.notification_preferences_page_title()} - Unitae` }]
@@ -34,7 +21,8 @@ export function loader({ context }: Route.LoaderArgs) {
 
   return withScopeFromContext(context, async db => {
     const preferences = await getUserPreferences(db, currentUser.id)
-    return { preferences }
+    const categories = derivePreferenceCategories()
+    return { preferences, categories }
   })
 }
 
@@ -56,7 +44,7 @@ export async function action({ request, context }: Route.ActionArgs) {
 }
 
 export default function NotificationPreferencesPage({ loaderData }: Route.ComponentProps) {
-  const { preferences } = loaderData
+  const { preferences, categories } = loaderData
 
   // Build a map of disabled types for quick lookup
   const disabledTypes = new Set(preferences.filter(p => !p.enabled).map(p => p.notificationType))
@@ -73,10 +61,10 @@ export default function NotificationPreferencesPage({ loaderData }: Route.Compon
         backTo="/me/profile"
       />
 
-      {NOTIFICATION_CATEGORIES.map(category => (
+      {categories.map(category => (
         <Card key={category.key}>
           <CardHeader>
-            <CardTitle>{CATEGORY_LABELS[category.key]?.() ?? category.key}</CardTitle>
+            <CardTitle>{category.label}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="divide-y">
@@ -84,7 +72,7 @@ export default function NotificationPreferencesPage({ loaderData }: Route.Compon
                 <PreferenceToggle
                   key={typeInfo.type}
                   notificationType={typeInfo.type}
-                  label={TYPE_LABELS[typeInfo.type]?.() ?? typeInfo.type}
+                  label={typeInfo.label}
                   enabled={!disabledTypes.has(typeInfo.type) && !disabledTypes.has(`${category.key}.*`)}
                   critical={typeInfo.critical}
                 />

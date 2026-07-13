@@ -4,13 +4,28 @@
 
 Unitae has an event-driven notification system with debouncing, cancellation, and role-based recipient resolution. Notifications are triggered by business logic, buffered in PostgreSQL, and delivered as emails via the BullMQ email queue.
 
+**Feature-owned definitions.** Each notification type is declared by the *feature that owns the domain event* — territories owns `territory.sync.completed`, display-board owns `board.document.*`, and so on. The notifications feature is a pipeline: it aggregates definitions into a central registry, handles debounce/cancellation/preferences, and delivers emails. It does not know about any specific notification's payload or template.
+
 ## Architecture
 
 ```
+                       ┌─── ~/features/territories/server/notifications.server.tsx
+                       │      (defineNotificationType({...}))
+                       │
+                       ├─── ~/features/display-board/server/notifications.server.tsx
+                       │      (defineNotificationType({...}))
+                       │
+                       ▼
+        NOTIFICATION_REGISTRY  (~/features/notifications/server/registry.server.ts)
+                │
+                ├──▶ NOTIFICATION_TYPES   (routing config, derived)
+                ├──▶ renderNotificationEmail(type, ...) (lookup + delegate)
+                └──▶ derivePreferenceCategories() (UI grouping)
+
 notify(db, params)
        │
        ▼
- NOTIFICATION_TYPES[type]
+ NOTIFICATION_REGISTRY.get(type).routing
        │
        ├── Cancellation type ──▶ Cancel pending events (or send fallback)
        ├── Debounced (>0 min) ─▶ Store in PostgreSQL (NotificationEvent)
@@ -34,69 +49,38 @@ notify(db, params)
 
 ## Files
 
+### Pipeline (notifications feature — infrastructure)
+
 | File | Purpose |
 |------|---------|
-| `app/features/notifications/server/notification-types.server.ts` | Registry of all notification type configs |
-| `app/features/notifications/server/notify.server.ts` | Entry point — routes notification based on config |
+| `app/features/notifications/model/notification-definition.ts` | `NotificationTypeDefinition<T>` interface + `defineNotificationType` helper |
+| `app/features/notifications/server/registry.server.ts` | Central registry — one-line-per-feature aggregation |
+| `app/features/notifications/server/notification-types.server.ts` | Derived routing config map |
+| `app/features/notifications/server/notify.server.ts` | `notify()` entry point |
 | `app/features/notifications/server/flush-settled.server.ts` | Cron batch processor for debounced events |
 | `app/features/notifications/server/resolve-recipients.server.ts` | Role-based recipient lookup + preference filtering |
 | `app/features/notifications/server/preferences.server.ts` | User opt-in/opt-out management |
-| `app/features/notifications/server/handle-notification-email.server.tsx` | Email rendering and sending (digest + instant) |
+| `app/features/notifications/server/preference-categories.server.ts` | Derives preferences UI shape from the registry |
+| `app/features/notifications/server/render-notification-email.server.tsx` | Registry lookup + delegates to `def.renderEmail` |
+| `app/features/notifications/server/handle-notification-email.server.ts` | Digest/instant worker plumbing |
 | `app/features/notifications/server/cleanup.server.ts` | Cleanup of old notification events |
 | `app/features/notifications/routes/preferences.tsx` | Preference toggle UI |
 
-## Notification Type Registry
+### Definitions (consumer features — one file each)
 
-All notification types are defined in `notification-types.server.ts`:
+| File | Types owned |
+|------|-------------|
+| `app/features/display-board/server/notifications.server.tsx` | `board.document.{created,updated,deleted,expiring}` |
+| `app/features/territories/server/notifications.server.tsx` | `territory.sync.completed` |
 
-```typescript
-export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
-  'board.document.created': {
-    debounceMinutes: 10,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'board.document.updated': {
-    debounceMinutes: 10,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'board.document.deleted': {
-    cancels: ['board.document.created', 'board.document.updated'],
-    fallback: { debounceMinutes: 0, recipientStrategy: 'role', recipientRole: 'board-validator' },
-  },
-  'board.document.expiring': {
-    debounceMinutes: 0,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'territory.sync.completed': {
-    debounceMinutes: 0,
-    recipientStrategy: 'entity-user',
-  },
-}
-```
-
-For the `entity-user` strategy, callers pass `recipientId` directly to `notify()` — the config's `recipientStrategy` field is documentation for now; the dispatcher branches on which field (`recipientId` or `recipientRole`) is set.
-
-Each type has:
-
-- **`debounceMinutes`** — How long to buffer before sending. `0` = instant.
-- **`recipientStrategy`** — How to find recipients (currently only `'role'`).
-- **`recipientRole`** — The **permission key** to query for recipients (name is historical). `resolveRecipients` unions all three permission sources: direct grants (`CongregationUserPermission`), account-scoped custom roles (`UserRoleAssignment` → `Role` → `RolePermission`), and identity roles on the linked Member (`MemberRoleAssignment` → `Role` → `RolePermission`). See `findAccountsWithPermission` in `app/shared/auth/permissions.server.ts`.
-- **`cancels`** (optional) — List of notification types this one supersedes. If pending events exist for those types + same entity, they are cancelled instead of sending a new email.
-- **`fallback`** (optional) — Config to use if no pending events were found to cancel.
-
-### Type naming convention
-
-Types use dot-notation: `{category}.{entity}.{action}` (e.g., `board.document.created`). The first segment (`board`) is used as the category for wildcard preferences.
+Templates live alongside definitions under `app/features/<feature>/emails/`.
 
 ## Triggering Notifications
 
 Call `notify()` from service functions after a business operation:
 
 ```typescript
-import { notify } from '~/features/notifications/server/notify.server'
+import { notify } from '~/features/notifications/index.server'
 
 await notify(db, {
   type: 'board.document.created',
@@ -108,16 +92,14 @@ await notify(db, {
 })
 ```
 
-Parameters:
-
 | Field | Description |
 |-------|-------------|
-| `type` | Must exist in `NOTIFICATION_TYPES` |
-| `entityType` | Prisma model name (for grouping) |
+| `type` | Must exist in `NOTIFICATION_REGISTRY` |
+| `entityType` | Prisma model name (for grouping / debounceKey) |
 | `entityId` | Resource ID |
 | `congregationId` | Tenant ID |
 | `actorId` | User who triggered the event (optional) |
-| `payload` | Event-specific data, serialized to JSON (optional) |
+| `payload` | Event-specific data, serialized to JSON (optional) — must match the definition's Zod schema |
 
 The function is fire-and-forget — failures are logged but never block the calling operation.
 
@@ -145,7 +127,7 @@ Cancellation types (e.g., `board.document.deleted`) attempt to cancel pending de
 1. Queries active accounts in the congregation that hold the configured permission via any of the three sources (direct `CongregationUserPermission`, account-scoped `UserRoleAssignment` → role permissions, or identity-scoped `MemberRoleAssignment` on the linked Member → role permissions). Uses `findAccountsWithPermission`, which builds the three-branch OR filter.
 2. Loads `NotificationPreference` records for those accounts.
 3. Filters out accounts that have disabled this notification type (exact match or wildcard `category.*`).
-4. Resolves the display firstname per account (prefers linked Member's firstname over UserAccount's) via `resolveDisplayFirstname`.
+4. Resolves the display firstname per account (prefers linked Member's firstname over UserAccount's) via `displayFirstname`.
 5. Returns the filtered list of recipients.
 
 Members without an account are not addressable as notification recipients (no email, no preferences); the resolver naturally skips them.
@@ -154,38 +136,115 @@ Members without an account are not addressable as notification recipients (no em
 
 Users manage their preferences at `/notifications/preferences`. Preferences are stored in the `NotificationPreference` model with a compound key of `userId + notificationType + congregationId`.
 
+The preferences UI shape is derived from `NOTIFICATION_REGISTRY` at loader time — `derivePreferenceCategories()` groups definitions by `category.key` and resolves the Paraglide label accessors. Adding a new type appears automatically.
+
 Wildcard preferences (e.g., `board.*`) disable all notifications in a category.
 
 ## Adding a New Notification Type
 
-1. **Register the type** in `notification-types.server.ts`:
-   ```typescript
-   'territories.sync.completed': {
-     debounceMinutes: 0,
-     recipientStrategy: 'role',
-     recipientRole: 'territories-manager',
-   },
-   ```
+Your feature owns the notification. All work lives in your feature except a single import line.
 
-2. **Create an email template** under the relevant feature's `emails/` directory (see [Email Templates](email-templates.md))
+### 1. Create the React Email template
 
-3. **Add the rendering case** in `handle-notification-email.server.tsx`:
-   ```typescript
-   case 'territories.sync.completed':
-     return {
-       subject: m.email_sync_completed_subject(),
-       react: <SyncCompleted {...props} />,
-     }
-   ```
+`app/features/<feature>/emails/<name>.tsx` — a React Email component with default props for the dev preview.
 
-4. **Add i18n messages** for the subject and template content in `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`
+### 2. Add i18n keys
 
-5. **Call `notify()`** from the relevant service function
+Add subject, body, category-label, and toggle-label keys to `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`. Paraglide's typed accessors catch missing keys at compile time.
 
-6. **Update the preferences UI** if the new type should appear in user preference settings
+### 3. Author the definition
+
+`app/features/<feature>/server/notifications.server.tsx`:
+
+```tsx
+import { defineNotificationType, type NotificationTypeDefinition } from '~/features/notifications'
+import * as m from '~/i18n/paraglide/messages'
+import { z } from 'zod'
+import MyTemplate from '../emails/my-template'
+
+const myTypeDef = defineNotificationType({
+  type: 'myfeature.myentity.myaction',
+  category: { key: 'myfeature', label: () => m.notification_category_myfeature() },
+  label: () => m.notification_myfeature_myaction(),
+  routing: {
+    debounceMinutes: 0,
+    recipientStrategy: 'role',
+    recipientRole: 'my-permission-key',
+  },
+  payload: z.object({
+    someId: z.number().int().positive(),
+    someName: z.string(),
+  }),
+  subject: (payload) => m.email_my_subject({ name: payload.someName }),
+  renderEmail: ({ payload, recipient, congregation }) => (
+    <MyTemplate
+      email={recipient.email}
+      firstname={recipient.firstname ?? undefined}
+      name={payload.someName}
+      deepLinkUrl={`${congregation.baseUrl}/myfeature/${payload.someId}`}
+      platformName={congregation.displayName}
+    />
+  ),
+  example: { someId: 1, someName: 'Sample' },
+})
+
+export const myfeatureNotifications: NotificationTypeDefinition<unknown>[] = [
+  myTypeDef,
+] as NotificationTypeDefinition<unknown>[]
+```
+
+The generic `T` flows from the Zod schema into `subject`, `renderEmail`, and `example`. Rename a payload field and TypeScript reports the mismatch at every use site.
+
+### 4. Colocate a test
+
+`app/features/<feature>/server/notifications.server.test.ts` — assert every definition's example parses and renders. See existing tests in `territories/` or `display-board/` for the shape. Required by `check-service-test-coverage`.
+
+### 5. Re-export via your server barrel
+
+`app/features/<feature>/index.server.ts`:
+
+```typescript
+export { myfeatureNotifications } from './server/notifications.server'
+```
+
+### 6. Register in the central aggregation
+
+`app/features/notifications/server/registry.server.ts` — one import + one spread:
+
+```typescript
+import { myfeatureNotifications } from '~/features/<feature>/index.server'
+
+const definitions: NotificationTypeDefinition<unknown>[] = [
+  ...boardNotifications,
+  ...territoryNotifications,
+  ...myfeatureNotifications,   // ← added
+]
+```
+
+### 7. Call `notify()` from your service function
+
+```typescript
+await notify(db, {
+  type: 'myfeature.myentity.myaction',
+  entityType: 'MyEntity',
+  entityId: entity.id,
+  congregationId,
+  actorId: currentUser.id,
+  payload: { someId: entity.id, someName: entity.name },
+})
+```
+
+Done. The preferences UI toggle, the routing config, the render dispatch, and the contract test all pick up the new type from the registry — no other central files need editing.
+
+## Anti-patterns
+
+- **Do not** put email templates in `notifications/emails/`. Templates live with the domain that owns the event.
+- **Do not** hand-edit `notification-types.server.ts` or `notification-preference.type.ts`. Both are derived from the registry.
+- **Do not** use side-effect registration (`import for effect; register()`). Module load order is unreliable; the explicit registry import list stays auditable and testable.
+- **Do not** call `notify()` from a route action. Wrap it in a service function, same rule as `audit()`.
 
 ## Related
 
 - [Background Processing](background-processing.md) — Email queue architecture
-- [Email Templates](email-templates.md) — How to create email templates
+- [Email Templates](email-templates.md) — How to create email templates (React Email + Resend)
 - [Cron Jobs](../self-hosting/cron-jobs.md) — `/cron/process-notifications` schedule
