@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'

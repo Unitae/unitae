@@ -54,10 +54,16 @@ export default [
               allow: { to: { type: 'features', captured: { feature: '{{from.captured.feature}}' } } },
               dependency: { kind: 'value' },
             },
-            // Any feature can import another feature's top-level `index.ts`.
+            // Any feature can import another feature's top-level barrels:
+            // `index.ts` (client-safe) and `index.server.ts` (server-only).
             {
               from: { type: 'features' },
               allow: { to: { type: 'features', path: 'app/features/*/index.{ts,tsx}' } },
+              dependency: { kind: 'value' },
+            },
+            {
+              from: { type: 'features' },
+              allow: { to: { type: 'features', path: 'app/features/*/index.server.{ts,tsx}' } },
               dependency: { kind: 'value' },
             },
             // Dashboard is the documented cross-feature aggregator.

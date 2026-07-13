@@ -1,4 +1,4 @@
-import { createPasswordResetToken } from '~/features/authentication'
+import { createPasswordResetToken } from '~/features/authentication/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'

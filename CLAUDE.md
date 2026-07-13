@@ -22,14 +22,14 @@ Core features: territory management with building prospection, publisher activit
 
 1. **ALWAYS read files before modifying** — Never propose changes to code you haven't seen
 2. **Follow feature-based architecture strictly**:
-   - Public boundary → `features/*/index.ts` (re-exports the feature's public surface; *target* — being rolled out)
+   - Public boundary → `features/*/index.ts` (client-safe re-exports: types, UI, model helpers, schemas) + `features/*/index.server.ts` (server-only re-exports: services, aggregates, queries, workflows). Split enforced by `pnpm test:server-barrel-exports`.
    - Business logic → `features/*/server/*.server.ts` (writes in `*.aggregate.ts`, reads in queries files — see [CQRS-lite](docs/development/architecture-conventions.md#cqrs-lite-readwrite-split-within-a-feature))
    - Route handlers → `features/*/routes/*.tsx`
    - Feature-specific UI → `features/*/ui/`
    - Type definitions → `features/*/model/*.type.ts`
    - Form schemas → `features/*/schemas/*.schema.ts`
 3. **Zero inline DB writes in routes** — `db.*.create()`, `db.*.update()`, `db.*.delete()` calls belong in service functions, never in route loaders or actions
-4. **Cross-feature imports only via `index.ts`** (*target*) — Never deep-import into another feature's `server/`. The only exemption is `features/dashboard/`, the documented cross-feature aggregator. See [Architecture Conventions](docs/development/architecture-conventions.md#feature-boundary-rule).
+4. **Cross-feature imports only via the two barrels** — `~/features/X` for client-safe things (types, UI, model helpers); `~/features/X/index.server` for server functions. Never deep-import into another feature's `server/`, `ui/`, or `model/`. The only exemption is `features/dashboard/`, the documented cross-feature aggregator. See [Architecture Conventions](docs/development/architecture-conventions.md#feature-boundary-rule).
 5. **Always use `withScopeFromContext`** — Every authenticated route that touches the DB must wrap its logic in `withScopeFromContext(context, async db => { ... })`
 6. **Thread `actorId`** — Every service function that writes data must accept `actorId: number` and call `audit()` after the write
 7. **No `throw redirect()` in service functions** — Redirects are only allowed in route guards, middleware, and session validation
@@ -333,7 +333,7 @@ await createTerritory(db, ...)
 - ❌ **Don't write `db.*.create/update/delete` in route files** — Zero inline DB writes in routes
 - ❌ **Don't bypass aggregates** — `db.member.update`, `db.attribution.create`, etc. outside their respective `*.aggregate.ts` files fails `pnpm test:aggregate-boundaries`. Call the aggregate's exported function instead. Allowlist: `import-*.server.ts` orchestrators, `*.test.*` files, and `app/tests/` infra.
 - ❌ **Don't mix reads and writes in one file** — `*.aggregate.ts` files do not export `findMany`/`count`/`aggregate` helpers (single-row `findFirst`/`findUnique` are fine for preconditions); query files do not call `create`/`update`/`delete`. See [CQRS-lite](docs/development/architecture-conventions.md#cqrs-lite-readwrite-split-within-a-feature).
-- ❌ **Don't deep-import another feature** — Import from `~/features/X` (the `index.ts`), not `~/features/X/server/...` or `~/features/X/ui/...`. Enforced by `pnpm test:boundaries`.
+- ❌ **Don't deep-import another feature** — Import from `~/features/X` (client-safe) or `~/features/X/index.server` (server-only), not `~/features/X/server/...` or `~/features/X/ui/...`. Enforced by `pnpm test:boundaries` + `pnpm test:server-barrel-exports`.
 - ❌ **Don't `throw redirect()` from service functions** — Only in route guards and middleware
 - ❌ **Don't use `findUnique` on compound keys** — `Setting` and `EventKind` have `[key, congregationId]` compound unique; use `findFirst({ where: { key } })` instead
 - ❌ **Don't use `prisma migrate dev` in CI/scripts** — Non-interactive; use `migrate diff` + `migrate deploy`

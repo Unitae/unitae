@@ -1,6 +1,6 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createTemplateSchema } from '~/features/settings/schemas/template.schema'
 import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/i18n/paraglide/messages'

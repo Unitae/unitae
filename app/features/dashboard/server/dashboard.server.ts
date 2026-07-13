@@ -1,5 +1,6 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { EventKind, getNextDaysOffs } from '~/features/events'
+import { EventKind } from '~/features/events'
+import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'

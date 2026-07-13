@@ -33,7 +33,8 @@
         "test:e2e:headed": "playwright test --headed --config app/tests/playwright.config.ts",
         "test:boundaries": "eslint --no-error-on-unmatched-pattern app/features/",
         "test:file-sizes": "tsx scripts/check-file-sizes.ts",
-        "test:aggregate-boundaries": "tsx scripts/check-aggregate-boundaries.ts"
+        "test:aggregate-boundaries": "tsx scripts/check-aggregate-boundaries.ts",
+        "test:server-barrel-exports": "tsx scripts/check-server-barrel-exports.ts"
     },
     "dependencies": {
         "@aws-sdk/client-s3": "^3.1063.0",

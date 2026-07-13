@@ -1,4 +1,4 @@
-import { findUserByCalendarFeedToken, touchCalendarFeedToken } from '~/features/authentication'
+import { findUserByCalendarFeedToken, touchCalendarFeedToken } from '~/features/authentication/index.server'
 import { buildPersonalCalendarIcs } from '~/features/events/server/build-personal-calendar.server'
 import { getPersonalAssignments } from '~/features/events/server/personal-assignments.server'
 import { withScope } from '~/shared/infra/db.server'

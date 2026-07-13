@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 // Intentional cross-feature import: user creation relies on authentication for password reset flow
-import { createPasswordResetToken, sendResetAccountPasswordEmail } from '~/features/authentication'
+import { createPasswordResetToken, sendResetAccountPasswordEmail } from '~/features/authentication/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'

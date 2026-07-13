@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { anonymizeAccount } from '~/features/settings/server/anonymize-account.server'
 import { anonymizeMember } from '~/features/settings/server/anonymize-member.server'
 import {

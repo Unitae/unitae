@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { getTemplates } from '~/features/events/server/programme-templates.server'

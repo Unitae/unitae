@@ -1,7 +1,7 @@
 import { type FileUpload, parseFormData } from '@mjackson/form-data-parser'
 import { Upload } from 'lucide-react'
 import { Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { validateImport } from '~/features/settings/server/import-congregation.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, requirePermission } from '~/shared/auth/route-context.server'

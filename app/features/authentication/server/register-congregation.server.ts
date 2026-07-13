@@ -1,4 +1,4 @@
-import { seedDefaultTemplates } from '~/features/events'
+import { seedDefaultTemplates } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 import { hash } from '~/shared/auth/crypto.server'

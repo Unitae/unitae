@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, redirect, useSearchParams } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import {
   getServiceRoleAssignmentAllowedRoleIds,

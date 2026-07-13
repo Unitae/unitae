@@ -1,4 +1,4 @@
-import { memberAggregate } from '~/features/publishers'
+import { memberAggregate } from '~/features/publishers/index.server'
 import * as m from '~/i18n/paraglide/messages'
 
 import { runLifecycleAction } from './_lifecycle-action.server'

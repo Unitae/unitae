@@ -33,3 +33,5 @@ pre-push:
       run: pnpm test:boundaries
     aggregate-boundaries:
       run: pnpm test:aggregate-boundaries
+    server-barrel-exports:
+      run: pnpm test:server-barrel-exports

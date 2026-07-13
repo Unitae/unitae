@@ -1,5 +1,5 @@
-import { memberAggregate } from '~/features/publishers'
-import { attributionAggregate } from '~/features/territories'
+import { memberAggregate } from '~/features/publishers/index.server'
+import { attributionAggregate } from '~/features/territories/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 

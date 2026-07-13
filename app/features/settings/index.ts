@@ -1,3 +1,4 @@
-// Public surface of the settings feature.
-
-export { getPhoneTerritoryActive } from './server/territory-settings.queries'
+// Public client-safe surface of the settings feature.
+//
+// No client-safe exports today. Server exports live in `./index.server`.
+export {}
