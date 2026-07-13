@@ -356,13 +356,14 @@ await createTerritory(db, ...)
 - **Job handlers** live in `app/features/{feature}/jobs/handle-*-work.server.ts`, not under `server/`. Worker imports them from `app/workers/worker.server.ts`.
 - **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.
 - **Built-in role memberships are auto-synced** from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`). All `Member` mutations go through `app/features/publishers/server/member.aggregate.ts`, which calls `syncBuiltInRoleAssignments` internally — callers never invoke it directly. Route callers use `memberAggregate.setLifecycle('left'|'returned'|'active'|'inactive')`, `togglePublisher`, `updateIdentity`, etc. Identity-role assignments live on `MemberRoleAssignment`; management/custom roles on `UserRoleAssignment` (UserAccount-bound).
+- **Member anonymize preconditions** (Wave 8): `memberAggregate.anonymize` throws `ConflictError` if the member is a `PublisherGroup.responsible` — the FK is required + unique in the schema, so admins must reassign the group's responsibility first. On success it nulls `Member.publisherGroupId` and clears any `PublisherGroup.deputyId` pointing at the member.
 - **Member vs UserAccount FK rule of thumb**: action requires login → `UserAccount`; subject is a person in the congregation → `Member`. See `docs/development/coding-conventions.md` for the full table.
 
 ## Known gaps
 
 - **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users whose permission comes only through a custom `UserRoleAssignment` aren't picked up.
 - **Pre-2.0 archive import**: handled by `migrateLegacyUsersNdjson` in `import-congregation.server.ts` — v1.x archives are split into `members.ndjson` + `user-accounts.ndjson` in memory before the regular import path runs. Placeholder-email accounts (`*.placeholder.unitae.app`) are dropped on the fly.
-- **Automatic anonymization cron**: anonymizing a left member is manual-only today (action available from the admin Users list). A retention cron would auto-anonymize after N months; not yet implemented.
+- **Retention cron** (Wave 8): a daily BullMQ scheduled job (`app/features/settings/jobs/handle-retention-work.server.ts`) auto-anonymizes members whose `leftAt` is older than `DEFAULT_RETENTION_MONTHS` (6). Runs at `RETENTION_CRON_HOUR_UTC` (03:00 UTC). Skips group responsibles with a warning log (they need admin reassignment first — anonymize would throw `ConflictError`). Per-congregation override for the retention window is a future wave.
 
 ## Environment Configuration
 
