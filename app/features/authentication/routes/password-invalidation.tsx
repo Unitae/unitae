@@ -9,6 +9,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
+import { displayFirstname } from '~/shared/utils/display-name'
 import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/password-invalidation'
 
@@ -29,6 +30,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 
   const user = await db.userAccount.findUnique({
     where: { id: requireParamId(params.userId, '/settings/users') },
+    include: { member: { select: { firstname: true } } },
   })
 
   if (user == null) throw redirect('/settings/users')
@@ -39,7 +41,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     user.id,
     <ResetPasswordRequired
       email={user.email}
-      firstname={user.firstname || undefined}
+      firstname={displayFirstname(user) ?? undefined}
       token={token}
       baseUrl={congregation.baseUrl}
       platformName={congregation.displayName}

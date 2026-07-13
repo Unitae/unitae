@@ -14,11 +14,15 @@ import type { Route } from './+types/preferences'
 
 const CATEGORY_LABELS: Record<string, () => string> = {
   board: () => m.notification_category_board(),
+  territory: () => m.notification_category_territory(),
 }
 
 const TYPE_LABELS: Record<string, () => string> = {
   'board.document.created': () => m.notification_board_document_created(),
+  'board.document.updated': () => m.notification_board_document_updated(),
   'board.document.deleted': () => m.notification_board_document_deleted(),
+  'board.document.expiring': () => m.notification_board_document_expiring(),
+  'territory.sync.completed': () => m.notification_territory_sync_completed(),
 }
 
 export const meta: Route.MetaFunction = () => {

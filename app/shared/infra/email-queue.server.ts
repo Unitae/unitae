@@ -22,18 +22,6 @@ export const emailQueue = new Queue(QUEUE_NAMES.email, {
 })
 
 export type EmailJobData =
-  | { type: 'new-document-notification'; congregationId: number; documentId: number }
-  | {
-      type: 'documents-expiring'
-      congregationId: number
-      documents: { id: number; title: string }[]
-      validatorEmail: string
-      validatorFirstname?: string
-      emailFrom: string
-      baseUrl: string
-      displayName: string
-      locale: string
-    }
   | {
       type: 'notification-digest'
       congregationId: number

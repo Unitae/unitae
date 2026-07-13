@@ -87,6 +87,7 @@ export interface AccountWithPermission {
   email: string
   firstname: string | null
   active: boolean
+  member: { firstname: string | null } | null
 }
 
 export async function findAccountsWithPermission(
@@ -96,7 +97,13 @@ export async function findAccountsWithPermission(
 ): Promise<AccountWithPermission[]> {
   return db.userAccount.findMany({
     where: { congregationId, ...accountsWithPermissionFilter(permissionKey) },
-    select: { id: true, email: true, firstname: true, active: true },
+    select: {
+      id: true,
+      email: true,
+      firstname: true,
+      active: true,
+      member: { select: { firstname: true } },
+    },
   })
 }
 

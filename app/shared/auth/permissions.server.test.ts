@@ -164,7 +164,13 @@ describe('findAccountsWithPermission', () => {
           },
         ],
       },
-      select: { id: true, email: true, firstname: true, active: true },
+      select: {
+        id: true,
+        email: true,
+        firstname: true,
+        active: true,
+        member: { select: { firstname: true } },
+      },
     })
   })
 })

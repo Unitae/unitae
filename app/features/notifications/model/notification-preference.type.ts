@@ -18,10 +18,14 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
     labelKey: 'notification_category_board',
     types: [
       { type: 'board.document.created', labelKey: 'notification_board_document_created' },
+      { type: 'board.document.updated', labelKey: 'notification_board_document_updated' },
       { type: 'board.document.deleted', labelKey: 'notification_board_document_deleted' },
+      { type: 'board.document.expiring', labelKey: 'notification_board_document_expiring' },
     ],
   },
-  // Future categories added here by follow-up PRs:
-  // { key: 'territories', labelKey: 'notification_category_territories', types: [...] },
-  // { key: 'events', labelKey: 'notification_category_events', types: [...] },
+  {
+    key: 'territory',
+    labelKey: 'notification_category_territory',
+    types: [{ type: 'territory.sync.completed', labelKey: 'notification_territory_sync_completed' }],
+  },
 ]

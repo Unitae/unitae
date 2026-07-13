@@ -9,6 +9,7 @@ import { commitSession, getSession } from '~/features/authentication/server/sess
 import * as m from '~/i18n/paraglide/messages'
 import { resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb as db } from '~/shared/infra/db.server'
+import { displayFirstname } from '~/shared/utils/display-name'
 
 import type { Route } from './+types/verify-email'
 
@@ -79,7 +80,10 @@ export async function action({ request }: Route.ActionArgs) {
     throw redirect('/login')
   }
 
-  const user = await db.userAccount.findUnique({ where: { id: userId } })
+  const user = await db.userAccount.findUnique({
+    where: { id: userId },
+    include: { member: { select: { firstname: true } } },
+  })
   if (user == null) {
     throw redirect('/login')
   }
@@ -103,7 +107,7 @@ export async function action({ request }: Route.ActionArgs) {
     userId,
     VerifyEmailTemplate({
       email: user.email,
-      firstname: user.firstname ?? undefined,
+      firstname: displayFirstname(user) ?? undefined,
       token,
       baseUrl: congregation.baseUrl,
       platformName: congregation.displayName,

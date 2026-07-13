@@ -7,6 +7,7 @@ import { updateDocumentSchema } from '~/features/display-board/schemas/board-doc
 import { isDocumentOwnedByUploader, updateBoardDocument } from '~/features/display-board/server/board-document.server'
 import { replaceDocumentFile } from '~/features/display-board/server/document.server'
 import { MAX_FILE_SIZE_BYTES, validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
+import { notify } from '~/features/notifications/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -316,6 +317,17 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         headers: {
           'Set-Cookie': await commitSession(session),
         },
+      })
+    }
+
+    if (!canManageBoard) {
+      await notify(db, {
+        type: 'board.document.updated',
+        entityType: 'BoardDocument',
+        entityId: document.id,
+        congregationId,
+        actorId: currentUser.id,
+        payload: { title: document.title, documentId: document.id },
       })
     }
 

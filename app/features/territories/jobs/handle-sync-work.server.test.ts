@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('~/shared/domain/congregation.server', () => ({
-  resolveCongregation: vi.fn(),
-}))
-
 vi.mock('~/shared/infra/db.server', () => ({
   withScope: vi.fn(),
 }))
@@ -16,20 +12,19 @@ vi.mock('../server/import-open-data.server', () => ({
   importOpenData: vi.fn(),
 }))
 
-vi.mock('../server/send-mail-after-data-sync.server', () => ({
-  sendMailAfterDataSync: vi.fn(),
+vi.mock('~/features/notifications/server/notify.server', () => ({
+  notify: vi.fn(),
 }))
 
 const { handleSyncWork } = await import('./handle-sync-work.server')
-const { resolveCongregation } = await import('~/shared/domain/congregation.server')
 const { withScope } = await import('~/shared/infra/db.server')
 const { importOpenData } = await import('../server/import-open-data.server')
-const { sendMailAfterDataSync } = await import('../server/send-mail-after-data-sync.server')
+const { notify } = await import('~/features/notifications/server/notify.server')
 
 function makeJob(data: Record<string, unknown> = {}) {
   return {
     id: 'test-job-1',
-    data: { congregationId: 42, userEmail: 'user@test.com', userName: 'Test User', ...data },
+    data: { congregationId: 42, userId: 7, ...data },
     attemptsMade: 0,
     updateProgress: vi.fn().mockResolvedValue(undefined),
   }
@@ -37,14 +32,13 @@ function makeJob(data: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(resolveCongregation).mockResolvedValue({ id: 42, name: 'Test' } as never)
   vi.mocked(withScope).mockImplementation(async (_id, fn) => fn({} as never))
   vi.mocked(importOpenData).mockResolvedValue(undefined)
-  vi.mocked(sendMailAfterDataSync).mockResolvedValue(undefined)
+  vi.mocked(notify).mockResolvedValue(undefined)
 })
 
 describe('handleSyncWork', () => {
-  it('exécute le sync avec le bon congregationId', async () => {
+  it('runs the import scoped to the congregation', async () => {
     const job = makeJob()
     await handleSyncWork(job as never)
 
@@ -52,21 +46,29 @@ describe('handleSyncWork', () => {
     expect(vi.mocked(importOpenData)).toHaveBeenCalledWith({}, 42, expect.any(Function))
   })
 
-  it('envoie un mail après le sync réussi', async () => {
+  it('notifies the requesting user via notify() after a successful sync', async () => {
     const job = makeJob()
     await handleSyncWork(job as never)
 
-    expect(vi.mocked(sendMailAfterDataSync)).toHaveBeenCalledWith('user@test.com', 'Test User', expect.anything())
+    expect(vi.mocked(notify)).toHaveBeenCalledWith(expect.anything(), {
+      type: 'territory.sync.completed',
+      entityType: 'Congregation',
+      entityId: 42,
+      congregationId: 42,
+      recipientId: 7,
+      actorId: 7,
+    })
   })
 
-  it('propage les erreurs sans les masquer', async () => {
+  it('does not notify when the import fails', async () => {
     vi.mocked(importOpenData).mockRejectedValue(new Error('sync failed'))
     const job = makeJob()
 
     await expect(handleSyncWork(job as never)).rejects.toThrow('sync failed')
+    expect(vi.mocked(notify)).not.toHaveBeenCalled()
   })
 
-  it('marque la progression à 100 quand le sync réussit', async () => {
+  it('marks progress at 100 when the sync succeeds', async () => {
     const job = makeJob()
     await handleSyncWork(job as never)
 

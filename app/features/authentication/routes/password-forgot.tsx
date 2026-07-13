@@ -22,6 +22,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { displayFirstname } from '~/shared/utils/display-name'
 import type { Route } from './+types/password-forgot'
 
 export const meta: Route.MetaFunction = () => {
@@ -106,7 +107,10 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  const user = await db.userAccount.findFirst({ where: { email: emailStr } })
+  const user = await db.userAccount.findFirst({
+    where: { email: emailStr },
+    include: { member: { select: { firstname: true } } },
+  })
 
   if (user == null) {
     throw redirect('/password/forgot', {
@@ -120,7 +124,7 @@ export async function action({ request }: Route.ActionArgs) {
     user.id,
     <ResetPassword
       email={user.email}
-      firstname={user.firstname || undefined}
+      firstname={displayFirstname(user) ?? undefined}
       token={token}
       baseUrl={congregation.baseUrl}
       platformName={congregation.displayName}

@@ -1,5 +1,52 @@
-import { describe, expect, it } from 'vitest'
-import { categoryWildcard } from './resolve-recipients.server'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+vi.mock('~/shared/auth/permissions.server', () => ({
+  findAccountsWithPermission: vi.fn(),
+}))
+
+vi.mock('~/shared/infra/logger.server', () => ({
+  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+}))
+
+import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
+import { categoryWildcard, resolveRecipients } from './resolve-recipients.server'
+
+const mockDb = {
+  notificationPreference: { findMany: vi.fn() },
+}
+
+beforeEach(() => {
+  vi.resetAllMocks()
+  mockDb.notificationPreference.findMany.mockResolvedValue([])
+})
+
+describe('resolveRecipients', () => {
+  it('prefers the linked Member firstname over the UserAccount firstname', async () => {
+    vi.mocked(findAccountsWithPermission).mockResolvedValue([
+      {
+        id: 1,
+        email: 'linked@test.org',
+        firstname: 'AccountName',
+        active: true,
+        member: { firstname: 'MemberName' },
+      },
+      {
+        id: 2,
+        email: 'unlinked@test.org',
+        firstname: 'AdminName',
+        active: true,
+        member: null,
+      },
+    ] as never)
+
+    const recipients = await resolveRecipients(mockDb as never, 42, 'board-validator', 'board.document.created')
+
+    expect(recipients).toEqual([
+      { userId: 1, email: 'linked@test.org', firstname: 'MemberName' },
+      { userId: 2, email: 'unlinked@test.org', firstname: 'AdminName' },
+    ])
+  })
+})
 
 describe('categoryWildcard', () => {
   it("extracts category from 'board.document.created' → 'board.*'", () => {

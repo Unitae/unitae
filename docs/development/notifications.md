@@ -56,18 +56,34 @@ export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
     recipientStrategy: 'role',
     recipientRole: 'board-validator',
   },
+  'board.document.updated': {
+    debounceMinutes: 10,
+    recipientStrategy: 'role',
+    recipientRole: 'board-validator',
+  },
   'board.document.deleted': {
     cancels: ['board.document.created', 'board.document.updated'],
     fallback: { debounceMinutes: 0, recipientStrategy: 'role', recipientRole: 'board-validator' },
   },
+  'board.document.expiring': {
+    debounceMinutes: 0,
+    recipientStrategy: 'role',
+    recipientRole: 'board-validator',
+  },
+  'territory.sync.completed': {
+    debounceMinutes: 0,
+    recipientStrategy: 'entity-user',
+  },
 }
 ```
+
+For the `entity-user` strategy, callers pass `recipientId` directly to `notify()` — the config's `recipientStrategy` field is documentation for now; the dispatcher branches on which field (`recipientId` or `recipientRole`) is set.
 
 Each type has:
 
 - **`debounceMinutes`** — How long to buffer before sending. `0` = instant.
 - **`recipientStrategy`** — How to find recipients (currently only `'role'`).
-- **`recipientRole`** — The **permission key** to query for recipients. Misnamed for historical reasons: `resolveRecipients` looks up `UserAccount` rows by `CongregationUserPermission` directly (see `app/features/notifications/server/resolve-recipients.server.ts`), so accounts whose permission comes only via a custom `UserRoleAssignment` aren't currently picked up. Direct permission grants are required.
+- **`recipientRole`** — The **permission key** to query for recipients (name is historical). `resolveRecipients` unions all three permission sources: direct grants (`CongregationUserPermission`), account-scoped custom roles (`UserRoleAssignment` → `Role` → `RolePermission`), and identity roles on the linked Member (`MemberRoleAssignment` → `Role` → `RolePermission`). See `findAccountsWithPermission` in `app/shared/auth/permissions.server.ts`.
 - **`cancels`** (optional) — List of notification types this one supersedes. If pending events exist for those types + same entity, they are cancelled instead of sending a new email.
 - **`fallback`** (optional) — Config to use if no pending events were found to cancel.
 
@@ -126,12 +142,11 @@ Cancellation types (e.g., `board.document.deleted`) attempt to cancel pending de
 
 `resolveRecipients()` finds `UserAccount`s that should receive a notification:
 
-1. Queries active accounts in the congregation that hold the configured permission directly via `CongregationUserPermission`
-2. Loads `NotificationPreference` records for those accounts
-3. Filters out accounts that have disabled this notification type (exact match or wildcard `category.*`)
-4. Returns the filtered list of recipients
-
-The role layer (`Role` / `RolePermission` / `UserRoleAssignment`) is **not** consulted today. If you want a permission to grant notification eligibility through a custom role, the resolver needs an update — see the comment on `recipientRole` in the type registry.
+1. Queries active accounts in the congregation that hold the configured permission via any of the three sources (direct `CongregationUserPermission`, account-scoped `UserRoleAssignment` → role permissions, or identity-scoped `MemberRoleAssignment` on the linked Member → role permissions). Uses `findAccountsWithPermission`, which builds the three-branch OR filter.
+2. Loads `NotificationPreference` records for those accounts.
+3. Filters out accounts that have disabled this notification type (exact match or wildcard `category.*`).
+4. Resolves the display firstname per account (prefers linked Member's firstname over UserAccount's) via `resolveDisplayFirstname`.
+5. Returns the filtered list of recipients.
 
 Members without an account are not addressable as notification recipients (no email, no preferences); the resolver naturally skips them.
 

@@ -74,26 +74,30 @@ Key conventions:
 
 ## How Emails Are Sent
 
-1. Business logic adds a job to the email queue:
-   ```typescript
-   emailQueue.add('new-document-notification', { congregationId, documentId })
-   ```
+Most notification emails go through the `notify()` pipeline (debounce, cancellation, role-based recipient resolution, user preferences). See [Notifications](notifications.md) for the full flow. Only truly one-off transactional emails — password reset, email verification — are sent inline via `mailer.emails.send()` from a service function.
 
-2. The worker picks up the job in `app/features/notifications/jobs/handle-email-work.server.tsx`
+The `notify()` pipeline path:
 
-3. The handler wraps rendering in `runWithLocale()` for correct i18n:
+1. Business logic calls `notify()` from a service function:
    ```typescript
-   await runWithLocale(congregation.locale, async () => {
-     await mailer.emails.send({
-       to: user.email,
-       from: congregation.emailFrom,
-       subject: m.email_subject(),
-       react: <TemplateComponent email={user.email} ... />,
-     })
+   await notify(db, {
+     type: 'board.document.created',
+     entityType: 'BoardDocument',
+     entityId: document.id,
+     congregationId,
+     payload: { title: document.title, documentId: document.id },
    })
    ```
 
-4. Resend renders the React component to HTML and delivers the email.
+2. `notify()` either buffers a `NotificationEvent` in PostgreSQL (debounced) or enqueues a `notification-instant` job.
+
+3. The worker picks up the job in `app/features/notifications/jobs/handle-email-work.server.tsx`, which delegates to `handle-notification-email.server.tsx`.
+
+4. `renderNotificationEmail` maps the notification type to a subject + React template, wrapped in `runWithLocale()` for i18n.
+
+5. Resend renders the React component to HTML and delivers the email.
+
+The inline path (`mailer.emails.send` directly from a service function) still exists for password reset, email verification, and the legacy `new-document-notification` job — but new work should go through `notify()`.
 
 ## Mailer Configuration
 
@@ -105,11 +109,13 @@ The sender address is per-congregation (`congregation.emailFrom`) with a fallbac
 
 ## Creating a New Email Template
 
+For notifications (anything users may want to opt out of, or that groups well with other events), follow [Notifications → Adding a New Notification Type](notifications.md#adding-a-new-notification-type). It walks through registering the type, adding a payload schema, wiring the render case, and updating the preferences UI.
+
+For purely transactional emails (password reset, email verification), skip the notification pipeline:
+
 1. **Create the template** next to the feature that owns the trigger, under that feature's `emails/` directory — e.g. `app/features/territories/emails/my-new-email.tsx`. Don't add it to a centralized folder.
 2. **Add i18n messages** for subject, body, etc. in `app/i18n/messages/en.json` and `app/i18n/messages/fr.json`.
-3. **Add the job type** to `EmailJobData` in `app/shared/infra/email-queue.server.ts`.
-4. **Add the handler case** in `app/features/notifications/jobs/handle-email-work.server.tsx` (or split into a per-feature handler if the rendering logic is non-trivial — the dispatcher just routes by `type`).
-5. **Queue jobs** from business logic via `emailQueue.add(...)`.
+3. **Call `mailer.emails.send()` directly** from a service function.
 
 ## Development Server
 

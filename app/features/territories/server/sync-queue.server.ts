@@ -22,7 +22,6 @@ export const syncQueue = new Queue(QUEUE_NAMES.sync, {
 })
 
 export interface SyncJobData {
-  userEmail: string
-  userName?: string
+  userId: number
   congregationId: number
 }

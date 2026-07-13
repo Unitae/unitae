@@ -24,3 +24,14 @@ export function fullName(source: NameSource): string {
 export function accountDisplayName(account: AccountWithOptionalMember): string {
   return fullName(account.member ?? account)
 }
+
+// Firstname alone, following the same Member-wins rule as accountDisplayName.
+// Returns null when neither source has a usable firstname — callers use `?? undefined`
+// so React Email templates fall back to their default (usually the email address).
+export function displayFirstname(account: AccountWithOptionalMember): string | null {
+  const memberName = account.member?.firstname?.trim()
+  if (memberName) return memberName
+  const accountName = account.firstname?.trim()
+  if (accountName) return accountName
+  return null
+}

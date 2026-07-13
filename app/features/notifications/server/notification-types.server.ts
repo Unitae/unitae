@@ -10,6 +10,11 @@ export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
     recipientStrategy: 'role',
     recipientRole: 'board-validator',
   },
+  'board.document.updated': {
+    debounceMinutes: 10,
+    recipientStrategy: 'role',
+    recipientRole: 'board-validator',
+  },
   'board.document.deleted': {
     cancels: ['board.document.created', 'board.document.updated'],
     fallback: {
@@ -18,9 +23,14 @@ export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
       recipientRole: 'board-validator',
     },
   },
+  'board.document.expiring': {
+    debounceMinutes: 0,
+    recipientStrategy: 'role',
+    recipientRole: 'board-validator',
+  },
 
-  // Future types added here by follow-up PRs:
-  // 'attribution.created': { debounceMinutes: 15, recipientStrategy: 'entity-publisher' },
-  // 'attribution.deleted': { cancels: [...], fallback: { ... } },
-  // 'user.password.changed': { debounceMinutes: 0, recipientStrategy: 'entity-user' },
+  'territory.sync.completed': {
+    debounceMinutes: 0,
+    recipientStrategy: 'entity-user',
+  },
 }

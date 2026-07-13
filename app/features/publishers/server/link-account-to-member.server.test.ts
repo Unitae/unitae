@@ -58,7 +58,7 @@ describe('linkAccountToMember', () => {
   })
 
   it('throws ConflictError when the email is already taken', async () => {
-    mockDb.member.findFirst.mockResolvedValue({ id: 1, account: null })
+    mockDb.member.findFirst.mockResolvedValue({ id: 1, firstname: 'Marie', account: null })
     mockDb.userAccount.findFirst.mockResolvedValue({ id: 12 })
 
     await expect(
@@ -72,7 +72,7 @@ describe('linkAccountToMember', () => {
   })
 
   it('creates the account, generates a reset token, and audits', async () => {
-    mockDb.member.findFirst.mockResolvedValue({ id: 1, account: null })
+    mockDb.member.findFirst.mockResolvedValue({ id: 1, firstname: 'Marie', account: null })
     mockDb.userAccount.findFirst.mockResolvedValue(null)
     mockDb.userAccount.create.mockResolvedValue({ id: 42 })
 
@@ -83,7 +83,7 @@ describe('linkAccountToMember', () => {
       actorId: 99,
     })
 
-    expect(result).toEqual({ accountId: 42, resetToken: 'token-xyz' })
+    expect(result).toEqual({ accountId: 42, resetToken: 'token-xyz', memberFirstname: 'Marie' })
     // Email is normalized to lowercase before insert
     expect(mockDb.userAccount.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ email: 'a@b.test', memberId: 1, congregationId: 10 }),

@@ -361,7 +361,6 @@ await createTerritory(db, ...)
 
 ## Known gaps
 
-- **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users whose permission comes only through a custom `UserRoleAssignment` aren't picked up.
 - **Pre-2.0 archive import**: handled by `migrateLegacyUsersNdjson` in `import-congregation.server.ts` — v1.x archives are split into `members.ndjson` + `user-accounts.ndjson` in memory before the regular import path runs. Placeholder-email accounts (`*.placeholder.unitae.app`) are dropped on the fly.
 - **Retention cron** (Wave 8): a daily BullMQ scheduled job (`app/features/settings/jobs/handle-retention-work.server.ts`) auto-anonymizes members whose `leftAt` is older than `DEFAULT_RETENTION_MONTHS` (6). Runs at `RETENTION_CRON_HOUR_UTC` (03:00 UTC). Skips group responsibles with a warning log (they need admin reassignment first — anonymize would throw `ConflictError`). Per-congregation override for the retention window is a future wave.
 

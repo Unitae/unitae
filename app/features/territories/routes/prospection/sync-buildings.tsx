@@ -27,30 +27,12 @@ export function action({ request, context }: Route.ActionArgs) {
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const currentUser = context.get(currentAccountContext)
-  const { congregationId } = currentUser
 
-  return withScopeFromContext(context, async db => {
+  return withScopeFromContext(context, async () => {
     const session = await getSession(request.headers.get('Cookie'))
-    const rawUserId = session.get('userId')
-    const sessionUserId = Number(rawUserId)
-    if (!rawUserId || Number.isNaN(sessionUserId) || sessionUserId <= 0) {
-      throw redirect('/')
-    }
-
-    const user = await db.userAccount.findUnique({
-      where: {
-        id_congregationId: { id: sessionUserId, congregationId },
-      },
-      include: { member: true },
-    })
-
-    if (user == null) {
-      throw redirect('/')
-    }
 
     await syncQueue.add('sync', {
-      userName: user.member?.firstname ?? user.firstname ?? undefined,
-      userEmail: user.email,
+      userId: currentUser.id,
       congregationId: currentUser.congregationId,
     })
 
