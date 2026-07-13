@@ -8,43 +8,67 @@ Unitae has an event-driven notification system with debouncing, cancellation, an
 
 ## Architecture
 
-```
-                       ┌─── ~/features/territories/server/notifications.server.tsx
-                       │      (defineNotificationType({...}))
-                       │
-                       ├─── ~/features/display-board/server/notifications.server.tsx
-                       │      (defineNotificationType({...}))
-                       │
-                       ▼
-        NOTIFICATION_REGISTRY  (~/features/notifications/server/registry.server.ts)
-                │
-                ├──▶ NOTIFICATION_TYPES   (routing config, derived)
-                ├──▶ renderNotificationEmail(type, ...) (lookup + delegate)
-                └──▶ derivePreferenceCategories() (UI grouping)
+**Registry assembly (module load time)**:
 
+```
+~/features/territories/server/notifications.server.tsx
+    (defineNotificationType({...}))                    ─┐
+                                                        │
+~/features/display-board/server/notifications.server.tsx│
+    (defineNotificationType({...}))                    ─┴──▶  NOTIFICATION_REGISTRY
+                                                                (registry.server.ts)
+                                                                       │
+        ┌──────────────────────────────────────────────────────────────┼────────────────────────────┐
+        ▼                                          ▼                    ▼                            ▼
+NOTIFICATION_TYPES                    renderNotificationEmail    derivePreferenceCategories    Load-time guards:
+(routing config, derived)             (lookup + delegate)        (preferences UI shape)        dupe check, cancels ref
+```
+
+**Runtime dispatch** — `notify()` enqueues; the BullMQ worker renders and delivers.
+Instant and debounced paths converge at the worker.
+
+```
 notify(db, params)
        │
        ▼
- NOTIFICATION_REGISTRY.get(type).routing
+NOTIFICATION_REGISTRY.get(type).routing
        │
-       ├── Cancellation type ──▶ Cancel pending events (or send fallback)
-       ├── Debounced (>0 min) ─▶ Store in PostgreSQL (NotificationEvent)
+       ├── Cancellation type ──▶ Cancel pending NotificationEvent rows
+       │                         (or send fallback via the instant path)
+       │
+       ├── Debounced (>0 min) ─▶ Insert NotificationEvent (status: pending)
        │                              │
        │                   /cron/process-notifications
        │                              │
        │                              ▼
        │                   flushSettledNotifications()
+       │                     (marks rows sent, enqueues digest job)
        │                              │
-       └── Instant (0 min) ──────────▶├──▶ emailQueue job
-                                      │    ('notification-digest' or
-                                      │     'notification-instant')
-                                      ▼
-                              resolveRecipients()
-                              Filter by NotificationPreference
-                                      │
-                                      ▼
-                              renderNotificationEmail()
-                              mailer.emails.send()
+       └── Instant (0 min) ─────┐     │
+                                ▼     ▼
+                         emailQueue.add(...)
+                     ('notification-instant' or
+                      'notification-digest')
+                                │
+                                ▼   (BullMQ worker)
+                       handleEmailWork(job)
+                                │
+                                ▼
+                        resolveRecipients() + preference filter
+                                │
+                                ▼
+                        renderNotificationEmail()
+                                │
+                                ▼
+                        mailer.emails.send()
+
+Failure handling (worker side):
+- Renderer returns null (unregistered / bad payload) → mark event row `failed`,
+  logger.error, don't retry the job.
+- Template callback throws (programmer bug) → propagate to BullMQ, job retries
+  3× with exponential backoff, then dead-letters.
+- mailer.emails.send throws (transient SMTP) → caught inside sendNotificationToUser,
+  logger.error, event stays `sent`. BullMQ job-level retries handle re-delivery.
 ```
 
 ## Files
@@ -167,6 +191,9 @@ const myTypeDef = defineNotificationType({
   category: { key: 'myfeature', label: () => m.notification_category_myfeature() },
   label: () => m.notification_myfeature_myaction(),
   routing: {
+    // See NotificationTypeConfig for the shape; other strategies include
+    // 'entity-user' (recipientId passed by the caller of notify()) and the
+    // cancellation-type shape used by board.document.deleted.
     debounceMinutes: 0,
     recipientStrategy: 'role',
     recipientRole: 'my-permission-key',
@@ -239,7 +266,7 @@ Done. The preferences UI toggle, the routing config, the render dispatch, and th
 ## Anti-patterns
 
 - **Do not** put email templates in `notifications/emails/`. Templates live with the domain that owns the event.
-- **Do not** hand-edit `notification-types.server.ts` or `notification-preference.type.ts`. Both are derived from the registry.
+- **Do not** hand-edit `notification-types.server.ts` — it is derived from the registry. The preferences UI shape is derived server-side by `derivePreferenceCategories()`; `notification-preference.type.ts` holds only the view interfaces used to type the loader's return.
 - **Do not** use side-effect registration (`import for effect; register()`). Module load order is unreliable; the explicit registry import list stays auditable and testable.
 - **Do not** call `notify()` from a route action. Wrap it in a service function, same rule as `audit()`.
 

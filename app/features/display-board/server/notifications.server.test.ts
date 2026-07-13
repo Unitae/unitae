@@ -53,4 +53,31 @@ describe('boardNotifications', () => {
       expect(def.subject(def.example), `${def.type} subject must be non-empty`).toBeTruthy()
     }
   })
+
+  // Guards against a renderer that ignores its payload — the schema-parse
+  // test would still pass and the "renders truthy" test only asserts a React
+  // element is returned. Asserting a payload-derived string in the outgoing
+  // props ties output back to input.
+  it('every definition threads a payload-derived value into the outgoing template props', () => {
+    const expectedTitles: Record<string, string> = {
+      'board.document.created': 'Sample doc',
+      'board.document.updated': 'Sample doc',
+      'board.document.deleted': 'Sample doc',
+      'board.document.expiring': 'Sample doc',
+    }
+    for (const def of boardNotifications) {
+      const react = def.renderEmail({
+        payload: def.example,
+        recipient: RECIPIENT,
+        congregation: CONGREGATION,
+      }) as { props: Record<string, unknown> } | null
+      expect(react, `${def.type} must render`).toBeTruthy()
+      const propsJson = JSON.stringify(react?.props ?? {})
+      const expectedTitle = expectedTitles[def.type]
+      expect(
+        propsJson.includes(expectedTitle),
+        `${def.type} render did not include payload-derived title '${expectedTitle}'`,
+      ).toBe(true)
+    }
+  })
 })

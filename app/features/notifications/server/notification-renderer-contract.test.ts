@@ -1,10 +1,11 @@
 // Contract test: every definition registered in NOTIFICATION_REGISTRY must
 // ship an `example` payload that (a) satisfies its own Zod schema and (b)
 // produces a non-null React element when passed through renderNotificationEmail.
+// The example lives on the definition itself — adding a new definition to a
+// consumer feature is automatically covered.
 //
-// Under the plugin registry, the example lives on the definition itself — so
-// this test just iterates the registry and asserts the two invariants. Adding
-// a new definition to a consumer feature is automatically covered.
+// Also covers the two failure modes: unregistered type and invalid payload
+// both must return a null react so the worker records the event as failed.
 
 import { describe, expect, it, vi } from 'vitest'
 
@@ -42,4 +43,24 @@ describe('renderNotificationEmail contract', () => {
       })
     })
   }
+})
+
+describe('renderNotificationEmail failure modes', () => {
+  it('returns {subject: "", react: null} for an unregistered notification type', () => {
+    const result = renderNotificationEmail('does.not.exist', {}, RECIPIENT, CONGREGATION as never)
+    expect(result.subject).toBe('')
+    expect(result.react).toBeNull()
+  })
+
+  it('returns {subject: "", react: null} when the payload fails the definition schema', () => {
+    // board.document.created's schema requires {title: string, documentId: number}
+    const result = renderNotificationEmail(
+      'board.document.created',
+      { bogus: 'data' },
+      RECIPIENT,
+      CONGREGATION as never,
+    )
+    expect(result.subject).toBe('')
+    expect(result.react).toBeNull()
+  })
 })

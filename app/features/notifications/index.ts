@@ -5,6 +5,7 @@
 
 export {
   defineNotificationType,
+  manifest,
   type NotificationRecipient,
   type NotificationRenderContext,
   type NotificationTypeDefinition,

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineNotificationType, type NotificationTypeDefinition } from '~/features/notifications'
+import { defineNotificationType, manifest } from '~/features/notifications'
 import * as m from '~/i18n/paraglide/messages'
 import BuildingSyncDone from '../emails/buildings-sync-done'
 
@@ -27,6 +27,6 @@ const territorySyncCompleted = defineNotificationType({
   example: {},
 })
 
-export const territoryNotifications: NotificationTypeDefinition<unknown>[] = [
-  territorySyncCompleted,
-] as NotificationTypeDefinition<unknown>[]
+// `manifest()` erases the payload generic so downstream code can iterate
+// without narrowing to a union. See defineNotificationType docs.
+export const territoryNotifications = manifest(territorySyncCompleted)

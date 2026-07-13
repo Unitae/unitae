@@ -19,7 +19,16 @@ const CONGREGATION: CongregationInfo = {
 
 const RECIPIENT = { email: 'r@test.org', firstname: 'Jean' }
 
+const EXPECTED_TYPES = ['territory.sync.completed']
+
 describe('territoryNotifications', () => {
+  it('registers every expected territory type', () => {
+    const registered = new Set(territoryNotifications.map(d => d.type))
+    for (const type of EXPECTED_TYPES) {
+      expect(registered.has(type), `${type} should be registered`).toBe(true)
+    }
+  })
+
   it('registers territory.sync.completed', () => {
     const def = territoryNotifications.find(d => d.type === 'territory.sync.completed')
     expect(def).toBeDefined()

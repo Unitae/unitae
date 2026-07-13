@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineNotificationType, type NotificationTypeDefinition } from '~/features/notifications'
+import { defineNotificationType, manifest } from '~/features/notifications'
 import * as m from '~/i18n/paraglide/messages'
 import BoardDocumentDeleted from '../emails/board-document-deleted'
 import BoardDocumentUpdated from '../emails/board-document-updated'
@@ -121,9 +121,12 @@ const boardDocumentExpiring = defineNotificationType({
   example: { documents: [{ id: 1, title: 'Sample doc' }] },
 })
 
-export const boardNotifications: NotificationTypeDefinition<unknown>[] = [
+// `manifest()` erases the heterogeneous payload generics so downstream code
+// (registry, contract test) can iterate without narrowing to a union. Each
+// definition still preserves its own T internally.
+export const boardNotifications = manifest(
   boardDocumentCreated,
   boardDocumentUpdated,
   boardDocumentDeleted,
   boardDocumentExpiring,
-] as NotificationTypeDefinition<unknown>[]
+)

@@ -31,12 +31,10 @@ export interface NotificationTypeDefinition<T = unknown> {
   // is a Paraglide message accessor called at render time.
   category: { key: string; label: () => string }
 
-  // Preferences-UI toggle label. Paraglide accessor — TypeScript catches
-  // missing i18n keys at authoring time.
+  // Preferences-UI toggle label.
   label: () => string
 
-  // Debounce/cancellation/recipient routing config. Same shape as the
-  // pre-registry NOTIFICATION_TYPES map — dispatcher reads this.
+  // Debounce/cancellation/recipient routing config; the dispatcher reads this.
   routing: NotificationTypeConfig
 
   // Zod schema validated by the renderer before subject()/renderEmail() run.
@@ -59,9 +57,28 @@ export interface NotificationTypeDefinition<T = unknown> {
   critical?: boolean
 }
 
-// Identity helper that preserves T through inference. The runtime is
-// intentionally trivial — the value comes from the type ergonomics: TypeScript
-// infers T from `payload` (Zod) and flows it into subject, renderEmail, example.
-export function defineNotificationType<T>(def: NotificationTypeDefinition<T>): NotificationTypeDefinition<T> {
+// Schema-first factory that infers T directly from the Zod schema's inferred
+// output type. Closes the `z.ZodType<T>` variance hole (`z.ZodType<T>` is loose
+// about how T relates to the schema's actual output) by taking the schema
+// itself as the source of truth and flowing `z.infer<S>` into every T slot on
+// the definition. Runtime is an identity function; the value is entirely in
+// the typing.
+export function defineNotificationType<S extends z.ZodTypeAny>(
+  def: Omit<NotificationTypeDefinition<z.infer<S>>, 'payload'> & { payload: S },
+): NotificationTypeDefinition<z.infer<S>> {
   return def
+}
+
+// Erases the T at the array boundary so heterogeneous definitions can live
+// in one exported list without an `as NotificationTypeDefinition<unknown>[]`
+// cast at every export. Each definition still preserves its own T internally
+// through defineNotificationType; the erasure is only at the aggregation point.
+//
+// Parameter is `NotificationTypeDefinition<any>` (scoped `any`, not returned)
+// because `subject`/`renderEmail` are contravariant in T — a heterogeneous
+// tuple of definitions with different Ts cannot be assigned to
+// `NotificationTypeDefinition<unknown>[]` at the call site, only at return.
+// biome-ignore lint/suspicious/noExplicitAny: contravariance escape hatch scoped to this parameter
+export function manifest(...defs: NotificationTypeDefinition<any>[]): NotificationTypeDefinition<unknown>[] {
+  return defs as NotificationTypeDefinition<unknown>[]
 }

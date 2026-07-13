@@ -15,9 +15,9 @@ interface Recipient {
   firstname: string | null
 }
 
-// Delegates to the definition registered for `notificationType`. Returns
-// `{subject: '', react: null}` when the type is unregistered or the payload
-// fails the definition's Zod schema — the worker logs and skips delivery.
+// Returns `{subject: '', react: null}` when the type is unregistered or the
+// payload fails the definition's schema — the worker treats those as
+// permanent failures (logs error + marks the NotificationEvent row failed).
 export function renderNotificationEmail(
   notificationType: string,
   payload: unknown,
