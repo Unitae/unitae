@@ -1,6 +1,5 @@
+import { MS_PER_DAY } from '~/shared/constants/limits'
 import type { StatsAttribution } from './stats-attribution.type'
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 // Calcule le délai moyen (en jours) entre la fin d'une attribution et le début de la suivante pour le même territoire
 export function computeAvailabilityGap(attributions: StatsAttribution[]): number {

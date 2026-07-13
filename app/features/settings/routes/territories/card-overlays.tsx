@@ -6,7 +6,8 @@ import { CardOverlayImportDialog } from '~/features/settings/ui/CardOverlayImpor
 import { CardOverlayListRow } from '~/features/settings/ui/CardOverlayListRow'
 import { PerimeterCard } from '~/features/settings/ui/PerimeterCard'
 import { downloadCardOverlaysGeoJson, useCardOverlayEditor } from '~/features/settings/ui/use-card-overlay-editor'
-import { CardOverlayMap, getPerimeter, listCardOverlays } from '~/features/territories'
+import { CardOverlayMap } from '~/features/territories'
+import { getPerimeter, listCardOverlays } from '~/features/territories/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,

@@ -1,4 +1,4 @@
-import { memberAggregate } from '~/features/publishers'
+import { memberAggregate } from '~/features/publishers/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'

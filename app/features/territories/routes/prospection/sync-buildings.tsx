@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { syncQueue } from '~/features/territories/server/sync-queue.server'
 import * as m from '~/i18n/paraglide/messages'
 import {

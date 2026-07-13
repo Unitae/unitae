@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useState } from 'react'
 import { data, Form, Link, redirect, useSearchParams } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { getPartAssignmentAllowedRoleIds, resolveEligibleUserIds } from '~/features/events/server/allowed-roles.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'

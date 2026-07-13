@@ -1,3 +1,4 @@
+import type { NotificationEvent } from '~/database/generated/client'
 import { unscopedDb } from '~/shared/infra/db.server'
 import { emailQueue } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -9,6 +10,8 @@ export interface FlushResult {
   emailsEnqueued: number
 }
 
+export type NotificationEventRow = NotificationEvent
+
 // Processes settled debounced notifications: groups them into digests and pushes to emailQueue
 export async function flushSettledNotifications(): Promise<FlushResult> {
   const now = new Date()
@@ -17,8 +20,7 @@ export async function flushSettledNotifications(): Promise<FlushResult> {
 
   // Use a transaction with raw SQL FOR UPDATE SKIP LOCKED to prevent concurrent processing
   await unscopedDb.$transaction(async tx => {
-    // biome-ignore lint/suspicious/noExplicitAny: raw query returns untyped rows
-    const settledEvents: any[] = await tx.$queryRaw`
+    const settledEvents = await tx.$queryRaw<NotificationEventRow[]>`
       SELECT * FROM "NotificationEvent"
       WHERE "status" = 'pending'
         AND "debounceUntil" IS NOT NULL
@@ -37,26 +39,25 @@ export async function flushSettledNotifications(): Promise<FlushResult> {
 
     for (const [_groupKey, events] of groups) {
       const first = events[0]
-      const congregationId = first.congregationId as number
 
       await emailQueue.add('notification-digest', {
         type: 'notification-digest',
-        congregationId,
-        recipientId: (first.recipientId as number | null) ?? 0,
+        congregationId: first.congregationId,
+        recipientId: first.recipientId ?? 0,
         events: events.map(e => ({
-          type: e.type as string,
-          entityType: e.entityType as string,
-          entityId: e.entityId as number,
-          payload: e.payload as string,
+          type: e.type,
+          entityType: e.entityType,
+          entityId: e.entityId,
+          payload: e.payload,
         })),
-        notificationEventIds: events.map(e => e.id as number),
+        notificationEventIds: events.map(e => e.id),
       })
 
       emailsEnqueued++
     }
 
     // Mark all processed events as sent
-    const eventIds = settledEvents.map(e => e.id as number)
+    const eventIds = settledEvents.map(e => e.id)
     await tx.notificationEvent.updateMany({
       where: { id: { in: eventIds } },
       data: { status: 'sent', processedAt: now },
@@ -71,13 +72,11 @@ export async function flushSettledNotifications(): Promise<FlushResult> {
 }
 
 // Groups events by congregation + recipient + type family (e.g., 'board', 'attribution')
-// biome-ignore lint/suspicious/noExplicitAny: raw query rows are untyped
-export function groupEvents(events: any[]): Map<string, any[]> {
-  // biome-ignore lint/suspicious/noExplicitAny: raw query rows are untyped
-  const groups = new Map<string, any[]>()
+export function groupEvents(events: NotificationEventRow[]): Map<string, NotificationEventRow[]> {
+  const groups = new Map<string, NotificationEventRow[]>()
 
   for (const event of events) {
-    const typeFamily = (event.type as string).split('.')[0]
+    const typeFamily = event.type.split('.')[0]
     const recipientPart = event.recipientId != null ? `user:${event.recipientId}` : `role:${event.recipientRole ?? ''}`
     const groupKey = `${event.congregationId}:${recipientPart}:${typeFamily}`
 

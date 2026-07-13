@@ -83,8 +83,7 @@ export async function getContentVersion(
   dynamicType: string,
   dynamicRef: string | null,
   congregationId: number,
-  // biome-ignore lint/suspicious/noExplicitAny: dynamicConfig is raw JSON from DB
-  dynamicConfig?: any,
+  dynamicConfig?: unknown,
 ): Promise<Date | null> {
   if (dynamicType === DynamicType.PublisherGroups) {
     const [group, memberUser] = await Promise.all([
@@ -173,8 +172,7 @@ export async function getDynamicPreview(
   dynamicType: string,
   dynamicRef: string | null,
   congregationId: number,
-  // biome-ignore lint/suspicious/noExplicitAny: dynamicConfig is raw JSON from DB
-  dynamicConfig?: any,
+  dynamicConfig?: unknown,
 ): Promise<string | null> {
   if (dynamicType === DynamicType.PublisherGroups) {
     const count = await db.publisherGroup.count({ where: { congregationId } })

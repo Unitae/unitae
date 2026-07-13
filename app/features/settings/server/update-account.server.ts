@@ -1,4 +1,4 @@
-import { memberAggregate } from '~/features/publishers'
+import { memberAggregate } from '~/features/publishers/index.server'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'

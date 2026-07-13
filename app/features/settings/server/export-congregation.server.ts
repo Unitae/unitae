@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
+import { EXPORT_PROGRESS_CAP } from '~/shared/constants/limits'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { type TransactionClient, withScope } from '~/shared/infra/db.server'
 import { buildStorageKey, getFileBuffer, uploadFile } from '~/shared/infra/file-storage.server'
@@ -36,13 +37,13 @@ export async function runExport(job: Job<ExportJobData>): Promise<string> {
       entityCounts[step.name] = lines.length
 
       completedSteps++
-      await job.updateProgress(Math.round((completedSteps / totalSteps) * 90))
+      await job.updateProgress(Math.round((completedSteps / totalSteps) * EXPORT_PROGRESS_CAP))
     }
 
     if (options.includeFiles) {
       await exportFiles(zip, db, congregationId)
       completedSteps++
-      await job.updateProgress(90)
+      await job.updateProgress(EXPORT_PROGRESS_CAP)
     }
   })
 

@@ -1,3 +1,4 @@
+import { RECENT_ATTRIBUTIONS_LIMIT } from '~/shared/constants/pagination'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
 
@@ -15,7 +16,7 @@ export async function getTerritoriesExportData(db: TransactionClient, congregati
     include: {
       attributions: {
         orderBy: { startDate: 'desc' },
-        take: 5,
+        take: RECENT_ATTRIBUTIONS_LIMIT,
         where: {
           OR: [
             {

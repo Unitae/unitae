@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Search } from 'lucide-react'
 import { data, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { buildingNotesSchema } from '~/features/territories/schemas/building.schema'
 import { getBuildingDetails } from '~/features/territories/server/get-building-details.server'
 import { setBuildingNotes } from '~/features/territories/server/set-building-notes.server'

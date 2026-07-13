@@ -1,5 +1,11 @@
 import type { Job } from 'bullmq'
 import JsZip from 'jszip'
+import {
+  IMPORT_PROGRESS_CAP,
+  IMPORT_TOTAL_STEPS,
+  IMPORT_TX_MAX_WAIT_MS,
+  IMPORT_TX_TIMEOUT_MS,
+} from '~/shared/constants/limits'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { unscopedDb, withScope } from '~/shared/infra/db.server'
 import { getFileBuffer } from '~/shared/infra/file-storage.server'
@@ -160,17 +166,16 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
   // Imports write thousands of rows in one atomic transaction — well past Prisma's
   // 5s default. Bump to 10 minutes; also raise maxWait so we don't fail to acquire
   // a pool connection on a busy instance.
-  const importTransactionOptions = { timeout: 10 * 60 * 1000, maxWait: 30 * 1000 }
+  const importTransactionOptions = { timeout: IMPORT_TX_TIMEOUT_MS, maxWait: IMPORT_TX_MAX_WAIT_MS }
 
   await withScope(
     congregationId,
     async db => {
-      const totalSteps = 38
       let step = 0
 
       const progress = async () => {
         step++
-        await job.updateProgress(Math.round((step / totalSteps) * 95))
+        await job.updateProgress(Math.round((step / IMPORT_TOTAL_STEPS) * IMPORT_PROGRESS_CAP))
       }
 
       await importSettings(zip, db, congregationId)

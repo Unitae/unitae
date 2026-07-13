@@ -1,6 +1,9 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { EventKind, getNextDaysOffs } from '~/features/events'
+import { EventKind } from '~/features/events'
+import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
+import { TWO_WEEKS_MS } from '~/shared/constants/limits'
+import { DASHBOARD_RECENT_ITEMS_LIMIT } from '~/shared/constants/pagination'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 async function buildSectionVisibilityFilter(db: TransactionClient, userId: number, congregationId: number) {
@@ -11,8 +14,6 @@ async function buildSectionVisibilityFilter(db: TransactionClient, userId: numbe
     },
   }
 }
-
-const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000
 
 export type TerritoryStatus = 'on-time' | 'due-soon' | 'overdue'
 
@@ -77,7 +78,7 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 5,
+      take: DASHBOARD_RECENT_ITEMS_LIMIT,
     }),
     db.boardDynamicDocumentSettings.findMany({
       where: {
@@ -96,7 +97,7 @@ export async function getRecentDocuments(db: TransactionClient, userId: number, 
         },
       },
       orderBy: { createdAt: 'desc' },
-      take: 5,
+      take: DASHBOARD_RECENT_ITEMS_LIMIT,
     }),
   ])
 
@@ -187,7 +188,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         },
       },
       orderBy: { event: { startDate: 'asc' } },
-      take: 5,
+      take: DASHBOARD_RECENT_ITEMS_LIMIT,
     }),
     db.programmeServiceRoleAssignment.findMany({
       where: {
@@ -205,7 +206,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         },
       },
       orderBy: { event: { startDate: 'asc' } },
-      take: 5,
+      take: DASHBOARD_RECENT_ITEMS_LIMIT,
     }),
   ])
 

@@ -3,7 +3,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import {
   DynamicType,
   type ProgrammeDynamicConfig,
@@ -12,7 +12,7 @@ import {
 import { updateDynamicDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { updateDynamicDocument } from '~/features/display-board/server/board-document.server'
 import { validateVisibilityDates } from '~/features/display-board/server/file-validation.server'
-import { getTemplates } from '~/features/events'
+import { getTemplates } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,

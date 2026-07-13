@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { Download, History, RotateCcw } from 'lucide-react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { restoreVersionSchema } from '~/features/display-board/schemas/board-document.schema'
 import { isDocumentOwnedByUploader } from '~/features/display-board/server/board-document.server'
 import { restoreDocumentVersion } from '~/features/display-board/server/document-versions.server'

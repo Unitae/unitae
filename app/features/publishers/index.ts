@@ -1,5 +1,5 @@
-// Public surface of the publishers feature.
-
-export { getGroups } from './server/groups.server'
-export * as memberAggregate from './server/member.aggregate'
-export { getPublishers } from './server/publishers.server'
+// Public client-safe surface of the publishers feature.
+//
+// No client-safe exports today. Types, UI, and hooks used by other
+// features would land here. Server exports live in `./index.server`.
+export {}

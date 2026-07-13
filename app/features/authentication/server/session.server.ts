@@ -1,5 +1,6 @@
 import { createCookieSessionStorage, redirect, type Session } from 'react-router'
 import { sanitizeAccount } from '~/shared/auth/sanitize-account.server'
+import { SESSION_MAX_AGE_SECONDS_DEV, SESSION_MAX_AGE_SECONDS_PROD } from '~/shared/constants/limits'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
@@ -20,7 +21,7 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
     // all of these are optional
     ...(process.env.NODE_ENV === 'production' ? { domain: process.env.UNITAE_COOKIE_DOMAIN } : {}),
     httpOnly: true,
-    maxAge: process.env.NODE_ENV === 'production' ? 60 * 60 : 60 * 60 * 8,
+    maxAge: process.env.NODE_ENV === 'production' ? SESSION_MAX_AGE_SECONDS_PROD : SESSION_MAX_AGE_SECONDS_DEV,
     path: '/',
     sameSite: 'lax',
     // biome-ignore lint/style/noNonNullAssertion: validated at startup by env.server.ts

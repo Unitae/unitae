@@ -14,7 +14,7 @@ This document is **part target state, part current rule**. The migration is trac
 | 3 | Feature `index.ts` boundaries + cross-feature import lint | ✅ landed |
 | 4 | Split mega-files | ✅ landed |
 | 5 | Three aggregates + CQRS-lite lint enforcement | ✅ landed |
-| 6 | Constants files + `any` triage | ⏳ pending |
+| 6 | Constants files + `any` triage + client/server barrel split | ✅ landed |
 | 7 | TDD rollout + coverage backfill | ⏳ pending |
 | 8 | Stress-case fixes (locale, name/phone validation, anonymization) | ⏳ pending |
 | 9 | Delivery-metrics script | ⏳ pending |
@@ -259,22 +259,44 @@ Under the [CQRS-lite split](#cqrs-lite-readwrite-split-within-a-feature), the gr
 
 ## Feature Boundary Rule
 
-Features may only import each other through their `index.ts`. Deep imports into another feature's `server/`, `ui/`, or `model/` are forbidden.
+Features may only import each other through their top-level barrels. Deep imports into another feature's `server/`, `ui/`, or `model/` are forbidden.
+
+Each feature has **two barrels**, split by graph:
+
+- `index.ts` — client-safe: types, UI components, model helpers, schemas, email templates. Reachable from client route bundles.
+- `index.server.ts` — server-only: service functions, aggregates, policies, queries, workflows. Reachable only from server code and from route loaders/actions.
+
+A feature with only server exports may leave `index.ts` empty (with `export {}`). A feature with only client-safe exports may omit `index.server.ts`.
 
 ```typescript
-// Allowed
-import { getProgrammeTemplate } from '~/features/events'
+// Allowed — client-safe barrel
+import { EventKind, dayLabel } from '~/features/events'
+
+// Allowed — server-only barrel (called from a route loader or another .server file)
+import { getTemplates, seedDefaultTemplates } from '~/features/events/index.server'
 
 // Forbidden — fails `pnpm test:boundaries`
-import { getProgrammeTemplate } from '~/features/events/server/programme-templates.server'
+import { getTemplates } from '~/features/events/server/programme-templates.server'
 ```
 
-### `index.ts` re-export shape
+### Why the split?
+
+React Router's `dot-server` bundler plugin fails on any client-reachable import graph that transitively touches a `*.server.ts` module. A plain `index.ts` re-exporting server code leaks that chain into the client bundle. The split gives us two graph-scoped entries — client bundles walk `index.ts`, server code walks `index.server.ts`, and neither reaches into the other's modules.
+
+`pnpm test:server-barrel-exports` (Wave 6, wired into CI + `pre-push`) fails when an `index.ts` re-exports a `*.server` / `*.aggregate` / `*.workflow` / `*.queries` / `*.policy` module.
+
+### Barrel re-export shape
 
 - **Named re-exports only**: `export { fn, type Foo } from './server/foo.server'`. No `export *`.
 - **Type re-exports use `export type`** (avoids accidental value-side coupling).
-- **Job handlers are not re-exported** from `index.ts` — workers import them directly from `app/workers/worker.server.ts`.
-- The `index.ts` file should be the **only** place that mentions another feature's internal paths to outsiders.
+- **Job handlers are not re-exported** — workers import them directly from `app/workers/worker.server.ts`.
+- The barrels are the **only** places that mention another feature's internal paths to outsiders.
+
+### Consumer patterns
+
+- **Server file (`*.server.ts` / `*.aggregate.ts` / etc.)** — imports from either barrel.
+- **Client component / hook (`ui/*.tsx`, plain `*.ts`)** — imports only from `index.ts`.
+- **Route file (`routes/*.tsx`)** — imports client-safe things from `index.ts` and server functions from `index.server.ts` on separate import lines; React Router auto-splits the loader/action graph from the component graph.
 
 ### Aggregator exemption
 

@@ -4,14 +4,16 @@ import {
   cardOverlayColorSchema,
   cardOverlayNameSchema,
   cardOverlayPathsSchema,
+  GeoJsonValidationError,
+  parseGeoJsonImport,
+} from '~/features/territories'
+import {
   clearPerimeter,
   createCardOverlay,
   deleteCardOverlay,
-  GeoJsonValidationError,
-  parseGeoJsonImport,
   setPerimeter,
   updateCardOverlay,
-} from '~/features/territories'
+} from '~/features/territories/index.server'
 import type { LimitService } from '~/shared/domain/limits.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
