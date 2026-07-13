@@ -80,12 +80,6 @@ export const EXEMPT_FILES = new Set<string>([
   // in the CI runner (not currently guaranteed). Left exempt until a
   // future wave revisits CI dependencies.
   'app/features/display-board/server/thumbnail.server.ts',
-
-  // ── Wave 7 backfill queue ────────────────────────────────────────────
-  // These files land in Wave 7 without tests but are on the queue for
-  // this same PR. Each backfill commit removes its entry from this list.
-  // By Commit 8, none of these entries should remain.
-  'app/features/authentication/server/send-verification-email.server.ts',
 ])
 
 export type Classification =
