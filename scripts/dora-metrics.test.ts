@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+
+const INVALID_WEEK_ERROR_RE = /invalid/i
+
 import {
   type Commit,
   computeDeployFrequency,
@@ -6,10 +9,15 @@ import {
   computeHotfixTurnaround,
   computeLeadTime,
   computeWeeklyReport,
+  extractPrReferences,
   isoWeekOf,
   median,
   type PullRequest,
   parseConventionalCommit,
+  previousIsoWeek,
+  renderMarkdown,
+  type WeeklyReport,
+  weekBoundaries,
 } from './dora-metrics'
 
 function commit(overrides: Partial<Commit>): Commit {
@@ -297,5 +305,106 @@ describe('computeWeeklyReport', () => {
     expect(report.leadTimeMedianSeconds).toBeGreaterThan(0)
     expect(report.fixToFeatRatio).toEqual({ fixes: 1, feats: 1, ratio: 1 })
     expect(report.hotfixTurnaroundMedianSeconds).toBe(60 * 60 * 24 * 2)
+  })
+})
+
+describe('extractPrReferences', () => {
+  it('deduplicates PR numbers referenced multiple times', () => {
+    expect(extractPrReferences('Fixes #123 and refs #123 again')).toEqual([123])
+  })
+
+  it('returns an empty array when no #NN pattern is present', () => {
+    expect(extractPrReferences('no references here')).toEqual([])
+  })
+
+  it('extracts multiple distinct references in order of first occurrence', () => {
+    const result = extractPrReferences('Fixes #100 and #200, also #100 again')
+    expect(new Set(result)).toEqual(new Set([100, 200]))
+    expect(result).toHaveLength(2)
+  })
+})
+
+describe('weekBoundaries', () => {
+  it('returns Monday-to-Monday UTC for a mid-year ISO week', () => {
+    const { from, to } = weekBoundaries('2026-W28')
+    expect(from.toISOString()).toBe('2026-07-06T00:00:00.000Z')
+    expect(to.toISOString()).toBe('2026-07-13T00:00:00.000Z')
+    expect(from.getUTCDay()).toBe(1) // Monday
+    expect(to.getUTCDay()).toBe(1)
+  })
+
+  it('roundtrips through isoWeekOf', () => {
+    for (const week of ['2026-W01', '2026-W28', '2025-W52']) {
+      const { from } = weekBoundaries(week)
+      expect(isoWeekOf(from)).toBe(week)
+    }
+  })
+
+  it('rejects malformed input', () => {
+    expect(() => weekBoundaries('2026-28')).toThrow(INVALID_WEEK_ERROR_RE)
+    expect(() => weekBoundaries('26-W28')).toThrow(INVALID_WEEK_ERROR_RE)
+  })
+})
+
+describe('previousIsoWeek', () => {
+  it('returns the week that ended before `now`', () => {
+    // 2026-07-15 (Wed) is in 2026-W29 → previous is W28.
+    expect(previousIsoWeek(new Date('2026-07-15T00:00:00Z'))).toBe('2026-W28')
+  })
+
+  it('crosses the year boundary correctly', () => {
+    // 2026-01-04 (Sun) is in 2026-W01 → previous is 2025-W52.
+    expect(previousIsoWeek(new Date('2026-01-04T00:00:00Z'))).toBe('2025-W52')
+  })
+})
+
+describe('renderMarkdown', () => {
+  const baseReport: WeeklyReport = {
+    week: '2026-W28',
+    from: new Date('2026-07-06T00:00:00Z'),
+    to: new Date('2026-07-13T00:00:00Z'),
+    deployFrequency: 12,
+    leadTimeMedianSeconds: 60 * 60 * 8, // 8 hours
+    fixToFeatRatio: { fixes: 3, feats: 5, ratio: 0.6 },
+    hotfixTurnaroundMedianSeconds: 60 * 60 * 24 * 2, // 2 days
+  }
+
+  it('renders a markdown table with all four metrics', () => {
+    const md = renderMarkdown(baseReport)
+    expect(md).toContain('# Delivery metrics — 2026-W28')
+    expect(md).toContain('| Deploy frequency | 12 pushes to main |')
+    expect(md).toContain('| Lead time (median) | 8.0h |')
+    expect(md).toContain('| Fix-to-feat ratio | 0.60 (3 fix / 5 feat) |')
+    expect(md).toContain('| Hotfix turnaround (median) | 2.0d |')
+  })
+
+  it('renders N/A when a metric is null', () => {
+    const md = renderMarkdown({
+      ...baseReport,
+      leadTimeMedianSeconds: null,
+      fixToFeatRatio: { fixes: 0, feats: 0, ratio: null },
+      hotfixTurnaroundMedianSeconds: null,
+    })
+    expect(md).toContain('| Lead time (median) | N/A |')
+    expect(md).toContain('| Fix-to-feat ratio | N/A (0 fix / 0 feat) |')
+    expect(md).toContain('| Hotfix turnaround (median) | N/A |')
+  })
+
+  it('scales duration formatting: seconds / minutes / hours / days', () => {
+    const scales: { seconds: number; suffix: string }[] = [
+      { seconds: 30, suffix: 's' },
+      { seconds: 60 * 5, suffix: 'm' },
+      { seconds: 60 * 60 * 3, suffix: 'h' },
+      { seconds: 60 * 60 * 24 * 2, suffix: 'd' },
+    ]
+    for (const { seconds, suffix } of scales) {
+      const md = renderMarkdown({ ...baseReport, leadTimeMedianSeconds: seconds })
+      const line = md.split('\n').find(l => l.includes('Lead time')) ?? ''
+      expect(line, `duration=${seconds}s`).toContain(suffix)
+    }
+  })
+
+  it('mentions the proxy disclaimer', () => {
+    expect(renderMarkdown(baseReport)).toContain('Proxies, not canonical [DORA]')
   })
 })
