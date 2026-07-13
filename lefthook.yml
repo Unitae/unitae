@@ -35,3 +35,5 @@ pre-push:
       run: pnpm test:aggregate-boundaries
     server-barrel-exports:
       run: pnpm test:server-barrel-exports
+    service-test-coverage:
+      run: pnpm test:service-test-coverage

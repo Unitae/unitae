@@ -40,6 +40,9 @@ jobs:
       - name: Check server barrel exports (client/server split)
         run: pnpm test:server-barrel-exports
 
+      - name: Check service-file test colocation (TDD rollout)
+        run: pnpm test:service-test-coverage
+
       - name: Security audit
         run: pnpm audit --audit-level=high
 
