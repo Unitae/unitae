@@ -31,7 +31,8 @@ export interface Commit {
 export interface PullRequest {
   number: number
   mergedAt: Date
-  firstCommitAt: Date
+  /** null when the first-commit lookup failed — such PRs are excluded from lead-time medians. */
+  firstCommitAt: Date | null
   /** True when the PR's first Conventional-Commit-typed commit is `feat:`. */
   isFeat: boolean
 }
@@ -101,9 +102,12 @@ export function computeDeployFrequency(commits: Commit[], from: Date, to: Date):
 }
 
 export function computeLeadTime(prs: PullRequest[], from: Date, to: Date): number | null {
-  const durations = prs
-    .filter(p => inWindow(p.mergedAt, from, to))
-    .map(p => (p.mergedAt.getTime() - p.firstCommitAt.getTime()) / 1000)
+  const durations: number[] = []
+  for (const p of prs) {
+    if (!inWindow(p.mergedAt, from, to)) continue
+    if (p.firstCommitAt === null) continue
+    durations.push((p.mergedAt.getTime() - p.firstCommitAt.getTime()) / 1000)
+  }
   return median(durations)
 }
 
@@ -119,17 +123,6 @@ export function computeFixToFeatRatio(commits: Commit[], from: Date, to: Date): 
   return { fixes, feats, ratio: feats === 0 ? null : fixes / feats }
 }
 
-/**
- * For each `fix:` commit, if its body references a PR that was itself a
- * `feat:` merge, compute (fix.timestamp - feat.mergedAt) in seconds. Take
- * the EARLIEST fix per feat so a chain of follow-up fixes doesn't skew the
- * median upward. Report the median across all matched feats.
- *
- * Windowing note: the caller decides what history to feed. Typical usage
- * scans the trailing 4 weeks of feats against all fixes in the current
- * week — earlier waves' feats will still show up if a fix references them
- * this week, which is the point of the metric.
- */
 function indexFeatPrs(prs: PullRequest[]): Map<number, PullRequest> {
   const featPrs = new Map<number, PullRequest>()
   for (const p of prs) if (p.isFeat) featPrs.set(p.number, p)
@@ -151,6 +144,17 @@ function earliestFixPerFeatPr(fixCommits: Commit[], featPrs: Map<number, PullReq
   return earliest
 }
 
+/**
+ * For each `fix:` commit, if its body references a PR that was itself a
+ * `feat:` merge, compute (fix.timestamp - feat.mergedAt) in seconds. Take
+ * the EARLIEST fix per feat so a chain of follow-up fixes doesn't skew the
+ * median upward. Report the median across all matched feats.
+ *
+ * Windowing note: the caller decides what history to feed. Typical usage
+ * scans the trailing 4 weeks of feats against all fixes in the current
+ * week — earlier waves' feats will still show up if a fix references them
+ * this week, which is the point of the metric.
+ */
 export function computeHotfixTurnaround(fixCommits: Commit[], prs: PullRequest[]): number | null {
   const featPrs = indexFeatPrs(prs)
   const earliest = earliestFixPerFeatPr(fixCommits, featPrs)
@@ -195,9 +199,6 @@ const GIT_RECORD_SEP_LITERAL = '%x1e'
 const GIT_FIELD_SEP = '\x00'
 const GIT_RECORD_SEP = '\x1e'
 
-/**
- * Parses PR/issue references from a commit body. Only unique numeric ids.
- */
 export function extractPrReferences(body: string): number[] {
   const seen = new Set<number>()
   for (const match of body.matchAll(PR_REFERENCE_RE)) seen.add(Number(match[1]))
@@ -228,9 +229,14 @@ export function loadCommits(from: Date, to: Date, branch = 'main'): Commit[] {
     if (!record.trim()) continue
     const [sha, timestamp, subject, ...bodyParts] = record.split(GIT_FIELD_SEP)
     const body = bodyParts.join(GIT_FIELD_SEP).trim()
+    const parsedTimestamp = new Date(timestamp.trim())
+    if (Number.isNaN(parsedTimestamp.getTime())) {
+      process.stderr.write(`⚠️  Commit ${sha.trim()} has invalid timestamp (${JSON.stringify(timestamp)}); skipping.\n`)
+      continue
+    }
     commits.push({
       sha: sha.trim(),
-      timestamp: new Date(timestamp.trim()),
+      timestamp: parsedTimestamp,
       subject: subject.trim(),
       body,
       referencedPrNumbers: extractPrReferences(`${subject} ${body}`),
@@ -244,6 +250,19 @@ interface GhPullRequest {
   title: string
   mergedAt: string
   commits: { authoredDate: string }[]
+}
+
+interface GhCommitDetail {
+  commit?: { author?: { date?: string } }
+}
+
+function parseJsonWithContext<T>(raw: string, context: string): T {
+  try {
+    return JSON.parse(raw) as T
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`${context}: unparseable JSON (${message})`)
+  }
 }
 
 /**
@@ -274,32 +293,43 @@ export function loadMergedPRs(from: Date, to: Date, limit = 100): PullRequest[] 
     ],
     { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 },
   )
-  const rows: Omit<GhPullRequest, 'commits'>[] = JSON.parse(listRaw)
+  const rows = parseJsonWithContext<Omit<GhPullRequest, 'commits'>[]>(listRaw, 'gh pr list')
   if (rows.length === limit) {
     process.stderr.write(`⚠️  Hit --limit ${limit} PRs — lead-time medians may be truncated.\n`)
   }
 
-  return rows.map(row => {
-    let firstCommitAt = new Date(row.mergedAt)
+  return rows.flatMap(row => {
+    const mergedAt = new Date(row.mergedAt)
+    if (Number.isNaN(mergedAt.getTime())) {
+      process.stderr.write(`⚠️  PR #${row.number} has invalid mergedAt (${JSON.stringify(row.mergedAt)}); skipping.\n`)
+      return []
+    }
+    // Null (not `mergedAt`) when the first-commit lookup fails — falling back to
+    // mergedAt would fabricate a 0-second lead time and silently drag the median
+    // toward zero. computeLeadTime filters null out of the sample.
+    let firstCommitAt: Date | null = null
     try {
       const detailRaw = execFileSync('gh', ['api', `repos/{owner}/{repo}/pulls/${row.number}/commits?per_page=1`], {
         encoding: 'utf8',
       })
-      // biome-ignore lint/suspicious/noExplicitAny: gh api returns untyped JSON
-      const detail: any[] = JSON.parse(detailRaw)
-      if (detail.length > 0 && detail[0].commit?.author?.date) {
-        firstCommitAt = new Date(detail[0].commit.author.date)
+      const detail = parseJsonWithContext<GhCommitDetail[]>(detailRaw, `gh api commits for PR #${row.number}`)
+      const dateStr = detail[0]?.commit?.author?.date
+      if (dateStr) {
+        const parsed = new Date(dateStr)
+        if (!Number.isNaN(parsed.getTime())) firstCommitAt = parsed
       }
     } catch (err) {
-      process.stderr.write(`⚠️  PR #${row.number} first-commit lookup failed; using mergedAt.\n`)
-      void err
+      const message = err instanceof Error ? err.message : String(err)
+      process.stderr.write(`⚠️  PR #${row.number} first-commit lookup failed (${message}); excluded from lead-time.\n`)
     }
-    return {
-      number: row.number,
-      mergedAt: new Date(row.mergedAt),
-      firstCommitAt,
-      isFeat: parseConventionalCommit(row.title)?.type === 'feat',
-    }
+    return [
+      {
+        number: row.number,
+        mergedAt,
+        firstCommitAt,
+        isFeat: parseConventionalCommit(row.title)?.type === 'feat',
+      },
+    ]
   })
 }
 
@@ -313,6 +343,9 @@ export function weekBoundaries(week: string): { from: Date; to: Date } {
   if (!match) throw new Error(`Invalid week format: ${week}. Expected YYYY-Www.`)
   const isoYear = Number(match[1])
   const weekNum = Number(match[2])
+  if (weekNum < 1 || weekNum > 53) {
+    throw new Error(`Invalid week number: ${week}. Week must be between 01 and 53.`)
+  }
   // Jan 4 is always in ISO week 1. Find its Monday, then add (week-1) weeks.
   const jan4 = new Date(Date.UTC(isoYear, 0, 4))
   const jan4Day = jan4.getUTCDay() || 7
@@ -322,6 +355,12 @@ export function weekBoundaries(week: string): { from: Date; to: Date } {
   from.setUTCDate(week1Monday.getUTCDate() + (weekNum - 1) * 7)
   const to = new Date(from)
   to.setUTCDate(from.getUTCDate() + 7)
+  // Week 53 only exists in "long" ISO years (71 out of every 400 — 2020, 2026, …).
+  // A request for `2025-W53` computes a Monday that actually belongs to 2026-W01.
+  // Roundtripping through isoWeekOf catches this and prevents a bogus report file.
+  if (isoWeekOf(from) !== week) {
+    throw new Error(`Invalid week: ${week} does not exist in the ISO calendar.`)
+  }
   return { from, to }
 }
 
@@ -407,6 +446,10 @@ function main(): void {
   process.stdout.write(`✅ Wrote ${outPath}\n`)
 }
 
+// Gate main() so importing this file (e.g. from the test file) does not shell
+// out to git/gh. Matching on `process.argv[1]` covers both `tsx dora-metrics.ts`
+// and `pnpm test:dora-metrics`; `import.meta.url` would need URL comparison and
+// buys nothing here since the argv path already exists as a plain string.
 const invokedAsScript = (() => {
   const arg = process.argv[1]
   if (!arg) return false

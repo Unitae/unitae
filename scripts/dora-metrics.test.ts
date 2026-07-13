@@ -92,6 +92,14 @@ describe('parseConventionalCommit', () => {
     expect(parseConventionalCommit('feat!: breaking change')?.type).toBe('feat')
     expect(parseConventionalCommit('feat(api)!: breaking change')?.type).toBe('feat')
   })
+
+  it('accepts unknown types — matches shape, not vocabulary', () => {
+    // Callers filter by known types (`fix`, `feat`) so a permissive parser is
+    // fine. Locking the behavior here so a future author who tightens the regex
+    // doesn't quietly change what `computeFixToFeatRatio` counts.
+    expect(parseConventionalCommit('nonsense: value')?.type).toBe('nonsense')
+    expect(parseConventionalCommit('123: numeric type')?.type).toBe('123')
+  })
 })
 
 describe('isoWeekOf', () => {
@@ -107,6 +115,12 @@ describe('isoWeekOf', () => {
   it('uses the correct year at boundary weeks (2025-12-30 is 2026-W01)', () => {
     // Wed Dec 30 2025 falls in the ISO week that contains Thursday Jan 1 2026.
     expect(isoWeekOf(new Date('2025-12-30T00:00:00Z'))).toBe('2026-W01')
+  })
+
+  it('handles the 53-week ISO year 2020', () => {
+    // 2020-12-31 was a Thursday → belongs to 2020-W53. Guards against a
+    // Math.ceil regression at the 53-week boundary that mid-year tests miss.
+    expect(isoWeekOf(new Date('2020-12-31T00:00:00Z'))).toBe('2020-W53')
   })
 })
 
@@ -163,6 +177,24 @@ describe('computeLeadTime', () => {
 
   it('returns null when no PR merged in the window', () => {
     expect(computeLeadTime([], WEEK_FROM, WEEK_TO)).toBeNull()
+  })
+
+  it('excludes PRs whose firstCommitAt lookup failed (null)', () => {
+    // loadMergedPRs returns null when the per-PR gh api call fails. Falling back
+    // to mergedAt would fabricate a 0-second sample and drag the median toward zero.
+    const prs = [
+      pr({ firstCommitAt: null, mergedAt: new Date('2026-07-14T12:00:00Z') }),
+      pr({
+        firstCommitAt: new Date('2026-07-13T12:00:00Z'),
+        mergedAt: new Date('2026-07-14T12:00:00Z'), // 86400s
+      }),
+    ]
+    expect(computeLeadTime(prs, WEEK_FROM, WEEK_TO)).toBe(86_400)
+  })
+
+  it('returns null when every PR in the window has firstCommitAt = null', () => {
+    const prs = [pr({ firstCommitAt: null, mergedAt: new Date('2026-07-14T12:00:00Z') })]
+    expect(computeLeadTime(prs, WEEK_FROM, WEEK_TO)).toBeNull()
   })
 })
 
@@ -270,6 +302,20 @@ describe('computeHotfixTurnaround', () => {
     })
     expect(computeHotfixTurnaround([fix], [nonFeatPr])).toBeNull()
   })
+
+  it('emits a negative duration when the fix predates the feat (cherry-pick/backport)', () => {
+    // Locking current behavior: a fix cherry-picked from an older branch can
+    // legitimately reference a feat merged after it. Rather than silently clamp
+    // to zero, we surface the negative so a human reader can spot the anomaly.
+    const featPr = pr({ number: 100, isFeat: true, mergedAt: new Date('2026-07-10T00:00:00Z') })
+    const fix = commit({
+      subject: 'fix: cherry-picked',
+      body: 'refs #100',
+      referencedPrNumbers: [100],
+      timestamp: new Date('2026-07-05T00:00:00Z'),
+    })
+    expect(computeHotfixTurnaround([fix], [featPr])).toBe(-60 * 60 * 24 * 5)
+  })
 })
 
 describe('computeWeeklyReport', () => {
@@ -334,7 +380,7 @@ describe('weekBoundaries', () => {
   })
 
   it('roundtrips through isoWeekOf', () => {
-    for (const week of ['2026-W01', '2026-W28', '2025-W52']) {
+    for (const week of ['2026-W01', '2026-W28', '2025-W52', '2020-W53']) {
       const { from } = weekBoundaries(week)
       expect(isoWeekOf(from)).toBe(week)
     }
@@ -343,6 +389,18 @@ describe('weekBoundaries', () => {
   it('rejects malformed input', () => {
     expect(() => weekBoundaries('2026-28')).toThrow(INVALID_WEEK_ERROR_RE)
     expect(() => weekBoundaries('26-W28')).toThrow(INVALID_WEEK_ERROR_RE)
+  })
+
+  it('rejects W53 for a 52-week ISO year (2025)', () => {
+    // Only 71 of every 400 ISO years have 53 weeks. 2025 does not — asking for
+    // 2025-W53 must fail rather than silently roll into 2026-W01.
+    expect(() => weekBoundaries('2025-W53')).toThrow(INVALID_WEEK_ERROR_RE)
+  })
+
+  it('rejects week numbers outside 01-53', () => {
+    expect(() => weekBoundaries('2026-W00')).toThrow(INVALID_WEEK_ERROR_RE)
+    expect(() => weekBoundaries('2026-W54')).toThrow(INVALID_WEEK_ERROR_RE)
+    expect(() => weekBoundaries('2026-W99')).toThrow(INVALID_WEEK_ERROR_RE)
   })
 })
 
@@ -401,6 +459,23 @@ describe('renderMarkdown', () => {
       const md = renderMarkdown({ ...baseReport, leadTimeMedianSeconds: seconds })
       const line = md.split('\n').find(l => l.includes('Lead time')) ?? ''
       expect(line, `duration=${seconds}s`).toContain(suffix)
+    }
+  })
+
+  it('formats exact bucket boundaries', () => {
+    // The `< 60`, `< 3600`, `< 86_400` cutoffs are strict — 60s must promote to
+    // minutes, 3600s to hours, 86_400s to days. Guards against an off-by-one
+    // regression that mid-bucket tests would miss.
+    const boundaries: { seconds: number; expected: string }[] = [
+      { seconds: 59, expected: '59s' },
+      { seconds: 60, expected: '1m' },
+      { seconds: 3600, expected: '1.0h' },
+      { seconds: 86_400, expected: '1.0d' },
+    ]
+    for (const { seconds, expected } of boundaries) {
+      const md = renderMarkdown({ ...baseReport, leadTimeMedianSeconds: seconds })
+      const line = md.split('\n').find(l => l.includes('Lead time')) ?? ''
+      expect(line, `duration=${seconds}s`).toContain(expected)
     }
   })
 
