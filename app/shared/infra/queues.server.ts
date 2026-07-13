@@ -3,4 +3,5 @@ export const QUEUE_NAMES = {
   email: 'emailQueue',
   thumbnail: 'thumbnailQueue',
   dataTransfer: 'dataTransferQueue',
+  retention: 'retentionQueue',
 } as const

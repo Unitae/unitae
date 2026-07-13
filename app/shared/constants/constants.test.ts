@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest'
 
 import {
+  DEFAULT_RETENTION_MONTHS,
   EXPORT_PROGRESS_CAP,
   GEOCODER_CACHE_TTL_SECONDS,
   GEOCODER_MAX_ALTERNATES,
@@ -10,6 +11,7 @@ import {
   IMPORT_TX_TIMEOUT_MS,
   MS_PER_DAY,
   MS_PER_HOUR,
+  RETENTION_CRON_HOUR_UTC,
   SESSION_MAX_AGE_SECONDS_DEV,
   SESSION_MAX_AGE_SECONDS_PROD,
   THREE_DAYS_MS,
@@ -114,5 +116,13 @@ describe('limits — progress / thresholds', () => {
 
   test('GEOCODER_MAX_ALTERNATES is 2', () => {
     expect(GEOCODER_MAX_ALTERNATES).toBe(2)
+  })
+
+  test('DEFAULT_RETENTION_MONTHS is 6 (smallest common EU privacy window)', () => {
+    expect(DEFAULT_RETENTION_MONTHS).toBe(6)
+  })
+
+  test('RETENTION_CRON_HOUR_UTC is 3 (daily 03:00 UTC — quiet hours)', () => {
+    expect(RETENTION_CRON_HOUR_UTC).toBe(3)
   })
 })

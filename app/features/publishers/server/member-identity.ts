@@ -14,6 +14,25 @@ export type MemberIdentityFlags = {
   leftAt: Date | null
 }
 
+// Params for the direct-create path (linking an existing UserAccount to a
+// new Member). Distinct from CreateMemberParams: no email, congregationId
+// and actorId are passed positionally by the aggregate function.
+export type CreateDirectParams = {
+  firstname: string
+  lastname: string
+  isMale: boolean | null
+  birthDate: Date | null
+  baptismDate: Date | null
+  isPublisher: boolean
+  type: PublisherType
+  isHelder: boolean
+  isServant: boolean
+  isAnointed: boolean
+  publisherGroupId: number | null
+  phone: string
+  address: string
+}
+
 export const MEMBER_IDENTITY_SELECT = {
   isPublisher: true,
   type: true,
