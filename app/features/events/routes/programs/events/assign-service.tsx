@@ -7,6 +7,7 @@ import {
   getServiceRoleAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
+import { dispatchAssignmentDiffs } from '~/features/events/server/notify-assignment.server'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
@@ -95,20 +96,38 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
+    const assignmentBefore = await db.programmeServiceRoleAssignment.findFirst({
+      where: { id: assignmentId, congregationId },
+      select: { name: true },
+    })
+
     const result = await assignServiceRole(db, assignmentId, assigneeId, congregationId)
 
-    if ('error' in result && result.error) {
+    if ('error' in result) {
       session.flash('error', result.error)
       logger.warn(`Service role assignment conflict. User ID: ${currentUser.id}. Event: ${eventId}.`)
-    } else {
-      session.flash('success', m.programs_assign_service_success())
-      logger.info(`Assigned service role. User ID: ${currentUser.id}. Event: ${eventId}.`)
+      return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
     }
 
-    return data(
-      { ok: !('error' in result && result.error) },
-      { headers: { 'Set-Cookie': await commitSession(session) } },
+    session.flash('success', m.programs_assign_service_success())
+    logger.info(`Assigned service role. User ID: ${currentUser.id}. Event: ${eventId}.`)
+
+    await dispatchAssignmentDiffs(
+      db,
+      {
+        event: { id: event.id, name: event.name, startDate: event.startDate },
+        assignmentName: assignmentBefore?.name ?? '',
+        entityType: 'ProgrammeServiceRoleAssignment',
+        entityId: assignmentId,
+        congregationId,
+        actorId: currentUser.id,
+        locale: context.get(congregationContext).locale,
+        timezone: context.get(congregationContext).timezone,
+      },
+      [{ role: 'servant', previousMemberId: result.previousAssigneeId, newMemberId: assigneeId }],
     )
+
+    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 

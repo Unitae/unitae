@@ -95,6 +95,7 @@ Failure handling (worker side):
 | File | Types owned |
 |------|-------------|
 | `app/features/display-board/server/notifications.server.tsx` | `board.document.{created,updated,deleted,expiring}` |
+| `app/features/events/server/notifications.server.tsx` | `programme.assignment.{assigned,unassigned}` |
 | `app/features/territories/server/notifications.server.tsx` | `territory.sync.completed` |
 
 Templates live alongside definitions under `app/features/<feature>/emails/`.

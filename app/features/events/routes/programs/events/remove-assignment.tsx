@@ -1,9 +1,15 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import { dispatchAssignmentDiffs } from '~/features/events/server/notify-assignment.server'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -34,12 +40,61 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
+    const notifyEvent = { id: event.id, name: event.name, startDate: event.startDate }
+    const locale = context.get(congregationContext).locale
+    const timezone = context.get(congregationContext).timezone
+
     if (type === 'part') {
-      await unassignPart(db, assignmentId, congregationId)
+      const assignmentBefore = await db.programmePartAssignment.findFirst({
+        where: { id: assignmentId, congregationId },
+        select: { name: true },
+      })
+      const result = await unassignPart(db, assignmentId, congregationId)
       logger.info(`Unassigned part. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
+
+      if (result) {
+        await dispatchAssignmentDiffs(
+          db,
+          {
+            event: notifyEvent,
+            assignmentName: assignmentBefore?.name ?? '',
+            entityType: 'ProgrammePartAssignment',
+            entityId: assignmentId,
+            congregationId,
+            actorId: currentUser.id,
+            locale,
+            timezone,
+          },
+          [
+            { role: 'speaker', previousMemberId: result.previousAssigneeId, newMemberId: null },
+            { role: 'reader', previousMemberId: result.previousAssistantId, newMemberId: null },
+          ],
+        )
+      }
     } else if (type === 'service') {
-      await unassignServiceRole(db, assignmentId, congregationId)
+      const assignmentBefore = await db.programmeServiceRoleAssignment.findFirst({
+        where: { id: assignmentId, congregationId },
+        select: { name: true },
+      })
+      const result = await unassignServiceRole(db, assignmentId, congregationId)
       logger.info(`Unassigned service role. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
+
+      if (result) {
+        await dispatchAssignmentDiffs(
+          db,
+          {
+            event: notifyEvent,
+            assignmentName: assignmentBefore?.name ?? '',
+            entityType: 'ProgrammeServiceRoleAssignment',
+            entityId: assignmentId,
+            congregationId,
+            actorId: currentUser.id,
+            locale,
+            timezone,
+          },
+          [{ role: 'servant', previousMemberId: result.previousAssigneeId, newMemberId: null }],
+        )
+      }
     }
 
     session.flash('success', m.programs_remove_assignment_success())

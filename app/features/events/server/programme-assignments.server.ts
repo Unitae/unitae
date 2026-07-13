@@ -55,6 +55,11 @@ export async function assignPart(
   // message lives in PROGRAMME_ASSIGNMENT_ERRORS so both writers stay in sync.
   if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
 
+  // Captured before the update so the route can diff old vs. new and decide
+  // which members to notify (assigned / unassigned).
+  const previousAssigneeId = existing.assigneeId
+  const previousAssistantId = existing.assistantId
+
   const cleanTopic = sanitizeText(topic)
 
   if (externalSpeakerId != null) {
@@ -70,7 +75,7 @@ export async function assignPart(
       },
       data: { assigneeId: null, assistantId: null, externalSpeakerId, topic: cleanTopic, hasConflict: false },
     })
-    return { assignment }
+    return { assignment, previousAssigneeId, previousAssistantId }
   }
 
   const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
@@ -115,7 +120,7 @@ export async function assignPart(
     data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict: false },
   })
 
-  return { assignment }
+  return { assignment, previousAssigneeId, previousAssistantId }
 }
 
 export async function assignServiceRole(
@@ -129,6 +134,8 @@ export async function assignServiceRole(
     include: { event: true },
   })
   if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
+
+  const previousAssigneeId = existing.assigneeId
 
   if (assigneeId != null) {
     const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignmentId, congregationId)
@@ -153,25 +160,41 @@ export async function assignServiceRole(
     data: { assigneeId, hasConflict: false },
   })
 
-  return { assignment }
+  return { assignment, previousAssigneeId }
 }
 
-export function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
-  return db.programmePartAssignment.update({
+export async function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
+  const existing = await db.programmePartAssignment.findFirst({
+    where: { id: assignmentId, congregationId },
+    select: { assigneeId: true, assistantId: true },
+  })
+  if (!existing) return null
+
+  const assignment = await db.programmePartAssignment.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
     data: { assigneeId: null, assistantId: null, externalSpeakerId: null, hasConflict: false },
   })
+
+  return { assignment, previousAssigneeId: existing.assigneeId, previousAssistantId: existing.assistantId }
 }
 
-export function unassignServiceRole(db: TransactionClient, assignmentId: number, congregationId: number) {
-  return db.programmeServiceRoleAssignment.update({
+export async function unassignServiceRole(db: TransactionClient, assignmentId: number, congregationId: number) {
+  const existing = await db.programmeServiceRoleAssignment.findFirst({
+    where: { id: assignmentId, congregationId },
+    select: { assigneeId: true },
+  })
+  if (!existing) return null
+
+  const assignment = await db.programmeServiceRoleAssignment.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
     data: { assigneeId: null, hasConflict: false },
   })
+
+  return { assignment, previousAssigneeId: existing.assigneeId }
 }
 
 export async function checkDayOffConflict(

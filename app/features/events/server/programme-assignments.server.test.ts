@@ -72,6 +72,37 @@ describe('assignPart', () => {
     expect(result).toHaveProperty('assignment')
   })
 
+  // Consumers (route + notification path) need to diff the old assignee vs
+  // the new one to decide who to notify. Returning the previous IDs alongside
+  // the new assignment keeps the diff logic out of the route.
+  it('returns the previous assigneeId and assistantId on success', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: 8,
+      assistantId: 9,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
+    expect(result).toMatchObject({ previousAssigneeId: 8, previousAssistantId: 9 })
+  })
+
+  it('returns null previous IDs when the assignment had no prior assignee or assistant', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: null,
+      assistantId: null,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
+    expect(result).toMatchObject({ previousAssigneeId: null, previousAssistantId: null })
+  })
+
   it('allows null assigneeId', async () => {
     vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
       id: 1,
@@ -178,6 +209,32 @@ describe('assignServiceRole', () => {
     expect(result).toHaveProperty('assignment')
   })
 
+  it('returns the previous assigneeId on success', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: 8,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+
+    const result = await assignServiceRole(db, 1, 5, 1)
+    expect(result).toMatchObject({ previousAssigneeId: 8 })
+  })
+
+  it('returns null previous ID when the service role had no prior assignee', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: null,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+
+    const result = await assignServiceRole(db, 1, 5, 1)
+    expect(result).toMatchObject({ previousAssigneeId: null })
+  })
+
   it('rejects when assignee is not in the eligible role set', async () => {
     vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
       id: 1,
@@ -193,22 +250,93 @@ describe('assignServiceRole', () => {
 })
 
 describe('unassignPart', () => {
-  it('resets assignee to null', async () => {
+  it('resets assignee to null and returns the updated assignment', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: 8,
+      assistantId: 9,
+    } as never)
     const updated = { id: 1, assigneeId: null, hasConflict: false }
     vi.mocked(db.programmePartAssignment.update).mockResolvedValue(updated as never)
 
     const result = await unassignPart(db, 1, 1)
-    expect(result).toEqual(updated)
+    expect(result).toMatchObject({ assignment: updated })
+  })
+
+  it('returns the previous assigneeId and assistantId so the route can notify them', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: 8,
+      assistantId: 9,
+    } as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    const result = await unassignPart(db, 1, 1)
+    expect(result).toMatchObject({ previousAssigneeId: 8, previousAssistantId: 9 })
+  })
+
+  it('returns null previous IDs when the assignment was already empty', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: null,
+      assistantId: null,
+    } as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    const result = await unassignPart(db, 1, 1)
+    expect(result).toMatchObject({ previousAssigneeId: null, previousAssistantId: null })
+  })
+
+  it('returns null when the assignment does not exist', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
+
+    const result = await unassignPart(db, 999, 1)
+    expect(result).toBeNull()
+    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
   })
 })
 
 describe('unassignServiceRole', () => {
-  it('resets assignee to null', async () => {
+  it('resets assignee to null and returns the updated assignment', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: 8,
+    } as never)
     const updated = { id: 1, assigneeId: null, hasConflict: false }
     vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue(updated as never)
 
     const result = await unassignServiceRole(db, 1, 1)
-    expect(result).toEqual(updated)
+    expect(result).toMatchObject({ assignment: updated })
+  })
+
+  it('returns the previous assigneeId so the route can notify them', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: 8,
+    } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    const result = await unassignServiceRole(db, 1, 1)
+    expect(result).toMatchObject({ previousAssigneeId: 8 })
+  })
+
+  it('returns null previous ID when the service role was already empty', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      assigneeId: null,
+    } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    const result = await unassignServiceRole(db, 1, 1)
+    expect(result).toMatchObject({ previousAssigneeId: null })
+  })
+
+  it('returns null when the assignment does not exist', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue(null as never)
+
+    const result = await unassignServiceRole(db, 999, 1)
+    expect(result).toBeNull()
+    expect(db.programmeServiceRoleAssignment.update).not.toHaveBeenCalled()
   })
 })
 

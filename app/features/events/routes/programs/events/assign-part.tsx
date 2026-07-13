@@ -3,8 +3,8 @@ import { useState } from 'react'
 import { data, Form, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
-import { getPartAssignmentAllowedRoleIds, resolveEligibleUserIds } from '~/features/events/server/allowed-roles.server'
-import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
+import { loadPartAssignmentCandidates } from '~/features/events/server/assign-part-loader.server'
+import { buildAssignmentContext, dispatchAssignmentDiffs } from '~/features/events/server/notify-assignment.server'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
@@ -56,40 +56,14 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     }
 
     const assignment = event.partAssignments.find(a => a.id === assignmentId)
-
-    const users = await db.member.findMany({
-      where: { congregationId, leftAt: null },
-      orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
-    })
-    const userById = new Map(users.map(u => [u.id, u]))
-
-    let speakerCandidates = users
-    let readerCandidates = users
-    if (assignment) {
-      const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
-      const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
-      const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
-      const readerIds = await resolveEligibleUserIds(db, readerAllowed, congregationId)
-      speakerCandidates = speakerIds.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
-      readerCandidates = readerIds.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
-    }
-
-    const externalSpeakers = assignment?.allowExternalSpeaker
-      ? await listExternalSpeakers(db, congregationId, { includeArchived: false })
-      : []
-    const sortedExternalSpeakers = externalSpeakers.slice().sort((a, b) => {
-      const aTime = a.lastVisitDate?.getTime() ?? -Infinity
-      const bTime = b.lastVisitDate?.getTime() ?? -Infinity
-      if (aTime === bTime) return a.name.localeCompare(b.name, 'fr')
-      return aTime - bTime
-    })
+    const candidates = await loadPartAssignmentCandidates(db, assignment, congregationId)
 
     return {
       event,
       assignment,
-      speakerCandidates,
-      readerCandidates,
-      externalSpeakers: sortedExternalSpeakers,
+      speakerCandidates: candidates.speakerCandidates,
+      readerCandidates: candidates.readerCandidates,
+      externalSpeakers: candidates.externalSpeakers,
       timezone: context.get(congregationContext).timezone,
     }
   })
@@ -122,6 +96,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
+    const assignmentBefore = await db.programmePartAssignment.findFirst({
+      where: { id: assignmentId, congregationId },
+      select: { name: true },
+    })
+
     const result = await assignPart(
       db,
       assignmentId,
@@ -132,18 +111,35 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       congregationId,
     )
 
-    if ('error' in result && result.error) {
+    if ('error' in result) {
       session.flash('error', result.error)
       logger.warn(`Assignment conflict. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
-    } else {
-      session.flash('success', m.programs_assign_part_success())
-      logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
+      return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
     }
 
-    return data(
-      { ok: !('error' in result && result.error) },
-      { headers: { 'Set-Cookie': await commitSession(session) } },
+    session.flash('success', m.programs_assign_part_success())
+    logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
+
+    const cong = context.get(congregationContext)
+    await dispatchAssignmentDiffs(
+      db,
+      buildAssignmentContext({
+        event,
+        assignmentName: assignmentBefore?.name,
+        entityType: 'ProgrammePartAssignment',
+        entityId: assignmentId,
+        congregationId,
+        actorId: currentUser.id,
+        locale: cong.locale,
+        timezone: cong.timezone,
+      }),
+      [
+        { role: 'speaker', previousMemberId: result.previousAssigneeId, newMemberId: resolvedAssigneeId },
+        { role: 'reader', previousMemberId: result.previousAssistantId, newMemberId: resolvedAssistantId },
+      ],
     )
+
+    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 
