@@ -2,6 +2,7 @@ import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
+import { displayFirstname } from '~/shared/utils/display-name'
 
 const logger = createLogger('notifications')
 
@@ -39,7 +40,7 @@ export async function resolveRecipients(
 
   const eligible = users
     .filter(u => !disabledUserIds.has(u.id))
-    .map(u => ({ userId: u.id, email: u.email, firstname: u.firstname }))
+    .map(u => ({ userId: u.id, email: u.email, firstname: displayFirstname(u) }))
 
   if (disabledUserIds.size > 0) {
     logger.info('Filtered out users by notification preferences', {

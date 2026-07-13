@@ -7,9 +7,12 @@ Unitae sends email notifications to keep congregation members informed about eve
 | Type | Trigger | Recipients | Delay |
 |------|---------|-----------|-------|
 | **New document on board** | A document is uploaded to the display board | Members with Board Validator | 10 minutes |
-| **Document deletion** | A document is removed from the board | Members with Board Validator | Instant (cancels pending "new document" notifications) |
-| **Documents expiring** | Board documents are approaching their visibility end date | Members with Board Validator | Instant |
-| **Territory sync completed** | The open-data import finishes | The member who triggered the sync | Instant |
+| **Document updated** | A document is edited by a non-validator | Members with Board Validator | 10 minutes |
+| **Document deletion** | A document is removed from the board | Members with Board Validator | Instant (cancels pending "new document" or "updated" notifications) |
+| **Document expiring soon** | Board documents are approaching their visibility end date | Members with Board Validator | Instant |
+| **Open data sync completed** | The open-data import finishes | The member who triggered the sync | Instant |
+
+All types respect user notification preferences and can be individually toggled off.
 
 ## How Debouncing Works
 

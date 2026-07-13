@@ -1,69 +1,9 @@
 import type { Job } from 'bullmq'
-import * as m from '~/i18n/paraglide/messages'
-import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
-import { resolveCongregation } from '~/shared/domain/congregation.server'
-import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
-import { createLogger } from '~/shared/infra/logger.server'
-import { mailer } from '~/shared/infra/mailer.server'
-import { Permission } from '~/shared/types/permission'
-import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
-import DocumentsExpiring from '../emails/documents-expiring'
-import NewDocumentInBoard from '../emails/new-document-in-board'
-
-const logger = createLogger('email-worker')
 
 export function handleEmailWork(job: Job<EmailJobData>): Promise<void> {
-  switch (job.data.type) {
-    case 'new-document-notification':
-      return handleNewDocumentNotification(job.data)
-    case 'documents-expiring':
-      return handleDocumentsExpiring(job.data)
-    case 'notification-digest':
-      return handleNotificationDigest(job.data)
-    case 'notification-instant':
-      return handleNotificationInstant(job.data)
-  }
-}
-
-async function handleNewDocumentNotification(data: Extract<EmailJobData, { type: 'new-document-notification' }>) {
-  const congregation = await resolveCongregation(data.congregationId)
-
-  const document = await unscopedDb.boardDocument.findFirst({
-    where: { id: data.documentId, congregationId: data.congregationId },
-  })
-
-  if (!document) {
-    logger.warn('Document not found for notification, skipping', { documentId: data.documentId })
-    return
-  }
-
-  const accounts = await findAccountsWithPermission(unscopedDb, data.congregationId, Permission.BoardValidator)
-  const validators = accounts.filter(a => a.active)
-
-  await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
-    for (const user of validators) {
-      try {
-        await mailer.emails.send({
-          to: user.email,
-          from: congregation.emailFrom,
-          subject: m.email_board_new_document_subject(),
-          react: (
-            <NewDocumentInBoard
-              email={user.email}
-              firstname={user.firstname ?? undefined}
-              filename={document.title}
-              documentId={document.id}
-              baseUrl={congregation.baseUrl}
-              platformName={congregation.displayName}
-            />
-          ),
-        })
-      } catch (error) {
-        logger.error('Failed to send board notification email', { userId: user.id, documentId: document.id, error })
-      }
-    }
-  })
+  if (job.data.type === 'notification-digest') return handleNotificationDigest(job.data)
+  return handleNotificationInstant(job.data)
 }
 
 async function handleNotificationDigest(data: Extract<EmailJobData, { type: 'notification-digest' }>) {
@@ -74,32 +14,4 @@ async function handleNotificationDigest(data: Extract<EmailJobData, { type: 'not
 async function handleNotificationInstant(data: Extract<EmailJobData, { type: 'notification-instant' }>) {
   const { handleInstantEmail } = await import('../server/handle-notification-email.server')
   return handleInstantEmail(data)
-}
-
-async function handleDocumentsExpiring(data: Extract<EmailJobData, { type: 'documents-expiring' }>) {
-  const congregation = await resolveCongregation(data.congregationId)
-  await runInWorkerContext(data.locale, congregation.timezone, async () => {
-    try {
-      await mailer.emails.send({
-        to: data.validatorEmail,
-        from: data.emailFrom,
-        subject: m.email_board_expiration_subject({ count: data.documents.length }),
-        react: (
-          <DocumentsExpiring
-            email={data.validatorEmail}
-            firstname={data.validatorFirstname}
-            documents={data.documents}
-            baseUrl={data.baseUrl}
-            platformName={data.displayName}
-          />
-        ),
-      })
-    } catch (error) {
-      logger.error('Failed to send expiration notification email', {
-        email: data.validatorEmail,
-        congregationId: data.congregationId,
-        error,
-      })
-    }
-  })
 }

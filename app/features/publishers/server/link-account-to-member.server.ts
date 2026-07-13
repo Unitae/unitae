@@ -20,10 +20,10 @@ interface LinkAccountToMemberParams {
 export async function linkAccountToMember(
   db: TransactionClient,
   params: LinkAccountToMemberParams,
-): Promise<{ accountId: number; resetToken: string }> {
+): Promise<{ accountId: number; resetToken: string; memberFirstname: string }> {
   const member = await db.member.findFirst({
     where: { id: params.memberId, congregationId: params.congregationId },
-    select: { id: true, account: { select: { id: true } } },
+    select: { id: true, firstname: true, account: { select: { id: true } } },
   })
   if (!member) throw new NotFoundError('Member')
   if (member.account) throw new ConflictError('Member already has a linked account')
@@ -56,5 +56,5 @@ export async function linkAccountToMember(
     metadata: { memberId: params.memberId },
   })
 
-  return { accountId: account.id, resetToken }
+  return { accountId: account.id, resetToken, memberFirstname: member.firstname }
 }

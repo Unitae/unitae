@@ -71,6 +71,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     result.accountId,
     <ResetPasswordRequired
       email={submission.value.email}
+      firstname={result.memberFirstname}
       token={result.resetToken}
       baseUrl={congregation.baseUrl}
       platformName={congregation.displayName}

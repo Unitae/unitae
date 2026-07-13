@@ -1,12 +1,11 @@
-import NewDocumentInBoard from '~/features/notifications/emails/new-document-in-board'
-import * as m from '~/i18n/paraglide/messages'
 import { type CongregationInfo, resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
+import { displayFirstname } from '~/shared/utils/display-name'
 import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
-import { boardDocumentCreatedPayloadSchema } from '../schemas/notification-payload.schema'
+import { renderNotificationEmail } from './render-notification-email.server'
 import { resolveRecipients } from './resolve-recipients.server'
 
 const logger = createLogger('notification-email')
@@ -49,14 +48,14 @@ export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'no
     } else if (data.recipientId) {
       const user = await unscopedDb.userAccount.findFirst({
         where: { id: data.recipientId, congregationId: data.congregationId, active: true },
-        select: { id: true, email: true, firstname: true },
+        select: { id: true, email: true, firstname: true, member: { select: { firstname: true } } },
       })
 
       if (user) {
         await sendNotificationToUser(
           data.notificationType,
           data.payload,
-          { userId: user.id, email: user.email, firstname: user.firstname },
+          { userId: user.id, email: user.email, firstname: displayFirstname(user) },
           congregation,
         )
       }
@@ -86,14 +85,14 @@ async function sendEventEmail(
   // Direct recipient
   const user = await unscopedDb.userAccount.findFirst({
     where: { id: recipientId, congregationId, active: true },
-    select: { id: true, email: true, firstname: true },
+    select: { id: true, email: true, firstname: true, member: { select: { firstname: true } } },
   })
 
   if (user) {
     await sendNotificationToUser(
       event.type,
       event.payload,
-      { userId: user.id, email: user.email, firstname: user.firstname },
+      { userId: user.id, email: user.email, firstname: displayFirstname(user) },
       congregation,
     )
   }
@@ -126,42 +125,5 @@ async function sendNotificationToUser(
       userId: recipient.userId,
       error,
     })
-  }
-}
-
-function renderNotificationEmail(
-  notificationType: string,
-  payload: unknown,
-  recipient: { email: string; firstname: string | null },
-  congregation: CongregationInfo,
-): { subject: string; react: React.ReactNode | null } {
-  switch (notificationType) {
-    case 'board.document.created': {
-      const parsed = boardDocumentCreatedPayloadSchema.safeParse(payload)
-      if (!parsed.success) {
-        logger.warn('Invalid payload for board.document.created', { payload, error: parsed.error.message })
-        return { subject: '', react: null }
-      }
-      return {
-        subject: m.email_board_new_document_subject(),
-        react: (
-          <NewDocumentInBoard
-            email={recipient.email}
-            firstname={recipient.firstname ?? undefined}
-            filename={parsed.data.title}
-            documentId={parsed.data.documentId}
-            baseUrl={congregation.baseUrl}
-            platformName={congregation.displayName}
-          />
-        ),
-      }
-    }
-    case 'board.document.deleted':
-      return {
-        subject: m.email_board_new_document_subject(),
-        react: null, // No template yet — will be added in follow-up PR
-      }
-    default:
-      return { subject: '', react: null }
   }
 }

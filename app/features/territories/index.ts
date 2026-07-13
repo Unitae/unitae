@@ -1,5 +1,6 @@
 // Public client-safe surface of the territories feature.
 
+export { default as BuildingSyncDoneEmail } from './emails/buildings-sync-done'
 export {
   buildGeoJsonExport,
   type CardOverlay,
