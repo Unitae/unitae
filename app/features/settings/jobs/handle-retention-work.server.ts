@@ -29,7 +29,7 @@ export async function handleRetentionWork(job: Job<RetentionJobData>): Promise<v
   for (const cong of congregations) {
     try {
       const result = await withScope(cong.id, db =>
-        autoAnonymizeRetentionCandidates(db, cong.id, 0, DEFAULT_RETENTION_MONTHS, now),
+        autoAnonymizeRetentionCandidates(db, cong.id, DEFAULT_RETENTION_MONTHS, now, 0),
       )
       totalAnonymized += result.anonymized
       totalSkipped += result.skipped

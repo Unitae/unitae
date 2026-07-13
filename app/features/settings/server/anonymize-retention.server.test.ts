@@ -3,13 +3,14 @@ import type { MemberId } from '~/shared/types/branded'
 
 const mockAnonymize = vi.fn()
 const mockFindMany = vi.fn()
+const mockAudit = vi.fn()
 
 vi.mock('~/features/publishers/index.server', () => ({
   memberAggregate: { anonymize: mockAnonymize },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({
   AuditAction: { RetentionAutoAnonymized: 'retention.auto_anonymized' },
-  audit: vi.fn(),
+  audit: mockAudit,
 }))
 
 const mockDb = { member: { findMany: mockFindMany } }
@@ -62,12 +63,14 @@ describe('findRetentionCandidates', () => {
   })
 })
 
+// Signature: (db, congregationId, retentionMonths, now, actorId).
+// Actor is last per the aggregate-contract convention: `(db, ...domainParams, actorId)`.
 describe('autoAnonymizeRetentionCandidates', () => {
   it('anonymizes every candidate returned by the finder', async () => {
     mockFindMany.mockResolvedValue([{ id: 10 }, { id: 20 }])
     mockAnonymize.mockResolvedValue(undefined)
 
-    const result = await autoAnonymizeRetentionCandidates(dbCast, 42, 0, 6, new Date('2026-07-01T00:00:00Z'))
+    const result = await autoAnonymizeRetentionCandidates(dbCast, 42, 6, new Date('2026-07-01T00:00:00Z'), 0)
 
     expect(mockAnonymize).toHaveBeenCalledTimes(2)
     expect(mockAnonymize).toHaveBeenCalledWith(dbCast, 10, 42, 0)
@@ -83,16 +86,17 @@ describe('autoAnonymizeRetentionCandidates', () => {
       .mockRejectedValueOnce(new Error('group responsible'))
       .mockResolvedValueOnce(undefined)
 
-    const result = await autoAnonymizeRetentionCandidates(dbCast, 42, 0, 6, new Date('2026-07-01T00:00:00Z'))
+    const result = await autoAnonymizeRetentionCandidates(dbCast, 42, 6, new Date('2026-07-01T00:00:00Z'), 0)
 
     expect(result.anonymized).toBe(2)
     expect(result.skipped).toBe(1)
   })
 
-  it('is a no-op when no candidates are found', async () => {
+  it('is a no-op when no candidates are found — no audit fired', async () => {
     mockFindMany.mockResolvedValue([])
-    const result = await autoAnonymizeRetentionCandidates(dbCast, 42, 0, 6, new Date('2026-07-01T00:00:00Z'))
+    const result = await autoAnonymizeRetentionCandidates(dbCast, 42, 6, new Date('2026-07-01T00:00:00Z'), 0)
     expect(mockAnonymize).not.toHaveBeenCalled()
+    expect(mockAudit).not.toHaveBeenCalled()
     expect(result).toEqual({ anonymized: 0, skipped: 0 })
   })
 
@@ -100,10 +104,41 @@ describe('autoAnonymizeRetentionCandidates', () => {
     mockFindMany.mockResolvedValue([{ id: 10 }])
     mockAnonymize.mockResolvedValue(undefined)
 
-    await autoAnonymizeRetentionCandidates(dbCast, 42, 0, 6, new Date('2026-07-01T00:00:00Z'))
+    await autoAnonymizeRetentionCandidates(dbCast, 42, 6, new Date('2026-07-01T00:00:00Z'), 0)
 
-    // Fourth arg is actorId — 0 = system.
     expect((mockAnonymize.mock.calls[0] as unknown[])[3]).toBe(0)
+  })
+
+  it('emits one audit event when at least one candidate existed (anonymized > 0)', async () => {
+    mockFindMany.mockResolvedValue([{ id: 10 }])
+    mockAnonymize.mockResolvedValue(undefined)
+
+    await autoAnonymizeRetentionCandidates(dbCast, 42, 6, new Date('2026-07-01T00:00:00Z'), 0)
+
+    expect(mockAudit).toHaveBeenCalledOnce()
+    expect(mockAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'retention.auto_anonymized',
+        congregationId: 42,
+        actorId: 0,
+        metadata: { anonymized: 1, skipped: 0, retentionMonths: 6 },
+      }),
+    )
+  })
+
+  it('emits an audit event even when every candidate was skipped (attempt-visibility)', async () => {
+    mockFindMany.mockResolvedValue([{ id: 10 }])
+    mockAnonymize.mockRejectedValueOnce(new Error('group responsible'))
+
+    await autoAnonymizeRetentionCandidates(dbCast, 42, 6, new Date('2026-07-01T00:00:00Z'), 0)
+
+    expect(mockAudit).toHaveBeenCalledOnce()
+    expect(mockAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'retention.auto_anonymized',
+        metadata: { anonymized: 0, skipped: 1, retentionMonths: 6 },
+      }),
+    )
   })
 })
 

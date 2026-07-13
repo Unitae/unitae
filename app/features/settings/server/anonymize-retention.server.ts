@@ -39,15 +39,23 @@ export async function findRetentionCandidates(
  * candidate whose anonymize throws (e.g. because the member is a group's
  * responsible — the aggregate's Wave 8 guard).
  *
+ * Emits an audit event when at least one candidate existed (even if every
+ * candidate was skipped), so auditors can see "we tried and skipped
+ * everyone" instead of the sweep looking as though it never ran. Runs
+ * that found zero candidates stay silent — otherwise the audit log fills
+ * with heartbeat rows.
+ *
  * `actorId = 0` is the convention for system-driven writes: the audit row
  * carries no human actor and downstream UI can render it as "auto".
+ *
+ * Signature follows the aggregate contract: `(db, ...domainParams, actorId)`.
  */
 export async function autoAnonymizeRetentionCandidates(
   db: TransactionClient,
   congregationId: number,
-  actorId: number,
   retentionMonths: number,
   now: Date,
+  actorId: number,
 ): Promise<{ anonymized: number; skipped: number }> {
   const candidates = await findRetentionCandidates(db, congregationId, retentionMonths, now)
 
@@ -68,7 +76,7 @@ export async function autoAnonymizeRetentionCandidates(
     }
   }
 
-  if (anonymized > 0) {
+  if (candidates.length > 0) {
     audit({
       action: AuditAction.RetentionAutoAnonymized,
       congregationId,

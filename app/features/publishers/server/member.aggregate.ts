@@ -35,7 +35,7 @@ async function _loadMemberIdentity(
 // PublisherGroup.responsibleId is a required unique FK — we cannot null it.
 // The admin must reassign the group's responsibility BEFORE anonymize,
 // otherwise the group would retain an inbound pointer to the scrubbed row.
-async function _assertMemberIsNotGroupResponsible(db: TransactionClient, memberId: number): Promise<void> {
+async function _ensureMemberIsNotGroupResponsible(db: TransactionClient, memberId: number): Promise<void> {
   const group = await db.publisherGroup.findFirst({
     where: { responsibleId: memberId },
     select: { id: true, name: true },
@@ -278,7 +278,7 @@ export async function anonymize(
   })
   if (!member) throw new NotFoundError('Member')
   if (member.anonymizedAt) return
-  await _assertMemberIsNotGroupResponsible(db, memberId)
+  await _ensureMemberIsNotGroupResponsible(db, memberId)
 
   await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
