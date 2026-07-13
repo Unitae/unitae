@@ -86,12 +86,6 @@ export const EXEMPT_FILES = new Set<string>([
   // this same PR. Each backfill commit removes its entry from this list.
   // By Commit 8, none of these entries should remain.
   'app/features/authentication/server/send-verification-email.server.ts',
-  'app/features/settings/server/anonymize-account.server.ts',
-  'app/features/settings/server/anonymize-member.server.ts',
-  'app/features/settings/server/anonymize-member.workflow.ts',
-  'app/features/settings/server/audit-log.server.ts',
-  'app/features/settings/server/link-member-to-account.server.ts',
-  'app/features/settings/server/load-territory-settings.server.ts',
 ])
 
 export type Classification =
