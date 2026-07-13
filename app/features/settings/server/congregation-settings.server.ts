@@ -1,3 +1,4 @@
+import { memberAggregate } from '~/features/publishers/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { setSetting } from '~/shared/domain/settings.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -20,15 +21,13 @@ export async function updateCongregationSettings(
   )
 
   if (data.auxiliaryPioneerProfileActivated === 'false') {
-    await db.member.updateMany({
-      where: {
-        congregationId,
-        type: PublisherType.PionnierAuxiliaires,
-      },
-      data: {
-        type: PublisherType.Normal,
-      },
-    })
+    await memberAggregate.bulkUpdateType(
+      db,
+      congregationId,
+      actorId,
+      PublisherType.PionnierAuxiliaires,
+      PublisherType.Normal,
+    )
   }
 
   audit({

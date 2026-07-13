@@ -1,7 +1,7 @@
 import { getFormProps, getInputProps, getTextareaProps, useForm } from '@conform-to/react'
 import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { externalSpeakerSchema } from '~/features/events/schemas/external-speaker.schema'
 import { createExternalSpeaker } from '~/features/events/server/external-speakers.server'
 import * as m from '~/i18n/paraglide/messages'

@@ -1,4 +1,4 @@
-import { createPasswordResetToken } from '~/features/authentication/server/invalidate-account-password.server'
+import { createPasswordResetToken } from '~/features/authentication/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'

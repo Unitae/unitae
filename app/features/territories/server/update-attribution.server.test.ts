@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: { attribution: { update: vi.fn() }, auditLog: { create: vi.fn() } },
+  // aggregate.update runs a findFirst precondition and _assertNoActiveOverlap
+  // (findMany) when dates change. Provide sensible defaults so each test
+  // exercises the update path.
+  unscopedDb: {
+    attribution: { update: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() },
+    auditLog: { create: vi.fn() },
+  },
 }))
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
@@ -11,6 +17,16 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  // Default: existing attribution matches the incoming params so no overlap
+  // check fires (publisherId/dates unchanged). Individual tests override.
+  vi.mocked(db.attribution.findFirst).mockResolvedValue({
+    id: 5,
+    publisherId: 3,
+    territoryId: 42,
+    startDate: new Date('2025-01-01'),
+    endDate: null,
+  } as never)
+  vi.mocked(db.attribution.findMany).mockResolvedValue([])
 })
 
 describe('updateAttribution', () => {

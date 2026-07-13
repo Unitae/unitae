@@ -1,5 +1,5 @@
 import { redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'

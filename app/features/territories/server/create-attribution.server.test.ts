@@ -8,7 +8,8 @@ vi.mock('~/shared/domain/settings.server', () => ({
 vi.mock('~/shared/domain/audit.server', () => ({ AuditAction: {}, audit: vi.fn() }))
 
 const mockDb = {
-  attribution: { create: vi.fn() },
+  // aggregate.assign runs _assertNoActiveOverlap which calls findMany.
+  attribution: { create: vi.fn(), findMany: vi.fn() },
   territory: { findUniqueOrThrow: vi.fn() },
 }
 
@@ -37,6 +38,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(getSetting).mockResolvedValue(undefined)
   mockDb.attribution.create.mockResolvedValue({} as never)
+  mockDb.attribution.findMany.mockResolvedValue([])
   mockDb.territory.findUniqueOrThrow.mockResolvedValue({ type: TerritoryKind.Classical } as never)
 })
 

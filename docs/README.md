@@ -51,7 +51,8 @@ Set up a development environment and understand the codebase.
 Getting started:
 
 - [Development Setup](development/getting-started.md) — Clone, install, and run locally
-- [Coding Conventions](development/coding-conventions.md) — Patterns, philosophy, and rules
+- [Coding Conventions](development/coding-conventions.md) — Style rules, service-layer mechanics, FK rules, language conventions
+- [Architecture Conventions](development/architecture-conventions.md) — Feature shape, `index.ts` boundaries, aggregate doctrine, CQRS-lite, file-size budgets, TDD discipline
 - [CONTRIBUTING.md](../CONTRIBUTING.md) — How to submit a pull request
 
 Architecture and systems:

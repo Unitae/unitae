@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { type FileUpload, MaxFileSizeExceededError, parseFormData } from '@mjackson/form-data-parser'
 import { data, Form, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createDocumentSchema } from '~/features/display-board/schemas/board-document.schema'
 import { createBoardDocument } from '~/features/display-board/server/board-document.server'
 import { saveFile } from '~/features/display-board/server/document.server'
@@ -12,7 +12,7 @@ import {
   validateVisibilityDates,
 } from '~/features/display-board/server/file-validation.server'
 import { thumbnailQueue } from '~/features/display-board/server/thumbnail-queue.server'
-import { notify } from '~/features/notifications/server/notify.server'
+import { notify } from '~/features/notifications/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,

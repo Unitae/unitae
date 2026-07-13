@@ -127,6 +127,25 @@ describe('assignPart', () => {
     expect(result).toHaveProperty('assignment')
     expect(allowedRoles.resolveEligibleUserIds).not.toHaveBeenCalled()
   })
+
+  // Wave 1 bug 4 — regression test.
+  // The same person used to be assignable as both speaker (assigneeId) and
+  // reader (assistantId) of the same programme part, because each was
+  // validated independently for role eligibility and day-off conflict but
+  // never compared to the other.
+  it('rejects when the same person is assigned as both speaker and reader', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5])
+
+    const result = await assignPart(db, 1, 5, 5, null, 'Topic', 1)
+
+    expect(result).toHaveProperty('error')
+    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+  })
 })
 
 describe('assignServiceRole', () => {

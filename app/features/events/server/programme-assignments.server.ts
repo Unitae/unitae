@@ -4,6 +4,13 @@ import {
   getServiceRoleAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
+import {
+  checkEligibleForRole,
+  checkExternalSpeakerValid,
+  checkNoDayOffConflict,
+  checkParticipantsDistinct,
+  PROGRAMME_ASSIGNMENT_ERRORS,
+} from '~/features/events/server/programme-assignment.policy'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -44,7 +51,9 @@ export async function assignPart(
     where: { id: assignmentId, congregationId },
     include: { event: true },
   })
-  if (!existing) return { error: "L'attribution n'existe pas." }
+  // Inlined so TS narrows `existing` for the rest of the writer; the shared
+  // message lives in PROGRAMME_ASSIGNMENT_ERRORS so both writers stay in sync.
+  if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
 
   const cleanTopic = sanitizeText(topic)
 
@@ -52,7 +61,8 @@ export async function assignPart(
     const speaker = await db.externalSpeaker.findFirst({
       where: { id: externalSpeakerId, congregationId, archivedAt: null },
     })
-    if (!speaker) return { error: "Cet orateur externe n'existe pas ou a été archivé." }
+    const invalidSpeaker = checkExternalSpeakerValid(speaker)
+    if (invalidSpeaker) return invalidSpeaker
 
     const assignment = await db.programmePartAssignment.update({
       where: {
@@ -63,12 +73,14 @@ export async function assignPart(
     return { assignment }
   }
 
+  const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
+  if (notDistinct) return notDistinct
+
   if (assigneeId != null) {
     const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'speaker', congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    if (!eligible.includes(assigneeId)) {
-      return { error: "L'orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie." }
-    }
+    const ineligibleSpeaker = checkEligibleForRole(eligible, assigneeId, 'speaker')
+    if (ineligibleSpeaker) return ineligibleSpeaker
     const conflict = await checkDayOffConflict(
       db,
       assigneeId,
@@ -76,15 +88,15 @@ export async function assignPart(
       existing.event.endDate,
       congregationId,
     )
-    if (conflict) return { error: 'Ce proclamateur a une absence durant cette date.' }
+    const speakerConflict = checkNoDayOffConflict(conflict, 'speaker')
+    if (speakerConflict) return speakerConflict
   }
 
   if (assistantId != null) {
     const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'reader', congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    if (!eligible.includes(assistantId)) {
-      return { error: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.' }
-    }
+    const ineligibleReader = checkEligibleForRole(eligible, assistantId, 'reader')
+    if (ineligibleReader) return ineligibleReader
     const conflict = await checkDayOffConflict(
       db,
       assistantId,
@@ -92,7 +104,8 @@ export async function assignPart(
       existing.event.endDate,
       congregationId,
     )
-    if (conflict) return { error: 'Le deuxième orateur a une absence durant cette date.' }
+    const readerConflict = checkNoDayOffConflict(conflict, 'reader')
+    if (readerConflict) return readerConflict
   }
 
   const assignment = await db.programmePartAssignment.update({
@@ -115,14 +128,13 @@ export async function assignServiceRole(
     where: { id: assignmentId, congregationId },
     include: { event: true },
   })
-  if (!existing) return { error: "L'attribution n'existe pas." }
+  if (!existing) return { error: PROGRAMME_ASSIGNMENT_ERRORS.assignmentNotFound }
 
   if (assigneeId != null) {
     const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignmentId, congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    if (!eligible.includes(assigneeId)) {
-      return { error: 'Le proclamateur sélectionné ne fait pas partie des rôles autorisés pour ce service.' }
-    }
+    const ineligible = checkEligibleForRole(eligible, assigneeId, 'servant')
+    if (ineligible) return ineligible
     const conflict = await checkDayOffConflict(
       db,
       assigneeId,
@@ -130,7 +142,8 @@ export async function assignServiceRole(
       existing.event.endDate,
       congregationId,
     )
-    if (conflict) return { error: 'Ce proclamateur a une absence durant cette date.' }
+    const dayOff = checkNoDayOffConflict(conflict, 'servant')
+    if (dayOff) return dayOff
   }
 
   const assignment = await db.programmeServiceRoleAssignment.update({

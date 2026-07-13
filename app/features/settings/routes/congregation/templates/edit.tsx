@@ -4,7 +4,8 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
+import { InlineDeleteDialog, PartEditSheet, ServiceEditSheet, SortableRow } from '~/features/events'
 import {
   deleteTemplatePart,
   deleteTemplateServiceRole,
@@ -13,11 +14,7 @@ import {
   updateTemplate,
   upsertTemplatePart,
   upsertTemplateServiceRole,
-} from '~/features/events/server/programme-templates.server'
-import { InlineDeleteDialog } from '~/features/events/ui/InlineDeleteDialog'
-import { PartEditSheet } from '~/features/events/ui/PartEditSheet'
-import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
-import { SortableRow } from '~/features/events/ui/SortableRow'
+} from '~/features/events/index.server'
 import {
   deletePartSchema,
   deleteServiceRoleSchema,

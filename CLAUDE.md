@@ -22,17 +22,21 @@ Core features: territory management with building prospection, publisher activit
 
 1. **ALWAYS read files before modifying** — Never propose changes to code you haven't seen
 2. **Follow feature-based architecture strictly**:
-   - Business logic → `features/*/server/*.server.ts`
+   - Public boundary → `features/*/index.ts` (client-safe re-exports: types, UI, model helpers, schemas) + `features/*/index.server.ts` (server-only re-exports: services, aggregates, queries, workflows). Split enforced by `pnpm test:server-barrel-exports`.
+   - Business logic → `features/*/server/*.server.ts` (writes in `*.aggregate.ts`, reads in queries files — see [CQRS-lite](docs/development/architecture-conventions.md#cqrs-lite-readwrite-split-within-a-feature))
    - Route handlers → `features/*/routes/*.tsx`
    - Feature-specific UI → `features/*/ui/`
    - Type definitions → `features/*/model/*.type.ts`
    - Form schemas → `features/*/schemas/*.schema.ts`
 3. **Zero inline DB writes in routes** — `db.*.create()`, `db.*.update()`, `db.*.delete()` calls belong in service functions, never in route loaders or actions
-4. **Always use `withScopeFromContext`** — Every authenticated route that touches the DB must wrap its logic in `withScopeFromContext(context, async db => { ... })`
-5. **Thread `actorId`** — Every service function that writes data must accept `actorId: number` and call `audit()` after the write
-6. **No `throw redirect()` in service functions** — Redirects are only allowed in route guards, middleware, and session validation
-7. **Black-box testing** — Assert on observable outcomes; never spy on implementations
-8. **TypeScript strict mode** — Never use `any`; always define proper interfaces
+4. **Cross-feature imports only via the two barrels** — `~/features/X` for client-safe things (types, UI, model helpers); `~/features/X/index.server` for server functions. Never deep-import into another feature's `server/`, `ui/`, or `model/`. The only exemption is `features/dashboard/`, the documented cross-feature aggregator. See [Architecture Conventions](docs/development/architecture-conventions.md#feature-boundary-rule).
+5. **Always use `withScopeFromContext`** — Every authenticated route that touches the DB must wrap its logic in `withScopeFromContext(context, async db => { ... })`
+6. **Thread `actorId`** — Every service function that writes data must accept `actorId: number` and call `audit()` after the write
+7. **No `throw redirect()` in service functions** — Redirects are only allowed in route guards, middleware, and session validation
+8. **Black-box testing** — Assert on observable outcomes; never spy on implementations
+9. **TypeScript strict mode** — Never use `any`; always define proper interfaces
+10. **Mutations to aggregate-owned entities go through the aggregate** — `Member`, `Attribution`, and `ProgrammeAssignment` invariants live in `*.aggregate.ts` / `*.policy.ts` files. Direct `db.member.update`/`db.attribution.create` outside those files fails `pnpm test:aggregate-boundaries`.
+11. **Follow TDD when the architecture-conventions doc requires it** — for new service functions (`app/features/*/server/`) and bug regressions, **write the failing test first**, run it, **watch it fail**, then implement. Do not author the test and the code in the same save. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) — colocation is enforced by `pnpm test:service-test-coverage`, coverage floor by the vitest threshold.
 
 ### After Making Changes
 
@@ -40,6 +44,12 @@ Run the complete quality check:
 
 ```bash
 pnpm test:unit && pnpm test:lint && pnpm test:typecheck
+```
+
+New service files must have a co-located test — verify with:
+
+```bash
+pnpm test:service-test-coverage
 ```
 
 For integration tests (require a live database):
@@ -160,6 +170,10 @@ Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
 | Pattern | Purpose |
 |---------|---------|
 | `*.server.ts` | Server-only code (not importable from client bundles) |
+| `*.aggregate.ts` | Aggregate root — owns mutations + invariants for a domain entity (e.g., `member.aggregate.ts`) |
+| `*.workflow.ts` | Cross-aggregate orchestration for a single user action (e.g., `anonymize-member.workflow.ts` calls both `memberAggregate.anonymize` and `attributionAggregate.markReturnedForPublisher`) |
+| `*.queries.ts` | Read-only query helpers (CQRS-lite read side) |
+| `*.policy.ts` | Pure-function invariant checks shared across mutators (e.g., `programme-assignment.policy.ts`) |
 | `*.type.ts` | TypeScript type/interface definitions |
 | `*.schema.ts` | Conform + Zod form validation schemas |
 | `*.routes.ts` | Route configuration |
@@ -167,6 +181,26 @@ Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
 | `handle-*-work.server.ts` | Background job handlers |
 | PascalCase `.tsx` | React components |
 | camelCase `.ts` | Utilities and services |
+
+### File-size budgets
+
+Files have soft (warning) and hard (CI failure) line limits. See [Architecture Conventions › File-size Budgets](docs/development/architecture-conventions.md#file-size-budgets) for the full table. Quick reference:
+
+| Pattern | Soft | Hard |
+|---|---|---|
+| `*.server.ts`, `*.aggregate.ts` | 200 | 350 |
+| Route `*.tsx` | 150 | 300 |
+| Component `*.tsx` | 200 | 400 |
+
+Tests and generated code are exempt.
+
+### Pre-commit and pre-push hooks
+
+`lefthook` runs two stages:
+- **Pre-commit** (fast — keeps the inner loop tight): Biome lint on staged files + unit tests for changed files.
+- **Pre-push** (heavier — catches before CI): full typecheck + file-size budget check.
+
+Installed automatically via `pnpm install` (triggers `lefthook install` from the `prepare` script). `--no-verify` is allowed only when the hook itself is broken; CI gates the merge regardless of bypass.
 
 ## Testing Strategy
 
@@ -187,6 +221,15 @@ Enforced by **Biome 2.4.13** (`pnpm build:format` auto-fixes most issues):
 - Auth helper in `app/tests/e2e/helpers/auth.ts`
 - Use `test.skip()` gracefully when optional features are absent
 - `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` env vars for credentials
+
+### TDD expectations
+
+Test-Driven Development applies to two situations specifically:
+
+- **New service functions** — write the test first. The test describes the contract; the implementation conforms to it.
+- **Bug regressions** — write a failing test that reproduces the bug *before* writing the fix. The test stays as a regression guard.
+
+Aggregate invariant tests should aim for 100% branch coverage of the `_assert*` helpers. TDD is **not** required for route components, glue code, or migrations. See [Architecture Conventions › TDD Discipline](docs/development/architecture-conventions.md#tdd-discipline) for the full rules.
 
 ## Architecture Patterns
 
@@ -295,6 +338,9 @@ await createTerritory(db, ...)
 
 - ❌ **Don't put business logic in routes** — Delegate to service functions in `features/*/server/`
 - ❌ **Don't write `db.*.create/update/delete` in route files** — Zero inline DB writes in routes
+- ❌ **Don't bypass aggregates** — `db.member.update`, `db.attribution.create`, etc. outside their respective `*.aggregate.ts` files fails `pnpm test:aggregate-boundaries`. Call the aggregate's exported function instead. Allowlist: `import-*.server.ts` orchestrators, `*.test.*` files, and `app/tests/` infra.
+- ❌ **Don't mix reads and writes in one file** — `*.aggregate.ts` files do not export `findMany`/`count`/`aggregate` helpers (single-row `findFirst`/`findUnique` are fine for preconditions); query files do not call `create`/`update`/`delete`. See [CQRS-lite](docs/development/architecture-conventions.md#cqrs-lite-readwrite-split-within-a-feature).
+- ❌ **Don't deep-import another feature** — Import from `~/features/X` (client-safe) or `~/features/X/index.server` (server-only), not `~/features/X/server/...` or `~/features/X/ui/...`. Enforced by `pnpm test:boundaries` + `pnpm test:server-barrel-exports`.
 - ❌ **Don't `throw redirect()` from service functions** — Only in route guards and middleware
 - ❌ **Don't use `findUnique` on compound keys** — `Setting` and `EventKind` have `[key, congregationId]` compound unique; use `findFirst({ where: { key } })` instead
 - ❌ **Don't use `prisma migrate dev` in CI/scripts** — Non-interactive; use `migrate diff` + `migrate deploy`
@@ -309,14 +355,15 @@ await createTerritory(db, ...)
 - **`.env` files are not readable** via the Read tool or `cat` — derive env vars by grepping `process.env\.` in `app/`.
 - **Job handlers** live in `app/features/{feature}/jobs/handle-*-work.server.ts`, not under `server/`. Worker imports them from `app/workers/worker.server.ts`.
 - **Email templates** are colocated per feature (`app/features/{feature}/emails/*.tsx`); the `pnpm start:emails` dev server is configured with `--dir app/features`.
-- **Built-in role memberships are auto-synced** from `Member` flags. After editing `isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, or `leftAt` on a `Member`, call `syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)` (`app/shared/domain/built-in-roles.server.ts`). Identity-role assignments live on `MemberRoleAssignment`; management/custom roles on `UserRoleAssignment` (UserAccount-bound).
+- **Built-in role memberships are auto-synced** from `Member` flags (`isPublisher`, `type`, `isMale`, `baptismDate`, `isAnointed`, `isHelder`, `isServant`, `leftAt`). All `Member` mutations go through `app/features/publishers/server/member.aggregate.ts`, which calls `syncBuiltInRoleAssignments` internally — callers never invoke it directly. Route callers use `memberAggregate.setLifecycle('left'|'returned'|'active'|'inactive')`, `togglePublisher`, `updateIdentity`, etc. Identity-role assignments live on `MemberRoleAssignment`; management/custom roles on `UserRoleAssignment` (UserAccount-bound).
+- **Member anonymize preconditions** (Wave 8): `memberAggregate.anonymize` throws `ConflictError` if the member is a `PublisherGroup.responsible` — the FK is required + unique in the schema, so admins must reassign the group's responsibility first. On success it nulls `Member.publisherGroupId` and clears any `PublisherGroup.deputyId` pointing at the member.
 - **Member vs UserAccount FK rule of thumb**: action requires login → `UserAccount`; subject is a person in the congregation → `Member`. See `docs/development/coding-conventions.md` for the full table.
 
 ## Known gaps
 
 - **Notification recipient resolver** (`app/features/notifications/server/resolve-recipients.server.ts`) reads `CongregationUserPermission` directly; users whose permission comes only through a custom `UserRoleAssignment` aren't picked up.
 - **Pre-2.0 archive import**: handled by `migrateLegacyUsersNdjson` in `import-congregation.server.ts` — v1.x archives are split into `members.ndjson` + `user-accounts.ndjson` in memory before the regular import path runs. Placeholder-email accounts (`*.placeholder.unitae.app`) are dropped on the fly.
-- **Automatic anonymization cron**: anonymizing a left member is manual-only today (action available from the admin Users list). A retention cron would auto-anonymize after N months; not yet implemented.
+- **Retention cron** (Wave 8): a daily BullMQ scheduled job (`app/features/settings/jobs/handle-retention-work.server.ts`) auto-anonymizes members whose `leftAt` is older than `DEFAULT_RETENTION_MONTHS` (6). Runs at `RETENTION_CRON_HOUR_UTC` (03:00 UTC). Skips group responsibles with a warning log (they need admin reassignment first — anonymize would throw `ConflictError`). Per-congregation override for the retention window is a future wave.
 
 ## Environment Configuration
 
@@ -405,9 +452,10 @@ Detailed guides are in `docs/development/`:
 
 | File | Content |
 |------|---------|
+| `architecture-conventions.md` | Feature shape, `index.ts` boundaries, aggregate doctrine, CQRS-lite, file-size budgets, TDD discipline |
 | `architecture.md` | Request flow, multi-tenancy model, audit logging patterns |
 | `row-level-security.md` | PostgreSQL RLS policies, `withScope`, connection pool safety |
-| `coding-conventions.md` | Feature-based structure, naming rules, service layer contracts |
+| `coding-conventions.md` | Style rules, service layer mechanics, Member vs UserAccount FK rule, language conventions |
 | `background-processing.md` | BullMQ worker architecture, queue names, job data shapes |
 | `getting-started.md` | Local environment setup from scratch |
 

@@ -1,5 +1,6 @@
-import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import type { MemberId } from '~/shared/types/branded'
+import * as memberAggregate from './member.aggregate'
 
 const INACTIVE_STREAK_THRESHOLD = 6
 
@@ -90,33 +91,23 @@ function isMissedPreachReport(activity: { isPublisher: boolean; hours: number | 
 }
 
 async function setInactive(db: TransactionClient, params: EvaluateInactiveStatusParams) {
-  await db.member.update({
-    where: { id_congregationId: { id: params.publisherId, congregationId: params.congregationId } },
-    data: { inactiveAt: new Date() },
-  })
-
-  audit({
-    action: AuditAction.PublisherInactivated,
-    congregationId: params.congregationId,
-    actorId: params.actorId,
-    entityType: 'Member',
-    entityId: params.publisherId,
-    metadata: { trigger: params.trigger },
-  })
+  await memberAggregate.setLifecycle(
+    db,
+    params.publisherId as MemberId,
+    params.congregationId,
+    params.actorId,
+    'inactive',
+    params.trigger,
+  )
 }
 
 async function clearInactive(db: TransactionClient, params: EvaluateInactiveStatusParams) {
-  await db.member.update({
-    where: { id_congregationId: { id: params.publisherId, congregationId: params.congregationId } },
-    data: { inactiveAt: null },
-  })
-
-  audit({
-    action: AuditAction.PublisherReactivated,
-    congregationId: params.congregationId,
-    actorId: params.actorId,
-    entityType: 'Member',
-    entityId: params.publisherId,
-    metadata: { trigger: params.trigger },
-  })
+  await memberAggregate.setLifecycle(
+    db,
+    params.publisherId as MemberId,
+    params.congregationId,
+    params.actorId,
+    'active',
+    params.trigger,
+  )
 }

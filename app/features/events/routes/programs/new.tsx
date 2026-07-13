@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { useMemo, useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { computeDatesForWeekdayCount } from '~/features/events/model/compute-dates'
 import { dayLabel } from '~/features/events/model/day-label'
 import {

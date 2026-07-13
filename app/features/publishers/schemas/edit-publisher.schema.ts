@@ -1,9 +1,11 @@
 import { z } from 'zod'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { nameSchema } from '~/shared/utils/name'
+import { phoneSchema } from '~/shared/utils/phone'
 
 export const updatePublisherSchema = z.object({
-  firstname: z.string().min(1),
-  lastname: z.string().min(1),
+  firstname: nameSchema,
+  lastname: nameSchema,
   email: z.string().email().optional().or(z.literal('')),
   gender: z.string(),
   birthDate: z.string().optional().or(z.literal('')),
@@ -22,7 +24,7 @@ export const updatePublisherSchema = z.object({
     .transform(v => v === 'on'),
   group: z.coerce.number().optional(),
   type: z.nativeEnum(PublisherType),
-  phone: z.string().optional().default(''),
+  phone: phoneSchema,
   address: z.string().optional().default(''),
 })
 

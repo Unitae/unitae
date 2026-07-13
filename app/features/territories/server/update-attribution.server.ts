@@ -1,53 +1,19 @@
-import type { Prisma } from '~/database/generated/client'
-import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import * as attributionAggregate from './attribution.aggregate'
 
-export interface UpdateAttributionParams {
-  publisherId: number
-  notes: string
-  type: TerritoryAttributionKind
-  startDate: Date
-  lateDate?: Date
-  endDate?: Date
-}
+/**
+ * Update an existing attribution. Thin delegator; the invariants
+ * (`_assertNoActiveOverlap` when dates change, audit) live in
+ * `attribution.aggregate.update`.
+ */
+export type UpdateAttributionParams = attributionAggregate.UpdateAttributionParams
 
-export async function updateAttribution(
+export function updateAttribution(
   db: TransactionClient,
   id: number,
   congregationId: number,
   actorId: number,
   params: UpdateAttributionParams,
 ) {
-  const updateData: Prisma.XOR<Prisma.AttributionUpdateInput, Prisma.AttributionUncheckedUpdateInput> = {
-    publisherId: params.publisherId,
-    notes: params.notes,
-    type: params.type,
-    startDate: params.startDate,
-  }
-
-  if (params.lateDate != null) {
-    updateData.lateDate = params.lateDate
-  }
-
-  if (params.endDate != null) {
-    updateData.endDate = params.endDate
-  }
-
-  const attribution = await db.attribution.update({
-    where: {
-      id_congregationId: { id, congregationId },
-    },
-    data: updateData,
-  })
-
-  audit({
-    action: AuditAction.AttributionUpdated,
-    congregationId,
-    actorId,
-    entityType: 'Attribution',
-    entityId: id,
-  })
-
-  return attribution
+  return attributionAggregate.update(db, id, congregationId, actorId, params)
 }

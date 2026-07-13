@@ -1,0 +1,39 @@
+# Git hooks managed by lefthook.
+#
+# Pre-commit must stay FAST so contributors don't reach for `--no-verify`
+# reflexively. Linting only staged files and running tests for changed
+# modules typically completes in seconds.
+#
+# Pre-push runs the heavier checks (full typecheck, file-size budget)
+# so CI failures are caught locally without gating every save-and-commit
+# cycle.
+#
+# Bypass `--no-verify` is allowed only when the hook itself is broken;
+# CI gates the merge regardless. See
+# docs/development/architecture-conventions.md#pre-commit-contract.
+
+pre-commit:
+  parallel: true
+  commands:
+    lint:
+      glob: '*.{ts,tsx,js,jsx,json}'
+      run: pnpm biome check --no-errors-on-unmatched {staged_files}
+    unit-tests:
+      glob: '*.{ts,tsx}'
+      run: pnpm test:unit --changed
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: pnpm test:typecheck
+    file-sizes:
+      run: pnpm test:file-sizes
+    boundaries:
+      run: pnpm test:boundaries
+    aggregate-boundaries:
+      run: pnpm test:aggregate-boundaries
+    server-barrel-exports:
+      run: pnpm test:server-barrel-exports
+    service-test-coverage:
+      run: pnpm test:service-test-coverage

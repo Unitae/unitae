@@ -8,7 +8,7 @@ import {
   nameMatches,
   partMatchesQuery,
 } from '~/features/display-board/model/programme-display'
-import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
+import { groupPartsBySlot } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { EmptyState } from '~/shared/ui/EmptyState'

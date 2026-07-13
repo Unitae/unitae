@@ -1,12 +1,11 @@
+import { memberAggregate } from '~/features/publishers/index.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AccountId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export interface LinkMemberToAccountParams {
   accountId: AccountId
@@ -56,33 +55,26 @@ export async function linkMemberToAccount(
   const firstname = params.firstname ?? account.firstname ?? ''
   const lastname = params.lastname ?? account.lastname ?? ''
 
-  const member = await db.member.create({
-    data: {
-      firstname,
-      lastname,
-      firstnameNormalized: stripDiacritics(firstname),
-      lastnameNormalized: stripDiacritics(lastname),
-      isMale: params.isMale,
-      birthDate: params.birthDate,
-      baptismDate: params.baptismDate,
-      isPublisher: params.isPublisher,
-      type: params.type,
-      isHelder: params.isHelder,
-      isServant: params.isServant,
-      isAnointed: params.isAnointed,
-      publisherGroupId: params.publisherGroupId,
-      phone: params.phone,
-      address: params.address,
-      congregationId: params.congregationId,
-    },
+  const member = await memberAggregate.createDirect(db, params.congregationId, params.actorId, {
+    firstname,
+    lastname,
+    isMale: params.isMale,
+    birthDate: params.birthDate,
+    baptismDate: params.baptismDate,
+    isPublisher: params.isPublisher,
+    type: params.type,
+    isHelder: params.isHelder,
+    isServant: params.isServant,
+    isAnointed: params.isAnointed,
+    publisherGroupId: params.publisherGroupId,
+    phone: params.phone,
+    address: params.address,
   })
 
   await db.userAccount.update({
     where: { id: account.id },
     data: { memberId: member.id, firstname: null, lastname: null },
   })
-
-  await syncBuiltInRoleAssignments(db, member.id, params.congregationId, params.actorId)
 
   audit({
     action: AuditAction.AccountLinkedToMember,

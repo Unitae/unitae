@@ -1,9 +1,8 @@
+import { memberAggregate } from '~/features/publishers/index.server'
 import { requireNotLastAdmin } from '~/shared/auth/permissions.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
-import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { Permission } from '~/shared/types/permission'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export interface UpdateAccountParams {
   firstname: string
@@ -58,16 +57,14 @@ export async function updateAccount(
   })
 
   if (existing?.memberId != null) {
-    await db.member.update({
-      where: { id: existing.memberId },
-      data: {
-        firstname: params.firstname,
-        lastname: params.lastname,
-        firstnameNormalized: stripDiacritics(params.firstname),
-        lastnameNormalized: stripDiacritics(params.lastname),
-      },
-    })
-    await syncBuiltInRoleAssignments(db, existing.memberId, congregationId, actorId)
+    await memberAggregate.updateAccountName(
+      db,
+      existing.memberId,
+      congregationId,
+      actorId,
+      params.firstname,
+      params.lastname,
+    )
   }
 
   // Update congregation-scoped permissions: delete existing, create new

@@ -2,7 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { Pencil, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { data, Form, Link, redirect } from 'react-router'
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import {
   EntranceKind,
   entranceKindLabels as getEntranceKindLabels,

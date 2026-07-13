@@ -1,7 +1,7 @@
 import { CalendarCheck, Lock, Pencil, X } from 'lucide-react'
 import React from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
-import { getGroups } from '~/features/publishers/server/groups.server'
+import { getGroups } from '~/features/publishers/index.server'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { computeFilters } from '~/features/territories/server/attribution-filters.server'
 import { findActiveAttributionsPaginated } from '~/features/territories/server/attributions.server'

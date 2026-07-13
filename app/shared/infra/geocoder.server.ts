@@ -1,4 +1,5 @@
 import { Client, Status } from '@googlemaps/google-maps-services-js'
+import { GEOCODER_CACHE_TTL_SECONDS, GEOCODER_MAX_ALTERNATES } from '~/shared/constants/limits'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import logger from './logger.server'
 import { redis } from './redis.server'
@@ -22,7 +23,6 @@ export interface GeocodeResult {
   alternates: GeocodeAlternate[]
 }
 
-const CACHE_TTL_SECONDS = 60 * 60 * 24 * 90 // 90 days — geocoded addresses are stable
 const CACHE_PREFIX = 'geocode:v1:'
 const MAX_KEY_LENGTH = 200
 const REQUEST_TIMEOUT_MS = 5000
@@ -95,7 +95,7 @@ export async function geocode(rawQuery: string): Promise<GeocodeResult | null> {
         lat: top.geometry.location.lat,
         lng: top.geometry.location.lng,
         locationType: normalizeLocationType(top.geometry.location_type),
-        alternates: rest.slice(0, 2).map(alt => ({
+        alternates: rest.slice(0, GEOCODER_MAX_ALTERNATES).map(alt => ({
           formatted: alt.formatted_address,
           placeId: alt.place_id,
         })),
@@ -119,7 +119,7 @@ export async function geocode(rawQuery: string): Promise<GeocodeResult | null> {
 
   if (shouldCache) {
     try {
-      await redis.set(cacheRedisKey, result == null ? '' : JSON.stringify(result), 'EX', CACHE_TTL_SECONDS)
+      await redis.set(cacheRedisKey, result == null ? '' : JSON.stringify(result), 'EX', GEOCODER_CACHE_TTL_SECONDS)
     } catch (error) {
       logger.error('Geocoder cache write failed', { query, error: (error as Error).message })
     }

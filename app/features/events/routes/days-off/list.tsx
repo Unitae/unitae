@@ -1,6 +1,6 @@
 import { CalendarOff, X } from 'lucide-react'
 import { Link } from 'react-router'
-import { getSession } from '~/features/authentication/server/session.server'
+import { getSession } from '~/features/authentication/index.server'
 import { getNextDaysOffs } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'

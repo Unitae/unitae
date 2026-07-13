@@ -1,7 +1,7 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 
-import { commitSession, getSession } from '~/features/authentication/server/session.server'
+import { commitSession, getSession } from '~/features/authentication/index.server'
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
 import * as m from '~/i18n/paraglide/messages'

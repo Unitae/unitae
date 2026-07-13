@@ -1,4 +1,4 @@
-import { setMemberInactive } from '~/features/publishers/server/set-member-inactive.server'
+import { memberAggregate } from '~/features/publishers/index.server'
 import * as m from '~/i18n/paraglide/messages'
 
 import { runLifecycleAction } from './_lifecycle-action.server'
@@ -9,7 +9,8 @@ export function action({ request, params, context }: Route.ActionArgs) {
     request,
     params,
     context,
-    action: setMemberInactive,
+    action: (db, memberId, congregationId, actorId) =>
+      memberAggregate.setLifecycle(db, memberId, congregationId, actorId, 'inactive'),
     successMessage: name => m.publishers_view_mark_as_inactive_success({ name }),
     errorMessage: name => m.publishers_view_mark_as_inactive_error({ name }),
   })

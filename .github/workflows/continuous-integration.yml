@@ -34,8 +34,39 @@ jobs:
       - name: Check cross-feature import boundaries
         run: pnpm test:boundaries
 
+      - name: Check aggregate boundaries (CQRS-lite)
+        run: pnpm test:aggregate-boundaries
+
+      - name: Check server barrel exports (client/server split)
+        run: pnpm test:server-barrel-exports
+
+      - name: Check service-file test colocation (TDD rollout)
+        run: pnpm test:service-test-coverage
+
       - name: Security audit
         run: pnpm audit --audit-level=high
+
+  file-sizes:
+    name: File-size Budget
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check file-size budgets
+        run: pnpm test:file-sizes
 
   typecheck:
     name: Typecheck
@@ -84,8 +115,8 @@ jobs:
       - name: Generate Prisma client
         run: pnpm prisma generate
 
-      - name: Run unit tests
-        run: pnpm test:unit
+      - name: Run unit tests with coverage
+        run: pnpm test:unit:coverage
 
   integration:
     name: Integration Tests

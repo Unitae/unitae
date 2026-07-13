@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { flushPendingAuditWrites } from '~/shared/domain/audit.server'
 import { ValidationError } from '~/shared/errors/app-error.server'
 
 const adapter = new PrismaPg({
@@ -175,6 +176,8 @@ describe('updateTerritory (integration)', () => {
     expect(target?.entrances.map(e => e.id)).toEqual([entranceShared])
     expect(source?.entrances).toEqual([])
 
+    // audit() is fire-and-forget — wait for the write to settle before polling.
+    await flushPendingAuditWrites()
     const auditLog = await testDb.auditLog.findFirst({
       where: {
         action: 'entrance.reassigned',
