@@ -1,6 +1,5 @@
+import { TWO_WEEKS_MS } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
-
-const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000
 
 export type TerritoryStatus = 'on-time' | 'due-soon' | 'overdue'
 

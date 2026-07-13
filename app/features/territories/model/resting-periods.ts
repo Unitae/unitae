@@ -1,4 +1,4 @@
-const MS_PER_DAY = 24 * 60 * 60 * 1000
+import { MS_PER_DAY } from '~/shared/constants/limits'
 
 // Single source of truth — day counts surfaced via tooltips and SQL helpers.
 export const RESTING_PERIOD_DAYS = {

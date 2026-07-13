@@ -1,17 +1,23 @@
 import { Queue } from 'bullmq'
+import {
+  EMAIL_QUEUE_ATTEMPTS,
+  EMAIL_QUEUE_BACKOFF_MS,
+  EMAIL_QUEUE_REMOVE_ON_COMPLETE,
+  EMAIL_QUEUE_REMOVE_ON_FAIL,
+} from '~/shared/constants/queue-delays'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { getBullMQConnection } from '~/shared/infra/redis.server'
 
 export const emailQueue = new Queue(QUEUE_NAMES.email, {
   connection: getBullMQConnection(),
   defaultJobOptions: {
-    attempts: 3,
+    attempts: EMAIL_QUEUE_ATTEMPTS,
     backoff: {
       type: 'exponential',
-      delay: 5000,
+      delay: EMAIL_QUEUE_BACKOFF_MS,
     },
-    removeOnComplete: 10,
-    removeOnFail: 20,
+    removeOnComplete: EMAIL_QUEUE_REMOVE_ON_COMPLETE,
+    removeOnFail: EMAIL_QUEUE_REMOVE_ON_FAIL,
   },
 })
 

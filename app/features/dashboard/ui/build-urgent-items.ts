@@ -6,6 +6,7 @@ import type {
   getUserTerritories,
 } from '~/features/dashboard/server/dashboard.server'
 import * as m from '~/i18n/paraglide/messages'
+import { THREE_DAYS_MS } from '~/shared/constants/limits'
 
 export type UrgentItem = {
   key: string
@@ -21,8 +22,6 @@ export type UrgentItem = {
 type Territories = Awaited<ReturnType<typeof getUserTerritories>> | null
 type NextMeeting = Awaited<ReturnType<typeof getNextMeeting>>
 type DayoffConflict = Awaited<ReturnType<typeof getConflictingAssignments>>
-
-const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000
 
 export function urgentTerritoriesItems(territories: Territories): UrgentItem[] {
   if (!territories) return []

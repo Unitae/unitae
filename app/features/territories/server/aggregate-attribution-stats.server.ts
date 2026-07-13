@@ -1,4 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
+import { MS_PER_DAY } from '~/shared/constants/limits'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { startOfNextDay } from '~/shared/utils/date.server'
 import { buildAttributionDateOverlapWhere } from './attribution-date-overlap.server'
@@ -10,8 +11,6 @@ export interface AttributionStatsAggregate {
   averageDurationDays: number
   overdueRate: number
 }
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 function buildBaseWhere(params: StatsFilterParams, congregationId: number): Prisma.AttributionWhereInput {
   return {
