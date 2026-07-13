@@ -3,7 +3,7 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
@@ -277,6 +277,20 @@ export async function anonymize(
   if (!member) throw new NotFoundError('Member')
   if (member.anonymizedAt) return
 
+  // PublisherGroup.responsibleId is a required unique FK — we cannot null it.
+  // If this member responsible for a group, the admin must reassign that
+  // group's responsibility BEFORE we anonymize, otherwise the group would
+  // retain an inbound pointer to the scrubbed row.
+  const responsibleFor = await db.publisherGroup.findFirst({
+    where: { responsibleId: memberId },
+    select: { id: true, name: true },
+  })
+  if (responsibleFor) {
+    throw new ConflictError(
+      `Cannot anonymize a group responsible — reassign "${responsibleFor.name}" (group #${responsibleFor.id}) first`,
+    )
+  }
+
   await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id: memberId, congregationId } },
@@ -293,6 +307,9 @@ export async function anonymize(
       isHelder: false,
       isServant: false,
       isAnointed: false,
+      // Drop the group membership FK so admin queries don't surface an
+      // anonymized member as still belonging to a group.
+      publisherGroupId: null,
       anonymizedAt: new Date(),
       // Anonymize implies gone from the congregation. Flip leftAt unless
       // the member was already marked left.
