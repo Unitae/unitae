@@ -27,7 +27,7 @@
         "test:typecheck": "react-router typegen && tsc",
         "test:unit": "react-router typegen && vitest run",
         "test:unit:watch": "react-router typegen && vitest",
-        "test:unit:coverage": "vitest run --coverage",
+        "test:unit:coverage": "react-router typegen && vitest run --coverage",
         "test:integration": "react-router typegen && vitest run --config app/tests/vitest.config.integration.ts",
         "test:e2e": "playwright test --config app/tests/playwright.config.ts",
         "test:e2e:headed": "playwright test --headed --config app/tests/playwright.config.ts",
