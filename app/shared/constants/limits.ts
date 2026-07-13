@@ -29,3 +29,13 @@ export const EXPORT_PROGRESS_CAP = 90
 
 // Number of alternate results kept on a geocoder hit (top match + N).
 export const GEOCODER_MAX_ALTERNATES = 2
+
+// Retention window before a left member is auto-anonymised by the
+// retention cron. Members with `leftAt` older than this are scrubbed.
+// Six months matches the smallest common EU privacy-law window; a
+// per-congregation override is a future wave.
+export const DEFAULT_RETENTION_MONTHS = 6
+
+// Retention cron cadence — run daily at 03:00 UTC (quiet hours for
+// most subscribers).
+export const RETENTION_CRON_HOUR_UTC = 3

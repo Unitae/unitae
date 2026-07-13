@@ -37,6 +37,7 @@ export const EXEMPT_FILES = new Set<string>([
   // app/shared/constants/constants.test.ts.
   'app/features/display-board/server/thumbnail-queue.server.ts',
   'app/features/settings/server/data-transfer-queue.server.ts',
+  'app/features/settings/server/retention-queue.server.ts',
   'app/features/territories/server/sync-queue.server.ts',
 
   // Route action helpers — glue code, TDD-exempt per the doc.
@@ -47,6 +48,7 @@ export const EXEMPT_FILES = new Set<string>([
   // Background-job dispatch — thin worker glue, delegates to service functions.
   'app/features/display-board/jobs/handle-thumbnail-work.server.ts',
   'app/features/settings/jobs/handle-data-transfer-work.server.ts',
+  'app/features/settings/jobs/handle-retention-work.server.ts',
 
   // 1-line trivial constant.
   'app/features/authentication/server/environment.server.ts',

@@ -4,6 +4,8 @@ import { PrismaClient } from '~/database/generated/client'
 import type { MemberId } from '~/shared/types/branded'
 import { PublisherType } from '~/shared/types/publisher-type'
 
+const RESPONSIBLE_ERROR_RE = /responsible/i
+
 // Audit is fire-and-forget; capture calls without touching the DB.
 const auditMock = vi.fn()
 vi.mock('~/shared/domain/audit.server', () => ({
@@ -239,6 +241,62 @@ describe('member.aggregate — integration', () => {
     })
     expect(deletion).not.toBeNull()
     expect(auditMock).toHaveBeenCalledWith(expect.objectContaining({ action: 'user.anonymized' }))
+  })
+
+  it('anonymize nulls the member`s publisherGroupId (Wave 8 regression)', async () => {
+    // Seed a group; make the member a plain group member.
+    const responsible = await withScope(congId, tx =>
+      memberAggregate.createMember(tx, congregationInfo as never, {
+        ...baseFormParams,
+        firstname: `GrpRespA-${ts}`,
+        congregationId: congId,
+        actorId: 1,
+      }),
+    )
+    const grouped = await withScope(congId, tx =>
+      memberAggregate.createMember(tx, congregationInfo as never, {
+        ...baseFormParams,
+        firstname: `Grouped-${ts}`,
+        congregationId: congId,
+        actorId: 1,
+      }),
+    )
+    const group = await testDb.publisherGroup.create({
+      data: { name: `WaveGroupA-${ts}`, adress: '', responsibleId: responsible.id, congregationId: congId },
+    })
+    await testDb.member.update({ where: { id: grouped.id }, data: { publisherGroupId: group.id } })
+
+    await withScope(congId, tx => memberAggregate.anonymize(tx, grouped.id as MemberId, congId, 1))
+
+    const after = await testDb.member.findUniqueOrThrow({ where: { id: grouped.id } })
+    expect(after.publisherGroupId).toBeNull()
+    // Cleanup: cannot delete a group whose responsible is anonymized — leave it.
+    await testDb.publisherGroup.delete({ where: { id: group.id } })
+  })
+
+  it('anonymize refuses when the member is a group`s responsible (Wave 8 regression)', async () => {
+    const responsible = await withScope(congId, tx =>
+      memberAggregate.createMember(tx, congregationInfo as never, {
+        ...baseFormParams,
+        firstname: `GrpRespB-${ts}`,
+        congregationId: congId,
+        actorId: 1,
+      }),
+    )
+    const group = await testDb.publisherGroup.create({
+      data: { name: `WaveGroupB-${ts}`, adress: '', responsibleId: responsible.id, congregationId: congId },
+    })
+
+    await expect(
+      withScope(congId, tx => memberAggregate.anonymize(tx, responsible.id as MemberId, congId, 1)),
+    ).rejects.toThrow(RESPONSIBLE_ERROR_RE)
+
+    // Untouched — no PII scrub, no deletion record, no anonymizedAt.
+    const after = await testDb.member.findUniqueOrThrow({ where: { id: responsible.id } })
+    expect(after.anonymizedAt).toBeNull()
+    expect(after.firstname).toBe(`GrpRespB-${ts}`)
+
+    await testDb.publisherGroup.delete({ where: { id: group.id } })
   })
 
   it('bulkUpdateType flips all matching members and re-syncs each', async () => {

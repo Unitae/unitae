@@ -5,7 +5,7 @@ import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
-import { runWithLocale } from '~/shared/utils/worker-locale.server'
+import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 import { boardDocumentCreatedPayloadSchema } from '../schemas/notification-payload.schema'
 import { resolveRecipients } from './resolve-recipients.server'
 
@@ -14,7 +14,7 @@ const logger = createLogger('notification-email')
 export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'notification-digest' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
 
-  await runWithLocale(congregation.locale, async () => {
+  await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
     // Group events by type family for rendering
     for (const event of data.events) {
       await sendEventEmail(event, data.recipientId, congregation, data.congregationId)
@@ -33,7 +33,7 @@ export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'not
 export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'notification-instant' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
 
-  await runWithLocale(congregation.locale, async () => {
+  await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
     if (data.recipientRole) {
       // Resolve role to users
       const recipients = await resolveRecipients(

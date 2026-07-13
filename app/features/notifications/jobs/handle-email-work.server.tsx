@@ -7,7 +7,7 @@ import type { EmailJobData } from '~/shared/infra/email-queue.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { mailer } from '~/shared/infra/mailer.server'
 import { Permission } from '~/shared/types/permission'
-import { runWithLocale } from '~/shared/utils/worker-locale.server'
+import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 import DocumentsExpiring from '../emails/documents-expiring'
 import NewDocumentInBoard from '../emails/new-document-in-board'
 
@@ -41,7 +41,7 @@ async function handleNewDocumentNotification(data: Extract<EmailJobData, { type:
   const accounts = await findAccountsWithPermission(unscopedDb, data.congregationId, Permission.BoardValidator)
   const validators = accounts.filter(a => a.active)
 
-  await runWithLocale(congregation.locale, async () => {
+  await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
     for (const user of validators) {
       try {
         await mailer.emails.send({
@@ -77,7 +77,8 @@ async function handleNotificationInstant(data: Extract<EmailJobData, { type: 'no
 }
 
 async function handleDocumentsExpiring(data: Extract<EmailJobData, { type: 'documents-expiring' }>) {
-  await runWithLocale(data.locale, async () => {
+  const congregation = await resolveCongregation(data.congregationId)
+  await runInWorkerContext(data.locale, congregation.timezone, async () => {
     try {
       await mailer.emails.send({
         to: data.validatorEmail,

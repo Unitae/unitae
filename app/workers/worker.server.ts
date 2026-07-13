@@ -5,7 +5,10 @@ import { Worker } from 'bullmq'
 import { handleThumbnailWork } from '~/features/display-board/jobs/handle-thumbnail-work.server'
 import { handleEmailWork } from '~/features/notifications/jobs/handle-email-work.server'
 import { handleDataTransferWork } from '~/features/settings/jobs/handle-data-transfer-work.server'
+import { handleRetentionWork } from '~/features/settings/jobs/handle-retention-work.server'
+import { retentionQueue } from '~/features/settings/server/retention-queue.server'
 import { handleSyncWork } from '~/features/territories/jobs/handle-sync-work.server'
+import { RETENTION_CRON_HOUR_UTC } from '~/shared/constants/limits'
 import { createLogger } from '~/shared/infra/logger.server'
 import { QUEUE_NAMES } from '~/shared/infra/queues.server'
 import { getBullMQConnection } from '~/shared/infra/redis.server'
@@ -66,8 +69,32 @@ const dataTransferWorker = new Worker(QUEUE_NAMES.dataTransfer, handleDataTransf
   removeOnFail: { count: 10 },
 })
 
-const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker]
-const workerNames = [QUEUE_NAMES.sync, QUEUE_NAMES.email, QUEUE_NAMES.thumbnail, QUEUE_NAMES.dataTransfer]
+const retentionWorker = new Worker(QUEUE_NAMES.retention, handleRetentionWork, {
+  connection: getBullMQConnection(),
+  concurrency: 1,
+  removeOnComplete: { count: 30 },
+  removeOnFail: { count: 30 },
+})
+
+// Daily retention cron — enqueue a repeating job at 03:00 UTC. BullMQ's
+// `upsertJobScheduler` is idempotent, so the schedule survives restarts
+// without piling up duplicate entries.
+retentionQueue
+  .upsertJobScheduler(
+    'retention-daily',
+    { pattern: `0 ${RETENTION_CRON_HOUR_UTC} * * *`, tz: 'UTC' },
+    { name: 'retention-sweep', data: { triggeredAt: new Date().toISOString() } },
+  )
+  .catch(err => logger.error('Failed to register retention scheduler', { error: err.message }))
+
+const workers = [syncWorker, emailWorker, thumbnailWorker, dataTransferWorker, retentionWorker]
+const workerNames = [
+  QUEUE_NAMES.sync,
+  QUEUE_NAMES.email,
+  QUEUE_NAMES.thumbnail,
+  QUEUE_NAMES.dataTransfer,
+  QUEUE_NAMES.retention,
+]
 
 for (let i = 0; i < workers.length; i++) {
   setupWorkerEvents(workers[i], workerNames[i])

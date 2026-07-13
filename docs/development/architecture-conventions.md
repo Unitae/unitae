@@ -16,7 +16,7 @@ This document is **part target state, part current rule**. The migration is trac
 | 5 | Three aggregates + CQRS-lite lint enforcement | ✅ landed |
 | 6 | Constants files + `any` triage + client/server barrel split | ✅ landed |
 | 7 | TDD rollout + coverage backfill + colocation check | ✅ landed |
-| 8 | Stress-case fixes (locale, name/phone validation, anonymization) | ⏳ pending |
+| 8 | Stress-case fixes (name/phone validation, anonymization gaps, timezone context, retention cron) | ✅ landed |
 | 9 | Delivery-metrics script | ⏳ pending |
 
 Update this table when a wave merges.

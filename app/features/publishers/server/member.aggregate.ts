@@ -3,18 +3,21 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import { syncBuiltInRoleAssignments } from '~/shared/domain/built-in-roles.server'
 import type { CongregationInfo } from '~/shared/domain/congregation.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { NotFoundError } from '~/shared/errors/app-error.server'
+import { ConflictError, NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { MemberId } from '~/shared/types/branded'
 import type { PublisherType } from '~/shared/types/publisher-type'
 import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 import {
+  type CreateDirectParams,
   haveIdentityFlagsChanged,
   MEMBER_IDENTITY_SELECT,
   type MemberFormFields,
   type MemberIdentityFlags,
   memberDataFromForm,
 } from './member-identity'
+
+export type { CreateDirectParams }
 
 async function _loadMemberIdentity(
   db: TransactionClient,
@@ -27,6 +30,21 @@ async function _loadMemberIdentity(
   })
   if (!member) throw new NotFoundError('Member')
   return member
+}
+
+// PublisherGroup.responsibleId is a required unique FK — we cannot null it.
+// The admin must reassign the group's responsibility BEFORE anonymize,
+// otherwise the group would retain an inbound pointer to the scrubbed row.
+async function _ensureMemberIsNotGroupResponsible(db: TransactionClient, memberId: number): Promise<void> {
+  const group = await db.publisherGroup.findFirst({
+    where: { responsibleId: memberId },
+    select: { id: true, name: true },
+  })
+  if (group) {
+    throw new ConflictError(
+      `Cannot anonymize a group responsible — reassign "${group.name}" (group #${group.id}) first`,
+    )
+  }
 }
 
 export type CreateMemberParams = MemberFormFields & {
@@ -68,22 +86,6 @@ export async function createMember(db: TransactionClient, congregation: Congrega
   })
 
   return member
-}
-
-export type CreateDirectParams = {
-  firstname: string
-  lastname: string
-  isMale: boolean | null
-  birthDate: Date | null
-  baptismDate: Date | null
-  isPublisher: boolean
-  type: PublisherType
-  isHelder: boolean
-  isServant: boolean
-  isAnointed: boolean
-  publisherGroupId: number | null
-  phone: string
-  address: string
 }
 
 export async function createDirect(
@@ -276,6 +278,7 @@ export async function anonymize(
   })
   if (!member) throw new NotFoundError('Member')
   if (member.anonymizedAt) return
+  await _ensureMemberIsNotGroupResponsible(db, memberId)
 
   await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
@@ -293,9 +296,8 @@ export async function anonymize(
       isHelder: false,
       isServant: false,
       isAnointed: false,
+      publisherGroupId: null,
       anonymizedAt: new Date(),
-      // Anonymize implies gone from the congregation. Flip leftAt unless
-      // the member was already marked left.
       ...(member.leftAt == null ? { leftAt: new Date() } : {}),
     },
   })
@@ -312,14 +314,7 @@ export async function anonymize(
       completedAt: new Date(),
     },
   })
-
-  audit({
-    action: AuditAction.UserAnonymized,
-    congregationId,
-    actorId,
-    entityType: 'Member',
-    entityId: memberId,
-  })
+  audit({ action: AuditAction.UserAnonymized, congregationId, actorId, entityType: 'Member', entityId: memberId })
 }
 
 export async function bulkUpdateType(
