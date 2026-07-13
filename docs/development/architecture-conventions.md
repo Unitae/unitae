@@ -17,7 +17,7 @@ This document is **part target state, part current rule**. The migration is trac
 | 6 | Constants files + `any` triage + client/server barrel split | ✅ landed |
 | 7 | TDD rollout + coverage backfill + colocation check | ✅ landed |
 | 8 | Stress-case fixes (name/phone validation, anonymization gaps, timezone context, retention cron) | ✅ landed |
-| 9 | Delivery-metrics script | ⏳ pending |
+| 9 | Delivery-metrics script | ✅ landed |
 
 Update this table when a wave merges.
 
@@ -418,7 +418,17 @@ Stripe prices, AWS bucket names, env var keys — these belong with the code tha
 
 ## Delivery Metrics
 
-A weekly script (`scripts/dora-metrics.ts`, Wave 9) computes proxies for software-delivery performance from git history and Conventional Commits.
+A weekly script (`scripts/dora-metrics.ts`) computes proxies for software-delivery performance from git history and Conventional Commits.
+
+### Running it
+
+```bash
+pnpm test:dora-metrics                       # previous ISO week, writes .planning/dora/<YYYY-Www>.md
+pnpm test:dora-metrics -- --week=2026-W28    # a specific week
+pnpm test:dora-metrics -- --json             # JSON to stdout instead of writing a file
+```
+
+Requires `git` and `gh auth login` for the current repo. Output lands in `.planning/dora/` (gitignored). The current week is usually still in flight, so the default target is the ISO week ending BEFORE `now`.
 
 > **Disclaimer**: these are *proxies*, not the canonical [DORA metrics](https://dora.dev). True Change Failure Rate and MTTR require production-incident tracking that we don't have yet. The proxies are useful for spotting trends; don't read them as absolute industry benchmarks.
 
