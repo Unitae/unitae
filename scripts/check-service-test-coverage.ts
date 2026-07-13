@@ -27,6 +27,7 @@ const TS_EXTENSION_RE = /\.ts$/
 export const EXEMPT_FILES = new Set<string>([
   // Barrels — pure re-exports, no logic to test.
   'app/features/authentication/index.server.ts',
+  'app/features/display-board/index.server.ts',
   'app/features/events/index.server.ts',
   'app/features/notifications/index.server.ts',
   'app/features/publishers/index.server.ts',

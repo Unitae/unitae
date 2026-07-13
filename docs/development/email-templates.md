@@ -14,12 +14,18 @@ app/features/
 │   ├── reset-password.tsx                # Password reset link
 │   ├── reset-password-required.tsx       # Forced password reset notification
 │   └── verify-email.tsx                  # Email verification link
-├── notifications/emails/
+├── display-board/emails/
 │   ├── new-document-in-board.tsx         # New document uploaded to board
+│   ├── board-document-updated.tsx        # Existing document edited
+│   ├── board-document-deleted.tsx        # Document removed
 │   └── documents-expiring.tsx            # Documents approaching expiration
 └── territories/emails/
     └── buildings-sync-done.tsx           # Open data sync completion
 ```
+
+Notification templates live under the feature that owns the triggering domain
+event (see [Notifications](notifications.md)). The `notifications` feature
+itself holds only the pipeline — it does not ship any email templates.
 
 The `pnpm start:emails` dev server is configured with `--dir app/features` (see `package.json`), so it finds templates anywhere under that tree.
 

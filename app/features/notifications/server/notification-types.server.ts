@@ -1,36 +1,14 @@
 import type { NotificationTypeConfig } from '../model/notification-event.type'
+import { NOTIFICATION_REGISTRY } from './registry.server'
 
-// All notification types — notify() reads this to decide the routing path.
-// debounceMinutes > 0 → PostgreSQL buffer, debounceMinutes === 0 → straight to BullMQ.
-// Types with `cancels` cancel pending events; if nothing to cancel, send `fallback`.
-export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = {
-  // Board document — migrated from existing direct emailQueue.add()
-  'board.document.created': {
-    debounceMinutes: 10,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'board.document.updated': {
-    debounceMinutes: 10,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-  'board.document.deleted': {
-    cancels: ['board.document.created', 'board.document.updated'],
-    fallback: {
-      debounceMinutes: 0,
-      recipientStrategy: 'role',
-      recipientRole: 'board-validator',
-    },
-  },
-  'board.document.expiring': {
-    debounceMinutes: 0,
-    recipientStrategy: 'role',
-    recipientRole: 'board-validator',
-  },
-
-  'territory.sync.completed': {
-    debounceMinutes: 0,
-    recipientStrategy: 'entity-user',
-  },
-}
+// Routing config indexed by notification type. Consumed by `notify.server.ts`
+// to decide debounce vs. cancellation vs. instant paths. Derived from the
+// registry so definitions declare routing once at their source.
+//
+// Kept as a separate module (rather than inlined into `notify.server.ts`) so
+// `notify()`'s import graph does not pull React Email templates through the
+// registry — templates only load in the worker path via
+// `render-notification-email.server.tsx`.
+export const NOTIFICATION_TYPES: Record<string, NotificationTypeConfig> = Object.fromEntries(
+  [...NOTIFICATION_REGISTRY].map(([type, def]) => [type, def.routing]),
+)
