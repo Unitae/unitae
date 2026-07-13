@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { PublisherType } from '~/shared/types/publisher-type'
+import { phoneSchema } from '~/shared/utils/phone'
 
 export const createPublisherSchema = z.object({
   firstname: z.string().min(1),
@@ -22,7 +23,7 @@ export const createPublisherSchema = z.object({
     .transform(v => v === 'on'),
   group: z.preprocess(v => (v === '' || v === undefined ? undefined : v), z.coerce.number().optional()),
   type: z.nativeEnum(PublisherType),
-  phone: z.string().optional().default(''),
+  phone: phoneSchema,
   address: z.string().optional().default(''),
 })
 
