@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TerritoryAccess } from '~/features/territories/model/territory-access.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { contentPresentClause, mapVisibleWhere } from './map-visibility'
+import { availableForCreateWhere, contentPresentClause, mapVisibleWhere } from './map-visibility'
 
 const digicodeUnknown = {
   AND: [{ homes: null }, { accesses: { some: { type: TerritoryAccess.Code } } }],
@@ -88,6 +88,96 @@ describe('mapVisibleWhere', () => {
           ],
         },
       ],
+    })
+  })
+})
+
+describe('availableForCreateWhere', () => {
+  const prospectedAndActive = { buildings: { some: { active: true, prospectionDate: { not: null } } } }
+
+  it('excludes entrances already attached to a territory of the same kind', () => {
+    const result = availableForCreateWhere(TerritoryKind.Commerces, { phoneTypeActive: true })
+    expect(result.AND).toContainEqual({ territories: { none: { type: TerritoryKind.Commerces } } })
+  })
+
+  it('always requires at least one active building with a prospection date', () => {
+    for (const kind of [
+      TerritoryKind.Classical,
+      TerritoryKind.Phone,
+      TerritoryKind.Commerces,
+      TerritoryKind.Hotel,
+      TerritoryKind.Univ,
+    ]) {
+      const result = availableForCreateWhere(kind, { phoneTypeActive: false })
+      expect(result.AND).toContainEqual(prospectedAndActive)
+    }
+  })
+
+  it('Classical with phone toggle ON only shows intercom / doorbell / (code + isOpenEarly)', () => {
+    const result = availableForCreateWhere(TerritoryKind.Classical, { phoneTypeActive: true })
+    expect(result).toEqual({
+      AND: [
+        { territories: { none: { type: TerritoryKind.Classical } } },
+        prospectedAndActive,
+        {
+          OR: [
+            { access: TerritoryAccess.Intercom },
+            { access: TerritoryAccess.Doorbell },
+            { access: TerritoryAccess.Code, isOpenEarly: true },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('Classical with phone toggle OFF widens the code branch to any code entrance', () => {
+    const result = availableForCreateWhere(TerritoryKind.Classical, { phoneTypeActive: false })
+    expect(result.AND).toContainEqual({
+      OR: [
+        { access: TerritoryAccess.Intercom },
+        { access: TerritoryAccess.Doorbell },
+        { access: TerritoryAccess.Code },
+      ],
+    })
+  })
+
+  it('Phone requires phones > 0 or a code-locked entrance that stays locked in the morning', () => {
+    const result = availableForCreateWhere(TerritoryKind.Phone, { phoneTypeActive: true })
+    expect(result).toEqual({
+      AND: [
+        { territories: { none: { type: TerritoryKind.Phone } } },
+        prospectedAndActive,
+        {
+          OR: [{ phones: { gt: 0 } }, { access: TerritoryAccess.Code, isOpenEarly: false }],
+        },
+      ],
+    })
+  })
+
+  it('Phone clause is independent of phoneTypeActive (tab loader gates access to the whole flow)', () => {
+    const on = availableForCreateWhere(TerritoryKind.Phone, { phoneTypeActive: true })
+    const off = availableForCreateWhere(TerritoryKind.Phone, { phoneTypeActive: false })
+    expect(off).toEqual(on)
+  })
+
+  it('Commerces has no access clause — prospection + not-already-typed is enough', () => {
+    const result = availableForCreateWhere(TerritoryKind.Commerces, { phoneTypeActive: false })
+    expect(result).toEqual({
+      AND: [{ territories: { none: { type: TerritoryKind.Commerces } } }, prospectedAndActive],
+    })
+  })
+
+  it('Hotel has no access clause', () => {
+    const result = availableForCreateWhere(TerritoryKind.Hotel, { phoneTypeActive: true })
+    expect(result).toEqual({
+      AND: [{ territories: { none: { type: TerritoryKind.Hotel } } }, prospectedAndActive],
+    })
+  })
+
+  it('Univ has no access clause', () => {
+    const result = availableForCreateWhere(TerritoryKind.Univ, { phoneTypeActive: false })
+    expect(result).toEqual({
+      AND: [{ territories: { none: { type: TerritoryKind.Univ } } }, prospectedAndActive],
     })
   })
 })

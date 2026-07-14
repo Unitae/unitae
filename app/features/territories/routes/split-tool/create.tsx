@@ -1,9 +1,8 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 
-import { commitSession, getSession } from '~/features/authentication/index.server'
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
-import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
+import { splitToolCreateWorkflow } from '~/features/territories/server/split-tool-create.workflow'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -14,10 +13,18 @@ import {
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
 import { Permission } from '~/shared/types/permission'
-import { handleAppError } from '~/shared/utils/handle-app-error.server'
-import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 
 import type { Route } from './+types/create'
+
+/**
+ * Wire type consumed by BuildingEntranceMapCreator's fetcher effect. Every non-success
+ * response MUST land in the `ok: false` branch so the client's `if (fetcher.data.ok)`
+ * discriminant flips correctly — otherwise `toast.error(fetcher.data.error)` fires with
+ * `undefined` and the user sees an empty red toast with no draft reset.
+ */
+export type SplitToolCreateActionResult =
+  | { ok: true; number: string; territoryId: number }
+  | { ok: false; error: string }
 
 export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
@@ -30,37 +37,35 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
   if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
+    return data<SplitToolCreateActionResult>(
+      { ok: false, error: m.error_validation({ field: 'form' }) },
+      { status: 400 },
+    )
   }
 
   const { type, entranceIds } = submission.value
   const congregation = context.get(congregationContext)
   const { id: actorId } = context.get(currentAccountContext)
 
-  const previousPage = safeRedirectUrl(request.headers.get('referer'), '/territories/buildings/split-territories')
-
   return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
-    try {
-      const limits = new LimitService(db, congregation)
-      await limits.errorIfWouldGoOverLimit('territories')
-
-      const territory = await createTerritoryFromSplit(db, {
+    const result = await splitToolCreateWorkflow(
+      db,
+      {
         type,
-        entranceIds: entranceIds.split(',').map(el => Number(el)),
+        entranceIds: entranceIds.split(',').map((el: string) => Number(el)),
         congregationId: congregation.id,
         actorId,
-      })
+      },
+      new LimitService(db, congregation),
+    )
 
-      session.flash('success', m.split_tool_create_flash_success({ number: territory.number }))
-
-      return redirect(previousPage, {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
+    if (result.ok) {
+      return data<SplitToolCreateActionResult>({
+        ok: true,
+        number: result.number,
+        territoryId: result.territoryId,
       })
-    } catch (error) {
-      await handleAppError(error, session, previousPage)
     }
+    return data<SplitToolCreateActionResult>({ ok: false, error: result.error }, { status: result.status })
   })
 }

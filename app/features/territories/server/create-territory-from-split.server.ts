@@ -1,6 +1,8 @@
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+
+import { computeNextTerritoryNumber } from './compute-next-territory-number.server'
 
 export interface CreateTerritoryFromSplitParams {
   type: TerritoryKind
@@ -10,23 +12,7 @@ export interface CreateTerritoryFromSplitParams {
 }
 
 export async function createTerritoryFromSplit(db: TransactionClient, params: CreateTerritoryFromSplitParams) {
-  const count = await db.territory.count({
-    where: { type: params.type, congregationId: params.congregationId },
-  })
-
-  let prefix = 'D'
-
-  if (params.type === TerritoryKind.Hotel) {
-    prefix = 'H'
-  } else if (params.type === TerritoryKind.Univ) {
-    prefix = 'U'
-  } else if (params.type === TerritoryKind.Commerces) {
-    prefix = 'C'
-  } else if (params.type === TerritoryKind.Phone) {
-    prefix = 'P'
-  }
-
-  const number = `${prefix}${String(count + 1).padStart(3, '0')}`
+  const number = await computeNextTerritoryNumber(db, params.congregationId, params.type)
 
   const territory = await db.territory.create({
     data: {
