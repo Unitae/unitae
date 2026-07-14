@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -75,5 +76,50 @@ describe('getPublishersWithGroup', () => {
 
     const result = await getPublishersWithGroup(db, 1, { search: 'zzz-no-match' })
     expect(result).toEqual([])
+  })
+
+  it('narrows the where clause to the provided groupIds', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([] as never)
+    await getPublishersWithGroup(db, 1, { groupIds: [10, 20] })
+
+    const where = vi.mocked(db.member.findMany).mock.calls[0]?.[0]?.where
+    expect(where).toMatchObject({ publisherGroupId: { in: [10, 20] } })
+  })
+
+  it('does not add a group filter when groupIds is empty', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([] as never)
+    await getPublishersWithGroup(db, 1, { groupIds: [] })
+
+    const where = vi.mocked(db.member.findMany).mock.calls[0]?.[0]?.where
+    expect(where).not.toHaveProperty('publisherGroupId')
+  })
+
+  it('narrows the where clause to the provided publisher type', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([] as never)
+    await getPublishersWithGroup(db, 1, { type: PublisherType.PionnierPermanant })
+
+    const where = vi.mocked(db.member.findMany).mock.calls[0]?.[0]?.where
+    expect(where).toMatchObject({ type: PublisherType.PionnierPermanant })
+  })
+
+  it('combines search, group and type filters', async () => {
+    vi.mocked(db.member.findMany).mockResolvedValue([] as never)
+    await getPublishersWithGroup(db, 1, {
+      search: 'jean',
+      groupIds: [42],
+      type: PublisherType.Normal,
+    })
+
+    const where = vi.mocked(db.member.findMany).mock.calls[0]?.[0]?.where
+    expect(where).toMatchObject({
+      isPublisher: true,
+      leftAt: null,
+      publisherGroupId: { in: [42] },
+      type: PublisherType.Normal,
+      OR: [
+        { firstname: { contains: 'jean', mode: 'insensitive' } },
+        { lastname: { contains: 'jean', mode: 'insensitive' } },
+      ],
+    })
   })
 })

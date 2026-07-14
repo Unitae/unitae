@@ -1,14 +1,15 @@
 import { BarChart3, Eye, Mail, Pencil, UserMinus, Users } from 'lucide-react'
 import { Link, redirect } from 'react-router'
 import { getPublishersWithGroup } from '~/features/publishers/server/publishers.server'
+import { PublisherListFilters } from '~/features/publishers/ui/PublisherListFilters'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+import { PublisherType } from '~/shared/types/publisher-type'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
 import type { Route } from './+types/publisher-list'
@@ -16,6 +17,8 @@ import type { Route } from './+types/publisher-list'
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.publishers_list_meta_title() }]
 }
+
+const PUBLISHER_TYPE_VALUES: readonly string[] = Object.values(PublisherType)
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -38,9 +41,22 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const url = new URL(request.url)
   const search = url.searchParams.get('q') ?? undefined
+  const groupIds = url.searchParams
+    .getAll('group')
+    .map(raw => Number(raw))
+    .filter(id => Number.isInteger(id))
+  const typeRaw = url.searchParams.get('type')
+  const type = typeRaw != null && PUBLISHER_TYPE_VALUES.includes(typeRaw) ? (typeRaw as PublisherType) : undefined
 
   return withScopeFromContext(context, async db => {
-    const users = await getPublishersWithGroup(db, currentUser.congregationId, { search })
+    const [users, groups] = await Promise.all([
+      getPublishersWithGroup(db, currentUser.congregationId, { search, groupIds, type }),
+      db.publisherGroup.findMany({
+        where: { congregationId: currentUser.congregationId },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+    ])
 
     return {
       users: users.map(user => ({
@@ -51,17 +67,30 @@ export function loader({ request, context }: Route.LoaderArgs) {
         isPublisher: user.isPublisher,
         publisherGroup: user.publisherGroup,
       })),
+      groups,
       canManagePublisher,
       canViewActivities,
       searchQuery: search ?? '',
+      selectedGroupIds: groupIds,
+      selectedType: type ?? ('all' as const),
+      hasActiveFilters: (search ?? '') !== '' || groupIds.length > 0 || type != null,
     }
   })
 }
 
 export default function PublisherListPage({ loaderData }: Route.ComponentProps) {
-  const { users, canManagePublisher, canViewActivities, searchQuery } = loaderData
+  const {
+    users,
+    groups,
+    canManagePublisher,
+    canViewActivities,
+    searchQuery,
+    selectedGroupIds,
+    selectedType,
+    hasActiveFilters,
+  } = loaderData
 
-  if (users.length < 1 && searchQuery.length < 1) {
+  if (users.length < 1 && !hasActiveFilters) {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader
@@ -113,13 +142,26 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
         }
       />
 
-      <SearchInput placeholder={m.publishers_search_placeholder()} />
+      <PublisherListFilters
+        groups={groups}
+        selectedGroupIds={selectedGroupIds}
+        selectedType={selectedType}
+        hasActiveFilters={hasActiveFilters}
+      />
 
       {users.length < 1 ? (
         <EmptyState
           icon={Users}
-          title={m.publishers_empty_no_match_title()}
-          description={m.publishers_empty_no_match_description({ query: searchQuery })}
+          title={
+            searchQuery !== '' && selectedGroupIds.length === 0 && selectedType === 'all'
+              ? m.publishers_empty_no_match_title()
+              : m.activity_filters_no_results_title()
+          }
+          description={
+            searchQuery !== '' && selectedGroupIds.length === 0 && selectedType === 'all'
+              ? m.publishers_empty_no_match_description({ query: searchQuery })
+              : m.activity_filters_no_results_description()
+          }
         />
       ) : (
         <div className="overflow-hidden rounded-xl border">
