@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide
 import { useState } from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
+import { previousMonth } from '~/features/publishers/model/previous-month'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
@@ -40,10 +41,18 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams
-  const month = Number(searchParams.get('month') ?? timeRange.getMonth())
-  const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
+  const hasExplicitSelection = searchParams.has('month') || searchParams.has('year')
+  let month = Number(searchParams.get('month') ?? timeRange.getMonth())
+  let year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
   return withScopeFromContext(context, async db => {
+    if (!hasExplicitSelection) {
+      const currentMonthActivityCount = await db.publisherActivity.count({ where: { month, year } })
+      if (currentMonthActivityCount === 0) {
+        ;({ month, year } = previousMonth({ month, year }))
+      }
+    }
+
     const [users, publisherGroups, availableYears] = await Promise.all([
       getPublisherWithActivities(db, currentUser.congregationId, month, year),
       db.publisherGroup.findMany({
