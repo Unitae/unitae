@@ -1,7 +1,12 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { notify } from '~/features/notifications/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { formatEventDate } from '~/shared/utils/event-time'
+import type { ProgrammeRole } from '../model/programme-role'
+import { type AssignmentChangeType, PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
+
+const logger = createLogger('notify-assignment')
 
 // Shared shape both routes (assign-part, assign-service, remove-assignment)
 // hand to notifyAssignment. `event.startDate` is the raw DB Date; we format it
@@ -20,9 +25,7 @@ export interface AssignmentNotificationContext {
   timezone: string
 }
 
-export type ProgrammeRole = 'speaker' | 'reader' | 'servant'
-
-export type AssignmentChangeType = 'programme.assignment.assigned' | 'programme.assignment.unassigned'
+export type { AssignmentChangeType, ProgrammeRole }
 
 // Small builder that keeps route callers to a single-line context assembly.
 // `assignmentName` may be undefined (assignment fetched after deletion, etc.);
@@ -73,14 +76,14 @@ export async function dispatchAssignmentDiffs(
   for (const diff of diffs) {
     if (diff.previousMemberId != null && diff.previousMemberId !== diff.newMemberId) {
       await notifyAssignment(db, ctx, {
-        type: 'programme.assignment.unassigned',
+        type: PROGRAMME_ASSIGNMENT_TYPE.unassigned,
         memberId: diff.previousMemberId,
         role: diff.role,
       })
     }
     if (diff.newMemberId != null && diff.newMemberId !== diff.previousMemberId) {
       await notifyAssignment(db, ctx, {
-        type: 'programme.assignment.assigned',
+        type: PROGRAMME_ASSIGNMENT_TYPE.assigned,
         memberId: diff.newMemberId,
         role: diff.role,
       })
@@ -100,7 +103,18 @@ export async function notifyAssignment(
     where: { memberId: change.memberId, congregationId: ctx.congregationId, active: true },
     select: { id: true },
   })
-  if (!account) return
+  if (!account) {
+    // Legit case (offline publisher, or an account that was deactivated after
+    // being linked) — log at debug level so support can distinguish it from a
+    // queue drop when investigating a "why didn't I get the email?" ticket.
+    logger.debug('assignment notification skipped: no active linked account', {
+      memberId: change.memberId,
+      congregationId: ctx.congregationId,
+      entityType: ctx.entityType,
+      entityId: ctx.entityId,
+    })
+    return
+  }
 
   const eventDate = formatEventDate(ctx.event.startDate, ctx.timezone, ctx.locale, {
     weekday: 'long',

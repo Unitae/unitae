@@ -3,15 +3,27 @@ import { defineNotificationType, manifest } from '~/features/notifications'
 import * as m from '~/i18n/paraglide/messages'
 import ProgrammeAssignmentAssigned from '../emails/programme-assignment-assigned'
 import ProgrammeAssignmentUnassigned from '../emails/programme-assignment-unassigned'
+import { PROGRAMME_ROLES } from '../model/programme-role'
 
 const PROGRAMME_CATEGORY = { key: 'programme', label: () => m.notification_category_programme() }
+
+// Central const so `AssignmentChangeType` (below) and the two `defineNotificationType`
+// calls stay in lock-step. Renaming a key here breaks any consumer that still
+// references the old string — the whole point of centralising is that TypeScript
+// enforces the drift check instead of relying on a runtime handshake.
+export const PROGRAMME_ASSIGNMENT_TYPE = {
+  assigned: 'programme.assignment.assigned',
+  unassigned: 'programme.assignment.unassigned',
+} as const
+
+export type AssignmentChangeType = (typeof PROGRAMME_ASSIGNMENT_TYPE)[keyof typeof PROGRAMME_ASSIGNMENT_TYPE]
 
 const ASSIGNMENT_PAYLOAD = z.object({
   eventId: z.number().int().positive(),
   eventName: z.string(),
   eventDate: z.string(),
   assignmentName: z.string(),
-  role: z.enum(['speaker', 'reader', 'servant']),
+  role: z.enum(PROGRAMME_ROLES),
   // Pre-resolved public URL (Board dynamic viewer or /board fallback). Baked
   // into the payload at notify() time — see resolveProgrammeLink.
   link: z.string(),
@@ -21,7 +33,7 @@ const ASSIGNMENT_PAYLOAD = z.object({
 // assignment. Debounced 2h so an admin planning an entire meeting in one sitting
 // batches into fewer emails per assignee — still lands same-day.
 const programmeAssignmentAssigned = defineNotificationType({
-  type: 'programme.assignment.assigned',
+  type: PROGRAMME_ASSIGNMENT_TYPE.assigned,
   category: PROGRAMME_CATEGORY,
   label: () => m.notification_programme_assignment_assigned(),
   routing: { debounceMinutes: 120, recipientStrategy: 'entity-user' },
@@ -54,11 +66,11 @@ const programmeAssignmentAssigned = defineNotificationType({
 // pending (email already went out), sends an instant "cancelled" so the
 // assignee gets the correction.
 const programmeAssignmentUnassigned = defineNotificationType({
-  type: 'programme.assignment.unassigned',
+  type: PROGRAMME_ASSIGNMENT_TYPE.unassigned,
   category: PROGRAMME_CATEGORY,
   label: () => m.notification_programme_assignment_unassigned(),
   routing: {
-    cancels: ['programme.assignment.assigned'],
+    cancels: [PROGRAMME_ASSIGNMENT_TYPE.assigned],
     fallback: { debounceMinutes: 0, recipientStrategy: 'entity-user' },
   },
   payload: ASSIGNMENT_PAYLOAD,

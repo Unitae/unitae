@@ -1,6 +1,6 @@
 import { Body, Container, Head, Heading, Hr, Html, Link, Preview, Section, Tailwind, Text } from 'react-email'
 import * as m from '~/i18n/paraglide/messages'
-import type { ProgrammeRole } from './programme-assignment-assigned'
+import type { ProgrammeRole } from '../model/programme-role'
 
 function roleLabel(role: ProgrammeRole): string {
   if (role === 'speaker') return m.email_programme_role_speaker()

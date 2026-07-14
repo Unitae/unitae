@@ -121,6 +121,9 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
 
     const cong = context.get(congregationContext)
+    // Notifications are best-effort — the assignment write already committed,
+    // so a queue outage or Redis blip must not turn the user's action into a 500.
+    // BullMQ retries the delivery independently; here we just log and move on.
     await dispatchAssignmentDiffs(
       db,
       buildAssignmentContext({
@@ -137,6 +140,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         { role: 'speaker', previousMemberId: result.previousAssigneeId, newMemberId: resolvedAssigneeId },
         { role: 'reader', previousMemberId: result.previousAssistantId, newMemberId: resolvedAssistantId },
       ],
+    ).catch(err =>
+      logger.error('Failed to dispatch programme-assignment notifications', {
+        err,
+        eventId,
+        assignmentId,
+        congregationId,
+      }),
     )
 
     return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })

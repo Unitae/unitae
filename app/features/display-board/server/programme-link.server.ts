@@ -1,5 +1,8 @@
 import { parseProgrammeConfig } from '~/features/display-board/model/dynamic-document.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
+
+const logger = createLogger('programme-link')
 
 // Resolves the best-effort public URL where an assignee can view their upcoming
 // event. Preferred target is a Programme dynamic document on the board that
@@ -27,18 +30,35 @@ export async function resolveProgrammeLink(
   })
   if (candidates.length === 0) return '/board'
 
-  for (const candidate of candidates) {
-    // Multi-template mode: parse the JSON config and look for our templateId.
-    const config = parseProgrammeConfig(candidate.dynamicConfig)
+  // Pre-parse each candidate's config once so the legacy-fallback pass below
+  // reuses the result without re-parsing (also avoids the double-parse in the
+  // "corrupt JSON vs. no config" check).
+  const parsed = candidates.map(c => ({
+    candidate: c,
+    config: c.dynamicConfig == null ? null : parseProgrammeConfig(c.dynamicConfig),
+    hasConfigField: c.dynamicConfig != null,
+  }))
+
+  for (const { candidate, config, hasConfigField } of parsed) {
+    // A non-null `dynamicConfig` that fails to parse is a data-integrity issue,
+    // not a legit legacy row. Log so operators can spot it — the row would
+    // otherwise silently keep falling through to /board forever.
+    if (hasConfigField && config == null) {
+      logger.warn('programme dynamic doc has malformed dynamicConfig, skipping', {
+        candidateId: candidate.id,
+        congregationId,
+      })
+      continue
+    }
     if (config?.templates.some(t => t.templateId === event.templateId)) {
       return `/board/dynamic/${candidate.id}/viewer?eventId=${event.id}`
     }
   }
 
   // No multi-template match — fall back to legacy `dynamicRef` (template key).
-  // We only fetch the event's template key when at least one legacy candidate
-  // needs comparing, avoiding an unnecessary round-trip in the common case.
-  const legacyCandidates = candidates.filter(c => c.dynamicRef != null && parseProgrammeConfig(c.dynamicConfig) == null)
+  // Only the rows that never carried a config field are eligible; malformed-
+  // config rows are treated as broken and don't earn a legacy retry.
+  const legacyCandidates = parsed.filter(p => !p.hasConfigField && p.candidate.dynamicRef != null)
   if (legacyCandidates.length === 0) return '/board'
 
   const eventRow = await db.event.findFirst({
@@ -46,9 +66,20 @@ export async function resolveProgrammeLink(
     select: { template: { select: { key: true } } },
   })
   const templateKey = eventRow?.template?.key
-  if (!templateKey) return '/board'
+  if (!templateKey) {
+    // Reaching this branch means the caller had `event.templateId` set but
+    // the event or its template row disappeared before we could resolve the
+    // key. Since the caller just persisted a write referencing this event,
+    // this is a real data-race worth surfacing rather than silently masking.
+    logger.warn('programme link fell back to /board: event or template missing at resolve time', {
+      eventId: event.id,
+      templateId: event.templateId,
+      congregationId,
+    })
+    return '/board'
+  }
 
-  for (const candidate of legacyCandidates) {
+  for (const { candidate } of legacyCandidates) {
     if (candidate.dynamicRef === templateKey) {
       return `/board/dynamic/${candidate.id}/viewer?eventId=${event.id}`
     }
