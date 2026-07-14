@@ -1,5 +1,6 @@
-import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
-import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
+import { DEFAULT_ATTRIBUTION_KINDS, DEFAULT_TERRITORY_KINDS } from '~/features/territories/model/stats-filter-defaults'
+import type { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
+import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { parseLocalDate } from '~/shared/utils/date.server'
 import type { StatsFilterParams } from './stats-filter-params.type'
 import { getBeginingDateOfTheocraticYear, getEndDateOfTheocraticYear } from './theocratic-year.server'
@@ -22,7 +23,7 @@ export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: 
     ? []
     : rawKinds.length > 0
       ? (rawKinds as TerritoryKind[])
-      : [TerritoryKind.Classical]
+      : DEFAULT_TERRITORY_KINDS
 
   let startDate = parseLocalDateOrDefault(params.get('startDate'), getBeginingDateOfTheocraticYear(theocraticYear))
   let endDate = parseLocalDateOrDefault(params.get('endDate'), getEndDateOfTheocraticYear(theocraticYear))
@@ -34,10 +35,7 @@ export function parseStatsFilterParams(params: URLSearchParams, theocraticYear: 
 
   return {
     territoryKind,
-    attributionKind:
-      attributionKinds.length > 0
-        ? attributionKinds
-        : [TerritoryAttributionKind.Default, TerritoryAttributionKind.Campaign],
+    attributionKind: attributionKinds.length > 0 ? attributionKinds : DEFAULT_ATTRIBUTION_KINDS,
     startDate,
     endDate,
     groupId: params.get('group') != null && params.get('group') !== 'none' ? Number(params.get('group')) : undefined,

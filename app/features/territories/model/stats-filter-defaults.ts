@@ -1,0 +1,13 @@
+import { TerritoryAttributionKind } from './territory-attribution-kind.type'
+import { TerritoryKind } from './territory-kind.type'
+
+// Server truth (`parseStatsFilterParams`) applies these when the URL has no
+// `kind` / `attributionKind` params. UI code that mirrors the current filter
+// scope (chip bar, dialog defaults) reads from here so display and query stay
+// in lockstep.
+export const DEFAULT_TERRITORY_KINDS: TerritoryKind[] = [TerritoryKind.Classical]
+
+export const DEFAULT_ATTRIBUTION_KINDS: TerritoryAttributionKind[] = [
+  TerritoryAttributionKind.Default,
+  TerritoryAttributionKind.Campaign,
+]
