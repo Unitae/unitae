@@ -1,23 +1,22 @@
-import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Users } from 'lucide-react'
 import { useState } from 'react'
-import { Link, redirect, useSearchParams } from 'react-router'
+import { redirect, useSearchParams } from 'react-router'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import { previousMonth } from '~/features/publishers/model/previous-month'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
 import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
+import { PublisherActivityRow } from '~/features/publishers/ui/PublisherActivityRow'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
-import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
@@ -97,10 +96,6 @@ export function loader({ request, context }: Route.LoaderArgs) {
     }
   })
 }
-
-type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType extends readonly (infer ElementType)[]
-  ? ElementType
-  : never
 
 export default function NewActivity({ loaderData }: Route.ComponentProps) {
   const { publishers, selectedMonth, firstMonth, stats, canManageActivities, exportOptions } = loaderData
@@ -200,118 +195,15 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
           </TableHeader>
           <TableBody>
             {publishers.map(publisher => (
-              <PublisherRow key={publisher.id} publisher={publisher} canManageActivities={canManageActivities} />
+              <PublisherActivityRow
+                key={publisher.id}
+                publisher={publisher}
+                canManageActivities={canManageActivities}
+              />
             ))}
           </TableBody>
         </Table>
       </div>
     </div>
-  )
-}
-
-function PublisherRow({
-  publisher,
-  canManageActivities,
-}: {
-  publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']>
-  canManageActivities: boolean
-}) {
-  const nameHover = publisher.wasInactive ? 'hover:text-foreground' : 'hover:text-primary'
-  return (
-    <TableRow
-      key={publisher.id}
-      className={
-        publisher.wasInactive
-          ? 'bg-muted/40 text-muted-foreground'
-          : publisher.notRegular
-            ? 'bg-destructive/10 text-destructive dark:bg-destructive/5'
-            : ''
-      }
-    >
-      <TableCell className="text-center max-sm:text-left">
-        <div className="flex items-center justify-center gap-2 max-sm:justify-start">
-          <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
-            {publisher.firstname}
-          </Link>
-          {publisher.wasInactive && (
-            <Badge variant="outline" className="text-xs">
-              {m.activity_table_inactive()}
-            </Badge>
-          )}
-          {!publisher.wasInactive && publisher.notRegular && (
-            <Badge variant="destructive" className="text-xs">
-              {m.activity_table_irregular()}
-            </Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-center">
-        <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
-          {publisher.lastname?.toLocaleUpperCase()}
-        </Link>
-      </TableCell>
-      <TableCell className="text-center">
-        {publisher.publisherGroup != null && (
-          <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className={nameHover}>
-            {publisher.publisherGroup.name}
-          </Link>
-        )}
-      </TableCell>
-
-      <ActivityColumns publisher={publisher} />
-
-      {canManageActivities && (
-        <TableCell className="text-right">
-          <div className="flex items-center justify-end gap-1">
-            {publisher.lastActivity != null && (
-              <Button asChild variant="ghost" size="icon">
-                <Link to={publisher.editActivityUrl}>
-                  <Pencil className="size-4" />
-                </Link>
-              </Button>
-            )}
-            {publisher.lastActivity == null && (
-              <Button asChild variant="ghost" size="icon">
-                <Link to={publisher.newActivityUrl}>
-                  <Plus className="size-4" />
-                </Link>
-              </Button>
-            )}
-          </div>
-        </TableCell>
-      )}
-    </TableRow>
-  )
-}
-
-function ActivityColumns({ publisher }: { publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']> }) {
-  if (publisher.lastActivity == null) {
-    return (
-      <TableCell className="text-center text-muted-foreground text-sm italic max-sm:hidden" colSpan={4}>
-        {m.activity_no_report()}
-      </TableCell>
-    )
-  }
-
-  return (
-    <>
-      <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity.type === PublisherType.Normal &&
-          publisher.lastActivity.isPublisher &&
-          m.activity_preached()}
-        {publisher.lastActivity.type !== PublisherType.Normal && `${publisher.lastActivity?.hours}h`}
-      </TableCell>
-      <TableCell className="text-center max-sm:hidden">{publisher.lastActivity?.studies}</TableCell>
-      <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity?.type === PublisherType.PionnierAuxiliaires && 'PA'}
-        {publisher.lastActivity?.type === PublisherType.PionnierPermanant && 'PP'}
-        {publisher.lastActivity?.type === PublisherType.PionnierSpecial && 'PS'}
-        {publisher.lastActivity?.type === PublisherType.Missionnaire && 'M'}
-        {publisher.lastActivity?.type === PublisherType.Normal && '-'}
-      </TableCell>
-      <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity?.notes.length < 1 ? '-' : publisher.lastActivity?.notes}
-      </TableCell>
-    </>
   )
 }
