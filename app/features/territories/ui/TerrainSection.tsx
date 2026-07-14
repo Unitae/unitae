@@ -4,6 +4,7 @@ import type { ShopKindDistributionEntry } from '~/features/territories/server/co
 import type { TerrainStats } from '~/features/territories/server/compute-terrain-stats.server'
 import CommerceShopKindChart from '~/features/territories/ui/CommerceShopKindChart'
 import { StatLabel } from '~/features/territories/ui/StatLabel'
+import { ZoneHeading } from '~/features/territories/ui/ZoneHeading'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 
@@ -20,7 +21,7 @@ export default function TerrainSection({
 }: TerrainSectionProps) {
   return (
     <>
-      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_terrain_heading()}</h2>
+      <ZoneHeading eyebrow={m.stats_scope_snapshot()} title={m.stats_terrain_heading()} />
       <div className="flex flex-col gap-3">
         <div className="grid grid-cols-3 gap-3 max-md:grid-cols-1">
           <Card>

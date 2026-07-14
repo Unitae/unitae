@@ -1,6 +1,4 @@
-import { Cell, Pie, PieChart, Tooltip as RechartsTooltip } from 'recharts'
 import { getGroups } from '~/features/publishers/index.server'
-import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
 import { countActiveWorkingTerritories } from '~/features/territories/server/active-working-territories.server'
 import { aggregateAttributionStatsForWindow } from '~/features/territories/server/aggregate-attribution-stats.server'
 import { countAvailableTerritories } from '~/features/territories/server/available-territories.server'
@@ -34,14 +32,10 @@ import {
   getCurrentTheocraticYear,
   getEndDateOfTheocraticYear,
 } from '~/features/territories/server/theocratic-year.server'
-import AttributionsPerMonthChart from '~/features/territories/ui/AttributionsPerMonthChart'
-import MonthlyCoverageChart from '~/features/territories/ui/MonthlyCoverageChart'
-import { StatLabel } from '~/features/territories/ui/StatLabel'
-import StatsFilters from '~/features/territories/ui/StatsFilters'
+import AnalysisSection from '~/features/territories/ui/AnalysisSection'
+import SnapshotOverviewSection from '~/features/territories/ui/SnapshotOverviewSection'
 import TerrainSection from '~/features/territories/ui/TerrainSection'
-import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
-import { TerritoryLink } from '~/features/territories/ui/TerritoryLink'
-import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
+import YearComparisonSection from '~/features/territories/ui/YearComparisonSection'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -50,22 +44,12 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
-import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.stats_meta_title() }]
-}
-
-const CHART_TOOLTIP_STYLE = {
-  contentStyle: {
-    backgroundColor: 'var(--color-card)',
-    border: '1px solid var(--color-border)',
-    borderRadius: '0.5rem',
-  },
-  labelStyle: { color: 'var(--color-card-foreground)' },
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -257,29 +241,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
   })
 }
 
-const PIE_COLORS = ['var(--color-chart-1)', 'var(--color-chart-2)', 'var(--color-chart-4)', 'var(--color-chart-3)']
-
-const GROUP_COLORS = [
-  'var(--color-chart-1)',
-  'var(--color-chart-2)',
-  'var(--color-chart-3)',
-  'var(--color-chart-4)',
-  'var(--color-chart-5)',
-  '#6366f1',
-  '#ec4899',
-  '#14b8a6',
-]
-
 export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps) {
   const { stats, progression, coverageOverTime, yearOverYear, attributionsByGroup, theocraticYear, groups, terrain } =
     loaderData
-
-  const pieData = [
-    { name: m.stats_pie_available(), value: stats.available },
-    { name: m.stats_pie_active(), value: stats.active },
-    { name: m.stats_pie_delayed(), value: stats.delayed },
-    { name: m.stats_pie_resting(), value: stats.resting },
-  ]
 
   return (
     <div className="flex flex-col gap-6">
@@ -289,323 +253,21 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
         breadcrumbs={[{ label: m.sidebar_statistics() }]}
         actions={<S13ExportButton theocraticYear={theocraticYear} />}
       />
-
-      {/* ═══ État global ═══ */}
-      <h2 className="font-display font-semibold text-xl">{m.stats_global_heading()}</h2>
-
-      <div className="flex flex-col gap-3">
-        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.total}</span>
-              <StatLabel label={m.stats_total_territories()} help={m.stats_total_territories_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-7xl max-sm:text-5xl">{stats.available}</span>
-              <StatLabel label={m.stats_available_territories()} help={m.stats_available_territories_help()} />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.working}</span>
-              <StatLabel label={m.stats_working_territories()} help={m.stats_working_territories_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.delayed}</span>
-              <StatLabel label={m.stats_delayed_territories()} help={m.stats_delayed_territories_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.resting}</span>
-              <StatLabel
-                label={m.stats_resting_territories()}
-                help={m.stats_resting_territories_help({
-                  doorDays: RESTING_PERIOD_DAYS.doorsToDoors,
-                  otherDays: RESTING_PERIOD_DAYS.campaign,
-                })}
-              />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <PieChart width={300} height={300}>
-                <Pie
-                  data={pieData}
-                  cx={150}
-                  cy={150}
-                  innerRadius={60}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${entry.name}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <RechartsTooltip {...CHART_TOOLTIP_STYLE} />
-              </PieChart>
-              <StatLabel label={m.stats_pie_label()} help={m.stats_pie_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              {attributionsByGroup.length > 0 ? (
-                <PieChart width={300} height={300}>
-                  <Pie
-                    data={attributionsByGroup.map(g => ({ name: g.groupName, value: g.count }))}
-                    cx={150}
-                    cy={150}
-                    innerRadius={60}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {attributionsByGroup.map((g, index) => (
-                      <Cell key={`group-${g.groupName}`} fill={GROUP_COLORS[index % GROUP_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip {...CHART_TOOLTIP_STYLE} />
-                </PieChart>
-              ) : (
-                <span className="py-12 text-muted-foreground text-sm italic">{m.stats_no_active_attributions()}</span>
-              )}
-              <StatLabel label={m.stats_group_distribution_label()} help={m.stats_group_distribution_help()} />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* ═══ Terrain ═══ */}
+      <SnapshotOverviewSection stats={stats} attributionsByGroup={attributionsByGroup} />
       <TerrainSection
         stats={terrain.stats}
         shopKindDistribution={terrain.shopKindDistribution}
         buildingsMissingDemographicsCount={terrain.buildingsMissingDemographicsCount}
       />
-
-      {/* ═══ Progression ═══ */}
-      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_progression_heading()}</h2>
-      <div className="flex flex-col gap-3">
-        <div className="my-2">
-          <StatsFilters groups={groups} theocraticYear={theocraticYear} />
-        </div>
-        <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1 max-md:grid-cols-2">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.coverage.toFixed(2)} %</span>
-              <StatLabel label={m.stats_coverage()} help={m.stats_coverage_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {stats.totalCoverage.toFixed(2)} %
-              </span>
-              <StatLabel label={m.stats_total_coverage()} help={m.stats_total_coverage_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.foyersReached.count}
-              </span>
-              {progression.foyersReached.percentage != null && (
-                <span className="font-display text-lg text-muted-foreground">
-                  {m.stats_foyers_reached_subtitle({ percentage: progression.foyersReached.percentage })}
-                </span>
-              )}
-              <StatLabel label={m.stats_foyers_reached()} help={m.stats_foyers_reached_help()} />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              {progression.ranked.most != null ? (
-                <TerritoryLink
-                  territory={{ id: progression.ranked.most.id, number: progression.ranked.most.number }}
-                  className="font-black font-display text-5xl max-sm:text-3xl"
-                />
-              ) : (
-                <span className="font-black font-display text-5xl max-sm:text-3xl">-</span>
-              )}
-              {progression.ranked.most != null && (
-                <span className="font-display text-lg text-muted-foreground">
-                  {m.stats_times_count({ count: progression.ranked.most.count })}
-                </span>
-              )}
-              <StatLabel label={m.stats_most_worked()} help={m.stats_most_worked_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              {progression.ranked.least != null ? (
-                <TerritoryLink
-                  territory={{ id: progression.ranked.least.id, number: progression.ranked.least.number }}
-                  className="font-black font-display text-5xl max-sm:text-3xl"
-                />
-              ) : (
-                <span className="font-black font-display text-5xl max-sm:text-3xl">-</span>
-              )}
-              {progression.ranked.least != null && (
-                <span className="font-display text-lg text-muted-foreground">
-                  {m.stats_times_count({ count: progression.ranked.least.count })}
-                </span>
-              )}
-              <StatLabel label={m.stats_least_worked()} help={m.stats_least_worked_help()} />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.durationStats.averageDays} j
-              </span>
-              <StatLabel label={m.stats_avg_duration()} help={m.stats_avg_duration_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <div className="flex items-baseline gap-2">
-                <span className="font-black font-display text-5xl max-sm:text-3xl">
-                  {progression.durationStats.longestDays}
-                </span>
-                <span className="text-2xl text-muted-foreground">/</span>
-                <span className="font-black font-display text-5xl max-sm:text-3xl">
-                  {progression.durationStats.shortestDays}
-                </span>
-                <span className="font-display text-2xl">j</span>
-              </div>
-              {(progression.durationStats.longestTerritory != null ||
-                progression.durationStats.shortestTerritory != null) && (
-                <span className="font-display text-lg text-muted-foreground">
-                  {progression.durationStats.longestTerritory != null ? (
-                    <TerritoryLink territory={progression.durationStats.longestTerritory} />
-                  ) : (
-                    '-'
-                  )}
-                  <span className="mx-1">/</span>
-                  {progression.durationStats.shortestTerritory != null ? (
-                    <TerritoryLink territory={progression.durationStats.shortestTerritory} />
-                  ) : (
-                    '-'
-                  )}
-                </span>
-              )}
-              <StatLabel label={m.stats_longest_shortest()} help={m.stats_longest_shortest_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.overdueRate.toFixed(1)} %
-              </span>
-              <StatLabel label={m.stats_overdue_rate()} help={m.stats_overdue_rate_help()} />
-            </CardContent>
-          </Card>
-        </div>
-        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.availabilityGap} j</span>
-              <StatLabel label={m.stats_availability_gap()} help={m.stats_availability_gap_help()} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">{progression.restUtilization} j</span>
-              <StatLabel label={m.stats_rest_utilization()} help={m.stats_rest_utilization_help()} />
-            </CardContent>
-          </Card>
-        </div>
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">{m.stats_attributions_per_month()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AttributionsPerMonthChart data={progression.attributionsPerMonth} />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══ Couverture dans le temps ═══ */}
-      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_coverage_over_time_heading()}</h2>
-      <div className="flex flex-col gap-3">
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">{m.stats_monthly_coverage_title()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <MonthlyCoverageChart data={coverageOverTime.monthlyCoverage} />
-          </CardContent>
-        </Card>
-        {coverageOverTime.coverageByType.length > 0 && (
-          <div
-            className={`grid gap-3 max-sm:grid-cols-1 ${
-              coverageOverTime.coverageByType.length <= 3
-                ? `grid-cols-${coverageOverTime.coverageByType.length}`
-                : 'grid-cols-3 max-md:grid-cols-2'
-            }`}
-          >
-            {coverageOverTime.coverageByType.map(ct => (
-              <Card key={ct.kind}>
-                <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-                  <span className="font-black font-display text-4xl max-sm:text-2xl">
-                    {ct.totalCoverage.toFixed(1)} %
-                  </span>
-                  <span className="text-muted-foreground text-xs">
-                    {m.stats_attributions_percentage({ percentage: ct.coverage.toFixed(1) })}
-                  </span>
-                  <StatLabel label={ct.label} help={m.stats_coverage_by_type_help({ label: ct.label })} />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">{m.stats_never_worked_title()}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <TerritoriesNeverWorkedList
-              territories={coverageOverTime.neverWorked.territories}
-              isCapped={coverageOverTime.neverWorked.isCapped}
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ═══ Comparaison annuelle ═══ */}
-      <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_year_comparison_heading()}</h2>
-      <Card>
-        <CardHeader>
-          <CardTitle className="font-display text-lg">
-            {m.stats_year_comparison_title({
-              current: `${theocraticYear}/${theocraticYear + 1}`,
-              previous: `${theocraticYear - 1}/${theocraticYear}`,
-            })}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <YearOverYearTable
-            current={yearOverYear.current}
-            previous={yearOverYear.previous}
-            currentLabel={`${theocraticYear}/${theocraticYear + 1}`}
-            previousLabel={`${theocraticYear - 1}/${theocraticYear}`}
-          />
-        </CardContent>
-      </Card>
+      <AnalysisSection
+        coverage={stats.coverage}
+        totalCoverage={stats.totalCoverage}
+        progression={progression}
+        coverageOverTime={coverageOverTime}
+        groups={groups}
+        theocraticYear={theocraticYear}
+      />
+      <YearComparisonSection yearOverYear={yearOverYear} theocraticYear={theocraticYear} />
     </div>
   )
 }

@@ -1,12 +1,12 @@
 import type { StatsAttribution } from './stats-attribution.type'
 
-interface RankedTerritory {
+export interface RankedTerritory {
   id: number
   number: string
   count: number
 }
 
-interface RankedTerritoriesResult {
+export interface RankedTerritoriesResult {
   most: RankedTerritory | null
   least: RankedTerritory | null
 }
