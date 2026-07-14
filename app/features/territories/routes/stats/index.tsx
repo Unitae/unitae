@@ -1,4 +1,3 @@
-import { Info } from 'lucide-react'
 import { Cell, Pie, PieChart, Tooltip as RechartsTooltip } from 'recharts'
 import { getGroups } from '~/features/publishers/index.server'
 import { RESTING_PERIOD_DAYS } from '~/features/territories/model/resting-periods'
@@ -9,10 +8,14 @@ import { computeAttributionsPerMonth } from '~/features/territories/server/compu
 import { computeAvailabilityGap } from '~/features/territories/server/compute-availability-gap.server'
 import { computeCoverageByTerritoryType } from '~/features/territories/server/compute-coverage-by-territory-type.server'
 import { computeDurationStats } from '~/features/territories/server/compute-duration-stats.server'
+import { computeFoyersReached } from '~/features/territories/server/compute-foyers-reached.server'
 import { computeMonthlyCoverageEvolution } from '~/features/territories/server/compute-monthly-coverage-evolution.server'
 import { computeOverdueRate } from '~/features/territories/server/compute-overdue-rate.server'
 import { computeRankedTerritories } from '~/features/territories/server/compute-ranked-territories.server'
 import { computeRestPeriodUtilization } from '~/features/territories/server/compute-rest-period-utilization.server'
+import { computeShopKindDistribution } from '~/features/territories/server/compute-shopkind-distribution.server'
+import { computeTerrainStats } from '~/features/territories/server/compute-terrain-stats.server'
+import { countBuildingsMissingDemographics } from '~/features/territories/server/count-buildings-missing-demographics.server'
 import { countDelayedWorkingTerritories } from '~/features/territories/server/delayed-working-territories.server'
 import { fetchActiveAttributionsByGroup } from '~/features/territories/server/fetch-attributions-by-group.server'
 import { fetchAttributionsForStats } from '~/features/territories/server/fetch-attributions-for-stats.server'
@@ -33,8 +36,11 @@ import {
 } from '~/features/territories/server/theocratic-year.server'
 import AttributionsPerMonthChart from '~/features/territories/ui/AttributionsPerMonthChart'
 import MonthlyCoverageChart from '~/features/territories/ui/MonthlyCoverageChart'
+import { StatLabel } from '~/features/territories/ui/StatLabel'
 import StatsFilters from '~/features/territories/ui/StatsFilters'
+import TerrainSection from '~/features/territories/ui/TerrainSection'
 import TerritoriesNeverWorkedList from '~/features/territories/ui/TerritoriesNeverWorkedList'
+import { TerritoryLink } from '~/features/territories/ui/TerritoryLink'
 import YearOverYearTable from '~/features/territories/ui/YearOverYearTable'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -47,7 +53,6 @@ import { Permission } from '~/shared/types/permission'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import S13ExportButton from '~/shared/ui/S13ExportButton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
 import type { Route } from './+types/index'
 
 export const meta: Route.MetaFunction = () => {
@@ -110,6 +115,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
       neverWorked,
       attributionsByGroup,
       groups,
+      terrainStats,
+      shopKindDistribution,
+      buildingsMissingDemographicsCount,
     ] = await Promise.all([
       countActiveWorkingTerritories(db, congregationId),
       countDelayedWorkingTerritories(db, congregationId),
@@ -142,7 +150,13 @@ export function loader({ request, context }: Route.LoaderArgs) {
       getTerritoriesNeverWorked(db, filterParams, congregationId),
       fetchActiveAttributionsByGroup(db, congregationId),
       getGroups(db, congregationId),
+      computeTerrainStats(db, congregationId),
+      computeShopKindDistribution(db, congregationId, m.stats_terrain_commerce_distribution_other()),
+      countBuildingsMissingDemographics(db, congregationId),
     ])
+
+    const reachedTerritoryIds = Array.from(new Set(filteredAttributions.map(a => a.territoryId)))
+    const foyersReached = await computeFoyersReached(db, congregationId, reachedTerritoryIds, terrainStats.homesCount)
 
     // Filtered counts derived in JS to avoid a second SQL groupBy (R10).
     const territoryCounts =
@@ -208,6 +222,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         availabilityGap,
         attributionsPerMonth,
         restUtilization,
+        foyersReached,
       },
       coverageOverTime: {
         monthlyCoverage,
@@ -230,6 +245,11 @@ export function loader({ request, context }: Route.LoaderArgs) {
           attributionCount: yoyPreviousAggregate.attributionCount,
         },
       },
+      terrain: {
+        stats: terrainStats,
+        shopKindDistribution,
+        buildingsMissingDemographicsCount,
+      },
       attributionsByGroup,
       theocraticYear,
       groups,
@@ -250,26 +270,9 @@ const GROUP_COLORS = [
   '#14b8a6',
 ]
 
-function StatLabel({ label, help }: { label: string; help: string }) {
-  return (
-    <span className="inline-flex items-center gap-1 text-muted-foreground text-sm">
-      {label}
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Info className="size-3.5 cursor-help text-muted-foreground/60" />
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="max-w-64">
-            {help}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </span>
-  )
-}
-
 export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps) {
-  const { stats, progression, coverageOverTime, yearOverYear, attributionsByGroup, theocraticYear, groups } = loaderData
+  const { stats, progression, coverageOverTime, yearOverYear, attributionsByGroup, theocraticYear, groups, terrain } =
+    loaderData
 
   const pieData = [
     { name: m.stats_pie_available(), value: stats.available },
@@ -383,13 +386,20 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
         </div>
       </div>
 
+      {/* ═══ Terrain ═══ */}
+      <TerrainSection
+        stats={terrain.stats}
+        shopKindDistribution={terrain.shopKindDistribution}
+        buildingsMissingDemographicsCount={terrain.buildingsMissingDemographicsCount}
+      />
+
       {/* ═══ Progression ═══ */}
       <h2 className="mt-3 font-display font-semibold text-xl">{m.stats_progression_heading()}</h2>
       <div className="flex flex-col gap-3">
         <div className="my-2">
           <StatsFilters groups={groups} theocraticYear={theocraticYear} />
         </div>
-        <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1 max-md:grid-cols-2">
+        <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1 max-md:grid-cols-2">
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">{stats.coverage.toFixed(2)} %</span>
@@ -407,8 +417,28 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
               <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.ranked.most != null ? `${progression.ranked.most.number}` : '-'}
+                {progression.foyersReached.count}
               </span>
+              {progression.foyersReached.percentage != null && (
+                <span className="font-display text-lg text-muted-foreground">
+                  {m.stats_foyers_reached_subtitle({ percentage: progression.foyersReached.percentage })}
+                </span>
+              )}
+              <StatLabel label={m.stats_foyers_reached()} help={m.stats_foyers_reached_help()} />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
+              {progression.ranked.most != null ? (
+                <TerritoryLink
+                  territory={{ id: progression.ranked.most.id, number: progression.ranked.most.number }}
+                  className="font-black font-display text-5xl max-sm:text-3xl"
+                />
+              ) : (
+                <span className="font-black font-display text-5xl max-sm:text-3xl">-</span>
+              )}
               {progression.ranked.most != null && (
                 <span className="font-display text-lg text-muted-foreground">
                   {m.stats_times_count({ count: progression.ranked.most.count })}
@@ -419,9 +449,14 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
           </Card>
           <Card>
             <CardContent className="flex flex-col items-center justify-center gap-1 p-6 text-center">
-              <span className="font-black font-display text-5xl max-sm:text-3xl">
-                {progression.ranked.least != null ? `${progression.ranked.least.number}` : '-'}
-              </span>
+              {progression.ranked.least != null ? (
+                <TerritoryLink
+                  territory={{ id: progression.ranked.least.id, number: progression.ranked.least.number }}
+                  className="font-black font-display text-5xl max-sm:text-3xl"
+                />
+              ) : (
+                <span className="font-black font-display text-5xl max-sm:text-3xl">-</span>
+              )}
               {progression.ranked.least != null && (
                 <span className="font-display text-lg text-muted-foreground">
                   {m.stats_times_count({ count: progression.ranked.least.count })}
@@ -452,6 +487,22 @@ export default function TerritoryStatsPage({ loaderData }: Route.ComponentProps)
                 </span>
                 <span className="font-display text-2xl">j</span>
               </div>
+              {(progression.durationStats.longestTerritory != null ||
+                progression.durationStats.shortestTerritory != null) && (
+                <span className="font-display text-lg text-muted-foreground">
+                  {progression.durationStats.longestTerritory != null ? (
+                    <TerritoryLink territory={progression.durationStats.longestTerritory} />
+                  ) : (
+                    '-'
+                  )}
+                  <span className="mx-1">/</span>
+                  {progression.durationStats.shortestTerritory != null ? (
+                    <TerritoryLink territory={progression.durationStats.shortestTerritory} />
+                  ) : (
+                    '-'
+                  )}
+                </span>
+              )}
               <StatLabel label={m.stats_longest_shortest()} help={m.stats_longest_shortest_help()} />
             </CardContent>
           </Card>

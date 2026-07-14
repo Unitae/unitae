@@ -1,4 +1,5 @@
 import { MapPinOff } from 'lucide-react'
+import { Link } from 'react-router'
 import type { NeverWorkedTerritory } from '~/features/territories/server/territories-never-worked.server'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -29,9 +30,15 @@ export default function TerritoriesNeverWorkedList({ territories, isCapped = fal
       </p>
       <div className="flex flex-wrap gap-2">
         {territories.map(t => (
-          <Badge key={t.id} variant="outline">
-            {t.number}
-          </Badge>
+          <Link
+            key={t.id}
+            to={`/territories/territory/${t.id}/view`}
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Badge variant="outline" className="hover:bg-accent">
+              {t.number}
+            </Badge>
+          </Link>
         ))}
         {isCapped && <Badge variant="secondary">{m.stats_never_worked_more_capped()}</Badge>}
       </div>
