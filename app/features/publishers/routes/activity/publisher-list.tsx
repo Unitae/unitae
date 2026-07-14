@@ -1,20 +1,22 @@
-import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide-react'
-import { Link, redirect, useSearchParams } from 'react-router'
+import { ChevronLeft, ChevronRight, Download, Users } from 'lucide-react'
+import { useState } from 'react'
+import { redirect, useSearchParams } from 'react-router'
+import { wasInactiveDuring } from '~/features/publishers/model/inactive'
+import { previousMonth } from '~/features/publishers/model/previous-month'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
+import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
+import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
+import { PublisherActivityRow } from '~/features/publishers/ui/PublisherActivityRow'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
-import { PublisherType } from '~/shared/types/publisher-type'
-import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
-
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
@@ -38,11 +40,27 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const timeRange = new Date()
   const searchParams = new URL(request.url).searchParams
-  const month = Number(searchParams.get('month') ?? timeRange.getMonth())
-  const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
+  const hasExplicitSelection = searchParams.has('month') || searchParams.has('year')
+  let month = Number(searchParams.get('month') ?? timeRange.getMonth())
+  let year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
   return withScopeFromContext(context, async db => {
-    const users = await getPublisherWithActivities(db, currentUser.congregationId, month, year)
+    if (!hasExplicitSelection) {
+      const currentMonthActivityCount = await db.publisherActivity.count({ where: { month, year } })
+      if (currentMonthActivityCount === 0) {
+        ;({ month, year } = previousMonth({ month, year }))
+      }
+    }
+
+    const [users, publisherGroups, availableYears] = await Promise.all([
+      getPublisherWithActivities(db, currentUser.congregationId, month, year),
+      db.publisherGroup.findMany({
+        where: { congregationId: currentUser.congregationId },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      listTheocraticYearsWithActivity(db, currentUser.congregationId),
+    ])
 
     return {
       firstMonth: {
@@ -58,6 +76,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         .map(({ activities, ...member }) => ({
           ...member,
           lastActivity: activities.length < 1 ? null : activities[0],
+          wasInactive: wasInactiveDuring(member.inactiveAt, year, month),
           notRegular:
             activities[0] != null &&
             activities[0].isPublisher === false &&
@@ -68,18 +87,20 @@ export function loader({ request, context }: Route.LoaderArgs) {
           newActivityUrl: `./new?publisherId=${publisher.id}&month=${month}&year=${year}`,
           editActivityUrl: `./${publisher.lastActivity?.id}/edit`,
         })),
+      exportOptions: {
+        publisherGroups,
+        availableYears,
+        members: users.map(({ id, firstname, lastname }) => ({ id, firstname, lastname })),
+      },
       canManageActivities,
     }
   })
 }
 
-type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType extends readonly (infer ElementType)[]
-  ? ElementType
-  : never
-
 export default function NewActivity({ loaderData }: Route.ComponentProps) {
-  const { publishers, selectedMonth, firstMonth, stats, canManageActivities } = loaderData
+  const { publishers, selectedMonth, firstMonth, stats, canManageActivities, exportOptions } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
+  const [exportOpen, setExportOpen] = useState(false)
   const selectedDate = new Date()
   selectedDate.setMonth(selectedMonth.month)
   selectedDate.setFullYear(selectedMonth.year)
@@ -117,34 +138,23 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.activity_list_title() }]}
         actions={
           <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  title={m.activity_export_button_title()}
-                  className="max-sm:hidden"
-                >
-                  <Download className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link
-                    to={`./export/${firstMonth.year}/xlsx`}
-                    title={m.activity_export_excel_title({ year: String(firstMonth.year) })}
-                    reloadDocument
-                  >
-                    {m.activity_export_excel()}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to={`./export/${firstMonth.year}/pdfs`} reloadDocument>
-                    {m.activity_export_s21()}
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="icon"
+              title={m.activity_export_button_title()}
+              className="max-sm:hidden"
+              onClick={() => setExportOpen(true)}
+            >
+              <Download className="size-4" />
+            </Button>
+            <ExportActivityDialog
+              open={exportOpen}
+              onOpenChange={setExportOpen}
+              availableYears={exportOptions.availableYears}
+              defaultYear={firstMonth.year}
+              publisherGroups={exportOptions.publisherGroups}
+              members={exportOptions.members}
+            />
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" onClick={handleMonthDecrease}>
                 <ChevronLeft className="size-4" />
@@ -185,113 +195,15 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
           </TableHeader>
           <TableBody>
             {publishers.map(publisher => (
-              <PublisherRow key={publisher.id} publisher={publisher} canManageActivities={canManageActivities} />
+              <PublisherActivityRow
+                key={publisher.id}
+                publisher={publisher}
+                canManageActivities={canManageActivities}
+              />
             ))}
           </TableBody>
         </Table>
       </div>
     </div>
-  )
-}
-
-function PublisherRow({
-  publisher,
-  canManageActivities,
-}: {
-  publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']>
-  canManageActivities: boolean
-}) {
-  const nameHover = publisher.inactiveAt != null ? 'hover:text-foreground' : 'hover:text-primary'
-  return (
-    <TableRow
-      key={publisher.id}
-      className={
-        publisher.inactiveAt != null
-          ? 'bg-muted/40 text-muted-foreground'
-          : publisher.notRegular
-            ? 'bg-destructive/10 text-destructive dark:bg-destructive/5'
-            : ''
-      }
-    >
-      <TableCell className="text-center max-sm:text-left">
-        <div className="flex items-center justify-center gap-2 max-sm:justify-start">
-          <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
-            {publisher.firstname}
-          </Link>
-          {publisher.inactiveAt != null && (
-            <Badge variant="outline" className="text-xs">
-              {m.activity_table_inactive()}
-            </Badge>
-          )}
-        </div>
-      </TableCell>
-      <TableCell className="text-center">
-        <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
-          {publisher.lastname?.toLocaleUpperCase()}
-        </Link>
-      </TableCell>
-      <TableCell className="text-center">
-        {publisher.publisherGroup != null && (
-          <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className={nameHover}>
-            {publisher.publisherGroup.name}
-          </Link>
-        )}
-      </TableCell>
-
-      <ActivityColumns publisher={publisher} />
-
-      {canManageActivities && (
-        <TableCell className="text-right">
-          <div className="flex items-center justify-end gap-1">
-            {publisher.lastActivity != null && (
-              <Button asChild variant="ghost" size="icon">
-                <Link to={publisher.editActivityUrl}>
-                  <Pencil className="size-4" />
-                </Link>
-              </Button>
-            )}
-            {publisher.lastActivity == null && (
-              <Button asChild variant="ghost" size="icon">
-                <Link to={publisher.newActivityUrl}>
-                  <Plus className="size-4" />
-                </Link>
-              </Button>
-            )}
-          </div>
-        </TableCell>
-      )}
-    </TableRow>
-  )
-}
-
-function ActivityColumns({ publisher }: { publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']> }) {
-  if (publisher.lastActivity == null) {
-    return (
-      <TableCell className="text-center text-muted-foreground text-sm italic max-sm:hidden" colSpan={4}>
-        {m.activity_no_report()}
-      </TableCell>
-    )
-  }
-
-  return (
-    <>
-      <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity.type === PublisherType.Normal &&
-          publisher.lastActivity.isPublisher &&
-          m.activity_preached()}
-        {publisher.lastActivity.type !== PublisherType.Normal && `${publisher.lastActivity?.hours}h`}
-      </TableCell>
-      <TableCell className="text-center max-sm:hidden">{publisher.lastActivity?.studies}</TableCell>
-      <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity?.type === PublisherType.PionnierAuxiliaires && 'PA'}
-        {publisher.lastActivity?.type === PublisherType.PionnierPermanant && 'PP'}
-        {publisher.lastActivity?.type === PublisherType.PionnierSpecial && 'PS'}
-        {publisher.lastActivity?.type === PublisherType.Missionnaire && 'M'}
-        {publisher.lastActivity?.type === PublisherType.Normal && '-'}
-      </TableCell>
-      <TableCell className="text-center max-sm:hidden">
-        {publisher.lastActivity?.notes.length < 1 ? '-' : publisher.lastActivity?.notes}
-      </TableCell>
-    </>
   )
 }

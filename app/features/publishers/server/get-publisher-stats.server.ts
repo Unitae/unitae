@@ -2,94 +2,46 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
 export async function getPublisherStats(db: TransactionClient, congregationId: number, month: number, year: number) {
-  const publishers = await db.member.count({
-    where: {
-      congregationId,
-      leftAt: null,
-      inactiveAt: null,
-      activities: {
-        some: {
-          year,
-          month,
-        },
-      },
-    },
-  })
-  const figureMap = await getFiguresMap(db, congregationId, month, year)
-
-  return {
-    all: getAllStats(publishers, figureMap),
-    publishers: getStatsByType(figureMap, PublisherType.Normal),
-    permanentPionneer: getStatsByType(figureMap, PublisherType.PionnierPermanant),
-    auxiliaryPionneer: getStatsByType(figureMap, PublisherType.PionnierAuxiliaires),
-  }
-}
-
-async function getFiguresMap(db: TransactionClient, congregationId: number, month: number, year: number) {
   const figures = await db.publisherActivity.groupBy({
-    _count: {
-      _all: true,
-    },
-    _sum: {
-      hours: true,
-      studies: true,
-    },
-    where: {
-      year,
-      month,
-      isPublisher: true,
-      congregationId,
-    },
-    by: 'type',
+    _count: { _all: true },
+    _sum: { hours: true, studies: true },
+    where: { year, month, congregationId },
+    by: ['type', 'isPublisher'],
   })
 
-  return figures.reduce((aggr, curr) => {
-    return Object.assign(aggr, { [curr.type]: curr })
-  }, {}) as {
-    [Key in PublisherType]: {
-      _count: { _all: number }
-      _sum: { hours: number; studies: number }
-    }
+  return {
+    all: getAllStats(figures),
+    publishers: getStatsByType(figures, PublisherType.Normal),
+    permanentPionneer: getStatsByType(figures, PublisherType.PionnierPermanant),
+    auxiliaryPionneer: getStatsByType(figures, PublisherType.PionnierAuxiliaires),
   }
 }
 
-function getAllStats(
-  publishers: number,
-  figureMap: {
-    [Key in PublisherType]: {
-      _count: { _all: number }
-      _sum: { hours: number; studies: number }
-    }
-  },
-) {
+type Figure = {
+  type: PublisherType
+  isPublisher: boolean
+  _count: { _all: number }
+  _sum: { hours: number | null; studies: number | null }
+}
+
+function getAllStats(figures: Figure[]) {
+  const active = figures.filter(f => f.isPublisher)
+  const isPioneer = (type: PublisherType) =>
+    type === PublisherType.PionnierPermanant || type === PublisherType.PionnierAuxiliaires
+
   return {
-    count: publishers,
-    active:
-      (figureMap[PublisherType.Normal]?._count._all ?? 0) +
-      (figureMap[PublisherType.PionnierPermanant]?._count._all ?? 0) +
-      (figureMap[PublisherType.PionnierAuxiliaires]?._count._all ?? 0),
-    hours:
-      (figureMap[PublisherType.PionnierPermanant]?._sum.hours ?? 0) +
-      (figureMap[PublisherType.PionnierAuxiliaires]?._sum.hours ?? 0),
-    studies:
-      (figureMap[PublisherType.Normal]?._sum.studies ?? 0) +
-      (figureMap[PublisherType.PionnierPermanant]?._sum.studies ?? 0) +
-      (figureMap[PublisherType.PionnierAuxiliaires]?._sum.studies ?? 0),
+    count: figures.reduce((sum, f) => sum + f._count._all, 0),
+    active: active.reduce((sum, f) => sum + f._count._all, 0),
+    hours: active.filter(f => isPioneer(f.type)).reduce((sum, f) => sum + (f._sum.hours ?? 0), 0),
+    studies: active.reduce((sum, f) => sum + (f._sum.studies ?? 0), 0),
   }
 }
 
-function getStatsByType(
-  figureMap: {
-    [Key in PublisherType]: {
-      _count: { _all: number }
-      _sum: { hours: number; studies: number }
-    }
-  },
-  type: PublisherType,
-) {
+function getStatsByType(figures: Figure[], type: PublisherType) {
+  const row = figures.find(f => f.type === type && f.isPublisher)
   return {
-    count: figureMap[type]?._count._all ?? 0,
-    hours: figureMap[type]?._sum.hours ?? 0,
-    studies: figureMap[type]?._sum.studies ?? 0,
+    count: row?._count._all ?? 0,
+    hours: row?._sum.hours ?? 0,
+    studies: row?._sum.studies ?? 0,
   }
 }

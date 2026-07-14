@@ -3,7 +3,6 @@ import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    member: { count: vi.fn() },
     publisherActivity: { groupBy: vi.fn() },
   },
 }))
@@ -15,9 +14,10 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-function makeFigure(type: PublisherType, count: number, hours: number, studies: number) {
+function makeFigure(type: PublisherType, isPublisher: boolean, count: number, hours: number, studies: number) {
   return {
     type,
+    isPublisher,
     _count: { _all: count },
     _sum: { hours, studies },
   } as never
@@ -25,22 +25,19 @@ function makeFigure(type: PublisherType, count: number, hours: number, studies: 
 
 describe('getPublisherStats', () => {
   it('agrège les statistiques par type de proclamateur', async () => {
-    vi.mocked(db.member.count).mockResolvedValue(25)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([
-      makeFigure(PublisherType.Normal, 15, 0, 5),
-      makeFigure(PublisherType.PionnierPermanant, 3, 210, 8),
-      makeFigure(PublisherType.PionnierAuxiliaires, 7, 350, 3),
+      makeFigure(PublisherType.Normal, true, 15, 0, 5),
+      makeFigure(PublisherType.PionnierPermanant, true, 3, 210, 8),
+      makeFigure(PublisherType.PionnierAuxiliaires, true, 7, 350, 3),
     ])
 
     const result = await getPublisherStats(db, 1, 3, 2025)
 
-    // all: total
     expect(result.all.count).toBe(25)
-    expect(result.all.active).toBe(15 + 3 + 7) // 25
-    expect(result.all.hours).toBe(210 + 350) // 560 (heures seulement pour les pionniers)
-    expect(result.all.studies).toBe(5 + 8 + 3) // 16
+    expect(result.all.active).toBe(15 + 3 + 7)
+    expect(result.all.hours).toBe(210 + 350)
+    expect(result.all.studies).toBe(5 + 8 + 3)
 
-    // par type
     expect(result.publishers.count).toBe(15)
     expect(result.publishers.hours).toBe(0)
     expect(result.publishers.studies).toBe(5)
@@ -55,7 +52,6 @@ describe('getPublisherStats', () => {
   })
 
   it('gère le cas sans activité (données vides)', async () => {
-    vi.mocked(db.member.count).mockResolvedValue(0)
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
 
     const result = await getPublisherStats(db, 1, 1, 2025)
@@ -71,46 +67,56 @@ describe('getPublisherStats', () => {
   })
 
   it('gère le cas où seuls certains types ont des activités', async () => {
-    vi.mocked(db.member.count).mockResolvedValue(10)
-    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([makeFigure(PublisherType.Normal, 10, 0, 2)])
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([makeFigure(PublisherType.Normal, true, 10, 0, 2)])
 
     const result = await getPublisherStats(db, 1, 6, 2025)
 
     expect(result.all.active).toBe(10)
-    expect(result.all.hours).toBe(0) // pas de pionniers
+    expect(result.all.hours).toBe(0)
     expect(result.permanentPionneer.count).toBe(0)
     expect(result.auxiliaryPionneer.count).toBe(0)
   })
 
-  it('note: all.hours ne compte pas les heures des proclamateurs normaux', async () => {
-    vi.mocked(db.member.count).mockResolvedValue(5)
+  it('all.hours ne compte pas les heures des proclamateurs normaux', async () => {
     vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([
-      makeFigure(PublisherType.Normal, 5, 100, 0), // 100 heures pour les normaux
-      makeFigure(PublisherType.PionnierPermanant, 2, 50, 0),
+      makeFigure(PublisherType.Normal, true, 5, 100, 0),
+      makeFigure(PublisherType.PionnierPermanant, true, 2, 50, 0),
     ])
 
     const result = await getPublisherStats(db, 1, 1, 2025)
 
-    // all.hours n'inclut que les pionniers permanents et auxiliaires
     expect(result.all.hours).toBe(50)
-    // mais publishers.hours contient bien les heures des normaux
     expect(result.publishers.hours).toBe(100)
   })
 
-  it('exclut les proclamateurs inactifs du compte total via le filtre Prisma', async () => {
-    vi.mocked(db.member.count).mockResolvedValue(0)
-    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
+  it('compte les proclamateurs irréguliers dans all.count mais pas dans all.active', async () => {
+    // Regression: with the previous implementation, `count` was based on
+    // Member with leftAt/inactiveAt = null while `active` was based on
+    // PublisherActivity without any member-state filter. When a member marked
+    // inactive today had reported a regular activity for the queried month,
+    // `count` dropped but `active` didn't — cancelling out real irregulars.
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([
+      makeFigure(PublisherType.Normal, true, 20, 0, 5),
+      makeFigure(PublisherType.Normal, false, 2, 0, 0),
+      makeFigure(PublisherType.PionnierPermanant, true, 3, 210, 8),
+    ])
 
-    await getPublisherStats(db, 1, 3, 2025)
+    const result = await getPublisherStats(db, 1, 3, 2025)
 
-    expect(db.member.count).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          inactiveAt: null,
-          leftAt: null,
-          congregationId: 1,
-        }),
-      }),
-    )
+    expect(result.all.count).toBe(25)
+    expect(result.all.active).toBe(23)
+    expect(result.all.count - result.all.active).toBe(2)
+  })
+
+  it('per-type counts ignorent les activités irrégulières', async () => {
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([
+      makeFigure(PublisherType.Normal, true, 10, 0, 4),
+      makeFigure(PublisherType.Normal, false, 3, 0, 0),
+    ])
+
+    const result = await getPublisherStats(db, 1, 3, 2025)
+
+    expect(result.publishers.count).toBe(10)
+    expect(result.publishers.studies).toBe(4)
   })
 })

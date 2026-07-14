@@ -16,7 +16,7 @@ test.describe('Activity exports', () => {
   })
 
   test('PDF export route returns a ZIP attachment', async ({ page }) => {
-    const response = await page.request.get(`/publishers/activity/export/${exportYear}/pdfs`)
+    const response = await page.request.get(`/publishers/activity/export/pdfs?year=${exportYear}`)
 
     expect(response.status()).toBe(200)
     expect(response.headers()['content-type']).toContain('application/zip')
@@ -27,7 +27,7 @@ test.describe('Activity exports', () => {
   })
 
   test('XLSX export route returns an Excel attachment', async ({ page }) => {
-    const response = await page.request.get(`/publishers/activity/export/${exportYear}/xlsx`)
+    const response = await page.request.get(`/publishers/activity/export/xlsx?year=${exportYear}`)
 
     expect(response.status()).toBe(200)
     expect(response.headers()['content-type']).toContain('vnd.ms-excel')

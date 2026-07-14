@@ -18,7 +18,10 @@ beforeEach(() => {
   vi.mocked(db.publisherActivity.findMany).mockResolvedValue([] as never)
 })
 
-function makeActivity(type: PublisherType, { hours = 0, studies = 0, isPublisher = true, notes = '' } = {}) {
+function makeActivity(
+  type: PublisherType,
+  { hours = 0, studies = 0, isPublisher = true, notes = '', inactiveAt = null as Date | null } = {},
+) {
   return {
     type,
     hours,
@@ -30,6 +33,7 @@ function makeActivity(type: PublisherType, { hours = 0, studies = 0, isPublisher
       firstname: 'Jean',
       lastname: 'Dupont',
       publisherGroup: { id: 1, name: 'Groupe A' },
+      inactiveAt,
     },
   }
 }
@@ -144,6 +148,7 @@ describe('buildPublishersYearlyActivityXlsx', () => {
           firstname: 'Alice',
           lastname: 'Martin',
           publisherGroup: { id: 1, name: 'Groupe A' },
+          inactiveAt: null,
         },
       },
       {
@@ -153,6 +158,7 @@ describe('buildPublishersYearlyActivityXlsx', () => {
           firstname: 'Bob',
           lastname: 'Durand',
           publisherGroup: { id: 2, name: 'Groupe B' },
+          inactiveAt: null,
         },
       },
     ]
@@ -164,6 +170,76 @@ describe('buildPublishersYearlyActivityXlsx', () => {
     expect(sheet.getRow(3).getCell(1).value).toBe('Bob Durand')
     expect(sheet.getRow(3).getCell(2).value).toBe('GROUPE B')
     expect(sheet.getRow(3).getCell(3).value).toBe('60')
+  })
+
+  it('adds a Statut column after Heures with "Régulier" for a preaching publisher', async () => {
+    const workbook = await buildFromActivities([
+      makeActivity(PublisherType.Normal, { isPublisher: true, hours: 0, studies: 1 }),
+    ])
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(1).getCell(4).value).toBe('Statut')
+    expect(sheet.getRow(2).getCell(4).value).toBe('Régulier')
+  })
+
+  it('sets Statut to "Irrégulier" for a report with isPublisher=false and no hours', async () => {
+    const workbook = await buildFromActivities([
+      makeActivity(PublisherType.Normal, { isPublisher: false, hours: 0, studies: 0 }),
+    ])
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(2).getCell(4).value).toBe('Irrégulier')
+  })
+
+  it('sets Statut to "Inactif" when the row month is at or after the publisher inactiveAt', async () => {
+    // September 2025 is the first sheet (theocratic year starts month 8 = September).
+    // A publisher marked inactive on 2025-08-15 covers September 2025.
+    const workbook = await buildFromActivities([
+      makeActivity(PublisherType.Normal, {
+        isPublisher: false,
+        hours: 0,
+        inactiveAt: new Date(2025, 7, 15),
+      }),
+    ])
+    const sheet = workbook.worksheets[0]
+
+    expect(sheet.getRow(2).getCell(4).value).toBe('Inactif')
+  })
+
+  it('keeps Statut on "Régulier" / "Irrégulier" for months before inactiveAt', async () => {
+    // A publisher with inactiveAt in April 2026 — the September 2025 row (before
+    // inactivation) still reflects their actual state at the time.
+    vi.mocked(db.publisherActivity.findMany).mockImplementation(((args: { where: { month: number; year: number } }) => {
+      const { where } = args
+      if (where.month === 8 && where.year === 2025) {
+        return Promise.resolve([
+          makeActivity(PublisherType.Normal, {
+            isPublisher: false,
+            hours: 0,
+            inactiveAt: new Date(2026, 3, 10),
+          }),
+        ])
+      }
+      if (where.month === 3 && where.year === 2026) {
+        return Promise.resolve([
+          makeActivity(PublisherType.Normal, {
+            isPublisher: false,
+            hours: 0,
+            inactiveAt: new Date(2026, 3, 10),
+          }),
+        ])
+      }
+      return Promise.resolve([])
+    }) as never)
+
+    const months = await getPublishersYearlyActivities(db, 1, 2025)
+    const workbook = await readWorkbook(await buildPublishersYearlyActivityXlsx(months))
+
+    const september2025 = workbook.worksheets.find(sheet => sheet.name === 'SEPTEMBRE 2025')
+    const april2026 = workbook.worksheets.find(sheet => sheet.name === 'AVRIL 2026')
+
+    expect(september2025?.getRow(2).getCell(4).value).toBe('Irrégulier')
+    expect(april2026?.getRow(2).getCell(4).value).toBe('Inactif')
   })
 
   it('puts each month in its own sheet with the right activities', async () => {

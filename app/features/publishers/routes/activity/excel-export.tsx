@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_excel_export_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const canViewActivities = permissions.has(Permission.ActivityViewer)
@@ -26,12 +26,15 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  logger.info(`Generating publishers' activities XLSX report Year: ${params.year}. User ID: ${currentUser.id}.`, {
+  const year = Number(new URL(request.url).searchParams.get('year'))
+  if (!Number.isFinite(year)) throw redirect('/publishers/activity')
+
+  logger.info(`Generating publishers' activities XLSX report Year: ${year}. User ID: ${currentUser.id}.`, {
     currentUser,
   })
 
   const months = await withScopeFromContext(context, db =>
-    getPublishersYearlyActivities(db, currentUser.congregationId, Number(params.year)),
+    getPublishersYearlyActivities(db, currentUser.congregationId, year),
   )
 
   const file = await buildPublishersYearlyActivityXlsx(months)
@@ -40,7 +43,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     status: 200,
     headers: {
       'Content-Type': 'application/vnd.ms-excel',
-      'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${params.year}.xlsx"`,
+      'Content-Disposition': `attachment; filename="Activité-Proclamateurs-${year}.xlsx"`,
     },
   })
 }

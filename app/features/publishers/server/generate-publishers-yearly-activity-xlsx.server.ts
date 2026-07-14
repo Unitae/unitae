@@ -1,5 +1,6 @@
 import excelJs from 'exceljs'
 
+import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { PublisherType, publisherTypeReportsHours } from '~/shared/types/publisher-type'
 
@@ -39,51 +40,19 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
       { header: 'Nom,Prénom', width: 25 },
       { header: 'Groupes', width: 15 },
       { header: 'Heures', width: 10 },
+      { header: 'Statut', width: 12 },
       { header: 'Études', width: 6 },
       { header: 'Pion', width: 6 },
       { header: 'Observations', width: 40 },
     ]
-    worksheet.getColumn(1).alignment = { vertical: 'middle', horizontal: 'center' }
-    worksheet.getColumn(2).alignment = { vertical: 'middle', horizontal: 'center' }
-    worksheet.getColumn(3).alignment = { vertical: 'middle', horizontal: 'center' }
-    worksheet.getColumn(4).alignment = { vertical: 'middle', horizontal: 'center' }
-    worksheet.getColumn(5).alignment = { vertical: 'middle', horizontal: 'center' }
-    worksheet.getColumn(6).alignment = { vertical: 'middle', horizontal: 'center' }
-    worksheet.getColumn(1).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
-    }
-    worksheet.getColumn(2).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
-    }
-    worksheet.getColumn(3).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
-    }
-    worksheet.getColumn(4).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
-    }
-    worksheet.getColumn(5).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
-    }
-    worksheet.getColumn(6).border = {
-      top: { style: 'thin' },
-      left: { style: 'thin' },
-      bottom: { style: 'thin' },
-      right: { style: 'thin' },
+    for (let col = 1; col <= 7; col++) {
+      worksheet.getColumn(col).alignment = { vertical: 'middle', horizontal: 'center' }
+      worksheet.getColumn(col).border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      }
     }
 
     worksheet.getRow(1).font = { bold: true }
@@ -101,6 +70,7 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
         `${activity.publisher.firstname} ${activity.publisher.lastname}`,
         activity.publisher.publisherGroup?.name.toLocaleUpperCase() ?? '',
         hours,
+        computeStatut(activity, month, yearMonth),
         activity.studies,
         type,
         activity.notes,
@@ -109,6 +79,16 @@ export async function buildPublishersYearlyActivityXlsx(months: MonthlyActivitie
   }
 
   return await workbook.xlsx.writeBuffer()
+}
+
+function computeStatut(
+  activity: { isPublisher: boolean; hours: number | null; publisher: { inactiveAt: Date | null } },
+  month: number,
+  year: number,
+): string {
+  if (wasInactiveDuring(activity.publisher.inactiveAt, year, month)) return 'Inactif'
+  if (!activity.isPublisher && (activity.hours == null || activity.hours === 0)) return 'Irrégulier'
+  return 'Régulier'
 }
 
 function getPublishersMonthlyActivity(db: TransactionClient, congregationId: number, month: number, year: number) {
@@ -124,6 +104,7 @@ function getPublishersMonthlyActivity(db: TransactionClient, congregationId: num
           id: true,
           firstname: true,
           lastname: true,
+          inactiveAt: true,
           publisherGroup: {
             select: {
               id: true,
