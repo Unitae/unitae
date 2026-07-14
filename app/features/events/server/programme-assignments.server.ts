@@ -14,6 +14,23 @@ import {
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
+// Acquire a row-level lock on the assignment before the read+update sequence.
+// Without this, two overlapping transactions both read `previousAssigneeId`
+// under READ COMMITTED (Postgres default), both fire an "assigned"
+// notification, and the loser silently gets a phantom email. The lock is
+// released at transaction commit — routes wrap the whole action in
+// `withScopeFromContext`, which is one transaction.
+//
+// SELECT on a non-existent row returns zero rows without blocking, so the
+// caller's `findFirst`-then-branch shape still works.
+async function lockPartAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
+  await db.$executeRaw`SELECT id FROM "ProgrammePartAssignment" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
+}
+
+async function lockServiceRoleAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
+  await db.$executeRaw`SELECT id FROM "ProgrammeServiceRoleAssignment" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
+}
+
 export function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
   return db.event.findFirst({
     where: { id: eventId, congregationId },
@@ -47,6 +64,7 @@ export async function assignPart(
   topic: string,
   congregationId: number,
 ) {
+  await lockPartAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmePartAssignment.findFirst({
     where: { id: assignmentId, congregationId },
     include: { event: true },
@@ -129,6 +147,7 @@ export async function assignServiceRole(
   assigneeId: number | null,
   congregationId: number,
 ) {
+  await lockServiceRoleAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmeServiceRoleAssignment.findFirst({
     where: { id: assignmentId, congregationId },
     include: { event: true },
@@ -164,6 +183,7 @@ export async function assignServiceRole(
 }
 
 export async function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
+  await lockPartAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmePartAssignment.findFirst({
     where: { id: assignmentId, congregationId },
     select: { assigneeId: true, assistantId: true },
@@ -181,6 +201,7 @@ export async function unassignPart(db: TransactionClient, assignmentId: number, 
 }
 
 export async function unassignServiceRole(db: TransactionClient, assignmentId: number, congregationId: number) {
+  await lockServiceRoleAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmeServiceRoleAssignment.findFirst({
     where: { id: assignmentId, congregationId },
     select: { assigneeId: true },

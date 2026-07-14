@@ -6,6 +6,8 @@ vi.mock('~/shared/infra/db.server', () => ({
     programmePartAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     programmeServiceRoleAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
     externalSpeaker: { findFirst: vi.fn() },
+    // Row-lock helper stub — real SQL under integration tests, no-op in unit tests.
+    $executeRaw: vi.fn().mockResolvedValue(0),
   },
 }))
 
@@ -47,6 +49,23 @@ describe('assignPart', () => {
     vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
     const result = await assignPart(db, 999, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('error')
+  })
+
+  it('acquires a row lock on the assignment before reading it', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    await assignPart(db, 1, 5, null, null, 'Topic', 1)
+
+    // $executeRaw MUST fire before findFirst — the lock is the whole point.
+    // Assert order via mock.invocationCallOrder.
+    const lockOrder = vi.mocked(db.$executeRaw).mock.invocationCallOrder[0]
+    const findOrder = vi.mocked(db.programmePartAssignment.findFirst).mock.invocationCallOrder[0]
+    expect(lockOrder).toBeLessThan(findOrder)
   })
 
   it('blocks assignment when assignee has a day-off conflict', async () => {
@@ -184,6 +203,21 @@ describe('assignServiceRole', () => {
     vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue(null as never)
     const result = await assignServiceRole(db, 999, 5, 1)
     expect(result).toHaveProperty('error')
+  })
+
+  it('acquires a row lock on the service-role assignment before reading it', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    await assignServiceRole(db, 1, 5, 1)
+
+    const lockOrder = vi.mocked(db.$executeRaw).mock.invocationCallOrder[0]
+    const findOrder = vi.mocked(db.programmeServiceRoleAssignment.findFirst).mock.invocationCallOrder[0]
+    expect(lockOrder).toBeLessThan(findOrder)
   })
 
   it('blocks assignment when assignee has a day-off conflict', async () => {

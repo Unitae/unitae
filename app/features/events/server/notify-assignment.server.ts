@@ -66,6 +66,32 @@ export interface AssignmentDiff {
   newMemberId: number | null
 }
 
+// Pure builders that turn a service function's return shape into the diff
+// arrays `dispatchAssignmentDiffs` consumes. Extracted so the mapping from
+// `previousAssigneeId`/`previousAssistantId` → `[speaker, reader]` (and the
+// service-role variant) is unit-testable in isolation instead of buried in
+// three route actions. Routes call this and then `dispatchAssignmentDiffs`.
+
+// Part assignment: two slots (speaker = assignee, reader = assistant). Either
+// side of the diff can be null; the caller doesn't need to short-circuit.
+export function partAssignmentDiffs(
+  before: { previousAssigneeId: number | null; previousAssistantId: number | null },
+  after: { assigneeId: number | null; assistantId: number | null },
+): AssignmentDiff[] {
+  return [
+    { role: 'speaker', previousMemberId: before.previousAssigneeId, newMemberId: after.assigneeId },
+    { role: 'reader', previousMemberId: before.previousAssistantId, newMemberId: after.assistantId },
+  ]
+}
+
+// Service-role assignment: single slot (servant = assignee).
+export function serviceRoleAssignmentDiffs(
+  before: { previousAssigneeId: number | null },
+  after: { assigneeId: number | null },
+): AssignmentDiff[] {
+  return [{ role: 'servant', previousMemberId: before.previousAssigneeId, newMemberId: after.assigneeId }]
+}
+
 // Fires the right notification(s) for every slot on a part or service-role
 // assignment. Keeps the route action free of branching per slot.
 export async function dispatchAssignmentDiffs(

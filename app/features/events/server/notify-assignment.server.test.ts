@@ -14,7 +14,9 @@ vi.mock('~/features/display-board/index.server', () => ({
   resolveProgrammeLink: vi.fn(),
 }))
 
-const { dispatchAssignmentDiffs, notifyAssignment } = await import('./notify-assignment.server')
+const { dispatchAssignmentDiffs, notifyAssignment, partAssignmentDiffs, serviceRoleAssignmentDiffs } = await import(
+  './notify-assignment.server'
+)
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { notify } = await import('~/features/notifications/index.server')
 const { resolveProgrammeLink } = await import('~/features/display-board/index.server')
@@ -145,5 +147,51 @@ describe('dispatchAssignmentDiffs', () => {
       { role: 'reader', previousMemberId: 8, newMemberId: null },
     ])
     expect(notify).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('partAssignmentDiffs (pure)', () => {
+  it('maps previousAssigneeId → speaker slot and previousAssistantId → reader slot', () => {
+    const diffs = partAssignmentDiffs(
+      { previousAssigneeId: 5, previousAssistantId: 8 },
+      { assigneeId: 9, assistantId: 10 },
+    )
+    expect(diffs).toEqual([
+      { role: 'speaker', previousMemberId: 5, newMemberId: 9 },
+      { role: 'reader', previousMemberId: 8, newMemberId: 10 },
+    ])
+  })
+
+  it('threads null through both directions (empty slot before or after)', () => {
+    const diffs = partAssignmentDiffs(
+      { previousAssigneeId: null, previousAssistantId: 8 },
+      { assigneeId: 5, assistantId: null },
+    )
+    expect(diffs).toEqual([
+      { role: 'speaker', previousMemberId: null, newMemberId: 5 },
+      { role: 'reader', previousMemberId: 8, newMemberId: null },
+    ])
+  })
+
+  it('always returns two diffs (speaker + reader) in that exact order', () => {
+    const diffs = partAssignmentDiffs(
+      { previousAssigneeId: null, previousAssistantId: null },
+      { assigneeId: null, assistantId: null },
+    )
+    expect(diffs).toHaveLength(2)
+    expect(diffs.map(d => d.role)).toEqual(['speaker', 'reader'])
+  })
+})
+
+describe('serviceRoleAssignmentDiffs (pure)', () => {
+  it('maps previousAssigneeId → servant slot', () => {
+    const diffs = serviceRoleAssignmentDiffs({ previousAssigneeId: 5 }, { assigneeId: 9 })
+    expect(diffs).toEqual([{ role: 'servant', previousMemberId: 5, newMemberId: 9 }])
+  })
+
+  it('produces exactly one diff', () => {
+    const diffs = serviceRoleAssignmentDiffs({ previousAssigneeId: null }, { assigneeId: null })
+    expect(diffs).toHaveLength(1)
+    expect(diffs[0].role).toBe('servant')
   })
 })

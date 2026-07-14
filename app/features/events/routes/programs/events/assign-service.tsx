@@ -7,7 +7,11 @@ import {
   getServiceRoleAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
-import { buildAssignmentContext, dispatchAssignmentDiffs } from '~/features/events/server/notify-assignment.server'
+import {
+  buildAssignmentContext,
+  dispatchAssignmentDiffs,
+  serviceRoleAssignmentDiffs,
+} from '~/features/events/server/notify-assignment.server'
 import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
@@ -126,7 +130,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         locale: cong.locale,
         timezone: cong.timezone,
       }),
-      [{ role: 'servant', previousMemberId: result.previousAssigneeId, newMemberId: assigneeId }],
+      serviceRoleAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId }),
     ).catch(err =>
       logger.error('Failed to dispatch programme-assignment notifications', {
         err,

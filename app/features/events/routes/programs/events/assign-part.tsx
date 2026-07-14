@@ -4,7 +4,11 @@ import { data, Form, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { loadPartAssignmentCandidates } from '~/features/events/server/assign-part-loader.server'
-import { buildAssignmentContext, dispatchAssignmentDiffs } from '~/features/events/server/notify-assignment.server'
+import {
+  buildAssignmentContext,
+  dispatchAssignmentDiffs,
+  partAssignmentDiffs,
+} from '~/features/events/server/notify-assignment.server'
 import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
@@ -120,27 +124,23 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     session.flash('success', m.programs_assign_part_success())
     logger.info(`Assigned part. User ID: ${currentUser.id}. Event: ${eventId}. Assignment: ${assignmentId}.`)
 
+    // Best-effort notifications: DB write already committed; log-and-continue on queue failures.
     const cong = context.get(congregationContext)
-    // Notifications are best-effort — the assignment write already committed,
-    // so a queue outage or Redis blip must not turn the user's action into a 500.
-    // BullMQ retries the delivery independently; here we just log and move on.
-    await dispatchAssignmentDiffs(
-      db,
-      buildAssignmentContext({
-        event,
-        assignmentName: assignmentBefore?.name,
-        entityType: 'ProgrammePartAssignment',
-        entityId: assignmentId,
-        congregationId,
-        actorId: currentUser.id,
-        locale: cong.locale,
-        timezone: cong.timezone,
-      }),
-      [
-        { role: 'speaker', previousMemberId: result.previousAssigneeId, newMemberId: resolvedAssigneeId },
-        { role: 'reader', previousMemberId: result.previousAssistantId, newMemberId: resolvedAssistantId },
-      ],
-    ).catch(err =>
+    const notifyCtx = buildAssignmentContext({
+      event,
+      assignmentName: assignmentBefore?.name,
+      entityType: 'ProgrammePartAssignment',
+      entityId: assignmentId,
+      congregationId,
+      actorId: currentUser.id,
+      locale: cong.locale,
+      timezone: cong.timezone,
+    })
+    const diffs = partAssignmentDiffs(
+      { previousAssigneeId: result.previousAssigneeId, previousAssistantId: result.previousAssistantId },
+      { assigneeId: resolvedAssigneeId, assistantId: resolvedAssistantId },
+    )
+    await dispatchAssignmentDiffs(db, notifyCtx, diffs).catch(err =>
       logger.error('Failed to dispatch programme-assignment notifications', {
         err,
         eventId,

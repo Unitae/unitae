@@ -13,6 +13,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     userAccount: { findFirst: vi.fn() },
     notificationEvent: { updateMany: vi.fn() },
+    notificationPreference: { findFirst: vi.fn() },
   },
 }))
 
@@ -25,16 +26,22 @@ vi.mock('~/shared/infra/mailer.server', () => ({
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
-  createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }))
 
 vi.mock('~/shared/utils/worker-locale.server', () => ({
   runInWorkerContext: (_locale: string, _timezone: string, fn: () => Promise<unknown>) => fn(),
 }))
 
-vi.mock('./resolve-recipients.server', () => ({
-  resolveRecipients: vi.fn(),
-}))
+vi.mock('./resolve-recipients.server', async () => {
+  const actual = await vi.importActual<typeof import('./resolve-recipients.server')>('./resolve-recipients.server')
+  return {
+    ...actual,
+    resolveRecipients: vi.fn(),
+    // Keep the real isNotificationDisabledForUser so the mocked
+    // notificationPreference.findFirst above drives the branch under test.
+  }
+})
 
 const { handleDigestEmail, handleInstantEmail } = await import('./handle-notification-email.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
@@ -117,6 +124,48 @@ describe('handleInstantEmail — recipientId branch (targets a specific user)', 
     const jsonProps = JSON.stringify(sent.react.props)
     expect(jsonProps).toContain('MemberName')
     expect(jsonProps).not.toContain('AccountName')
+  })
+
+  it('skips the send when the recipient disabled the exact type in their preferences', async () => {
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
+      id: 7,
+      email: 'user@test.org',
+      firstname: 'Jean',
+      member: null,
+    } as never)
+    vi.mocked(unscopedDb.notificationPreference.findFirst).mockResolvedValue({ id: 100 } as never)
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'territory.sync.completed',
+      recipientId: 7,
+      recipientRole: null,
+      payload: '{}',
+    })
+
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+  })
+
+  it('still sends when the user has no preference row for this type (opt-out default)', async () => {
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
+      id: 7,
+      email: 'user@test.org',
+      firstname: 'Jean',
+      member: null,
+    } as never)
+    vi.mocked(unscopedDb.notificationPreference.findFirst).mockResolvedValue(null as never)
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'territory.sync.completed',
+      recipientId: 7,
+      recipientRole: null,
+      payload: '{}',
+    })
+
+    expect(mailer.emails.send).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -269,5 +318,45 @@ describe('handleDigestEmail — success / failure partitioning', () => {
 
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
     expect(mailer.emails.send).not.toHaveBeenCalled()
+  })
+
+  it('respects the recipient preference on the entity-user (recipientId!=0) branch', async () => {
+    // Simulate the entity-user path: recipientId points at a specific user;
+    // that user disabled the type in their preferences.
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
+      id: 7,
+      email: 'user@test.org',
+      firstname: 'Jean',
+      member: null,
+    } as never)
+    vi.mocked(unscopedDb.notificationPreference.findFirst).mockResolvedValue({ id: 100 } as never)
+
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 7,
+      events: [
+        {
+          type: 'programme.assignment.assigned',
+          entityType: 'ProgrammePartAssignment',
+          entityId: 500,
+          payload: JSON.stringify({
+            eventId: 1,
+            eventName: 'meeting',
+            eventDate: '2026-07-20',
+            assignmentName: 'Part',
+            role: 'speaker',
+            link: '/board',
+          }),
+        },
+      ],
+      notificationEventIds: [77],
+    })
+
+    // Preference-blocked events do NOT count as permanent failures — the row
+    // stays `sent` (its lifecycle already terminated at flush time). The user
+    // simply didn't get an email.
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
   })
 })

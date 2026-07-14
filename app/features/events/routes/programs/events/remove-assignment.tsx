@@ -1,6 +1,11 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { buildAssignmentContext, dispatchAssignmentDiffs } from '~/features/events/server/notify-assignment.server'
+import {
+  buildAssignmentContext,
+  dispatchAssignmentDiffs,
+  partAssignmentDiffs,
+  serviceRoleAssignmentDiffs,
+} from '~/features/events/server/notify-assignment.server'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
@@ -68,10 +73,10 @@ export async function action({ request, params, context }: Route.ActionArgs) {
             locale: cong.locale,
             timezone: cong.timezone,
           }),
-          [
-            { role: 'speaker', previousMemberId: result.previousAssigneeId, newMemberId: null },
-            { role: 'reader', previousMemberId: result.previousAssistantId, newMemberId: null },
-          ],
+          partAssignmentDiffs(
+            { previousAssigneeId: result.previousAssigneeId, previousAssistantId: result.previousAssistantId },
+            { assigneeId: null, assistantId: null },
+          ),
         ).catch(err =>
           logger.error('Failed to dispatch programme-assignment notifications', {
             err,
@@ -103,7 +108,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
             locale: cong.locale,
             timezone: cong.timezone,
           }),
-          [{ role: 'servant', previousMemberId: result.previousAssigneeId, newMemberId: null }],
+          serviceRoleAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId: null }),
         ).catch(err =>
           logger.error('Failed to dispatch programme-assignment notifications', {
             err,

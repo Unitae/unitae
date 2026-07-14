@@ -59,3 +59,29 @@ export function categoryWildcard(notificationType: string): string {
   if (dotIndex === -1) return `${notificationType}.*`
   return `${notificationType.substring(0, dotIndex)}.*`
 }
+
+// Single-user preference check. `resolveRecipients` handles this for the
+// role-based branch as part of its batched pipeline; the entity-user branch
+// (recipientId set, no role) needs its own single-row lookup so a publisher
+// who disabled a category still gets skipped.
+//
+// Returns true when the user has explicitly disabled either the exact type or
+// its category wildcard. Absence of a preference row means "enabled" (the
+// default state — publishers opt out, they don't opt in).
+export async function isNotificationDisabledForUser(
+  db: TransactionClient,
+  userId: number,
+  congregationId: number,
+  notificationType: string,
+): Promise<boolean> {
+  const disabled = await db.notificationPreference.findFirst({
+    where: {
+      userId,
+      congregationId,
+      enabled: false,
+      OR: [{ notificationType }, { notificationType: categoryWildcard(notificationType) }],
+    },
+    select: { id: true },
+  })
+  return disabled != null
+}
