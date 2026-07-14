@@ -1,6 +1,7 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
@@ -81,7 +82,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         isHelder: user.isHelder,
         isServant: user.isServant,
         type: user.type,
-        group: user.publisherGroup?.name ?? null,
+        group: user.publisherGroup ? formatGroupName(user.publisherGroup.name) : null,
       },
       daysOff: daysOff.map(d => ({
         startDate: d.startDate.toISOString(),

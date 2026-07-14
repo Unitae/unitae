@@ -2,6 +2,7 @@ import type { PublisherGroup } from '~/database/generated/client'
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 export type ChipTone = 'window' | 'kind' | 'attribution' | 'group'
 
@@ -76,7 +77,8 @@ export function buildStatsFilterChips(input: BuildStatsFilterChipsInput): StatsF
   }
 
   if (input.groupId != null && input.groupId !== 'none') {
-    const groupName = input.groups.find(g => g.id === Number(input.groupId))?.name.toLocaleUpperCase() ?? ''
+    const found = input.groups.find(g => g.id === Number(input.groupId))
+    const groupName = found ? formatGroupName(found.name) : ''
     chips.push({
       key: `group-${input.groupId}`,
       tone: 'group',

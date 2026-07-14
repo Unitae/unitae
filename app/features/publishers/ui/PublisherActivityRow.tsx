@@ -5,6 +5,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { TableCell, TableRow } from '~/shared/ui/table'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 export interface PublisherActivityRowData {
   id: number
@@ -68,7 +69,7 @@ export function PublisherActivityRow({ publisher, canManageActivities }: Publish
       <TableCell className="text-center">
         {publisher.publisherGroup != null && (
           <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className={nameHover}>
-            {publisher.publisherGroup.name.toLocaleUpperCase()}
+            {formatGroupName(publisher.publisherGroup.name)}
           </Link>
         )}
       </TableCell>

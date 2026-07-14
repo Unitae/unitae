@@ -10,6 +10,7 @@ import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { SearchInput } from '~/shared/ui/SearchInput'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 import type { Route } from './+types/publisher-list'
 
@@ -151,7 +152,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                   <TableCell className="text-center">
                     {user.publisherGroup != null && (
                       <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
-                        {user.publisherGroup.name.toLocaleUpperCase()}
+                        {formatGroupName(user.publisherGroup.name)}
                       </Link>
                     )}
                   </TableCell>

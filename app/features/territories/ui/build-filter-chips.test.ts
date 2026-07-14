@@ -47,12 +47,12 @@ describe('buildAttributionFilterChips', () => {
     expect(buildAttributionFilterChips(new URLSearchParams({ group: '42' }))).toEqual([])
   })
 
-  it('resolves a known group id to its display name', () => {
+  it('resolves a known group id to its display name (uppercased)', () => {
     const chips = buildAttributionFilterChips(new URLSearchParams({ group: '7' }), {
       groups: [{ id: 7, name: 'Groupe Soleil' }],
     })
     expect(chips).toHaveLength(1)
-    expect(chips[0]).toMatchObject({ key: 'group', value: 'Groupe Soleil' })
+    expect(chips[0]).toMatchObject({ key: 'group', value: 'GROUPE SOLEIL' })
   })
 
   it('maps known attribution kinds and status values', () => {

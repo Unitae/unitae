@@ -3,6 +3,7 @@ import { TerritoryAccess } from '~/features/territories/model/territory-access.t
 import { TerritoryAttributionKind } from '~/features/territories/model/territory-attribution-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import * as m from '~/i18n/paraglide/messages'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import type { ActiveTerritoryFilterChip, TerritoryFilterKey } from './ActiveTerritoryFilters'
 
 interface BuildChipsOptions {
@@ -143,7 +144,7 @@ export function buildAttributionFilterChips(
   appendChip(chips, params, 'type', m.territories_filter_chip_mode(), attributionTypeChipValue)
   appendChip(chips, params, 'group', m.territories_filter_chip_group(), raw => {
     const group = options.groups?.find(g => g.id === Number(raw))
-    return group?.name ?? null
+    return group ? formatGroupName(group.name) : null
   })
   appendChip(chips, params, 'status', m.territories_filter_chip_status(), attributionStatusChipValue)
   return chips

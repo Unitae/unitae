@@ -7,6 +7,7 @@ import type { UserInput } from '~/shared/types/user-input'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 const NO_GROUP = '__none__'
 
@@ -39,7 +40,7 @@ export default function PublisherFieldServiceForm({
               <SelectItem value={NO_GROUP}>{m.publishers_form_field_service_group_placeholder()}</SelectItem>
               {groups.map(g => (
                 <SelectItem key={g.id} value={String(g.id)}>
-                  {g.name.toLocaleUpperCase()}
+                  {formatGroupName(g.name)}
                 </SelectItem>
               ))}
             </SelectContent>

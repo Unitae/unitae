@@ -5,6 +5,7 @@ import { StatLabel } from '~/features/territories/ui/StatLabel'
 import { ZoneHeading } from '~/features/territories/ui/ZoneHeading'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 interface SnapshotStats {
   total: number
@@ -122,7 +123,7 @@ export default function SnapshotOverviewSection({ stats, attributionsByGroup }: 
               {attributionsByGroup.length > 0 ? (
                 <PieChart width={300} height={300}>
                   <Pie
-                    data={attributionsByGroup.map(g => ({ name: g.groupName.toLocaleUpperCase(), value: g.count }))}
+                    data={attributionsByGroup.map(g => ({ name: formatGroupName(g.groupName), value: g.count }))}
                     cx={150}
                     cy={150}
                     innerRadius={60}

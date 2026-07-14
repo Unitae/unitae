@@ -2,6 +2,7 @@ import { Users } from 'lucide-react'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent } from '~/shared/ui/card'
 import { EmptyState } from '~/shared/ui/EmptyState'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { cn } from '~/shared/utils/utils'
 
 interface Person {
@@ -95,7 +96,7 @@ export function PublisherGroupsView({ groups }: PublisherGroupsViewData) {
                   {group.adress}
                 </a>
                 <h2 className="font-display font-semibold text-xl leading-tight tracking-tight">
-                  {group.name.toLocaleUpperCase()}
+                  {formatGroupName(group.name)}
                 </h2>
               </header>
 

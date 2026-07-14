@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 interface StatsFiltersDialogProps {
   open: boolean
@@ -131,7 +132,7 @@ export default function StatsFiltersDialog({
                   <SelectItem value="none">{m.stats_filter_group_placeholder()}</SelectItem>
                   {groups.map(group => (
                     <SelectItem value={String(group.id)} key={group.id}>
-                      {m.stats_filter_by_group({ group: group.name.toLocaleUpperCase() })}
+                      {m.stats_filter_by_group({ group: formatGroupName(group.name) })}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -13,13 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Separator } from '~/shared/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/group'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-  return [{ title: loaderData?.group ? `${loaderData.group.name.toLocaleUpperCase()} — Unitae` : 'Groupe — Unitae' }]
+  return [{ title: loaderData?.group ? `${formatGroupName(loaderData.group.name)} — Unitae` : 'Groupe — Unitae' }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -61,12 +62,9 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={group.name.toLocaleUpperCase()}
+        title={formatGroupName(group.name)}
         subtitle={m.groups_view_subtitle()}
-        breadcrumbs={[
-          { label: m.sidebar_publisher_groups(), to: '/groups' },
-          { label: group.name.toLocaleUpperCase() },
-        ]}
+        breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: formatGroupName(group.name) }]}
         backTo="/groups"
         actions={
           roles.canManagePublisher && (
@@ -271,7 +269,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       deputyId: deputyId ?? null,
     })
 
-    session.flash('success', m.groups_edit_success({ name: group.name.toLocaleUpperCase() }))
+    session.flash('success', m.groups_edit_success({ name: formatGroupName(group.name) }))
     return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
