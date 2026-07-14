@@ -78,6 +78,8 @@
         "resend": "^6.12.4",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.6.0",
+        "terra-draw": "1.32.0",
+        "terra-draw-google-maps-adapter": "1.6.1",
         "tsx": "^4.22.4",
         "winston": "^3.19.0",
         "zod": "^3.25.76"

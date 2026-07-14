@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigation } from 'react-router'
 import { buildGeoJsonExport, type CardOverlay, type CardOverlayPath } from '~/features/territories'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -58,10 +58,12 @@ export function useCardOverlayEditor(overlays: CardOverlay[], perimeter: { paths
   const editingPerimeter = perimeterMode != null
   const initialCenter = computeInitialCenter(perimeterMode, perimeter, editingOverlay, overlays)
 
-  function markDraftDirty() {
+  // Stable identity — handleDraftChange depends on it, and that identity feeds a useEffect
+  // dep list in CardOverlayMap; a fresh function per render would churn that effect.
+  const markDraftDirty = useCallback(() => {
     setDraftDirty(true)
     markDirty()
-  }
+  }, [markDirty])
 
   function startDrawing() {
     setEditingId(null)
@@ -122,10 +124,15 @@ export function useCardOverlayEditor(overlays: CardOverlay[], perimeter: { paths
     exitDraftMode()
   }
 
-  function handleDraftChange(paths: CardOverlayPath[]) {
-    setDraftPaths(paths)
-    markDraftDirty()
-  }
+  // Stable identity — the Terra Draw effect in CardOverlayMap uses this in its dep list;
+  // a fresh identity on every render would tear the drawing instance down mid-edit.
+  const handleDraftChange = useCallback(
+    (paths: CardOverlayPath[]) => {
+      setDraftPaths(paths)
+      markDraftDirty()
+    },
+    [markDraftDirty],
+  )
 
   // After a successful create/update submit, exit draft mode so the freshly loaded row
   // shows up in the list rather than the stale local draft.

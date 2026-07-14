@@ -132,6 +132,12 @@ importers:
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
+      terra-draw:
+        specifier: 1.32.0
+        version: 1.32.0
+      terra-draw-google-maps-adapter:
+        specifier: 1.6.1
+        version: 1.6.1(@googlemaps/js-api-loader@2.0.2)(terra-draw@1.32.0)
       tsx:
         specifier: ^4.22.4
         version: 4.22.4
@@ -6097,6 +6103,15 @@ packages:
   tar-stream@2.2.0:
     resolution: {integrity: sha512-ujeqbceABgwMZxEJnk2HDY2DlnUZ+9oEcb1KzTVfYHio0UE6dG71n60d8D2I4qNvleWrrXpmjpt7vZeF1LnMZQ==}
     engines: {node: '>=6'}
+
+  terra-draw-google-maps-adapter@1.6.1:
+    resolution: {integrity: sha512-YCmMaOUSnltFcRdCTPwfOgb6CMGLK2gIGwuf7Iuk0sX1dzwChpMZWyEhIJDMJeg0f6gN3XNn1OpOz4jfKCQRBQ==}
+    peerDependencies:
+      '@googlemaps/js-api-loader': ^1.14.3 || ^2.0.0
+      terra-draw: ^1.0.0
+
+  terra-draw@1.32.0:
+    resolution: {integrity: sha512-G/LmiDSL+oAzMuVO7uOaTWs5Vm9NX2l4/wI6/mSbY24uNwi6o9xcGrfo+X3nuwUEbTwRiIrJ4YtHYMTRfdbv7w==}
 
   text-hex@1.0.0:
     resolution: {integrity: sha512-uuVGNWzgJ4yhRaNSiubPY7OjISw4sw4E5Uv0wbjp+OzcbmVU/rsT8ujgcXJhn9ypzsgr5vlzpPqP+MBBKcGvbg==}
@@ -12930,6 +12945,13 @@ snapshots:
       fs-constants: 1.0.0
       inherits: 2.0.4
       readable-stream: 3.6.2
+
+  terra-draw-google-maps-adapter@1.6.1(@googlemaps/js-api-loader@2.0.2)(terra-draw@1.32.0):
+    dependencies:
+      '@googlemaps/js-api-loader': 2.0.2
+      terra-draw: 1.32.0
+
+  terra-draw@1.32.0: {}
 
   text-hex@1.0.0: {}
 
