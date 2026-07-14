@@ -134,8 +134,8 @@ export default [
       ]),
       ...prefix('activity', [
         index('features/publishers/routes/activity/publisher-list.tsx'),
-        route('export/:year/xlsx', 'features/publishers/routes/activity/excel-export.tsx'),
-        route('export/:year/pdfs', 'features/publishers/routes/activity/pdf-export.tsx'),
+        route('export/xlsx', 'features/publishers/routes/activity/excel-export.tsx'),
+        route('export/pdfs', 'features/publishers/routes/activity/pdf-export.tsx'),
         route('new', 'features/publishers/routes/activity/new.tsx'),
         route(':activityId/edit', 'features/publishers/routes/activity/edit.tsx'),
         route(':activityId/delete', 'features/publishers/routes/activity/delete.tsx'),

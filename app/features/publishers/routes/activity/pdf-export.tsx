@@ -14,7 +14,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_pdf_export_meta_title() }]
 }
 
-export async function loader({ params, context }: Route.LoaderArgs) {
+export async function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const canViewActivities = permissions.has(Permission.ActivityViewer)
@@ -26,12 +26,29 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     throw redirect('/')
   }
 
-  logger.info(`Generating publishers' activities PDF report Year: ${params.year}. User ID: ${currentUser.id}.`, {
+  const searchParams = new URL(request.url).searchParams
+  const year = Number(searchParams.get('year'))
+  if (!Number.isFinite(year)) throw redirect('/publishers/activity')
+
+  const groupIdParam = searchParams.get('groupId')
+  const groupId = groupIdParam != null && groupIdParam !== '' ? Number(groupIdParam) : undefined
+  const publisherIdsParam = searchParams.get('publisherIds')
+  const publisherIds =
+    publisherIdsParam != null && publisherIdsParam !== ''
+      ? publisherIdsParam
+          .split(',')
+          .map(id => Number(id))
+          .filter(id => Number.isFinite(id))
+      : undefined
+
+  logger.info(`Generating publishers' activities PDF report Year: ${year}. User ID: ${currentUser.id}.`, {
     currentUser,
+    groupId,
+    publisherCount: publisherIds?.length,
   })
 
   const publishers = await withScopeFromContext(context, db =>
-    getPublishersWithYearActivities(db, currentUser.congregationId, Number(params.year)),
+    getPublishersWithYearActivities(db, currentUser.congregationId, year, { groupId, publisherIds }),
   )
 
   const file = await buildActivityPdfZip(publishers)
@@ -41,7 +58,7 @@ export async function loader({ params, context }: Route.LoaderArgs) {
     status: 200,
     headers: {
       'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="Activité-${params.year}_${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}.zip"`,
+      'Content-Disposition': `attachment; filename="Activité-${year}_${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}.zip"`,
     },
   })
 }
