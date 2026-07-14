@@ -1,12 +1,18 @@
 import { ChevronLeft, ChevronRight, Download, Users } from 'lucide-react'
 import { useState } from 'react'
-import { redirect, useSearchParams } from 'react-router'
+import { redirect, type ShouldRevalidateFunctionArgs, useSearchParams } from 'react-router'
+import {
+  ACTIVITY_FILTER_PARAM_NAMES,
+  filterPublisherActivities,
+  readActivityFiltersFromParams,
+} from '~/features/publishers/model/filter-publisher-activities'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import { previousMonth } from '~/features/publishers/model/previous-month'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
 import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
+import { PublisherActivityFilters } from '~/features/publishers/ui/PublisherActivityFilters'
 import { PublisherActivityRow } from '~/features/publishers/ui/PublisherActivityRow'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
@@ -21,6 +27,22 @@ import type { Route } from './+types/publisher-list'
 
 export const meta: Route.MetaFunction = () => {
   return [{ title: m.activity_list_meta_title() }]
+}
+
+export function shouldRevalidate({ currentUrl, nextUrl, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs) {
+  if (currentUrl.pathname !== nextUrl.pathname) return defaultShouldRevalidate
+
+  const clientOnlyChange = ACTIVITY_FILTER_PARAM_NAMES.some(name => {
+    const before = currentUrl.searchParams.getAll(name).join(',')
+    const after = nextUrl.searchParams.getAll(name).join(',')
+    return before !== after
+  })
+  if (!clientOnlyChange) return defaultShouldRevalidate
+
+  const dataParamsChanged = ['month', 'year'].some(
+    name => currentUrl.searchParams.get(name) !== nextUrl.searchParams.get(name),
+  )
+  return dataParamsChanged
 }
 
 export function loader({ request, context }: Route.LoaderArgs) {
@@ -101,6 +123,8 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
   const { publishers, selectedMonth, firstMonth, stats, canManageActivities, exportOptions } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
   const [exportOpen, setExportOpen] = useState(false)
+  const filters = readActivityFiltersFromParams(searchParams)
+  const visiblePublishers = filterPublisherActivities(publishers, filters)
   const selectedDate = new Date()
   selectedDate.setMonth(selectedMonth.month)
   selectedDate.setFullYear(selectedMonth.year)
@@ -175,35 +199,45 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
 
       <PublisherActivityStats stats={stats} />
 
-      <div className="overflow-hidden rounded-xl border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="text-center max-sm:text-left">{m.activity_table_firstname()}</TableHead>
-              <TableHead className="text-center">{m.activity_table_lastname()}</TableHead>
-              <TableHead className="text-center">{m.activity_table_group()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.activity_table_hours()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.activity_table_studies()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.activity_table_pioneer()}</TableHead>
-              <TableHead className="text-center max-sm:hidden">{m.activity_table_observations()}</TableHead>
-              {canManageActivities && (
-                <TableHead className="w-0">
-                  <span className="sr-only">Actions</span>
-                </TableHead>
-              )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {publishers.map(publisher => (
-              <PublisherActivityRow
-                key={publisher.id}
-                publisher={publisher}
-                canManageActivities={canManageActivities}
-              />
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <PublisherActivityFilters filters={filters} groups={exportOptions.publisherGroups} />
+
+      {visiblePublishers.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title={m.activity_filters_no_results_title()}
+          description={m.activity_filters_no_results_description()}
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-center max-sm:text-left">{m.activity_table_firstname()}</TableHead>
+                <TableHead className="text-center">{m.activity_table_lastname()}</TableHead>
+                <TableHead className="text-center">{m.activity_table_group()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.activity_table_hours()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.activity_table_studies()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.activity_table_pioneer()}</TableHead>
+                <TableHead className="text-center max-sm:hidden">{m.activity_table_observations()}</TableHead>
+                {canManageActivities && (
+                  <TableHead className="w-0">
+                    <span className="sr-only">Actions</span>
+                  </TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visiblePublishers.map(publisher => (
+                <PublisherActivityRow
+                  key={publisher.id}
+                  publisher={publisher}
+                  canManageActivities={canManageActivities}
+                />
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   )
 }
