@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
+import { Combobox } from '~/shared/ui/Combobox'
 import { Checkbox } from '~/shared/ui/checkbox'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
@@ -29,6 +30,8 @@ type PartEditSheetProps = {
   fetcher: ReturnType<typeof useFetcher>
   defaultOrder: number
   roles: RoleOption[]
+  sectionSuggestions: string[]
+  trackSuggestions: string[]
 }
 
 const FORM_ID = 'part-edit-form'
@@ -38,7 +41,17 @@ function GroupHeading({ children }: { children: React.ReactNode }) {
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: edit form with grouped sections, mode-aware copy, and conditional fields
-export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, defaultOrder, roles }: PartEditSheetProps) {
+export function PartEditSheet({
+  open,
+  onOpenChange,
+  part,
+  mode,
+  fetcher,
+  defaultOrder,
+  roles,
+  sectionSuggestions,
+  trackSuggestions,
+}: PartEditSheetProps) {
   const isEditing = part != null
   const prevState = useRef(fetcher.state)
   const [trackValue, setTrackValue] = useState(part?.track ?? '')
@@ -89,15 +102,23 @@ export function PartEditSheet({ open, onOpenChange, part, mode, fetcher, default
               <div className="flex gap-3">
                 <div className="flex flex-1 flex-col gap-2">
                   <Label htmlFor="partSection">{m.programs_edit_part_section_label()}</Label>
-                  <Input id="partSection" name="partSection" defaultValue={part?.section ?? ''} />
+                  <Combobox
+                    key={`section-${pickerKey}`}
+                    id="partSection"
+                    name="partSection"
+                    defaultValue={part?.section ?? ''}
+                    suggestions={sectionSuggestions}
+                  />
                 </div>
                 <div className="flex flex-1 flex-col gap-2">
                   <Label htmlFor="partTrack">{m.programs_edit_part_track_label()}</Label>
-                  <Input
+                  <Combobox
+                    key={`track-${pickerKey}`}
                     id="partTrack"
                     name="partTrack"
                     value={trackValue}
-                    onChange={e => setTrackValue(e.target.value)}
+                    onValueChange={setTrackValue}
+                    suggestions={trackSuggestions}
                   />
                 </div>
               </div>

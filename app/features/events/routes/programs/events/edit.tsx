@@ -20,6 +20,7 @@ import {
 import { listRoles } from '~/shared/domain/roles.server'
 import type { Permission } from '~/shared/types/permission'
 import { PageHeader } from '~/shared/ui/PageHeader'
+import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
 import { handleEditIntent } from './_edit-event-intents.server'
 
@@ -79,6 +80,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
 
+    const sectionSuggestions = distinct(event.partAssignments.map(p => p.section))
+    const trackSuggestions = distinct(event.partAssignments.map(p => p.track))
+
     return {
       event: {
         ...event,
@@ -88,6 +92,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
       templates,
       eventKinds,
       roles,
+      sectionSuggestions,
+      trackSuggestions,
       timezone: context.get(congregationContext).timezone,
     }
   })
@@ -121,7 +127,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates, eventKinds, roles, timezone } = loaderData
+  const { event, templates, eventKinds, roles, sectionSuggestions, trackSuggestions, timezone } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -229,6 +235,8 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         fetcher={partFetcher}
         defaultOrder={event.partAssignments.length + 1}
         roles={roles}
+        sectionSuggestions={sectionSuggestions}
+        trackSuggestions={trackSuggestions}
       />
 
       <ServiceEditSheet
