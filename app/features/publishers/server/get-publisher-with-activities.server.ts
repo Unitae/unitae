@@ -9,13 +9,12 @@ export function getPublisherWithActivities(
   return db.member.findMany({
     where: {
       congregationId,
-      leftAt: null,
       OR: [
         {
+          leftAt: null,
           isPublisher: true,
         },
         {
-          isPublisher: false,
           activities: {
             some: {
               year: selectedYear,
