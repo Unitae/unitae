@@ -5,7 +5,6 @@ const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
 
 const COMMERCES_URL_RE = /\/territories\/buildings\/split-territories\/commerces/
-const RAIL_TITLE_RE = /nouveau territoire/i
 const SUBMIT_BUTTON_RE = /créer le territoire/i
 const CREATED_TOAST_RE = /territoire .+ a été créé/i
 const NUMBER_CHIP_RE = /^C\d{3,}$/
@@ -25,23 +24,11 @@ test.describe('Split-tool map-driven create flow', () => {
 
     if (!page.url().match(COMMERCES_URL_RE)) test.skip()
 
-    // Skip the map-dependent expectations if Maps isn't configured / consent not accepted.
-    const configMissing = await page
-      .getByText(CONFIG_MISSING_RE)
-      .isVisible()
-      .catch(() => false)
-    const consentBanner = await page
-      .getByRole('button', { name: NO_MAP_CTA_RE })
-      .isVisible()
-      .catch(() => false)
-    if (configMissing || consentBanner) {
-      // The rail should still render even without the map.
-    }
+    // The rail is mode-agnostic — renders even when the map is unconfigured or the consent
+    // banner is up, so no early bail here.
+    await expect(page.getByTestId('draft-rail-title')).toBeVisible()
 
-    await expect(page.getByRole('heading', { name: RAIL_TITLE_RE })).toBeVisible()
-
-    // Suggested number chip — e.g. "C001", "C042"
-    const numberChip = page.locator('span.font-mono').first()
+    const numberChip = page.getByTestId('draft-suggested-number')
     await expect(numberChip).toBeVisible()
     await expect(numberChip).toHaveText(NUMBER_CHIP_RE)
 
@@ -70,7 +57,7 @@ test.describe('Split-tool map-driven create flow', () => {
       await page.waitForLoadState('networkidle')
     }
 
-    const numberChip = page.locator('span.font-mono').first()
+    const numberChip = page.getByTestId('draft-suggested-number')
     await expect(numberChip).toBeVisible()
     const initialNumber = (await numberChip.textContent())?.trim() ?? ''
     if (!NUMBER_CHIP_RE.test(initialNumber)) test.skip()

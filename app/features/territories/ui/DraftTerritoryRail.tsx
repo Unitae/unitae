@@ -54,14 +54,18 @@ export function DraftTerritoryRail({
     <aside className="flex flex-col gap-4 lg:w-[380px] xl:w-[420px]">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{m.split_tool_create_rail_title()}</CardTitle>
+          <CardTitle className="text-base" data-testid="draft-rail-title">
+            {m.split_tool_create_rail_title()}
+          </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <div className="flex items-baseline justify-between">
             <span className="text-muted-foreground text-xs uppercase tracking-wide">
               {m.split_tool_create_number_label()}
             </span>
-            <span className="font-mono font-semibold text-lg tracking-wide">{suggestedNumber}</span>
+            <span className="font-mono font-semibold text-lg tracking-wide" data-testid="draft-suggested-number">
+              {suggestedNumber}
+            </span>
           </div>
           <p className="text-muted-foreground text-sm" aria-live="polite">
             {totalsLabel(kind, draft)}
