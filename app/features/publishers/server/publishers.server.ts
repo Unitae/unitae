@@ -1,5 +1,6 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { CongregationId, MemberId } from '~/shared/types/branded'
+import type { PublisherType } from '~/shared/types/publisher-type'
 
 export function getPublisherById(
   db: TransactionClient,
@@ -45,7 +46,7 @@ export async function getPublishers(
 export async function getPublishersWithGroup(
   db: TransactionClient,
   congregationId: number,
-  options?: { search?: string },
+  options?: { search?: string; groupIds?: number[]; type?: PublisherType },
 ) {
   const searchFilter = options?.search
     ? {
@@ -56,8 +57,13 @@ export async function getPublishersWithGroup(
       }
     : {}
 
+  const groupFilter =
+    options?.groupIds && options.groupIds.length > 0 ? { publisherGroupId: { in: options.groupIds } } : {}
+
+  const typeFilter = options?.type ? { type: options.type } : {}
+
   return await db.member.findMany({
-    where: { isPublisher: true, leftAt: null, congregationId, ...searchFilter },
+    where: { isPublisher: true, leftAt: null, congregationId, ...searchFilter, ...groupFilter, ...typeFilter },
     include: { publisherGroup: true, account: { select: { email: true } } },
     orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
   })
