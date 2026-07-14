@@ -271,7 +271,7 @@ export function buildExportUrl(args: BuildExportUrlArgs): string | null {
       params.set('publisherIds', args.publisherIds.join(','))
     }
   }
-  return `./export/${args.format}?${params.toString()}`
+  return `/publishers/activity/export/${args.format}?${params.toString()}`
 }
 
 const CONTENT_DISPOSITION_FILENAME_RE = /filename="?([^"]+)"?/
