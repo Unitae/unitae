@@ -18,7 +18,7 @@ beforeEach(() => {
 })
 
 describe('computeTerrainStats', () => {
-  it('returns zeros when the terrain is empty', async () => {
+  it('returns zeros with null derived fields when the terrain is empty', async () => {
     const result = await computeTerrainStats(db, 1)
 
     expect(result).toEqual({
@@ -26,8 +26,8 @@ describe('computeTerrainStats', () => {
       phonesCount: 0,
       buildingsCount: 0,
       entrancesCount: 0,
-      homesPerBuilding: 0,
-      phonesCoverage: 0,
+      homesPerBuilding: null,
+      phonesCoverage: null,
     })
   })
 
@@ -63,21 +63,21 @@ describe('computeTerrainStats', () => {
     expect(result.phonesCoverage).toBe(26)
   })
 
-  it('returns zero homes-per-building when there are no buildings', async () => {
+  it('returns null homes-per-building when there are no buildings', async () => {
     vi.mocked(db.buildingEntrance.aggregate).mockResolvedValue({ _sum: { homes: 100, phones: 20 } } as never)
     vi.mocked(db.building.count).mockResolvedValue(0)
 
     const result = await computeTerrainStats(db, 1)
 
-    expect(result.homesPerBuilding).toBe(0)
+    expect(result.homesPerBuilding).toBeNull()
   })
 
-  it('returns zero phones coverage when there are no homes', async () => {
+  it('returns null phones coverage when there are no homes', async () => {
     vi.mocked(db.buildingEntrance.aggregate).mockResolvedValue({ _sum: { homes: 0, phones: 42 } } as never)
 
     const result = await computeTerrainStats(db, 1)
 
-    expect(result.phonesCoverage).toBe(0)
+    expect(result.phonesCoverage).toBeNull()
   })
 
   it('treats null aggregate sums as zero', async () => {

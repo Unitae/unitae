@@ -6,8 +6,8 @@ export interface TerrainStats {
   phonesCount: number
   buildingsCount: number
   entrancesCount: number
-  homesPerBuilding: number
-  phonesCoverage: number
+  homesPerBuilding: number | null
+  phonesCoverage: number | null
 }
 
 export async function computeTerrainStats(db: TransactionClient, congregationId: number): Promise<TerrainStats> {
@@ -23,8 +23,8 @@ export async function computeTerrainStats(db: TransactionClient, congregationId:
   const homesCount = residentialSums._sum.homes ?? 0
   const phonesCount = residentialSums._sum.phones ?? 0
 
-  const homesPerBuilding = buildingsCount > 0 ? Math.round(homesCount / buildingsCount) : 0
-  const phonesCoverage = homesCount > 0 ? Math.round((phonesCount / homesCount) * 100) : 0
+  const homesPerBuilding = buildingsCount > 0 ? Math.round(homesCount / buildingsCount) : null
+  const phonesCoverage = homesCount > 0 ? Math.round((phonesCount / homesCount) * 100) : null
 
   return {
     homesCount,

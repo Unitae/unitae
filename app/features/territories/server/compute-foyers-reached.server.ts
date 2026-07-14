@@ -13,7 +13,7 @@ export async function computeFoyersReached(
   totalHomes: number,
 ): Promise<FoyersReached> {
   if (territoryIds.length === 0) {
-    return { count: 0, percentage: totalHomes > 0 ? 0 : null }
+    return { count: 0, percentage: null }
   }
 
   const aggregate = await db.buildingEntrance.aggregate({

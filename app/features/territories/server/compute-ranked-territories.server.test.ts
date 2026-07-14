@@ -44,4 +44,18 @@ describe('computeRankedTerritories', () => {
     expect(result.most).toEqual({ id: 1, number: 'T-1', count: 3 })
     expect(result.least).toEqual({ id: 2, number: 'T-2', count: 1 })
   })
+
+  it('breaks ties by keeping the first-encountered territory for both most and least', () => {
+    const attributions = [
+      makeAttribution({ territoryId: 5, territoryNumber: 'T-5', id: 1 }),
+      makeAttribution({ territoryId: 7, territoryNumber: 'T-7', id: 2 }),
+      makeAttribution({ territoryId: 5, territoryNumber: 'T-5', id: 3 }),
+      makeAttribution({ territoryId: 7, territoryNumber: 'T-7', id: 4 }),
+    ]
+
+    const result = computeRankedTerritories(attributions)
+    // Both territories have count 2; first-inserted wins both slots.
+    expect(result.most).toEqual({ id: 5, number: 'T-5', count: 2 })
+    expect(result.least).toEqual({ id: 5, number: 'T-5', count: 2 })
+  })
 })

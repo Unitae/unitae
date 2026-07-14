@@ -2038,7 +2038,7 @@
     "stats_terrain_buildings_help": "Number of buildings inside the congregation's terrain.",
     "stats_terrain_buildings_subtitle": "{count} entrances",
     "stats_terrain_commerce_distribution_title": "Businesses — distribution by activity type",
-    "stats_terrain_commerce_distribution_other": "Other",
+    "stats_terrain_commerce_distribution_other": "Other kinds",
     "stats_terrain_no_commerces": "No business entrances registered",
     "stats_terrain_gap_link_one": "{count} building missing demographic data",
     "stats_terrain_gap_link_other": "{count} buildings missing demographic data",

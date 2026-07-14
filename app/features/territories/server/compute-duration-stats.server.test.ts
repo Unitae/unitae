@@ -91,4 +91,17 @@ describe('computeDurationStats', () => {
     const result = computeDurationStats(attributions)
     expect(result.shortestTerritory).toEqual({ id: 9, number: 'S' })
   })
+
+  it('breaks ties on longest and shortest by keeping the first-encountered territory', () => {
+    const attributions = [
+      makeAttribution(new Date(2025, 0, 1), new Date(2025, 0, 11), { territoryId: 4, territoryNumber: 'D' }), // 10 days
+      makeAttribution(new Date(2025, 1, 1), new Date(2025, 1, 11), { territoryId: 5, territoryNumber: 'E' }), // 10 days
+      makeAttribution(new Date(2025, 2, 1), new Date(2025, 2, 11), { territoryId: 6, territoryNumber: 'F' }), // 10 days
+    ]
+
+    const result = computeDurationStats(attributions)
+    // All three durations are 10 days; the first encountered wins both slots.
+    expect(result.longestTerritory).toEqual({ id: 4, number: 'D' })
+    expect(result.shortestTerritory).toEqual({ id: 4, number: 'D' })
+  })
 })

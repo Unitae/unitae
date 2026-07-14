@@ -15,10 +15,10 @@ beforeEach(() => {
 })
 
 describe('computeFoyersReached', () => {
-  it('returns zero count and skips the query when no territory has been touched', async () => {
+  it('returns zero count and null percentage when no territory has been touched', async () => {
     const result = await computeFoyersReached(db, 1, [], 3421)
 
-    expect(result).toEqual({ count: 0, percentage: 0 })
+    expect(result).toEqual({ count: 0, percentage: null })
     expect(vi.mocked(db.buildingEntrance.aggregate)).not.toHaveBeenCalled()
   })
 

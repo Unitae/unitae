@@ -2041,7 +2041,7 @@
     "stats_terrain_buildings_help": "Nombre d'immeubles présents sur le terrain de la congrégation.",
     "stats_terrain_buildings_subtitle": "{count} entrées",
     "stats_terrain_commerce_distribution_title": "Commerces — répartition par type d'activité",
-    "stats_terrain_commerce_distribution_other": "Autre",
+    "stats_terrain_commerce_distribution_other": "Autres commerces",
     "stats_terrain_no_commerces": "Aucune entrée commerciale recensée",
     "stats_terrain_gap_link_one": "{count} immeuble sans données démographiques",
     "stats_terrain_gap_link_other": "{count} immeubles sans données démographiques",
