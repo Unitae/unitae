@@ -1,12 +1,11 @@
+import type { Bbox } from '~/features/territories/model/bbox.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
-export type BboxBounds = { swLat: number; swLng: number; neLat: number; neLng: number }
-
 export type EntrancesInBboxParams =
-  | { mode: 'edit'; bbox: BboxBounds; territoryId: number }
-  | { mode: 'create'; bbox: BboxBounds; kind: TerritoryKind }
+  | { mode: 'edit'; bbox: Bbox; territoryId: number }
+  | { mode: 'create'; bbox: Bbox; kind: TerritoryKind }
 
-function parseBbox(value: string | null): BboxBounds | null {
+function parseBbox(value: string | null): Bbox | null {
   if (!value) return null
   const parts = value.split(',').map(Number)
   if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null

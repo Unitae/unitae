@@ -5,7 +5,8 @@ import type { TerritoryKind } from '~/features/territories/model/territory-kind.
 import type { SplitToolCreateActionResult } from '~/features/territories/routes/split-tool/create'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { DraftTerritoryRail } from '~/features/territories/ui/DraftTerritoryRail'
-import EntrancePopup from '~/features/territories/ui/EntrancePopup'
+import { decideFetcherResult } from '~/features/territories/ui/decide-fetcher-result'
+import EntrancePopup, { type CreatePendingState } from '~/features/territories/ui/EntrancePopup'
 import { pinVariantFor } from '~/features/territories/ui/entrance-pin-variant'
 import EntranceMapCanvas, { type EntranceFocusRequest } from '~/features/territories/ui/map/EntranceMapCanvas'
 import type { Bbox } from '~/features/territories/ui/map/use-bbox-entrances'
@@ -20,6 +21,10 @@ type Props = {
   totalAvailable: number
   /** Subset of `totalAvailable` that lacks lat/lng and can never render on the map. */
   withoutCoordinates: number
+}
+
+function pendingStateFor(entrance: BboxEntrance, draft: ReadonlyMap<number, BboxEntrance>): CreatePendingState {
+  return draft.has(entrance.id) ? 'pending-select' : 'none'
 }
 
 function markerAriaLabelFor(entrance: BboxEntrance, isSelected: boolean): string {
@@ -43,26 +48,23 @@ export default function BuildingEntranceMapCreator({
   const [focusRequest, setFocusRequest] = useState<EntranceFocusRequest | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  // Watch the fetcher's data by object identity (not the state transition). react-router
-  // returns a fresh data reference for each submission response, and it survives even when
-  // fetcher.state batches `idle → submitting → idle` into a single render — which happens on
-  // fast local responses (devtools closed) and hid the reset from firing.
+  // See `decide-fetcher-result.ts` for why we dedup by data-object identity rather than
+  // observing the `submitting → idle` state transition.
   const processedDataRef = useRef<SplitToolCreateActionResult | null>(null)
   useEffect(() => {
-    if (fetcher.state !== 'idle') return
-    if (fetcher.data == null) return
-    if (processedDataRef.current === fetcher.data) return
-    processedDataRef.current = fetcher.data
+    const decision = decideFetcherResult(fetcher.state, fetcher.data, processedDataRef.current)
+    if (decision.action === 'skip') return
+    processedDataRef.current = fetcher.data ?? null
 
-    if (fetcher.data.ok) {
-      toast.success(m.split_tool_create_flash_success({ number: fetcher.data.number }))
+    if (decision.action === 'success') {
+      toast.success(m.split_tool_create_flash_success({ number: decision.data.number }))
       setDraft(new Map())
       setSelectedId(null)
       setRefreshKey(k => k + 1)
       // No manual revalidator.revalidate() — react-router auto-revalidates loaders after a
       // fetcher submit, so `suggestedNumber` refreshes on its own.
     } else {
-      toast.error(fetcher.data.error)
+      toast.error(decision.error)
     }
   }, [fetcher.state, fetcher.data])
 
@@ -100,13 +102,13 @@ export default function BuildingEntranceMapCreator({
         selectedId={selectedId}
         onMarkerSelect={entrance => setSelectedId(entrance.id)}
         onCloseSelected={() => setSelectedId(null)}
-        pinVariantFor={entrance => pinVariantFor(entrance, draft.has(entrance.id) ? 'pending-select' : 'none')}
+        pinVariantFor={entrance => pinVariantFor(entrance, pendingStateFor(entrance, draft))}
         ariaLabelFor={entrance => markerAriaLabelFor(entrance, draft.has(entrance.id))}
         renderPopover={(entrance, close) => (
           <EntrancePopup
             entrance={entrance}
             territoryType={kind}
-            pending={draft.has(entrance.id) ? 'pending-select' : 'none'}
+            pending={pendingStateFor(entrance, draft)}
             onAct={() => {
               toggleDraft(entrance)
               close()

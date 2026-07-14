@@ -1,4 +1,5 @@
 import type { Building, Prisma } from '~/database/generated/client'
+import type { Bbox } from '~/features/territories/model/bbox.type'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import {
@@ -322,8 +323,6 @@ export async function getBuilding(db: TransactionClient, buildingId: number): Pr
   })
 }
 
-type BboxBounds = { swLat: number; swLng: number; neLat: number; neLng: number }
-
 async function queryEntrancesInBbox(
   db: TransactionClient,
   where: Prisma.BuildingEntranceWhereInput,
@@ -390,7 +389,7 @@ export async function getEntrancesInBbox(
   congregationId: number,
   territoryId: number,
   territoryType: TerritoryKind,
-  bbox: BboxBounds,
+  bbox: Bbox,
   ctx: MapVisibilityContext,
   limit = 1500,
 ): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
@@ -446,7 +445,7 @@ export async function getAvailableEntrancesInBbox(
   db: TransactionClient,
   congregationId: number,
   kind: TerritoryKind,
-  bbox: BboxBounds,
+  bbox: Bbox,
   ctx: MapVisibilityContext,
   limit = 1500,
 ): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {

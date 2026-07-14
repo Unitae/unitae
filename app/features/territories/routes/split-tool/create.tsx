@@ -2,7 +2,8 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
-import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
+import { splitToolCreateWorkflow } from '~/features/territories/server/split-tool-create.workflow'
+import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   currentAccountContext,
@@ -11,12 +12,16 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
-import { AppError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { appErrorToClientMessage } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/create'
 
+/**
+ * Wire type consumed by BuildingEntranceMapCreator's fetcher effect. Every non-success
+ * response MUST land in the `ok: false` branch so the client's `if (fetcher.data.ok)`
+ * discriminant flips correctly — otherwise `toast.error(fetcher.data.error)` fires with
+ * `undefined` and the user sees an empty red toast with no draft reset.
+ */
 export type SplitToolCreateActionResult =
   | { ok: true; number: string; territoryId: number }
   | { ok: false; error: string }
@@ -32,7 +37,10 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   const submission = parseWithZod(await request.formData(), { schema: splitToolCreateSchema })
   if (submission.status !== 'success') {
-    return data(submission.reply(), { status: 400 })
+    return data<SplitToolCreateActionResult>(
+      { ok: false, error: m.error_validation({ field: 'form' }) },
+      { status: 400 },
+    )
   }
 
   const { type, entranceIds } = submission.value
@@ -40,30 +48,24 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { id: actorId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    try {
-      const limits = new LimitService(db, congregation)
-      await limits.errorIfWouldGoOverLimit('territories')
-
-      const territory = await createTerritoryFromSplit(db, {
+    const result = await splitToolCreateWorkflow(
+      db,
+      {
         type,
         entranceIds: entranceIds.split(',').map((el: string) => Number(el)),
         congregationId: congregation.id,
         actorId,
-      })
+      },
+      new LimitService(db, congregation),
+    )
 
+    if (result.ok) {
       return data<SplitToolCreateActionResult>({
         ok: true,
-        number: territory.number,
-        territoryId: territory.id,
+        number: result.number,
+        territoryId: result.territoryId,
       })
-    } catch (error) {
-      if (error instanceof AppError) {
-        return data<SplitToolCreateActionResult>(
-          { ok: false, error: appErrorToClientMessage(error) },
-          { status: error.statusCode },
-        )
-      }
-      throw error
     }
+    return data<SplitToolCreateActionResult>({ ok: false, error: result.error }, { status: result.status })
   })
 }

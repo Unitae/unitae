@@ -2,12 +2,11 @@ import { ExternalLink, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 import { entranceContentLabel } from '~/features/territories/server/entrance-content-label'
+import type { EditPendingState } from '~/features/territories/ui/EntrancePopup'
 import * as m from '~/i18n/paraglide/messages'
 import type { AggregatedEntrance } from '~/shared/types/entrance'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
-
-type ListEntryPendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign'
 
 type ListEntry = {
   id: number
@@ -17,12 +16,12 @@ type ListEntry = {
   contentLabel: string
   latitude: number | null
   longitude: number | null
-  pendingState: ListEntryPendingState
+  pendingState: EditPendingState
   fromTerritoryNumber?: string
   buildingId?: number
 }
 
-export function pendingBorderClassFor(state: ListEntryPendingState): string {
+export function pendingBorderClassFor(state: EditPendingState): string {
   if (state === 'pending-add') return 'border-l-4 border-l-primary/60'
   if (state === 'pending-remove') return 'border-l-4 border-l-destructive/60'
   if (state === 'pending-reassign') return 'border-l-4 border-l-primary/60 border-dashed'

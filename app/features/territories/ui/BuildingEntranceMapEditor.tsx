@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
-import EntrancePopup, { type EntrancePendingState } from '~/features/territories/ui/EntrancePopup'
+import EntrancePopup, { type EditPendingState } from '~/features/territories/ui/EntrancePopup'
 import { pinVariantFor } from '~/features/territories/ui/entrance-pin-variant'
 import EntranceMapCanvas, { type EntranceFocusRequest } from '~/features/territories/ui/map/EntranceMapCanvas'
 import type { Bbox } from '~/features/territories/ui/map/use-bbox-entrances'
@@ -29,14 +29,14 @@ function pendingStateFor(
   pendingAdditions: ReadonlyMap<number, unknown>,
   pendingRemovals: ReadonlyMap<number, unknown>,
   pendingReassignments: ReadonlyMap<number, unknown>,
-): EntrancePendingState {
+): EditPendingState {
   if (pendingRemovals.has(entrance.id)) return 'pending-remove'
   if (pendingReassignments.has(entrance.id)) return 'pending-reassign'
   if (pendingAdditions.has(entrance.id)) return 'pending-add'
   return 'none'
 }
 
-function markerAriaLabelFor(entrance: BboxEntrance, pending: EntrancePendingState): string {
+function markerAriaLabelFor(entrance: BboxEntrance, pending: EditPendingState): string {
   const address = `${entrance.address.number} ${entrance.address.street}, ${entrance.address.zip}`
   if (pending === 'pending-remove') return `${address} — ${m.territories_map_aria_pending_remove()}`
   if (pending === 'pending-add') return `${address} — ${m.territories_map_aria_pending_add()}`

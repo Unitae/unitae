@@ -1,8 +1,9 @@
 import { useMap } from '@vis.gl/react-google-maps'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Bbox } from '~/features/territories/model/bbox.type'
 import type { BboxEntrance } from '~/features/territories/server/buildings.server'
 
-export type Bbox = { swLat: number; swLng: number; neLat: number; neLng: number }
+export type { Bbox }
 
 const GRID = 0.01
 

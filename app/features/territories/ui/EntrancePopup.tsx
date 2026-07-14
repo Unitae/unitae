@@ -10,7 +10,18 @@ import { EntranceImpactBlock } from '~/features/territories/ui/EntranceImpactBlo
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
-export type EntrancePendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign' | 'pending-select'
+/** Pending states an edit-mode consumer (BuildingEntranceMapEditor, PendingEntranceList) may emit. */
+export type EditPendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign'
+
+/** Pending states a create-mode consumer (BuildingEntranceMapCreator) may emit. */
+export type CreatePendingState = 'none' | 'pending-select'
+
+/**
+ * Union of all pending states accepted by the shared leaves — the popup, the pin variant
+ * mapper, the accent class. Consumers should type themselves as `EditPendingState` or
+ * `CreatePendingState` so they can't accidentally emit a value from the wrong mode.
+ */
+export type EntrancePendingState = EditPendingState | CreatePendingState
 
 type Props = {
   entrance: BboxEntrance
