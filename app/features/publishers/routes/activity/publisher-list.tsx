@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide-react'
 import { Link, redirect, useSearchParams } from 'react-router'
+import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
@@ -58,6 +59,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         .map(({ activities, ...member }) => ({
           ...member,
           lastActivity: activities.length < 1 ? null : activities[0],
+          wasInactive: wasInactiveDuring(member.inactiveAt, year, month),
           notRegular:
             activities[0] != null &&
             activities[0].isPublisher === false &&
@@ -201,12 +203,12 @@ function PublisherRow({
   publisher: ArrayElement<Route.ComponentProps['loaderData']['publishers']>
   canManageActivities: boolean
 }) {
-  const nameHover = publisher.inactiveAt != null ? 'hover:text-foreground' : 'hover:text-primary'
+  const nameHover = publisher.wasInactive ? 'hover:text-foreground' : 'hover:text-primary'
   return (
     <TableRow
       key={publisher.id}
       className={
-        publisher.inactiveAt != null
+        publisher.wasInactive
           ? 'bg-muted/40 text-muted-foreground'
           : publisher.notRegular
             ? 'bg-destructive/10 text-destructive dark:bg-destructive/5'
@@ -218,7 +220,7 @@ function PublisherRow({
           <Link to={`/publishers/${publisher.id}/view`} className={nameHover}>
             {publisher.firstname}
           </Link>
-          {publisher.inactiveAt != null && (
+          {publisher.wasInactive && (
             <Badge variant="outline" className="text-xs">
               {m.activity_table_inactive()}
             </Badge>
