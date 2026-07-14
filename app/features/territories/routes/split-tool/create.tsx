@@ -1,10 +1,8 @@
 import { parseWithZod } from '@conform-to/zod'
 import { data, redirect } from 'react-router'
 
-import { commitSession, getSession } from '~/features/authentication/index.server'
 import { splitToolCreateSchema } from '~/features/territories/schemas/building.schema'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
-import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
   currentAccountContext,
@@ -13,11 +11,15 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import { LimitService } from '~/shared/domain/limits.server'
+import { AppError } from '~/shared/errors/app-error.server'
 import { Permission } from '~/shared/types/permission'
-import { handleAppError } from '~/shared/utils/handle-app-error.server'
-import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
+import { appErrorToClientMessage } from '~/shared/utils/handle-app-error.server'
 
 import type { Route } from './+types/create'
+
+export type SplitToolCreateActionResult =
+  | { ok: true; number: string; territoryId: number }
+  | { ok: false; error: string }
 
 export function loader(_args: Route.LoaderArgs) {
   throw redirect('/')
@@ -37,30 +39,31 @@ export async function action({ request, context }: Route.ActionArgs) {
   const congregation = context.get(congregationContext)
   const { id: actorId } = context.get(currentAccountContext)
 
-  const previousPage = safeRedirectUrl(request.headers.get('referer'), '/territories/buildings/split-territories')
-
   return withScopeFromContext(context, async db => {
-    const session = await getSession(request.headers.get('Cookie'))
     try {
       const limits = new LimitService(db, congregation)
       await limits.errorIfWouldGoOverLimit('territories')
 
       const territory = await createTerritoryFromSplit(db, {
         type,
-        entranceIds: entranceIds.split(',').map(el => Number(el)),
+        entranceIds: entranceIds.split(',').map((el: string) => Number(el)),
         congregationId: congregation.id,
         actorId,
       })
 
-      session.flash('success', m.split_tool_create_flash_success({ number: territory.number }))
-
-      return redirect(previousPage, {
-        headers: {
-          'Set-Cookie': await commitSession(session),
-        },
+      return data<SplitToolCreateActionResult>({
+        ok: true,
+        number: territory.number,
+        territoryId: territory.id,
       })
     } catch (error) {
-      await handleAppError(error, session, previousPage)
+      if (error instanceof AppError) {
+        return data<SplitToolCreateActionResult>(
+          { ok: false, error: appErrorToClientMessage(error) },
+          { status: error.statusCode },
+        )
+      }
+      throw error
     }
   })
 }

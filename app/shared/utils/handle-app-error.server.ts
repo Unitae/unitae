@@ -21,7 +21,7 @@ const LIMIT_NAME_LABELS: Record<string, () => string> = {
   cardOverlays: () => m.limit_resource_card_overlays(),
 }
 
-function appErrorToFlashMessage(error: AppError): string {
+export function appErrorToClientMessage(error: AppError): string {
   if (error instanceof LimitReachedError) {
     const label = LIMIT_NAME_LABELS[error.limitName]?.() ?? error.limitName
     return m.error_limit_reached({ resource: label })
@@ -36,7 +36,7 @@ function appErrorToFlashMessage(error: AppError): string {
 export async function handleAppError(error: unknown, session: FlashSession, redirectTo: string): Promise<never> {
   if (!(error instanceof AppError)) throw error
 
-  session.flash('error', appErrorToFlashMessage(error))
+  session.flash('error', appErrorToClientMessage(error))
   throw redirect(redirectTo, {
     headers: { 'Set-Cookie': await commitSession(session as Parameters<typeof commitSession>[0]) },
   })

@@ -1,7 +1,11 @@
 import type { Building, Prisma } from '~/database/generated/client'
 import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { type MapVisibilityContext, mapVisibleWhere } from '~/features/territories/server/map-visibility'
+import {
+  availableForCreateWhere,
+  type MapVisibilityContext,
+  mapVisibleWhere,
+} from '~/features/territories/server/map-visibility'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import type { AggregatedEntrance, Entrance } from '~/shared/types/entrance'
 import { paginationFromUrl } from '~/shared/utils/pagination.server'
@@ -318,24 +322,18 @@ export async function getBuilding(db: TransactionClient, buildingId: number): Pr
   })
 }
 
-export async function getEntrancesInBbox(
-  db: TransactionClient,
-  congregationId: number,
-  territoryId: number,
-  territoryType: TerritoryKind,
-  bbox: { swLat: number; swLng: number; neLat: number; neLng: number },
-  ctx: MapVisibilityContext,
-  limit = 1500,
-): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
-  const expectedKind = entranceKindForTerritoryType[territoryType]
-  const where = {
-    congregationId,
-    kind: expectedKind,
-    latitude: { gte: bbox.swLat, lte: bbox.neLat },
-    longitude: { gte: bbox.swLng, lte: bbox.neLng },
-    ...mapVisibleWhere(territoryType, territoryId, ctx),
-  } satisfies Prisma.BuildingEntranceWhereInput
+type BboxBounds = { swLat: number; swLng: number; neLat: number; neLng: number }
 
+async function queryEntrancesInBbox(
+  db: TransactionClient,
+  where: Prisma.BuildingEntranceWhereInput,
+  territoryType: TerritoryKind,
+  matchesThisTerritory: (row: { territories: { id: number; number: string }[] }) => {
+    inThisTerritory: boolean
+    otherTerritory: { id: number; number: string } | null
+  },
+  limit: number,
+): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
   const rows = await db.buildingEntrance.findMany({
     where,
     include: {
@@ -353,8 +351,7 @@ export async function getEntrancesInBbox(
   const entrances: BboxEntrance[] = sliced
     .filter(row => row.latitude != null && row.longitude != null && row.buildings[0] != null)
     .map(row => {
-      const inThisTerritory = row.territories.some(t => t.id === territoryId)
-      const otherTerritory = row.territories.find(t => t.id !== territoryId) ?? null
+      const { inThisTerritory, otherTerritory } = matchesThisTerritory(row)
       const status: BboxEntranceStatus = inThisTerritory
         ? 'in-this-territory'
         : otherTerritory != null
@@ -386,4 +383,86 @@ export async function getEntrancesInBbox(
     })
 
   return { entrances, truncated, total }
+}
+
+export async function getEntrancesInBbox(
+  db: TransactionClient,
+  congregationId: number,
+  territoryId: number,
+  territoryType: TerritoryKind,
+  bbox: BboxBounds,
+  ctx: MapVisibilityContext,
+  limit = 1500,
+): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
+  const where = {
+    congregationId,
+    kind: entranceKindForTerritoryType[territoryType],
+    latitude: { gte: bbox.swLat, lte: bbox.neLat },
+    longitude: { gte: bbox.swLng, lte: bbox.neLng },
+    ...mapVisibleWhere(territoryType, territoryId, ctx),
+  } satisfies Prisma.BuildingEntranceWhereInput
+
+  return queryEntrancesInBbox(
+    db,
+    where,
+    territoryType,
+    row => {
+      const inThisTerritory = row.territories.some(t => t.id === territoryId)
+      const otherTerritory = row.territories.find(t => t.id !== territoryId) ?? null
+      return { inThisTerritory, otherTerritory }
+    },
+    limit,
+  )
+}
+
+/**
+ * Total number of entrances that would be eligible for a new territory of the given kind,
+ * ignoring any bbox. Also reports how many of them lack coordinates and therefore never
+ * show up on the map — the map's "N sur M · X sans coordonnées" hint uses both numbers.
+ */
+export async function countAvailableEntrances(
+  db: TransactionClient,
+  congregationId: number,
+  kind: TerritoryKind,
+  ctx: MapVisibilityContext,
+): Promise<{ total: number; withoutCoordinates: number }> {
+  const baseWhere = {
+    congregationId,
+    kind: entranceKindForTerritoryType[kind],
+    ...availableForCreateWhere(kind, ctx),
+  } satisfies Prisma.BuildingEntranceWhereInput
+
+  const [total, withoutCoordinates] = await Promise.all([
+    db.buildingEntrance.count({ where: baseWhere }),
+    db.buildingEntrance.count({
+      where: { ...baseWhere, OR: [{ latitude: null }, { longitude: null }] },
+    }),
+  ])
+
+  return { total, withoutCoordinates }
+}
+
+export async function getAvailableEntrancesInBbox(
+  db: TransactionClient,
+  congregationId: number,
+  kind: TerritoryKind,
+  bbox: BboxBounds,
+  ctx: MapVisibilityContext,
+  limit = 1500,
+): Promise<{ entrances: BboxEntrance[]; truncated: boolean; total: number | null }> {
+  const where = {
+    congregationId,
+    kind: entranceKindForTerritoryType[kind],
+    latitude: { gte: bbox.swLat, lte: bbox.neLat },
+    longitude: { gte: bbox.swLng, lte: bbox.neLng },
+    ...availableForCreateWhere(kind, ctx),
+  } satisfies Prisma.BuildingEntranceWhereInput
+
+  return queryEntrancesInBbox(
+    db,
+    where,
+    kind,
+    row => ({ inThisTerritory: false, otherTerritory: row.territories[0] ?? null }),
+    limit,
+  )
 }

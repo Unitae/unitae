@@ -1,12 +1,8 @@
-import { useEffect, useState } from 'react'
-import { Form } from 'react-router'
-import type { Prisma } from '~/database/generated/client'
-import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { computeFilters } from '~/features/territories/server/building-filters.server'
-import { findEntrancesPaginated } from '~/features/territories/server/buildings.server'
-import BuildingEntranceList from '~/features/territories/ui/BuildingEntranceList'
-import BuildingEntranceMap from '~/features/territories/ui/BuildingEntranceMap'
+import { countAvailableEntrances } from '~/features/territories/server/buildings.server'
+import { computeNextTerritoryNumber } from '~/features/territories/server/compute-next-territory-number.server'
+import { getCongregationCenter } from '~/features/territories/server/get-congregation-center.server'
+import BuildingEntranceMapCreator from '~/features/territories/ui/BuildingEntranceMapCreator'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -14,9 +10,9 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { getBoolSetting } from '~/shared/domain/settings.server'
 import { Permission } from '~/shared/types/permission'
-import { Button } from '~/shared/ui/button'
-import Pagination from '~/shared/ui/Pagination'
+import { TerritorySettingKey } from '~/shared/types/territory-setting-key'
 import { getOptionalEnv } from '~/shared/utils/env.server'
 
 import type { Route } from './+types/commerces'
@@ -25,7 +21,7 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.split_tool_commerces_meta_title() }]
 }
 
-export function loader({ request, context }: Route.LoaderArgs) {
+export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
 
   requirePermission(permissions, Permission.TerritoriesViewer)
@@ -34,80 +30,27 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    const url = new URL(request.url)
-    const filters = computeFilters(url.searchParams)
-    const selectors: Prisma.BuildingEntranceWhereInput = {
-      kind: EntranceKind.Commerce,
-      buildings: {
-        some: { ...filters, active: true, NOT: { prospectionDate: null } },
-      },
-      territories: { none: { type: TerritoryKind.Commerces } },
-    }
-    const { entrances, pagination } = await findEntrancesPaginated(db, selectors, url, congregationId)
-
-    return {
-      entrances,
-      pagination,
-      apiKey,
-    }
+    const phoneTypeActive =
+      (await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)) ?? false
+    const [suggestedNumber, fallbackCenter, counts] = await Promise.all([
+      computeNextTerritoryNumber(db, congregationId, TerritoryKind.Commerces),
+      getCongregationCenter(db, congregationId),
+      countAvailableEntrances(db, congregationId, TerritoryKind.Commerces, { phoneTypeActive }),
+    ])
+    return { apiKey, suggestedNumber, fallbackCenter, counts }
   })
 }
 
 export default function BuildingListPage({ loaderData }: Route.ComponentProps) {
-  const { entrances, pagination, apiKey } = loaderData
-  const [selectedEntranceIds, setSelectedEntranceIds] = useState<number[]>([])
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: need to watch for id changes only
-  useEffect(() => {
-    setSelectedEntranceIds([])
-  }, [entrances.map(el => el.id).join()])
-
-  if (entrances.length < 1) {
-    return (
-      <div className="my-20 flex flex-col items-center justify-center gap-2 px-2 text-center text-muted-foreground">
-        <p>{m.split_tool_empty_commerces()}</p>
-        <p>{m.split_tool_empty_hint()}</p>
-      </div>
-    )
-  }
-
-  const selectedEntrances = entrances.filter(building => selectedEntranceIds.includes(building.id))
-
+  const { apiKey, suggestedNumber, fallbackCenter, counts } = loaderData
   return (
-    <>
-      <div className="sticky top-0 z-10 flex items-center gap-3 rounded-md border bg-background px-4 py-3 text-sm italic shadow-sm">
-        {selectedEntranceIds.length > 0 ? (
-          <>
-            <p>
-              {selectedEntranceIds.length > 1
-                ? m.split_tool_creating_with_commerces_other({ count: selectedEntranceIds.length })
-                : m.split_tool_creating_with_commerces_one({ count: selectedEntranceIds.length })}
-            </p>
-            <Form action="/territories/buildings/split-territories/create" method="post">
-              <input type="hidden" name="type" value={TerritoryKind.Commerces} />
-              <input type="hidden" name="entranceIds" value={selectedEntranceIds.join(',')} />
-              <Button type="submit" size="sm">
-                {m.split_tool_create_button()}
-              </Button>
-            </Form>
-          </>
-        ) : (
-          <p className="text-muted-foreground">{m.split_tool_no_selection()}</p>
-        )}
-      </div>
-
-      <div className="flex min-h-[500px] grow gap-7">
-        <BuildingEntranceList
-          entrances={entrances}
-          selectedIds={selectedEntranceIds}
-          variant="commerce"
-          setSelectedIds={setSelectedEntranceIds}
-        />
-
-        <BuildingEntranceMap apiKey={apiKey} entrances={selectedEntrances} />
-      </div>
-
-      <Pagination pages={pagination.pages} page={pagination.page} size={pagination.size} total={pagination.total} />
-    </>
+    <BuildingEntranceMapCreator
+      apiKey={apiKey}
+      kind={TerritoryKind.Commerces}
+      suggestedNumber={suggestedNumber}
+      fallbackCenter={fallbackCenter ?? undefined}
+      totalAvailable={counts.total}
+      withoutCoordinates={counts.withoutCoordinates}
+    />
   )
 }

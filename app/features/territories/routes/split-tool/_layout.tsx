@@ -1,7 +1,6 @@
 import { NavLink, Outlet, useSearchParams } from 'react-router'
-import { EntranceKind } from '~/features/territories/model/entrance-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { getZips } from '~/features/territories/server/buildings.server'
+import { countAvailableEntrances, getZips } from '~/features/territories/server/buildings.server'
 import ActiveTerritoryFilters from '~/features/territories/ui/ActiveTerritoryFilters'
 import { buildTerritoryFilterChips } from '~/features/territories/ui/build-filter-chips'
 import TerritoryFilters from '~/features/territories/ui/TerritoryFilters'
@@ -31,67 +30,29 @@ export function loader({ context }: Route.LoaderArgs) {
   const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    const phoneTypeActive = await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)
-    const prospectedBuilding = { active: true, congregationId, NOT: { prospectionDate: null } } as const
-    const totalBuildingsForDoors = await db.building.count({
-      where: {
-        ...prospectedBuilding,
-        entrances: { some: { territories: { none: { type: TerritoryKind.Classical } } } },
-        OR: [
-          { entrances: { some: { access: 1 } } }, // interphone
-          { entrances: { some: { access: 2 } } }, // sonnette
-          phoneTypeActive
-            ? { entrances: { some: { access: 4, isOpenEarly: true } } }
-            : { entrances: { some: { access: 4 } } }, // code
-        ],
-      },
-    })
-    const totalBuildingsForPhone = await db.building.count({
-      where: {
-        ...prospectedBuilding,
-        entrances: {
-          some: {
-            territories: { none: { type: TerritoryKind.Classical } },
-            OR: [{ phones: { gt: 0 } }, { access: 4, isOpenEarly: false }],
-          },
-        },
-      },
-    })
-    const totalBuildingsForCommerce = await db.buildingEntrance.count({
-      where: {
-        kind: EntranceKind.Commerce,
-        congregationId,
-        buildings: { some: prospectedBuilding },
-        territories: { none: { type: TerritoryKind.Commerces } },
-      },
-    })
-    const totalBuildingsForCampus = await db.buildingEntrance.count({
-      where: {
-        kind: EntranceKind.Campus,
-        congregationId,
-        buildings: { some: prospectedBuilding },
-        territories: { none: { type: TerritoryKind.Univ } },
-      },
-    })
-    const totalBuildingsForHotel = await db.buildingEntrance.count({
-      where: {
-        kind: EntranceKind.Hotel,
-        congregationId,
-        buildings: { some: prospectedBuilding },
-        territories: { none: { type: TerritoryKind.Hotel } },
-      },
-    })
-
-    const zips = await getZips(db, congregationId)
+    const phoneTypeActive =
+      (await getBoolSetting(db, TerritorySettingKey.TerritoryTypePhoneActive, congregationId)) ?? false
+    const ctx = { phoneTypeActive }
+    const [classical, phones, commerce, campus, hotel, zips] = await Promise.all([
+      countAvailableEntrances(db, congregationId, TerritoryKind.Classical, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKind.Phone, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKind.Commerces, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKind.Univ, ctx),
+      countAvailableEntrances(db, congregationId, TerritoryKind.Hotel, ctx),
+      getZips(db, congregationId),
+    ])
 
     return {
       zips,
+      // Counts reflect entrances (not buildings) that pass `availableForCreateWhere` — the
+      // same query the map uses. Any diff between "counted" and "visible on the map" is
+      // either "no coordinates" (surfaced via a rail chip per tab) or "off-viewport".
       stats: {
-        classical: totalBuildingsForDoors,
-        hotel: totalBuildingsForHotel,
-        campus: totalBuildingsForCampus,
-        phones: totalBuildingsForPhone,
-        commerce: totalBuildingsForCommerce,
+        classical: classical.total,
+        hotel: hotel.total,
+        campus: campus.total,
+        phones: phones.total,
+        commerce: commerce.total,
       },
       phoneTypeActive,
     }

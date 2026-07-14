@@ -1,6 +1,6 @@
 import { data } from 'react-router'
 import { getPhoneTerritoryActive } from '~/features/settings/index.server'
-import { getEntrancesInBbox } from '~/features/territories/server/buildings.server'
+import { getAvailableEntrancesInBbox, getEntrancesInBbox } from '~/features/territories/server/buildings.server'
 import {
   currentAccountContext,
   permissionsContext,
@@ -10,35 +10,36 @@ import {
 import { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/entrances-in-bbox'
-
-function parseBbox(value: string | null): { swLat: number; swLng: number; neLat: number; neLng: number } | null {
-  if (!value) return null
-  const parts = value.split(',').map(Number)
-  if (parts.length !== 4 || parts.some(n => Number.isNaN(n))) return null
-  const [swLat, swLng, neLat, neLng] = parts
-  return { swLat, swLng, neLat, neLng }
-}
+import { parseEntrancesInBboxParams } from './entrances-in-bbox-params'
 
 export function loader({ request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.TerritoriesManager)
 
   const url = new URL(request.url)
-  const bbox = parseBbox(url.searchParams.get('bbox'))
-  const territoryId = Number(url.searchParams.get('territoryId'))
-
-  if (bbox == null || !Number.isInteger(territoryId) || territoryId <= 0) {
+  const params = parseEntrancesInBboxParams(url.searchParams)
+  if (params == null) {
     return data({ error: 'invalid_params' }, { status: 400 })
   }
 
   const { congregationId } = context.get(currentAccountContext)
 
   return withScopeFromContext(context, async db => {
-    const territory = await db.territory.findFirst({ where: { id: territoryId }, select: { type: true } })
-    if (territory == null) {
-      return data({ error: 'territory_not_found' }, { status: 404 })
-    }
     const phoneTypeActive = await getPhoneTerritoryActive(db, congregationId)
-    return getEntrancesInBbox(db, congregationId, territoryId, territory.type, bbox, { phoneTypeActive })
+
+    if (params.mode === 'edit') {
+      const territory = await db.territory.findFirst({
+        where: { id: params.territoryId },
+        select: { type: true },
+      })
+      if (territory == null) {
+        return data({ error: 'territory_not_found' }, { status: 404 })
+      }
+      return getEntrancesInBbox(db, congregationId, params.territoryId, territory.type, params.bbox, {
+        phoneTypeActive,
+      })
+    }
+
+    return getAvailableEntrancesInBbox(db, congregationId, params.kind, params.bbox, { phoneTypeActive })
   })
 }

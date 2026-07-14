@@ -10,7 +10,7 @@ import { EntranceImpactBlock } from '~/features/territories/ui/EntranceImpactBlo
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 
-export type EntrancePendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign'
+export type EntrancePendingState = 'none' | 'pending-add' | 'pending-remove' | 'pending-reassign' | 'pending-select'
 
 type Props = {
   entrance: BboxEntrance
@@ -33,12 +33,13 @@ function pendingStatusText(pending: EntrancePendingState, entrance: BboxEntrance
   if (pending === 'pending-reassign' && entrance.otherTerritory != null) {
     return m.territories_map_status_pending_reassign({ number: entrance.otherTerritory.number })
   }
+  if (pending === 'pending-select') return m.territories_map_status_pending_select()
   return null
 }
 
 function accentClassFor(entrance: BboxEntrance, pending: EntrancePendingState): string {
   if (pending === 'pending-remove') return 'bg-destructive'
-  if (pending === 'pending-add' || pending === 'pending-reassign') return 'bg-blue-600'
+  if (pending === 'pending-add' || pending === 'pending-reassign' || pending === 'pending-select') return 'bg-blue-600'
   if (entrance.status === 'in-this-territory') return 'bg-blue-600'
   if (entrance.status === 'available') return 'bg-emerald-500'
   return 'bg-slate-300'
@@ -160,19 +161,28 @@ function NavigationLinks({ entrance }: { entrance: BboxEntrance }) {
 // ─── Per-status bodies ────────────────────────────────────────────────────
 
 function AvailableBody({ entrance, pending, onAct }: BodyProps) {
-  const isPending = pending !== 'none'
   const status = pendingStatusText(pending, entrance) ?? m.territories_map_status_available()
+  const { label, variant } = availableFooterFor(pending)
   return (
     <>
       <p className="text-muted-foreground text-xs">{status}</p>
       <NavigationLinks entrance={entrance} />
-      <PopupFooter
-        label={isPending ? m.territories_map_action_undo() : m.territories_map_action_add()}
-        variant={isPending ? 'outline' : 'default'}
-        onClick={onAct}
-      />
+      <PopupFooter label={label} variant={variant} onClick={onAct} />
     </>
   )
+}
+
+export function availableFooterFor(pending: EntrancePendingState): {
+  label: string
+  variant: 'default' | 'outline' | 'destructive'
+} {
+  if (pending === 'pending-select') {
+    return { label: m.territories_map_action_remove_from_selection(), variant: 'outline' }
+  }
+  if (pending !== 'none') {
+    return { label: m.territories_map_action_undo(), variant: 'outline' }
+  }
+  return { label: m.territories_map_action_add(), variant: 'default' }
 }
 
 function InTerritoryBody({ entrance, pending, onAct }: BodyProps) {

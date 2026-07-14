@@ -38,6 +38,10 @@ describe('pinVariantFor', () => {
     it('also maps pending-reassign to the same pending-add variant (visual identity is shared)', () => {
       expect(pinVariantFor(baseEntrance('on-other-territory'), 'pending-reassign')).toBe('pending-add')
     })
+
+    it('maps pending-select (split-tool draft) to the pending-add variant so drafts read as "will be added"', () => {
+      expect(pinVariantFor(baseEntrance('available'), 'pending-select')).toBe('pending-add')
+    })
   })
 
   describe('base status drives the variant when nothing is pending', () => {
