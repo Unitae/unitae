@@ -179,7 +179,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       actorId: currentUser.id,
     })
 
-    session.flash('success', m.groups_new_success({ name: group.name }))
+    session.flash('success', m.groups_new_success({ name: group.name.toLocaleUpperCase() }))
     return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),

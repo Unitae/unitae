@@ -94,7 +94,9 @@ export function PublisherGroupsView({ groups }: PublisherGroupsViewData) {
                 >
                   {group.adress}
                 </a>
-                <h2 className="font-display font-semibold text-xl leading-tight tracking-tight">{group.name}</h2>
+                <h2 className="font-display font-semibold text-xl leading-tight tracking-tight">
+                  {group.name.toLocaleUpperCase()}
+                </h2>
               </header>
 
               <div className={cn('grid gap-3 text-sm', group.deputy ? 'sm:grid-cols-2' : 'sm:grid-cols-1')}>

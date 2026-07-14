@@ -122,7 +122,7 @@ export default function SnapshotOverviewSection({ stats, attributionsByGroup }: 
               {attributionsByGroup.length > 0 ? (
                 <PieChart width={300} height={300}>
                   <Pie
-                    data={attributionsByGroup.map(g => ({ name: g.groupName, value: g.count }))}
+                    data={attributionsByGroup.map(g => ({ name: g.groupName.toLocaleUpperCase(), value: g.count }))}
                     cx={150}
                     cy={150}
                     innerRadius={60}

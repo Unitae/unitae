@@ -151,7 +151,7 @@ export default function PublisherListPage({ loaderData }: Route.ComponentProps) 
                   <TableCell className="text-center">
                     {user.publisherGroup != null && (
                       <Link to={`/groups/${user.publisherGroup.id}/edit`} className="hover:text-primary">
-                        {user.publisherGroup.name}
+                        {user.publisherGroup.name.toLocaleUpperCase()}
                       </Link>
                     )}
                   </TableCell>

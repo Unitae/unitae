@@ -68,7 +68,7 @@ export function PublisherActivityRow({ publisher, canManageActivities }: Publish
       <TableCell className="text-center">
         {publisher.publisherGroup != null && (
           <Link to={`/groups/${publisher.publisherGroup.id}/edit`} className={nameHover}>
-            {publisher.publisherGroup.name}
+            {publisher.publisherGroup.name.toLocaleUpperCase()}
           </Link>
         )}
       </TableCell>

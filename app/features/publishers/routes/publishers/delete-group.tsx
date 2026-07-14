@@ -46,11 +46,11 @@ export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
 
   return (
     <DeleteConfirmation
-      title={m.groups_delete_confirmation({ name: group.name })}
-      submitLabel={m.groups_delete_button({ name: group.name })}
+      title={m.groups_delete_confirmation({ name: group.name.toLocaleUpperCase() })}
+      submitLabel={m.groups_delete_button({ name: group.name.toLocaleUpperCase() })}
       cancelTo="/groups"
     >
-      <p>{group.name}</p>
+      <p>{group.name.toLocaleUpperCase()}</p>
     </DeleteConfirmation>
   )
 }
@@ -73,7 +73,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
     )
 
     const session = await getSession(request.headers.get('Cookie'))
-    session.flash('success', m.groups_delete_success({ name: group.name }))
+    session.flash('success', m.groups_delete_success({ name: group.name.toLocaleUpperCase() }))
 
     const previousPage = request.headers.get('referer')
     return redirect(previousPage ?? '/groups/', {

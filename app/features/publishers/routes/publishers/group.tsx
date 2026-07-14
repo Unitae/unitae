@@ -19,7 +19,7 @@ import { requireParamId } from '~/shared/utils/params.server'
 import type { Route } from './+types/group'
 
 export const meta: Route.MetaFunction = ({ loaderData }) => {
-  return [{ title: loaderData?.group ? `${loaderData.group.name} — Unitae` : 'Groupe — Unitae' }]
+  return [{ title: loaderData?.group ? `${loaderData.group.name.toLocaleUpperCase()} — Unitae` : 'Groupe — Unitae' }]
 }
 
 export function loader({ params, context }: Route.LoaderArgs) {
@@ -63,7 +63,10 @@ export default function ViewGroup({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={group.name.toLocaleUpperCase()}
         subtitle={m.groups_view_subtitle()}
-        breadcrumbs={[{ label: m.sidebar_publisher_groups(), to: '/groups' }, { label: group.name }]}
+        breadcrumbs={[
+          { label: m.sidebar_publisher_groups(), to: '/groups' },
+          { label: group.name.toLocaleUpperCase() },
+        ]}
         backTo="/groups"
         actions={
           roles.canManagePublisher && (
@@ -268,7 +271,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       deputyId: deputyId ?? null,
     })
 
-    session.flash('success', m.groups_edit_success({ name: group.name }))
+    session.flash('success', m.groups_edit_success({ name: group.name.toLocaleUpperCase() }))
     return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),
