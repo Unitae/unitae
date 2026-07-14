@@ -938,6 +938,7 @@
     "publishers_view_mark_as_active_success": "{name} has been marked as active.",
     "publishers_view_mark_as_active_error": "Could not mark {name} as active.",
     "activity_table_inactive": "Inactive",
+    "activity_table_irregular": "Irregular",
     "publishers_layout_meta_title": "Settings - Unitae",
     "publishers_list_meta_title": "Publishers - Unitae",
     "publishers_list_title": "Publishers",

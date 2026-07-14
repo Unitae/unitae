@@ -940,6 +940,7 @@
     "publishers_view_mark_as_active_success": "{name} a été marqué comme actif.",
     "publishers_view_mark_as_active_error": "Impossible de marquer {name} comme actif.",
     "activity_table_inactive": "Inactif",
+    "activity_table_irregular": "Irrégulier",
     "publishers_layout_meta_title": "Réglages - Unitae",
     "publishers_list_meta_title": "Proclamateurs - Unitae",
     "publishers_list_title": "Proclamateurs",

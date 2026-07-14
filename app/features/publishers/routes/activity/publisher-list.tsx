@@ -225,6 +225,11 @@ function PublisherRow({
               {m.activity_table_inactive()}
             </Badge>
           )}
+          {!publisher.wasInactive && publisher.notRegular && (
+            <Badge variant="destructive" className="text-xs">
+              {m.activity_table_irregular()}
+            </Badge>
+          )}
         </div>
       </TableCell>
       <TableCell className="text-center">
