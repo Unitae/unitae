@@ -1,8 +1,11 @@
 import { ChevronLeft, ChevronRight, Download, Pencil, Plus, Users } from 'lucide-react'
+import { useState } from 'react'
 import { Link, redirect, useSearchParams } from 'react-router'
 import { wasInactiveDuring } from '~/features/publishers/model/inactive'
 import { getPublisherStats } from '~/features/publishers/server/get-publisher-stats.server'
 import { getPublisherWithActivities } from '~/features/publishers/server/get-publisher-with-activities.server'
+import { listTheocraticYearsWithActivity } from '~/features/publishers/server/list-theocratic-years-with-activity.server'
+import { ExportActivityDialog } from '~/features/publishers/ui/ExportActivityDialog'
 import PublisherActivityStats from '~/features/publishers/ui/PublisherActivityStats'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -11,8 +14,6 @@ import { Permission } from '~/shared/types/permission'
 import { PublisherType } from '~/shared/types/publisher-type'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
-
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/shared/ui/dropdown-menu'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
@@ -43,7 +44,15 @@ export function loader({ request, context }: Route.LoaderArgs) {
   const year = Number(searchParams.get('year') ?? timeRange.getFullYear())
 
   return withScopeFromContext(context, async db => {
-    const users = await getPublisherWithActivities(db, currentUser.congregationId, month, year)
+    const [users, publisherGroups, availableYears] = await Promise.all([
+      getPublisherWithActivities(db, currentUser.congregationId, month, year),
+      db.publisherGroup.findMany({
+        where: { congregationId: currentUser.congregationId },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      }),
+      listTheocraticYearsWithActivity(db, currentUser.congregationId),
+    ])
 
     return {
       firstMonth: {
@@ -70,6 +79,11 @@ export function loader({ request, context }: Route.LoaderArgs) {
           newActivityUrl: `./new?publisherId=${publisher.id}&month=${month}&year=${year}`,
           editActivityUrl: `./${publisher.lastActivity?.id}/edit`,
         })),
+      exportOptions: {
+        publisherGroups,
+        availableYears,
+        members: users.map(({ id, firstname, lastname }) => ({ id, firstname, lastname })),
+      },
       canManageActivities,
     }
   })
@@ -80,8 +94,9 @@ type ArrayElement<ArrayType extends readonly unknown[]> = ArrayType extends read
   : never
 
 export default function NewActivity({ loaderData }: Route.ComponentProps) {
-  const { publishers, selectedMonth, firstMonth, stats, canManageActivities } = loaderData
+  const { publishers, selectedMonth, firstMonth, stats, canManageActivities, exportOptions } = loaderData
   const [searchParams, setSearchParams] = useSearchParams()
+  const [exportOpen, setExportOpen] = useState(false)
   const selectedDate = new Date()
   selectedDate.setMonth(selectedMonth.month)
   selectedDate.setFullYear(selectedMonth.year)
@@ -119,34 +134,23 @@ export default function NewActivity({ loaderData }: Route.ComponentProps) {
         breadcrumbs={[{ label: m.activity_list_title() }]}
         actions={
           <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  title={m.activity_export_button_title()}
-                  className="max-sm:hidden"
-                >
-                  <Download className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link
-                    to={`./export/${firstMonth.year}/xlsx`}
-                    title={m.activity_export_excel_title({ year: String(firstMonth.year) })}
-                    reloadDocument
-                  >
-                    {m.activity_export_excel()}
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to={`./export/${firstMonth.year}/pdfs`} reloadDocument>
-                    {m.activity_export_s21()}
-                  </Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              variant="outline"
+              size="icon"
+              title={m.activity_export_button_title()}
+              className="max-sm:hidden"
+              onClick={() => setExportOpen(true)}
+            >
+              <Download className="size-4" />
+            </Button>
+            <ExportActivityDialog
+              open={exportOpen}
+              onOpenChange={setExportOpen}
+              availableYears={exportOptions.availableYears}
+              defaultYear={firstMonth.year}
+              publisherGroups={exportOptions.publisherGroups}
+              members={exportOptions.members}
+            />
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" onClick={handleMonthDecrease}>
                 <ChevronLeft className="size-4" />
