@@ -7,10 +7,16 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 
 type PublisherWithActivities = Member & { activities: PublisherActivity[] }
 
+export interface PublisherScopeOptions {
+  groupId?: number
+  publisherIds?: number[]
+}
+
 export async function getPublishersWithYearActivities(
   db: TransactionClient,
   congregationId: number,
   year: number,
+  scope: PublisherScopeOptions = {},
 ): Promise<PublisherWithActivities[]> {
   const yearFilter = {
     OR: [
@@ -23,6 +29,8 @@ export async function getPublishersWithYearActivities(
     where: {
       congregationId,
       activities: { some: yearFilter },
+      ...(scope.groupId != null ? { publisherGroupId: scope.groupId } : {}),
+      ...(scope.publisherIds != null ? { id: { in: scope.publisherIds } } : {}),
     },
     include: {
       activities: { where: yearFilter },

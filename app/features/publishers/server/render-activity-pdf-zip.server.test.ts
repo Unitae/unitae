@@ -60,6 +60,36 @@ describe('getPublishersWithYearActivities', () => {
 
     expect(pdf).not.toHaveBeenCalled()
   })
+
+  it('adds a publisherGroupId constraint when groupId is provided', async () => {
+    await getPublishersWithYearActivities(db, 1, 2025, { groupId: 42 })
+
+    const call = vi.mocked(db.member.findMany).mock.calls[0][0] as Record<string, unknown>
+    expect(call.where).toMatchObject({ publisherGroupId: 42 })
+  })
+
+  it('adds an id: { in: [...] } constraint when publisherIds is provided', async () => {
+    await getPublishersWithYearActivities(db, 1, 2025, { publisherIds: [7, 11, 13] })
+
+    const call = vi.mocked(db.member.findMany).mock.calls[0][0] as Record<string, unknown>
+    expect(call.where).toMatchObject({ id: { in: [7, 11, 13] } })
+  })
+
+  it('composes groupId and publisherIds when both are provided', async () => {
+    await getPublishersWithYearActivities(db, 1, 2025, { groupId: 42, publisherIds: [7] })
+
+    const call = vi.mocked(db.member.findMany).mock.calls[0][0] as Record<string, unknown>
+    expect(call.where).toMatchObject({ publisherGroupId: 42, id: { in: [7] } })
+  })
+
+  it('leaves the where clause unfiltered when neither scope option is provided', async () => {
+    await getPublishersWithYearActivities(db, 1, 2025)
+
+    const call = vi.mocked(db.member.findMany).mock.calls[0][0] as Record<string, unknown>
+    const where = call.where as Record<string, unknown>
+    expect(where).not.toHaveProperty('publisherGroupId')
+    expect(where).not.toHaveProperty('id')
+  })
 })
 
 describe('buildActivityPdfZip', () => {
