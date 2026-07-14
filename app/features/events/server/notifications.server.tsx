@@ -12,6 +12,9 @@ const ASSIGNMENT_PAYLOAD = z.object({
   eventDate: z.string(),
   assignmentName: z.string(),
   role: z.enum(['speaker', 'reader', 'servant']),
+  // Pre-resolved public URL (Board dynamic viewer or /board fallback). Baked
+  // into the payload at notify() time — see resolveProgrammeLink.
+  link: z.string(),
 })
 
 // A publisher (or their linked UserAccount) gets a new part or service-role
@@ -32,7 +35,7 @@ const programmeAssignmentAssigned = defineNotificationType({
       eventDate={payload.eventDate}
       assignmentName={payload.assignmentName}
       role={payload.role}
-      eventId={payload.eventId}
+      link={payload.link}
       baseUrl={congregation.baseUrl}
       platformName={congregation.displayName}
     />
@@ -43,6 +46,7 @@ const programmeAssignmentAssigned = defineNotificationType({
     eventDate: 'Monday, 20 July 2026',
     assignmentName: 'Sample part',
     role: 'speaker' as const,
+    link: '/board/dynamic/1/viewer?eventId=1',
   },
 })
 
@@ -67,7 +71,7 @@ const programmeAssignmentUnassigned = defineNotificationType({
       eventDate={payload.eventDate}
       assignmentName={payload.assignmentName}
       role={payload.role}
-      eventId={payload.eventId}
+      link={payload.link}
       baseUrl={congregation.baseUrl}
       platformName={congregation.displayName}
     />
@@ -78,6 +82,7 @@ const programmeAssignmentUnassigned = defineNotificationType({
     eventDate: 'Monday, 20 July 2026',
     assignmentName: 'Sample part',
     role: 'speaker' as const,
+    link: '/board/dynamic/1/viewer?eventId=1',
   },
 })
 

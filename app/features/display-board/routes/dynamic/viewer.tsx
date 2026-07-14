@@ -7,6 +7,7 @@ import {
   getDynamicDocumentData,
   markDynamicDocumentViewed,
 } from '~/features/display-board/server/dynamic-documents.server'
+import { filterDynamicDataToEvent } from '~/features/display-board/server/programme-event-filter.server'
 import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'
@@ -31,13 +32,21 @@ export const meta: Route.MetaFunction = () => {
   return [{ title: m.board_viewer_meta_title() }]
 }
 
-export function loader({ params, context }: Route.LoaderArgs) {
+const POSITIVE_INTEGER = /^\d+$/
+
+export function loader({ params, request, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   requirePermission(permissions, Permission.BoardViewer)
 
   const currentUser = context.get(currentAccountContext)
 
   const dynamicId = requireParamId(params.dynamicId, '/board')
+
+  // Deep-link support: `?eventId=N` narrows a Programme dynamic doc down to
+  // that one event. Used by notification emails so an assignee lands directly
+  // on their assignment. Non-numeric values are ignored.
+  const eventIdParam = new URL(request.url).searchParams.get('eventId')
+  const eventIdFilter = eventIdParam && POSITIVE_INTEGER.test(eventIdParam) ? Number(eventIdParam) : null
 
   return withScopeFromContext(context, async db => {
     const { congregationId } = currentUser
@@ -51,13 +60,14 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     await markDynamicDocumentViewed(db, dynamicId, currentUser.id)
 
-    const [data, contentVersion] = await Promise.all([
+    const [rawData, contentVersion] = await Promise.all([
       getDynamicDocumentData(db, settings.dynamicType, settings.dynamicRef, congregationId, {
         showServices: settings.showServices,
         dynamicConfig: settings.dynamicConfig,
       }),
       getContentVersion(db, settings.dynamicType, settings.dynamicRef, congregationId, settings.dynamicConfig),
     ])
+    const data = filterDynamicDataToEvent(rawData, eventIdFilter)
 
     return { settings, data, contentVersion }
   })

@@ -1,3 +1,4 @@
+import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { notify } from '~/features/notifications/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatEventDate } from '~/shared/utils/event-time'
@@ -5,9 +6,11 @@ import { formatEventDate } from '~/shared/utils/event-time'
 // Shared shape both routes (assign-part, assign-service, remove-assignment)
 // hand to notifyAssignment. `event.startDate` is the raw DB Date; we format it
 // with the congregation's locale + timezone before it enters the payload so the
-// worker doesn't need to know either.
+// worker doesn't need to know either. `templateId` feeds the programme-link
+// resolver — null means the event was created ad-hoc without a template, in
+// which case the resolver falls back to /board.
 export interface AssignmentNotificationContext {
-  event: { id: number; name: string; startDate: Date }
+  event: { id: number; name: string; startDate: Date; templateId: number | null }
   assignmentName: string
   entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
   entityId: number
@@ -25,7 +28,7 @@ export type AssignmentChangeType = 'programme.assignment.assigned' | 'programme.
 // `assignmentName` may be undefined (assignment fetched after deletion, etc.);
 // it defaults to '' so the payload schema still accepts it.
 export function buildAssignmentContext(args: {
-  event: { id: number; name: string; startDate: Date }
+  event: { id: number; name: string; startDate: Date; templateId: number | null }
   assignmentName: string | undefined
   entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
   entityId: number
@@ -35,7 +38,12 @@ export function buildAssignmentContext(args: {
   timezone: string
 }): AssignmentNotificationContext {
   return {
-    event: args.event,
+    event: {
+      id: args.event.id,
+      name: args.event.name,
+      startDate: args.event.startDate,
+      templateId: args.event.templateId,
+    },
     assignmentName: args.assignmentName ?? '',
     entityType: args.entityType,
     entityId: args.entityId,
@@ -100,6 +108,15 @@ export async function notifyAssignment(
     month: 'long',
   })
 
+  // Resolve at notify() time — freezes the URL against the current board
+  // configuration. If an admin later moves or removes the programme tile,
+  // pending notifications retain the previously-resolved URL.
+  const link = await resolveProgrammeLink(
+    db,
+    { id: ctx.event.id, templateId: ctx.event.templateId },
+    ctx.congregationId,
+  )
+
   await notify(db, {
     type: change.type,
     entityType: ctx.entityType,
@@ -113,6 +130,7 @@ export async function notifyAssignment(
       eventDate,
       assignmentName: ctx.assignmentName,
       role: change.role,
+      link,
     },
   })
 }

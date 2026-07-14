@@ -10,12 +10,17 @@ vi.mock('~/features/notifications/index.server', () => ({
   notify: vi.fn(),
 }))
 
+vi.mock('~/features/display-board/index.server', () => ({
+  resolveProgrammeLink: vi.fn(),
+}))
+
 const { dispatchAssignmentDiffs, notifyAssignment } = await import('./notify-assignment.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { notify } = await import('~/features/notifications/index.server')
+const { resolveProgrammeLink } = await import('~/features/display-board/index.server')
 
 const CTX = {
-  event: { id: 1, name: 'Weekly meeting', startDate: new Date('2026-07-20T18:30:00Z') },
+  event: { id: 1, name: 'Weekly meeting', startDate: new Date('2026-07-20T18:30:00Z'), templateId: 9 },
   assignmentName: 'Perles de la Parole',
   entityType: 'ProgrammePartAssignment' as const,
   entityId: 100,
@@ -27,6 +32,7 @@ const CTX = {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(resolveProgrammeLink).mockResolvedValue('/board')
 })
 
 describe('notifyAssignment', () => {
@@ -58,6 +64,27 @@ describe('notifyAssignment', () => {
     })
     expect(typeof call.payload?.eventDate).toBe('string')
     expect((call.payload?.eventDate as string).length).toBeGreaterThan(0)
+  })
+
+  it('includes the resolved programme link in the payload', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board/dynamic/7/viewer?eventId=1')
+
+    await notifyAssignment(db, CTX, { type: 'programme.assignment.assigned', memberId: 55, role: 'speaker' })
+
+    expect(resolveProgrammeLink).toHaveBeenCalledWith(db, { id: 1, templateId: 9 }, 42)
+    const call = vi.mocked(notify).mock.calls[0][1]
+    expect(call.payload).toMatchObject({ link: '/board/dynamic/7/viewer?eventId=1' })
+  })
+
+  it('falls back to /board in the payload when no dynamic document covers the template', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
+    vi.mocked(resolveProgrammeLink).mockResolvedValue('/board')
+
+    await notifyAssignment(db, CTX, { type: 'programme.assignment.assigned', memberId: 55, role: 'speaker' })
+
+    const call = vi.mocked(notify).mock.calls[0][1]
+    expect(call.payload).toMatchObject({ link: '/board' })
   })
 
   it('does not enqueue anything when the member has no linked UserAccount', async () => {

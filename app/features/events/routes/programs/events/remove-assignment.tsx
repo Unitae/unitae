@@ -40,7 +40,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const notifyEvent = { id: event.id, name: event.name, startDate: event.startDate }
+    const notifyEvent = { id: event.id, name: event.name, startDate: event.startDate, templateId: event.templateId }
     const locale = context.get(congregationContext).locale
     const timezone = context.get(congregationContext).timezone
 

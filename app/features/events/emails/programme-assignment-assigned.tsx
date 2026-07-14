@@ -16,7 +16,7 @@ export default function ProgrammeAssignmentAssigned({
   eventDate = 'lundi 20 juillet 2026',
   assignmentName = 'Perles de la Parole',
   role = 'speaker',
-  eventId = 1,
+  link = '/board',
   baseUrl = 'https://unitae.app',
   platformName = 'Unitae',
 }: {
@@ -26,7 +26,7 @@ export default function ProgrammeAssignmentAssigned({
   eventDate: string
   assignmentName: string
   role: ProgrammeRole
-  eventId: number
+  link: string
   baseUrl?: string
   platformName?: string
 }) {
@@ -53,10 +53,7 @@ export default function ProgrammeAssignmentAssigned({
               </Text>
               <Text>{m.email_programme_assigned_body_2()}</Text>
               <Text className="text-center">
-                <Link
-                  href={`${baseUrl}/programs/events/${eventId}`}
-                  className="inline-block rounded-md bg-teal-600 px-3 py-2 text-white"
-                >
+                <Link href={`${baseUrl}${link}`} className="inline-block rounded-md bg-teal-600 px-3 py-2 text-white">
                   {m.email_programme_assigned_button()}
                 </Link>
               </Text>

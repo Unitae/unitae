@@ -115,7 +115,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     await dispatchAssignmentDiffs(
       db,
       {
-        event: { id: event.id, name: event.name, startDate: event.startDate },
+        event: { id: event.id, name: event.name, startDate: event.startDate, templateId: event.templateId },
         assignmentName: assignmentBefore?.name ?? '',
         entityType: 'ProgrammeServiceRoleAssignment',
         entityId: assignmentId,
