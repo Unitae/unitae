@@ -1,4 +1,5 @@
 import { boardNotifications } from '~/features/display-board/index.server'
+import { eventsNotifications } from '~/features/events/index.server'
 import { territoryNotifications } from '~/features/territories/index.server'
 import type { NotificationTypeDefinition } from '../model/notification-definition'
 import { assertCancelsReferenceExistingTypes, assertNoDuplicateTypes } from '../model/registry-guards'
@@ -18,6 +19,7 @@ import { assertCancelsReferenceExistingTypes, assertNoDuplicateTypes } from '../
 
 const manifests = {
   boardNotifications,
+  eventsNotifications,
   territoryNotifications,
 }
 

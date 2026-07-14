@@ -7,7 +7,7 @@ import { displayFirstname } from '~/shared/utils/display-name'
 import { runInWorkerContext } from '~/shared/utils/worker-locale.server'
 import { NOTIFICATION_TYPES } from './notification-types.server'
 import { renderNotificationEmail } from './render-notification-email.server'
-import { resolveRecipients } from './resolve-recipients.server'
+import { isNotificationDisabledForUser, resolveRecipients } from './resolve-recipients.server'
 
 const logger = createLogger('notification-email')
 
@@ -67,6 +67,22 @@ export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'no
       })
 
       if (user) {
+        // Same preference filter the role branch applies via resolveRecipients.
+        // Without this, the /notifications/preferences toggles are decorative
+        // for any type using entity-user recipient strategy.
+        const disabled = await isNotificationDisabledForUser(
+          unscopedDb,
+          user.id,
+          data.congregationId,
+          data.notificationType,
+        )
+        if (disabled) {
+          logger.debug('Notification skipped: user disabled the type', {
+            notificationType: data.notificationType,
+            userId: user.id,
+          })
+          return
+        }
         await sendNotificationToUser(
           data.notificationType,
           data.payload,
@@ -110,6 +126,17 @@ async function sendEventEmail(
   })
 
   if (!user) return 'delivered'
+
+  // Apply the same preference filter as the role branch does upstream.
+  const disabled = await isNotificationDisabledForUser(unscopedDb, user.id, congregationId, event.type)
+  if (disabled) {
+    logger.debug('Digest event skipped: user disabled the type', {
+      notificationType: event.type,
+      userId: user.id,
+    })
+    return 'delivered'
+  }
+
   return await sendNotificationToUser(
     event.type,
     event.payload,

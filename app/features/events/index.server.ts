@@ -1,6 +1,7 @@
 // Public server-only surface of the events feature.
 
 export { getNextDaysOffs } from './server/days-off.server'
+export { eventsNotifications } from './server/notifications.server'
 export {
   deleteTemplatePart,
   deleteTemplateServiceRole,

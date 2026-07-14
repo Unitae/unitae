@@ -1,9 +1,20 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
+import {
+  buildAssignmentContext,
+  dispatchAssignmentDiffs,
+  partAssignmentDiffs,
+  serviceRoleAssignmentDiffs,
+} from '~/features/events/server/notify-assignment.server'
 import { unassignPart, unassignServiceRole } from '~/features/events/server/programme-assignments.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import {
+  congregationContext,
+  currentAccountContext,
+  permissionsContext,
+  withScopeFromContext,
+} from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -34,17 +45,86 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
+    const cong = context.get(congregationContext)
+    // `didRemove` gates the success flash so a stale double-submit that finds
+    // nothing to remove reports honestly instead of pretending it worked.
+    let didRemove = false
+
     if (type === 'part') {
-      await unassignPart(db, assignmentId, congregationId)
+      const assignmentBefore = await db.programmePartAssignment.findFirst({
+        where: { id: assignmentId, congregationId },
+        select: { name: true },
+      })
+      const result = await unassignPart(db, assignmentId, congregationId)
       logger.info(`Unassigned part. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
+
+      if (result) {
+        didRemove = true
+        // Best-effort notifications — see assign-part.tsx for rationale.
+        await dispatchAssignmentDiffs(
+          db,
+          buildAssignmentContext({
+            event,
+            assignmentName: assignmentBefore?.name,
+            entityType: 'ProgrammePartAssignment',
+            entityId: assignmentId,
+            congregationId,
+            actorId: currentUser.id,
+            locale: cong.locale,
+            timezone: cong.timezone,
+          }),
+          partAssignmentDiffs(
+            { previousAssigneeId: result.previousAssigneeId, previousAssistantId: result.previousAssistantId },
+            { assigneeId: null, assistantId: null },
+          ),
+        ).catch(err =>
+          logger.error('Failed to dispatch programme-assignment notifications', {
+            err,
+            eventId,
+            assignmentId,
+            congregationId,
+          }),
+        )
+      }
     } else if (type === 'service') {
-      await unassignServiceRole(db, assignmentId, congregationId)
+      const assignmentBefore = await db.programmeServiceRoleAssignment.findFirst({
+        where: { id: assignmentId, congregationId },
+        select: { name: true },
+      })
+      const result = await unassignServiceRole(db, assignmentId, congregationId)
       logger.info(`Unassigned service role. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
+
+      if (result) {
+        didRemove = true
+        await dispatchAssignmentDiffs(
+          db,
+          buildAssignmentContext({
+            event,
+            assignmentName: assignmentBefore?.name,
+            entityType: 'ProgrammeServiceRoleAssignment',
+            entityId: assignmentId,
+            congregationId,
+            actorId: currentUser.id,
+            locale: cong.locale,
+            timezone: cong.timezone,
+          }),
+          serviceRoleAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId: null }),
+        ).catch(err =>
+          logger.error('Failed to dispatch programme-assignment notifications', {
+            err,
+            eventId,
+            assignmentId,
+            congregationId,
+          }),
+        )
+      }
     }
 
-    session.flash('success', m.programs_remove_assignment_success())
+    if (didRemove) {
+      session.flash('success', m.programs_remove_assignment_success())
+    }
 
-    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
+    return data({ ok: didRemove }, { headers: { 'Set-Cookie': await commitSession(session) } })
   })
 }
 
