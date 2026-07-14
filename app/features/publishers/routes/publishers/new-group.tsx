@@ -16,6 +16,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 import type { Route } from './+types/new-group'
 
@@ -179,7 +180,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       actorId: currentUser.id,
     })
 
-    session.flash('success', m.groups_new_success({ name: group.name }))
+    session.flash('success', m.groups_new_success({ name: formatGroupName(group.name) }))
     return redirect('/groups', {
       headers: {
         'Set-Cookie': await commitSession(session),

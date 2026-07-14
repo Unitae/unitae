@@ -6,6 +6,7 @@ import { TerritoryAttributionKind } from '~/features/territories/model/territory
 import * as m from '~/i18n/paraglide/messages'
 import { Button } from '~/shared/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import type { SortMode } from '~/shared/utils/pagination.server'
 import { cn } from '~/shared/utils/utils'
 import SearchInputWithHelp from './SearchInputWithHelp'
@@ -55,7 +56,7 @@ export default function AttributionFilters({
           <SelectItem value="none">{m.territories_filter_group()}</SelectItem>
           {groups.map(group => (
             <SelectItem value={String(group.id)} key={group.id}>
-              {group.name.toLocaleUpperCase()}
+              {formatGroupName(group.name)}
             </SelectItem>
           ))}
         </SelectContent>

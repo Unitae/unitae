@@ -9,6 +9,7 @@ import { Button } from '~/shared/ui/button'
 import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
 import type { Route } from './+types/group-list'
@@ -109,7 +110,7 @@ export default function GroupListPage({ loaderData }: Route.ComponentProps) {
               <TableRow key={group.name}>
                 <TableCell>
                   <Link to={`./${group.id}/view`} className="font-medium hover:text-primary">
-                    {group.name.toLocaleUpperCase()}
+                    {formatGroupName(group.name)}
                   </Link>
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">

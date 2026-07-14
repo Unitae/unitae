@@ -6,6 +6,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { DeleteConfirmation } from '~/shared/ui/DeleteConfirmation'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/delete-group'
@@ -43,14 +44,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
 export default function DeleteGroup({ loaderData }: Route.ComponentProps) {
   const { group } = loaderData
+  const displayName = formatGroupName(group.name)
 
   return (
     <DeleteConfirmation
-      title={m.groups_delete_confirmation({ name: group.name })}
-      submitLabel={m.groups_delete_button({ name: group.name })}
+      title={m.groups_delete_confirmation({ name: displayName })}
+      submitLabel={m.groups_delete_button({ name: displayName })}
       cancelTo="/groups"
     >
-      <p>{group.name}</p>
+      <p>{displayName}</p>
     </DeleteConfirmation>
   )
 }
@@ -73,7 +75,7 @@ export function action({ request, params, context }: Route.ActionArgs) {
     )
 
     const session = await getSession(request.headers.get('Cookie'))
-    session.flash('success', m.groups_delete_success({ name: group.name }))
+    session.flash('success', m.groups_delete_success({ name: formatGroupName(group.name) }))
 
     const previousPage = request.headers.get('referer')
     return redirect(previousPage ?? '/groups/', {

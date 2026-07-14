@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '~/shared/ui/label'
 import { RadioGroup, RadioGroupItem } from '~/shared/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
+import { formatGroupName } from '~/shared/utils/format-group-name'
 
 type ExportFormat = 'xlsx' | 'pdfs'
 type ExportScope = 'all' | 'group' | 'members'
@@ -233,7 +234,7 @@ function ScopeField(props: ScopeFieldProps) {
           <SelectContent>
             {publisherGroups.map(group => (
               <SelectItem key={group.id} value={String(group.id)}>
-                {group.name}
+                {formatGroupName(group.name)}
               </SelectItem>
             ))}
           </SelectContent>
