@@ -6,23 +6,20 @@ export interface ResponsibleConflictsSummary {
   count: number
   // Up to MAX_ABSENTEE_NAMES unique absentee display names, sorted alphabetically.
   absenteeNames: string[]
-  // How many unique absentees exist beyond the ones listed above. 0 when
-  // every unique absentee fits in `absenteeNames`. The label formatter
-  // uses this to append "(+N autres)".
-  additionalAbsenteesCount: number
+  // Total number of distinct absentees, including those beyond the ones
+  // sampled in `absenteeNames`. Consumers derive the "(+N autres)" tail
+  // from `totalAbsenteesCount - absenteeNames.length` so the invariant
+  // `sampled + extras = total` cannot drift out of sync.
+  totalAbsenteesCount: number
 }
 
 const MAX_ABSENTEE_NAMES = 3
 
-// Aggregated counts of upcoming programme assignments flagged as
-// day-off conflicts, scoped by who can see them:
-//   - non-manager: only events on templates where the user is the
-//     documented responsible (ProgrammeTemplateResponsible.userId).
-//   - ProgramManager: all events, including untemplated ones which have
+// Scoping:
+//   - non-manager → only events on templates where the user is the documented
+//     responsible (ProgrammeTemplateResponsible.userId);
+//   - ProgramManager → all events, including untemplated ones which have
 //     no responsible relation at all.
-// Returns a count (unique member × event pairs) and up to three
-// absentee names, sorted alphabetically, for at-a-glance triage on
-// the dashboard.
 export async function getResponsibleConflicts(
   db: TransactionClient,
   userId: number,
@@ -80,7 +77,6 @@ export async function getResponsibleConflicts(
 
   const sortedNames = [...nameByMemberId.values()].sort((a, b) => a.localeCompare(b))
   const absenteeNames = sortedNames.slice(0, MAX_ABSENTEE_NAMES)
-  const additionalAbsenteesCount = Math.max(0, sortedNames.length - MAX_ABSENTEE_NAMES)
 
-  return { count: pairs.size, absenteeNames, additionalAbsenteesCount }
+  return { count: pairs.size, absenteeNames, totalAbsenteesCount: sortedNames.length }
 }

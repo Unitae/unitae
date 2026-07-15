@@ -670,11 +670,11 @@ describe('getConflictingAssignments (integration)', () => {
     }
   })
 
-  // Invariant pin (responsible side): the aggregated responsible-conflict
-  // card is correct only as long as the hasConflict flag remains authoritative.
-  // Once refreshConflictFlags (or any direct write) clears the flag, the
-  // responsible's card must disappear on the next read — no stale cache, no
-  // extra invalidation step. This mirrors the absentee-side pin at line 578.
+  // Invariant pin (responsible side): `getResponsibleConflicts` derives its
+  // result from the persisted `hasConflict` flag with no caching layer, so
+  // once the flag flips to `false` the responsible's card must vanish on
+  // the next read. Mirrors the absentee-side "refreshConflictFlags clears
+  // stale hasConflict and the alert disappears" pin earlier in this file.
   it('getResponsibleConflicts drops the entry when hasConflict clears on the underlying assignment', async () => {
     const setup = await withScope(congregationId, async tx => {
       const eventKind = await tx.eventKind.findFirstOrThrow({
@@ -737,7 +737,7 @@ describe('getConflictingAssignments (integration)', () => {
       )
 
       const after = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
-      expect(after).toEqual({ count: 0, absenteeNames: [], additionalAbsenteesCount: 0 })
+      expect(after).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
     } finally {
       await withScope(congregationId, async tx => {
         await tx.programmePartAssignment.delete({

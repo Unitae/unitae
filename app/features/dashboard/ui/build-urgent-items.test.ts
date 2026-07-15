@@ -271,7 +271,7 @@ describe('formatResponsibleConflictLabel', () => {
     const label = formatResponsibleConflictLabel({
       count: 1,
       absenteeNames: ['Marie Dupont'],
-      additionalAbsenteesCount: 0,
+      totalAbsenteesCount: 1,
     })
     expect(label).toBe('1 responsible conflict: Marie Dupont')
   })
@@ -280,7 +280,7 @@ describe('formatResponsibleConflictLabel', () => {
     const label = formatResponsibleConflictLabel({
       count: 3,
       absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
-      additionalAbsenteesCount: 0,
+      totalAbsenteesCount: 3,
     })
     expect(label).toBe('3 responsible conflicts: Alice A, Bob B, Charlie C')
   })
@@ -289,7 +289,7 @@ describe('formatResponsibleConflictLabel', () => {
     const label = formatResponsibleConflictLabel({
       count: 5,
       absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
-      additionalAbsenteesCount: 2,
+      totalAbsenteesCount: 5,
     })
     expect(label).toBe('5 responsible conflicts: Alice A, Bob B, Charlie C (+2 more)')
   })
@@ -301,14 +301,14 @@ describe('urgentResponsibleConflictItems', () => {
   })
 
   it('returns empty array when the summary count is zero', () => {
-    expect(urgentResponsibleConflictItems({ count: 0, absenteeNames: [], additionalAbsenteesCount: 0 })).toEqual([])
+    expect(urgentResponsibleConflictItems({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })).toEqual([])
   })
 
   it('returns one item with priority 1 and a deep-link to the filtered programme list', () => {
     const items = urgentResponsibleConflictItems({
       count: 2,
       absenteeNames: ['Marie D.', 'Jean P.'],
-      additionalAbsenteesCount: 0,
+      totalAbsenteesCount: 2,
     })
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(1)
@@ -395,7 +395,7 @@ describe('buildUrgentItems', () => {
     const items = buildUrgentItems(null, null, null, null, {
       count: 3,
       absenteeNames: ['Marie D.', 'Jean P.'],
-      additionalAbsenteesCount: 0,
+      totalAbsenteesCount: 2,
     })
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(1)

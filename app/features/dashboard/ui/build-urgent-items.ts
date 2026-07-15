@@ -130,16 +130,12 @@ export function urgentDocumentsItem(unreadCount: number | null): UrgentItem[] {
   ]
 }
 
-// Compose the human-readable label for the responsible-conflict card.
-// Kept pure and exported so it can be unit-tested without JSX and reused
-// if we ever surface the same summary elsewhere.
+// Exported (not inlined into `urgentResponsibleConflictItems`) so the
+// composition can be unit-tested without JSX.
 export function formatResponsibleConflictLabel(summary: ResponsibleConflictsSummary): string {
-  const namesJoined = summary.absenteeNames.join(', ')
-  const extras =
-    summary.additionalAbsenteesCount > 0
-      ? m.dashboard_urgent_responsible_conflict_extras({ count: String(summary.additionalAbsenteesCount) })
-      : ''
-  const names = namesJoined + extras
+  const extraCount = Math.max(0, summary.totalAbsenteesCount - summary.absenteeNames.length)
+  const extras = extraCount > 0 ? m.dashboard_urgent_responsible_conflict_extras({ count: String(extraCount) }) : ''
+  const names = summary.absenteeNames.join(', ') + extras
 
   if (summary.count === 1) {
     return m.dashboard_urgent_responsible_conflict_singular({ names })

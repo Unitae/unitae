@@ -51,18 +51,25 @@ function applyPublisherFilter(filters: Prisma.EventWhereInput, params: URLSearch
 }
 
 // `?hasConflicts=true` restricts the list to events that have at least one
-// assignment flagged as a day-off conflict. Powers the deep-link from the
-// responsible-conflict dashboard card.
+// assignment flagged as a day-off conflict. Nested under `AND` so a
+// caller (or a future filter) can freely set its own top-level `OR`
+// without either clause silently overwriting the other.
 function applyHasConflictsFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
   if (params.get('hasConflicts') !== 'true') {
     return filters
   }
 
+  const existingAnd = Array.isArray(filters.AND) ? filters.AND : filters.AND ? [filters.AND] : []
   return {
     ...filters,
-    OR: [
-      { partAssignments: { some: { hasConflict: true } } },
-      { serviceRoleAssignments: { some: { hasConflict: true } } },
+    AND: [
+      ...existingAnd,
+      {
+        OR: [
+          { partAssignments: { some: { hasConflict: true } } },
+          { serviceRoleAssignments: { some: { hasConflict: true } } },
+        ],
+      },
     ],
   }
 }

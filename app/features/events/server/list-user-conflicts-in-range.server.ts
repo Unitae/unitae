@@ -7,13 +7,10 @@ export interface UserConflictInRange {
   responsibleName: string | null
 }
 
-// Read the assignments a member has on programme events that overlap the
-// given date range and whose hasConflict flag is set. Used by the days-off
-// create action to build the "you have assignments during this absence"
-// modal. `responsibleName` resolves through accountDisplayName so the
-// linked Member's name wins over the account fallback fields when both
-// exist; untemplated events (or templates without a responsible) return
-// null so the UI can show a generic fallback line.
+// `responsibleName` resolves through `accountDisplayName` so a template
+// responsible's linked Member name wins over the account fallback fields.
+// Untemplated events (or templates with no responsible assigned) return
+// `null` so the UI can show a generic fallback line.
 export async function listUserConflictsInRange(
   db: TransactionClient,
   memberId: number,
@@ -106,9 +103,16 @@ type TemplateWithResponsibles =
   | null
   | undefined
 
+// A template can have any number of responsibles. Every named responsible
+// is surfaced so the absentee knows who to reach, deterministically ordered
+// by display name so the modal reads the same across renders.
 function resolveResponsibleName(template: TemplateWithResponsibles): string | null {
-  const user = template?.responsibles?.[0]?.user
-  if (!user) return null
-  const name = accountDisplayName(user)
-  return name.length > 0 ? name : null
+  const responsibles = template?.responsibles ?? []
+  if (responsibles.length === 0) return null
+
+  const names = responsibles.map(r => accountDisplayName(r.user)).filter(name => name.length > 0)
+  if (names.length === 0) return null
+
+  names.sort((a, b) => a.localeCompare(b))
+  return names.join(', ')
 }

@@ -19,7 +19,7 @@ beforeEach(() => {
 describe('getResponsibleConflicts', () => {
   it('returns zero count with no names when no conflicts exist', async () => {
     const result = await getResponsibleConflicts(db, 42, false)
-    expect(result).toEqual({ count: 0, absenteeNames: [], additionalAbsenteesCount: 0 })
+    expect(result).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
   })
 
   // Non-manager users only see conflicts on templates they are the
@@ -180,7 +180,35 @@ describe('getResponsibleConflicts', () => {
     const result = await getResponsibleConflicts(db, 999, true)
     expect(result.absenteeNames).toEqual(['Alice A', 'Bob B', 'Charlie C'])
     expect(result.count).toBe(5)
-    expect(result.additionalAbsenteesCount).toBe(2)
+    expect(result.totalAbsenteesCount).toBe(5)
+  })
+
+  // A row can arrive with a null assigneeId when the assignment slot is
+  // held but no member is booked yet, or via an integrity issue where the
+  // related member could not be joined. Either way it must not corrupt the
+  // aggregation. This pin guards the `record()` null-skip at line 66.
+  it('silently skips rows whose assignee is null (no assignee booked or join failed)', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      {
+        eventId: 1,
+        assigneeId: null,
+        assignee: null,
+        assistantId: null,
+        assistant: null,
+      },
+      {
+        eventId: 2,
+        assigneeId: 100,
+        assignee: { firstname: 'Alice', lastname: 'Dupont' },
+        assistantId: null,
+        assistant: null,
+      },
+    ] as never)
+
+    const result = await getResponsibleConflicts(db, 999, true)
+    expect(result.count).toBe(1)
+    expect(result.absenteeNames).toEqual(['Alice Dupont'])
+    expect(result.totalAbsenteesCount).toBe(1)
   })
 
   // A part row can carry both an assignee and an assistant — both are

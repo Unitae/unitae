@@ -9,7 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { createDayOff } = await import('./days-off.server')
+const { createDayOff, deleteDayOff } = await import('./days-off.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -76,6 +76,45 @@ describe('createDayOff', () => {
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     await createDayOff(db, 1, null, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
+
+    expect(db.event.findMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteDayOff', () => {
+  it('deletes the event and returns it', async () => {
+    const fakeEvent = { id: 42, startDate: new Date(2025, 3, 8), endDate: new Date(2025, 3, 10) }
+    vi.mocked(db.event.delete).mockResolvedValue(fakeEvent as never)
+
+    const result = await deleteDayOff(db, 42, 1, 1)
+
+    expect(result).toEqual(fakeEvent)
+    expect(db.event.delete).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 42, congregationId: 1 } },
+    })
+  })
+
+  it('refreshes conflict flags over the deleted range when memberId is provided', async () => {
+    const startDate = new Date(2025, 3, 8)
+    const endDate = new Date(2025, 3, 10)
+    vi.mocked(db.event.delete).mockResolvedValue({ id: 42, startDate, endDate } as never)
+
+    await deleteDayOff(db, 42, 1, 1)
+
+    expect(db.event.findMany).toHaveBeenCalled()
+  })
+
+  // Mirror of createDayOff's null-memberId guard — an account without a
+  // linked Member cannot own any conflict-carrying assignments, so refresh
+  // is skipped rather than issuing a no-op query.
+  it('skips refreshConflictFlags when memberId is null', async () => {
+    vi.mocked(db.event.delete).mockResolvedValue({
+      id: 42,
+      startDate: new Date(2025, 3, 8),
+      endDate: new Date(2025, 3, 10),
+    } as never)
+
+    await deleteDayOff(db, 42, null, 1)
 
     expect(db.event.findMany).not.toHaveBeenCalled()
   })

@@ -126,10 +126,20 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
 
-    // Surface any pre-existing programme assignments that overlap this absence
-    // so the user is prompted to reach out before the meeting. When there are
-    // conflicts we skip the success flash — the modal is the confirmation.
-    const conflicts = memberId != null ? await listUserConflictsInRange(db, memberId, startDate, endDate) : []
+    // When there are conflicts we skip the success flash — the modal is
+    // the confirmation.
+    let conflicts: Awaited<ReturnType<typeof listUserConflictsInRange>>
+    if (memberId == null) {
+      // Accounts without a linked Member cannot own programme assignments,
+      // so there is nothing to check. Logged so ops can distinguish this
+      // branch from a genuine "no conflicts found".
+      logger.info(
+        `Days off created for account without linked Member; skipped conflict check. User ID: ${currentUser.id}.`,
+      )
+      conflicts = []
+    } else {
+      conflicts = await listUserConflictsInRange(db, memberId, startDate, endDate)
+    }
 
     if (conflicts.length > 0) {
       logger.info(`Days off created with ${conflicts.length} conflict(s). User ID: ${currentUser.id}.`)

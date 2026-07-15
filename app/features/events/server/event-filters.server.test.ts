@@ -100,9 +100,13 @@ describe('computeFilters', () => {
     const params = new URLSearchParams({ hasConflicts: 'true' })
     const result = computeFilters(params)
 
-    expect(result.OR).toEqual([
-      { partAssignments: { some: { hasConflict: true } } },
-      { serviceRoleAssignments: { some: { hasConflict: true } } },
+    expect(result.AND).toEqual([
+      {
+        OR: [
+          { partAssignments: { some: { hasConflict: true } } },
+          { serviceRoleAssignments: { some: { hasConflict: true } } },
+        ],
+      },
     ])
   })
 
@@ -110,13 +114,38 @@ describe('computeFilters', () => {
     const params = new URLSearchParams()
     const result = computeFilters(params)
 
-    expect(result.OR).toBeUndefined()
+    expect(result.AND).toBeUndefined()
   })
 
   it('does not filter by hasConflicts when param is false', () => {
     const params = new URLSearchParams({ hasConflicts: 'false' })
     const result = computeFilters(params)
 
-    expect(result.OR).toBeUndefined()
+    expect(result.AND).toBeUndefined()
+  })
+
+  // Combined-param pin: hasConflicts must compose cleanly with date + publisher
+  // filters. A regression that spread over `startDate` / `endDate` (or drops
+  // `createdById`) would slip through the single-param tests above.
+  it('preserves date and publisher filters when hasConflicts is applied', () => {
+    const params = new URLSearchParams({
+      from: '2025-06-01',
+      to: '2025-06-30',
+      publisher: '42',
+      hasConflicts: 'true',
+    })
+    const result = computeFilters(params)
+
+    expect(result.startDate).toEqual({ lte: new Date('2025-06-30') })
+    expect(result.endDate).toEqual({ gte: new Date('2025-06-01') })
+    expect(result.createdById).toBe(42)
+    expect(result.AND).toEqual([
+      {
+        OR: [
+          { partAssignments: { some: { hasConflict: true } } },
+          { serviceRoleAssignments: { some: { hasConflict: true } } },
+        ],
+      },
+    ])
   })
 })

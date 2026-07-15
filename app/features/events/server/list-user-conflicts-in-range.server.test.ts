@@ -133,6 +133,30 @@ describe('listUserConflictsInRange', () => {
     expect(result[0].responsibleName).toBeNull()
   })
 
+  // A template can carry multiple responsibles; each named person must
+  // surface so the absentee knows who to reach. Sorted alphabetically so
+  // the modal reads the same across renders.
+  it('joins every responsible name when a template has more than one, sorted alphabetically', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      {
+        name: 'Discours public',
+        event: {
+          startDate: new Date(2026, 6, 5),
+          template: {
+            responsibles: [
+              { user: { firstname: 'Zoé', lastname: 'Petit', member: null } },
+              { user: { firstname: 'Alain', lastname: 'Roux', member: null } },
+            ],
+          },
+        },
+      },
+    ] as never)
+
+    const result = await listUserConflictsInRange(db, 5000, new Date(2026, 6, 1), new Date(2026, 6, 10))
+
+    expect(result[0].responsibleName).toBe('Alain Roux, Zoé Petit')
+  })
+
   it('merges part + service conflicts and sorts by eventDate ascending', async () => {
     vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
       {
