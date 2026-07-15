@@ -76,7 +76,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const deletedEvent = await deleteDayOff(
       db,
       requireParamId(params.eventId, '/me/days-off'),
-      currentUser.id,
+      currentUser.member?.id ?? null,
       congregationId,
     )
 

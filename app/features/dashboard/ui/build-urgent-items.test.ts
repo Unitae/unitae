@@ -10,6 +10,10 @@ vi.mock('~/i18n/paraglide/messages', () => ({
     `${name} — ${eventName}`,
   dashboard_urgent_dayoff_conflict: ({ eventName }: { eventName: string }) => `Conflict with ${eventName}`,
   dashboard_urgent_unread_documents: ({ count }: { count: string }) => `${count} unread documents`,
+  dashboard_urgent_responsible_conflict_singular: ({ names }: { names: string }) => `1 responsible conflict: ${names}`,
+  dashboard_urgent_responsible_conflict_plural: ({ count, names }: { count: string; names: string }) =>
+    `${count} responsible conflicts: ${names}`,
+  dashboard_urgent_responsible_conflict_extras: ({ count }: { count: string }) => ` (+${count} more)`,
 }))
 
 const {
@@ -18,7 +22,9 @@ const {
   urgentPartAssignmentItems,
   urgentServiceRoleItems,
   urgentDayoffConflictItems,
+  urgentResponsibleConflictItems,
   urgentDocumentsItem,
+  formatResponsibleConflictLabel,
 } = await import('./build-urgent-items')
 
 beforeEach(() => {
@@ -258,6 +264,60 @@ describe('urgentDayoffConflictItems', () => {
   })
 })
 
+// --- urgentResponsibleConflictItems ---
+
+describe('formatResponsibleConflictLabel', () => {
+  it('uses the singular template with a single name when count is 1', () => {
+    const label = formatResponsibleConflictLabel({
+      count: 1,
+      absenteeNames: ['Marie Dupont'],
+      additionalAbsenteesCount: 0,
+    })
+    expect(label).toBe('1 responsible conflict: Marie Dupont')
+  })
+
+  it('uses the plural template with all names joined by comma', () => {
+    const label = formatResponsibleConflictLabel({
+      count: 3,
+      absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
+      additionalAbsenteesCount: 0,
+    })
+    expect(label).toBe('3 responsible conflicts: Alice A, Bob B, Charlie C')
+  })
+
+  it('appends "(+N more)" when there are additional unlisted absentees', () => {
+    const label = formatResponsibleConflictLabel({
+      count: 5,
+      absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
+      additionalAbsenteesCount: 2,
+    })
+    expect(label).toBe('5 responsible conflicts: Alice A, Bob B, Charlie C (+2 more)')
+  })
+})
+
+describe('urgentResponsibleConflictItems', () => {
+  it('returns empty array when the summary is null', () => {
+    expect(urgentResponsibleConflictItems(null)).toEqual([])
+  })
+
+  it('returns empty array when the summary count is zero', () => {
+    expect(urgentResponsibleConflictItems({ count: 0, absenteeNames: [], additionalAbsenteesCount: 0 })).toEqual([])
+  })
+
+  it('returns one item with priority 1 and a deep-link to the filtered programme list', () => {
+    const items = urgentResponsibleConflictItems({
+      count: 2,
+      absenteeNames: ['Marie D.', 'Jean P.'],
+      additionalAbsenteesCount: 0,
+    })
+    expect(items).toHaveLength(1)
+    expect(items[0].priority).toBe(1)
+    expect(items[0].to).toBe('/programs?hasConflicts=true')
+    expect(items[0].label).toContain('Marie D.')
+    expect(items[0].key).toBe('responsible-conflicts')
+  })
+})
+
 // --- urgentDocumentsItem ---
 
 describe('urgentDocumentsItem', () => {
@@ -282,12 +342,12 @@ describe('urgentDocumentsItem', () => {
 
 describe('buildUrgentItems', () => {
   it('returns empty array when all inputs are null/empty', () => {
-    expect(buildUrgentItems(null, null, null, null)).toEqual([])
+    expect(buildUrgentItems(null, null, null, null, null)).toEqual([])
   })
 
   it('returns items sorted by priority', () => {
     const territories = [makeTerritory(1, 'T-1', 'overdue', new Date(2026, 3, 20))]
-    const items = buildUrgentItems(territories, 5, null, null)
+    const items = buildUrgentItems(territories, 5, null, null, null)
     expect(items[0].priority).toBeLessThan(items[1].priority)
   })
 
@@ -298,7 +358,7 @@ describe('buildUrgentItems', () => {
       makeTerritory(3, 'T-3', 'due-soon', new Date(2026, 4, 1)),
       makeTerritory(4, 'T-4', 'due-soon', new Date(2026, 4, 2)),
     ]
-    const items = buildUrgentItems(territories, 10, null, null)
+    const items = buildUrgentItems(territories, 10, null, null, null)
     expect(items).toHaveLength(3)
   })
 
@@ -310,7 +370,7 @@ describe('buildUrgentItems', () => {
         { id: 10, name: 'Discours', section: 'main', topic: '', order: 1, assignee: null, assistant: null },
       ],
     })
-    const items = buildUrgentItems(territories, null, meeting, null)
+    const items = buildUrgentItems(territories, null, meeting, null, null)
     expect(items[0].key).toContain('part-')
     expect(items[1].key).toContain('territory-overdue-')
   })
@@ -326,8 +386,19 @@ describe('buildUrgentItems', () => {
       serviceRoleAssignments: [{ id: 5, name: 'Son', assignee: null }],
     })
     const conflict = makeConflict(7, 'Réunion de semaine', meetingDate)
-    const items = buildUrgentItems(null, null, meeting, conflict)
+    const items = buildUrgentItems(null, null, meeting, conflict, null)
     const priorities = items.map(i => i.priority)
     expect(priorities).toEqual([0, 2, 3])
+  })
+
+  it('includes the responsible-conflict card at priority 1 when the summary has conflicts', () => {
+    const items = buildUrgentItems(null, null, null, null, {
+      count: 3,
+      absenteeNames: ['Marie D.', 'Jean P.'],
+      additionalAbsenteesCount: 0,
+    })
+    expect(items).toHaveLength(1)
+    expect(items[0].priority).toBe(1)
+    expect(items[0].key).toBe('responsible-conflicts')
   })
 })

@@ -1,4 +1,13 @@
-import { CalendarOff, ChevronRight, FileDown, Loader2, MoreHorizontal, Trash2, UserCog } from 'lucide-react'
+import {
+  AlertTriangle,
+  CalendarOff,
+  ChevronRight,
+  FileDown,
+  Loader2,
+  MoreHorizontal,
+  Trash2,
+  UserCog,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { EventKind } from '~/features/events/model/event-kind.type'
@@ -69,13 +78,23 @@ export function loader({ request, context }: Route.LoaderArgs) {
         congregationId,
         NOT: { kind: { key: EventKind.Off } },
       },
-      include: { template: true, kind: true },
+      include: {
+        template: true,
+        kind: true,
+        _count: {
+          select: {
+            partAssignments: { where: { hasConflict: true } },
+            serviceRoleAssignments: { where: { hasConflict: true } },
+          },
+        },
+      },
       orderBy: { startDate: 'asc' },
     })
 
     const upcomingEvents = events.map(event => ({
       ...event,
       canEdit: isProgramManager || (event.templateId != null && responsibleTemplateIdSet.has(event.templateId)),
+      conflictCount: event._count.partAssignments + event._count.serviceRoleAssignments,
     }))
 
     return {
@@ -126,6 +145,75 @@ function groupByWeek(events: Event[]): { weekKey: string; weekMonday: Date; even
 function eventTimeOrEmpty(date: Date, timezone: string): string {
   const time = formatEventTime(date, timezone)
   return time === '00:00' ? '' : time
+}
+
+function ConflictBadge({ count }: { count: number }) {
+  const label =
+    count === 1
+      ? m.programs_event_conflict_badge_singular()
+      : m.programs_event_conflict_badge_plural({ count: String(count) })
+  return (
+    <span
+      role="status"
+      aria-label={m.programs_event_conflict_badge_aria({ count: String(count) })}
+      className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-medium text-amber-700 text-xs dark:text-amber-400"
+    >
+      <AlertTriangle className="size-3" aria-hidden="true" />
+      {label}
+    </span>
+  )
+}
+
+function EventRow({
+  event,
+  timezone,
+  selected,
+  onToggleSelection,
+}: {
+  event: Event
+  timezone: string
+  selected: boolean
+  onToggleSelection: () => void
+}) {
+  const weekday = formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long' })
+  const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
+  const isUpcoming = new Date(event.startDate) >= new Date()
+  const showConflictBadge = isUpcoming && event.conflictCount > 0
+  const cardStyle = event.kind?.color ? { borderLeftColor: event.kind.color, borderLeftWidth: '4px' } : {}
+  const kindLabel = event.kind ? ` · ${event.kind.name}` : ''
+  const timeLabel = time ? ` · ${time}` : ''
+
+  return (
+    <div className="flex items-center gap-3">
+      {event.canEdit && (
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelection}
+          className="size-4 rounded border border-input accent-primary"
+          onClick={e => e.stopPropagation()}
+        />
+      )}
+      <Link to={`./events/${event.id}`} className="flex-1 no-underline">
+        <Card className="overflow-hidden transition-colors hover:bg-muted/50" style={cardStyle}>
+          <CardContent className="flex items-center justify-between gap-3 py-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="font-medium text-sm">{event.name}</span>
+              <span className="text-muted-foreground text-xs capitalize">
+                {weekday}
+                {timeLabel}
+                {kindLabel}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {showConflictBadge && <ConflictBadge count={event.conflictCount} />}
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+    </div>
+  )
 }
 
 function WeekCheckbox({
@@ -310,42 +398,15 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                   </div>
                 </div>
 
-                {events.map(event => {
-                  const weekday = formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long' })
-                  const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
-
-                  return (
-                    <div key={event.id} className="flex items-center gap-3">
-                      {event.canEdit && (
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(event.id)}
-                          onChange={() => toggleSelection(event.id)}
-                          className="size-4 rounded border border-input accent-primary"
-                          onClick={e => e.stopPropagation()}
-                        />
-                      )}
-                      <Link to={`./events/${event.id}`} className="flex-1 no-underline">
-                        <Card
-                          className="overflow-hidden transition-colors hover:bg-muted/50"
-                          style={event.kind?.color ? { borderLeftColor: event.kind.color, borderLeftWidth: '4px' } : {}}
-                        >
-                          <CardContent className="flex items-center justify-between py-3">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="font-medium text-sm">{event.name}</span>
-                              <span className="text-muted-foreground text-xs capitalize">
-                                {weekday}
-                                {time ? ` · ${time}` : ''}
-                                {event.kind ? ` · ${event.kind.name}` : ''}
-                              </span>
-                            </div>
-                            <ChevronRight className="size-4 text-muted-foreground" />
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    </div>
-                  )
-                })}
+                {events.map(event => (
+                  <EventRow
+                    key={event.id}
+                    event={event}
+                    timezone={timezone}
+                    selected={selectedIds.has(event.id)}
+                    onToggleSelection={() => toggleSelection(event.id)}
+                  />
+                ))}
               </div>
             )
           })}

@@ -95,4 +95,28 @@ describe('computeFilters', () => {
 
     expect(result.createdById).toBeUndefined()
   })
+
+  it('filters by hasConflicts when param is true', () => {
+    const params = new URLSearchParams({ hasConflicts: 'true' })
+    const result = computeFilters(params)
+
+    expect(result.OR).toEqual([
+      { partAssignments: { some: { hasConflict: true } } },
+      { serviceRoleAssignments: { some: { hasConflict: true } } },
+    ])
+  })
+
+  it('does not filter by hasConflicts when param is absent', () => {
+    const params = new URLSearchParams()
+    const result = computeFilters(params)
+
+    expect(result.OR).toBeUndefined()
+  })
+
+  it('does not filter by hasConflicts when param is false', () => {
+    const params = new URLSearchParams({ hasConflicts: 'false' })
+    const result = computeFilters(params)
+
+    expect(result.OR).toBeUndefined()
+  })
 })

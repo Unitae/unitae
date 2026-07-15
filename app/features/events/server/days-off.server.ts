@@ -19,9 +19,14 @@ export function getNextDaysOffs(db: TransactionClient, userId: number, congregat
   })
 }
 
+// `accountId` writes Event.createdBy. `memberId` (nullable — admin / circuit
+// overseer accounts with no linked member) is what refreshConflictFlags needs
+// to reconcile assignments; when it's null there can be no assignments to
+// conflict, so we skip the refresh entirely.
 export async function createDayOff(
   db: TransactionClient,
-  userId: number,
+  accountId: number,
+  memberId: number | null,
   startDate: Date | null | undefined,
   endDate: Date | null | undefined,
   congregationId: number,
@@ -41,27 +46,34 @@ export async function createDayOff(
       ...(eventKind ? { kind: { connect: { id: eventKind.id } } } : {}),
       startDate,
       endDate,
-      createdBy: { connect: { id: userId } },
+      createdBy: { connect: { id: accountId } },
       name: m.seed_event_kind_absence(),
       congregation: { connect: { id: congregationId } },
     },
   })
 
-  // Update conflict flags on programme assignments overlapping this new day-off
-  await refreshConflictFlags(db, userId, startDate, endDate, congregationId)
+  if (memberId != null) {
+    await refreshConflictFlags(db, memberId, startDate, endDate, congregationId)
+  }
 
   return event
 }
 
-export async function deleteDayOff(db: TransactionClient, eventId: number, userId: number, congregationId: number) {
+export async function deleteDayOff(
+  db: TransactionClient,
+  eventId: number,
+  memberId: number | null,
+  congregationId: number,
+) {
   const event = await db.event.delete({
     where: {
       id_congregationId: { id: eventId, congregationId },
     },
   })
 
-  // Refresh conflict flags — the absence is gone, so conflicts may be resolved
-  await refreshConflictFlags(db, userId, event.startDate, event.endDate, congregationId)
+  if (memberId != null) {
+    await refreshConflictFlags(db, memberId, event.startDate, event.endDate, congregationId)
+  }
 
   return event
 }

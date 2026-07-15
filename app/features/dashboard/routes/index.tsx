@@ -10,6 +10,7 @@ import {
   getUserTerritories,
   type TerritoryStatus,
 } from '~/features/dashboard/server/dashboard.server'
+import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
 import * as m from '~/i18n/paraglide/messages'
@@ -43,6 +44,7 @@ export function loader({ context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   const isAdmin = permissions.has(Permission.Admin)
   const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
+  const isProgramManager = permissions.has(Permission.ProgramManager)
   const canViewBoard = permissions.has(Permission.BoardViewer)
 
   // Member-bound queries (territories, programme assignments) need the linked
@@ -54,25 +56,33 @@ export function loader({ context }: Route.LoaderArgs) {
       return safeQuery(label, currentUser.id, () => run(memberId))
     }
 
-    const [territories, recentDocuments, unreadDocumentCount, absences, nextMeeting, dayoffConflict] =
-      await Promise.all([
-        memberSafeQuery('territories', mid => getUserTerritories(db, mid)),
-        canViewBoard
-          ? safeQuery('documents', currentUser.id, () =>
-              getRecentDocuments(db, currentUser.id, currentUser.congregationId),
-            )
-          : Promise.resolve(null),
-        canViewBoard
-          ? safeQuery('unread-count', currentUser.id, () =>
-              getUnreadDocumentCount(db, currentUser.id, currentUser.congregationId),
-            )
-          : Promise.resolve(0),
-        safeQuery('absences', currentUser.id, () =>
-          getUpcomingAbsences(db, currentUser.id, currentUser.congregationId),
-        ),
-        memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid)),
-        memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
-      ])
+    const [
+      territories,
+      recentDocuments,
+      unreadDocumentCount,
+      absences,
+      nextMeeting,
+      dayoffConflict,
+      responsibleConflicts,
+    ] = await Promise.all([
+      memberSafeQuery('territories', mid => getUserTerritories(db, mid)),
+      canViewBoard
+        ? safeQuery('documents', currentUser.id, () =>
+            getRecentDocuments(db, currentUser.id, currentUser.congregationId),
+          )
+        : Promise.resolve(null),
+      canViewBoard
+        ? safeQuery('unread-count', currentUser.id, () =>
+            getUnreadDocumentCount(db, currentUser.id, currentUser.congregationId),
+          )
+        : Promise.resolve(0),
+      safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
+      memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid)),
+      memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
+      safeQuery('responsible-conflicts', currentUser.id, () =>
+        getResponsibleConflicts(db, currentUser.id, isProgramManager),
+      ),
+    ])
 
     // Onboarding: count entities for admin checklist
     let onboarding = null
@@ -99,6 +109,7 @@ export function loader({ context }: Route.LoaderArgs) {
       nextMeeting,
       absences,
       dayoffConflict,
+      responsibleConflicts,
       onboarding,
       isAdmin,
       isTerritoriesManager,
@@ -135,6 +146,7 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
     nextMeeting,
     absences,
     dayoffConflict,
+    responsibleConflicts,
     onboarding,
     isAdmin,
     isTerritoriesManager,
@@ -148,7 +160,13 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   })
 
   // Build urgent items from across features
-  const urgentItems = buildUrgentItems(territories, unreadDocumentCount, nextMeeting, dayoffConflict)
+  const urgentItems = buildUrgentItems(
+    territories,
+    unreadDocumentCount,
+    nextMeeting,
+    dayoffConflict,
+    responsibleConflicts,
+  )
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-8">

@@ -16,6 +16,7 @@ export function computeFilters(params: URLSearchParams): Prisma.EventWhereInput 
 
   filters = applyDateRangeFilter(filters, params)
   filters = applyPublisherFilter(filters, params)
+  filters = applyHasConflictsFilter(filters, params)
 
   return filters
 }
@@ -47,4 +48,21 @@ function applyPublisherFilter(filters: Prisma.EventWhereInput, params: URLSearch
   }
 
   return filters
+}
+
+// `?hasConflicts=true` restricts the list to events that have at least one
+// assignment flagged as a day-off conflict. Powers the deep-link from the
+// responsible-conflict dashboard card.
+function applyHasConflictsFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
+  if (params.get('hasConflicts') !== 'true') {
+    return filters
+  }
+
+  return {
+    ...filters,
+    OR: [
+      { partAssignments: { some: { hasConflict: true } } },
+      { serviceRoleAssignments: { some: { hasConflict: true } } },
+    ],
+  }
 }
