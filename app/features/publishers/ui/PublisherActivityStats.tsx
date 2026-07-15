@@ -8,6 +8,7 @@ export default function PublisherActivityStats({
     all: {
       count: number
       active: number
+      irregular: number
       hours: number
       studies: number
     }
@@ -28,7 +29,7 @@ export default function PublisherActivityStats({
     }
   }
 }) {
-  const iregular = stats.all.count - stats.all.active
+  const iregular = stats.all.irregular
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
