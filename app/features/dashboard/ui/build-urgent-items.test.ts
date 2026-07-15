@@ -24,7 +24,6 @@ const {
   urgentDayoffConflictItems,
   urgentResponsibleConflictItems,
   urgentDocumentsItem,
-  formatResponsibleConflictLabel,
 } = await import('./build-urgent-items')
 
 beforeEach(() => {
@@ -266,35 +265,6 @@ describe('urgentDayoffConflictItems', () => {
 
 // --- urgentResponsibleConflictItems ---
 
-describe('formatResponsibleConflictLabel', () => {
-  it('uses the singular template with a single name when count is 1', () => {
-    const label = formatResponsibleConflictLabel({
-      count: 1,
-      absenteeNames: ['Marie Dupont'],
-      totalAbsenteesCount: 1,
-    })
-    expect(label).toBe('1 responsible conflict: Marie Dupont')
-  })
-
-  it('uses the plural template with all names joined by comma', () => {
-    const label = formatResponsibleConflictLabel({
-      count: 3,
-      absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
-      totalAbsenteesCount: 3,
-    })
-    expect(label).toBe('3 responsible conflicts: Alice A, Bob B, Charlie C')
-  })
-
-  it('appends "(+N more)" when there are additional unlisted absentees', () => {
-    const label = formatResponsibleConflictLabel({
-      count: 5,
-      absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
-      totalAbsenteesCount: 5,
-    })
-    expect(label).toBe('5 responsible conflicts: Alice A, Bob B, Charlie C (+2 more)')
-  })
-})
-
 describe('urgentResponsibleConflictItems', () => {
   it('returns empty array when the summary is null', () => {
     expect(urgentResponsibleConflictItems(null)).toEqual([])
@@ -313,8 +283,34 @@ describe('urgentResponsibleConflictItems', () => {
     expect(items).toHaveLength(1)
     expect(items[0].priority).toBe(1)
     expect(items[0].to).toBe('/programs?hasConflicts=true')
-    expect(items[0].label).toContain('Marie D.')
     expect(items[0].key).toBe('responsible-conflicts')
+  })
+
+  it('uses the singular label with a single name when count is 1', () => {
+    const items = urgentResponsibleConflictItems({
+      count: 1,
+      absenteeNames: ['Marie Dupont'],
+      totalAbsenteesCount: 1,
+    })
+    expect(items[0].label).toBe('1 responsible conflict: Marie Dupont')
+  })
+
+  it('uses the plural label with all names joined by comma', () => {
+    const items = urgentResponsibleConflictItems({
+      count: 3,
+      absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
+      totalAbsenteesCount: 3,
+    })
+    expect(items[0].label).toBe('3 responsible conflicts: Alice A, Bob B, Charlie C')
+  })
+
+  it('appends "(+N more)" when there are additional unlisted absentees', () => {
+    const items = urgentResponsibleConflictItems({
+      count: 5,
+      absenteeNames: ['Alice A', 'Bob B', 'Charlie C'],
+      totalAbsenteesCount: 5,
+    })
+    expect(items[0].label).toBe('5 responsible conflicts: Alice A, Bob B, Charlie C (+2 more)')
   })
 })
 

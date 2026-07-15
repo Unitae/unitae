@@ -1,5 +1,4 @@
 import type { UserConflictInRange } from '~/features/events/server/list-user-conflicts-in-range.server'
-import { pickConflictModalTitle } from '~/features/events/ui/day-off-conflict-helpers'
 import * as m from '~/i18n/paraglide/messages'
 import {
   AlertDialog,
@@ -22,10 +21,10 @@ interface DayOffConflictModalProps {
 const ROW_DATE_OPTIONS: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' }
 
 export function DayOffConflictModal({ conflicts, timezone, open, onClose }: DayOffConflictModalProps) {
-  const title = pickConflictModalTitle(conflicts.length, {
-    singular: m.days_off_conflict_modal_title_singular,
-    plural: count => m.days_off_conflict_modal_title_plural({ count }),
-  })
+  const title =
+    conflicts.length === 1
+      ? m.days_off_conflict_modal_title_singular()
+      : m.days_off_conflict_modal_title_plural({ count: conflicts.length })
 
   return (
     <AlertDialog open={open} onOpenChange={next => (!next ? onClose() : undefined)}>

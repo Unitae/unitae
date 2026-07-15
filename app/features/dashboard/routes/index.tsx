@@ -46,6 +46,10 @@ export function loader({ context }: Route.LoaderArgs) {
   const isTerritoriesManager = permissions.has(Permission.TerritoriesManager)
   const isProgramManager = permissions.has(Permission.ProgramManager)
   const canViewBoard = permissions.has(Permission.BoardViewer)
+  // The responsible-conflict card deep-links to /programs?hasConflicts=true.
+  // Gate the query the same way so we don't hand a user a link to a page
+  // they cannot open — mirrors the canViewBoard pattern below.
+  const canViewPrograms = permissions.has(Permission.ProgramViewer) || isProgramManager
 
   // Member-bound queries (territories, programme assignments) need the linked
   // Member id; account-bound queries (documents/views) use the UserAccount id.
@@ -79,9 +83,11 @@ export function loader({ context }: Route.LoaderArgs) {
       safeQuery('absences', currentUser.id, () => getUpcomingAbsences(db, currentUser.id, currentUser.congregationId)),
       memberSafeQuery('next-meeting', mid => getNextMeeting(db, mid)),
       memberSafeQuery('dayoff-conflict', mid => getConflictingAssignments(db, mid)),
-      safeQuery('responsible-conflicts', currentUser.id, () =>
-        getResponsibleConflicts(db, currentUser.id, isProgramManager),
-      ),
+      canViewPrograms
+        ? safeQuery('responsible-conflicts', currentUser.id, () =>
+            getResponsibleConflicts(db, currentUser.id, isProgramManager),
+          )
+        : Promise.resolve(null),
     ])
 
     // Onboarding: count entities for admin checklist

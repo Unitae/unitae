@@ -1,3 +1,4 @@
+import type { Prisma } from '~/database/generated/client'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { accountDisplayName } from '~/shared/utils/display-name'
 
@@ -6,6 +7,28 @@ export interface UserConflictInRange {
   assignmentName: string
   responsibleName: string | null
 }
+
+// Shared between the two `findMany` calls so the query shape stays in sync.
+const eventWithResponsiblesSelect = {
+  startDate: true,
+  template: {
+    select: {
+      responsibles: {
+        select: {
+          user: {
+            select: {
+              firstname: true,
+              lastname: true,
+              member: { select: { firstname: true, lastname: true } },
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.EventSelect
+
+type EventWithResponsibles = Prisma.EventGetPayload<{ select: typeof eventWithResponsiblesSelect }>
 
 // `responsibleName` resolves through `accountDisplayName` so a template
 // responsible's linked Member name wins over the account fallback fields.
@@ -26,26 +49,7 @@ export async function listUserConflictsInRange(
       },
       select: {
         name: true,
-        event: {
-          select: {
-            startDate: true,
-            template: {
-              select: {
-                responsibles: {
-                  select: {
-                    user: {
-                      select: {
-                        firstname: true,
-                        lastname: true,
-                        member: { select: { firstname: true, lastname: true } },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        event: { select: eventWithResponsiblesSelect },
       },
     }),
     db.programmeServiceRoleAssignment.findMany({
@@ -56,26 +60,7 @@ export async function listUserConflictsInRange(
       },
       select: {
         name: true,
-        event: {
-          select: {
-            startDate: true,
-            template: {
-              select: {
-                responsibles: {
-                  select: {
-                    user: {
-                      select: {
-                        firstname: true,
-                        lastname: true,
-                        member: { select: { firstname: true, lastname: true } },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        event: { select: eventWithResponsiblesSelect },
       },
     }),
   ])
@@ -90,23 +75,10 @@ export async function listUserConflictsInRange(
   return merged
 }
 
-type TemplateWithResponsibles =
-  | {
-      responsibles: Array<{
-        user: {
-          firstname: string | null
-          lastname: string | null
-          member: { firstname: string; lastname: string } | null
-        }
-      }>
-    }
-  | null
-  | undefined
-
 // A template can have any number of responsibles. Every named responsible
 // is surfaced so the absentee knows who to reach, deterministically ordered
 // by display name so the modal reads the same across renders.
-function resolveResponsibleName(template: TemplateWithResponsibles): string | null {
+function resolveResponsibleName(template: EventWithResponsibles['template']): string | null {
   const responsibles = template?.responsibles ?? []
   if (responsibles.length === 0) return null
 

@@ -130,26 +130,21 @@ export function urgentDocumentsItem(unreadCount: number | null): UrgentItem[] {
   ]
 }
 
-// Exported (not inlined into `urgentResponsibleConflictItems`) so the
-// composition can be unit-tested without JSX.
-export function formatResponsibleConflictLabel(summary: ResponsibleConflictsSummary): string {
+export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSummary | null): UrgentItem[] {
+  if (!summary || summary.count === 0) return []
+
   const extraCount = Math.max(0, summary.totalAbsenteesCount - summary.absenteeNames.length)
   const extras = extraCount > 0 ? m.dashboard_urgent_responsible_conflict_extras({ count: String(extraCount) }) : ''
   const names = summary.absenteeNames.join(', ') + extras
-
-  if (summary.count === 1) {
-    return m.dashboard_urgent_responsible_conflict_singular({ names })
-  }
-  return m.dashboard_urgent_responsible_conflict_plural({ count: String(summary.count), names })
-}
-
-export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSummary | null): UrgentItem[] {
-  if (!summary || summary.count === 0) return []
+  const label =
+    summary.count === 1
+      ? m.dashboard_urgent_responsible_conflict_singular({ names })
+      : m.dashboard_urgent_responsible_conflict_plural({ count: String(summary.count), names })
 
   return [
     {
       key: 'responsible-conflicts',
-      label: formatResponsibleConflictLabel(summary),
+      label,
       to: '/programs?hasConflicts=true',
       icon: AlertTriangle,
       borderClass: 'border-l-amber-500 bg-amber-500/5',
