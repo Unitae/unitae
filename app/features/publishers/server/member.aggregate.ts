@@ -204,6 +204,7 @@ export async function setLifecycle(
   actorId: number,
   state: LifecycleState,
   trigger?: string,
+  at?: Date,
 ) {
   const spec = LIFECYCLE_MUTATION[state]
   // Full row (no select) so the idempotent early-return below has the same
@@ -221,7 +222,7 @@ export async function setLifecycle(
   const updated = await db.member.update({
     // biome-ignore lint/style/useNamingConvention: Prisma compound-key naming
     where: { id_congregationId: { id: memberId, congregationId } },
-    data: { [spec.field]: spec.setNull ? null : new Date() },
+    data: { [spec.field]: spec.setNull ? null : (at ?? new Date()) },
   })
 
   if (spec.syncsRoles) await syncBuiltInRoleAssignments(db, memberId, congregationId, actorId)
