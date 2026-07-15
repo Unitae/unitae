@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  getAllowedZips,
-  parseTerritoryPolygon,
-  parseZips,
-  serializeTerritoryPolygon,
-  serializeZips,
-} from './settings.server'
+import { getAllowedZips, parseZips, serializeZips } from './settings.server'
 
 describe('parseZips', () => {
   it('parses a comma-separated list of zips', () => {
@@ -29,32 +23,6 @@ describe('serializeZips', () => {
   it('roundtrips through parseZips', () => {
     const input = ['75001', '75002', '75003']
     expect(parseZips(serializeZips(input))).toEqual(input)
-  })
-})
-
-describe('parseTerritoryPolygon / serializeTerritoryPolygon', () => {
-  it('parses a space-inside/comma-between polygon into number tuples', () => {
-    expect(parseTerritoryPolygon('48.85 2.35,48.86 2.36')).toEqual([
-      [48.85, 2.35],
-      [48.86, 2.36],
-    ])
-  })
-
-  it('serializes number tuples back to the same shape', () => {
-    expect(
-      serializeTerritoryPolygon([
-        [48.85, 2.35],
-        [48.86, 2.36],
-      ]),
-    ).toBe('48.85 2.35,48.86 2.36')
-  })
-
-  it('roundtrips (parse ∘ serialize = identity)', () => {
-    const input: [number, number][] = [
-      [48.85, 2.35],
-      [48.86, 2.36],
-    ]
-    expect(parseTerritoryPolygon(serializeTerritoryPolygon(input))).toEqual(input)
   })
 })
 
