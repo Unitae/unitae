@@ -1,19 +1,5 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export function parseTerritoryPolygon(text: string): [number, number][] {
-  return text.split(',').map(coord =>
-    coord
-      .trim()
-      .split(' ')
-      .filter(el => el != null && el !== ' ')
-      .map(Number),
-  ) as [number, number][]
-}
-
-export function serializeTerritoryPolygon(polygon: [number, number][]) {
-  return polygon.map(coord => coord.join(' ')).join(',')
-}
-
 export function parseZips(text: string): string[] {
   return text.split(',').map(el => el.trim())
 }

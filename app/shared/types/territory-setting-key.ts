@@ -1,5 +1,4 @@
 export enum TerritorySettingKey {
-  TerritoryPolygone = 'territory',
   TerritoryZipCodes = 'zips',
   BanoUrl = 'bano-url',
   ProspectionValidity = 'prospection-validity',
