@@ -7,6 +7,7 @@ import {
   requirePermission,
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
+import { AppError } from '~/shared/errors/app-error.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
@@ -47,9 +48,12 @@ export async function loader({ request, context }: Route.LoaderArgs) {
       return getAvailableEntrancesInBbox(db, congregationId, params.kind, params.bbox, { phoneTypeActive })
     })
   } catch (error) {
-    // Anything reaching here is a genuine server bug (DB down, RLS misconfigured, Prisma crash).
-    // Without this catch the framework serves an HTML 500 page, which the client hook then fails
-    // to JSON-parse — the user sees a generic "retry" chip forever and ops sees nothing.
+    // Framework redirects (thrown Response) and domain-level AppErrors must bubble to their proper
+    // handlers instead of being flattened into a generic 500. Only genuine server bugs (DB down,
+    // RLS misconfigured, Prisma crash) should hit the JSON error branch below — otherwise the
+    // client hook shows a retry chip forever and ops sees nothing.
+    if (error instanceof Response) throw error
+    if (error instanceof AppError) throw error
     logger.error('entrances-in-bbox loader failed', { err: error, congregationId, mode: params.mode })
     return data({ error: 'internal_error' }, { status: 500 })
   }

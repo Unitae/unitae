@@ -27,14 +27,66 @@ type UseBboxEntrancesOptions = {
   refreshKey?: number
 }
 
+export type BboxLoadErrorReason = 'invalid_params' | 'territory_not_found' | 'internal_error' | 'network'
+
 export type UseBboxEntrancesResult = {
   viewportEntrances: BboxEntrance[]
   truncated: boolean
   truncatedTotal: number | null
   loading: boolean
   error: boolean
+  errorReason: BboxLoadErrorReason | null
   retryLastLoad: () => void
   handleIdle: () => void
+}
+
+const KNOWN_ERROR_REASONS: readonly BboxLoadErrorReason[] = [
+  'invalid_params',
+  'territory_not_found',
+  'internal_error',
+  'network',
+]
+
+function parseErrorReason(code: unknown): BboxLoadErrorReason | null {
+  return typeof code === 'string' && (KNOWN_ERROR_REASONS as readonly string[]).includes(code)
+    ? (code as BboxLoadErrorReason)
+    : null
+}
+
+type BboxLoadPayload = {
+  entrances: BboxEntrance[]
+  truncated: boolean
+  total: number | null
+}
+
+function applyLoadedPayload(
+  cache: Map<string, BboxEntrance[]>,
+  entranceToKeys: Map<number, Set<string>>,
+  key: string,
+  data: BboxLoadPayload,
+): void {
+  cache.set(key, data.entrances)
+  for (const entrance of data.entrances) {
+    let keys = entranceToKeys.get(entrance.id)
+    if (keys == null) {
+      keys = new Set()
+      entranceToKeys.set(entrance.id, keys)
+    }
+    keys.add(key)
+  }
+}
+
+async function readErrorReason(response: Response): Promise<BboxLoadErrorReason> {
+  // The server always returns JSON on failure (`{ error: 'invalid_params' | 'territory_not_found'
+  // | 'internal_error' }`), but a proxy or CDN failure could still deliver HTML. Fall back to
+  // 'internal_error' rather than throwing so the retry chip still renders.
+  try {
+    const body = (await response.json()) as unknown
+    if (body != null && typeof body === 'object' && 'error' in body) {
+      return parseErrorReason((body as { error: unknown }).error) ?? 'internal_error'
+    }
+  } catch {}
+  return 'internal_error'
 }
 
 export function useBboxEntrances({
@@ -53,7 +105,7 @@ export function useBboxEntrances({
   const [truncated, setTruncated] = useState(false)
   const [truncatedTotal, setTruncatedTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
+  const [errorReason, setErrorReason] = useState<BboxLoadErrorReason | null>(null)
 
   const loadBbox = useCallback(
     async (bbox: Bbox) => {
@@ -64,7 +116,7 @@ export function useBboxEntrances({
         setViewportEntrances(cached)
         setTruncated(false)
         setTruncatedTotal(null)
-        setError(false)
+        setErrorReason(null)
         return
       }
 
@@ -72,35 +124,26 @@ export function useBboxEntrances({
       const ctrl = new AbortController()
       fetchAbort.current = ctrl
       setLoading(true)
-      setError(false)
+      setErrorReason(null)
       try {
         const response = await fetch(buildUrl(bbox), {
           signal: ctrl.signal,
           headers: { Accept: 'application/json' },
         })
         if (!response.ok) {
-          throw new Error(`Bbox request failed: ${response.status}`)
+          // Preserve the server's structured error code so callers can distinguish
+          // 400/404/500 instead of collapsing them into a generic retry chip.
+          setErrorReason(await readErrorReason(response))
+          return
         }
-        const data = (await response.json()) as {
-          entrances: BboxEntrance[]
-          truncated: boolean
-          total: number | null
-        }
-        cacheRef.current.set(key, data.entrances)
-        for (const entrance of data.entrances) {
-          let keys = entranceToKeysRef.current.get(entrance.id)
-          if (keys == null) {
-            keys = new Set()
-            entranceToKeysRef.current.set(entrance.id, keys)
-          }
-          keys.add(key)
-        }
+        const data = (await response.json()) as BboxLoadPayload
+        applyLoadedPayload(cacheRef.current, entranceToKeysRef.current, key, data)
         setViewportEntrances(data.entrances)
         setTruncated(data.truncated)
         setTruncatedTotal(data.total)
       } catch (err) {
         if ((err as { name?: string }).name === 'AbortError') return
-        setError(true)
+        setErrorReason('network')
       } finally {
         if (fetchAbort.current === ctrl) {
           setLoading(false)
@@ -172,5 +215,14 @@ export function useBboxEntrances({
     if (map != null) handleIdle()
   }, [map, handleIdle])
 
-  return { viewportEntrances, truncated, truncatedTotal, loading, error, retryLastLoad, handleIdle }
+  return {
+    viewportEntrances,
+    truncated,
+    truncatedTotal,
+    loading,
+    error: errorReason != null,
+    errorReason,
+    retryLastLoad,
+    handleIdle,
+  }
 }
