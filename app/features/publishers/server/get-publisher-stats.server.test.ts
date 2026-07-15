@@ -3,7 +3,7 @@ import { PublisherType } from '~/shared/types/publisher-type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    publisherActivity: { groupBy: vi.fn() },
+    publisherActivity: { groupBy: vi.fn(), count: vi.fn() },
   },
 }))
 
@@ -12,6 +12,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.mocked(db.publisherActivity.count).mockResolvedValue(0)
 })
 
 function makeFigure(type: PublisherType, isPublisher: boolean, count: number, hours: number, studies: number) {
@@ -118,5 +119,35 @@ describe('getPublisherStats', () => {
 
     expect(result.publishers.count).toBe(10)
     expect(result.publishers.studies).toBe(4)
+  })
+
+  it('exposes all.irregular from the dedicated count query', async () => {
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
+    vi.mocked(db.publisherActivity.count).mockResolvedValue(2)
+
+    const result = await getPublisherStats(db, 1, 5, 2026)
+
+    expect(result.all.irregular).toBe(2)
+  })
+
+  it('scopes all.irregular to missed reports whose publisher is not inactive as of the queried month', async () => {
+    // Queried month = June 2026 (month=5). A publisher counts as irregular only
+    // if their inactiveAt is null or lands in July 2026 or later — i.e. they
+    // were not yet flagged inactive during June.
+    vi.mocked(db.publisherActivity.groupBy).mockResolvedValue([])
+
+    await getPublisherStats(db, 1, 5, 2026)
+
+    expect(db.publisherActivity.count).toHaveBeenCalledWith({
+      where: {
+        year: 2026,
+        month: 5,
+        congregationId: 1,
+        isPublisher: false,
+        publisher: {
+          OR: [{ inactiveAt: null }, { inactiveAt: { gte: new Date(2026, 6, 1) } }],
+        },
+      },
+    })
   })
 })

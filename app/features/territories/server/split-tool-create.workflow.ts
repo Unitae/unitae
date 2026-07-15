@@ -1,5 +1,6 @@
 import type { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 import { createTerritoryFromSplit } from '~/features/territories/server/create-territory-from-split.server'
+import * as m from '~/i18n/paraglide/messages'
 import { AppError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { appErrorToClientMessage } from '~/shared/utils/handle-app-error.server'
@@ -37,7 +38,10 @@ export async function splitToolCreateWorkflow(
     return { ok: true, number: territory.number, territoryId: territory.id }
   } catch (error) {
     if (error instanceof AppError) {
-      return { ok: false, error: appErrorToClientMessage(error), status: error.statusCode }
+      // Guard against an empty translated message (missing Paraglide key at deploy time): the
+      // toast layer treats a falsy string as "no message" and swallows the error silently.
+      const message = appErrorToClientMessage(error) || m.common_generic_error() || 'Erreur'
+      return { ok: false, error: message, status: error.statusCode }
     }
     throw error
   }
