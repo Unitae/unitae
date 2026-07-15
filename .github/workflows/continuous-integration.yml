@@ -44,7 +44,9 @@ jobs:
         run: pnpm test:service-test-coverage
 
       - name: Security audit
-        run: pnpm audit --audit-level=high
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
 
   file-sizes:
     name: File-size Budget
