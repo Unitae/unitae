@@ -36,6 +36,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { distinct } from '~/shared/utils/distinct'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/edit'
@@ -90,10 +91,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
 
+    const sectionSuggestions = distinct(template.parts.map(p => p.section))
+    const trackSuggestions = distinct(template.parts.map(p => p.track))
+
     return {
       template: { ...template, parts: partsWithRoles, serviceRoles: serviceRolesWithRoles },
       eventKinds,
       roles,
+      sectionSuggestions,
+      trackSuggestions,
     }
   })
 }
@@ -245,7 +251,7 @@ async function handleServiceRoleIntent(
 }
 
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
-  const { template, eventKinds, roles } = loaderData
+  const { template, eventKinds, roles, sectionSuggestions, trackSuggestions } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -588,6 +594,8 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
         fetcher={partFetcher}
         defaultOrder={template.parts.length + 1}
         roles={roles}
+        sectionSuggestions={sectionSuggestions}
+        trackSuggestions={trackSuggestions}
       />
 
       <ServiceEditSheet
