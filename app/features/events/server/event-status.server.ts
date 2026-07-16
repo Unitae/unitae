@@ -26,8 +26,6 @@ const eventWithAssignmentsInclude = {
       hasConflict: true,
       assigneeId: true,
       assistantId: true,
-      assignee: { select: { firstname: true, lastname: true } },
-      assistant: { select: { firstname: true, lastname: true } },
     },
   },
   serviceRoleAssignments: {
@@ -36,7 +34,6 @@ const eventWithAssignmentsInclude = {
       name: true,
       hasConflict: true,
       assigneeId: true,
-      assignee: { select: { firstname: true, lastname: true } },
     },
   },
 }
