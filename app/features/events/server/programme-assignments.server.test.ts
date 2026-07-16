@@ -4,8 +4,13 @@ import { EventKind } from '~/features/events/model/event-kind.type'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findFirst: vi.fn(), findMany: vi.fn() },
-    programmePartAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    programmeServiceRoleAssignment: { findFirst: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    programmePartAssignment: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    programmeServiceRoleAssignment: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
     externalSpeaker: { findFirst: vi.fn() },
     // Row-lock helper stub — real SQL under integration tests, no-op in unit tests.
     $executeRaw: vi.fn().mockResolvedValue(0),
@@ -433,18 +438,34 @@ describe('unassignServiceRole', () => {
 })
 
 describe('refreshConflictFlags', () => {
+  // Emulates checkDayOffConflict's underlying event.findFirst by member id.
+  // Pass a set of member ids that HAVE an overlapping absence — the mock
+  // returns { id: 99 } for those, null otherwise.
+  function stubAbsencesFor(memberIds: number[]) {
+    const set = new Set(memberIds)
+    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
+    vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
+      const target = args?.where?.createdBy?.memberId as number | undefined
+      return Promise.resolve(target != null && set.has(target) ? { id: 99 } : null)
+    }) as never)
+  }
+
   it('writes hasConflict:true when the member has an overlapping day-off', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
-    vi.mocked(db.programmePartAssignment.updateMany).mockResolvedValue({ count: 1 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.updateMany).mockResolvedValue({ count: 0 } as never)
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      { id: 100, assigneeId: 5, assistantId: null },
+    ] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([{ id: 200, assigneeId: 5 }] as never)
+    stubAbsencesFor([5])
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 200 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.updateMany).mock.calls[0][0]
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.updateMany).mock.calls[0][0]
+    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
     expect(partCall?.data).toEqual({ hasConflict: true })
     expect(serviceCall?.data).toEqual({ hasConflict: true })
   })
@@ -453,16 +474,65 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue(null as never) // no day-off
-    vi.mocked(db.programmePartAssignment.updateMany).mockResolvedValue({ count: 1 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.updateMany).mockResolvedValue({ count: 0 } as never)
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      { id: 100, assigneeId: 5, assistantId: null },
+    ] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([{ id: 200, assigneeId: 5 }] as never)
+    stubAbsencesFor([]) // no absences overlap
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 200 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.updateMany).mock.calls[0][0]
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.updateMany).mock.calls[0][0]
+    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
     expect(partCall?.data).toEqual({ hasConflict: false })
     expect(serviceCall?.data).toEqual({ hasConflict: false })
+  })
+
+  // The clobber that #250's shape allowed: two members share a part
+  // assignment (speaker + reader). When the refreshed member is fine but the
+  // OTHER participant still has an overlapping absence, the row's
+  // hasConflict must stay true — a bare `updateMany({ hasConflict: <this
+  // member's result> })` would silently clear the flag and let release
+  // proceed even though the co-participant is absent.
+  it('preserves hasConflict when the co-participant still has an overlapping absence', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    ] as never)
+    // Alice(5) = speaker (assigneeId), Bob(6) = reader (assistantId).
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      { id: 100, assigneeId: 5, assistantId: 6 },
+    ] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    // Alice: no absence. Bob: absence present.
+    stubAbsencesFor([6])
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
+
+    // Refresh for Alice (her absence just got cleared).
+    await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
+
+    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(partCall?.data).toEqual({ hasConflict: true })
+  })
+
+  // Symmetric case: the refreshed member is fine as reader; speaker is fine
+  // too. Both slots clear → flag must go false.
+  it('writes hasConflict:false only when both participants are clear', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    ] as never)
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      { id: 100, assigneeId: 5, assistantId: 6 },
+    ] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    stubAbsencesFor([]) // nobody has an absence
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
+
+    await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
+
+    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(partCall?.data).toEqual({ hasConflict: false })
   })
 
   it('does nothing when no overlapping events', async () => {
@@ -470,7 +540,8 @@ describe('refreshConflictFlags', () => {
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(db.programmePartAssignment.updateMany).not.toHaveBeenCalled()
+    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+    expect(db.programmePartAssignment.findMany).not.toHaveBeenCalled()
   })
 
   // Every overlapping event must be reconciled independently. A regression
@@ -482,19 +553,19 @@ describe('refreshConflictFlags', () => {
       { id: 2, startDate: new Date(2026, 3, 15), endDate: new Date(2026, 3, 15) },
       { id: 3, startDate: new Date(2026, 3, 16), endDate: new Date(2026, 3, 16) },
     ] as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
-    vi.mocked(db.programmePartAssignment.updateMany).mockResolvedValue({ count: 1 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.updateMany).mockResolvedValue({ count: 0 } as never)
+    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
+    vi.mocked(db.programmePartAssignment.findMany).mockImplementation(((args: any) => {
+      const eventId = args?.where?.eventId as number
+      return Promise.resolve([{ id: eventId * 10, assigneeId: 5, assistantId: null }])
+    }) as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    stubAbsencesFor([5])
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 0 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 17), 1)
 
-    expect(vi.mocked(db.programmePartAssignment.updateMany).mock.calls).toHaveLength(3)
-    expect(vi.mocked(db.programmeServiceRoleAssignment.updateMany).mock.calls).toHaveLength(3)
-
-    const eventIdsUpdated = vi
-      .mocked(db.programmePartAssignment.updateMany)
-      .mock.calls.map(([args]) => (args?.where as { eventId: number }).eventId)
-    expect(eventIdsUpdated).toEqual([1, 2, 3])
+    expect(vi.mocked(db.programmePartAssignment.findMany).mock.calls).toHaveLength(3)
+    expect(vi.mocked(db.programmePartAssignment.update).mock.calls).toHaveLength(3)
   })
 
   // Regression pin — participants are Members (`assigneeId`, `assistantId`
@@ -504,18 +575,17 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
-    vi.mocked(db.programmePartAssignment.updateMany).mockResolvedValue({ count: 1 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.updateMany).mockResolvedValue({ count: 0 } as never)
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
 
     const memberId = 5000
     await refreshConflictFlags(db, memberId, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.updateMany).mock.calls[0][0]
+    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
     expect(partWhere.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
 
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.updateMany).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
     const serviceWhere = serviceCall?.where as Record<string, unknown>
     expect(serviceWhere.assigneeId).toBe(memberId)
   })

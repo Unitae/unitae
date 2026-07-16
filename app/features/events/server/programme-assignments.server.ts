@@ -258,24 +258,50 @@ export async function refreshConflictFlags(
   })
 
   for (const event of overlappingEvents) {
-    const hasConflict = await checkDayOffConflict(db, memberId, event.startDate, event.endDate, congregationId)
-
-    await db.programmePartAssignment.updateMany({
+    // hasConflict is one flag per assignment row, but a part can have two
+    // participants (speaker + reader). Computing the flag from ONLY the
+    // refreshed member's state would silently clear a conflict that the
+    // co-participant still owns — e.g. Alice removes her absence but Bob is
+    // still absent on the same part. Recompute per row as
+    // (assigneeConflict OR assistantConflict).
+    const parts = await db.programmePartAssignment.findMany({
       where: {
         eventId: event.id,
         congregationId,
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
       },
-      data: { hasConflict },
+      select: { id: true, assigneeId: true, assistantId: true },
     })
 
-    await db.programmeServiceRoleAssignment.updateMany({
-      where: {
-        eventId: event.id,
-        assigneeId: memberId,
-        congregationId,
-      },
-      data: { hasConflict },
+    for (const part of parts) {
+      const assigneeConflict =
+        part.assigneeId != null &&
+        (await checkDayOffConflict(db, part.assigneeId, event.startDate, event.endDate, congregationId))
+      const assistantConflict =
+        part.assistantId != null &&
+        (await checkDayOffConflict(db, part.assistantId, event.startDate, event.endDate, congregationId))
+
+      await db.programmePartAssignment.update({
+        where: { id_congregationId: { id: part.id, congregationId } },
+        data: { hasConflict: assigneeConflict || assistantConflict },
+      })
+    }
+
+    // Service-role rows have a single assignee, so a plain per-row recompute
+    // is enough — no clobber scenario.
+    const services = await db.programmeServiceRoleAssignment.findMany({
+      where: { eventId: event.id, assigneeId: memberId, congregationId },
+      select: { id: true, assigneeId: true },
     })
+
+    for (const service of services) {
+      const hasConflict =
+        service.assigneeId != null &&
+        (await checkDayOffConflict(db, service.assigneeId, event.startDate, event.endDate, congregationId))
+      await db.programmeServiceRoleAssignment.update({
+        where: { id_congregationId: { id: service.id, congregationId } },
+        data: { hasConflict },
+      })
+    }
   }
 }

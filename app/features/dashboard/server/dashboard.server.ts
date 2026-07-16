@@ -310,7 +310,12 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   const event = await db.event.findFirst({
     where: {
       startDate: { gte: now },
-      kind: { key: { not: EventKind.Off } },
+      // NOT: { kind: {...} } instead of kind: { key: { not } } — the second
+      // form inner-joins through kind and silently drops null-kind rows,
+      // which seeded templates produce.
+      NOT: { kind: { key: EventKind.Off } },
+      // Publisher-facing dashboard — drafts must stay hidden.
+      status: 'released',
     },
     select: {
       id: true,

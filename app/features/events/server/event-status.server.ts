@@ -1,9 +1,12 @@
-import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { assertCanRelease } from './event-status.policy'
 import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
 import { buildAssignmentContext, notifyAssignment } from './notify-assignment.server'
+
+const logger = createLogger('event-status')
 
 export type ReleaseNotificationContext = {
   locale: string
@@ -56,7 +59,18 @@ export async function releaseEvent(
   try {
     assertCanRelease({ parts: event.partAssignments, serviceRoles: event.serviceRoleAssignments })
   } catch (e) {
-    if (e instanceof ConflictError) return { error: e.message }
+    if (e instanceof ConflictError) {
+      const conflictingParts = event.partAssignments.filter(p => p.hasConflict).length
+      const conflictingServices = event.serviceRoleAssignments.filter(s => s.hasConflict).length
+      logger.warn('release blocked by conflicts', {
+        eventId,
+        congregationId,
+        actorId,
+        conflictingParts,
+        conflictingServices,
+      })
+      return { error: e.message }
+    }
     throw e
   }
 
@@ -65,12 +79,23 @@ export async function releaseEvent(
     data: { status: 'released' },
   })
 
-  audit({
+  // auditInTransaction (not audit) so the audit row is written on the same
+  // client as the release flip and rolls back with it. audit() writes on
+  // unscopedDb — it would leave a phantom EventReleased row if the tx aborts
+  // (e.g. mid-batch bulk-release failure).
+  await auditInTransaction(db, {
     action: AuditAction.EventReleased,
     congregationId,
     actorId,
     entityType: 'Event',
     entityId: eventId,
+  })
+  logger.info('event released', {
+    eventId,
+    congregationId,
+    actorId,
+    partCount: event.partAssignments.length,
+    serviceRoleCount: event.serviceRoleAssignments.length,
   })
 
   const notificationCtxBase = buildAssignmentContext({
@@ -153,28 +178,94 @@ export async function unreleaseEvent(
   const partIds = event.partAssignments.map(p => p.id)
   const serviceIds = event.serviceRoleAssignments.map(s => s.id)
 
-  // Cancel every notification that hasn't fired yet for this event's
-  // assignments — the schedule is not public anymore. Mails already sent
-  // stay sent; the 30-min debounce is the safety net for that case.
-  await db.notificationEvent.updateMany({
-    where: {
-      congregationId,
-      status: 'pending',
-      OR: [
-        { entityType: 'ProgrammePartAssignment', entityId: { in: partIds } },
-        { entityType: 'ProgrammeServiceRoleAssignment', entityId: { in: serviceIds } },
-      ],
-    },
-    data: { status: 'cancelled', processedAt: new Date() },
-  })
+  // Skip the notificationEvent updateMany entirely when there are no
+  // assignments — an empty `in: []` matches nothing under Prisma today, but
+  // depending on that contract is brittle: one refactor and we'd cancel
+  // every pending notification in the congregation.
+  let cancelledCount = 0
+  if (partIds.length > 0 || serviceIds.length > 0) {
+    // Cancel every notification that hasn't fired yet for this event's
+    // assignments — the schedule is not public anymore. Mails already sent
+    // stay sent; the 30-min debounce is the safety net for that case.
+    const result = await db.notificationEvent.updateMany({
+      where: {
+        congregationId,
+        status: 'pending',
+        OR: [
+          { entityType: 'ProgrammePartAssignment', entityId: { in: partIds } },
+          { entityType: 'ProgrammeServiceRoleAssignment', entityId: { in: serviceIds } },
+        ],
+      },
+      data: { status: 'cancelled', processedAt: new Date() },
+    })
+    cancelledCount = result.count
+  }
 
-  audit({
+  await auditInTransaction(db, {
     action: AuditAction.EventUnreleased,
     congregationId,
     actorId,
     entityType: 'Event',
     entityId: eventId,
   })
+  logger.info('event unreleased', {
+    eventId,
+    congregationId,
+    actorId,
+    cancelledCount,
+    partCount: partIds.length,
+    serviceRoleCount: serviceIds.length,
+  })
 
   return { event: updated }
+}
+
+export type BulkReleaseResult = {
+  released: number[]
+  blocked: { id: number; error: string }[]
+  notFound: number[]
+}
+
+// Owns the per-event iteration for bulk release so the route stays a thin
+// auth-plus-flash wrapper. releaseEvent returns a tagged union so a blocker
+// on one event does not abort the batch — it lands in the `blocked` bucket
+// while the transaction stays alive.
+export async function bulkReleaseEvents(
+  db: TransactionClient,
+  eventIds: number[],
+  congregationId: number,
+  actorId: number,
+  ctx: ReleaseNotificationContext,
+): Promise<BulkReleaseResult> {
+  const released: number[] = []
+  const blocked: { id: number; error: string }[] = []
+  const notFound: number[] = []
+  for (const id of eventIds) {
+    const result = await releaseEvent(db, id, congregationId, actorId, ctx)
+    if (result == null) notFound.push(id)
+    else if ('error' in result) blocked.push({ id, error: result.error })
+    else released.push(id)
+  }
+  return { released, blocked, notFound }
+}
+
+export type BulkUnreleaseResult = {
+  unreleased: number[]
+  notFound: number[]
+}
+
+export async function bulkUnreleaseEvents(
+  db: TransactionClient,
+  eventIds: number[],
+  congregationId: number,
+  actorId: number,
+): Promise<BulkUnreleaseResult> {
+  const unreleased: number[] = []
+  const notFound: number[] = []
+  for (const id of eventIds) {
+    const result = await unreleaseEvent(db, id, congregationId, actorId)
+    if (result == null) notFound.push(id)
+    else unreleased.push(id)
+  }
+  return { unreleased, notFound }
 }

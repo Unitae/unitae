@@ -229,6 +229,33 @@ describe('getNextMeeting', () => {
     expect(result?.userPartIds).toEqual([])
     expect(result?.userServiceRoleIds).toEqual([])
   })
+
+  // The dashboard is publisher-facing. Drafts must not surface — same
+  // rationale as the other dashboard queries in this file.
+  it('filters to status=released', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+
+    await getNextMeeting(db, 42)
+
+    const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
+    const where = call?.where as Record<string, unknown>
+    expect(where.status).toBe('released')
+  })
+
+  // Same Prisma inner-join trap as refreshConflictFlags: `kind: { key: { not
+  // 'off' } }` silently excludes events with a null kindId, which seeded
+  // templates produce. Must use NOT: { kind: { key } } so null-kind rows
+  // stay in the result.
+  it('uses NOT: { kind: { key } } so null-kind events are not silently dropped', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+
+    await getNextMeeting(db, 42)
+
+    const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
+    const where = call?.where as Record<string, unknown>
+    expect(where.NOT).toEqual({ kind: { key: 'off' } })
+    expect(where).not.toHaveProperty('kind')
+  })
 })
 
 // --- getUpcomingAbsences ---

@@ -15,7 +15,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 
 vi.mock('~/shared/domain/audit.server', async importOriginal => {
   const actual = await importOriginal<typeof import('~/shared/domain/audit.server')>()
-  return { ...actual, audit: vi.fn() }
+  return { ...actual, audit: vi.fn(), auditInTransaction: vi.fn() }
 })
 
 vi.mock('./notify-assignment.server', async importOriginal => {
@@ -23,9 +23,9 @@ vi.mock('./notify-assignment.server', async importOriginal => {
   return { ...actual, notifyAssignment: vi.fn() }
 })
 
-const { releaseEvent, unreleaseEvent } = await import('./event-status.server')
+const { releaseEvent, unreleaseEvent, bulkReleaseEvents, bulkUnreleaseEvents } = await import('./event-status.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
-const { audit } = await import('~/shared/domain/audit.server')
+const { audit, auditInTransaction } = await import('~/shared/domain/audit.server')
 const { notifyAssignment } = await import('./notify-assignment.server')
 
 const nctx = { locale: 'fr-FR', timezone: 'Europe/Paris' }
@@ -97,7 +97,11 @@ describe('releaseEvent', () => {
 
     await releaseEvent(db, 42, 1, 5, nctx)
 
-    expect(audit).toHaveBeenCalledWith(
+    // Must use auditInTransaction (writes on the tx client) so the audit
+    // rolls back with the release if the tx aborts later. audit() writes on
+    // unscopedDb, escaping the tx and leaving phantom rows on rollback.
+    expect(auditInTransaction).toHaveBeenCalledWith(
+      db,
       expect.objectContaining({
         action: AuditAction.EventReleased,
         congregationId: 1,
@@ -106,6 +110,7 @@ describe('releaseEvent', () => {
         entityId: 42,
       }),
     )
+    expect(audit).not.toHaveBeenCalled()
   })
 
   it('enqueues an assigned notification for every current part assignee (speaker and reader)', async () => {
@@ -199,6 +204,23 @@ describe('unreleaseEvent', () => {
     expect(db.notificationEvent.updateMany).not.toHaveBeenCalled()
   })
 
+  // Prisma's `in: []` matches nothing today, but relying on that contract is
+  // brittle — one refactor away from silently cancelling every pending
+  // notification in the congregation. Skip the updateMany entirely when the
+  // event has no assignments.
+  it('skips the notificationEvent updateMany when the event has zero assignments', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...releasedEvent,
+      partAssignments: [],
+      serviceRoleAssignments: [],
+    } as never)
+    vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
+
+    await unreleaseEvent(db, 42, 1, 5)
+
+    expect(db.notificationEvent.updateMany).not.toHaveBeenCalled()
+  })
+
   it('flips status back to draft and returns the updated event', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...releasedEvent,
@@ -253,7 +275,8 @@ describe('unreleaseEvent', () => {
 
     await unreleaseEvent(db, 42, 1, 5)
 
-    expect(audit).toHaveBeenCalledWith(
+    expect(auditInTransaction).toHaveBeenCalledWith(
+      db,
       expect.objectContaining({
         action: AuditAction.EventUnreleased,
         congregationId: 1,
@@ -262,5 +285,67 @@ describe('unreleaseEvent', () => {
         entityId: 42,
       }),
     )
+    expect(audit).not.toHaveBeenCalled()
+  })
+})
+
+describe('bulkReleaseEvents', () => {
+  it('classifies each event into released / blocked / null-skipped', async () => {
+    // Event 10 → not found. Event 20 → conflict. Event 30 → clean release.
+    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
+    vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
+      const id = args?.where?.id as number
+      if (id === 10) return Promise.resolve(null)
+      if (id === 20) {
+        return Promise.resolve({
+          ...draftEvent,
+          id: 20,
+          partAssignments: [{ id: 100, name: 'Part', hasConflict: true, assigneeId: 5, assistantId: null }],
+          serviceRoleAssignments: [],
+        })
+      }
+      return Promise.resolve({ ...draftEvent, id: 30 })
+    }) as never)
+    vi.mocked(db.event.update).mockResolvedValue({ ...releasedEvent, id: 30 } as never)
+
+    const result = await bulkReleaseEvents(db, [10, 20, 30], 1, 5, nctx)
+
+    expect(result.released).toEqual([30])
+    expect(result.blocked.map((b: { id: number }) => b.id)).toEqual([20])
+    expect(result.notFound).toEqual([10])
+  })
+
+  it('returns empty buckets when the input list is empty', async () => {
+    const result = await bulkReleaseEvents(db, [], 1, 5, nctx)
+    expect(result).toEqual({ released: [], blocked: [], notFound: [] })
+    expect(db.event.findFirst).not.toHaveBeenCalled()
+  })
+})
+
+describe('bulkUnreleaseEvents', () => {
+  it('classifies each event into unreleased / null-skipped', async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
+    vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
+      const id = args?.where?.id as number
+      if (id === 10) return Promise.resolve(null)
+      return Promise.resolve({
+        ...releasedEvent,
+        id,
+        partAssignments: [],
+        serviceRoleAssignments: [],
+      })
+    }) as never)
+    vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
+
+    const result = await bulkUnreleaseEvents(db, [10, 20, 30], 1, 5)
+
+    expect(result.unreleased).toEqual([20, 30])
+    expect(result.notFound).toEqual([10])
+  })
+
+  it('returns empty buckets when the input list is empty', async () => {
+    const result = await bulkUnreleaseEvents(db, [], 1, 5)
+    expect(result).toEqual({ unreleased: [], notFound: [] })
+    expect(db.event.findFirst).not.toHaveBeenCalled()
   })
 })

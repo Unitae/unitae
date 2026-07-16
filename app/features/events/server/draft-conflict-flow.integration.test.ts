@@ -121,6 +121,81 @@ afterAll(async () => {
   await testDb.$disconnect()
 })
 
+describe('refreshConflictFlags co-participant preservation (integration)', () => {
+  it('keeps hasConflict=true on a shared part when only one participant has cleared their absence', async () => {
+    // Extra fixture: Alice (an additional Member) also on the same part.
+    const aliceId = await withScope(congId, async tx => {
+      const alice = await tx.member.create({
+        data: { firstname: 'Alice', lastname: `Test-${ts}`, isPublisher: true, congregationId: congId },
+      })
+      await tx.userAccount.create({
+        data: {
+          email: `alice-${ts}@test.com`,
+          password: 'hashed',
+          active: true,
+          memberId: alice.id,
+          congregationId: congId,
+        },
+      })
+      // Assign both Alice (speaker) and Bob (reader) to the same part row.
+      await tx.programmePartAssignment.update({
+        where: { id_congregationId: { id: partAssignmentId, congregationId: congId } },
+        data: { assigneeId: alice.id, assistantId: bobMemberId },
+      })
+      return alice.id
+    })
+
+    // Both add absences → hasConflict is true.
+    await withScope(congId, tx =>
+      createDayOff(
+        tx,
+        bobAccountId,
+        bobMemberId,
+        new Date('2027-08-10T00:00:00Z'),
+        new Date('2027-08-11T00:00:00Z'),
+        congId,
+      ),
+    )
+    // Alice's absence event (via a raw create — we don't have her accountId to hand)
+    await withScope(congId, async tx => {
+      const kind = await tx.eventKind.findFirstOrThrow({ where: { key: 'off', congregationId: congId } })
+      const aliceAccount = await tx.userAccount.findFirstOrThrow({
+        where: { memberId: aliceId, congregationId: congId },
+      })
+      await tx.event.create({
+        data: {
+          name: 'Alice absence',
+          kindId: kind.id,
+          startDate: new Date('2027-08-10T00:00:00Z'),
+          endDate: new Date('2027-08-11T00:00:00Z'),
+          createdById: aliceAccount.id,
+          congregationId: congId,
+          status: 'released',
+        },
+      })
+      // Now delete Alice's absence and refresh flags for her.
+      await tx.event.deleteMany({ where: { name: 'Alice absence', congregationId: congId } })
+      const { refreshConflictFlags } = await import('~/features/events/server/programme-assignments.server')
+      await refreshConflictFlags(
+        tx,
+        aliceId,
+        new Date('2027-08-10T00:00:00Z'),
+        new Date('2027-08-11T00:00:00Z'),
+        congId,
+      )
+    })
+
+    // Bob still has an absence — the flag on the shared part must remain true.
+    const still = await withScope(congId, tx =>
+      tx.programmePartAssignment.findFirstOrThrow({
+        where: { id: partAssignmentId, congregationId: congId },
+        select: { hasConflict: true },
+      }),
+    )
+    expect(still.hasConflict).toBe(true)
+  })
+})
+
 describe('Draft-event conflict flow (integration)', () => {
   it('flips hasConflict on a draft event assignment when the assignee creates an overlapping absence', async () => {
     await withScope(congId, tx =>

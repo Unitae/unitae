@@ -105,7 +105,19 @@ export async function dispatchAssignmentDiffs(
   // Drafts are the manager's scratch space — no publisher hears anything until
   // the event is explicitly released. The release path re-enqueues an assigned
   // notification per current assignee, so no one is silently forgotten.
-  if (ctx.event.status === 'draft') return
+  if (ctx.event.status === 'draft') {
+    // Debug (not warn) so operators can distinguish "we didn't notify because
+    // the event was a draft" from a queue drop when investigating
+    // "why didn't I get the email?" tickets.
+    logger.debug('assignment notifications suppressed: event is draft', {
+      eventId: ctx.event.id,
+      congregationId: ctx.congregationId,
+      entityType: ctx.entityType,
+      entityId: ctx.entityId,
+      diffs: diffs.length,
+    })
+    return
+  }
 
   for (const diff of diffs) {
     if (diff.previousMemberId != null && diff.previousMemberId !== diff.newMemberId) {

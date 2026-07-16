@@ -37,3 +37,25 @@ export async function canManageAnyProgram(
   const ids = await getResponsibleTemplateIds(db, userId, congregationId)
   return ids.length > 0
 }
+
+// Narrows a bulk-selection of event ids to the ones the caller is authorised
+// to mutate. ProgramManager sees the whole list; non-managers see only events
+// whose template they are the responsible for (freeform events, templateId
+// null, are always manager-only). Shared by every bulk route (release,
+// unrelease, delete) so the auth surface stays consistent.
+export async function filterToManageableEventIds(
+  db: TransactionClient,
+  eventIds: number[],
+  userId: number,
+  congregationId: number,
+  isProgramManager: boolean,
+): Promise<number[]> {
+  if (isProgramManager) return eventIds
+  const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
+  const responsibleSet = new Set(responsibleTemplateIds)
+  const events = await db.event.findMany({
+    where: { id: { in: eventIds }, congregationId },
+    select: { id: true, templateId: true },
+  })
+  return events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
+}

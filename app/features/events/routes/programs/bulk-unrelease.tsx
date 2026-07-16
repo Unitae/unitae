@@ -1,7 +1,8 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { unreleaseEvent } from '~/features/events/server/event-status.server'
-import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
+import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
+import { bulkUnreleaseEvents } from '~/features/events/server/event-status.server'
+import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -19,37 +20,35 @@ export async function action({ request, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const isProgramManager = permissions.has(Permission.ProgramManager)
 
-  const { ids } = (await request.json()) as { ids: number[] }
-  if (!Array.isArray(ids) || ids.length === 0) return { ok: false }
+  const payload = bulkEventIdsSchema.safeParse(await request.json())
+  if (!payload.success) {
+    logger.warn(
+      `Bulk unrelease rejected — invalid payload. User: ${currentUser.id}. Issues: ${payload.error.issues.map(i => i.message).join('; ')}`,
+    )
+    return { ok: false, error: 'invalid_payload' as const }
+  }
+  const { ids } = payload.data
 
-  return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
-    const can = (p: Permission) => permissions.has(p)
-    if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
+  // See bulk-release.tsx for the timeout rationale.
+  return withScopeFromContext(
+    context,
+    async db => {
+      const { congregationId } = currentUser
+      const can = (p: Permission) => permissions.has(p)
+      if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
 
-    let allowedIds = ids
-    if (!isProgramManager) {
-      const responsibleTemplateIds = await getResponsibleTemplateIds(db, currentUser.id, congregationId)
-      const responsibleSet = new Set(responsibleTemplateIds)
-      const events = await db.event.findMany({
-        where: { id: { in: ids }, congregationId },
-        select: { id: true, templateId: true },
-      })
-      allowedIds = events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
-    }
+      const allowedIds = await filterToManageableEventIds(db, ids, currentUser.id, congregationId, isProgramManager)
+      const { unreleased } = await bulkUnreleaseEvents(db, allowedIds, congregationId, currentUser.id)
+      logger.info(`Bulk unreleased ${unreleased.length} events.`)
 
-    if (allowedIds.length === 0) return { ok: true, unreleased: 0 }
-
-    let unreleased = 0
-    for (const id of allowedIds) {
-      const result = await unreleaseEvent(db, id, congregationId, currentUser.id)
-      if (result != null && 'event' in result) unreleased++
-    }
-    logger.info(`Bulk unreleased ${unreleased} events.`)
-
-    if (unreleased > 0) {
-      session.flash('success', m.programs_unrelease_success_bulk({ count: unreleased }))
-    }
-    return data({ ok: true, unreleased }, { headers: { 'Set-Cookie': await commitSession(session) } })
-  })
+      if (unreleased.length > 0) {
+        session.flash('success', m.programs_unrelease_success_bulk({ count: unreleased.length }))
+      }
+      return data(
+        { ok: true, unreleased: unreleased.length },
+        { headers: { 'Set-Cookie': await commitSession(session) } },
+      )
+    },
+    { timeout: 30_000 },
+  )
 }
