@@ -1,10 +1,11 @@
-import { CalendarOff, FileText, MapPin, Mic } from 'lucide-react'
+import { AlertTriangle, CalendarOff, FileText, MapPin, Mic } from 'lucide-react'
 
 import type {
   getConflictingAssignments,
   getNextMeeting,
   getUserTerritories,
 } from '~/features/dashboard/server/dashboard.server'
+import type { ResponsibleConflictsSummary } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import * as m from '~/i18n/paraglide/messages'
 import { THREE_DAYS_MS } from '~/shared/constants/limits'
 
@@ -129,17 +130,43 @@ export function urgentDocumentsItem(unreadCount: number | null): UrgentItem[] {
   ]
 }
 
+export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSummary | null): UrgentItem[] {
+  if (!summary || summary.count === 0) return []
+
+  const extraCount = Math.max(0, summary.totalAbsenteesCount - summary.absenteeNames.length)
+  const extras = extraCount > 0 ? m.dashboard_urgent_responsible_conflict_extras({ count: String(extraCount) }) : ''
+  const names = summary.absenteeNames.join(', ') + extras
+  const label =
+    summary.count === 1
+      ? m.dashboard_urgent_responsible_conflict_singular({ names })
+      : m.dashboard_urgent_responsible_conflict_plural({ count: String(summary.count), names })
+
+  return [
+    {
+      key: 'responsible-conflicts',
+      label,
+      to: '/programs?hasConflicts=true',
+      icon: AlertTriangle,
+      borderClass: 'border-l-amber-500 bg-amber-500/5',
+      iconClass: 'text-amber-600 dark:text-amber-400',
+      priority: 1,
+    },
+  ]
+}
+
 export function buildUrgentItems(
   territories: Territories,
   unreadDocumentCount: number | null,
   nextMeeting: NextMeeting,
   dayoffConflict: DayoffConflict,
+  responsibleConflicts: ResponsibleConflictsSummary | null,
 ): UrgentItem[] {
   const items = [
     ...urgentTerritoriesItems(territories),
     ...urgentPartAssignmentItems(nextMeeting),
     ...urgentServiceRoleItems(nextMeeting),
     ...urgentDayoffConflictItems(dayoffConflict),
+    ...urgentResponsibleConflictItems(responsibleConflicts),
     ...urgentDocumentsItem(unreadDocumentCount),
   ]
   items.sort((a, b) => a.priority - b.priority)

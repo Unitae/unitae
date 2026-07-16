@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Form, redirect } from 'react-router'
+import { data, Form, redirect, useActionData, useNavigate } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createDayOff } from '~/features/events/server/days-off.server'
+import { listUserConflictsInRange } from '~/features/events/server/list-user-conflicts-in-range.server'
+import { DayOffConflictModal } from '~/features/events/ui/DayOffConflictModal'
 import * as m from '~/i18n/paraglide/messages'
-import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
+import { congregationContext, currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import { Card, CardContent } from '~/shared/ui/card'
 import { useUnsavedChanges } from '~/shared/ui/hooks/use-unsaved-changes'
@@ -20,21 +22,29 @@ export const meta: Route.MetaFunction = () => {
 
 export async function loader({ request, context }: Route.LoaderArgs) {
   const currentUser = context.get(currentAccountContext)
+  const congregation = context.get(congregationContext)
   const session = await getSession(request.headers.get('Cookie'))
   logger.info(`Loading personal Days Off form. User ID: ${currentUser.id}.`)
 
   return {
     user: currentUser,
+    timezone: congregation.timezone,
     error: session.get('error'),
   }
 }
 
-export default function DaysOffPage() {
+export default function DaysOffPage({ loaderData }: Route.ComponentProps) {
   const [startDate, setStartDate] = useState('')
   const { blocker, markDirty } = useUnsavedChanges()
+  const actionData = useActionData<typeof action>()
+  const navigate = useNavigate()
+  const [modalDismissed, setModalDismissed] = useState(false)
 
   const minimumEndDate = new Date(startDate.length > 0 ? startDate : new Date().toISOString().split('T')[0])
   minimumEndDate.setDate(minimumEndDate.getDate() + 1)
+
+  const conflicts = actionData?.conflicts ?? null
+  const showModal = conflicts != null && conflicts.length > 0 && !modalDismissed
 
   return (
     <div className="flex flex-col gap-6">
@@ -75,6 +85,18 @@ export default function DaysOffPage() {
           </Form>
         </CardContent>
       </Card>
+
+      {conflicts != null && (
+        <DayOffConflictModal
+          conflicts={conflicts}
+          timezone={loaderData.timezone}
+          open={showModal}
+          onClose={() => {
+            setModalDismissed(true)
+            navigate('/me/days-off')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -89,9 +111,10 @@ export async function action({ request, context }: Route.ActionArgs) {
   logger.info(`Creating new days off. User ID: ${currentUser.id}.`)
 
   const { congregationId } = currentUser
+  const memberId = currentUser.member?.id ?? null
 
   return withScopeFromContext(context, async db => {
-    const event = await createDayOff(db, currentUser.id, startDate, endDate, congregationId)
+    const event = await createDayOff(db, currentUser.id, memberId, startDate, endDate, congregationId)
     if (event == null) {
       session.flash('error', m.days_off_new_invalid_dates())
       logger.info(`Failed to creating new days off. User ID: ${currentUser.id}.`)
@@ -101,6 +124,22 @@ export async function action({ request, context }: Route.ActionArgs) {
           'Set-Cookie': await commitSession(session),
         },
       })
+    }
+
+    // When there are conflicts we skip the success flash — the modal is
+    // the confirmation. Accounts without a linked Member cannot own
+    // programme assignments, so we skip the check with a log line so ops
+    // can distinguish that branch from a genuine empty result.
+    if (memberId == null) {
+      logger.info(
+        `Days off created for account without linked Member; skipped conflict check. User ID: ${currentUser.id}.`,
+      )
+    }
+    const conflicts = memberId == null ? [] : await listUserConflictsInRange(db, memberId, startDate, endDate)
+
+    if (conflicts.length > 0) {
+      logger.info(`Days off created with ${conflicts.length} conflict(s). User ID: ${currentUser.id}.`)
+      return data({ conflicts })
     }
 
     session.flash('success', m.days_off_new_success())

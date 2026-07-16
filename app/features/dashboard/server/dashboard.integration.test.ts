@@ -3,7 +3,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
-import { PublisherType } from '~/shared/types/publisher-type'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -219,6 +218,7 @@ afterAll(async () => {
 
 const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getConflictingAssignments } =
   await import('./dashboard.server')
+const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
 const { refreshConflictFlags } = await import('~/features/events/server/programme-assignments.server')
 
 // --- Tests ---
@@ -666,6 +666,141 @@ describe('getConflictingAssignments (integration)', () => {
         await tx.programmeTemplate.delete({
           where: { id_congregationId: { id: setup.templateId, congregationId } },
         })
+      })
+    }
+  })
+
+  // Invariant pin (responsible side): `getResponsibleConflicts` derives its
+  // result from the persisted `hasConflict` flag with no caching layer, so
+  // once the flag flips to `false` the responsible's card must vanish on
+  // the next read. Mirrors the absentee-side "refreshConflictFlags clears
+  // stale hasConflict and the alert disappears" pin earlier in this file.
+  it('getResponsibleConflicts drops the entry when hasConflict clears on the underlying assignment', async () => {
+    const setup = await withScope(congregationId, async tx => {
+      const eventKind = await tx.eventKind.findFirstOrThrow({
+        where: { congregationId, key: { not: EventKind.Off } },
+      })
+      const template = await tx.programmeTemplate.create({
+        data: {
+          name: 'Responsible Invariant Template',
+          key: `resp-invariant-template-${ts}`,
+          kindId: eventKind.id,
+          congregationId,
+        },
+      })
+      // Bob is the responsible for this template; Alice is the absentee.
+      await tx.programmeTemplateResponsible.create({
+        data: {
+          templateId: template.id,
+          userId: bobAccountId,
+          congregationId,
+        },
+      })
+      const event = await tx.event.create({
+        data: {
+          name: 'Responsible Invariant Event',
+          kindId: eventKind.id,
+          templateId: template.id,
+          startDate: new Date('2028-01-05T19:00:00Z'),
+          endDate: new Date('2028-01-05T21:00:00Z'),
+          createdById: aliceAccountId,
+          congregationId,
+        },
+      })
+      const part = await tx.programmePartAssignment.create({
+        data: {
+          eventId: event.id,
+          assigneeId: aliceId,
+          name: 'Discours',
+          section: 'main',
+          order: 1,
+          hasConflict: true,
+          congregationId,
+        },
+      })
+      return { templateId: template.id, eventId: event.id, partId: part.id }
+    })
+
+    try {
+      // Bob is the responsible; he sees the outstanding conflict on his template.
+      const before = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
+      expect(before.count).toBe(1)
+      expect(before.absenteeNames).toEqual(['Alice Dupont'])
+
+      // Simulate resolution: the underlying assignment is no longer in conflict
+      // (either the absence went away or the assignment was reassigned).
+      await withScope(congregationId, tx =>
+        tx.programmePartAssignment.update({
+          where: { id_congregationId: { id: setup.partId, congregationId } },
+          data: { hasConflict: false },
+        }),
+      )
+
+      const after = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
+      expect(after).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
+    } finally {
+      await withScope(congregationId, async tx => {
+        await tx.programmePartAssignment.delete({
+          where: { id_congregationId: { id: setup.partId, congregationId } },
+        })
+        await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
+        await tx.programmeTemplateResponsible.deleteMany({ where: { templateId: setup.templateId } })
+        await tx.programmeTemplate.delete({
+          where: { id_congregationId: { id: setup.templateId, congregationId } },
+        })
+      })
+    }
+  })
+
+  // A ProgramManager should see conflicts on events they don't own via a
+  // template responsibility — including untemplated events, which have no
+  // responsibles at all. This pins the "manager sees everything" branch of
+  // the filter (the non-manager path is covered by unit tests).
+  it('getResponsibleConflicts includes untemplated events for ProgramManager users', async () => {
+    const setup = await withScope(congregationId, async tx => {
+      const eventKind = await tx.eventKind.findFirstOrThrow({
+        where: { congregationId, key: { not: EventKind.Off } },
+      })
+      const event = await tx.event.create({
+        data: {
+          name: 'Untemplated Manager Event',
+          kindId: eventKind.id,
+          templateId: null,
+          startDate: new Date('2028-02-10T19:00:00Z'),
+          endDate: new Date('2028-02-10T21:00:00Z'),
+          createdById: aliceAccountId,
+          congregationId,
+        },
+      })
+      const part = await tx.programmePartAssignment.create({
+        data: {
+          eventId: event.id,
+          assigneeId: aliceId,
+          name: 'Custom part',
+          section: 'main',
+          order: 1,
+          hasConflict: true,
+          congregationId,
+        },
+      })
+      return { eventId: event.id, partId: part.id }
+    })
+
+    try {
+      // Bob is neither a template responsible nor a manager — must see nothing.
+      const nonManager = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, false))
+      expect(nonManager.count).toBe(0)
+
+      // ProgramManager path — same query, isProgramManager=true — must include it.
+      const asManager = await withScope(congregationId, tx => getResponsibleConflicts(tx, bobAccountId, true))
+      expect(asManager.count).toBe(1)
+      expect(asManager.absenteeNames).toEqual(['Alice Dupont'])
+    } finally {
+      await withScope(congregationId, async tx => {
+        await tx.programmePartAssignment.delete({
+          where: { id_congregationId: { id: setup.partId, congregationId } },
+        })
+        await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
       })
     }
   })

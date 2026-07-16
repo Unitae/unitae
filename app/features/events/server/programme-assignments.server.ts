@@ -218,9 +218,13 @@ export async function unassignServiceRole(db: TransactionClient, assignmentId: n
   return { assignment, previousAssigneeId: existing.assigneeId }
 }
 
+// The `memberId` here is Member.id. Day-off events store the creator's
+// UserAccount.id in Event.createdById, so we join through
+// Event.createdBy.memberId to resolve the absence back to the same Member
+// that carries assignments (assigneeId / assistantId reference Member).
 export async function checkDayOffConflict(
   db: TransactionClient,
-  userId: number,
+  memberId: number,
   startDate: Date,
   endDate: Date,
   congregationId: number,
@@ -228,7 +232,7 @@ export async function checkDayOffConflict(
   const conflictingDayOff = await db.event.findFirst({
     where: {
       congregationId,
-      createdById: userId,
+      createdBy: { memberId },
       kind: { key: EventKind.Off },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
@@ -240,16 +244,18 @@ export async function checkDayOffConflict(
 
 export async function refreshConflictFlags(
   db: TransactionClient,
-  userId: number,
+  memberId: number,
   startDate: Date,
   endDate: Date,
   congregationId: number,
 ) {
-  // Find all programme events overlapping with the given date range
+  // Find all programme events (templated OR not) overlapping the range.
+  // Off events themselves have no assignments and are excluded to avoid
+  // pointless iteration.
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,
-      templateId: { not: null },
+      kind: { key: { not: EventKind.Off } },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
@@ -257,23 +263,21 @@ export async function refreshConflictFlags(
   })
 
   for (const event of overlappingEvents) {
-    const hasConflict = await checkDayOffConflict(db, userId, event.startDate, event.endDate, congregationId)
+    const hasConflict = await checkDayOffConflict(db, memberId, event.startDate, event.endDate, congregationId)
 
-    // Update part assignments where this user is assigned
     await db.programmePartAssignment.updateMany({
       where: {
         eventId: event.id,
         congregationId,
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
+        OR: [{ assigneeId: memberId }, { assistantId: memberId }],
       },
       data: { hasConflict },
     })
 
-    // Update service role assignments where this user is assigned
     await db.programmeServiceRoleAssignment.updateMany({
       where: {
         eventId: event.id,
-        assigneeId: userId,
+        assigneeId: memberId,
         congregationId,
       },
       data: { hasConflict },
