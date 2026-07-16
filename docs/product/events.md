@@ -42,6 +42,32 @@ Events are accessible at **Programmes** in the sidebar. The list is grouped by w
 
 Bulk deletion is available: select multiple events using the per-week or global checkboxes, then confirm deletion via the bulk action bar.
 
+### Draft and released events
+
+Every new programme event is created as a **draft** so programme organizers can build a schedule privately before announcing it. Draft events carry a **Brouillon** badge on the programme list and behave like an in-progress document: only people with programme edit access can see them.
+
+While an event is draft:
+
+- It does **not** appear on the display board or in publishers' personal calendar feeds
+- It is **not** listed on the dashboard "Next meeting" card or in day-off conflict warnings
+- It does **not** trigger any assignment email — publishers assigned to a draft event are notified only when the event is released
+- Absences overlapping the draft are still detected and flagged with a **Conflit** badge on the programme list, so managers can resolve them before publishing
+
+**Releasing** an event flips it to public: the badge is dropped, the event appears everywhere it should, and assignment notifications are sent to every current assignee. Notifications are held for 30 minutes as a safety net — a manager who releases by mistake can un-release inside that window and pending emails are cancelled.
+
+Release is **blocked** when the event has unresolved absence conflicts. A toast lists how many parts and services are blocking; resolve the conflicts (reassign, or update the absence) and try again.
+
+**Un-releasing** an event returns it to draft: it disappears from the board, calendar feeds, and dashboard cards, and any not-yet-sent assignment email is cancelled. Publishers who already received the notification before un-release keep it — Unitae doesn't send a follow-up "never mind" email.
+
+Days-off events are **not part of this workflow**. Publisher absences always take effect immediately (otherwise conflict detection would miss them).
+
+Release and un-release are available:
+
+- **Per event** — from the event detail page's primary action, or from the row action menu on the programme list
+- **In bulk** — from the sticky action bar on the programme list, once at least one draft (or one released, for un-release) is selected
+
+Every release, un-release, and deletion is recorded in the audit log with the actor and event ID.
+
 ### Event Structure Editing
 
 Each event's structure (parts and service roles) can be edited independently from its template:
@@ -147,10 +173,10 @@ If no responsible is set, only users with the Program Manager or Admin permissio
 |---|---|
 | Any authenticated user | View and manage their own days off; generate, copy, regenerate, and revoke their personal calendar feed |
 | Program Viewer | View events, programmes, and template list |
-| Program Manager | Create, edit, and delete events. Assign publishers. Manage templates |
+| Program Manager | Create, edit, release, un-release, and delete events. Assign publishers. Manage templates |
 | External Speaker Viewer | Open the external speaker registry and pick from it |
 | External Speaker Manager | Add, edit, archive, and unarchive external speakers |
-| Template responsible | Edit events and assign publishers for their template only |
+| Template responsible | Edit, release, un-release, and delete events for their template only. Assign publishers |
 | Admin | Everything, including creating new templates |
 
 See [Roles and Permissions](roles-and-permissions.md) for the full list of permissions across all features.

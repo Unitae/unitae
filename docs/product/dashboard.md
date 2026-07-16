@@ -38,7 +38,7 @@ A conditional section that surfaces time-sensitive items from across features. I
 |---|---|---|---|
 | 0 | Imminent part assignment | User has a programme part and the meeting is within 3 days | The board |
 | 1 | Overdue territory | Territory due date is in the past | The territory page |
-| 2 | Day-off conflict | An upcoming absence overlaps the next meeting where the user has assignments | The absences page |
+| 2 | Day-off conflict | An upcoming absence overlaps the next meeting where the user has assignments — only released events count; draft-event conflicts are not urgent and surface at release time on the programme list | The absences page |
 | 3 | Imminent service role | User has a service role and the meeting is within 3 days | The board |
 | 4 | Due-soon territory | Territory due date is within 2 weeks | The territory page |
 | 5 | Unread documents | At least 1 visible document not yet viewed | The board |
@@ -64,7 +64,7 @@ If the member has no assigned territories, an empty state is shown with guidance
 
 ## Next meeting
 
-Shows the next scheduled meeting with the member's assignments highlighted. The card header displays the meeting name and date (e.g., *Midweek meeting — Wednesday 25 April*).
+Shows the next scheduled meeting with the member's assignments highlighted. The card header displays the meeting name and date (e.g., *Midweek meeting — Wednesday 25 April*). Only [released](events.md#draft-and-released-events) events appear here — meetings still in draft are not shown.
 
 If the member has assignments for that meeting, they are listed with role badges:
 

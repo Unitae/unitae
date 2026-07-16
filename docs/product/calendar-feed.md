@@ -8,6 +8,8 @@ Every member can subscribe to their own programme assignments and absences from 
 - Service role assignments where the member is the assignee
 - Days off the member has recorded
 
+Only assignments on [released](events.md#draft-and-released-events) events appear in the feed. An assignment on a draft event stays invisible until the programme manager publishes the event — at which point the calendar app picks it up on its next refresh.
+
 The feed contains all future events plus events from the last three months. Anything older is dropped to keep calendar apps responsive.
 
 ## Subscribing

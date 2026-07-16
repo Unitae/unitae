@@ -88,6 +88,18 @@ Created and edited through `app/shared/domain/roles.server.ts`:
 
 The corresponding routes live in `app/features/congregation/routes/roles/`.
 
+## Event release / un-release authorization
+
+Release and un-release actions do **not** get their own permission. They share the event-edit gate `canEditEvent` in `app/features/events/server/programme-auth.server.ts`:
+
+- **Program Manager** — can release/un-release any event
+- **Template responsible** — the user set as `ProgrammeTemplate.responsible` can release/un-release events generated from that template (mirrors the existing edit + delete carve-out)
+- **Admin** — everything (expanded from `Permission.Admin`)
+
+The route handlers (`programs/events/release.tsx`, `unrelease.tsx`, `bulk-release.tsx`, `bulk-unrelease.tsx`) run authorization in Phase 1 of a two-phase pattern: a small scoped tx checks `canManageAnyProgram` and (for bulk) filters submitted IDs through `filterToManageableEventIds`. Phase 2 runs the mutation per-event via `withScope` and — for release only — fires the notifications *outside* the release tx (see [notifications.md](notifications.md#programme-assignment-dispatch-gate)).
+
+Bulk routes are hardened against cross-tenant probes: `filterToManageableEventIds` runs a `congregationId`-scoped `findMany` even for managers, so IDs from another tenant are silently dropped and logged as `warn` for triage. Non-manager drops (freeform events, unauthorized templates, cross-tenant IDs) are logged at `info` with counters split by reason.
+
 ## Adding a new permission
 
 1. **Enum entry.** Add the new value to `Permission` in `app/shared/types/permission.ts`. Use `kebab-case` for the value (it's the DB key).

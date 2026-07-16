@@ -71,7 +71,7 @@ Permissions are grouped by area of the app. Most areas come in two flavours: **V
 
 ### Programme & events
 - **Program Viewer** — open the events list, programmes, and templates
-- **Program Manager** — create and edit events, assign publishers, manage programme templates
+- **Program Manager** — create, edit, delete, release, and un-release events; assign publishers; manage programme templates
 - **External Speaker Viewer** — open the external speaker registry
 - **External Speaker Manager** — add, edit, archive speakers in the registry
 
@@ -98,7 +98,7 @@ So to give someone access to a feature, you don't grant the permission directly 
 
 ## Programme template responsible
 
-Independently of roles, each programme template can have a **template responsible** assigned. That person can edit and assign publishers for the events that come from that template, without needing the broader Program Manager permission. Useful for delegating one programme (e.g. midweek meeting) without handing over the rest.
+Independently of roles, each programme template can have a **template responsible** assigned. That person can edit, delete, release, and un-release the events that come from that template, and assign publishers to them — without needing the broader Program Manager permission. Useful for delegating one programme (e.g. midweek meeting) without handing over the rest.
 
 ## Default access
 
