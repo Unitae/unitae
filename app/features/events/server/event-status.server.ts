@@ -1,3 +1,4 @@
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -14,13 +15,27 @@ export type ReleaseNotificationContext = {
   timezone: string
 }
 
-export type ReleaseResult = { event: EventWithStatus } | { error: string }
+// Descriptor for a single publisher who needs the "you are assigned"
+// notification when the event flips to released. Computed from the event
+// under the release tx and fired OUTSIDE the tx by fireReleaseNotifications.
+export type NotifyTarget = {
+  entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
+  entityId: number
+  assignmentName: string
+  memberId: number
+  role: 'speaker' | 'reader' | 'servant'
+}
 
 type EventWithStatus = {
   id: number
+  name: string
+  startDate: Date
   status: string
   templateId: number | null
 }
+
+export type ReleaseResult = { event: EventWithStatus; notifyTargets: NotifyTarget[] } | { error: string }
+export type UnreleaseResult = { event: EventWithStatus } | { error: string }
 
 const eventWithAssignmentsInclude = {
   partAssignments: {
@@ -42,12 +57,55 @@ const eventWithAssignmentsInclude = {
   },
 }
 
+type PartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null; assistantId: number | null }
+type ServiceRoleRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null }
+
+function computeNotifyTargets(parts: PartRow[], services: ServiceRoleRow[]): NotifyTarget[] {
+  const targets: NotifyTarget[] = []
+  for (const part of parts) {
+    if (part.assigneeId != null) {
+      targets.push({
+        entityType: 'ProgrammePartAssignment',
+        entityId: part.id,
+        assignmentName: part.name,
+        memberId: part.assigneeId,
+        role: 'speaker',
+      })
+    }
+    if (part.assistantId != null) {
+      targets.push({
+        entityType: 'ProgrammePartAssignment',
+        entityId: part.id,
+        assignmentName: part.name,
+        memberId: part.assistantId,
+        role: 'reader',
+      })
+    }
+  }
+  for (const service of services) {
+    if (service.assigneeId != null) {
+      targets.push({
+        entityType: 'ProgrammeServiceRoleAssignment',
+        entityId: service.id,
+        assignmentName: service.name,
+        memberId: service.assigneeId,
+        role: 'servant',
+      })
+    }
+  }
+  return targets
+}
+
+// Tx-only half of the release flow. State flip + audit happen on the tx
+// client; notification enqueue is DEFERRED to fireReleaseNotifications so a
+// Prisma error inside a notify.create cannot poison this transaction (in
+// Postgres, once a statement errors inside a tx the whole tx is marked
+// aborted and any subsequent COMMIT becomes ROLLBACK).
 export async function releaseEvent(
   db: TransactionClient,
   eventId: number,
   congregationId: number,
   actorId: number,
-  ctx: ReleaseNotificationContext,
 ): Promise<ReleaseResult | null> {
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
@@ -55,7 +113,9 @@ export async function releaseEvent(
   })
   if (!event) return null
 
-  if (event.status === 'released') return { event }
+  // Already-released events return with empty notifyTargets so callers do
+  // not re-fire notifications on every retry.
+  if (event.status === EventStatus.Released) return { event, notifyTargets: [] }
 
   try {
     assertCanRelease({ parts: event.partAssignments, serviceRoles: event.serviceRoleAssignments })
@@ -77,13 +137,11 @@ export async function releaseEvent(
 
   const updated = await db.event.update({
     where: { id_congregationId: { id: eventId, congregationId } },
-    data: { status: 'released' },
+    data: { status: EventStatus.Released },
   })
 
   // auditInTransaction (not audit) so the audit row is written on the same
-  // client as the release flip and rolls back with it. audit() writes on
-  // unscopedDb — it would leave a phantom EventReleased row if the tx aborts
-  // (e.g. mid-batch bulk-release failure).
+  // client as the release flip and rolls back with it.
   await auditInTransaction(db, {
     action: AuditAction.EventReleased,
     congregationId,
@@ -99,16 +157,32 @@ export async function releaseEvent(
     serviceRoleCount: event.serviceRoleAssignments.length,
   })
 
-  const notificationCtxBase = buildAssignmentContext({
+  const notifyTargets = computeNotifyTargets(event.partAssignments, event.serviceRoleAssignments)
+  return { event: updated, notifyTargets }
+}
+
+// Fires the release-time "you are assigned" notification for every target.
+// Runs OUTSIDE any release tx and opens a fresh withScope per target so a
+// single failure is isolated — neither pollutes another notify's tx nor
+// affects the release itself, which has already committed by this point.
+export async function fireReleaseNotifications(
+  event: { id: number; name: string; startDate: Date; templateId: number | null },
+  targets: NotifyTarget[],
+  congregationId: number,
+  actorId: number,
+  ctx: ReleaseNotificationContext,
+): Promise<void> {
+  if (targets.length === 0) return
+
+  const ctxBase = buildAssignmentContext({
     event: {
       id: event.id,
       name: event.name,
       startDate: event.startDate,
       templateId: event.templateId,
-      // We just flipped the row to released; downstream dispatchAssignmentDiffs
-      // gates on this and would suppress the whole release notification burst
-      // otherwise.
-      status: 'released',
+      // Load-bearing: dispatchAssignmentDiffs whitelist-gates on this. If
+      // we dropped this stamp, the whole release burst would self-suppress.
+      status: EventStatus.Released,
     },
     assignmentName: '',
     entityType: 'ProgrammePartAssignment',
@@ -119,52 +193,32 @@ export async function releaseEvent(
     timezone: ctx.timezone,
   })
 
-  // Notifications are best-effort: a queue drop or a race on
-  // NotificationEvent.debounceKey must NOT roll back the release (or, in a
-  // bulk-release, abort the whole batch). Match the assign-part/assign-service
-  // pattern: log and continue.
-  async function safeNotify(
-    entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment',
-    entityId: number,
-    assignmentName: string,
-    memberId: number,
-    role: 'speaker' | 'reader' | 'servant',
-  ): Promise<void> {
+  for (const target of targets) {
     try {
-      await notifyAssignment(
-        db,
-        { ...notificationCtxBase, entityType, entityId, assignmentName },
-        { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId, role },
+      await withScope(congregationId, tx =>
+        notifyAssignment(
+          tx,
+          {
+            ...ctxBase,
+            entityType: target.entityType,
+            entityId: target.entityId,
+            assignmentName: target.assignmentName,
+          },
+          { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId: target.memberId, role: target.role },
+        ),
       )
     } catch (err) {
       logger.error('release notification enqueue failed', {
-        eventId,
+        eventId: event.id,
         congregationId,
-        memberId,
-        entityType,
-        entityId,
-        role,
+        memberId: target.memberId,
+        entityType: target.entityType,
+        entityId: target.entityId,
+        role: target.role,
         err,
       })
     }
   }
-
-  for (const part of event.partAssignments) {
-    if (part.assigneeId != null) {
-      await safeNotify('ProgrammePartAssignment', part.id, part.name, part.assigneeId, 'speaker')
-    }
-    if (part.assistantId != null) {
-      await safeNotify('ProgrammePartAssignment', part.id, part.name, part.assistantId, 'reader')
-    }
-  }
-
-  for (const service of event.serviceRoleAssignments) {
-    if (service.assigneeId != null) {
-      await safeNotify('ProgrammeServiceRoleAssignment', service.id, service.name, service.assigneeId, 'servant')
-    }
-  }
-
-  return { event: updated }
 }
 
 export async function unreleaseEvent(
@@ -172,7 +226,7 @@ export async function unreleaseEvent(
   eventId: number,
   congregationId: number,
   actorId: number,
-): Promise<ReleaseResult | null> {
+): Promise<UnreleaseResult | null> {
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
     include: {
@@ -182,11 +236,11 @@ export async function unreleaseEvent(
   })
   if (!event) return null
 
-  if (event.status === 'draft') return { event }
+  if (event.status === EventStatus.Draft) return { event }
 
   const updated = await db.event.update({
     where: { id_congregationId: { id: eventId, congregationId } },
-    data: { status: 'draft' },
+    data: { status: EventStatus.Draft },
   })
 
   const partIds = event.partAssignments.map(p => p.id)
@@ -198,9 +252,6 @@ export async function unreleaseEvent(
   // every pending notification in the congregation.
   let cancelledCount = 0
   if (partIds.length > 0 || serviceIds.length > 0) {
-    // Cancel every notification that hasn't fired yet for this event's
-    // assignments — the schedule is not public anymore. Mails already sent
-    // stay sent; the 30-min debounce is the safety net for that case.
     const result = await db.notificationEvent.updateMany({
       where: {
         congregationId,
@@ -232,57 +283,4 @@ export async function unreleaseEvent(
   })
 
   return { event: updated }
-}
-
-export type BulkReleaseResult = {
-  released: number[]
-  blocked: { id: number; error: string }[]
-  notFound: number[]
-}
-
-// Owns the per-event iteration for bulk release so the route stays a thin
-// auth-plus-flash wrapper. releaseEvent returns a tagged union so a blocker
-// on one event lands in the `blocked` bucket without aborting the batch.
-//
-// Each event runs in its OWN withScope transaction: this preserves partial
-// progress if the batch hits a database timeout or transient failure
-// mid-way (releaseEvent's 30-query fan-out per event × 500-id cap easily
-// exceeds the default 5s tx budget when scoped as a single transaction).
-// A failure on event N does not roll back events 1..N-1.
-export async function bulkReleaseEvents(
-  eventIds: number[],
-  congregationId: number,
-  actorId: number,
-  ctx: ReleaseNotificationContext,
-): Promise<BulkReleaseResult> {
-  const released: number[] = []
-  const blocked: { id: number; error: string }[] = []
-  const notFound: number[] = []
-  for (const id of eventIds) {
-    const result = await withScope(congregationId, tx => releaseEvent(tx, id, congregationId, actorId, ctx))
-    if (result == null) notFound.push(id)
-    else if ('error' in result) blocked.push({ id, error: result.error })
-    else released.push(id)
-  }
-  return { released, blocked, notFound }
-}
-
-export type BulkUnreleaseResult = {
-  unreleased: number[]
-  notFound: number[]
-}
-
-export async function bulkUnreleaseEvents(
-  eventIds: number[],
-  congregationId: number,
-  actorId: number,
-): Promise<BulkUnreleaseResult> {
-  const unreleased: number[] = []
-  const notFound: number[] = []
-  for (const id of eventIds) {
-    const result = await withScope(congregationId, tx => unreleaseEvent(tx, id, congregationId, actorId))
-    if (result == null) notFound.push(id)
-    else unreleased.push(id)
-  }
-  return { unreleased, notFound }
 }

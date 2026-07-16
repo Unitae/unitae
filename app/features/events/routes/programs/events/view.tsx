@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -229,7 +230,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
       <PageHeader
         title={event.name}
         titleBadge={
-          event.status === 'draft' && (
+          event.status === EventStatus.Draft && (
             <Badge variant="secondary" className="gap-1 text-xs">
               <FileText className="size-3" />
               {m.programs_event_draft_badge()}
@@ -567,7 +568,7 @@ function PartRow({
 
 function ReleaseToggleButton({ status, eventId }: { status: string; eventId: number }) {
   const fetcher = useFetcher<{ ok: boolean }>()
-  const isDraft = status === 'draft'
+  const isDraft = status === EventStatus.Draft
   const action = isDraft ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`
   const label = isDraft ? m.programs_event_release_button() : m.programs_event_unrelease_button()
   const Icon = isDraft ? Send : FileText

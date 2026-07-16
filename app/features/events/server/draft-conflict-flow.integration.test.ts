@@ -240,9 +240,7 @@ describe('Draft-event conflict flow (integration)', () => {
       ),
     )
 
-    const result = await withScope(congId, tx =>
-      releaseEvent(tx, draftEventId, congId, managerAccountId, { locale: 'fr-FR', timezone: 'Europe/Paris' }),
-    )
+    const result = await withScope(congId, tx => releaseEvent(tx, draftEventId, congId, managerAccountId))
 
     expect(result).not.toBeNull()
     expect(result).toHaveProperty('error')

@@ -1,6 +1,6 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { releaseEvent } from '~/features/events/server/event-status.server'
+import { fireReleaseNotifications, releaseEvent } from '~/features/events/server/event-status.server'
 import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -25,30 +25,35 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   const currentUser = context.get(currentAccountContext)
   const cong = context.get(congregationContext)
   const eventId = requireParamId(params.eventId, '/programs')
+  const { congregationId } = currentUser
 
-  return withScopeFromContext(context, async db => {
-    const { congregationId } = currentUser
+  // Phase 1: auth + release (state flip + audit) in one scoped tx.
+  // releaseEvent returns notifyTargets — notifications fire in Phase 2 OUTSIDE
+  // this tx so a queue/Postgres error inside a notify cannot poison it.
+  const result = await withScopeFromContext(context, async db => {
     const can = (p: Permission) => permissions.has(p)
     const event = await db.event.findFirst({ where: { id: eventId, congregationId }, select: { templateId: true } })
     if (!event) throw redirect('/programs')
     if (!(await canEditEvent(db, can, currentUser.id, event.templateId ?? null, congregationId))) {
       throw redirect('/programs')
     }
-
-    const result = await releaseEvent(db, eventId, congregationId, currentUser.id, {
-      locale: cong.locale,
-      timezone: cong.timezone,
-    })
-    if (result == null) throw redirect('/programs')
-
-    if ('error' in result) {
-      session.flash('error', result.error)
-      logger.warn(`Event release blocked. User: ${currentUser.id}. Event: ${eventId}.`)
-      return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
-    }
-
-    session.flash('success', m.programs_release_success())
-    logger.info(`Event released. User: ${currentUser.id}. Event: ${eventId}.`)
-    return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
+    return releaseEvent(db, eventId, congregationId, currentUser.id)
   })
+  if (result == null) throw redirect('/programs')
+
+  if ('error' in result) {
+    session.flash('error', result.error)
+    logger.warn(`Event release blocked. User: ${currentUser.id}. Event: ${eventId}.`)
+    return data({ ok: false }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  }
+
+  // Phase 2: notifications, outside the release tx.
+  await fireReleaseNotifications(result.event, result.notifyTargets, congregationId, currentUser.id, {
+    locale: cong.locale,
+    timezone: cong.timezone,
+  })
+
+  session.flash('success', m.programs_release_success())
+  logger.info(`Event released. User: ${currentUser.id}. Event: ${eventId}.`)
+  return data({ ok: true }, { headers: { 'Set-Cookie': await commitSession(session) } })
 }

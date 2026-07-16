@@ -1,4 +1,5 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { notify } from '~/features/notifications/index.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
@@ -107,7 +108,7 @@ export async function dispatchAssignmentDiffs(
   // is silent by default so a typo or unhandled state cannot spam publishers.
   // The release path re-enqueues an assigned notification per current assignee
   // so no one is silently forgotten when a draft flips to released.
-  if (ctx.event.status !== 'released') {
+  if (ctx.event.status !== EventStatus.Released) {
     // Debug (not warn) so operators can distinguish "we didn't notify because
     // the event was a draft" from a queue drop when investigating
     // "why didn't I get the email?" tickets. Log the actual status so an

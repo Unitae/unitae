@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
-import { bulkReleaseEvents } from '~/features/events/server/event-status.server'
+import { bulkReleaseEvents } from '~/features/events/server/event-status-bulk.server'
 import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -47,16 +47,23 @@ export async function action({ request, context }: Route.ActionArgs) {
   // Phase 2: per-event scoped release. Each event opens its own withScope
   // inside bulkReleaseEvents so a slow/failing event only rolls back itself,
   // and partial progress is preserved on batch failure.
-  const { released, blocked } = await bulkReleaseEvents(allowedIds, congregationId, currentUser.id, {
+  const { released, blocked, notFound, failed } = await bulkReleaseEvents(allowedIds, congregationId, currentUser.id, {
     locale: cong.locale,
     timezone: cong.timezone,
   })
-  logger.info(`Bulk released ${released.length} events; ${blocked.length} blocked.`)
+  logger.info(
+    `Bulk released ${released.length} events; ${blocked.length} blocked; ${notFound.length} not found; ${failed.length} failed.`,
+  )
 
+  // Successes first — the manager sees positive confirmation of what worked.
   if (released.length > 0) session.flash('success', m.programs_release_success_bulk({ count: released.length }))
+  // A failed-only response (Phase 1 filtered everything to notFound / failed)
+  // would leave the manager with no feedback; every bucket has its own toast.
   if (blocked.length > 0) session.flash('error', m.programs_release_blocked_bulk({ count: blocked.length }))
+  if (failed.length > 0) session.flash('error', m.programs_release_failed_bulk({ count: failed.length }))
+  if (notFound.length > 0) session.flash('error', m.programs_bulk_not_found({ count: notFound.length }))
   return data(
-    { ok: true, released: released.length, blocked },
+    { ok: true, released: released.length, blocked, notFound: notFound.length, failed: failed.length },
     { headers: { 'Set-Cookie': await commitSession(session) } },
   )
 }

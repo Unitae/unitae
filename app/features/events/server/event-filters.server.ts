@@ -1,4 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
+import { EventStatus } from '~/features/events/model/event-status.type'
 
 export function getDefaultDateRange(): { from: Date; to: Date } {
   const now = new Date()
@@ -56,7 +57,7 @@ function applyPublisherFilter(filters: Prisma.EventWhereInput, params: URLSearch
 // silently return zero rows.
 function applyStatusFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
   const status = params.get('status')
-  if (status !== 'draft' && status !== 'released') return filters
+  if (status !== EventStatus.Draft && status !== EventStatus.Released) return filters
   return { ...filters, status }
 }
 

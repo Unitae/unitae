@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { bulkEventIdsSchema } from '~/features/events/schemas/bulk-event-ids.schema'
-import { bulkUnreleaseEvents } from '~/features/events/server/event-status.server'
+import { bulkUnreleaseEvents } from '~/features/events/server/event-status-bulk.server'
 import { canManageAnyProgram, filterToManageableEventIds } from '~/features/events/server/programme-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -38,11 +38,16 @@ export async function action({ request, context }: Route.ActionArgs) {
 
   // Phase 2: per-event scoped unrelease. See bulk-release.tsx for the
   // partial-progress rationale.
-  const { unreleased } = await bulkUnreleaseEvents(allowedIds, congregationId, currentUser.id)
-  logger.info(`Bulk unreleased ${unreleased.length} events.`)
+  const { unreleased, notFound, failed } = await bulkUnreleaseEvents(allowedIds, congregationId, currentUser.id)
+  logger.info(`Bulk unreleased ${unreleased.length} events; ${notFound.length} not found; ${failed.length} failed.`)
 
   if (unreleased.length > 0) {
     session.flash('success', m.programs_unrelease_success_bulk({ count: unreleased.length }))
   }
-  return data({ ok: true, unreleased: unreleased.length }, { headers: { 'Set-Cookie': await commitSession(session) } })
+  if (failed.length > 0) session.flash('error', m.programs_unrelease_failed_bulk({ count: failed.length }))
+  if (notFound.length > 0) session.flash('error', m.programs_bulk_not_found({ count: notFound.length }))
+  return data(
+    { ok: true, unreleased: unreleased.length, notFound: notFound.length, failed: failed.length },
+    { headers: { 'Set-Cookie': await commitSession(session) } },
+  )
 }

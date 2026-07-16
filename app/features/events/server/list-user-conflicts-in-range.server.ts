@@ -1,4 +1,5 @@
 import type { Prisma } from '~/database/generated/client'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { accountDisplayName } from '~/shared/utils/display-name'
 
@@ -48,7 +49,7 @@ export async function listUserConflictsInRange(
         // Drafts are invisible to publisher- and manager-facing conflict
         // surfaces alike; managers spot draft conflicts via the events-list
         // amber badge and the release-blocking error.
-        event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: 'released' },
+        event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: EventStatus.Released },
       },
       select: {
         name: true,
@@ -59,7 +60,7 @@ export async function listUserConflictsInRange(
       where: {
         hasConflict: true,
         assigneeId: memberId,
-        event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: 'released' },
+        event: { startDate: { lte: endDate }, endDate: { gte: startDate }, status: EventStatus.Released },
       },
       select: {
         name: true,

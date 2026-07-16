@@ -1,5 +1,5 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { EventKind } from '~/features/events'
+import { EventKind, EventStatus } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
@@ -174,7 +174,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         OR: [{ assigneeId: userId }, { assistantId: userId }],
         // Drafts are the manager's scratch space — never previewed to
         // publishers.
-        event: { startDate: { gte: now }, status: 'released' },
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
@@ -195,7 +195,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
     db.programmeServiceRoleAssignment.findMany({
       where: {
         assigneeId: userId,
-        event: { startDate: { gte: now }, status: 'released' },
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
@@ -261,7 +261,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
         // Conflicts on a draft event are not urgent — the schedule isn't
         // public yet. They only surface via the events-list amber badge for
         // managers, and block the release step.
-        event: { startDate: { gte: now }, status: 'released' },
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
@@ -274,7 +274,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       where: {
         hasConflict: true,
         assigneeId: userId,
-        event: { startDate: { gte: now }, status: 'released' },
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
@@ -315,7 +315,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
       // which seeded templates produce.
       NOT: { kind: { key: EventKind.Off } },
       // Publisher-facing dashboard — drafts must stay hidden.
-      status: 'released',
+      status: EventStatus.Released,
     },
     select: {
       id: true,

@@ -1,6 +1,9 @@
 import { isTemplateResponsible } from '~/features/events/server/programme-templates.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
+
+const logger = createLogger('programme-auth')
 
 export async function canEditEvent(
   db: TransactionClient,
@@ -66,9 +69,43 @@ export async function filterToManageableEventIds(
     where: { id: { in: eventIds }, congregationId },
     select: { id: true, templateId: true },
   })
-  if (isProgramManager) return events.map(e => e.id)
+  // Cross-tenant / stale ids: submitted but not present in this congregation.
+  const droppedCrossTenant = eventIds.length - events.length
+
+  if (isProgramManager) {
+    if (droppedCrossTenant > 0) {
+      // Distinct from "not found" further down the pipeline: at THIS point we
+      // know the id was submitted by a manager for another congregation (or a
+      // race deleted it), so support can spot cross-tenant probe attempts.
+      logger.warn('filterToManageableEventIds: dropped cross-tenant ids on manager path', {
+        userId,
+        congregationId,
+        submitted: eventIds.length,
+        droppedCrossTenant,
+      })
+    }
+    return events.map(e => e.id)
+  }
 
   const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
   const responsibleSet = new Set(responsibleTemplateIds)
-  return events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
+  const allowed = events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
+
+  // For non-managers, distinguish three drop reasons so support can tell
+  // "cross-tenant/stale id" apart from "freeform event manager-only" apart
+  // from "you are not the responsible for this template".
+  const droppedFreeform = events.filter(e => e.templateId == null).length
+  const droppedUnauthorized = events.filter(e => e.templateId != null && !responsibleSet.has(e.templateId)).length
+  if (droppedCrossTenant > 0 || droppedFreeform > 0 || droppedUnauthorized > 0) {
+    logger.info('filterToManageableEventIds: dropped ids on non-manager path', {
+      userId,
+      congregationId,
+      submitted: eventIds.length,
+      allowed: allowed.length,
+      droppedCrossTenant,
+      droppedFreeform,
+      droppedUnauthorized,
+    })
+  }
+  return allowed
 }

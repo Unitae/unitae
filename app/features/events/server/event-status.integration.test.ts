@@ -90,10 +90,7 @@ describe('releaseEvent audit atomicity (integration)', () => {
     await expect(
       testDb.$transaction(async tx => {
         await tx.$executeRawUnsafe(`SET LOCAL app.congregation_id = '${String(congId)}'`)
-        await releaseEvent(tx, draftEventId, congId, managerAccountId, {
-          locale: 'fr-FR',
-          timezone: 'Europe/Paris',
-        })
+        await releaseEvent(tx, draftEventId, congId, managerAccountId)
         throw new Error('force rollback')
       }),
     ).rejects.toThrow('force rollback')
@@ -148,9 +145,7 @@ describe('releaseEvent audit atomicity (integration)', () => {
       return e.id
     })
 
-    await withScope(congId, tx =>
-      releaseEvent(tx, targetId, congId, managerAccountId, { locale: 'fr-FR', timezone: 'Europe/Paris' }),
-    )
+    await withScope(congId, tx => releaseEvent(tx, targetId, congId, managerAccountId))
 
     const auditRows = await testDb.auditLog.findMany({
       where: { congregationId: congId, entityType: 'Event', entityId: targetId, action: 'event.released' },

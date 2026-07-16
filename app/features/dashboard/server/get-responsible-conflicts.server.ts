@@ -1,3 +1,4 @@
+import { EventStatus } from '~/features/events/model/event-status.type'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { fullName } from '~/shared/utils/display-name'
 
@@ -30,8 +31,8 @@ export async function getResponsibleConflicts(
   // Drafts stay off the dashboard even for managers — the events-list amber
   // badge and the release-blocking error are their surface for those.
   const eventFilter = isProgramManager
-    ? { startDate: { gte: now }, status: 'released' }
-    : { startDate: { gte: now }, status: 'released', template: { responsibles: { some: { userId } } } }
+    ? { startDate: { gte: now }, status: EventStatus.Released }
+    : { startDate: { gte: now }, status: EventStatus.Released, template: { responsibles: { some: { userId } } } }
 
   const [partRows, serviceRows] = await Promise.all([
     db.programmePartAssignment.findMany({

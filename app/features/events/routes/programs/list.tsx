@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { toast } from 'sonner'
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import EventFilters from '~/features/events/ui/EventFilters'
@@ -193,7 +194,7 @@ function EventRow({
   const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
   const isUpcoming = new Date(event.startDate) >= new Date()
   const showConflictBadge = isUpcoming && event.conflictCount > 0
-  const isDraft = event.status === 'draft'
+  const isDraft = event.status === EventStatus.Draft
   const cardStyle = { borderLeftColor: event.kind?.color ?? 'transparent', borderLeftWidth: '4px' }
   const kindLabel = event.kind ? ` · ${event.kind.name}` : ''
   const timeLabel = time ? ` · ${time}` : ''
@@ -290,8 +291,8 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const isChangingStatus = bulkStatusFetcher.state !== 'idle'
 
   const selectedEvents = upcomingEvents.filter(e => selectedIds.has(e.id))
-  const anyDraftSelected = selectedEvents.some(e => e.status === 'draft')
-  const anyReleasedSelected = selectedEvents.some(e => e.status === 'released')
+  const anyDraftSelected = selectedEvents.some(e => e.status === EventStatus.Draft)
+  const anyReleasedSelected = selectedEvents.some(e => e.status === EventStatus.Released)
 
   useEffect(() => {
     if (bulkFetcher.state !== 'idle') return
@@ -356,13 +357,13 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   }
 
   function bulkRelease() {
-    const ids = selectedEvents.filter(e => e.status === 'draft').map(e => e.id)
+    const ids = selectedEvents.filter(e => e.status === EventStatus.Draft).map(e => e.id)
     if (ids.length === 0) return
     bulkStatusFetcher.submit({ ids }, { method: 'POST', action: '/programs/bulk-release', encType: 'application/json' })
   }
 
   function bulkUnrelease() {
-    const ids = selectedEvents.filter(e => e.status === 'released').map(e => e.id)
+    const ids = selectedEvents.filter(e => e.status === EventStatus.Released).map(e => e.id)
     if (ids.length === 0) return
     bulkStatusFetcher.submit(
       { ids },
