@@ -2448,7 +2448,7 @@
     "dashboard_urgent_territory_due_soon": "Territoire {number} — à rendre bientôt",
     "dashboard_urgent_assignment_soon": "Tu es assigné à « {name} » — {eventName}",
     "dashboard_urgent_service_role_soon": "Tu dois bientôt assurer « {name} » — {eventName}",
-    "dashboard_urgent_dayoff_conflict": "Tu es assigné à {eventName} pendant une absence",
+    "dashboard_urgent_dayoff_conflict": "Tu es assigné à « {name} » pendant une absence",
     "dashboard_urgent_unread_documents": "{count} documents non lus au tableau",
     "dashboard_quick_action_plan_absence": "Saisir une absence",
     "dashboard_quick_action_assign_territory": "Attribuer un territoire",

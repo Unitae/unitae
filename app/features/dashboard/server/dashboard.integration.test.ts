@@ -408,7 +408,7 @@ describe('getConflictingAssignments (integration)', () => {
       expect(result).not.toBeNull()
       expect(result?.kind).toBe('part')
       expect(result?.id).toBe(seeded.partIds[0])
-      expect(result?.eventName).toBe('Assignee Conflict')
+      expect(result?.name).toBe('Discours')
     } finally {
       await cleanupEvent(seeded.eventId)
     }
@@ -439,7 +439,7 @@ describe('getConflictingAssignments (integration)', () => {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
       expect(result?.kind).toBe('service-role')
       expect(result?.id).toBe(seeded.serviceRoleIds[0])
-      expect(result?.eventName).toBe('Service Role Conflict')
+      expect(result?.name).toBe('Son')
     } finally {
       await cleanupEvent(seeded.eventId)
     }
@@ -454,12 +454,12 @@ describe('getConflictingAssignments (integration)', () => {
     const earlier = await seedEvent({
       name: 'Earlier Service Role',
       startDate: new Date('2027-09-01T19:00:00Z'),
-      serviceRoles: [{ assigneeId: aliceId, hasConflict: true }],
+      serviceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Early Sound' }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
       expect(result?.kind).toBe('service-role')
-      expect(result?.eventName).toBe('Earlier Service Role')
+      expect(result?.name).toBe('Early Sound')
       expect(result?.id).toBe(earlier.serviceRoleIds[0])
     } finally {
       await cleanupEvent(earlier.eventId)

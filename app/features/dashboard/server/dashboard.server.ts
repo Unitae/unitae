@@ -265,7 +265,8 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       },
       select: {
         id: true,
-        event: { select: { name: true, startDate: true } },
+        name: true,
+        event: { select: { startDate: true } },
       },
       orderBy: { event: { startDate: 'asc' } },
       take: 1,
@@ -278,24 +279,28 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       },
       select: {
         id: true,
-        event: { select: { name: true, startDate: true } },
+        name: true,
+        event: { select: { startDate: true } },
       },
       orderBy: { event: { startDate: 'asc' } },
       take: 1,
     }),
   ])
 
+  // We surface the assignment's own name ("Discours public", "Son", …), not
+  // the parent event's name ("Réunion de semaine" — repeats every week and
+  // doesn't identify which part is actually clashing with the absence).
   const candidates = [
     ...partConflicts.map(c => ({
       kind: 'part' as const,
       id: c.id,
-      eventName: c.event.name,
+      name: c.name,
       eventStartDate: c.event.startDate,
     })),
     ...serviceConflicts.map(c => ({
       kind: 'service-role' as const,
       id: c.id,
-      eventName: c.event.name,
+      name: c.name,
       eventStartDate: c.event.startDate,
     })),
   ]

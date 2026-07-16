@@ -107,7 +107,7 @@ export function urgentDayoffConflictItems(conflict: DayoffConflict): UrgentItem[
   return [
     {
       key: `dayoff-conflict-${conflict.kind}-${conflict.id}`,
-      label: m.dashboard_urgent_dayoff_conflict({ eventName: conflict.eventName }),
+      label: m.dashboard_urgent_dayoff_conflict({ name: conflict.name }),
       to: '/me/days-off',
       icon: CalendarOff,
       borderClass: 'border-l-destructive bg-destructive/5',
