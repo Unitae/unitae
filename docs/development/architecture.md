@@ -146,7 +146,14 @@ The authoritative list lives in `app/database/schema.prisma`.
 ```
 Login → validateCredentials(email, password)
       → set session cookie (userId)
-      → redirect to /
+      → redirect to `?redirectTo=<path>` (sanitized via safeRedirectUrl)
+        or `/` when no redirectTo is present
+
+Session expiry → verifySession bounces to /login?redirectTo=<current path>
+              → after re-auth, user lands back on the original path
+              → tenant mismatch, suspended congregation, expired trial,
+                unverified email, and missing GDPR consent bounce bare
+                (no redirectTo — those wall pages are the correct terminal state)
 
 Protected Route → requireAuth() middleware on layout route
                 → verifySession: fetch user (unscopedDb), check suspension/trial/email

@@ -85,6 +85,7 @@ export async function verifySession(request: Request) {
 
   const urlCongregation = await resolveCongregationFromRequest(request)
   if (urlCongregation && urlCongregation.id !== user.congregationId) {
+    // Don't preserve the URL: it belongs to a different congregation and must not survive re-login.
     return redirectToLogin(session)
   }
 
