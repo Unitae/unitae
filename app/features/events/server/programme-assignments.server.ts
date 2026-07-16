@@ -239,10 +239,18 @@ export async function refreshConflictFlags(
   // Find all programme events (templated OR not) overlapping the range.
   // Off events themselves have no assignments and are excluded to avoid
   // pointless iteration.
+  //
+  // The `NOT: { kind: {...} }` shape (rather than `kind: { key: { not } }`)
+  // matters: Prisma's relational filter inner-joins through `kind`, so the
+  // `key: { not: 'off' }` form silently excludes events with a null kindId.
+  // Seeded templates leave kindId null, so generated events inherit that null
+  // and would otherwise never see their hasConflict flag refreshed — the
+  // events-list badge, the view-page absence badge, and the release-blocking
+  // policy all depend on this being right.
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,
-      kind: { key: { not: EventKind.Off } },
+      NOT: { kind: { key: EventKind.Off } },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
