@@ -5,6 +5,7 @@ const TEST_EMAIL = process.env.E2E_USER_EMAIL ?? 'admin@unitae.test'
 const TEST_PASSWORD = process.env.E2E_USER_PASSWORD ?? 'password'
 
 const LOGIN_URL_RE = /\/login/
+const LOGIN_WITH_PUBLISHERS_REDIRECT_RE = /\/login\?redirectTo=%2Fpublishers/
 const PUBLISHERS_URL_RE = /\/publishers/
 const EMAIL_FIELD_RE = /email/i
 const PASSWORD_FIELD_RE = /mot de passe/i
@@ -19,6 +20,35 @@ test.describe('Authentication', () => {
   test('unauthenticated access to a protected route redirects to login', async ({ page }) => {
     await page.goto('/publishers')
     await expect(page).toHaveURL(LOGIN_URL_RE)
+  })
+
+  test('unauthenticated access preserves the intended URL as redirectTo', async ({ page }) => {
+    await page.goto('/publishers')
+    await expect(page).toHaveURL(LOGIN_WITH_PUBLISHERS_REDIRECT_RE)
+  })
+
+  test('logging in from a preserved redirectTo returns to the intended URL', async ({ page }) => {
+    await page.goto('/publishers')
+
+    // If no users exist yet, the app redirects to /setup or /register — skip.
+    if (page.url().includes('/setup') || page.url().includes('/register')) {
+      test.skip()
+      return
+    }
+
+    const emailField = page.getByLabel(EMAIL_FIELD_RE)
+    if (!(await emailField.isVisible({ timeout: 3000 }).catch(() => false))) {
+      test.skip()
+      return
+    }
+
+    await emailField.fill(TEST_EMAIL)
+    await page.getByLabel(PASSWORD_FIELD_RE).fill(TEST_PASSWORD)
+    await page.getByRole('button', { name: SUBMIT_BUTTON_RE }).click()
+
+    await page.waitForLoadState('networkidle')
+    await expect(page).toHaveURL(PUBLISHERS_URL_RE)
+    await expect(page).not.toHaveURL(LOGIN_URL_RE)
   })
 
   test('login with valid credentials navigates away from login page', async ({ page }) => {
