@@ -6,6 +6,8 @@ vi.mock('~/shared/infra/db.server', () => ({
     boardDocument: { findMany: vi.fn(), count: vi.fn() },
     boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn() },
+    programmePartAssignment: { findMany: vi.fn() },
+    programmeServiceRoleAssignment: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
   },
 }))
@@ -14,8 +16,15 @@ vi.mock('~/features/events/server/days-off.server', () => ({
   getNextDaysOffs: vi.fn(),
 }))
 
-const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getUpcomingAbsences } =
-  await import('./dashboard.server')
+const {
+  getUserTerritories,
+  getRecentDocuments,
+  getUnreadDocumentCount,
+  getNextMeeting,
+  getUpcomingAbsences,
+  getUpcomingAssignments,
+  getConflictingAssignments,
+} = await import('./dashboard.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const { getNextDaysOffs } = await import('~/features/events/server/days-off.server')
 
@@ -260,5 +269,40 @@ describe('getUpcomingAbsences', () => {
 
     const result = await getUpcomingAbsences(db, 1, 1)
     expect(result.shouldNudge).toBe(false)
+  })
+})
+
+// --- getUpcomingAssignments: draft events hidden ---
+//
+// The publisher dashboard is a public view of the schedule; draft assignments
+// must not preview here or a publisher sees a mid-edit programme.
+
+describe('getUpcomingAssignments', () => {
+  it('filters part and service-role assignments to released events', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+
+    await getUpcomingAssignments(db, 42)
+
+    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    expect((partCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+
+    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    expect((serviceCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+  })
+})
+
+describe('getConflictingAssignments', () => {
+  it('only surfaces conflicts on released events', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+
+    await getConflictingAssignments(db, 42)
+
+    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    expect((partCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+
+    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    expect((serviceCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
   })
 })

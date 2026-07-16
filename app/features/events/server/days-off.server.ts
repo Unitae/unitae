@@ -49,6 +49,9 @@ export async function createDayOff(
       createdBy: { connect: { id: accountId } },
       name: m.seed_event_kind_absence(),
       congregation: { connect: { id: congregationId } },
+      // Days-off never go through the release workflow — they must be visible
+      // to the conflict pipeline immediately.
+      status: 'released',
     },
   })
 

@@ -120,12 +120,15 @@ export async function getContentVersion(
       const templateIds = config.templates.map(t => t.templateId)
       const [event, assignment] = await Promise.all([
         db.event.findFirst({
-          where: { congregationId, templateId: { in: templateIds }, startDate: { gte: fromDate } },
+          where: { congregationId, templateId: { in: templateIds }, startDate: { gte: fromDate }, status: 'released' },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
         db.programmePartAssignment.findFirst({
-          where: { congregationId, event: { templateId: { in: templateIds }, startDate: { gte: fromDate } } },
+          where: {
+            congregationId,
+            event: { templateId: { in: templateIds }, startDate: { gte: fromDate }, status: 'released' },
+          },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
@@ -137,14 +140,14 @@ export async function getContentVersion(
     if (dynamicRef) {
       const [event, assignment] = await Promise.all([
         db.event.findFirst({
-          where: { congregationId, template: { key: dynamicRef }, startDate: { gte: fromDate } },
+          where: { congregationId, template: { key: dynamicRef }, startDate: { gte: fromDate }, status: 'released' },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
         db.programmePartAssignment.findFirst({
           where: {
             congregationId,
-            event: { template: { key: dynamicRef }, startDate: { gte: fromDate } },
+            event: { template: { key: dynamicRef }, startDate: { gte: fromDate }, status: 'released' },
           },
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
@@ -199,7 +202,7 @@ export async function getDynamicPreview(
     if (!templateFilter) return null
 
     const nextEvent = await db.event.findFirst({
-      where: { congregationId, ...templateFilter, startDate: { gte: new Date() } },
+      where: { congregationId, ...templateFilter, startDate: { gte: new Date() }, status: 'released' },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },
     })
@@ -326,6 +329,7 @@ function fetchProgrammeByIds(
       congregationId,
       templateId: { in: templateIds },
       startDate: { gte: fromDate },
+      status: 'released',
     },
     include: {
       template: true,
@@ -356,6 +360,7 @@ function fetchProgrammeByKey(
       congregationId,
       template: { key: templateKey },
       startDate: { gte: fromDate },
+      status: 'released',
     },
     include: {
       partAssignments: {

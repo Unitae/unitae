@@ -21,9 +21,11 @@ describe('getPersonalAssignments', () => {
 
     const partsCall = (db as never as { programmePartAssignment: { findMany: { mock: { calls: unknown[][] } } } })
       .programmePartAssignment.findMany.mock.calls[0][0] as { where: Record<string, unknown> }
+    // Personal calendar / ICS is publisher-facing — drafts must not appear
+    // there. Only released events flow through.
     expect(partsCall.where).toMatchObject({
       OR: [{ assigneeId: 42 }, { assistantId: 42 }],
-      event: { startDate: { gte: since } },
+      event: { startDate: { gte: since }, status: 'released' },
     })
 
     const rolesCall = (
@@ -31,7 +33,7 @@ describe('getPersonalAssignments', () => {
     ).programmeServiceRoleAssignment.findMany.mock.calls[0][0] as { where: Record<string, unknown> }
     expect(rolesCall.where).toMatchObject({
       assigneeId: 42,
-      event: { startDate: { gte: since } },
+      event: { startDate: { gte: since }, status: 'released' },
     })
 
     const eventsCall = (db as never as { event: { findMany: { mock: { calls: unknown[][] } } } }).event.findMany.mock

@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getContentVersion, getDynamicPreview, markDynamicDocumentViewed } from './dynamic-documents.server'
+import {
+  getContentVersion,
+  getDynamicDocumentData,
+  getDynamicPreview,
+  markDynamicDocumentViewed,
+} from './dynamic-documents.server'
 
 const mockDb = {
   publisherGroup: {
@@ -13,6 +18,7 @@ const mockDb = {
   },
   event: {
     findFirst: vi.fn(),
+    findMany: vi.fn(),
   },
   programmePartAssignment: {
     findFirst: vi.fn(),
@@ -81,6 +87,7 @@ describe('getDynamicPreview', () => {
         congregationId: 10,
         template: { key: 'midweek' },
         startDate: { gte: expect.any(Date) },
+        status: 'released',
       },
       orderBy: { startDate: 'asc' },
       select: { startDate: true },
@@ -164,6 +171,67 @@ describe('getContentVersion', () => {
     const result = await getContentVersion(mockDb as never, 'unknown', null, 10)
 
     expect(result).toBeNull()
+  })
+})
+
+// --- getDynamicDocumentData: draft events hidden ---
+//
+// The board is the public face of the schedule. Any query that surfaces
+// programme events to it MUST filter out drafts, otherwise a manager mid-edit
+// leaks half-baked assignments to every publisher walking past the screen.
+
+describe('getDynamicDocumentData programme draft filter', () => {
+  it('filters legacy single-template events to status=released', async () => {
+    mockDb.event.findMany.mockResolvedValue([])
+
+    await getDynamicDocumentData(mockDb as never, 'programme', 'midweek', 10, { showServices: false })
+
+    expect(mockDb.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'released' }),
+      }),
+    )
+  })
+
+  it('filters multi-template events to status=released', async () => {
+    mockDb.event.findMany.mockResolvedValue([])
+    const dynamicConfig = { templates: [{ templateId: 1, parts: true, services: false }] }
+
+    await getDynamicDocumentData(mockDb as never, 'programme', null, 10, { dynamicConfig })
+
+    expect(mockDb.event.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'released' }),
+      }),
+    )
+  })
+})
+
+describe('getDynamicPreview programme draft filter', () => {
+  it('picks the next released event only', async () => {
+    mockDb.event.findFirst.mockResolvedValue(null)
+
+    await getDynamicPreview(mockDb as never, 'programme', 'midweek', 10)
+
+    expect(mockDb.event.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ status: 'released' }),
+      }),
+    )
+  })
+})
+
+describe('getContentVersion programme draft filter', () => {
+  it('reads latest event / assignment updatedAt from released events only', async () => {
+    mockDb.event.findFirst.mockResolvedValue(null)
+    mockDb.programmePartAssignment.findFirst.mockResolvedValue(null)
+
+    await getContentVersion(mockDb as never, 'programme', 'midweek', 10)
+
+    const eventCall = mockDb.event.findFirst.mock.calls[0][0]
+    expect(eventCall.where).toMatchObject({ status: 'released' })
+    const assignmentCall = mockDb.programmePartAssignment.findFirst.mock.calls[0][0]
+    expect(assignmentCall.where.event).toMatchObject({ status: 'released' })
   })
 })
 

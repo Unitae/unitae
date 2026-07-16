@@ -27,9 +27,11 @@ export async function getResponsibleConflicts(
 ): Promise<ResponsibleConflictsSummary> {
   const now = new Date()
 
+  // Drafts stay off the dashboard even for managers — the events-list amber
+  // badge and the release-blocking error are their surface for those.
   const eventFilter = isProgramManager
-    ? { startDate: { gte: now } }
-    : { startDate: { gte: now }, template: { responsibles: { some: { userId } } } }
+    ? { startDate: { gte: now }, status: 'released' }
+    : { startDate: { gte: now }, status: 'released', template: { responsibles: { some: { userId } } } }
 
   const [partRows, serviceRows] = await Promise.all([
     db.programmePartAssignment.findMany({

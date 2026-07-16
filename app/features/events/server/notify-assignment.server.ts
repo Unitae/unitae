@@ -15,7 +15,9 @@ const logger = createLogger('notify-assignment')
 // resolver — null means the event was created ad-hoc without a template, in
 // which case the resolver falls back to /board.
 export interface AssignmentNotificationContext {
-  event: { id: number; name: string; startDate: Date; templateId: number | null }
+  // `status` is what tells the dispatcher whether the assignment is public
+  // yet. Draft events accumulate diffs silently; release re-enqueues them.
+  event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string
   entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
   entityId: number
@@ -31,7 +33,7 @@ export type { AssignmentChangeType, ProgrammeRole }
 // `assignmentName` may be undefined (assignment fetched after deletion, etc.);
 // it defaults to '' so the payload schema still accepts it.
 export function buildAssignmentContext(args: {
-  event: { id: number; name: string; startDate: Date; templateId: number | null }
+  event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string | undefined
   entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
   entityId: number
@@ -46,6 +48,7 @@ export function buildAssignmentContext(args: {
       name: args.event.name,
       startDate: args.event.startDate,
       templateId: args.event.templateId,
+      status: args.event.status,
     },
     assignmentName: args.assignmentName ?? '',
     entityType: args.entityType,
@@ -99,6 +102,11 @@ export async function dispatchAssignmentDiffs(
   ctx: AssignmentNotificationContext,
   diffs: AssignmentDiff[],
 ): Promise<void> {
+  // Drafts are the manager's scratch space — no publisher hears anything until
+  // the event is explicitly released. The release path re-enqueues an assigned
+  // notification per current assignee, so no one is silently forgotten.
+  if (ctx.event.status === 'draft') return
+
   for (const diff of diffs) {
     if (diff.previousMemberId != null && diff.previousMemberId !== diff.newMemberId) {
       await notifyAssignment(db, ctx, {

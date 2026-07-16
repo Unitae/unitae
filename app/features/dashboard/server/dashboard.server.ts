@@ -172,7 +172,9 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
     db.programmePartAssignment.findMany({
       where: {
         OR: [{ assigneeId: userId }, { assistantId: userId }],
-        event: { startDate: { gte: now } },
+        // Drafts are the manager's scratch space — never previewed to
+        // publishers.
+        event: { startDate: { gte: now }, status: 'released' },
       },
       select: {
         id: true,
@@ -193,7 +195,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
     db.programmeServiceRoleAssignment.findMany({
       where: {
         assigneeId: userId,
-        event: { startDate: { gte: now } },
+        event: { startDate: { gte: now }, status: 'released' },
       },
       select: {
         id: true,
@@ -256,7 +258,10 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       where: {
         hasConflict: true,
         OR: [{ assigneeId: userId }, { assistantId: userId }],
-        event: { startDate: { gte: now } },
+        // Conflicts on a draft event are not urgent — the schedule isn't
+        // public yet. They only surface via the events-list amber badge for
+        // managers, and block the release step.
+        event: { startDate: { gte: now }, status: 'released' },
       },
       select: {
         id: true,
@@ -269,7 +274,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       where: {
         hasConflict: true,
         assigneeId: userId,
-        event: { startDate: { gte: now } },
+        event: { startDate: { gte: now }, status: 'released' },
       },
       select: {
         id: true,

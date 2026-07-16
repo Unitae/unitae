@@ -38,7 +38,8 @@ export async function getPersonalAssignments(
       ? db.programmePartAssignment.findMany({
           where: {
             OR: [{ assigneeId: memberId }, { assistantId: memberId }],
-            event: { startDate: { gte: since } },
+            // Drafts stay off the publisher's calendar and ICS feed.
+            event: { startDate: { gte: since }, status: 'released' },
           },
           include: { event: true },
         })
@@ -47,7 +48,7 @@ export async function getPersonalAssignments(
       ? db.programmeServiceRoleAssignment.findMany({
           where: {
             assigneeId: memberId,
-            event: { startDate: { gte: since } },
+            event: { startDate: { gte: since }, status: 'released' },
           },
           include: { event: true },
         })

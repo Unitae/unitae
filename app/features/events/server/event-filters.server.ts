@@ -17,6 +17,7 @@ export function computeFilters(params: URLSearchParams): Prisma.EventWhereInput 
   filters = applyDateRangeFilter(filters, params)
   filters = applyPublisherFilter(filters, params)
   filters = applyHasConflictsFilter(filters, params)
+  filters = applyStatusFilter(filters, params)
 
   return filters
 }
@@ -48,6 +49,15 @@ function applyPublisherFilter(filters: Prisma.EventWhereInput, params: URLSearch
   }
 
   return filters
+}
+
+// Plumbing for a future "Brouillons" / "Publiés" toggle on the events list.
+// Only recognises the two valid statuses so a bad querystring value doesn't
+// silently return zero rows.
+function applyStatusFilter(filters: Prisma.EventWhereInput, params: URLSearchParams): Prisma.EventWhereInput {
+  const status = params.get('status')
+  if (status !== 'draft' && status !== 'released') return filters
+  return { ...filters, status }
 }
 
 // `?hasConflicts=true` restricts the list to events that have at least one

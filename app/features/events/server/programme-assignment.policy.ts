@@ -20,9 +20,6 @@ export const PROGRAMME_ASSIGNMENT_ERRORS = {
   ineligibleSpeaker: "L'orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.",
   ineligibleReader: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
   ineligibleServant: 'Le proclamateur sélectionné ne fait pas partie des rôles autorisés pour ce service.',
-  dayOffSpeaker: 'Ce proclamateur a une absence durant cette date.',
-  dayOffReader: 'Le deuxième orateur a une absence durant cette date.',
-  dayOffServant: 'Ce proclamateur a une absence durant cette date.',
 } as const
 
 export type ProgrammeRoleKind = 'speaker' | 'reader' | 'servant'
@@ -65,14 +62,4 @@ export function checkEligibleForRole(
   roleKind: ProgrammeRoleKind,
 ): Rejection | null {
   return eligibleUserIds.includes(assigneeId) ? null : { error: INELIGIBLE_MESSAGE[roleKind] }
-}
-
-const DAY_OFF_MESSAGE: Record<ProgrammeRoleKind, string> = {
-  speaker: PROGRAMME_ASSIGNMENT_ERRORS.dayOffSpeaker,
-  reader: PROGRAMME_ASSIGNMENT_ERRORS.dayOffReader,
-  servant: PROGRAMME_ASSIGNMENT_ERRORS.dayOffServant,
-}
-
-export function checkNoDayOffConflict(hasConflict: boolean, roleKind: ProgrammeRoleKind): Rejection | null {
-  return hasConflict ? { error: DAY_OFF_MESSAGE[roleKind] } : null
 }

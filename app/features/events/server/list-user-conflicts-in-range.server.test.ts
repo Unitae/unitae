@@ -23,9 +23,10 @@ describe('listUserConflictsInRange', () => {
   })
 
   // Filters must be by memberId (assigneeId / assistantId reference Member.id),
-  // hasConflict: true, and event range overlap. Anything else risks either
-  // showing stale conflicts or missing legitimate ones.
-  it('filters part assignments by memberId, hasConflict, and event overlap', async () => {
+  // hasConflict: true, event range overlap, and released status. Drafts are
+  // the manager's scratch space and must never surface to consumers of this
+  // query (days-off modal, responsibles dashboard card).
+  it('filters part assignments by memberId, hasConflict, event overlap, and released status', async () => {
     const memberId = 5000
     const start = new Date(2026, 6, 1)
     const end = new Date(2026, 6, 3)
@@ -36,10 +37,10 @@ describe('listUserConflictsInRange', () => {
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
-    expect(where.event).toEqual({ startDate: { lte: end }, endDate: { gte: start } })
+    expect(where.event).toEqual({ startDate: { lte: end }, endDate: { gte: start }, status: 'released' })
   })
 
-  it('filters service-role assignments by memberId as assignee only', async () => {
+  it('filters service-role assignments by memberId as assignee and released status', async () => {
     const memberId = 5000
     await listUserConflictsInRange(db, memberId, new Date(2026, 6, 1), new Date(2026, 6, 3))
 
@@ -47,6 +48,7 @@ describe('listUserConflictsInRange', () => {
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.assigneeId).toBe(memberId)
+    expect((where.event as { status?: string }).status).toBe('released')
   })
 
   it('resolves the responsible name via accountDisplayName when a template responsible exists', async () => {

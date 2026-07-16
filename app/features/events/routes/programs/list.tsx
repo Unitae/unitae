@@ -3,8 +3,10 @@ import {
   CalendarOff,
   ChevronRight,
   FileDown,
+  FileText,
   Loader2,
   MoreHorizontal,
+  Send,
   Trash2,
   UserCog,
 } from 'lucide-react'
@@ -164,6 +166,15 @@ function ConflictBadge({ count }: { count: number }) {
   )
 }
 
+function DraftBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-muted-foreground/30 bg-muted px-2 py-0.5 font-medium text-muted-foreground text-xs">
+      <FileText className="size-3" aria-hidden="true" />
+      {m.programs_event_draft_badge()}
+    </span>
+  )
+}
+
 function EventRow({
   event,
   timezone,
@@ -181,6 +192,7 @@ function EventRow({
   const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
   const isUpcoming = new Date(event.startDate) >= new Date()
   const showConflictBadge = isUpcoming && event.conflictCount > 0
+  const isDraft = event.status === 'draft'
   const cardStyle = { borderLeftColor: event.kind?.color ?? 'transparent', borderLeftWidth: '4px' }
   const kindLabel = event.kind ? ` · ${event.kind.name}` : ''
   const timeLabel = time ? ` · ${time}` : ''
@@ -215,6 +227,7 @@ function EventRow({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {isDraft && <DraftBadge />}
             {showConflictBadge && <ConflictBadge count={event.conflictCount} />}
             <ChevronRight className="size-4 text-muted-foreground" />
           </div>
@@ -267,17 +280,29 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const bulkFetcher = useFetcher<{ ok: boolean }>()
+  const bulkStatusFetcher = useFetcher<{ ok: boolean }>()
 
   const weekGroups = groupByWeek(upcomingEvents)
   const editableIds = upcomingEvents.filter(e => e.canEdit).map(e => e.id)
   const hasEditableEvents = editableIds.length > 0
   const isDeleting = bulkFetcher.state !== 'idle'
+  const isChangingStatus = bulkStatusFetcher.state !== 'idle'
+
+  const selectedEvents = upcomingEvents.filter(e => selectedIds.has(e.id))
+  const anyDraftSelected = selectedEvents.some(e => e.status === 'draft')
+  const anyReleasedSelected = selectedEvents.some(e => e.status === 'released')
 
   useEffect(() => {
     if (bulkFetcher.state === 'idle' && bulkFetcher.data?.ok === true) {
       setSelectedIds(new Set())
     }
   }, [bulkFetcher.state, bulkFetcher.data])
+
+  useEffect(() => {
+    if (bulkStatusFetcher.state === 'idle' && bulkStatusFetcher.data?.ok === true) {
+      setSelectedIds(new Set())
+    }
+  }, [bulkStatusFetcher.state, bulkStatusFetcher.data])
 
   function toggleSelection(id: number) {
     setSelectedIds(prev => {
@@ -313,6 +338,21 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
       { method: 'POST', action: '/programs/bulk-delete', encType: 'application/json' },
     )
     setBulkDeleteOpen(false)
+  }
+
+  function bulkRelease() {
+    const ids = selectedEvents.filter(e => e.status === 'draft').map(e => e.id)
+    if (ids.length === 0) return
+    bulkStatusFetcher.submit({ ids }, { method: 'POST', action: '/programs/bulk-release', encType: 'application/json' })
+  }
+
+  function bulkUnrelease() {
+    const ids = selectedEvents.filter(e => e.status === 'released').map(e => e.id)
+    if (ids.length === 0) return
+    bulkStatusFetcher.submit(
+      { ids },
+      { method: 'POST', action: '/programs/bulk-unrelease', encType: 'application/json' },
+    )
   }
 
   return (
@@ -383,6 +423,18 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
               <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
                 {m.programs_bulk_deselect()}
               </Button>
+              {anyDraftSelected && (
+                <Button variant="default" size="sm" onClick={bulkRelease} disabled={isChangingStatus}>
+                  {isChangingStatus ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  {m.programs_bulk_release()}
+                </Button>
+              )}
+              {anyReleasedSelected && (
+                <Button variant="outline" size="sm" onClick={bulkUnrelease} disabled={isChangingStatus}>
+                  {isChangingStatus ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
+                  {m.programs_bulk_unrelease()}
+                </Button>
+              )}
               <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
                 <Trash2 className="size-4" />
                 {m.programs_bulk_delete()}

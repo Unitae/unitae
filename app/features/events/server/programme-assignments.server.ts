@@ -7,7 +7,6 @@ import {
 import {
   checkEligibleForRole,
   checkExternalSpeakerValid,
-  checkNoDayOffConflict,
   checkParticipantsDistinct,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/programme-assignment.policy'
@@ -99,20 +98,18 @@ export async function assignPart(
   const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
   if (notDistinct) return notDistinct
 
+  let hasConflict = false
+
   if (assigneeId != null) {
     const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'speaker', congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
     const ineligibleSpeaker = checkEligibleForRole(eligible, assigneeId, 'speaker')
     if (ineligibleSpeaker) return ineligibleSpeaker
-    const conflict = await checkDayOffConflict(
-      db,
-      assigneeId,
-      existing.event.startDate,
-      existing.event.endDate,
-      congregationId,
-    )
-    const speakerConflict = checkNoDayOffConflict(conflict, 'speaker')
-    if (speakerConflict) return speakerConflict
+    // Day-off overlaps used to abort here; they now flow through as
+    // hasConflict=true and are surfaced by the release-blocking policy.
+    if (await checkDayOffConflict(db, assigneeId, existing.event.startDate, existing.event.endDate, congregationId)) {
+      hasConflict = true
+    }
   }
 
   if (assistantId != null) {
@@ -120,22 +117,16 @@ export async function assignPart(
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
     const ineligibleReader = checkEligibleForRole(eligible, assistantId, 'reader')
     if (ineligibleReader) return ineligibleReader
-    const conflict = await checkDayOffConflict(
-      db,
-      assistantId,
-      existing.event.startDate,
-      existing.event.endDate,
-      congregationId,
-    )
-    const readerConflict = checkNoDayOffConflict(conflict, 'reader')
-    if (readerConflict) return readerConflict
+    if (await checkDayOffConflict(db, assistantId, existing.event.startDate, existing.event.endDate, congregationId)) {
+      hasConflict = true
+    }
   }
 
   const assignment = await db.programmePartAssignment.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict: false },
+    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict },
   })
 
   return { assignment, previousAssigneeId, previousAssistantId }
@@ -156,27 +147,23 @@ export async function assignServiceRole(
 
   const previousAssigneeId = existing.assigneeId
 
+  let hasConflict = false
+
   if (assigneeId != null) {
     const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignmentId, congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
     const ineligible = checkEligibleForRole(eligible, assigneeId, 'servant')
     if (ineligible) return ineligible
-    const conflict = await checkDayOffConflict(
-      db,
-      assigneeId,
-      existing.event.startDate,
-      existing.event.endDate,
-      congregationId,
-    )
-    const dayOff = checkNoDayOffConflict(conflict, 'servant')
-    if (dayOff) return dayOff
+    if (await checkDayOffConflict(db, assigneeId, existing.event.startDate, existing.event.endDate, congregationId)) {
+      hasConflict = true
+    }
   }
 
   const assignment = await db.programmeServiceRoleAssignment.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, hasConflict: false },
+    data: { assigneeId, hasConflict },
   })
 
   return { assignment, previousAssigneeId }

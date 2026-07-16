@@ -103,6 +103,10 @@ export const AuditAction = {
   ExternalSpeakerArchived: 'external_speaker.archived',
   ExternalSpeakerUnarchived: 'external_speaker.unarchived',
 
+  // Programme events
+  EventReleased: 'event.released',
+  EventUnreleased: 'event.unreleased',
+
   // Platform admin
   PlatformCongregationUpdated: 'platform.congregation.updated',
   PlatformUsersListed: 'platform.users.listed',

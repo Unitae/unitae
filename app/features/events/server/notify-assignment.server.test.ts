@@ -22,7 +22,13 @@ const { notify } = await import('~/features/notifications/index.server')
 const { resolveProgrammeLink } = await import('~/features/display-board/index.server')
 
 const CTX = {
-  event: { id: 1, name: 'Weekly meeting', startDate: new Date('2026-07-20T18:30:00Z'), templateId: 9 },
+  event: {
+    id: 1,
+    name: 'Weekly meeting',
+    startDate: new Date('2026-07-20T18:30:00Z'),
+    templateId: 9,
+    status: 'released' as const,
+  },
   assignmentName: 'Perles de la Parole',
   entityType: 'ProgrammePartAssignment' as const,
   entityId: 100,
@@ -147,6 +153,19 @@ describe('dispatchAssignmentDiffs', () => {
       { role: 'reader', previousMemberId: 8, newMemberId: null },
     ])
     expect(notify).toHaveBeenCalledTimes(2)
+  })
+
+  // Draft events accumulate assignments silently — nothing goes out until the
+  // manager explicitly releases. The release path re-enqueues an assigned
+  // notification per current assignee so no one is forgotten.
+  it('does not fire notifications when the event is still a draft', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
+    const draftCtx = { ...CTX, event: { ...CTX.event, status: 'draft' as const } }
+    await dispatchAssignmentDiffs(db, draftCtx, [
+      { role: 'speaker', previousMemberId: null, newMemberId: 5 },
+      { role: 'reader', previousMemberId: 8, newMemberId: null },
+    ])
+    expect(notify).not.toHaveBeenCalled()
   })
 })
 

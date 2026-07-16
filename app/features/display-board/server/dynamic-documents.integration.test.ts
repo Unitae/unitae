@@ -97,6 +97,7 @@ beforeAll(async () => {
         endDate: new Date('2027-06-01T21:00:00Z'),
         createdById: aliceAccountIdInner,
         congregationId,
+        status: 'released',
       },
     })
 
