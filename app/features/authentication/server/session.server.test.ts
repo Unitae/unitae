@@ -97,43 +97,44 @@ describe('verifySession', () => {
     expect(result.session).toBe(mockSession)
   })
 
-  it('redirige vers /login si le userId est absent de la session', async () => {
+  it('redirige vers /login avec redirectTo si le userId est absent de la session', async () => {
     mockSession.get.mockReturnValue(undefined)
 
-    const response = await getRedirectResponse(() => verifySession(makeRequest()))
-    expect(response.headers.get('Location')).toBe('/login')
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
-  it('redirige vers /login si le userId est NaN', async () => {
+  it('redirige vers /login avec redirectTo si le userId est NaN', async () => {
     mockSession.get.mockReturnValue('invalid')
 
-    const response = await getRedirectResponse(() => verifySession(makeRequest()))
-    expect(response.headers.get('Location')).toBe('/login')
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
-  it("redirige vers /login si l'utilisateur n'existe pas", async () => {
+  it("redirige vers /login avec redirectTo si l'utilisateur n'existe pas", async () => {
     mockSession.get.mockReturnValue('42')
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(null as never)
 
-    const response = await getRedirectResponse(() => verifySession(makeRequest()))
-    expect(response.headers.get('Location')).toBe('/login')
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
-  it("redirige vers /login si l'utilisateur est inactif", async () => {
+  it("redirige vers /login avec redirectTo si l'utilisateur est inactif", async () => {
     mockSession.get.mockReturnValue('42')
     vi.mocked(db.userAccount.findUnique).mockResolvedValue({ ...fakeUser, active: false } as never)
 
-    const response = await getRedirectResponse(() => verifySession(makeRequest()))
-    expect(response.headers.get('Location')).toBe('/login')
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
-  it("redirige vers /login si le subdomain ne correspond pas à l'assemblée de l'utilisateur", async () => {
+  it("redirige vers /login sans redirectTo si le subdomain ne correspond pas à l'assemblée de l'utilisateur", async () => {
     mockSession.get.mockReturnValue('42')
     vi.mocked(db.userAccount.findUnique).mockResolvedValue(fakeUser as never)
     vi.mocked(resolveCongregationFromRequest).mockResolvedValue({ id: 999 } as never)
 
-    const response = await getRedirectResponse(() => verifySession(makeRequest()))
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
     expect(response.headers.get('Location')).toBe('/login')
+    expect(response.headers.get('Location')).not.toContain('redirectTo')
   })
 
   it("redirige vers /suspended si l'assemblée est suspendue", async () => {
@@ -165,13 +166,13 @@ describe('verifySession', () => {
     expect(response.headers.get('Location')).toBe('/trial-expired')
   })
 
-  it('redirige vers /login si findUnique échoue avec P2007', async () => {
+  it('redirige vers /login avec redirectTo si findUnique échoue avec P2007', async () => {
     mockSession.get.mockReturnValue('42')
     const p2007Error = Object.assign(new Error('Type mismatch'), { code: 'P2007' })
     vi.mocked(db.userAccount.findUnique).mockRejectedValue(p2007Error)
 
-    const response = await getRedirectResponse(() => verifySession(makeRequest()))
-    expect(response.headers.get('Location')).toBe('/login')
+    const response = await getRedirectResponse(() => verifySession(makeRequest('http://localhost/territories/1?x=2')))
+    expect(response.headers.get('Location')).toBe('/login?redirectTo=%2Fterritories%2F1%3Fx%3D2')
   })
 
   it("redirige vers /verify-email si l'email n'est pas vérifié", async () => {
@@ -182,6 +183,14 @@ describe('verifySession', () => {
 
     const response = await getRedirectResponse(() => verifySession(makeRequest()))
     expect(response.headers.get('Location')).toBe('/verify-email')
+  })
+
+  it('redirige vers /login sans redirectTo quand request.url est mal formée', async () => {
+    mockSession.get.mockReturnValue(undefined)
+    const badRequest = { url: 'not-a-valid-url', headers: { get: () => null } } as unknown as Request
+
+    const response = await getRedirectResponse(() => verifySession(badRequest))
+    expect(response.headers.get('Location')).toBe('/login')
   })
 })
 

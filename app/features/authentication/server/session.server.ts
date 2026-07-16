@@ -1,4 +1,5 @@
 import { createCookieSessionStorage, redirect, type Session } from 'react-router'
+import { buildLoginRedirectUrl } from '~/features/authentication/server/post-login-redirect.server'
 import { sanitizeAccount } from '~/shared/auth/sanitize-account.server'
 import { SESSION_MAX_AGE_SECONDS_DEV, SESSION_MAX_AGE_SECONDS_PROD } from '~/shared/constants/limits'
 import { resolveCongregation, resolveCongregationFromRequest } from '~/shared/domain/congregation.server'
@@ -32,19 +33,32 @@ const { getSession, commitSession, destroySession } = createCookieSessionStorage
 
 export { commitSession, destroySession, getSession }
 
-async function redirectToLogin(session: Session<SessionData, SessionFlashData>): Promise<never> {
-  throw redirect('/login', {
+async function redirectToLogin(
+  session: Session<SessionData, SessionFlashData>,
+  options: { redirectTo?: string } = {},
+): Promise<never> {
+  throw redirect(buildLoginRedirectUrl(options.redirectTo ?? '/'), {
     headers: {
       'Set-Cookie': await destroySession(session),
     },
   })
 }
 
-async function findUserFromSession(session: Session<SessionData, SessionFlashData>) {
+function extractRedirectTo(request: Request): string {
+  try {
+    const url = new URL(request.url)
+    return `${url.pathname}${url.search}`
+  } catch {
+    logger.warn(`verifySession: unable to parse request.url (${request.url})`)
+    return '/'
+  }
+}
+
+async function findUserFromSession(session: Session<SessionData, SessionFlashData>, redirectTo: string) {
   const rawUserId = session.get('userId')
   const userId = Number(rawUserId)
   if (!rawUserId || Number.isNaN(userId) || userId <= 0) {
-    return redirectToLogin(session)
+    return redirectToLogin(session, { redirectTo })
   }
 
   try {
@@ -53,12 +67,12 @@ async function findUserFromSession(session: Session<SessionData, SessionFlashDat
       include: { member: { include: { responsibleFor: true, deputyFor: true } } },
     })
 
-    if (user == null || !user.active) return redirectToLogin(session)
+    if (user == null || !user.active) return redirectToLogin(session, { redirectTo })
     return user
   } catch (error) {
     if (error instanceof Error && 'code' in error && (error as Error & { code: string }).code === 'P2007') {
       logger.warn(`Session verification failed: adapter sent invalid value for userId ${userId} (P2007)`)
-      return redirectToLogin(session)
+      return redirectToLogin(session, { redirectTo })
     }
     throw error
   }
@@ -66,7 +80,8 @@ async function findUserFromSession(session: Session<SessionData, SessionFlashDat
 
 export async function verifySession(request: Request) {
   const session = await getSession(request.headers.get('Cookie'))
-  const user = await findUserFromSession(session)
+  const redirectTo = extractRedirectTo(request)
+  const user = await findUserFromSession(session, redirectTo)
 
   const urlCongregation = await resolveCongregationFromRequest(request)
   if (urlCongregation && urlCongregation.id !== user.congregationId) {

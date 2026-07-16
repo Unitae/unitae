@@ -4,6 +4,10 @@ import { data, Form, Link, redirect } from 'react-router'
 import { loginSchema } from '~/features/authentication/schemas/login.schema'
 import { needSetupProcess } from '~/features/authentication/server/need-setup-process.server'
 import {
+  buildLoginRedirectUrl,
+  resolvePostLoginRedirect,
+} from '~/features/authentication/server/post-login-redirect.server'
+import {
   checkLoginRateLimit,
   clearLoginAttempts,
   recordLoginAttempt,
@@ -19,6 +23,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardFooter, CardHeader } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
+import { safeRedirectUrl } from '~/shared/utils/safe-redirect.server'
 import type { Route } from './+types/login'
 
 export const meta: Route.MetaFunction = () => {
@@ -28,6 +33,8 @@ export const meta: Route.MetaFunction = () => {
 export async function loader({ request }: Route.LoaderArgs) {
   // Verify that the subdomain matches an existing congregation
   await resolveCongregationFromRequest(request)
+
+  const redirectTo = safeRedirectUrl(new URL(request.url).searchParams.get('redirectTo'), '/')
 
   const shouldStartSetup = await needSetupProcess()
   if (shouldStartSetup) {
@@ -39,7 +46,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     const uid = Number(session.get('userId'))
     if (Number.isNaN(uid) || uid <= 0) {
       return data(
-        { error: undefined, brandingName: await getBrandingName(request) },
+        { error: undefined, brandingName: await getBrandingName(request), redirectTo },
         { headers: { 'Set-Cookie': await destroySession(session) } },
       )
     }
@@ -53,18 +60,18 @@ export async function loader({ request }: Route.LoaderArgs) {
       })
       if (!user || user.congregationId !== urlCongregation.id) {
         return data(
-          { error: undefined, brandingName: await getBrandingName(request) },
+          { error: undefined, brandingName: await getBrandingName(request), redirectTo },
           { headers: { 'Set-Cookie': await destroySession(session) } },
         )
       }
     }
-    throw redirect('/')
+    throw redirect(redirectTo)
   }
 
   const brandingName = await getBrandingName(request)
 
   return data(
-    { error: session.get('error'), brandingName },
+    { error: session.get('error'), brandingName, redirectTo },
     {
       headers: {
         'Set-Cookie': await commitSession(session),
@@ -74,7 +81,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export default function LoginPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { error, brandingName } = loaderData
+  const { error, brandingName, redirectTo } = loaderData
 
   const [form, fields] = useForm({
     lastResult: actionData,
@@ -97,6 +104,7 @@ export default function LoginPage({ loaderData, actionData }: Route.ComponentPro
             </Alert>
           )}
           <Form method="post" className="flex flex-col gap-4" {...getFormProps(form)}>
+            <input type="hidden" name="redirectTo" value={redirectTo} />
             <div className="flex flex-col gap-2">
               <Label htmlFor={fields.email.id}>{m.auth_login_email()}</Label>
               <Input {...getInputProps(fields.email, { type: 'email' })} autoFocus={true} autoComplete="username" />
@@ -127,7 +135,10 @@ export default function LoginPage({ loaderData, actionData }: Route.ComponentPro
 
 export async function action({ request }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
-  const submission = parseWithZod(await request.formData(), { schema: loginSchema })
+  const formData = await request.formData()
+  const postLoginRedirect = resolvePostLoginRedirect(request, formData)
+  const loginUrl = buildLoginRedirectUrl(postLoginRedirect)
+  const submission = parseWithZod(formData, { schema: loginSchema })
 
   if (submission.status !== 'success') {
     return data(submission.reply(), { status: 400 })
@@ -139,7 +150,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (!allowed) {
     session.flash('error', m.auth_login_rate_limit_error())
 
-    return redirect('/login', {
+    return redirect(loginUrl, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
@@ -158,7 +169,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
     session.flash('error', m.auth_login_invalid_credentials_error())
 
-    return redirect('/login', {
+    return redirect(loginUrl, {
       headers: { 'Set-Cookie': await commitSession(session) },
     })
   }
@@ -177,7 +188,7 @@ export async function action({ request }: Route.ActionArgs) {
     })
   }
 
-  return redirect('/', {
+  return redirect(postLoginRedirect, {
     headers: { 'Set-Cookie': await commitSession(session) },
   })
 }
