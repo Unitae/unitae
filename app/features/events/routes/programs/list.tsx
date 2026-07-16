@@ -169,50 +169,58 @@ function EventRow({
   timezone,
   selected,
   onToggleSelection,
+  showCheckboxSlot,
 }: {
   event: Event
   timezone: string
   selected: boolean
   onToggleSelection: () => void
+  showCheckboxSlot: boolean
 }) {
   const weekday = formatEventDate(event.startDate, timezone, 'fr-FR', { weekday: 'long' })
   const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
   const isUpcoming = new Date(event.startDate) >= new Date()
   const showConflictBadge = isUpcoming && event.conflictCount > 0
-  const cardStyle = event.kind?.color ? { borderLeftColor: event.kind.color, borderLeftWidth: '4px' } : {}
+  const cardStyle = { borderLeftColor: event.kind?.color ?? 'transparent', borderLeftWidth: '4px' }
   const kindLabel = event.kind ? ` · ${event.kind.name}` : ''
   const timeLabel = time ? ` · ${time}` : ''
 
   return (
-    <div className="flex items-center gap-3">
-      {event.canEdit && (
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={onToggleSelection}
-          className="size-4 rounded border border-input accent-primary"
-          onClick={e => e.stopPropagation()}
-        />
-      )}
-      <Link to={`./events/${event.id}`} className="flex-1 no-underline">
-        <Card className="overflow-hidden transition-colors hover:bg-muted/50" style={cardStyle}>
-          <CardContent className="flex items-center justify-between gap-3 py-3">
-            <div className="flex flex-col gap-0.5">
-              <span className="font-medium text-sm">{event.name}</span>
-              <span className="text-muted-foreground text-xs capitalize">
-                {weekday}
-                {timeLabel}
-                {kindLabel}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              {showConflictBadge && <ConflictBadge count={event.conflictCount} />}
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </Link>
-    </div>
+    <Card
+      data-selected={selected}
+      className="group overflow-hidden transition-colors hover:bg-muted data-[selected=true]:bg-primary/5 data-[selected=true]:ring-1 data-[selected=true]:ring-primary/20 data-[selected=true]:hover:bg-primary/10"
+      style={cardStyle}
+    >
+      <CardContent className="flex items-center gap-3 py-3">
+        {showCheckboxSlot && (
+          <div className="flex size-4 shrink-0 items-center justify-center" aria-hidden={!event.canEdit}>
+            {event.canEdit && (
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={onToggleSelection}
+                aria-label={m.programs_bulk_select_event({ name: event.name })}
+                className="size-4 rounded border border-input/60 accent-primary opacity-60 transition-opacity checked:opacity-100 focus-visible:opacity-100 group-hover:opacity-100"
+              />
+            )}
+          </div>
+        )}
+        <Link to={`./events/${event.id}`} className="flex flex-1 items-center justify-between gap-3 no-underline">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-medium text-sm">{event.name}</span>
+            <span className="text-muted-foreground text-xs capitalize">
+              {weekday}
+              {timeLabel}
+              {kindLabel}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {showConflictBadge && <ConflictBadge count={event.conflictCount} />}
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </div>
+        </Link>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -220,10 +228,12 @@ function WeekCheckbox({
   events,
   selectedIds,
   onToggleWeek,
+  ariaLabel,
 }: {
   events: Event[]
   selectedIds: Set<number>
   onToggleWeek: (ids: number[], select: boolean) => void
+  ariaLabel: string
 }) {
   const ref = useRef<HTMLInputElement>(null)
   const allSelected = events.length > 0 && events.every(e => selectedIds.has(e.id))
@@ -246,6 +256,7 @@ function WeekCheckbox({
           !allSelected,
         )
       }
+      aria-label={ariaLabel}
       className="size-4 rounded border border-input accent-primary"
     />
   )
@@ -355,11 +366,15 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
       {upcomingEvents.length > 0 ? (
         <div className="flex flex-col gap-6">
           {hasEditableEvents && selectedIds.size > 0 && (
-            <div className="sticky top-0 z-10 flex items-center gap-3 rounded-lg border bg-background/95 px-4 py-2 backdrop-blur">
+            <section
+              aria-label={m.programs_bulk_actions_aria()}
+              className="sticky top-0 z-10 flex items-center gap-3 rounded-lg border bg-background/95 py-2 pr-4 pl-5 backdrop-blur sm:pl-7"
+            >
               <input
                 type="checkbox"
                 checked={selectedIds.size === editableIds.length}
                 onChange={toggleAll}
+                aria-label={m.programs_bulk_actions_aria()}
                 className="size-4 rounded border border-input accent-primary"
               />
               <span className="flex-1 text-muted-foreground text-sm">
@@ -372,27 +387,31 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                 <Trash2 className="size-4" />
                 {m.programs_bulk_delete()}
               </Button>
-            </div>
+            </section>
           )}
 
           {weekGroups.map(({ weekKey, weekMonday, events }) => {
             const editableWeekEvents = events.filter(e => e.canEdit)
+            const showCheckboxSlot = editableWeekEvents.length > 0
+            const weekDate = formatEventDate(weekMonday, timezone, 'fr-FR', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })
             return (
               <div key={weekKey} className="flex flex-col gap-2">
-                <div className="flex items-center gap-3">
-                  {editableWeekEvents.length > 0 && (
-                    <WeekCheckbox events={editableWeekEvents} selectedIds={selectedIds} onToggleWeek={toggleWeek} />
+                <div className="flex items-center gap-3 pl-5 sm:pl-7">
+                  {showCheckboxSlot && (
+                    <WeekCheckbox
+                      events={editableWeekEvents}
+                      selectedIds={selectedIds}
+                      onToggleWeek={toggleWeek}
+                      ariaLabel={m.programs_week_select_all_aria({ date: weekDate })}
+                    />
                   )}
                   <div className="flex flex-1 items-center gap-3">
                     <span className="whitespace-nowrap font-medium text-muted-foreground text-xs">
-                      {m.programs_week_header_count({
-                        date: formatEventDate(weekMonday, timezone, 'fr-FR', {
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                        }),
-                        count: events.length,
-                      })}
+                      {m.programs_week_header_count({ date: weekDate, count: events.length })}
                     </span>
                     <div className="flex-1 border-border border-t" />
                   </div>
@@ -405,6 +424,7 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
                     timezone={timezone}
                     selected={selectedIds.has(event.id)}
                     onToggleSelection={() => toggleSelection(event.id)}
+                    showCheckboxSlot={showCheckboxSlot}
                   />
                 ))}
               </div>
