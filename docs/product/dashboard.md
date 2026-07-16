@@ -32,7 +32,7 @@ Each step is checked off as soon as the congregation has at least one of that it
 
 ## Urgent Strip
 
-A conditional section that surfaces time-sensitive items from across features. It only appears when at least one item qualifies — when everything is fine, the section is hidden entirely. Up to 3 items are shown, sorted by priority:
+A conditional section that surfaces time-sensitive items from across features. It only appears when at least one item qualifies — when everything is fine, the section is hidden entirely. Up to 5 items are shown, sorted by priority:
 
 | Priority | Type | Condition | Link |
 |---|---|---|---|

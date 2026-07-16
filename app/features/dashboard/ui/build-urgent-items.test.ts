@@ -356,15 +356,17 @@ describe('buildUrgentItems', () => {
     expect(items[0].priority).toBeLessThan(items[1].priority)
   })
 
-  it('caps at 3 items maximum', () => {
+  it('caps at 5 items maximum', () => {
     const territories = [
       makeTerritory(1, 'T-1', 'overdue', new Date(2026, 3, 20)),
       makeTerritory(2, 'T-2', 'overdue', new Date(2026, 3, 19)),
-      makeTerritory(3, 'T-3', 'due-soon', new Date(2026, 4, 1)),
-      makeTerritory(4, 'T-4', 'due-soon', new Date(2026, 4, 2)),
+      makeTerritory(3, 'T-3', 'overdue', new Date(2026, 3, 18)),
+      makeTerritory(4, 'T-4', 'due-soon', new Date(2026, 4, 1)),
+      makeTerritory(5, 'T-5', 'due-soon', new Date(2026, 4, 2)),
+      makeTerritory(6, 'T-6', 'due-soon', new Date(2026, 4, 3)),
     ]
     const items = buildUrgentItems(territories, 10, null, null, null)
-    expect(items).toHaveLength(3)
+    expect(items).toHaveLength(5)
   })
 
   it('prioritizes part assignment (0) over overdue territory (1)', () => {

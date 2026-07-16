@@ -176,5 +176,5 @@ export function buildUrgentItems(
     ...urgentDocumentsItem(unreadDocumentCount),
   ]
   items.sort((a, b) => a.priority - b.priority)
-  return items.slice(0, 3)
+  return items.slice(0, 5)
 }
