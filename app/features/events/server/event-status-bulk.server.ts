@@ -92,7 +92,6 @@ export async function bulkUnreleaseEvents(
       continue
     }
     if (result == null) notFound.push(id)
-    else if ('error' in result) failed.push({ id, error: result.error })
     else unreleased.push(id)
   }
 

@@ -35,7 +35,11 @@ type EventWithStatus = {
 }
 
 export type ReleaseResult = { event: EventWithStatus; notifyTargets: NotifyTarget[] } | { error: string }
-export type UnreleaseResult = { event: EventWithStatus } | { error: string }
+// No policy currently blocks an un-release — the only ways it can not-succeed
+// are "event doesn't exist" (returns null) or a raw Prisma throw (caught by
+// the bulk caller). Keep this shape narrow; widen it the day an unrelease
+// invariant is introduced.
+export type UnreleaseResult = { event: EventWithStatus }
 
 const eventWithAssignmentsInclude = {
   partAssignments: {

@@ -12,6 +12,7 @@ import {
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
+import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-release'
 
@@ -55,13 +56,16 @@ export async function action({ request, context }: Route.ActionArgs) {
     `Bulk released ${released.length} events; ${blocked.length} blocked; ${notFound.length} not found; ${failed.length} failed.`,
   )
 
-  // Successes first — the manager sees positive confirmation of what worked.
+  // session.flash stores one string per key, so multiple flash('error', ...)
+  // calls silently overwrite each other. Aggregate the buckets into a single
+  // toast per severity to preserve every non-empty message.
   if (released.length > 0) session.flash('success', m.programs_release_success_bulk({ count: released.length }))
-  // A failed-only response (Phase 1 filtered everything to notFound / failed)
-  // would leave the manager with no feedback; every bucket has its own toast.
-  if (blocked.length > 0) session.flash('error', m.programs_release_blocked_bulk({ count: blocked.length }))
-  if (failed.length > 0) session.flash('error', m.programs_release_failed_bulk({ count: failed.length }))
-  if (notFound.length > 0) session.flash('error', m.programs_bulk_not_found({ count: notFound.length }))
+  const errorMessage = joinMessages([
+    blocked.length > 0 && m.programs_release_blocked_bulk({ count: blocked.length }),
+    failed.length > 0 && m.programs_release_failed_bulk({ count: failed.length }),
+    notFound.length > 0 && m.programs_bulk_not_found({ count: notFound.length }),
+  ])
+  if (errorMessage) session.flash('error', errorMessage)
   return data(
     { ok: true, released: released.length, blocked, notFound: notFound.length, failed: failed.length },
     { headers: { 'Set-Cookie': await commitSession(session) } },

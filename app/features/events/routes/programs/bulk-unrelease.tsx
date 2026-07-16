@@ -7,6 +7,7 @@ import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
+import { joinMessages } from '~/shared/utils/join-messages'
 
 import type { Route } from './+types/bulk-unrelease'
 
@@ -41,11 +42,15 @@ export async function action({ request, context }: Route.ActionArgs) {
   const { unreleased, notFound, failed } = await bulkUnreleaseEvents(allowedIds, congregationId, currentUser.id)
   logger.info(`Bulk unreleased ${unreleased.length} events; ${notFound.length} not found; ${failed.length} failed.`)
 
+  // See bulk-release.tsx for the flash-aggregation rationale.
   if (unreleased.length > 0) {
     session.flash('success', m.programs_unrelease_success_bulk({ count: unreleased.length }))
   }
-  if (failed.length > 0) session.flash('error', m.programs_unrelease_failed_bulk({ count: failed.length }))
-  if (notFound.length > 0) session.flash('error', m.programs_bulk_not_found({ count: notFound.length }))
+  const errorMessage = joinMessages([
+    failed.length > 0 && m.programs_unrelease_failed_bulk({ count: failed.length }),
+    notFound.length > 0 && m.programs_bulk_not_found({ count: notFound.length }),
+  ])
+  if (errorMessage) session.flash('error', errorMessage)
   return data(
     { ok: true, unreleased: unreleased.length, notFound: notFound.length, failed: failed.length },
     { headers: { 'Set-Cookie': await commitSession(session) } },
