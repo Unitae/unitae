@@ -1356,7 +1356,7 @@
     "programs_bulk_unrelease": "Repasser la sélection en brouillon",
     "programs_release_success": "Évènement publié.",
     "programs_release_success_bulk": "{count} évènement(s) publié(s).",
-    "programs_release_blocked_bulk": "{count} évènement(s) n'ont pas pu être publié(s) : {reason}",
+    "programs_release_blocked_bulk": "{count} évènement(s) avec conflit(s) d'absence n'ont pas pu être publié(s).",
     "programs_unrelease_success": "Évènement repassé en brouillon.",
     "programs_unrelease_success_bulk": "{count} évènement(s) repassé(s) en brouillon.",
     "programs_export_pdf_button": "Exporter en PDF",

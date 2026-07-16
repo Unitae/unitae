@@ -66,9 +66,10 @@ export async function action({ request, context }: Route.ActionArgs) {
       session.flash('success', m.programs_release_success_bulk({ count: released.length }))
     }
     if (blocked.length > 0) {
-      // Surface the first blocker verbatim so the manager sees exactly which
-      // conflict they need to resolve.
-      session.flash('error', m.programs_release_blocked_bulk({ count: blocked.length, reason: blocked[0].error }))
+      // The toast is intentionally count-only. Naming each blocker would
+      // become unreadable with several conflicts on the same event; the
+      // events list amber Conflit badge already flags which rows to fix.
+      session.flash('error', m.programs_release_blocked_bulk({ count: blocked.length }))
     }
     return data(
       { ok: true, released: released.length, blocked },
