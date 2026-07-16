@@ -20,6 +20,9 @@ export const PROGRAMME_ASSIGNMENT_ERRORS = {
   ineligibleSpeaker: "L'orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.",
   ineligibleReader: 'Le deuxième orateur sélectionné ne fait pas partie des rôles autorisés pour cette partie.',
   ineligibleServant: 'Le proclamateur sélectionné ne fait pas partie des rôles autorisés pour ce service.',
+  dayOffSpeaker: 'Ce proclamateur a une absence durant cette date.',
+  dayOffReader: 'Le deuxième orateur a une absence durant cette date.',
+  dayOffServant: 'Ce proclamateur a une absence durant cette date.',
 } as const
 
 export type ProgrammeRoleKind = 'speaker' | 'reader' | 'servant'
@@ -54,6 +57,16 @@ const INELIGIBLE_MESSAGE: Record<ProgrammeRoleKind, string> = {
   speaker: PROGRAMME_ASSIGNMENT_ERRORS.ineligibleSpeaker,
   reader: PROGRAMME_ASSIGNMENT_ERRORS.ineligibleReader,
   servant: PROGRAMME_ASSIGNMENT_ERRORS.ineligibleServant,
+}
+
+// Day-off overlap message per role. Parallel to INELIGIBLE_MESSAGE. Used
+// by the writers to build a Rejection when releasing an event would silently
+// schedule a publisher on top of a known absence — on drafts we save with
+// hasConflict=true instead (the release-blocking policy surfaces it later).
+export const DAY_OFF_MESSAGE: Record<ProgrammeRoleKind, string> = {
+  speaker: PROGRAMME_ASSIGNMENT_ERRORS.dayOffSpeaker,
+  reader: PROGRAMME_ASSIGNMENT_ERRORS.dayOffReader,
+  servant: PROGRAMME_ASSIGNMENT_ERRORS.dayOffServant,
 }
 
 export function checkEligibleForRole(

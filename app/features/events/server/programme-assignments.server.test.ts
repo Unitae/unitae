@@ -28,6 +28,11 @@ const { assignPart, assignServiceRole, unassignPart, unassignServiceRole, checkD
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
 
+// Matches the shared "absence" copy in DAY_OFF_MESSAGE without pinning the
+// exact French string, so a wording tweak in the policy file doesn't force a
+// test churn (the policy test already pins the exact strings).
+const DAY_OFF_MESSAGE_PATTERN = /absence/i
+
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(allowedRoles.getPartAssignmentAllowedRoleIds).mockResolvedValue([])
@@ -143,6 +148,54 @@ describe('assignPart', () => {
     expect(result).toHaveProperty('assignment')
     const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: false })
+  })
+
+  // Regression pin: draft events accept conflicting assignments (the schedule
+  // is still being built); released events must NOT — a manager scheduling
+  // over a known absence on a public event is silent scheduling breakage.
+  it('BLOCKS assignPart on a RELEASED event when the speaker has a day-off conflict', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
+
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
+
+    expect(result).toEqual({ error: expect.stringMatching(DAY_OFF_MESSAGE_PATTERN) })
+    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+  })
+
+  it('BLOCKS assignPart on a RELEASED event when the reader has a day-off conflict', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(allowedRoles.resolveEligibleUserIds).mockResolvedValue([5, 7])
+    // Speaker: no day-off. Reader: day-off found.
+    vi.mocked(db.event.findFirst)
+      .mockResolvedValueOnce(null as never)
+      .mockResolvedValueOnce({ id: 99 } as never)
+
+    const result = await assignPart(db, 1, 5, 7, null, 'Topic', 1)
+
+    expect(result).toEqual({ error: expect.stringMatching(DAY_OFF_MESSAGE_PATTERN) })
+    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+  })
+
+  it('still saves with hasConflict=true on a DRAFT event when a day-off conflict exists', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+
+    const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
+
+    expect(result).toHaveProperty('assignment')
+    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
   // Consumers (route + notification path) need to diff the old assignee vs
@@ -304,6 +357,35 @@ describe('assignServiceRole', () => {
     expect(result).toHaveProperty('assignment')
     const updateCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: false })
+  })
+
+  // Regression pin — same rule as assignPart: released events must block.
+  it('BLOCKS assignServiceRole on a RELEASED event when the assignee has a day-off conflict', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+
+    const result = await assignServiceRole(db, 1, 5, 1)
+
+    expect(result).toEqual({ error: expect.stringMatching(DAY_OFF_MESSAGE_PATTERN) })
+    expect(db.programmeServiceRoleAssignment.update).not.toHaveBeenCalled()
+  })
+
+  it('still saves with hasConflict=true on a DRAFT event when a day-off conflict exists', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
+    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+
+    const result = await assignServiceRole(db, 1, 5, 1)
+
+    expect(result).toHaveProperty('assignment')
+    const updateCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
+    expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
   it('returns the previous assigneeId on success', async () => {

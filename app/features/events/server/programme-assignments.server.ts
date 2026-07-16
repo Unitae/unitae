@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -8,6 +9,7 @@ import {
   checkEligibleForRole,
   checkExternalSpeakerValid,
   checkParticipantsDistinct,
+  DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/programme-assignment.policy'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -54,6 +56,36 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
   })
 }
 
+// Runs the per-participant checks used by assignPart for both speaker and
+// reader. Returns a Rejection on hard failure (ineligible role, or day-off
+// on a released event) or a hasConflict flag the caller ORs together for the
+// eventual `data.hasConflict` write.
+async function checkPartParticipant(
+  db: TransactionClient,
+  args: {
+    assignmentId: number
+    participantId: number | null
+    roleKind: 'speaker' | 'reader'
+    event: { startDate: Date; endDate: Date }
+    congregationId: number
+    isReleased: boolean
+  },
+): Promise<{ error: string } | { hasConflict: boolean }> {
+  const { assignmentId, participantId, roleKind, event, congregationId, isReleased } = args
+  if (participantId == null) return { hasConflict: false }
+
+  const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, roleKind, congregationId)
+  const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
+  const ineligible = checkEligibleForRole(eligible, participantId, roleKind)
+  if (ineligible) return ineligible
+
+  if (await checkDayOffConflict(db, participantId, event.startDate, event.endDate, congregationId)) {
+    if (isReleased) return { error: DAY_OFF_MESSAGE[roleKind] }
+    return { hasConflict: true }
+  }
+  return { hasConflict: false }
+}
+
 export async function assignPart(
   db: TransactionClient,
   assignmentId: number,
@@ -98,29 +130,34 @@ export async function assignPart(
   const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
   if (notDistinct) return notDistinct
 
-  let hasConflict = false
+  // On a released event we still block day-off overlaps outright — silently
+  // scheduling a publisher on top of a known absence on a public event is
+  // exactly the kind of surprise we want to avoid. On a draft the manager is
+  // building the schedule, so we save with hasConflict=true and let the
+  // release-blocking policy surface it at publish time.
+  const isReleased = existing.event.status === EventStatus.Released
 
-  if (assigneeId != null) {
-    const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'speaker', congregationId)
-    const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    const ineligibleSpeaker = checkEligibleForRole(eligible, assigneeId, 'speaker')
-    if (ineligibleSpeaker) return ineligibleSpeaker
-    // Day-off overlaps used to abort here; they now flow through as
-    // hasConflict=true and are surfaced by the release-blocking policy.
-    if (await checkDayOffConflict(db, assigneeId, existing.event.startDate, existing.event.endDate, congregationId)) {
-      hasConflict = true
-    }
-  }
+  const speakerCheck = await checkPartParticipant(db, {
+    assignmentId,
+    participantId: assigneeId,
+    roleKind: 'speaker',
+    event: existing.event,
+    congregationId,
+    isReleased,
+  })
+  if ('error' in speakerCheck) return speakerCheck
 
-  if (assistantId != null) {
-    const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'reader', congregationId)
-    const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    const ineligibleReader = checkEligibleForRole(eligible, assistantId, 'reader')
-    if (ineligibleReader) return ineligibleReader
-    if (await checkDayOffConflict(db, assistantId, existing.event.startDate, existing.event.endDate, congregationId)) {
-      hasConflict = true
-    }
-  }
+  const readerCheck = await checkPartParticipant(db, {
+    assignmentId,
+    participantId: assistantId,
+    roleKind: 'reader',
+    event: existing.event,
+    congregationId,
+    isReleased,
+  })
+  if ('error' in readerCheck) return readerCheck
+
+  const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
   const assignment = await db.programmePartAssignment.update({
     where: {
@@ -147,6 +184,7 @@ export async function assignServiceRole(
 
   const previousAssigneeId = existing.assigneeId
 
+  const isReleased = existing.event.status === EventStatus.Released
   let hasConflict = false
 
   if (assigneeId != null) {
@@ -155,6 +193,7 @@ export async function assignServiceRole(
     const ineligible = checkEligibleForRole(eligible, assigneeId, 'servant')
     if (ineligible) return ineligible
     if (await checkDayOffConflict(db, assigneeId, existing.event.startDate, existing.event.endDate, congregationId)) {
+      if (isReleased) return { error: DAY_OFF_MESSAGE.servant }
       hasConflict = true
     }
   }
