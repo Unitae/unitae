@@ -98,11 +98,33 @@ describe('canManageAnyProgram', () => {
 })
 
 describe('filterToManageableEventIds', () => {
-  it('returns the input ids untouched for ProgramManager (no DB roundtrip)', async () => {
-    const result = await filterToManageableEventIds(db, [1, 2, 3], USER_ID, CONGREGATION_ID, true)
-    expect(result).toEqual([1, 2, 3])
+  // Empty input short-circuits — no DB roundtrip, no reliance on Prisma's
+  // empty-`in: []` semantics (which today happen to match nothing, but the
+  // guarantee is fragile enough to be worth an explicit guard).
+  it('returns an empty list without any DB call when the input is empty', async () => {
+    const result = await filterToManageableEventIds(db, allowAll, [], USER_ID, CONGREGATION_ID)
+    expect(result).toEqual([])
     expect(db.event.findMany).not.toHaveBeenCalled()
     expect(db.programmeTemplateResponsible.findMany).not.toHaveBeenCalled()
+  })
+
+  // Manager path still validates ids belong to the congregation — a request
+  // with a cross-tenant id must not silently sneak into `notFound` further
+  // down. The event.findMany scope kicks foreign ids out here where it's
+  // observable at review time.
+  it('for ProgramManager, keeps only ids that belong to this congregation', async () => {
+    vi.mocked(db.event.findMany).mockResolvedValue([
+      { id: 10, templateId: TEMPLATE_ID_OWNED },
+      { id: 11, templateId: null },
+      // id 99 (a foreign id) is not in the mock result — mimics RLS filtering it out.
+    ] as never)
+
+    const result = await filterToManageableEventIds(db, allowAll, [10, 11, 99], USER_ID, CONGREGATION_ID)
+
+    expect(result).toEqual([10, 11])
+    const call = vi.mocked(db.event.findMany).mock.calls[0][0]
+    const where = call?.where as Record<string, unknown>
+    expect(where.congregationId).toBe(CONGREGATION_ID)
   })
 
   // Non-manager path: only keep events whose templateId is in the user's
@@ -116,7 +138,7 @@ describe('filterToManageableEventIds', () => {
       { id: 12, templateId: null },
     ] as never)
 
-    const result = await filterToManageableEventIds(db, [10, 11, 12], USER_ID, CONGREGATION_ID, false)
+    const result = await filterToManageableEventIds(db, allowNone, [10, 11, 12], USER_ID, CONGREGATION_ID)
 
     expect(result).toEqual([10])
   })
@@ -125,7 +147,7 @@ describe('filterToManageableEventIds', () => {
     vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([{ id: 10, templateId: TEMPLATE_ID_OWNED }] as never)
 
-    const result = await filterToManageableEventIds(db, [10], USER_ID, CONGREGATION_ID, false)
+    const result = await filterToManageableEventIds(db, allowNone, [10], USER_ID, CONGREGATION_ID)
 
     expect(result).toEqual([])
   })

@@ -1,6 +1,7 @@
 import { AuditAction, auditInTransaction } from '~/shared/domain/audit.server'
 import { ConflictError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { withScope } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { assertCanRelease } from './event-status.policy'
 import { PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
@@ -118,35 +119,48 @@ export async function releaseEvent(
     timezone: ctx.timezone,
   })
 
+  // Notifications are best-effort: a queue drop or a race on
+  // NotificationEvent.debounceKey must NOT roll back the release (or, in a
+  // bulk-release, abort the whole batch). Match the assign-part/assign-service
+  // pattern: log and continue.
+  async function safeNotify(
+    entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment',
+    entityId: number,
+    assignmentName: string,
+    memberId: number,
+    role: 'speaker' | 'reader' | 'servant',
+  ): Promise<void> {
+    try {
+      await notifyAssignment(
+        db,
+        { ...notificationCtxBase, entityType, entityId, assignmentName },
+        { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId, role },
+      )
+    } catch (err) {
+      logger.error('release notification enqueue failed', {
+        eventId,
+        congregationId,
+        memberId,
+        entityType,
+        entityId,
+        role,
+        err,
+      })
+    }
+  }
+
   for (const part of event.partAssignments) {
     if (part.assigneeId != null) {
-      await notifyAssignment(
-        db,
-        { ...notificationCtxBase, entityType: 'ProgrammePartAssignment', entityId: part.id, assignmentName: part.name },
-        { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId: part.assigneeId, role: 'speaker' },
-      )
+      await safeNotify('ProgrammePartAssignment', part.id, part.name, part.assigneeId, 'speaker')
     }
     if (part.assistantId != null) {
-      await notifyAssignment(
-        db,
-        { ...notificationCtxBase, entityType: 'ProgrammePartAssignment', entityId: part.id, assignmentName: part.name },
-        { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId: part.assistantId, role: 'reader' },
-      )
+      await safeNotify('ProgrammePartAssignment', part.id, part.name, part.assistantId, 'reader')
     }
   }
 
   for (const service of event.serviceRoleAssignments) {
     if (service.assigneeId != null) {
-      await notifyAssignment(
-        db,
-        {
-          ...notificationCtxBase,
-          entityType: 'ProgrammeServiceRoleAssignment',
-          entityId: service.id,
-          assignmentName: service.name,
-        },
-        { type: PROGRAMME_ASSIGNMENT_TYPE.assigned, memberId: service.assigneeId, role: 'servant' },
-      )
+      await safeNotify('ProgrammeServiceRoleAssignment', service.id, service.name, service.assigneeId, 'servant')
     }
   }
 
@@ -228,10 +242,14 @@ export type BulkReleaseResult = {
 
 // Owns the per-event iteration for bulk release so the route stays a thin
 // auth-plus-flash wrapper. releaseEvent returns a tagged union so a blocker
-// on one event does not abort the batch — it lands in the `blocked` bucket
-// while the transaction stays alive.
+// on one event lands in the `blocked` bucket without aborting the batch.
+//
+// Each event runs in its OWN withScope transaction: this preserves partial
+// progress if the batch hits a database timeout or transient failure
+// mid-way (releaseEvent's 30-query fan-out per event × 500-id cap easily
+// exceeds the default 5s tx budget when scoped as a single transaction).
+// A failure on event N does not roll back events 1..N-1.
 export async function bulkReleaseEvents(
-  db: TransactionClient,
   eventIds: number[],
   congregationId: number,
   actorId: number,
@@ -241,7 +259,7 @@ export async function bulkReleaseEvents(
   const blocked: { id: number; error: string }[] = []
   const notFound: number[] = []
   for (const id of eventIds) {
-    const result = await releaseEvent(db, id, congregationId, actorId, ctx)
+    const result = await withScope(congregationId, tx => releaseEvent(tx, id, congregationId, actorId, ctx))
     if (result == null) notFound.push(id)
     else if ('error' in result) blocked.push({ id, error: result.error })
     else released.push(id)
@@ -255,7 +273,6 @@ export type BulkUnreleaseResult = {
 }
 
 export async function bulkUnreleaseEvents(
-  db: TransactionClient,
   eventIds: number[],
   congregationId: number,
   actorId: number,
@@ -263,7 +280,7 @@ export async function bulkUnreleaseEvents(
   const unreleased: number[] = []
   const notFound: number[] = []
   for (const id of eventIds) {
-    const result = await unreleaseEvent(db, id, congregationId, actorId)
+    const result = await withScope(congregationId, tx => unreleaseEvent(tx, id, congregationId, actorId))
     if (result == null) notFound.push(id)
     else unreleased.push(id)
   }

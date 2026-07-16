@@ -4,7 +4,7 @@ import { canManageAnyProgram, filterToManageableEventIds } from '~/features/even
 import { bulkDeleteEvents } from '~/features/events/server/programme-events.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/bulk-delete'
 
@@ -15,7 +15,6 @@ export function loader(_args: Route.LoaderArgs) {
 export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
-  const isProgramManager = permissions.has(Permission.ProgramManager)
 
   const payload = bulkEventIdsSchema.safeParse(await request.json())
   if (!payload.success) {
@@ -31,11 +30,11 @@ export async function action({ request, context }: Route.ActionArgs) {
     const can = (p: Permission) => permissions.has(p)
     if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
 
-    const allowedIds = await filterToManageableEventIds(db, ids, currentUser.id, congregationId, isProgramManager)
+    const allowedIds = await filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
     if (allowedIds.length === 0) return { ok: true, deleted: 0 }
 
-    await bulkDeleteEvents(db, allowedIds, congregationId)
-    logger.info(`Bulk deleted ${allowedIds.length} events.`)
-    return { ok: true, deleted: allowedIds.length }
+    const { count } = await bulkDeleteEvents(db, allowedIds, congregationId, currentUser.id)
+    logger.info(`Bulk deleted ${count} events.`)
+    return { ok: true, deleted: count }
   })
 }

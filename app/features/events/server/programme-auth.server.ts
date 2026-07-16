@@ -39,23 +39,36 @@ export async function canManageAnyProgram(
 }
 
 // Narrows a bulk-selection of event ids to the ones the caller is authorised
-// to mutate. ProgramManager sees the whole list; non-managers see only events
-// whose template they are the responsible for (freeform events, templateId
-// null, are always manager-only). Shared by every bulk route (release,
-// unrelease, delete) so the auth surface stays consistent.
+// to mutate. ProgramManager sees every event in the congregation;
+// non-managers see only events whose template they are the responsible for
+// (freeform events, templateId null, are always manager-only). Shared by
+// every bulk route (release, unrelease, delete) so the auth surface stays
+// consistent.
+//
+// The signature takes a `can:` predicate (matching canEditEvent /
+// canManageAnyProgram) rather than a boolean, so the auth surface reads
+// consistently across the file. Even the manager path scopes the id list to
+// the congregation — a cross-tenant id must not slip through into the
+// downstream "not found" bucket.
 export async function filterToManageableEventIds(
   db: TransactionClient,
+  can: (role: Permission) => boolean,
   eventIds: number[],
   userId: number,
   congregationId: number,
-  isProgramManager: boolean,
 ): Promise<number[]> {
-  if (isProgramManager) return eventIds
-  const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
-  const responsibleSet = new Set(responsibleTemplateIds)
+  // Empty input short-circuits — no DB roundtrip, no reliance on Prisma's
+  // empty-`in: []` semantics.
+  if (eventIds.length === 0) return []
+
+  const isProgramManager = can(Permission.ProgramManager)
   const events = await db.event.findMany({
     where: { id: { in: eventIds }, congregationId },
     select: { id: true, templateId: true },
   })
+  if (isProgramManager) return events.map(e => e.id)
+
+  const responsibleTemplateIds = await getResponsibleTemplateIds(db, userId, congregationId)
+  const responsibleSet = new Set(responsibleTemplateIds)
   return events.filter(e => e.templateId != null && responsibleSet.has(e.templateId)).map(e => e.id)
 }

@@ -1,16 +1,20 @@
-// Integration pin for the "manager sees the conflict when a publisher adds an
-// absence on a draft-event date" flow. Reproduces the exact sequence a user
-// reported as broken:
+// Integration pins for the "manager sees the conflict when a publisher adds
+// an absence on a draft-event date" flow. Reproduces the exact sequence a
+// user reported as broken:
 //   1. Manager creates a draft event with an assignee.
 //   2. Assignee creates an absence overlapping the event.
 //   3. Manager expects (a) the assignment's hasConflict flag to flip, and
 //      (b) releaseEvent to block until they resolve it.
+//
+// Each `it` block creates its own scoped congregation so tests are
+// order-independent (per CLAUDE.md: "each test sets up its own state").
 
 import { PrismaPg } from '@prisma/adapter-pg'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
 import { createDayOff } from '~/features/events/server/days-off.server'
 import { releaseEvent } from '~/features/events/server/event-status.server'
+import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -28,109 +32,110 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const ts = Date.now()
-let congId: number
-let managerAccountId: number
-let bobAccountId: number
-let bobMemberId: number
-let draftEventId: number
-let partAssignmentId: number
+const suiteTs = Date.now()
+const createdCongIds: number[] = []
 
-beforeAll(async () => {
+// Provisions a fresh congregation with the fixtures each test needs. Returns
+// the ids so the caller can drive the assertion. The suffix keeps emails /
+// slugs unique across parallel test invocations.
+async function provisionCongregation(suffix: string) {
+  const ts = `${suiteTs}-${suffix}`
   const cong = await testDb.congregation.create({
     data: { name: `DraftConflict ${ts}`, slug: `draft-conflict-${ts}`, active: true },
   })
-  congId = cong.id
+  createdCongIds.push(cong.id)
 
-  await withScope(congId, async tx => {
+  return withScope(cong.id, async tx => {
     // Off is the sentinel absence kind. We do NOT create a meeting kind — the
     // event is left with `kindId: null`, mirroring the seeded-template case
     // that surfaced the bug (Prisma's inner-join filter would silently drop
     // null-kind events from the refresh loop).
     await tx.eventKind.create({
-      data: { name: 'Off', key: 'off', color: '#888888', congregationId: congId },
+      data: { name: 'Off', key: 'off', color: '#888888', congregationId: cong.id },
     })
 
-    // The manager (no linked Member — realistic for admins).
     const manager = await tx.userAccount.create({
       data: {
         email: `manager-${ts}@test.com`,
         password: 'hashed',
         active: true,
-        congregationId: congId,
+        congregationId: cong.id,
       },
     })
-    managerAccountId = manager.id
 
-    // Bob — the assignee. Has a linked Member (so he can be assigned and can
-    // create absences that participate in the conflict pipeline).
     const bobMember = await tx.member.create({
-      data: { firstname: 'Bob', lastname: `Test-${ts}`, isPublisher: true, congregationId: congId },
+      data: { firstname: 'Bob', lastname: `Test-${ts}`, isPublisher: true, congregationId: cong.id },
     })
-    bobMemberId = bobMember.id
     const bob = await tx.userAccount.create({
       data: {
         email: `bob-${ts}@test.com`,
         password: 'hashed',
         active: true,
-        memberId: bobMemberId,
-        congregationId: congId,
+        memberId: bobMember.id,
+        congregationId: cong.id,
       },
     })
-    bobAccountId = bob.id
 
-    // Draft event on 2027-08-10, 19:00–21:00 UTC, with `kindId: null`. This
-    // matches what programme-generation produces from a seeded template (the
-    // seed does not set kindId on templates, and generation only sets
-    // event.kindId when the template has one). The Prisma-inner-join bug
-    // reproduces here.
     const event = await tx.event.create({
       data: {
         name: `Draft Event ${ts}`,
         startDate: new Date('2027-08-10T19:00:00Z'),
         endDate: new Date('2027-08-10T21:00:00Z'),
-        createdById: managerAccountId,
-        congregationId: congId,
+        createdById: manager.id,
+        congregationId: cong.id,
         status: 'draft',
       },
     })
-    draftEventId = event.id
 
     const part = await tx.programmePartAssignment.create({
       data: {
         eventId: event.id,
-        assigneeId: bobMemberId,
+        assigneeId: bobMember.id,
         name: 'Discours',
         section: 'main',
         order: 1,
         hasConflict: false,
-        congregationId: congId,
+        congregationId: cong.id,
       },
     })
-    partAssignmentId = part.id
-  })
-})
 
+    return {
+      congId: cong.id,
+      managerAccountId: manager.id,
+      bobAccountId: bob.id,
+      bobMemberId: bobMember.id,
+      draftEventId: event.id,
+      partAssignmentId: part.id,
+    }
+  })
+}
+
+// FK-safe teardown for every congregation this suite touched, no matter
+// which describe block created it.
 afterAll(async () => {
-  await testDb.programmePartAssignment.deleteMany({ where: { congregationId: congId } })
-  await testDb.event.deleteMany({ where: { congregationId: congId } })
-  await testDb.eventKind.deleteMany({ where: { congregationId: congId } })
-  await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
-  await testDb.member.deleteMany({ where: { congregationId: congId } })
-  await testDb.congregation.delete({ where: { id: congId } })
+  for (const congId of createdCongIds) {
+    await testDb.programmePartAssignment.deleteMany({ where: { congregationId: congId } })
+    await testDb.event.deleteMany({ where: { congregationId: congId } })
+    await testDb.eventKind.deleteMany({ where: { congregationId: congId } })
+    await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
+    await testDb.member.deleteMany({ where: { congregationId: congId } })
+    await testDb.congregation.delete({ where: { id: congId } })
+  }
   await testDb.$disconnect()
 })
 
 describe('refreshConflictFlags co-participant preservation (integration)', () => {
   it('keeps hasConflict=true on a shared part when only one participant has cleared their absence', async () => {
+    const { congId, bobAccountId, bobMemberId, partAssignmentId } = await provisionCongregation('coparticipant')
+
     // Extra fixture: Alice (an additional Member) also on the same part.
     const aliceId = await withScope(congId, async tx => {
       const alice = await tx.member.create({
-        data: { firstname: 'Alice', lastname: `Test-${ts}`, isPublisher: true, congregationId: congId },
+        data: { firstname: 'Alice', lastname: `Test-${congId}`, isPublisher: true, congregationId: congId },
       })
       await tx.userAccount.create({
         data: {
-          email: `alice-${ts}@test.com`,
+          email: `alice-${congId}@test.com`,
           password: 'hashed',
           active: true,
           memberId: alice.id,
@@ -145,7 +150,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
       return alice.id
     })
 
-    // Both add absences → hasConflict is true.
+    // Bob adds an absence → hasConflict should flip to true.
     await withScope(congId, tx =>
       createDayOff(
         tx,
@@ -156,7 +161,10 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
         congId,
       ),
     )
-    // Alice's absence event (via a raw create — we don't have her accountId to hand)
+
+    // Then Alice adds and immediately removes an absence, refreshing for her.
+    // A refresh keyed on Alice must NOT clear the flag that Bob's absence
+    // still legitimately owns.
     await withScope(congId, async tx => {
       const kind = await tx.eventKind.findFirstOrThrow({ where: { key: 'off', congregationId: congId } })
       const aliceAccount = await tx.userAccount.findFirstOrThrow({
@@ -164,7 +172,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
       })
       await tx.event.create({
         data: {
-          name: 'Alice absence',
+          name: `Alice absence ${congId}`,
           kindId: kind.id,
           startDate: new Date('2027-08-10T00:00:00Z'),
           endDate: new Date('2027-08-11T00:00:00Z'),
@@ -173,9 +181,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
           status: 'released',
         },
       })
-      // Now delete Alice's absence and refresh flags for her.
-      await tx.event.deleteMany({ where: { name: 'Alice absence', congregationId: congId } })
-      const { refreshConflictFlags } = await import('~/features/events/server/programme-assignments.server')
+      await tx.event.deleteMany({ where: { name: `Alice absence ${congId}`, congregationId: congId } })
       await refreshConflictFlags(
         tx,
         aliceId,
@@ -185,7 +191,6 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
       )
     })
 
-    // Bob still has an absence — the flag on the shared part must remain true.
     const still = await withScope(congId, tx =>
       tx.programmePartAssignment.findFirstOrThrow({
         where: { id: partAssignmentId, congregationId: congId },
@@ -198,6 +203,8 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
 
 describe('Draft-event conflict flow (integration)', () => {
   it('flips hasConflict on a draft event assignment when the assignee creates an overlapping absence', async () => {
+    const { congId, bobAccountId, bobMemberId, partAssignmentId } = await provisionCongregation('flip')
+
     await withScope(congId, tx =>
       createDayOff(
         tx,
@@ -220,6 +227,19 @@ describe('Draft-event conflict flow (integration)', () => {
   })
 
   it('blocks releaseEvent while a conflict is present on a draft event', async () => {
+    const { congId, managerAccountId, bobAccountId, bobMemberId, draftEventId } = await provisionCongregation('block')
+
+    await withScope(congId, tx =>
+      createDayOff(
+        tx,
+        bobAccountId,
+        bobMemberId,
+        new Date('2027-08-10T00:00:00Z'),
+        new Date('2027-08-11T00:00:00Z'),
+        congId,
+      ),
+    )
+
     const result = await withScope(congId, tx =>
       releaseEvent(tx, draftEventId, congId, managerAccountId, { locale: 'fr-FR', timezone: 'Europe/Paris' }),
     )

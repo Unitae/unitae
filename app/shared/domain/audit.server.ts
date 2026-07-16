@@ -106,6 +106,7 @@ export const AuditAction = {
   // Programme events
   EventReleased: 'event.released',
   EventUnreleased: 'event.unreleased',
+  EventDeleted: 'event.deleted',
 
   // Platform admin
   PlatformCongregationUpdated: 'platform.congregation.updated',

@@ -155,9 +155,9 @@ describe('dispatchAssignmentDiffs', () => {
     expect(notify).toHaveBeenCalledTimes(2)
   })
 
-  // Draft events accumulate assignments silently — nothing goes out until the
-  // manager explicitly releases. The release path re-enqueues an assigned
-  // notification per current assignee so no one is forgotten.
+  // Only released events fire notifications. Anything else — 'draft' today,
+  // whatever future status the schema grows tomorrow — must be silent, so a
+  // typo or an unhandled state cannot silently spam publishers.
   it('does not fire notifications when the event is still a draft', async () => {
     vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
     const draftCtx = { ...CTX, event: { ...CTX.event, status: 'draft' as const } }
@@ -165,6 +165,18 @@ describe('dispatchAssignmentDiffs', () => {
       { role: 'speaker', previousMemberId: null, newMemberId: 5 },
       { role: 'reader', previousMemberId: 8, newMemberId: null },
     ])
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  // Whitelist guard: any status that is not 'released' must be silent. If we
+  // ever grow a third status without updating this gate, a blacklist would
+  // silently notify.
+  it('does not fire notifications for an unknown / future event status', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue({ id: 33 } as never)
+    // A hypothetical future status. TypeScript will complain on the cast, but
+    // the runtime code must still refuse to notify.
+    const unknownCtx = { ...CTX, event: { ...CTX.event, status: 'archived' as unknown as 'released' } }
+    await dispatchAssignmentDiffs(db, unknownCtx, [{ role: 'speaker', previousMemberId: null, newMemberId: 5 }])
     expect(notify).not.toHaveBeenCalled()
   })
 })

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
+import { toast } from 'sonner'
 import { EventKind } from '~/features/events/model/event-kind.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
@@ -279,8 +280,8 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const { upcomingEvents, roles, defaults, timezone } = loaderData
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const bulkFetcher = useFetcher<{ ok: boolean }>()
-  const bulkStatusFetcher = useFetcher<{ ok: boolean }>()
+  const bulkFetcher = useFetcher<{ ok: boolean; error?: 'invalid_payload' }>()
+  const bulkStatusFetcher = useFetcher<{ ok: boolean; error?: 'invalid_payload' }>()
 
   const weekGroups = groupByWeek(upcomingEvents)
   const editableIds = upcomingEvents.filter(e => e.canEdit).map(e => e.id)
@@ -293,14 +294,28 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const anyReleasedSelected = selectedEvents.some(e => e.status === 'released')
 
   useEffect(() => {
-    if (bulkFetcher.state === 'idle' && bulkFetcher.data?.ok === true) {
+    if (bulkFetcher.state !== 'idle') return
+    if (bulkFetcher.data?.ok === true) {
       setSelectedIds(new Set())
+    }
+    // Same client-side surface for the delete fetcher — the layout flash
+    // won't fire for a shape rejection.
+    if (bulkFetcher.data?.ok === false && bulkFetcher.data?.error === 'invalid_payload') {
+      toast.error(m.programs_bulk_invalid_payload())
     }
   }, [bulkFetcher.state, bulkFetcher.data])
 
   useEffect(() => {
-    if (bulkStatusFetcher.state === 'idle' && bulkStatusFetcher.data?.ok === true) {
+    if (bulkStatusFetcher.state !== 'idle') return
+    if (bulkStatusFetcher.data?.ok === true) {
       setSelectedIds(new Set())
+    }
+    // Server-side flash toasts (via commitSession) drive the success/blocked
+    // messages. `invalid_payload` is a shape rejection so no flash cookie is
+    // set — surface a client-side toast so the user isn't left staring at a
+    // spinner that stops.
+    if (bulkStatusFetcher.data?.ok === false && bulkStatusFetcher.data?.error === 'invalid_payload') {
+      toast.error(m.programs_bulk_invalid_payload())
     }
   }, [bulkStatusFetcher.state, bulkStatusFetcher.data])
 

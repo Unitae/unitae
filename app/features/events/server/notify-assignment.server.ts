@@ -102,18 +102,22 @@ export async function dispatchAssignmentDiffs(
   ctx: AssignmentNotificationContext,
   diffs: AssignmentDiff[],
 ): Promise<void> {
-  // Drafts are the manager's scratch space — no publisher hears anything until
-  // the event is explicitly released. The release path re-enqueues an assigned
-  // notification per current assignee, so no one is silently forgotten.
-  if (ctx.event.status === 'draft') {
+  // Whitelist, not blacklist: only 'released' events fire notifications.
+  // Anything else — 'draft' today, whatever future status the schema grows —
+  // is silent by default so a typo or unhandled state cannot spam publishers.
+  // The release path re-enqueues an assigned notification per current assignee
+  // so no one is silently forgotten when a draft flips to released.
+  if (ctx.event.status !== 'released') {
     // Debug (not warn) so operators can distinguish "we didn't notify because
     // the event was a draft" from a queue drop when investigating
-    // "why didn't I get the email?" tickets.
-    logger.debug('assignment notifications suppressed: event is draft', {
+    // "why didn't I get the email?" tickets. Log the actual status so an
+    // unexpected value surfaces.
+    logger.debug('assignment notifications suppressed: event status is not released', {
       eventId: ctx.event.id,
       congregationId: ctx.congregationId,
       entityType: ctx.entityType,
       entityId: ctx.entityId,
+      status: ctx.event.status,
       diffs: diffs.length,
     })
     return

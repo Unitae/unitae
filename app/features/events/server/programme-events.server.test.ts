@@ -11,9 +11,11 @@ vi.mock('~/features/events/server/allowed-roles.server', () => ({
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
+  auditInTransaction: vi.fn(),
   AuditAction: {
     PartAllowedRolesChanged: 'part.allowed_roles.changed',
     ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
+    EventDeleted: 'event.deleted',
   },
 }))
 
@@ -26,12 +28,14 @@ const {
   addServiceRoleAssignment,
   deleteServiceRoleAssignment,
   applyTemplateToEvent,
+  bulkDeleteEvents,
 } = await import('./programme-events.server')
 
 const mockDb = {
   event: {
     create: vi.fn(),
     delete: vi.fn(),
+    deleteMany: vi.fn(),
     update: vi.fn(),
   },
   programmePartAssignment: {
@@ -78,6 +82,65 @@ describe('createFreeformEvent', () => {
 
     expect(result).toEqual(expected)
     expect(mockDb.event.create).toHaveBeenCalledWith({ data })
+  })
+})
+
+describe('bulkDeleteEvents', () => {
+  it('deletes every event in a single scoped deleteMany', async () => {
+    mockDb.event.deleteMany.mockResolvedValue({ count: 3 })
+
+    await bulkDeleteEvents(mockDb as never, [1, 2, 3], 42, 7)
+
+    expect(mockDb.event.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: [1, 2, 3] }, congregationId: 42 },
+    })
+  })
+
+  // Governance: the same auditInTransaction pattern release/unrelease use.
+  // Fire-and-forget audit (unscopedDb) would leave phantom rows if the
+  // deleteMany rolls back.
+  it('writes an auditInTransaction EventDeleted row for every deleted event', async () => {
+    mockDb.event.deleteMany.mockResolvedValue({ count: 2 })
+
+    await bulkDeleteEvents(mockDb as never, [10, 11], 42, 7)
+
+    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledTimes(2)
+    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({
+        action: 'event.deleted',
+        congregationId: 42,
+        actorId: 7,
+        entityType: 'Event',
+        entityId: 10,
+      }),
+    )
+    expect(vi.mocked(auditModule.auditInTransaction)).toHaveBeenCalledWith(
+      mockDb,
+      expect.objectContaining({
+        action: 'event.deleted',
+        congregationId: 42,
+        actorId: 7,
+        entityType: 'Event',
+        entityId: 11,
+      }),
+    )
+  })
+
+  it('does not fire audit or deleteMany when the id list is empty', async () => {
+    await bulkDeleteEvents(mockDb as never, [], 42, 7)
+
+    expect(mockDb.event.deleteMany).not.toHaveBeenCalled()
+    expect(vi.mocked(auditModule.auditInTransaction)).not.toHaveBeenCalled()
+  })
+
+  it('returns the Prisma delete count so callers can log a truthful number', async () => {
+    mockDb.event.deleteMany.mockResolvedValue({ count: 2 })
+
+    const result = await bulkDeleteEvents(mockDb as never, [10, 11, 12], 42, 7)
+
+    // Truthful count from Prisma (12 didn't exist so only 2 were deleted).
+    expect(result).toEqual({ count: 2 })
   })
 })
 

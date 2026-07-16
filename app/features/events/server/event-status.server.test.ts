@@ -2,16 +2,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuditAction } from '~/shared/domain/audit.server'
 import { EVENT_STATUS_ERRORS } from './event-status.policy'
 
-vi.mock('~/shared/infra/db.server', () => ({
-  unscopedDb: {
+vi.mock('~/shared/infra/db.server', () => {
+  const unscopedDb = {
     event: { findFirst: vi.fn(), update: vi.fn() },
     programmePartAssignment: { findMany: vi.fn() },
     programmeServiceRoleAssignment: { findMany: vi.fn() },
     notificationEvent: { updateMany: vi.fn() },
     userAccount: { findFirst: vi.fn() },
-    notificationEvent$: {},
-  },
-}))
+  }
+  return {
+    unscopedDb,
+    // Per-event bulk paths use withScope; the mock just invokes the callback
+    // with the shared mock client. Tests can override per-event behaviour by
+    // programming the underlying mock via event.findFirst.mockImplementation.
+    withScope: vi.fn(async (_congregationId: number, fn: (tx: unknown) => unknown) => fn(unscopedDb)),
+  }
+})
 
 vi.mock('~/shared/domain/audit.server', async importOriginal => {
   const actual = await importOriginal<typeof import('~/shared/domain/audit.server')>()
@@ -113,6 +119,33 @@ describe('releaseEvent', () => {
     expect(audit).not.toHaveBeenCalled()
   })
 
+  // Guards against a regression where releaseEvent forgets to stamp
+  // status='released' into the notify context. Without that stamp,
+  // dispatchAssignmentDiffs (whitelist) would self-suppress the whole burst.
+  it('threads status=released into the notification context so downstream dispatchers do not self-suppress', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      partAssignments: [
+        {
+          id: 100,
+          name: 'Perle spirituelle',
+          hasConflict: false,
+          assigneeId: 5,
+          assistantId: null,
+          assignee: { firstname: 'A', lastname: 'B' },
+          assistant: null,
+        },
+      ],
+      serviceRoleAssignments: [],
+    } as never)
+    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
+
+    await releaseEvent(db, 42, 1, 5, nctx)
+
+    const ctx = vi.mocked(notifyAssignment).mock.calls[0][1]
+    expect(ctx.event.status).toBe('released')
+  })
+
   it('enqueues an assigned notification for every current part assignee (speaker and reader)', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
@@ -163,6 +196,40 @@ describe('releaseEvent', () => {
     expect(notifyAssignment).toHaveBeenCalledTimes(1)
     const call = vi.mocked(notifyAssignment).mock.calls[0]
     expect(call[2]).toMatchObject({ memberId: 9, role: 'servant' })
+  })
+
+  // Notifications are best-effort: a single enqueue failure must not abort
+  // the release (or roll it back). Matches the fire-and-forget pattern used
+  // by assign-part / assign-service. The failure is logged so operators can
+  // find which member's enqueue exploded.
+  it('completes the release even when one notifyAssignment call throws', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({
+      ...draftEvent,
+      partAssignments: [
+        {
+          id: 100,
+          name: 'Perle',
+          hasConflict: false,
+          assigneeId: 5,
+          assistantId: 6,
+          assignee: { firstname: 'A', lastname: 'B' },
+          assistant: { firstname: 'C', lastname: 'D' },
+        },
+      ],
+      serviceRoleAssignments: [],
+    } as never)
+    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
+    // First notify (speaker) throws; second (reader) succeeds.
+    vi.mocked(notifyAssignment)
+      .mockRejectedValueOnce(new Error('queue down'))
+      .mockResolvedValue(undefined as never)
+
+    const result = await releaseEvent(db, 42, 1, 5, nctx)
+
+    // Release still succeeded.
+    expect(result).toEqual({ event: releasedEvent })
+    // The second notify still fires — the loop keeps going after the failure.
+    expect(notifyAssignment).toHaveBeenCalledTimes(2)
   })
 
   it('does not enqueue notifications for slots that have no assignee (empty draft slot)', async () => {
@@ -253,6 +320,11 @@ describe('unreleaseEvent', () => {
     expect(db.notificationEvent.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
+          // congregationId is load-bearing: without it, unreleasing an event
+          // would cancel pending notifications for the same entityId across
+          // every congregation (RLS catches this today, but we want the
+          // service-level filter to be correct on its own).
+          congregationId: 1,
           status: 'pending',
           OR: [
             { entityType: 'ProgrammePartAssignment', entityId: { in: [100, 101] } },
@@ -289,7 +361,7 @@ describe('unreleaseEvent', () => {
   })
 })
 
-describe('bulkReleaseEvents', () => {
+describe('bulkReleaseEvents (per-event scope)', () => {
   it('classifies each event into released / blocked / null-skipped', async () => {
     // Event 10 → not found. Event 20 → conflict. Event 30 → clean release.
     // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
@@ -308,21 +380,38 @@ describe('bulkReleaseEvents', () => {
     }) as never)
     vi.mocked(db.event.update).mockResolvedValue({ ...releasedEvent, id: 30 } as never)
 
-    const result = await bulkReleaseEvents(db, [10, 20, 30], 1, 5, nctx)
+    const result = await bulkReleaseEvents([10, 20, 30], 1, 5, nctx)
 
     expect(result.released).toEqual([30])
     expect(result.blocked.map((b: { id: number }) => b.id)).toEqual([20])
     expect(result.notFound).toEqual([10])
   })
 
+  // Load-bearing: each event must run in its own withScope so a slow event
+  // never uses up the transaction budget of the others. A mid-batch blocker
+  // must NOT abort the rest of the batch.
+  it('opens a fresh withScope per event', async () => {
+    vi.mocked(db.event.findFirst).mockResolvedValue({ ...draftEvent } as never)
+    vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
+    const { withScope } = await import('~/shared/infra/db.server')
+
+    await bulkReleaseEvents([10, 20, 30], 1, 5, nctx)
+
+    expect(withScope).toHaveBeenCalledTimes(3)
+    // All three calls scoped to the same congregation.
+    for (const call of vi.mocked(withScope).mock.calls) {
+      expect(call[0]).toBe(1)
+    }
+  })
+
   it('returns empty buckets when the input list is empty', async () => {
-    const result = await bulkReleaseEvents(db, [], 1, 5, nctx)
+    const result = await bulkReleaseEvents([], 1, 5, nctx)
     expect(result).toEqual({ released: [], blocked: [], notFound: [] })
     expect(db.event.findFirst).not.toHaveBeenCalled()
   })
 })
 
-describe('bulkUnreleaseEvents', () => {
+describe('bulkUnreleaseEvents (per-event scope)', () => {
   it('classifies each event into unreleased / null-skipped', async () => {
     // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
     vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
@@ -337,14 +426,14 @@ describe('bulkUnreleaseEvents', () => {
     }) as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
 
-    const result = await bulkUnreleaseEvents(db, [10, 20, 30], 1, 5)
+    const result = await bulkUnreleaseEvents([10, 20, 30], 1, 5)
 
     expect(result.unreleased).toEqual([20, 30])
     expect(result.notFound).toEqual([10])
   })
 
   it('returns empty buckets when the input list is empty', async () => {
-    const result = await bulkUnreleaseEvents(db, [], 1, 5)
+    const result = await bulkUnreleaseEvents([], 1, 5)
     expect(result).toEqual({ unreleased: [], notFound: [] })
     expect(db.event.findFirst).not.toHaveBeenCalled()
   })

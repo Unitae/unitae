@@ -1357,6 +1357,7 @@
     "programs_release_blocked_bulk": "{count} event(s) with absence conflict(s) could not be published.",
     "programs_unrelease_success": "Event moved back to draft.",
     "programs_unrelease_success_bulk": "{count} event(s) moved back to draft.",
+    "programs_bulk_invalid_payload": "The selection is invalid. Refresh the page and try again.",
     "programs_export_pdf_button": "Export as PDF",
     "programs_days_off_button": "Absences",
     "programs_empty_title": "No upcoming events",

@@ -11,7 +11,7 @@ import {
   withScopeFromContext,
 } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
-import { Permission } from '~/shared/types/permission'
+import type { Permission } from '~/shared/types/permission'
 
 import type { Route } from './+types/bulk-release'
 
@@ -24,7 +24,6 @@ export async function action({ request, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
   const cong = context.get(congregationContext)
-  const isProgramManager = permissions.has(Permission.ProgramManager)
 
   const payload = bulkEventIdsSchema.safeParse(await request.json())
   if (!payload.success) {
@@ -35,31 +34,29 @@ export async function action({ request, context }: Route.ActionArgs) {
   }
   const { ids } = payload.data
 
-  // Extend the tx timeout: each releaseEvent does ~1 findFirst + 1 update +
-  // 1 audit + N notification enqueues (~2 queries each) — a large batch can
-  // exceed Prisma's 5s default. 30s keeps us safely below any reasonable
-  // real-world batch size while staying below the pgbouncer idle timeout.
-  return withScopeFromContext(
-    context,
-    async db => {
-      const { congregationId } = currentUser
-      const can = (p: Permission) => permissions.has(p)
-      if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
+  // Phase 1: authorise + filter in a tiny scoped tx. This part is bounded
+  // (single findMany, single check) and fits comfortably in the default
+  // Prisma budget.
+  const { congregationId } = currentUser
+  const allowedIds = await withScopeFromContext(context, async db => {
+    const can = (p: Permission) => permissions.has(p)
+    if (!(await canManageAnyProgram(db, can, currentUser.id, congregationId))) throw redirect('/programs')
+    return filterToManageableEventIds(db, can, ids, currentUser.id, congregationId)
+  })
 
-      const allowedIds = await filterToManageableEventIds(db, ids, currentUser.id, congregationId, isProgramManager)
-      const { released, blocked } = await bulkReleaseEvents(db, allowedIds, congregationId, currentUser.id, {
-        locale: cong.locale,
-        timezone: cong.timezone,
-      })
-      logger.info(`Bulk released ${released.length} events; ${blocked.length} blocked.`)
+  // Phase 2: per-event scoped release. Each event opens its own withScope
+  // inside bulkReleaseEvents so a slow/failing event only rolls back itself,
+  // and partial progress is preserved on batch failure.
+  const { released, blocked } = await bulkReleaseEvents(allowedIds, congregationId, currentUser.id, {
+    locale: cong.locale,
+    timezone: cong.timezone,
+  })
+  logger.info(`Bulk released ${released.length} events; ${blocked.length} blocked.`)
 
-      if (released.length > 0) session.flash('success', m.programs_release_success_bulk({ count: released.length }))
-      if (blocked.length > 0) session.flash('error', m.programs_release_blocked_bulk({ count: blocked.length }))
-      return data(
-        { ok: true, released: released.length, blocked },
-        { headers: { 'Set-Cookie': await commitSession(session) } },
-      )
-    },
-    { timeout: 30_000 },
+  if (released.length > 0) session.flash('success', m.programs_release_success_bulk({ count: released.length }))
+  if (blocked.length > 0) session.flash('error', m.programs_release_blocked_bulk({ count: blocked.length }))
+  return data(
+    { ok: true, released: released.length, blocked },
+    { headers: { 'Set-Cookie': await commitSession(session) } },
   )
 }
