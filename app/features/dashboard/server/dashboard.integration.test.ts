@@ -147,6 +147,7 @@ beforeAll(async () => {
         endDate: new Date('2027-06-01T21:00:00Z'),
         createdById: aliceAccountId,
         congregationId,
+        status: 'released',
       },
     })
 
@@ -191,6 +192,7 @@ beforeAll(async () => {
         endDate: new Date('2025-01-01T21:00:00Z'),
         createdById: aliceAccountId,
         congregationId,
+        status: 'released',
       },
     })
     pastEventId = past.id
@@ -303,6 +305,7 @@ describe('getNextMeeting (integration)', () => {
           endDate: new Date('2027-05-03T00:00:00Z'),
           createdById: bobAccountId,
           congregationId,
+          status: 'released',
         },
       })
       return off.id
@@ -345,6 +348,10 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: opts.endDate ?? new Date(opts.startDate.getTime() + 2 * 60 * 60 * 1000),
           createdById: opts.createdById ?? aliceAccountId,
           congregationId: cong,
+          // Every publisher-facing conflict / dashboard query filters on
+          // status='released' now that the draft/released workflow is live.
+          // Test fixtures are always public.
+          status: 'released',
         },
       })
       const partIds = await Promise.all(
@@ -401,7 +408,7 @@ describe('getConflictingAssignments (integration)', () => {
       expect(result).not.toBeNull()
       expect(result?.kind).toBe('part')
       expect(result?.id).toBe(seeded.partIds[0])
-      expect(result?.eventName).toBe('Assignee Conflict')
+      expect(result?.name).toBe('Discours')
     } finally {
       await cleanupEvent(seeded.eventId)
     }
@@ -432,7 +439,7 @@ describe('getConflictingAssignments (integration)', () => {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
       expect(result?.kind).toBe('service-role')
       expect(result?.id).toBe(seeded.serviceRoleIds[0])
-      expect(result?.eventName).toBe('Service Role Conflict')
+      expect(result?.name).toBe('Son')
     } finally {
       await cleanupEvent(seeded.eventId)
     }
@@ -447,12 +454,12 @@ describe('getConflictingAssignments (integration)', () => {
     const earlier = await seedEvent({
       name: 'Earlier Service Role',
       startDate: new Date('2027-09-01T19:00:00Z'),
-      serviceRoles: [{ assigneeId: aliceId, hasConflict: true }],
+      serviceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Early Sound' }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
       expect(result?.kind).toBe('service-role')
-      expect(result?.eventName).toBe('Earlier Service Role')
+      expect(result?.name).toBe('Early Sound')
       expect(result?.id).toBe(earlier.serviceRoleIds[0])
     } finally {
       await cleanupEvent(earlier.eventId)
@@ -520,6 +527,7 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: new Date('2027-11-01T21:00:00Z'),
           createdById: otherAccount.id,
           congregationId: otherCong.id,
+          status: 'released',
         },
       })
       // Same numeric id range as Alice — guarantees that without RLS the other-cong row would match
@@ -597,6 +605,7 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: new Date('2027-12-01T21:00:00Z'),
           createdById: aliceAccountId,
           congregationId,
+          status: 'released',
         },
       })
       // Pre-set the flag to true to simulate a stale conflict left over from a now-deleted day-off.
@@ -705,6 +714,7 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: new Date('2028-01-05T21:00:00Z'),
           createdById: aliceAccountId,
           congregationId,
+          status: 'released',
         },
       })
       const part = await tx.programmePartAssignment.create({
@@ -770,6 +780,7 @@ describe('getConflictingAssignments (integration)', () => {
           endDate: new Date('2028-02-10T21:00:00Z'),
           createdById: aliceAccountId,
           congregationId,
+          status: 'released',
         },
       })
       const part = await tx.programmePartAssignment.create({

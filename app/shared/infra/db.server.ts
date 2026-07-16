@@ -38,5 +38,5 @@ function withScope<T>(
 
 type TransactionClient = Parameters<Parameters<typeof db.$transaction>[0]>[0]
 
-export type { TransactionClient }
+export type { TransactionClient, TransactionOptions }
 export { unscopedDb, withScope }

@@ -650,6 +650,7 @@ model Event {
   kindId      Int?
   startDate   DateTime
   endDate     DateTime
+  status      String     @default("draft")
 
   template   ProgrammeTemplate? @relation("templateEvents", fields: [templateId], references: [id])
   templateId Int?

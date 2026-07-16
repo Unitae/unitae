@@ -2,7 +2,7 @@ import {
   setPartAssignmentAllowedRoles,
   setServiceRoleAssignmentAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
-import { AuditAction, audit } from '~/shared/domain/audit.server'
+import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
@@ -20,10 +20,28 @@ export function createFreeformEvent(
   return db.event.create({ data })
 }
 
-export function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number) {
-  return db.event.deleteMany({
+export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
+  if (ids.length === 0) return { count: 0 }
+
+  const result = await db.event.deleteMany({
     where: { id: { in: ids }, congregationId },
   })
+
+  // auditInTransaction (not audit) so the audit rows roll back with the
+  // delete if the surrounding tx aborts. Matches release/unrelease. One row
+  // per requested id — even if the deleteMany count differs (some ids may
+  // not have existed), we log the intent.
+  for (const id of ids) {
+    await auditInTransaction(db, {
+      action: AuditAction.EventDeleted,
+      congregationId,
+      actorId,
+      entityType: 'Event',
+      entityId: id,
+    })
+  }
+
+  return result
 }
 
 export function deleteEvent(db: TransactionClient, id: number, congregationId: number) {

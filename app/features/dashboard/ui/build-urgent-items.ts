@@ -97,19 +97,23 @@ export function urgentServiceRoleItems(nextMeeting: NextMeeting): UrgentItem[] {
   ]
 }
 
+// A conflict on MY OWN assignment is red / priority 1 (same tier as an
+// overdue territory): my personal calendar clashes with something I owe
+// the congregation. Sits above the responsible-conflict card so a program
+// manager who is themselves scheduled sees the personal clash first.
 export function urgentDayoffConflictItems(conflict: DayoffConflict): UrgentItem[] {
   if (!conflict) return []
 
   return [
     {
       key: `dayoff-conflict-${conflict.kind}-${conflict.id}`,
-      label: m.dashboard_urgent_dayoff_conflict({ eventName: conflict.eventName }),
+      label: m.dashboard_urgent_dayoff_conflict({ name: conflict.name }),
       to: '/me/days-off',
       icon: CalendarOff,
-      borderClass: 'border-l-amber-500 bg-amber-500/5',
-      iconClass: 'text-amber-600 dark:text-amber-400',
+      borderClass: 'border-l-destructive bg-destructive/5',
+      iconClass: 'text-destructive',
       relativeDate: conflict.eventStartDate,
-      priority: 2,
+      priority: 1,
     },
   ]
 }
@@ -149,7 +153,9 @@ export function urgentResponsibleConflictItems(summary: ResponsibleConflictsSumm
       icon: AlertTriangle,
       borderClass: 'border-l-amber-500 bg-amber-500/5',
       iconClass: 'text-amber-600 dark:text-amber-400',
-      priority: 1,
+      // One tier below the user's own dayoff conflict — a manager scheduled
+      // on a part they cannot attend sees their personal clash first.
+      priority: 2,
     },
   ]
 }
@@ -170,5 +176,5 @@ export function buildUrgentItems(
     ...urgentDocumentsItem(unreadDocumentCount),
   ]
   items.sort((a, b) => a.priority - b.priority)
-  return items.slice(0, 3)
+  return items.slice(0, 5)
 }

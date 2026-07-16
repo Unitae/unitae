@@ -48,6 +48,20 @@ describe('createDayOff', () => {
     expect(result).toEqual(fakeEvent)
   })
 
+  // Days-off events are not part of the draft/released workflow — they must go
+  // live immediately, otherwise the absence-overlap query silently ignores them
+  // and the whole conflict-awareness pipeline breaks.
+  it('writes status "released" on the created event', async () => {
+    vi.mocked(db.eventKind.findFirst).mockResolvedValue({ id: 5, key: 'off' } as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 1, name: 'Absence' } as never)
+
+    await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
+
+    expect(db.event.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'released' }) }),
+    )
+  })
+
   it('creates an event when startDate == endDate', async () => {
     const sameDate = new Date(2025, 3, 8)
     const fakeEvent = { id: 2, name: 'Absence' }

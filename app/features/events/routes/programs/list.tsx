@@ -3,14 +3,18 @@ import {
   CalendarOff,
   ChevronRight,
   FileDown,
+  FileText,
   Loader2,
   MoreHorizontal,
+  Send,
   Trash2,
   UserCog,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
+import { toast } from 'sonner'
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import EventFilters from '~/features/events/ui/EventFilters'
@@ -164,6 +168,15 @@ function ConflictBadge({ count }: { count: number }) {
   )
 }
 
+function DraftBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-muted-foreground/30 bg-muted px-2 py-0.5 font-medium text-muted-foreground text-xs">
+      <FileText className="size-3" aria-hidden="true" />
+      {m.programs_event_draft_badge()}
+    </span>
+  )
+}
+
 function EventRow({
   event,
   timezone,
@@ -181,6 +194,7 @@ function EventRow({
   const time = eventTimeOrEmpty(new Date(event.startDate), timezone)
   const isUpcoming = new Date(event.startDate) >= new Date()
   const showConflictBadge = isUpcoming && event.conflictCount > 0
+  const isDraft = event.status === EventStatus.Draft
   const cardStyle = { borderLeftColor: event.kind?.color ?? 'transparent', borderLeftWidth: '4px' }
   const kindLabel = event.kind ? ` · ${event.kind.name}` : ''
   const timeLabel = time ? ` · ${time}` : ''
@@ -215,6 +229,7 @@ function EventRow({
             </span>
           </div>
           <div className="flex items-center gap-2">
+            {isDraft && <DraftBadge />}
             {showConflictBadge && <ConflictBadge count={event.conflictCount} />}
             <ChevronRight className="size-4 text-muted-foreground" />
           </div>
@@ -266,18 +281,44 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
   const { upcomingEvents, roles, defaults, timezone } = loaderData
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
-  const bulkFetcher = useFetcher<{ ok: boolean }>()
+  const bulkFetcher = useFetcher<{ ok: boolean; error?: 'invalid_payload' }>()
+  const bulkStatusFetcher = useFetcher<{ ok: boolean; error?: 'invalid_payload' }>()
 
   const weekGroups = groupByWeek(upcomingEvents)
   const editableIds = upcomingEvents.filter(e => e.canEdit).map(e => e.id)
   const hasEditableEvents = editableIds.length > 0
   const isDeleting = bulkFetcher.state !== 'idle'
+  const isChangingStatus = bulkStatusFetcher.state !== 'idle'
+
+  const selectedEvents = upcomingEvents.filter(e => selectedIds.has(e.id))
+  const anyDraftSelected = selectedEvents.some(e => e.status === EventStatus.Draft)
+  const anyReleasedSelected = selectedEvents.some(e => e.status === EventStatus.Released)
 
   useEffect(() => {
-    if (bulkFetcher.state === 'idle' && bulkFetcher.data?.ok === true) {
+    if (bulkFetcher.state !== 'idle') return
+    if (bulkFetcher.data?.ok === true) {
       setSelectedIds(new Set())
     }
+    // Same client-side surface for the delete fetcher — the layout flash
+    // won't fire for a shape rejection.
+    if (bulkFetcher.data?.ok === false && bulkFetcher.data?.error === 'invalid_payload') {
+      toast.error(m.programs_bulk_invalid_payload())
+    }
   }, [bulkFetcher.state, bulkFetcher.data])
+
+  useEffect(() => {
+    if (bulkStatusFetcher.state !== 'idle') return
+    if (bulkStatusFetcher.data?.ok === true) {
+      setSelectedIds(new Set())
+    }
+    // Server-side flash toasts (via commitSession) drive the success/blocked
+    // messages. `invalid_payload` is a shape rejection so no flash cookie is
+    // set — surface a client-side toast so the user isn't left staring at a
+    // spinner that stops.
+    if (bulkStatusFetcher.data?.ok === false && bulkStatusFetcher.data?.error === 'invalid_payload') {
+      toast.error(m.programs_bulk_invalid_payload())
+    }
+  }, [bulkStatusFetcher.state, bulkStatusFetcher.data])
 
   function toggleSelection(id: number) {
     setSelectedIds(prev => {
@@ -313,6 +354,21 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
       { method: 'POST', action: '/programs/bulk-delete', encType: 'application/json' },
     )
     setBulkDeleteOpen(false)
+  }
+
+  function bulkRelease() {
+    const ids = selectedEvents.filter(e => e.status === EventStatus.Draft).map(e => e.id)
+    if (ids.length === 0) return
+    bulkStatusFetcher.submit({ ids }, { method: 'POST', action: '/programs/bulk-release', encType: 'application/json' })
+  }
+
+  function bulkUnrelease() {
+    const ids = selectedEvents.filter(e => e.status === EventStatus.Released).map(e => e.id)
+    if (ids.length === 0) return
+    bulkStatusFetcher.submit(
+      { ids },
+      { method: 'POST', action: '/programs/bulk-unrelease', encType: 'application/json' },
+    )
   }
 
   return (
@@ -383,6 +439,18 @@ export default function ProgramListPage({ loaderData }: Route.ComponentProps) {
               <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
                 {m.programs_bulk_deselect()}
               </Button>
+              {anyDraftSelected && (
+                <Button variant="default" size="sm" onClick={bulkRelease} disabled={isChangingStatus}>
+                  {isChangingStatus ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+                  {m.programs_bulk_release()}
+                </Button>
+              )}
+              {anyReleasedSelected && (
+                <Button variant="outline" size="sm" onClick={bulkUnrelease} disabled={isChangingStatus}>
+                  {isChangingStatus ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
+                  {m.programs_bulk_unrelease()}
+                </Button>
+              )}
               <Button variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
                 <Trash2 className="size-4" />
                 {m.programs_bulk_delete()}

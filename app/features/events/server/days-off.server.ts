@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -49,6 +50,9 @@ export async function createDayOff(
       createdBy: { connect: { id: accountId } },
       name: m.seed_event_kind_absence(),
       congregation: { connect: { id: congregationId } },
+      // Days-off never go through the release workflow — they must be visible
+      // to the conflict pipeline immediately.
+      status: EventStatus.Released,
     },
   })
 

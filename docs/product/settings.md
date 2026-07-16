@@ -65,7 +65,7 @@ Permission required: *Admin*.
 
 ## Audit log
 
-Every meaningful change in the congregation — sign-ins, role assignments, document uploads, territory edits, exports, and so on — is recorded with the actor, the time, and the affected entity. The audit log viewer is the place to look up "who did what, when".
+Every meaningful change in the congregation — sign-ins, role assignments, document uploads, territory edits, event releases and un-releases, exports, and so on — is recorded with the actor, the time, and the affected entity. The audit log viewer is the place to look up "who did what, when". The action filter groups entries by feature: territories, publishers, board, events (release / un-release / delete), settings, and so on.
 
 Permission required: *Admin*.
 

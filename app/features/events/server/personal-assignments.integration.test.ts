@@ -76,6 +76,7 @@ beforeAll(async () => {
         endDate: new Date('2026-06-10T20:00:00Z'),
         createdById: aliceId,
         congregationId: congAId,
+        status: 'released',
       },
     })
 
@@ -87,6 +88,7 @@ beforeAll(async () => {
         kindId: offKind.id,
         createdById: aliceId,
         congregationId: congAId,
+        status: 'released',
       },
     })
     evergreenId = dayOff.id
@@ -140,6 +142,7 @@ beforeAll(async () => {
         endDate: new Date('2026-06-11T20:00:00Z'),
         createdById: bobId,
         congregationId: congBId,
+        status: 'released',
       },
     })
 

@@ -34,6 +34,7 @@ describe('getResponsibleConflicts', () => {
     expect(partWhere.hasConflict).toBe(true)
     expect(partWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
+      status: 'released',
       template: { responsibles: { some: { userId } } },
     })
   })
@@ -46,18 +47,21 @@ describe('getResponsibleConflicts', () => {
     const serviceWhere = serviceCall?.where as Record<string, unknown>
     expect(serviceWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
+      status: 'released',
       template: { responsibles: { some: { userId } } },
     })
   })
 
   // ProgramManager sees everything — including untemplated events (which
-  // have no responsible relation at all).
-  it('drops the template filter for ProgramManager users', async () => {
+  // have no responsible relation at all) — but still only released ones.
+  // Draft-event conflicts are not urgent enough for the dashboard; managers
+  // see them on the events list amber badge and get blocked at release.
+  it('drops the template filter for ProgramManager users but keeps the released filter', async () => {
     await getResponsibleConflicts(db, 100, true)
 
     const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
-    expect(partWhere.event).toEqual({ startDate: { gte: expect.any(Date) } })
+    expect(partWhere.event).toEqual({ startDate: { gte: expect.any(Date) }, status: 'released' })
     expect(partWhere.event).not.toHaveProperty('template')
   })
 

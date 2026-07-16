@@ -11,8 +11,16 @@ Unitae sends email notifications to keep congregation members informed about eve
 | **Document deletion** | A document is removed from the board | Members with Board Validator | Instant (cancels pending "new document" or "updated" notifications) |
 | **Document expiring soon** | Board documents are approaching their visibility end date | Members with Board Validator | Instant |
 | **Open data sync completed** | The open-data import finishes | The member who triggered the sync | Instant |
+| **Programme assignment** | A publisher is assigned to a programme part or service role on a released event | The assigned publisher | 30 minutes |
+| **Programme un-assignment** | A publisher is removed from a programme part or service role on a released event | The un-assigned publisher | Instant (cancels a pending "assignment" if not yet sent) |
 
 All types respect user notification preferences and can be individually toggled off.
+
+### Draft events don't notify
+
+Programme events start as [drafts](events.md#draft-and-released-events). While draft, adding, editing, or removing an assignment sends **no email** — the schedule is still being built. When the programme manager releases the event, one assignment notification fires for each current assignee.
+
+The 30-minute debounce on assignment notifications is a **safety net** for accidental releases: a manager who releases the wrong event has 30 minutes to un-release before any email leaves. Un-releasing cancels the pending emails. Publishers who already received a notification (release + 30 min) keep it — Unitae doesn't send a follow-up "never mind" email.
 
 ## How Debouncing Works
 

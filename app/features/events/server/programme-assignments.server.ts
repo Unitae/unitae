@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -7,8 +8,8 @@ import {
 import {
   checkEligibleForRole,
   checkExternalSpeakerValid,
-  checkNoDayOffConflict,
   checkParticipantsDistinct,
+  DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from '~/features/events/server/programme-assignment.policy'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -55,6 +56,36 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
   })
 }
 
+// Runs the per-participant checks used by assignPart for both speaker and
+// reader. Returns a Rejection on hard failure (ineligible role, or day-off
+// on a released event) or a hasConflict flag the caller ORs together for the
+// eventual `data.hasConflict` write.
+async function checkPartParticipant(
+  db: TransactionClient,
+  args: {
+    assignmentId: number
+    participantId: number | null
+    roleKind: 'speaker' | 'reader'
+    event: { startDate: Date; endDate: Date }
+    congregationId: number
+    isReleased: boolean
+  },
+): Promise<{ error: string } | { hasConflict: boolean }> {
+  const { assignmentId, participantId, roleKind, event, congregationId, isReleased } = args
+  if (participantId == null) return { hasConflict: false }
+
+  const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, roleKind, congregationId)
+  const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
+  const ineligible = checkEligibleForRole(eligible, participantId, roleKind)
+  if (ineligible) return ineligible
+
+  if (await checkDayOffConflict(db, participantId, event.startDate, event.endDate, congregationId)) {
+    if (isReleased) return { error: DAY_OFF_MESSAGE[roleKind] }
+    return { hasConflict: true }
+  }
+  return { hasConflict: false }
+}
+
 export async function assignPart(
   db: TransactionClient,
   assignmentId: number,
@@ -99,43 +130,40 @@ export async function assignPart(
   const notDistinct = checkParticipantsDistinct(assigneeId, assistantId)
   if (notDistinct) return notDistinct
 
-  if (assigneeId != null) {
-    const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'speaker', congregationId)
-    const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    const ineligibleSpeaker = checkEligibleForRole(eligible, assigneeId, 'speaker')
-    if (ineligibleSpeaker) return ineligibleSpeaker
-    const conflict = await checkDayOffConflict(
-      db,
-      assigneeId,
-      existing.event.startDate,
-      existing.event.endDate,
-      congregationId,
-    )
-    const speakerConflict = checkNoDayOffConflict(conflict, 'speaker')
-    if (speakerConflict) return speakerConflict
-  }
+  // On a released event we still block day-off overlaps outright — silently
+  // scheduling a publisher on top of a known absence on a public event is
+  // exactly the kind of surprise we want to avoid. On a draft the manager is
+  // building the schedule, so we save with hasConflict=true and let the
+  // release-blocking policy surface it at publish time.
+  const isReleased = existing.event.status === EventStatus.Released
 
-  if (assistantId != null) {
-    const allowed = await getPartAssignmentAllowedRoleIds(db, assignmentId, 'reader', congregationId)
-    const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
-    const ineligibleReader = checkEligibleForRole(eligible, assistantId, 'reader')
-    if (ineligibleReader) return ineligibleReader
-    const conflict = await checkDayOffConflict(
-      db,
-      assistantId,
-      existing.event.startDate,
-      existing.event.endDate,
-      congregationId,
-    )
-    const readerConflict = checkNoDayOffConflict(conflict, 'reader')
-    if (readerConflict) return readerConflict
-  }
+  const speakerCheck = await checkPartParticipant(db, {
+    assignmentId,
+    participantId: assigneeId,
+    roleKind: 'speaker',
+    event: existing.event,
+    congregationId,
+    isReleased,
+  })
+  if ('error' in speakerCheck) return speakerCheck
+
+  const readerCheck = await checkPartParticipant(db, {
+    assignmentId,
+    participantId: assistantId,
+    roleKind: 'reader',
+    event: existing.event,
+    congregationId,
+    isReleased,
+  })
+  if ('error' in readerCheck) return readerCheck
+
+  const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
   const assignment = await db.programmePartAssignment.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict: false },
+    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict },
   })
 
   return { assignment, previousAssigneeId, previousAssistantId }
@@ -156,27 +184,25 @@ export async function assignServiceRole(
 
   const previousAssigneeId = existing.assigneeId
 
+  const isReleased = existing.event.status === EventStatus.Released
+  let hasConflict = false
+
   if (assigneeId != null) {
     const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignmentId, congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
     const ineligible = checkEligibleForRole(eligible, assigneeId, 'servant')
     if (ineligible) return ineligible
-    const conflict = await checkDayOffConflict(
-      db,
-      assigneeId,
-      existing.event.startDate,
-      existing.event.endDate,
-      congregationId,
-    )
-    const dayOff = checkNoDayOffConflict(conflict, 'servant')
-    if (dayOff) return dayOff
+    if (await checkDayOffConflict(db, assigneeId, existing.event.startDate, existing.event.endDate, congregationId)) {
+      if (isReleased) return { error: DAY_OFF_MESSAGE.servant }
+      hasConflict = true
+    }
   }
 
   const assignment = await db.programmeServiceRoleAssignment.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, hasConflict: false },
+    data: { assigneeId, hasConflict },
   })
 
   return { assignment, previousAssigneeId }
@@ -252,10 +278,18 @@ export async function refreshConflictFlags(
   // Find all programme events (templated OR not) overlapping the range.
   // Off events themselves have no assignments and are excluded to avoid
   // pointless iteration.
+  //
+  // The `NOT: { kind: {...} }` shape (rather than `kind: { key: { not } }`)
+  // matters: Prisma's relational filter inner-joins through `kind`, so the
+  // `key: { not: 'off' }` form silently excludes events with a null kindId.
+  // Seeded templates leave kindId null, so generated events inherit that null
+  // and would otherwise never see their hasConflict flag refreshed — the
+  // events-list badge, the view-page absence badge, and the release-blocking
+  // policy all depend on this being right.
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,
-      kind: { key: { not: EventKind.Off } },
+      NOT: { kind: { key: EventKind.Off } },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
@@ -263,24 +297,50 @@ export async function refreshConflictFlags(
   })
 
   for (const event of overlappingEvents) {
-    const hasConflict = await checkDayOffConflict(db, memberId, event.startDate, event.endDate, congregationId)
-
-    await db.programmePartAssignment.updateMany({
+    // hasConflict is one flag per assignment row, but a part can have two
+    // participants (speaker + reader). Computing the flag from ONLY the
+    // refreshed member's state would silently clear a conflict that the
+    // co-participant still owns — e.g. Alice removes her absence but Bob is
+    // still absent on the same part. Recompute per row as
+    // (assigneeConflict OR assistantConflict).
+    const parts = await db.programmePartAssignment.findMany({
       where: {
         eventId: event.id,
         congregationId,
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
       },
-      data: { hasConflict },
+      select: { id: true, assigneeId: true, assistantId: true },
     })
 
-    await db.programmeServiceRoleAssignment.updateMany({
-      where: {
-        eventId: event.id,
-        assigneeId: memberId,
-        congregationId,
-      },
-      data: { hasConflict },
+    for (const part of parts) {
+      const assigneeConflict =
+        part.assigneeId != null &&
+        (await checkDayOffConflict(db, part.assigneeId, event.startDate, event.endDate, congregationId))
+      const assistantConflict =
+        part.assistantId != null &&
+        (await checkDayOffConflict(db, part.assistantId, event.startDate, event.endDate, congregationId))
+
+      await db.programmePartAssignment.update({
+        where: { id_congregationId: { id: part.id, congregationId } },
+        data: { hasConflict: assigneeConflict || assistantConflict },
+      })
+    }
+
+    // Service-role rows have a single assignee, so a plain per-row recompute
+    // is enough — no clobber scenario.
+    const services = await db.programmeServiceRoleAssignment.findMany({
+      where: { eventId: event.id, assigneeId: memberId, congregationId },
+      select: { id: true, assigneeId: true },
     })
+
+    for (const service of services) {
+      const hasConflict =
+        service.assigneeId != null &&
+        (await checkDayOffConflict(db, service.assigneeId, event.startDate, event.endDate, congregationId))
+      await db.programmeServiceRoleAssignment.update({
+        where: { id_congregationId: { id: service.id, congregationId } },
+        data: { hasConflict },
+      })
+    }
   }
 }

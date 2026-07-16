@@ -1,5 +1,6 @@
 import type { Event, ProgrammePartAssignment, ProgrammeServiceRoleAssignment } from '~/database/generated/client'
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -38,7 +39,8 @@ export async function getPersonalAssignments(
       ? db.programmePartAssignment.findMany({
           where: {
             OR: [{ assigneeId: memberId }, { assistantId: memberId }],
-            event: { startDate: { gte: since } },
+            // Drafts stay off the publisher's calendar and ICS feed.
+            event: { startDate: { gte: since }, status: EventStatus.Released },
           },
           include: { event: true },
         })
@@ -47,7 +49,7 @@ export async function getPersonalAssignments(
       ? db.programmeServiceRoleAssignment.findMany({
           where: {
             assigneeId: memberId,
-            event: { startDate: { gte: since } },
+            event: { startDate: { gte: since }, status: EventStatus.Released },
           },
           include: { event: true },
         })

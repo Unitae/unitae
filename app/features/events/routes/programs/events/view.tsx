@@ -1,6 +1,18 @@
-import { AlertTriangle, Clock, MoreHorizontal, Pencil, Trash2, UserPlus, X } from 'lucide-react'
+import {
+  AlertTriangle,
+  Clock,
+  FileText,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Send,
+  Trash2,
+  UserPlus,
+  X,
+} from 'lucide-react'
 import { useState } from 'react'
-import { Link, redirect } from 'react-router'
+import { Link, redirect, useFetcher } from 'react-router'
+import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -217,12 +229,21 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={event.name}
+        titleBadge={
+          event.status === EventStatus.Draft && (
+            <Badge variant="secondary" className="gap-1 text-xs">
+              <FileText className="size-3" />
+              {m.programs_event_draft_badge()}
+            </Badge>
+          )
+        }
         subtitle={`${dateStr} — ${startTime} - ${endTime}`}
         breadcrumbs={[{ label: m.sidebar_programs(), to: '/programs' }, { label: event.name }]}
         backTo="/programs"
         actions={
           canEdit && (
             <div className="flex gap-2">
+              <ReleaseToggleButton status={event.status} eventId={event.id} />
               <Button variant="outline" size="sm" asChild>
                 <Link to="./edit">
                   <Pencil className="size-4" />
@@ -542,6 +563,26 @@ function PartRow({
         </TableCell>
       )}
     </TableRow>
+  )
+}
+
+function ReleaseToggleButton({ status, eventId }: { status: string; eventId: number }) {
+  const fetcher = useFetcher<{ ok: boolean }>()
+  const isDraft = status === EventStatus.Draft
+  const action = isDraft ? `/programs/events/${eventId}/release` : `/programs/events/${eventId}/unrelease`
+  const label = isDraft ? m.programs_event_release_button() : m.programs_event_unrelease_button()
+  const Icon = isDraft ? Send : FileText
+  const inFlight = fetcher.state !== 'idle'
+
+  function submit() {
+    fetcher.submit({}, { method: 'POST', action })
+  }
+
+  return (
+    <Button variant={isDraft ? 'default' : 'outline'} size="sm" onClick={submit} disabled={inFlight}>
+      {inFlight ? <Loader2 className="size-4 animate-spin" /> : <Icon className="size-4" />}
+      {label}
+    </Button>
   )
 }
 

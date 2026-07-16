@@ -5,7 +5,6 @@ import {
   assertDistinctParticipants,
   checkEligibleForRole,
   checkExternalSpeakerValid,
-  checkNoDayOffConflict,
   checkParticipantsDistinct,
   PROGRAMME_ASSIGNMENT_ERRORS,
 } from './programme-assignment.policy'
@@ -103,23 +102,5 @@ describe('checkEligibleForRole', () => {
     expect(checkEligibleForRole([1, 2], 3, 'servant')).toEqual({
       error: PROGRAMME_ASSIGNMENT_ERRORS.ineligibleServant,
     })
-  })
-})
-
-describe('checkNoDayOffConflict', () => {
-  it('returns null when there is no conflict', () => {
-    expect(checkNoDayOffConflict(false, 'speaker')).toBeNull()
-  })
-
-  it('returns the speaker day-off rejection', () => {
-    expect(checkNoDayOffConflict(true, 'speaker')).toEqual({ error: PROGRAMME_ASSIGNMENT_ERRORS.dayOffSpeaker })
-  })
-
-  it('returns the reader day-off rejection', () => {
-    expect(checkNoDayOffConflict(true, 'reader')).toEqual({ error: PROGRAMME_ASSIGNMENT_ERRORS.dayOffReader })
-  })
-
-  it('returns the servant day-off rejection', () => {
-    expect(checkNoDayOffConflict(true, 'servant')).toEqual({ error: PROGRAMME_ASSIGNMENT_ERRORS.dayOffServant })
   })
 })

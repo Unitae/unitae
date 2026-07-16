@@ -128,6 +128,16 @@ await notify(db, {
 
 The function is fire-and-forget — failures are logged but never block the calling operation.
 
+## Programme assignment dispatch gate
+
+`programme.assignment.{assigned,unassigned}` are **whitelist-gated on `Event.status === 'released'`** in `notify-assignment.server.ts` (`dispatchAssignmentDiffs`). Assignments on a draft event never call `notify()` — no `NotificationEvent` row is created, no debounce is armed, nothing shows up in the queue.
+
+When a manager releases an event, `fireReleaseNotifications` (`app/features/events/server/event-status.server.ts`) iterates every current part / service-role assignee and calls `notifyAssignment` for each — the *same* code path that runs during a live edit, so the debounce, cancellation, and preference filter all apply uniformly. Un-releasing the event calls `unreleaseEvent`, which marks every `pending` `NotificationEvent` row targeting the event's assignments as `cancelled`.
+
+The gate is a **whitelist, not a blacklist**: the code checks `status === Released`, not `status !== Draft`. If we ever introduce a third status (e.g. `archived`), the safe default is "don't notify". Un-release wins over release only by not running — assignments made on a draft are silent by construction, so the release-time re-fire is the single source of "you were assigned" emails.
+
+The debounce window is intentionally short at **30 minutes** (`app/features/events/server/notifications.server.tsx`): it is a safety net for accidental releases, not a batching mechanism. Drafting removed the need for the older 2h window.
+
 ## Debounce & Flush
 
 When `debounceMinutes > 0`, `notify()` creates a `NotificationEvent` row in PostgreSQL with `status: 'pending'` and `debounceUntil` set to `now + debounceMinutes`.

@@ -97,6 +97,9 @@ function translateAction(action: string): string {
     'congregation.settings.updated': m.audit_log_action_congregation_settings_updated(),
     'congregation.exported': m.audit_log_action_congregation_exported(),
     'congregation.imported': m.audit_log_action_congregation_imported(),
+    'event.released': m.audit_log_action_event_released(),
+    'event.unreleased': m.audit_log_action_event_unreleased(),
+    'event.deleted': m.audit_log_action_event_deleted(),
     'platform.congregation.updated': m.audit_log_action_platform_congregation_updated(),
     'platform.users.listed': m.audit_log_action_platform_users_listed(),
   }
@@ -121,6 +124,8 @@ function getEntityLabel(entityType: string): string {
       return m.audit_log_entity_publisher_group()
     case 'PublisherActivity':
       return m.audit_log_entity_publisher_activity()
+    case 'Event':
+      return m.audit_log_entity_event()
     default:
       return entityType
   }
@@ -217,6 +222,12 @@ export default function AuditLogPage({ loaderData }: Route.ComponentProps) {
                 </SelectItem>
                 <SelectItem value="congregation.exported">{m.audit_log_action_congregation_exported()}</SelectItem>
                 <SelectItem value="congregation.imported">{m.audit_log_action_congregation_imported()}</SelectItem>
+              </SelectGroup>
+              <SelectGroup>
+                <SelectLabel>{m.audit_log_group_events()}</SelectLabel>
+                <SelectItem value="event.released">{m.audit_log_action_event_released()}</SelectItem>
+                <SelectItem value="event.unreleased">{m.audit_log_action_event_unreleased()}</SelectItem>
+                <SelectItem value="event.deleted">{m.audit_log_action_event_deleted()}</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

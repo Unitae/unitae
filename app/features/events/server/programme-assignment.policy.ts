@@ -59,20 +59,20 @@ const INELIGIBLE_MESSAGE: Record<ProgrammeRoleKind, string> = {
   servant: PROGRAMME_ASSIGNMENT_ERRORS.ineligibleServant,
 }
 
+// Day-off overlap message per role. Parallel to INELIGIBLE_MESSAGE. Used
+// by the writers to build a Rejection when releasing an event would silently
+// schedule a publisher on top of a known absence — on drafts we save with
+// hasConflict=true instead (the release-blocking policy surfaces it later).
+export const DAY_OFF_MESSAGE: Record<ProgrammeRoleKind, string> = {
+  speaker: PROGRAMME_ASSIGNMENT_ERRORS.dayOffSpeaker,
+  reader: PROGRAMME_ASSIGNMENT_ERRORS.dayOffReader,
+  servant: PROGRAMME_ASSIGNMENT_ERRORS.dayOffServant,
+}
+
 export function checkEligibleForRole(
   eligibleUserIds: number[],
   assigneeId: number,
   roleKind: ProgrammeRoleKind,
 ): Rejection | null {
   return eligibleUserIds.includes(assigneeId) ? null : { error: INELIGIBLE_MESSAGE[roleKind] }
-}
-
-const DAY_OFF_MESSAGE: Record<ProgrammeRoleKind, string> = {
-  speaker: PROGRAMME_ASSIGNMENT_ERRORS.dayOffSpeaker,
-  reader: PROGRAMME_ASSIGNMENT_ERRORS.dayOffReader,
-  servant: PROGRAMME_ASSIGNMENT_ERRORS.dayOffServant,
-}
-
-export function checkNoDayOffConflict(hasConflict: boolean, roleKind: ProgrammeRoleKind): Rejection | null {
-  return hasConflict ? { error: DAY_OFF_MESSAGE[roleKind] } : null
 }

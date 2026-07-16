@@ -2,6 +2,7 @@
 
 export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventKind } from './model/event-kind.type'
+export { EventStatus } from './model/event-status.type'
 export { groupPartsBySlot } from './model/group-parts-by-slot'
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PartEditSheet } from './ui/PartEditSheet'

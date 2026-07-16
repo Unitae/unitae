@@ -1,5 +1,5 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { EventKind } from '~/features/events'
+import { EventKind, EventStatus } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
@@ -172,7 +172,9 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
     db.programmePartAssignment.findMany({
       where: {
         OR: [{ assigneeId: userId }, { assistantId: userId }],
-        event: { startDate: { gte: now } },
+        // Drafts are the manager's scratch space — never previewed to
+        // publishers.
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
@@ -193,7 +195,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
     db.programmeServiceRoleAssignment.findMany({
       where: {
         assigneeId: userId,
-        event: { startDate: { gte: now } },
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
@@ -256,11 +258,15 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       where: {
         hasConflict: true,
         OR: [{ assigneeId: userId }, { assistantId: userId }],
-        event: { startDate: { gte: now } },
+        // Conflicts on a draft event are not urgent — the schedule isn't
+        // public yet. They only surface via the events-list amber badge for
+        // managers, and block the release step.
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
-        event: { select: { name: true, startDate: true } },
+        name: true,
+        event: { select: { startDate: true } },
       },
       orderBy: { event: { startDate: 'asc' } },
       take: 1,
@@ -269,28 +275,32 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       where: {
         hasConflict: true,
         assigneeId: userId,
-        event: { startDate: { gte: now } },
+        event: { startDate: { gte: now }, status: EventStatus.Released },
       },
       select: {
         id: true,
-        event: { select: { name: true, startDate: true } },
+        name: true,
+        event: { select: { startDate: true } },
       },
       orderBy: { event: { startDate: 'asc' } },
       take: 1,
     }),
   ])
 
+  // We surface the assignment's own name ("Discours public", "Son", …), not
+  // the parent event's name ("Réunion de semaine" — repeats every week and
+  // doesn't identify which part is actually clashing with the absence).
   const candidates = [
     ...partConflicts.map(c => ({
       kind: 'part' as const,
       id: c.id,
-      eventName: c.event.name,
+      name: c.name,
       eventStartDate: c.event.startDate,
     })),
     ...serviceConflicts.map(c => ({
       kind: 'service-role' as const,
       id: c.id,
-      eventName: c.event.name,
+      name: c.name,
       eventStartDate: c.event.startDate,
     })),
   ]
@@ -305,7 +315,12 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   const event = await db.event.findFirst({
     where: {
       startDate: { gte: now },
-      kind: { key: { not: EventKind.Off } },
+      // NOT: { kind: {...} } instead of kind: { key: { not } } — the second
+      // form inner-joins through kind and silently drops null-kind rows,
+      // which seeded templates produce.
+      NOT: { kind: { key: EventKind.Off } },
+      // Publisher-facing dashboard — drafts must stay hidden.
+      status: EventStatus.Released,
     },
     select: {
       id: true,

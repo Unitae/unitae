@@ -124,6 +124,33 @@ describe('computeFilters', () => {
     expect(result.AND).toBeUndefined()
   })
 
+  // Powers a future "Brouillons" / "Publiés" toggle on the list. The filter is
+  // plumbing only — the UI in this MVP does not surface it — but it's cheap
+  // enough to add now so the query shape stays stable.
+  it('filters by status=draft when param is draft', () => {
+    const params = new URLSearchParams({ status: 'draft' })
+    const result = computeFilters(params)
+    expect(result.status).toBe('draft')
+  })
+
+  it('filters by status=released when param is released', () => {
+    const params = new URLSearchParams({ status: 'released' })
+    const result = computeFilters(params)
+    expect(result.status).toBe('released')
+  })
+
+  it('ignores unknown status values', () => {
+    const params = new URLSearchParams({ status: 'wat' })
+    const result = computeFilters(params)
+    expect(result.status).toBeUndefined()
+  })
+
+  it('does not filter by status when param is absent', () => {
+    const params = new URLSearchParams()
+    const result = computeFilters(params)
+    expect(result.status).toBeUndefined()
+  })
+
   // Combined-param pin: hasConflicts must compose cleanly with date + publisher
   // filters. A regression that spread over `startDate` / `endDate` (or drops
   // `createdById`) would slip through the single-param tests above.
