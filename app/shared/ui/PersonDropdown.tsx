@@ -159,7 +159,7 @@ export function PersonDropdown({
   return (
     <>
       <input type="hidden" name={name} value={currentValue} />
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal>
         <PopoverTrigger
           id={triggerId}
           type="button"
