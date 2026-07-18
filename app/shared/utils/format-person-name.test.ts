@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { comparePersonName, formatPersonName } from './format-person-name'
+import { comparePersonName, formatPersonName, resolveAccountName } from './format-person-name'
 
 describe('formatPersonName', () => {
   it('renders "Prénom NOM" with last name uppercased', () => {
@@ -65,5 +65,44 @@ describe('comparePersonName', () => {
       { firstname: 'Alice', lastname: 'Albert' },
     ]
     expect(() => [...list].sort(comparePersonName)).not.toThrow()
+  })
+})
+
+describe('resolveAccountName', () => {
+  it('takes the linked member name when the account is bound to a Member', () => {
+    expect(
+      resolveAccountName({
+        firstname: null,
+        lastname: null,
+        member: { firstname: 'Jean', lastname: 'Dupont' },
+      }),
+    ).toEqual({ firstname: 'Jean', lastname: 'Dupont' })
+  })
+
+  it('prefers the member name even when the account also carries a name', () => {
+    expect(
+      resolveAccountName({
+        firstname: 'Stale',
+        lastname: 'Copy',
+        member: { firstname: 'Jean', lastname: 'Dupont' },
+      }),
+    ).toEqual({ firstname: 'Jean', lastname: 'Dupont' })
+  })
+
+  it('falls back to the account name when no member is linked', () => {
+    expect(
+      resolveAccountName({
+        firstname: 'Marie',
+        lastname: 'Curie',
+        member: null,
+      }),
+    ).toEqual({ firstname: 'Marie', lastname: 'Curie' })
+  })
+
+  it('returns nullable name parts when neither source has a name', () => {
+    expect(resolveAccountName({ firstname: null, lastname: null, member: null })).toEqual({
+      firstname: null,
+      lastname: null,
+    })
   })
 })

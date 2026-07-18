@@ -3,6 +3,7 @@ import { buildPersonalCalendarIcs } from '~/features/events/server/build-persona
 import { getPersonalAssignments } from '~/features/events/server/personal-assignments.server'
 import { withScope } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
+import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 import type { Route } from './+types/calendar-feed.ics'
 
 const HORIZON_MONTHS = 3
@@ -23,11 +24,13 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const since = new Date()
   since.setMonth(since.getMonth() - HORIZON_MONTHS)
 
+  const displayName = formatPersonName(resolveAccountName(resolved.user), '')
+
   const ics = await withScope(resolved.user.congregationId, async db => {
     const items = await getPersonalAssignments(db, resolved.user.id, since)
     return buildPersonalCalendarIcs({
       items,
-      userLabel: resolved.user.firstname || resolved.user.email,
+      userLabel: displayName || resolved.user.email,
       uidDomain: new URL(request.url).hostname,
     })
   })

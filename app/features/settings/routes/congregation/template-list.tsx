@@ -9,6 +9,7 @@ import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 
 import type { Route } from './+types/template-list'
 
@@ -79,7 +80,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
                 <TableCell className="text-center max-sm:hidden">
                   {template.responsibles[0] ? (
                     <span className="text-sm">
-                      {template.responsibles[0].user.firstname} {template.responsibles[0].user.lastname}
+                      {formatPersonName(resolveAccountName(template.responsibles[0].user))}
                     </span>
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
