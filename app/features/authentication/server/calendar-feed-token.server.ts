@@ -20,12 +20,14 @@ export function getCalendarFeedToken(userId: number): Promise<CalendarFeedToken 
   return db.calendarFeedToken.findUnique({ where: { userId } })
 }
 
+type UserWithMember = UserAccount & { member: { firstname: string | null; lastname: string | null } | null }
+
 export async function findUserByCalendarFeedToken(
   token: string,
-): Promise<{ tokenId: number; user: UserAccount } | null> {
+): Promise<{ tokenId: number; user: UserWithMember } | null> {
   const record = await db.calendarFeedToken.findUnique({
     where: { token },
-    include: { user: true },
+    include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
   })
 
   return record ? { tokenId: record.id, user: record.user } : null

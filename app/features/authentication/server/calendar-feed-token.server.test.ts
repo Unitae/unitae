@@ -104,4 +104,15 @@ describe('findUserByCalendarFeedToken', () => {
 
     expect(result).toBeNull()
   })
+
+  it("pulls the user's linked member name so the ICS feed can label the calendar", async () => {
+    vi.mocked(db.calendarFeedToken.findUnique).mockResolvedValue(null as never)
+
+    await findUserByCalendarFeedToken('tok')
+
+    const args = vi.mocked(db.calendarFeedToken.findUnique).mock.calls[0][0]
+    expect(args?.include?.user).toMatchObject({
+      include: { member: { select: { firstname: true, lastname: true } } },
+    })
+  })
 })
