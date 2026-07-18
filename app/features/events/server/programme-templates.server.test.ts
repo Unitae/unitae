@@ -55,6 +55,17 @@ describe('getTemplates', () => {
     const result = await getTemplates(db, 1)
     expect(result).toEqual(fakeTemplates)
   })
+
+  it("pulls the responsible's linked member name so the list can render it", async () => {
+    vi.mocked(db.programmeTemplate.findMany).mockResolvedValue([] as never)
+
+    await getTemplates(db, 1)
+
+    const args = vi.mocked(db.programmeTemplate.findMany).mock.calls[0][0]
+    expect(args?.include?.responsibles).toMatchObject({
+      include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
+    })
+  })
 })
 
 describe('getTemplateById', () => {
@@ -71,6 +82,17 @@ describe('getTemplateById', () => {
 
     const result = await getTemplateById(db, 999, 1)
     expect(result).toBeNull()
+  })
+
+  it("pulls the responsible's linked member name so the view can render it", async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
+
+    await getTemplateById(db, 1, 1)
+
+    const args = vi.mocked(db.programmeTemplate.findFirst).mock.calls[0][0]
+    expect(args?.include?.responsibles).toMatchObject({
+      include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
+    })
   })
 })
 

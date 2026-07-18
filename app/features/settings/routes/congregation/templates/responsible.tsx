@@ -14,6 +14,7 @@ import { PageHeader } from '~/shared/ui/PageHeader'
 import { PersonDropdown } from '~/shared/ui/PersonDropdown'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
+import { resolveAccountName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/responsible'
@@ -34,11 +35,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const template = await getTemplateById(db, templateId, currentUser.congregationId)
     if (!template) throw redirect('/settings/congregation/templates')
 
-    const users = await db.userAccount.findMany({
+    const accounts = await db.userAccount.findMany({
       where: { congregationId: currentUser.congregationId, active: true },
       include: { member: { select: { firstname: true, lastname: true } } },
-      orderBy: [{ lastname: 'asc' }, { firstname: 'asc' }],
     })
+
+    const users = accounts.map(account => ({ id: account.id, ...resolveAccountName(account) }))
 
     return {
       template,

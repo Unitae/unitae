@@ -6,12 +6,16 @@ import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
+const responsibleInclude = {
+  include: { user: { include: { member: { select: { firstname: true, lastname: true } } } } },
+} as const
+
 export function getTemplates(db: TransactionClient, congregationId: number) {
   return db.programmeTemplate.findMany({
     where: { congregationId },
     include: {
       _count: { select: { parts: true, serviceRoles: true, events: true } },
-      responsibles: { include: { user: true } },
+      responsibles: responsibleInclude,
     },
     orderBy: { name: 'asc' },
   })
@@ -23,7 +27,7 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
     include: {
       parts: { orderBy: { order: 'asc' } },
       serviceRoles: { orderBy: { name: 'asc' } },
-      responsibles: { include: { user: true } },
+      responsibles: responsibleInclude,
     },
   })
 }

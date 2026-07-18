@@ -17,6 +17,7 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
+import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/view'
@@ -120,7 +121,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
         {template.responsibles[0] && (
           <Badge variant="outline">
             <UserCog className="mr-1 size-3" />
-            {template.responsibles[0].user.firstname} {template.responsibles[0].user.lastname}
+            {formatPersonName(resolveAccountName(template.responsibles[0].user))}
           </Badge>
         )}
       </div>
