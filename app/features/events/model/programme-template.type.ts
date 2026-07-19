@@ -1,4 +1,4 @@
-export enum ProgrammeTemplateKey {
+export enum EventTemplateKey {
   MidweekMeeting = 'midweek-meeting',
   WeekendMeeting = 'weekend-meeting',
   Memorial = 'memorial',
@@ -6,10 +6,7 @@ export enum ProgrammeTemplateKey {
   Freeform = 'freeform',
 }
 
-const SYSTEM_TEMPLATE_KEYS: readonly ProgrammeTemplateKey[] = [
-  ProgrammeTemplateKey.DayOff,
-  ProgrammeTemplateKey.Freeform,
-]
+const SYSTEM_TEMPLATE_KEYS: readonly EventTemplateKey[] = [EventTemplateKey.DayOff, EventTemplateKey.Freeform]
 
 /**
  * System templates are seeded by the app itself and back domain concepts

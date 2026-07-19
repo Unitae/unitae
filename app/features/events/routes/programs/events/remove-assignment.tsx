@@ -51,7 +51,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     let didRemove = false
 
     if (type === 'part') {
-      const assignmentBefore = await db.programmePartAssignment.findFirst({
+      const assignmentBefore = await db.eventPart.findFirst({
         where: { id: assignmentId, congregationId },
         select: { name: true },
       })
@@ -66,7 +66,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
           buildAssignmentContext({
             event,
             assignmentName: assignmentBefore?.name,
-            entityType: 'ProgrammePartAssignment',
+            entityType: 'EventPart',
             entityId: assignmentId,
             congregationId,
             actorId: currentUser.id,
@@ -87,7 +87,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         )
       }
     } else if (type === 'service') {
-      const assignmentBefore = await db.programmeServiceRoleAssignment.findFirst({
+      const assignmentBefore = await db.eventServiceRole.findFirst({
         where: { id: assignmentId, congregationId },
         select: { name: true },
       })
@@ -101,7 +101,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
           buildAssignmentContext({
             event,
             assignmentName: assignmentBefore?.name,
-            entityType: 'ProgrammeServiceRoleAssignment',
+            entityType: 'EventServiceRole',
             entityId: assignmentId,
             congregationId,
             actorId: currentUser.id,

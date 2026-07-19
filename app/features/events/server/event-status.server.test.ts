@@ -5,8 +5,8 @@ import { EVENT_STATUS_ERRORS } from './event-status.policy'
 vi.mock('~/shared/infra/db.server', () => {
   const unscopedDb = {
     event: { findFirst: vi.fn(), update: vi.fn() },
-    programmePartAssignment: { findMany: vi.fn() },
-    programmeServiceRoleAssignment: { findMany: vi.fn() },
+    eventPart: { findMany: vi.fn() },
+    eventServiceRole: { findMany: vi.fn() },
     notificationEvent: { updateMany: vi.fn() },
     userAccount: { findFirst: vi.fn() },
   }
@@ -41,8 +41,8 @@ const draftEvent = {
   status: 'draft',
   startDate: new Date(2026, 3, 14),
   templateId: 7,
-  partAssignments: [] as unknown[],
-  serviceRoleAssignments: [] as unknown[],
+  parts: [] as unknown[],
+  serviceRoles: [] as unknown[],
 }
 const releasedEvent = { ...draftEvent, status: 'released' }
 
@@ -73,8 +73,8 @@ describe('releaseEvent (tx-only)', () => {
   it('returns an error and does not update when any assignment has a conflict', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      partAssignments: [{ id: 100, name: 'Perle', hasConflict: true, assigneeId: 5, assistantId: null }],
-      serviceRoleAssignments: [],
+      parts: [{ id: 100, name: 'Perle', hasConflict: true, assigneeId: 5, assistantId: null }],
+      serviceRoles: [],
     } as never)
 
     const result = await releaseEvent(db, 42, 1, 5)
@@ -121,8 +121,8 @@ describe('releaseEvent (tx-only)', () => {
   it('never calls notifyAssignment (notifications happen outside the tx)', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      partAssignments: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
-      serviceRoleAssignments: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
+      parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
+      serviceRoles: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
@@ -134,8 +134,8 @@ describe('releaseEvent (tx-only)', () => {
   it('computes notifyTargets for every populated speaker/reader/servant slot', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      partAssignments: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
-      serviceRoleAssignments: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
+      parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: 6 }],
+      serviceRoles: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: 9 }],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
@@ -143,10 +143,10 @@ describe('releaseEvent (tx-only)', () => {
 
     expect(result).toMatchObject({
       notifyTargets: [
-        { entityType: 'ProgrammePartAssignment', entityId: 100, assignmentName: 'Perle', memberId: 5, role: 'speaker' },
-        { entityType: 'ProgrammePartAssignment', entityId: 100, assignmentName: 'Perle', memberId: 6, role: 'reader' },
+        { entityType: 'EventPart', entityId: 100, assignmentName: 'Perle', memberId: 5, role: 'speaker' },
+        { entityType: 'EventPart', entityId: 100, assignmentName: 'Perle', memberId: 6, role: 'reader' },
         {
-          entityType: 'ProgrammeServiceRoleAssignment',
+          entityType: 'EventServiceRole',
           entityId: 200,
           assignmentName: 'Accueil',
           memberId: 9,
@@ -159,8 +159,8 @@ describe('releaseEvent (tx-only)', () => {
   it('excludes empty slots from notifyTargets', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      partAssignments: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: null, assistantId: null }],
-      serviceRoleAssignments: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: null }],
+      parts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: null, assistantId: null }],
+      serviceRoles: [{ id: 200, name: 'Accueil', hasConflict: false, assigneeId: null }],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
@@ -176,7 +176,7 @@ describe('releaseEvent (tx-only)', () => {
 describe('fireReleaseNotifications', () => {
   const eventShape = { id: 42, name: 'Réunion', startDate: new Date(2026, 3, 14), templateId: 7 }
   const speakerTarget = {
-    entityType: 'ProgrammePartAssignment' as const,
+    entityType: 'EventPart' as const,
     entityId: 100,
     assignmentName: 'Perle',
     memberId: 5,
@@ -219,7 +219,7 @@ describe('fireReleaseNotifications', () => {
       [
         speakerTarget,
         {
-          entityType: 'ProgrammeServiceRoleAssignment',
+          entityType: 'EventServiceRole',
           entityId: 200,
           assignmentName: 'Accueil',
           memberId: 9,
@@ -234,12 +234,12 @@ describe('fireReleaseNotifications', () => {
     const partCtx = vi.mocked(notifyAssignment).mock.calls[0][1]
     const svcCtx = vi.mocked(notifyAssignment).mock.calls[1][1]
     expect(partCtx).toMatchObject({
-      entityType: 'ProgrammePartAssignment',
+      entityType: 'EventPart',
       entityId: 100,
       assignmentName: 'Perle',
     })
     expect(svcCtx).toMatchObject({
-      entityType: 'ProgrammeServiceRoleAssignment',
+      entityType: 'EventServiceRole',
       entityId: 200,
       assignmentName: 'Accueil',
     })
@@ -290,8 +290,8 @@ describe('unreleaseEvent', () => {
   it('skips the notificationEvent updateMany when the event has zero assignments', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...releasedEvent,
-      partAssignments: [],
-      serviceRoleAssignments: [],
+      parts: [],
+      serviceRoles: [],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
 
@@ -303,8 +303,8 @@ describe('unreleaseEvent', () => {
   it('flips status back to draft and returns the updated event', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...releasedEvent,
-      partAssignments: [],
-      serviceRoleAssignments: [],
+      parts: [],
+      serviceRoles: [],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 0 } as never)
@@ -321,8 +321,8 @@ describe('unreleaseEvent', () => {
   it('cancels pending NotificationEvent rows for the event’s assignments', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...releasedEvent,
-      partAssignments: [{ id: 100 }, { id: 101 }],
-      serviceRoleAssignments: [{ id: 200 }],
+      parts: [{ id: 100 }, { id: 101 }],
+      serviceRoles: [{ id: 200 }],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 2 } as never)
@@ -339,8 +339,8 @@ describe('unreleaseEvent', () => {
           congregationId: 1,
           status: 'pending',
           OR: [
-            { entityType: 'ProgrammePartAssignment', entityId: { in: [100, 101] } },
-            { entityType: 'ProgrammeServiceRoleAssignment', entityId: { in: [200] } },
+            { entityType: 'EventPart', entityId: { in: [100, 101] } },
+            { entityType: 'EventServiceRole', entityId: { in: [200] } },
           ],
         }),
         data: expect.objectContaining({ status: 'cancelled' }),
@@ -351,8 +351,8 @@ describe('unreleaseEvent', () => {
   it('audits with action EventUnreleased on success', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...releasedEvent,
-      partAssignments: [],
-      serviceRoleAssignments: [],
+      parts: [],
+      serviceRoles: [],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(db.notificationEvent.updateMany).mockResolvedValue({ count: 0 } as never)

@@ -58,7 +58,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const assignment = event.partAssignments.find(a => a.id === assignmentId)
+    const assignment = event.parts.find(a => a.id === assignmentId)
     const candidates = await loadPartAssignmentCandidates(db, assignment, congregationId)
 
     return {
@@ -99,7 +99,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const assignmentBefore = await db.programmePartAssignment.findFirst({
+    const assignmentBefore = await db.eventPart.findFirst({
       where: { id: assignmentId, congregationId },
       select: { name: true },
     })
@@ -129,7 +129,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const notifyCtx = buildAssignmentContext({
       event,
       assignmentName: assignmentBefore?.name,
-      entityType: 'ProgrammePartAssignment',
+      entityType: 'EventPart',
       entityId: assignmentId,
       congregationId,
       actorId: currentUser.id,

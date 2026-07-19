@@ -47,7 +47,7 @@ export async function listExternalSpeakers(
         : {}),
     },
     include: {
-      partAssignments: {
+      eventParts: {
         where: { event: { startDate: { lt: new Date() } } },
         select: { event: { select: { startDate: true } } },
         orderBy: { event: { startDate: 'desc' } },
@@ -65,7 +65,7 @@ export async function listExternalSpeakers(
     email: speaker.email,
     notes: speaker.notes,
     archivedAt: speaker.archivedAt,
-    lastVisitDate: speaker.partAssignments[0]?.event.startDate ?? null,
+    lastVisitDate: speaker.eventParts[0]?.event.startDate ?? null,
   }))
 }
 
@@ -75,7 +75,7 @@ export async function getExternalSpeaker(db: TransactionClient, id: number, cong
   })
   if (!speaker) return null
 
-  const recentHistory = await db.programmePartAssignment.findMany({
+  const recentHistory = await db.eventPart.findMany({
     where: {
       congregationId,
       externalSpeakerId: id,

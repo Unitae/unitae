@@ -65,7 +65,7 @@ export async function listAvailableDynamicTypes(
   }
 
   // Programme: always available (users can create multiple with different configs)
-  const templateCount = await db.programmeTemplate.count({ where: { congregationId } })
+  const templateCount = await db.eventTemplate.count({ where: { congregationId } })
   if (templateCount > 0) {
     available.push({
       dynamicType: DynamicType.Programme,
@@ -132,7 +132,7 @@ export async function getContentVersion(
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
-        db.programmePartAssignment.findFirst({
+        db.eventPart.findFirst({
           where: {
             congregationId,
             event: { templateId: { in: templateIds }, startDate: { gte: fromDate }, status: EventStatus.Released },
@@ -157,7 +157,7 @@ export async function getContentVersion(
           orderBy: { updatedAt: 'desc' },
           select: { updatedAt: true },
         }),
-        db.programmePartAssignment.findFirst({
+        db.eventPart.findFirst({
           where: {
             congregationId,
             event: { template: { key: dynamicRef }, startDate: { gte: fromDate }, status: EventStatus.Released },
@@ -346,7 +346,7 @@ function fetchProgrammeByIds(
     },
     include: {
       template: true,
-      partAssignments: {
+      parts: {
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
         include: {
           assignee: { select: userSelect },
@@ -354,7 +354,7 @@ function fetchProgrammeByIds(
           externalSpeaker: { select: { name: true } },
         },
       },
-      serviceRoleAssignments: includeServices ? { include: { assignee: { select: userSelect } } } : false,
+      serviceRoles: includeServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })
@@ -376,7 +376,7 @@ function fetchProgrammeByKey(
       status: EventStatus.Released,
     },
     include: {
-      partAssignments: {
+      parts: {
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
         include: {
           assignee: { select: userSelect },
@@ -384,7 +384,7 @@ function fetchProgrammeByKey(
           externalSpeaker: { select: { name: true } },
         },
       },
-      serviceRoleAssignments: showServices ? { include: { assignee: { select: userSelect } } } : false,
+      serviceRoles: showServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })

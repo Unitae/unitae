@@ -57,11 +57,11 @@ beforeAll(async () => {
     })
     sectionId = section.id
 
-    const templateA = await tx.programmeTemplate.create({
+    const templateA = await tx.eventTemplate.create({
       data: { name: 'Weekly meeting', key: `weekly-meeting-${ts}`, congregationId: congId },
     })
     templateAId = templateA.id
-    const templateB = await tx.programmeTemplate.create({
+    const templateB = await tx.eventTemplate.create({
       data: { name: 'Public talk', key: `public-talk-${ts}`, congregationId: congId },
     })
     templateBId = templateB.id
@@ -96,7 +96,7 @@ afterAll(async () => {
     await withScope(congId, async tx => {
       await tx.boardDynamicDocumentSettings.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.boardSection.deleteMany({})
       await tx.userAccount.deleteMany({})
     })

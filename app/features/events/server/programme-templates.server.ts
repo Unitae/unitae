@@ -12,7 +12,7 @@ const responsibleInclude = {
 } as const
 
 export function getTemplates(db: TransactionClient, congregationId: number) {
-  return db.programmeTemplate.findMany({
+  return db.eventTemplate.findMany({
     where: { congregationId },
     include: {
       _count: { select: { parts: true, serviceRoles: true, events: true } },
@@ -23,7 +23,7 @@ export function getTemplates(db: TransactionClient, congregationId: number) {
 }
 
 export function getTemplateById(db: TransactionClient, templateId: number, congregationId: number) {
-  return db.programmeTemplate.findFirst({
+  return db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: {
       parts: { orderBy: { order: 'asc' } },
@@ -52,14 +52,14 @@ export async function updateTemplate(
   // the createDayOff / createFreeformEvent lookups. The settings UI already
   // presents them as read-only except for the colour swatch; this is the
   // belt-and-suspenders check on the writer.
-  const existing = await db.programmeTemplate.findFirst({
+  const existing = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     select: { key: true },
   })
   const scoped = existing != null && isSystemTemplate(existing.key) ? { color: data.color } : data
   if (Object.values(scoped).every(v => v === undefined)) return null
 
-  return db.programmeTemplate.update({
+  return db.eventTemplate.update({
     where: {
       id_congregationId: { id: templateId, congregationId },
     },
@@ -104,11 +104,11 @@ export async function upsertTemplatePart(
   }
 
   const part = partData.id
-    ? await db.programmeTemplatePart.update({
+    ? await db.templatePart.update({
         where: { id_congregationId: { id: partData.id, congregationId } },
         data: baseData,
       })
-    : await db.programmeTemplatePart.create({
+    : await db.templatePart.create({
         data: { ...baseData, templateId, congregationId },
       })
 
@@ -137,7 +137,7 @@ export async function upsertTemplatePart(
       action: AuditAction.PartAllowedRolesChanged,
       congregationId,
       actorId,
-      entityType: 'ProgrammeTemplatePart',
+      entityType: 'TemplatePart',
       entityId: part.id,
       metadata: { speaker: speakerDiff, reader: readerDiff },
     })
@@ -147,7 +147,7 @@ export async function upsertTemplatePart(
 }
 
 export function deleteTemplatePart(db: TransactionClient, partId: number, congregationId: number) {
-  return db.programmeTemplatePart.delete({
+  return db.templatePart.delete({
     where: {
       id_congregationId: { id: partId, congregationId },
     },
@@ -162,11 +162,11 @@ export async function upsertTemplateServiceRole(
   actorId: number,
 ) {
   const serviceRole = roleData.id
-    ? await db.programmeTemplateServiceRole.update({
+    ? await db.templateServiceRole.update({
         where: { id_congregationId: { id: roleData.id, congregationId } },
         data: { name: roleData.name, key: roleData.key },
       })
-    : await db.programmeTemplateServiceRole.create({
+    : await db.templateServiceRole.create({
         data: { name: roleData.name, key: roleData.key, templateId, congregationId },
       })
 
@@ -177,7 +177,7 @@ export async function upsertTemplateServiceRole(
       action: AuditAction.ServiceRoleAllowedRolesChanged,
       congregationId,
       actorId,
-      entityType: 'ProgrammeTemplateServiceRole',
+      entityType: 'TemplateServiceRole',
       entityId: serviceRole.id,
       metadata: { added: diff.added, removed: diff.removed },
     })
@@ -187,7 +187,7 @@ export async function upsertTemplateServiceRole(
 }
 
 export function deleteTemplateServiceRole(db: TransactionClient, roleId: number, congregationId: number) {
-  return db.programmeTemplateServiceRole.delete({
+  return db.templateServiceRole.delete({
     where: {
       id_congregationId: { id: roleId, congregationId },
     },
@@ -202,7 +202,7 @@ export async function reorderTemplateParts(
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_005, congregationId)
 
   for (let i = 0; i < orderedIds.length; i++) {
-    await db.programmeTemplatePart.update({
+    await db.templatePart.update({
       where: {
         id_congregationId: { id: orderedIds[i], congregationId },
       },
@@ -217,7 +217,7 @@ export function setTemplateResponsible(
   userId: number,
   congregationId: number,
 ) {
-  return db.programmeTemplateResponsible.upsert({
+  return db.templateResponsible.upsert({
     where: {
       templateId_congregationId: { templateId, congregationId },
     },
@@ -231,7 +231,7 @@ export function setTemplateResponsible(
 }
 
 export function removeTemplateResponsible(db: TransactionClient, templateId: number, congregationId: number) {
-  return db.programmeTemplateResponsible.deleteMany({
+  return db.templateResponsible.deleteMany({
     where: { templateId, congregationId },
   })
 }
@@ -242,13 +242,13 @@ export function isTemplateResponsible(
   userId: number,
   congregationId: number,
 ) {
-  return db.programmeTemplateResponsible.findFirst({
+  return db.templateResponsible.findFirst({
     where: { templateId, userId, congregationId },
   })
 }
 
 export async function duplicateTemplate(db: TransactionClient, templateId: number, congregationId: number) {
-  const source = await db.programmeTemplate.findFirst({
+  const source = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: {
       parts: {
@@ -265,7 +265,7 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
   // Duplicate button; this is the server-side match.
   if (isSystemTemplate(source.key)) return null
 
-  const duplicated = await db.programmeTemplate.create({
+  const duplicated = await db.eventTemplate.create({
     data: {
       name: `${source.name} (copie)`,
       key: `${source.key}-copy-${Date.now()}`,
@@ -311,13 +311,13 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
     const speakerRoleIds = sourcePart.allowedRoles.filter(r => r.asKind === 'speaker').map(r => r.roleId)
     const readerRoleIds = sourcePart.allowedRoles.filter(r => r.asKind === 'reader').map(r => r.roleId)
     if (speakerRoleIds.length > 0) {
-      await db.programmeTemplatePartAllowedRole.createMany({
+      await db.templatePartAllowedRole.createMany({
         data: speakerRoleIds.map(roleId => ({ partId: newPart.id, roleId, asKind: 'speaker', congregationId })),
         skipDuplicates: true,
       })
     }
     if (readerRoleIds.length > 0) {
-      await db.programmeTemplatePartAllowedRole.createMany({
+      await db.templatePartAllowedRole.createMany({
         data: readerRoleIds.map(roleId => ({ partId: newPart.id, roleId, asKind: 'reader', congregationId })),
         skipDuplicates: true,
       })
@@ -327,7 +327,7 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
   for (const newRole of duplicated.serviceRoles) {
     const sourceRole = sourceServiceRolesByName.get(newRole.name)
     if (!sourceRole || sourceRole.allowedRoles.length === 0) continue
-    await db.programmeTemplateServiceRoleAllowedRole.createMany({
+    await db.templateServiceRoleAllowedRole.createMany({
       data: sourceRole.allowedRoles.map(r => ({ serviceRoleId: newRole.id, roleId: r.roleId, congregationId })),
       skipDuplicates: true,
     })

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createProgrammeTemplate } from './programme-template.server'
+import { createEventTemplate } from './programme-template.server'
 
 const mockDb = {
-  programmeTemplate: {
+  eventTemplate: {
     create: vi.fn(),
   },
 }
@@ -12,12 +12,12 @@ beforeEach(() => {
   vi.resetAllMocks()
 })
 
-describe('createProgrammeTemplate', () => {
+describe('createEventTemplate', () => {
   it('creates a recurring template when weekDay is provided', async () => {
     const expected = { id: 1, name: 'Reunion', key: 'meeting', weekDay: 3, isRecurring: true }
-    mockDb.programmeTemplate.create.mockResolvedValue(expected)
+    mockDb.eventTemplate.create.mockResolvedValue(expected)
 
-    const result = await createProgrammeTemplate(mockDb as never, {
+    const result = await createEventTemplate(mockDb as never, {
       name: 'Reunion',
       key: 'meeting',
       weekDay: 3,
@@ -27,7 +27,7 @@ describe('createProgrammeTemplate', () => {
     })
 
     expect(result).toEqual(expected)
-    expect(mockDb.programmeTemplate.create).toHaveBeenCalledWith({
+    expect(mockDb.eventTemplate.create).toHaveBeenCalledWith({
       data: {
         name: 'Reunion',
         key: 'meeting',
@@ -42,9 +42,9 @@ describe('createProgrammeTemplate', () => {
 
   it('creates a non-recurring template when weekDay is null', async () => {
     const expected = { id: 2, name: 'Special', key: 'special', weekDay: null, isRecurring: false }
-    mockDb.programmeTemplate.create.mockResolvedValue(expected)
+    mockDb.eventTemplate.create.mockResolvedValue(expected)
 
-    const result = await createProgrammeTemplate(mockDb as never, {
+    const result = await createEventTemplate(mockDb as never, {
       name: 'Special',
       key: 'special',
       weekDay: null,
@@ -54,7 +54,7 @@ describe('createProgrammeTemplate', () => {
     })
 
     expect(result).toEqual(expected)
-    expect(mockDb.programmeTemplate.create).toHaveBeenCalledWith({
+    expect(mockDb.eventTemplate.create).toHaveBeenCalledWith({
       data: {
         name: 'Special',
         key: 'special',

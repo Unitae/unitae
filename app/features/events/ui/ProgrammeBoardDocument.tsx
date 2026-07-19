@@ -46,7 +46,7 @@ interface ProgrammeBoardDocumentProps {
   congregationName: string
 }
 
-type PartAssignment = ExportEvent['partAssignments'][number]
+type PartAssignment = ExportEvent['parts'][number]
 
 const styles = StyleSheet.create({
   page: {
@@ -310,7 +310,7 @@ function EventCard({
   showParts: boolean
   showServices: boolean
 }) {
-  const sectionGroups = groupPartsBySlot(event.partAssignments)
+  const sectionGroups = groupPartsBySlot(event.parts)
 
   return (
     <View style={styles.eventCard}>
@@ -331,11 +331,11 @@ function EventCard({
           </View>
         ))}
 
-      {showServices && event.serviceRoleAssignments.length > 0 && (
+      {showServices && event.serviceRoles.length > 0 && (
         <View style={showParts ? styles.servicesDivider : styles.servicesNoDivider}>
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
-            {event.serviceRoleAssignments.map((role, roleIdx) => {
+            {event.serviceRoles.map((role, roleIdx) => {
               const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>

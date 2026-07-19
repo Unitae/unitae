@@ -32,7 +32,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     })
     if (!speaker) return Response.json(null)
 
-    const recentHistory = await db.programmePartAssignment.findMany({
+    const recentHistory = await db.eventPart.findMany({
       where: {
         congregationId,
         externalSpeakerId,

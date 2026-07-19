@@ -54,7 +54,7 @@ export async function listUserCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, partAssignments: partsSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, parts: partsSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -72,7 +72,7 @@ export async function listUserCadence(
     // Aggregate over ALL past events (not just the visible window) to detect
     // "used to do this slot, hasn't recently" candidates. Filtered in JS to
     // reuse the same normalized-name/section comparison.
-    db.programmePartAssignment.findMany({
+    db.eventPart.findMany({
       where: {
         event: { ...commonWhere, startDate: { lt: event.startDate } },
         ...(slot === 'assignee' ? { assigneeId: userId } : { assistantId: userId }),
@@ -83,14 +83,12 @@ export async function listUserCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
-  type PartRow = (typeof pastRows)[number]['partAssignments'][number]
+  type PartRow = (typeof pastRows)[number]['parts'][number]
   const isOnSlot =
     slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
   const personOnSlot = (p: PartRow) => (slot === 'assignee' ? p.assignee : p.assistant)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.partAssignments.filter(
-      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
-    )
+    const matches = row.parts.filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
     const person = matches.map(personOnSlot).find(p => p != null)
     return {
       date: row.startDate.toISOString(),

@@ -107,7 +107,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const serviceCandidates: Record<number, number[]> = {}
     if (canEdit) {
       const userById = new Map(users.map(u => [u.id, u]))
-      for (const assignment of event.partAssignments) {
+      for (const assignment of event.parts) {
         const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
         const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
         const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
@@ -117,7 +117,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
           readerIds: readerIds.filter(id => userById.has(id)),
         }
       }
-      for (const assignment of event.serviceRoleAssignments) {
+      for (const assignment of event.serviceRoles) {
         const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignment.id, congregationId)
         const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
         serviceCandidates[assignment.id] = eligible.filter(id => userById.has(id))
@@ -174,12 +174,12 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   } | null>(null)
 
   // Derived values
-  const hasAnyTopic = event.partAssignments.some(a => a.topic)
-  const partAssignedCount = event.partAssignments.filter(a => a.assigneeId ?? a.externalSpeakerId).length
-  const serviceAssignedCount = event.serviceRoleAssignments.filter(a => a.assigneeId).length
+  const hasAnyTopic = event.parts.some(a => a.topic)
+  const partAssignedCount = event.parts.filter(a => a.assigneeId ?? a.externalSpeakerId).length
+  const serviceAssignedCount = event.serviceRoles.filter(a => a.assigneeId).length
 
   // Group parts by section, then by track within each section
-  type PartAssignment = (typeof event.partAssignments)[number]
+  type PartAssignment = (typeof event.parts)[number]
   type TrackGroup = { track: string; parts: PartAssignment[] }
   type SectionGroup = { section: string; tracks: TrackGroup[] }
 
@@ -187,7 +187,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   let currentSection: string | null = null
   let currentTrack: string | null = null
 
-  for (const part of event.partAssignments) {
+  for (const part of event.parts) {
     const section = part.section || ''
     const track = part.track || ''
 
@@ -286,7 +286,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             <Badge variant="outline">
               {m.programs_view_assigned_count({
                 count: String(partAssignedCount),
-                total: String(event.partAssignments.length),
+                total: String(event.parts.length),
               })}
             </Badge>
           </CardAction>
@@ -354,7 +354,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             <Badge variant="outline">
               {m.programs_view_assigned_count({
                 count: String(serviceAssignedCount),
-                total: String(event.serviceRoleAssignments.length),
+                total: String(event.serviceRoles.length),
               })}
             </Badge>
           </CardAction>
@@ -369,7 +369,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {event.serviceRoleAssignments.map(assignment => (
+              {event.serviceRoles.map(assignment => (
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
                   <TableCell

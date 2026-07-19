@@ -50,8 +50,8 @@ interface ServiceRoleAssignment {
 interface ProgrammeEvent {
   name: string
   startDate: Date | string
-  partAssignments: PartAssignment[]
-  serviceRoleAssignments: ServiceRoleAssignment[]
+  parts: PartAssignment[]
+  serviceRoles: ServiceRoleAssignment[]
 }
 
 interface ProgrammeDocumentProps {
@@ -267,7 +267,7 @@ function EventBlock({
   showParts: boolean
   showServices: boolean
 }) {
-  const sortedParts = [...event.partAssignments].sort((a, b) => a.order - b.order)
+  const sortedParts = [...event.parts].sort((a, b) => a.order - b.order)
 
   // Group parts by section for colored headers
   const groupedParts: { section: string; parts: PartAssignment[] }[] = []
@@ -309,11 +309,11 @@ function EventBlock({
           )
         })}
 
-      {showServices && event.serviceRoleAssignments.length > 0 && (
+      {showServices && event.serviceRoles.length > 0 && (
         <View style={styles.serviceSection}>
           <Text style={styles.serviceSectionTitle}>Services</Text>
           <View style={styles.serviceGrid}>
-            {event.serviceRoleAssignments.map((role, roleIdx) => {
+            {event.serviceRoles.map((role, roleIdx) => {
               const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>

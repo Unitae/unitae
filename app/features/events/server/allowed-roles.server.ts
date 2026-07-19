@@ -46,7 +46,7 @@ export async function getTemplatePartAllowedRoleIds(
   asKind: PartRoleKind,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.programmeTemplatePartAllowedRole.findMany({
+  const rows = await db.templatePartAllowedRole.findMany({
     where: { partId, asKind, congregationId },
     select: { roleId: true },
   })
@@ -59,7 +59,7 @@ export async function getPartAssignmentAllowedRoleIds(
   asKind: PartRoleKind,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.programmePartAssignmentAllowedRole.findMany({
+  const rows = await db.eventPartAllowedRole.findMany({
     where: { assignmentId, asKind, congregationId },
     select: { roleId: true },
   })
@@ -71,7 +71,7 @@ export async function getTemplateServiceRoleAllowedRoleIds(
   serviceRoleId: number,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.programmeTemplateServiceRoleAllowedRole.findMany({
+  const rows = await db.templateServiceRoleAllowedRole.findMany({
     where: { serviceRoleId, congregationId },
     select: { roleId: true },
   })
@@ -83,7 +83,7 @@ export async function getServiceRoleAssignmentAllowedRoleIds(
   assignmentId: number,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.programmeServiceRoleAssignmentAllowedRole.findMany({
+  const rows = await db.eventServiceRoleAllowedRole.findMany({
     where: { assignmentId, congregationId },
     select: { roleId: true },
   })
@@ -116,12 +116,12 @@ export async function setTemplatePartAllowedRoles(
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
-    await db.programmeTemplatePartAllowedRole.deleteMany({
+    await db.templatePartAllowedRole.deleteMany({
       where: { partId, asKind, congregationId, roleId: { in: diff.removed } },
     })
   }
   if (diff.added.length > 0) {
-    await db.programmeTemplatePartAllowedRole.createMany({
+    await db.templatePartAllowedRole.createMany({
       data: diff.added.map(roleId => ({ partId, roleId, asKind, congregationId })),
       skipDuplicates: true,
     })
@@ -141,12 +141,12 @@ export async function setPartAssignmentAllowedRoles(
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
-    await db.programmePartAssignmentAllowedRole.deleteMany({
+    await db.eventPartAllowedRole.deleteMany({
       where: { assignmentId, asKind, congregationId, roleId: { in: diff.removed } },
     })
   }
   if (diff.added.length > 0) {
-    await db.programmePartAssignmentAllowedRole.createMany({
+    await db.eventPartAllowedRole.createMany({
       data: diff.added.map(roleId => ({ assignmentId, roleId, asKind, congregationId })),
       skipDuplicates: true,
     })
@@ -165,12 +165,12 @@ export async function setTemplateServiceRoleAllowedRoles(
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
-    await db.programmeTemplateServiceRoleAllowedRole.deleteMany({
+    await db.templateServiceRoleAllowedRole.deleteMany({
       where: { serviceRoleId, congregationId, roleId: { in: diff.removed } },
     })
   }
   if (diff.added.length > 0) {
-    await db.programmeTemplateServiceRoleAllowedRole.createMany({
+    await db.templateServiceRoleAllowedRole.createMany({
       data: diff.added.map(roleId => ({ serviceRoleId, roleId, congregationId })),
       skipDuplicates: true,
     })
@@ -189,12 +189,12 @@ export async function setServiceRoleAssignmentAllowedRoles(
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
-    await db.programmeServiceRoleAssignmentAllowedRole.deleteMany({
+    await db.eventServiceRoleAllowedRole.deleteMany({
       where: { assignmentId, congregationId, roleId: { in: diff.removed } },
     })
   }
   if (diff.added.length > 0) {
-    await db.programmeServiceRoleAssignmentAllowedRole.createMany({
+    await db.eventServiceRoleAllowedRole.createMany({
       data: diff.added.map(roleId => ({ assignmentId, roleId, congregationId })),
       skipDuplicates: true,
     })

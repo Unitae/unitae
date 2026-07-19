@@ -1,5 +1,5 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { EventStatus, ProgrammeTemplateKey } from '~/features/events'
+import { EventStatus, EventTemplateKey } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
@@ -168,8 +168,8 @@ export async function getUpcomingAbsences(db: TransactionClient, userId: number,
 export async function getUpcomingAssignments(db: TransactionClient, userId: number) {
   const now = new Date()
 
-  const [partAssignments, serviceRoleAssignments] = await Promise.all([
-    db.programmePartAssignment.findMany({
+  const [parts, serviceRoles] = await Promise.all([
+    db.eventPart.findMany({
       where: {
         OR: [{ assigneeId: userId }, { assistantId: userId }],
         // Drafts are the manager's scratch space — never previewed to
@@ -192,7 +192,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
       orderBy: { event: { startDate: 'asc' } },
       take: DASHBOARD_RECENT_ITEMS_LIMIT,
     }),
-    db.programmeServiceRoleAssignment.findMany({
+    db.eventServiceRole.findMany({
       where: {
         assigneeId: userId,
         event: { startDate: { gte: now }, status: EventStatus.Released },
@@ -223,7 +223,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
   }
 
   const assignments: Assignment[] = [
-    ...partAssignments.map(
+    ...parts.map(
       (a): Assignment => ({
         kind: 'part',
         id: a.id,
@@ -234,7 +234,7 @@ export async function getUpcomingAssignments(db: TransactionClient, userId: numb
         eventDate: a.event.startDate,
       }),
     ),
-    ...serviceRoleAssignments.map(
+    ...serviceRoles.map(
       (a): Assignment => ({
         kind: 'service-role',
         id: a.id,
@@ -254,7 +254,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
   const now = new Date()
 
   const [partConflicts, serviceConflicts] = await Promise.all([
-    db.programmePartAssignment.findMany({
+    db.eventPart.findMany({
       where: {
         hasConflict: true,
         OR: [{ assigneeId: userId }, { assistantId: userId }],
@@ -271,7 +271,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       orderBy: { event: { startDate: 'asc' } },
       take: 1,
     }),
-    db.programmeServiceRoleAssignment.findMany({
+    db.eventServiceRole.findMany({
       where: {
         hasConflict: true,
         assigneeId: userId,
@@ -318,7 +318,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
       // NOT: { template: {...} } instead of template: { key: { not } } — the
       // second form inner-joins through template and silently drops null-
       // template rows, which older legacy events might still carry.
-      NOT: { template: { key: ProgrammeTemplateKey.DayOff } },
+      NOT: { template: { key: EventTemplateKey.DayOff } },
       // Publisher-facing dashboard — drafts must stay hidden.
       status: EventStatus.Released,
     },
@@ -328,7 +328,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
       startDate: true,
       endDate: true,
       template: { select: { name: true, color: true } },
-      partAssignments: {
+      parts: {
         select: {
           id: true,
           name: true,
@@ -342,7 +342,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
         },
         orderBy: { order: 'asc' },
       },
-      serviceRoleAssignments: {
+      serviceRoles: {
         select: {
           id: true,
           name: true,
@@ -359,18 +359,18 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   // engineer it. `null` means "viewer has no role on this part" — the UI
   // filters on userPartIds so nulls never render, but keeping the field
   // present makes the shape uniform and typed.
-  const partAssignments = event.partAssignments.map(p => ({
+  const parts = event.parts.map(p => ({
     ...p,
     viewerRole:
       p.assignee?.id === userId ? ('speaker' as const) : p.assistant?.id === userId ? ('reader' as const) : null,
   }))
 
-  const userPartIds = new Set(partAssignments.filter(p => p.viewerRole !== null).map(p => p.id))
-  const userServiceRoleIds = new Set(event.serviceRoleAssignments.filter(r => r.assignee?.id === userId).map(r => r.id))
+  const userPartIds = new Set(parts.filter(p => p.viewerRole !== null).map(p => p.id))
+  const userServiceRoleIds = new Set(event.serviceRoles.filter(r => r.assignee?.id === userId).map(r => r.id))
 
   return {
     ...event,
-    partAssignments,
+    parts,
     userPartIds: [...userPartIds],
     userServiceRoleIds: [...userServiceRoleIds],
   }

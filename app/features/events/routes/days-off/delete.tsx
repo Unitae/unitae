@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 import { deleteDayOff } from '~/features/events/server/days-off.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -22,7 +22,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const event = await db.event.findUnique({
       where: {
         id_congregationId: { id: requireParamId(params.eventId, '/me/days-off'), congregationId },
-        template: { key: ProgrammeTemplateKey.DayOff },
+        template: { key: EventTemplateKey.DayOff },
       },
       include: { createdBy: true },
     })

@@ -3,7 +3,7 @@ import { Permission } from '~/shared/types/permission'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    programmeTemplateResponsible: { findFirst: vi.fn(), findMany: vi.fn() },
+    templateResponsible: { findFirst: vi.fn(), findMany: vi.fn() },
     event: { findMany: vi.fn() },
   },
 }))
@@ -38,7 +38,7 @@ describe('canEditEvent', () => {
   })
 
   it('returns true for non-manager when responsible record exists', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findFirst).mockResolvedValue({
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue({
       id: 1,
       templateId: TEMPLATE_ID_OWNED,
       userId: USER_ID,
@@ -50,7 +50,7 @@ describe('canEditEvent', () => {
   })
 
   it('returns false for non-manager when no responsible record exists', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.templateResponsible.findFirst).mockResolvedValue(null as never)
 
     const result = await canEditEvent(db, allowNone, USER_ID, TEMPLATE_ID_OTHER, CONGREGATION_ID)
     expect(result).toBe(false)
@@ -59,14 +59,14 @@ describe('canEditEvent', () => {
 
 describe('getResponsibleTemplateIds', () => {
   it('returns an empty array when the user is responsible for nothing', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
 
     const result = await getResponsibleTemplateIds(db, USER_ID, CONGREGATION_ID)
     expect(result).toEqual([])
   })
 
   it('returns the list of templateIds for the user', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([
       { templateId: TEMPLATE_ID_OWNED },
       { templateId: TEMPLATE_ID_OTHER },
     ] as never)
@@ -83,14 +83,14 @@ describe('canManageAnyProgram', () => {
   })
 
   it('returns true for non-manager when at least one responsible record exists', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([{ templateId: TEMPLATE_ID_OWNED }] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ templateId: TEMPLATE_ID_OWNED }] as never)
 
     const result = await canManageAnyProgram(db, allowNone, USER_ID, CONGREGATION_ID)
     expect(result).toBe(true)
   })
 
   it('returns false for non-manager when no responsible records exist', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
 
     const result = await canManageAnyProgram(db, allowNone, USER_ID, CONGREGATION_ID)
     expect(result).toBe(false)
@@ -105,7 +105,7 @@ describe('filterToManageableEventIds', () => {
     const result = await filterToManageableEventIds(db, allowAll, [], USER_ID, CONGREGATION_ID)
     expect(result).toEqual([])
     expect(db.event.findMany).not.toHaveBeenCalled()
-    expect(db.programmeTemplateResponsible.findMany).not.toHaveBeenCalled()
+    expect(db.templateResponsible.findMany).not.toHaveBeenCalled()
   })
 
   // Manager path still validates ids belong to the congregation — a request
@@ -131,7 +131,7 @@ describe('filterToManageableEventIds', () => {
   // responsibility set. Freeform events (templateId=null) are dropped —
   // consistent with canEditEvent's freeform-events-are-manager-only rule.
   it('keeps only events on templates the user is responsible for (non-manager)', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([{ templateId: TEMPLATE_ID_OWNED }] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([{ templateId: TEMPLATE_ID_OWNED }] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 10, templateId: TEMPLATE_ID_OWNED },
       { id: 11, templateId: TEMPLATE_ID_OTHER },
@@ -144,7 +144,7 @@ describe('filterToManageableEventIds', () => {
   })
 
   it('returns an empty list when the non-manager has no template responsibilities', async () => {
-    vi.mocked(db.programmeTemplateResponsible.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.templateResponsible.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.findMany).mockResolvedValue([{ id: 10, templateId: TEMPLATE_ID_OWNED }] as never)
 
     const result = await filterToManageableEventIds(db, allowNone, [10], USER_ID, CONGREGATION_ID)

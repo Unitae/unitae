@@ -1,6 +1,6 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
 
-export function createProgrammeTemplate(
+export function createEventTemplate(
   db: TransactionClient,
   data: {
     name: string
@@ -11,7 +11,7 @@ export function createProgrammeTemplate(
     congregationId: number
   },
 ) {
-  return db.programmeTemplate.create({
+  return db.eventTemplate.create({
     data: {
       name: data.name,
       key: data.key,

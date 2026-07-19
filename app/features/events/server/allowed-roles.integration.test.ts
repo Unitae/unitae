@@ -139,7 +139,7 @@ beforeAll(async () => {
     })
 
     // Template + parts + service role
-    const template = await tx.programmeTemplate.create({
+    const template = await tx.eventTemplate.create({
       data: {
         name: 'Test Template',
         key: `t-${ts}`,
@@ -150,7 +150,7 @@ beforeAll(async () => {
     })
     templateId = template.id
 
-    const speakerPart = await tx.programmeTemplatePart.create({
+    const speakerPart = await tx.templatePart.create({
       data: {
         name: 'Discours',
         section: '',
@@ -163,7 +163,7 @@ beforeAll(async () => {
     })
     speakerPartId = speakerPart.id
 
-    const service = await tx.programmeTemplateServiceRole.create({
+    const service = await tx.templateServiceRole.create({
       data: { name: 'Son', key: `son-${ts}`, templateId, congregationId: primaryCongId },
     })
     serviceRoleId = service.id
@@ -175,10 +175,10 @@ beforeAll(async () => {
     })
     foreignElderRoleId = foreignElder.id
 
-    const foreignTemplate = await tx.programmeTemplate.create({
+    const foreignTemplate = await tx.eventTemplate.create({
       data: { name: 'Foreign T', key: `ft-${ts}`, congregationId: foreignCongId },
     })
-    const foreignPart = await tx.programmeTemplatePart.create({
+    const foreignPart = await tx.templatePart.create({
       data: {
         name: 'Foreign Part',
         section: '',
@@ -191,7 +191,7 @@ beforeAll(async () => {
     })
     foreignTemplatePartId = foreignPart.id
 
-    await tx.programmeTemplatePartAllowedRole.create({
+    await tx.templatePartAllowedRole.create({
       data: {
         partId: foreignTemplatePartId,
         roleId: foreignElderRoleId,
@@ -206,15 +206,15 @@ afterAll(async () => {
   for (const congId of [primaryCongId, foreignCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
-      await tx.programmePartAssignmentAllowedRole.deleteMany({})
-      await tx.programmeServiceRoleAssignmentAllowedRole.deleteMany({})
-      await tx.programmeTemplatePartAllowedRole.deleteMany({})
-      await tx.programmeTemplateServiceRoleAllowedRole.deleteMany({})
-      await tx.programmePartAssignment.deleteMany({})
-      await tx.programmeServiceRoleAssignment.deleteMany({})
-      await tx.programmeTemplatePart.deleteMany({})
-      await tx.programmeTemplateServiceRole.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.eventPartAllowedRole.deleteMany({})
+      await tx.eventServiceRoleAllowedRole.deleteMany({})
+      await tx.templatePartAllowedRole.deleteMany({})
+      await tx.templateServiceRoleAllowedRole.deleteMany({})
+      await tx.eventPart.deleteMany({})
+      await tx.eventServiceRole.deleteMany({})
+      await tx.templatePart.deleteMany({})
+      await tx.templateServiceRole.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.event.deleteMany({})
       await tx.memberRoleAssignment.deleteMany({})
       await tx.userRoleAssignment.deleteMany({})
@@ -276,7 +276,7 @@ describe('upsertTemplatePart + RLS (integration)', () => {
     )
 
     const rows = await withScope(primaryCongId, tx =>
-      tx.programmeTemplatePartAllowedRole.findMany({
+      tx.templatePartAllowedRole.findMany({
         where: { partId: speakerPartId },
         orderBy: [{ asKind: 'asc' }, { roleId: 'asc' }],
       }),
@@ -287,7 +287,7 @@ describe('upsertTemplatePart + RLS (integration)', () => {
 
   it('does not see allowed-role rows from another congregation', async () => {
     const rows = await withScope(primaryCongId, tx =>
-      tx.programmeTemplatePartAllowedRole.findMany({ where: { partId: foreignTemplatePartId } }),
+      tx.templatePartAllowedRole.findMany({ where: { partId: foreignTemplatePartId } }),
     )
     expect(rows).toEqual([])
   })
@@ -306,7 +306,7 @@ describe('upsertTemplateServiceRole + RLS (integration)', () => {
     )
 
     const rows = await withScope(primaryCongId, tx =>
-      tx.programmeTemplateServiceRoleAllowedRole.findMany({ where: { serviceRoleId } }),
+      tx.templateServiceRoleAllowedRole.findMany({ where: { serviceRoleId } }),
     )
     expect(rows).toEqual([{ serviceRoleId, roleId: elderRoleId, congregationId: primaryCongId }])
   })
@@ -323,7 +323,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
     if (!event) return
 
     const partAllowed = await withScope(primaryCongId, tx =>
-      tx.programmePartAssignmentAllowedRole.findMany({
+      tx.eventPartAllowedRole.findMany({
         where: { assignment: { eventId: event.id } },
         orderBy: { asKind: 'asc' },
       }),
@@ -334,7 +334,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
     ])
 
     const serviceAllowed = await withScope(primaryCongId, tx =>
-      tx.programmeServiceRoleAssignmentAllowedRole.findMany({
+      tx.eventServiceRoleAllowedRole.findMany({
         where: { assignment: { eventId: event.id } },
       }),
     )
@@ -359,7 +359,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
     })
 
     const partAllowed = await withScope(primaryCongId, tx =>
-      tx.programmePartAssignmentAllowedRole.findMany({
+      tx.eventPartAllowedRole.findMany({
         where: { assignment: { eventId: freeform.id } },
         orderBy: { asKind: 'asc' },
       }),
@@ -376,7 +376,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     if (!event) throw new Error('event not created')
 
     const partAssignment = await withScope(primaryCongId, tx =>
-      tx.programmePartAssignment.findFirst({ where: { eventId: event.id } }),
+      tx.eventPart.findFirst({ where: { eventId: event.id } }),
     )
     if (!partAssignment) throw new Error('part assignment missing')
 
@@ -400,7 +400,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     )
 
     const after = await withScope(primaryCongId, tx =>
-      tx.programmePartAssignmentAllowedRole.findMany({
+      tx.eventPartAllowedRole.findMany({
         where: { assignmentId: partAssignment.id },
         orderBy: { asKind: 'asc' },
       }),
@@ -417,7 +417,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     if (!event) throw new Error('event not created')
 
     const serviceAssignment = await withScope(primaryCongId, tx =>
-      tx.programmeServiceRoleAssignment.findFirst({ where: { eventId: event.id } }),
+      tx.eventServiceRole.findFirst({ where: { eventId: event.id } }),
     )
     if (!serviceAssignment) throw new Error('service assignment missing')
 
@@ -432,7 +432,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     )
 
     const after = await withScope(primaryCongId, tx =>
-      tx.programmeServiceRoleAssignmentAllowedRole.findMany({ where: { assignmentId: serviceAssignment.id } }),
+      tx.eventServiceRoleAllowedRole.findMany({ where: { assignmentId: serviceAssignment.id } }),
     )
     expect(after).toEqual([])
   })

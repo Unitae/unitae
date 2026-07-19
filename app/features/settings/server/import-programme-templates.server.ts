@@ -3,7 +3,7 @@ import type { TransactionClient } from '~/shared/infra/db.server'
 import type { EntityIdMap } from './data-transfer.type'
 import { readNdjsonFile } from './ndjson-archive'
 
-export async function importProgrammeTemplates(
+export async function importEventTemplates(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -20,9 +20,9 @@ export async function importProgrammeTemplates(
   }>(zip, 'programme-templates')
 
   for (const record of records) {
-    const existing = await db.programmeTemplate.findFirst({ where: { key: record.key } })
+    const existing = await db.eventTemplate.findFirst({ where: { key: record.key } })
     if (existing) {
-      await db.programmeTemplate.update({
+      await db.eventTemplate.update({
         where: { id: existing.id },
         data: {
           name: record.name,
@@ -34,7 +34,7 @@ export async function importProgrammeTemplates(
       })
       idMap.set('programme-templates', record.id, existing.id)
     } else {
-      const created = await db.programmeTemplate.create({
+      const created = await db.eventTemplate.create({
         data: {
           name: record.name,
           key: record.key,
@@ -50,7 +50,7 @@ export async function importProgrammeTemplates(
   }
 }
 
-export async function importProgrammeTemplateParts(
+export async function importTemplateParts(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -72,7 +72,7 @@ export async function importProgrammeTemplateParts(
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     if (!templateId) continue
 
-    const created = await db.programmeTemplatePart.create({
+    const created = await db.templatePart.create({
       data: {
         name: record.name,
         section: record.section,
@@ -89,7 +89,7 @@ export async function importProgrammeTemplateParts(
   }
 }
 
-export async function importProgrammeTemplateServiceRoles(
+export async function importTemplateServiceRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -106,7 +106,7 @@ export async function importProgrammeTemplateServiceRoles(
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     if (!templateId) continue
 
-    const created = await db.programmeTemplateServiceRole.create({
+    const created = await db.templateServiceRole.create({
       data: {
         name: record.name,
         key: record.key,
@@ -118,7 +118,7 @@ export async function importProgrammeTemplateServiceRoles(
   }
 }
 
-export async function importProgrammeTemplateResponsibles(
+export async function importTemplateResponsibles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -134,13 +134,13 @@ export async function importProgrammeTemplateResponsibles(
     const userId = idMap.getOptional('user-accounts', record.userId)
     if (!templateId || !userId) continue
 
-    await db.programmeTemplateResponsible.create({
+    await db.templateResponsible.create({
       data: { templateId, userId, congregationId },
     })
   }
 }
 
-export async function importProgrammeTemplatePartAllowedRoles(
+export async function importTemplatePartAllowedRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -160,11 +160,11 @@ export async function importProgrammeTemplatePartAllowedRoles(
   }
 
   if (data.length > 0) {
-    await db.programmeTemplatePartAllowedRole.createMany({ data, skipDuplicates: true })
+    await db.templatePartAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }
 
-export async function importProgrammeTemplateServiceRoleAllowedRoles(
+export async function importTemplateServiceRoleAllowedRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -184,6 +184,6 @@ export async function importProgrammeTemplateServiceRoleAllowedRoles(
   }
 
   if (data.length > 0) {
-    await db.programmeTemplateServiceRoleAllowedRole.createMany({ data, skipDuplicates: true })
+    await db.templateServiceRoleAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }

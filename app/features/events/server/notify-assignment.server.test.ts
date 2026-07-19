@@ -30,7 +30,7 @@ const CTX = {
     status: 'released' as const,
   },
   assignmentName: 'Perles de la Parole',
-  entityType: 'ProgrammePartAssignment' as const,
+  entityType: 'EventPart' as const,
   entityId: 100,
   congregationId: 42,
   actorId: 7,
@@ -66,7 +66,7 @@ describe('notifyAssignment', () => {
     const call = vi.mocked(notify).mock.calls[0][1]
     expect(call).toMatchObject({
       type: 'programme.assignment.assigned',
-      entityType: 'ProgrammePartAssignment',
+      entityType: 'EventPart',
       entityId: 100,
       congregationId: 42,
       recipientId: 33,

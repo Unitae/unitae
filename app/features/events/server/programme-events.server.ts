@@ -1,4 +1,4 @@
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 import {
   setPartAssignmentAllowedRoles,
   setServiceRoleAssignmentAllowedRoles,
@@ -21,8 +21,8 @@ export async function createFreeformEvent(
   // Same reasoning as createDayOff: freeform events are identified by
   // `template.key = 'freeform'`. A null templateId here silently drops the
   // event from cadence, board links, and the events list.
-  const freeformTemplate = await db.programmeTemplate.findFirst({
-    where: { key: ProgrammeTemplateKey.Freeform, congregationId: data.congregationId },
+  const freeformTemplate = await db.eventTemplate.findFirst({
+    where: { key: EventTemplateKey.Freeform, congregationId: data.congregationId },
   })
   if (!freeformTemplate) throw new NotFoundError('Freeform template')
 
@@ -111,7 +111,7 @@ export async function addPartAssignment(
   actorId: number,
 ) {
   const { allowedSpeakerRoleIds, allowedReaderRoleIds, ...createData } = data
-  const assignment = await db.programmePartAssignment.create({ data: createData })
+  const assignment = await db.eventPart.create({ data: createData })
 
   const speakerDiff = await setPartAssignmentAllowedRoles(
     db,
@@ -138,7 +138,7 @@ export async function addPartAssignment(
       action: AuditAction.PartAllowedRolesChanged,
       congregationId: data.congregationId,
       actorId,
-      entityType: 'ProgrammePartAssignment',
+      entityType: 'EventPart',
       entityId: assignment.id,
       metadata: { speaker: speakerDiff, reader: readerDiff },
     })
@@ -148,7 +148,7 @@ export async function addPartAssignment(
 }
 
 export function deletePartAssignment(db: TransactionClient, id: number, congregationId: number) {
-  return db.programmePartAssignment.delete({
+  return db.eventPart.delete({
     where: {
       id_congregationId: { id, congregationId },
     },
@@ -166,7 +166,7 @@ export async function addServiceRoleAssignment(
   actorId: number,
 ) {
   const { allowedRoleIds, ...createData } = data
-  const assignment = await db.programmeServiceRoleAssignment.create({ data: createData })
+  const assignment = await db.eventServiceRole.create({ data: createData })
 
   const diff = await setServiceRoleAssignmentAllowedRoles(db, assignment.id, allowedRoleIds, data.congregationId)
   if (diff.added.length > 0 || diff.removed.length > 0) {
@@ -174,7 +174,7 @@ export async function addServiceRoleAssignment(
       action: AuditAction.ServiceRoleAllowedRolesChanged,
       congregationId: data.congregationId,
       actorId,
-      entityType: 'ProgrammeServiceRoleAssignment',
+      entityType: 'EventServiceRole',
       entityId: assignment.id,
       metadata: { added: diff.added, removed: diff.removed },
     })
@@ -203,7 +203,7 @@ export async function updatePartAssignment(
   actorId: number,
 ) {
   const { allowedSpeakerRoleIds, allowedReaderRoleIds, ...updateData } = data
-  const assignment = await db.programmePartAssignment.update({
+  const assignment = await db.eventPart.update({
     where: { id_congregationId: { id, congregationId } },
     data: updateData,
   })
@@ -221,7 +221,7 @@ export async function updatePartAssignment(
       action: AuditAction.PartAllowedRolesChanged,
       congregationId,
       actorId,
-      entityType: 'ProgrammePartAssignment',
+      entityType: 'EventPart',
       entityId: id,
       metadata: { speaker: speakerDiff, reader: readerDiff },
     })
@@ -237,7 +237,7 @@ export async function updateServiceRoleAssignment(
   congregationId: number,
   actorId: number,
 ) {
-  const assignment = await db.programmeServiceRoleAssignment.update({
+  const assignment = await db.eventServiceRole.update({
     where: { id_congregationId: { id, congregationId } },
     data: { name: data.name },
   })
@@ -248,7 +248,7 @@ export async function updateServiceRoleAssignment(
       action: AuditAction.ServiceRoleAllowedRolesChanged,
       congregationId,
       actorId,
-      entityType: 'ProgrammeServiceRoleAssignment',
+      entityType: 'EventServiceRole',
       entityId: id,
       metadata: { added: diff.added, removed: diff.removed },
     })
@@ -258,7 +258,7 @@ export async function updateServiceRoleAssignment(
 }
 
 export function deleteServiceRoleAssignment(db: TransactionClient, id: number, congregationId: number) {
-  return db.programmeServiceRoleAssignment.delete({
+  return db.eventServiceRole.delete({
     where: {
       id_congregationId: { id, congregationId },
     },
@@ -273,7 +273,7 @@ export async function reorderPartAssignments(
   await db.$executeRawUnsafe('SELECT pg_advisory_xact_lock($1, $2)', 1_000_003, congregationId)
 
   for (let i = 0; i < orderedIds.length; i++) {
-    await db.programmePartAssignment.update({
+    await db.eventPart.update({
       where: {
         id_congregationId: { id: orderedIds[i], congregationId },
       },
@@ -289,7 +289,7 @@ export async function applyTemplateToEvent(
   congregationId: number,
   userId: number,
 ) {
-  const template = await db.programmeTemplate.findFirst({
+  const template = await db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: {
       parts: {
@@ -309,7 +309,7 @@ export async function applyTemplateToEvent(
   })
 
   for (const part of template.parts) {
-    const assignment = await db.programmePartAssignment.create({
+    const assignment = await db.eventPart.create({
       data: {
         eventId,
         partId: part.id,
@@ -325,7 +325,7 @@ export async function applyTemplateToEvent(
       },
     })
     if (part.allowedRoles.length > 0) {
-      await db.programmePartAssignmentAllowedRole.createMany({
+      await db.eventPartAllowedRole.createMany({
         data: part.allowedRoles.map(r => ({
           assignmentId: assignment.id,
           roleId: r.roleId,
@@ -338,11 +338,11 @@ export async function applyTemplateToEvent(
   }
 
   for (const role of template.serviceRoles) {
-    const assignment = await db.programmeServiceRoleAssignment.create({
+    const assignment = await db.eventServiceRole.create({
       data: { eventId, serviceRoleId: role.id, name: role.name, congregationId },
     })
     if (role.allowedRoles.length > 0) {
-      await db.programmeServiceRoleAssignmentAllowedRole.createMany({
+      await db.eventServiceRoleAllowedRole.createMany({
         data: role.allowedRoles.map(r => ({
           assignmentId: assignment.id,
           roleId: r.roleId,

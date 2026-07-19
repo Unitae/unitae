@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
-    programmeTemplate: { findFirst: vi.fn() },
-    programmePartAssignment: { updateMany: vi.fn() },
-    programmeServiceRoleAssignment: { updateMany: vi.fn() },
+    eventTemplate: { findFirst: vi.fn() },
+    eventPart: { updateMany: vi.fn() },
+    eventServiceRole: { updateMany: vi.fn() },
   },
 }))
 
@@ -41,7 +41,7 @@ describe('createDayOff', () => {
 
   it('creates an event when dates are valid', async () => {
     const fakeEvent = { id: 1, name: 'Absence' }
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
@@ -52,7 +52,7 @@ describe('createDayOff', () => {
   // live immediately, otherwise the absence-overlap query silently ignores them
   // and the whole conflict-awareness pipeline breaks.
   it('writes status "released" on the created event', async () => {
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1, name: 'Absence' } as never)
 
     await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
@@ -65,7 +65,7 @@ describe('createDayOff', () => {
   it('creates an event when startDate == endDate', async () => {
     const sameDate = new Date(2025, 3, 8)
     const fakeEvent = { id: 2, name: 'Absence' }
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     const result = await createDayOff(db, 1, 1, sameDate, sameDate, 1)
@@ -73,7 +73,7 @@ describe('createDayOff', () => {
   })
 
   it('throws NotFoundError when the day-off system template is missing', async () => {
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(null as never)
 
     await expect(createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)).rejects.toThrow(
       'Day-off template',
@@ -82,12 +82,12 @@ describe('createDayOff', () => {
   })
 
   it('connects the event to the day-off template when it exists', async () => {
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ id: 42, key: 'day-off' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 42, key: 'day-off' } as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
 
     await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 7)
 
-    expect(db.programmeTemplate.findFirst).toHaveBeenCalledWith({
+    expect(db.eventTemplate.findFirst).toHaveBeenCalledWith({
       where: { key: 'day-off', congregationId: 7 },
     })
     expect(db.event.create).toHaveBeenCalledWith(
@@ -102,7 +102,7 @@ describe('createDayOff', () => {
   // can be no assignments to flag.
   it('skips refreshConflictFlags when memberId is null', async () => {
     const fakeEvent = { id: 4, name: 'Absence' }
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({ id: 5, key: 'day-off' } as never)
     vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
     await createDayOff(db, 1, null, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)

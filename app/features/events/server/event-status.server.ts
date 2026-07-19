@@ -19,7 +19,7 @@ export type ReleaseNotificationContext = {
 // notification when the event flips to released. Computed from the event
 // under the release tx and fired OUTSIDE the tx by fireReleaseNotifications.
 export type NotifyTarget = {
-  entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
+  entityType: 'EventPart' | 'EventServiceRole'
   entityId: number
   assignmentName: string
   memberId: number
@@ -42,7 +42,7 @@ export type ReleaseResult = { event: EventWithStatus; notifyTargets: NotifyTarge
 export type UnreleaseResult = { event: EventWithStatus }
 
 const eventWithAssignmentsInclude = {
-  partAssignments: {
+  parts: {
     select: {
       id: true,
       name: true,
@@ -51,7 +51,7 @@ const eventWithAssignmentsInclude = {
       assistantId: true,
     },
   },
-  serviceRoleAssignments: {
+  serviceRoles: {
     select: {
       id: true,
       name: true,
@@ -69,7 +69,7 @@ function computeNotifyTargets(parts: PartRow[], services: ServiceRoleRow[]): Not
   for (const part of parts) {
     if (part.assigneeId != null) {
       targets.push({
-        entityType: 'ProgrammePartAssignment',
+        entityType: 'EventPart',
         entityId: part.id,
         assignmentName: part.name,
         memberId: part.assigneeId,
@@ -78,7 +78,7 @@ function computeNotifyTargets(parts: PartRow[], services: ServiceRoleRow[]): Not
     }
     if (part.assistantId != null) {
       targets.push({
-        entityType: 'ProgrammePartAssignment',
+        entityType: 'EventPart',
         entityId: part.id,
         assignmentName: part.name,
         memberId: part.assistantId,
@@ -89,7 +89,7 @@ function computeNotifyTargets(parts: PartRow[], services: ServiceRoleRow[]): Not
   for (const service of services) {
     if (service.assigneeId != null) {
       targets.push({
-        entityType: 'ProgrammeServiceRoleAssignment',
+        entityType: 'EventServiceRole',
         entityId: service.id,
         assignmentName: service.name,
         memberId: service.assigneeId,
@@ -122,11 +122,11 @@ export async function releaseEvent(
   if (event.status === EventStatus.Released) return { event, notifyTargets: [] }
 
   try {
-    assertCanRelease({ parts: event.partAssignments, serviceRoles: event.serviceRoleAssignments })
+    assertCanRelease({ parts: event.parts, serviceRoles: event.serviceRoles })
   } catch (e) {
     if (e instanceof ConflictError) {
-      const conflictingParts = event.partAssignments.filter(p => p.hasConflict).length
-      const conflictingServices = event.serviceRoleAssignments.filter(s => s.hasConflict).length
+      const conflictingParts = event.parts.filter(p => p.hasConflict).length
+      const conflictingServices = event.serviceRoles.filter(s => s.hasConflict).length
       logger.warn('release blocked by conflicts', {
         eventId,
         congregationId,
@@ -157,11 +157,11 @@ export async function releaseEvent(
     eventId,
     congregationId,
     actorId,
-    partCount: event.partAssignments.length,
-    serviceRoleCount: event.serviceRoleAssignments.length,
+    partCount: event.parts.length,
+    serviceRoleCount: event.serviceRoles.length,
   })
 
-  const notifyTargets = computeNotifyTargets(event.partAssignments, event.serviceRoleAssignments)
+  const notifyTargets = computeNotifyTargets(event.parts, event.serviceRoles)
   return { event: updated, notifyTargets }
 }
 
@@ -189,7 +189,7 @@ export async function fireReleaseNotifications(
       status: EventStatus.Released,
     },
     assignmentName: '',
-    entityType: 'ProgrammePartAssignment',
+    entityType: 'EventPart',
     entityId: 0,
     congregationId,
     actorId,
@@ -234,8 +234,8 @@ export async function unreleaseEvent(
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
     include: {
-      partAssignments: { select: { id: true } },
-      serviceRoleAssignments: { select: { id: true } },
+      parts: { select: { id: true } },
+      serviceRoles: { select: { id: true } },
     },
   })
   if (!event) return null
@@ -247,8 +247,8 @@ export async function unreleaseEvent(
     data: { status: EventStatus.Draft },
   })
 
-  const partIds = event.partAssignments.map(p => p.id)
-  const serviceIds = event.serviceRoleAssignments.map(s => s.id)
+  const partIds = event.parts.map(p => p.id)
+  const serviceIds = event.serviceRoles.map(s => s.id)
 
   // Skip the notificationEvent updateMany entirely when there are no
   // assignments — an empty `in: []` matches nothing under Prisma today, but
@@ -261,8 +261,8 @@ export async function unreleaseEvent(
         congregationId,
         status: 'pending',
         OR: [
-          { entityType: 'ProgrammePartAssignment', entityId: { in: partIds } },
-          { entityType: 'ProgrammeServiceRoleAssignment', entityId: { in: serviceIds } },
+          { entityType: 'EventPart', entityId: { in: partIds } },
+          { entityType: 'EventServiceRole', entityId: { in: serviceIds } },
         ],
       },
       data: { status: 'cancelled', processedAt: new Date() },

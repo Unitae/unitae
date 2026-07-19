@@ -76,10 +76,7 @@ function applyHasConflictsFilter(filters: Prisma.EventWhereInput, params: URLSea
     AND: [
       ...existingAnd,
       {
-        OR: [
-          { partAssignments: { some: { hasConflict: true } } },
-          { serviceRoleAssignments: { some: { hasConflict: true } } },
-        ],
+        OR: [{ parts: { some: { hasConflict: true } } }, { serviceRoles: { some: { hasConflict: true } } }],
       },
     ],
   }

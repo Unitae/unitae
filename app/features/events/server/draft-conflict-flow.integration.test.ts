@@ -50,7 +50,7 @@ async function provisionCongregation(suffix: string) {
     // event is left with `templateId: null`, mirroring the older-legacy case
     // that surfaced the bug (Prisma's inner-join filter would silently drop
     // null-template events from the refresh loop).
-    await tx.programmeTemplate.create({
+    await tx.eventTemplate.create({
       data: {
         name: 'Day off',
         key: 'day-off',
@@ -96,7 +96,7 @@ async function provisionCongregation(suffix: string) {
       },
     })
 
-    const part = await tx.programmePartAssignment.create({
+    const part = await tx.eventPart.create({
       data: {
         eventId: event.id,
         assigneeId: bobMember.id,
@@ -123,9 +123,9 @@ async function provisionCongregation(suffix: string) {
 // which describe block created it.
 afterAll(async () => {
   for (const congId of createdCongIds) {
-    await testDb.programmePartAssignment.deleteMany({ where: { congregationId: congId } })
+    await testDb.eventPart.deleteMany({ where: { congregationId: congId } })
     await testDb.event.deleteMany({ where: { congregationId: congId } })
-    await testDb.programmeTemplate.deleteMany({ where: { congregationId: congId } })
+    await testDb.eventTemplate.deleteMany({ where: { congregationId: congId } })
     await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
     await testDb.member.deleteMany({ where: { congregationId: congId } })
     await testDb.congregation.delete({ where: { id: congId } })
@@ -152,7 +152,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
         },
       })
       // Assign both Alice (speaker) and Bob (reader) to the same part row.
-      await tx.programmePartAssignment.update({
+      await tx.eventPart.update({
         where: { id_congregationId: { id: partAssignmentId, congregationId: congId } },
         data: { assigneeId: alice.id, assistantId: bobMemberId },
       })
@@ -175,7 +175,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
     // A refresh keyed on Alice must NOT clear the flag that Bob's absence
     // still legitimately owns.
     await withScope(congId, async tx => {
-      const template = await tx.programmeTemplate.findFirstOrThrow({
+      const template = await tx.eventTemplate.findFirstOrThrow({
         where: { key: 'day-off', congregationId: congId },
       })
       const aliceAccount = await tx.userAccount.findFirstOrThrow({
@@ -203,7 +203,7 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
     })
 
     const still = await withScope(congId, tx =>
-      tx.programmePartAssignment.findFirstOrThrow({
+      tx.eventPart.findFirstOrThrow({
         where: { id: partAssignmentId, congregationId: congId },
         select: { hasConflict: true },
       }),
@@ -228,7 +228,7 @@ describe('Draft-event conflict flow (integration)', () => {
     )
 
     const refreshed = await withScope(congId, tx =>
-      tx.programmePartAssignment.findFirstOrThrow({
+      tx.eventPart.findFirstOrThrow({
         where: { id: partAssignmentId, congregationId: congId },
         select: { hasConflict: true },
       }),

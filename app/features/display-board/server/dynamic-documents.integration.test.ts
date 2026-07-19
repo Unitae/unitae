@@ -80,7 +80,7 @@ beforeAll(async () => {
     })
 
     // Create programme template and future event
-    const template = await tx.programmeTemplate.create({
+    const template = await tx.eventTemplate.create({
       data: { name: `Midweek ${ts}`, key: `midweek-${ts}`, congregationId },
     })
 
@@ -118,9 +118,9 @@ afterAll(async () => {
     await tx.boardDynamicDocumentView.deleteMany({ where: { settings: { congregationId } } })
     await tx.boardDynamicDocumentSettings.deleteMany({ where: { congregationId } })
     await tx.boardSection.deleteMany({ where: { congregationId } })
-    await tx.programmePartAssignment.deleteMany({ where: { congregationId } })
+    await tx.eventPart.deleteMany({ where: { congregationId } })
     await tx.event.deleteMany({ where: { congregationId } })
-    await tx.programmeTemplate.deleteMany({ where: { congregationId } })
+    await tx.eventTemplate.deleteMany({ where: { congregationId } })
     await tx.publisherGroup.deleteMany({ where: { congregationId } })
     await tx.userAccount.deleteMany({ where: { congregationId } })
     await tx.member.deleteMany({ where: { congregationId } })

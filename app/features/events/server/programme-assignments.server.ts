@@ -1,5 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -25,11 +25,11 @@ import { sanitizeText } from '~/shared/utils/sanitize-text'
 // SELECT on a non-existent row returns zero rows without blocking, so the
 // caller's `findFirst`-then-branch shape still works.
 async function lockPartAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
-  await db.$executeRaw`SELECT id FROM "ProgrammePartAssignment" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
+  await db.$executeRaw`SELECT id FROM "EventPart" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
 }
 
 async function lockServiceRoleAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
-  await db.$executeRaw`SELECT id FROM "ProgrammeServiceRoleAssignment" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
+  await db.$executeRaw`SELECT id FROM "EventServiceRole" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
 }
 
 export function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
@@ -37,7 +37,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
     where: { id: eventId, congregationId },
     include: {
       template: true,
-      partAssignments: {
+      parts: {
         include: {
           assignee: true,
           assistant: true,
@@ -45,7 +45,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
         },
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
       },
-      serviceRoleAssignments: {
+      serviceRoles: {
         include: {
           assignee: true,
         },
@@ -96,7 +96,7 @@ export async function assignPart(
   durationMin: number | null = null,
 ) {
   await lockPartAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.programmePartAssignment.findFirst({
+  const existing = await db.eventPart.findFirst({
     where: { id: assignmentId, congregationId },
     include: { event: true },
   })
@@ -118,7 +118,7 @@ export async function assignPart(
     const invalidSpeaker = checkExternalSpeakerValid(speaker)
     if (invalidSpeaker) return invalidSpeaker
 
-    const assignment = await db.programmePartAssignment.update({
+    const assignment = await db.eventPart.update({
       where: { id_congregationId: { id: assignmentId, congregationId } },
       data: {
         assigneeId: null,
@@ -164,7 +164,7 @@ export async function assignPart(
 
   const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
-  const assignment = await db.programmePartAssignment.update({
+  const assignment = await db.eventPart.update({
     where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict, durationMin },
   })
@@ -179,7 +179,7 @@ export async function assignServiceRole(
   congregationId: number,
 ) {
   await lockServiceRoleAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.programmeServiceRoleAssignment.findFirst({
+  const existing = await db.eventServiceRole.findFirst({
     where: { id: assignmentId, congregationId },
     include: { event: true },
   })
@@ -201,7 +201,7 @@ export async function assignServiceRole(
     }
   }
 
-  const assignment = await db.programmeServiceRoleAssignment.update({
+  const assignment = await db.eventServiceRole.update({
     where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, hasConflict },
   })
@@ -211,13 +211,13 @@ export async function assignServiceRole(
 
 export async function unassignPart(db: TransactionClient, assignmentId: number, congregationId: number) {
   await lockPartAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.programmePartAssignment.findFirst({
+  const existing = await db.eventPart.findFirst({
     where: { id: assignmentId, congregationId },
     select: { assigneeId: true, assistantId: true },
   })
   if (!existing) return null
 
-  const assignment = await db.programmePartAssignment.update({
+  const assignment = await db.eventPart.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
@@ -229,13 +229,13 @@ export async function unassignPart(db: TransactionClient, assignmentId: number, 
 
 export async function unassignServiceRole(db: TransactionClient, assignmentId: number, congregationId: number) {
   await lockServiceRoleAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.programmeServiceRoleAssignment.findFirst({
+  const existing = await db.eventServiceRole.findFirst({
     where: { id: assignmentId, congregationId },
     select: { assigneeId: true },
   })
   if (!existing) return null
 
-  const assignment = await db.programmeServiceRoleAssignment.update({
+  const assignment = await db.eventServiceRole.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
@@ -260,7 +260,7 @@ export async function checkDayOffConflict(
     where: {
       congregationId,
       createdBy: { memberId },
-      template: { key: ProgrammeTemplateKey.DayOff },
+      template: { key: EventTemplateKey.DayOff },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
@@ -288,7 +288,7 @@ export async function refreshConflictFlags(
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,
-      NOT: { template: { key: ProgrammeTemplateKey.DayOff } },
+      NOT: { template: { key: EventTemplateKey.DayOff } },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
@@ -302,7 +302,7 @@ export async function refreshConflictFlags(
     // co-participant still owns — e.g. Alice removes her absence but Bob is
     // still absent on the same part. Recompute per row as
     // (assigneeConflict OR assistantConflict).
-    const parts = await db.programmePartAssignment.findMany({
+    const parts = await db.eventPart.findMany({
       where: {
         eventId: event.id,
         congregationId,
@@ -319,7 +319,7 @@ export async function refreshConflictFlags(
         part.assistantId != null &&
         (await checkDayOffConflict(db, part.assistantId, event.startDate, event.endDate, congregationId))
 
-      await db.programmePartAssignment.update({
+      await db.eventPart.update({
         where: { id_congregationId: { id: part.id, congregationId } },
         data: { hasConflict: assigneeConflict || assistantConflict },
       })
@@ -327,7 +327,7 @@ export async function refreshConflictFlags(
 
     // Service-role rows have a single assignee, so a plain per-row recompute
     // is enough — no clobber scenario.
-    const services = await db.programmeServiceRoleAssignment.findMany({
+    const services = await db.eventServiceRole.findMany({
       where: { eventId: event.id, assigneeId: memberId, congregationId },
       select: { id: true, assigneeId: true },
     })
@@ -336,7 +336,7 @@ export async function refreshConflictFlags(
       const hasConflict =
         service.assigneeId != null &&
         (await checkDayOffConflict(db, service.assigneeId, event.startDate, event.endDate, congregationId))
-      await db.programmeServiceRoleAssignment.update({
+      await db.eventServiceRole.update({
         where: { id_congregationId: { id: service.id, congregationId } },
         data: { hasConflict },
       })

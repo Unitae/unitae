@@ -41,7 +41,7 @@ export async function importEvents(
   }
 }
 
-export async function importProgrammePartAssignments(
+export async function importEventParts(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -70,7 +70,7 @@ export async function importProgrammePartAssignments(
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
 
-    const created = await db.programmePartAssignment.create({
+    const created = await db.eventPart.create({
       data: {
         topic: record.topic,
         note: record.note,
@@ -94,7 +94,7 @@ export async function importProgrammePartAssignments(
   }
 }
 
-export async function importProgrammeServiceRoleAssignments(
+export async function importEventServiceRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -114,7 +114,7 @@ export async function importProgrammeServiceRoleAssignments(
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
 
-    const created = await db.programmeServiceRoleAssignment.create({
+    const created = await db.eventServiceRole.create({
       data: {
         note: record.note,
         hasConflict: record.hasConflict,
@@ -129,7 +129,7 @@ export async function importProgrammeServiceRoleAssignments(
   }
 }
 
-export async function importProgrammePartAssignmentAllowedRoles(
+export async function importEventPartAllowedRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -149,11 +149,11 @@ export async function importProgrammePartAssignmentAllowedRoles(
   }
 
   if (data.length > 0) {
-    await db.programmePartAssignmentAllowedRole.createMany({ data, skipDuplicates: true })
+    await db.eventPartAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }
 
-export async function importProgrammeServiceRoleAssignmentAllowedRoles(
+export async function importEventServiceRoleAllowedRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -173,6 +173,6 @@ export async function importProgrammeServiceRoleAssignmentAllowedRoles(
   }
 
   if (data.length > 0) {
-    await db.programmeServiceRoleAssignmentAllowedRole.createMany({ data, skipDuplicates: true })
+    await db.eventServiceRoleAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }

@@ -90,8 +90,8 @@ interface ProgrammeEvent {
   name: string
   startDate: Date
   templateId?: number | null
-  partAssignments: PartAssignment[]
-  serviceRoleAssignments?: ServiceRoleAssignment[]
+  parts: PartAssignment[]
+  serviceRoles?: ServiceRoleAssignment[]
 }
 
 export interface ProgrammeViewData {
@@ -451,7 +451,7 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
         const eventShowParts = templateConfig?.parts ?? true
         const eventShowServices = templateConfig?.services ?? showServices
 
-        const sections = groupPartsBySlot(event.partAssignments)
+        const sections = groupPartsBySlot(event.parts)
         const isFirstOfWeek = firstEventIdPerWeek.has(event.id)
         const weekKey = getWeekKey(new Date(event.startDate))
 
@@ -524,8 +524,8 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                 })}
 
               {/* Services */}
-              {eventShowServices && event.serviceRoleAssignments && event.serviceRoleAssignments.length > 0 && (
-                <ServiceSection services={event.serviceRoleAssignments} hasParts={eventShowParts} query={query} />
+              {eventShowServices && event.serviceRoles && event.serviceRoles.length > 0 && (
+                <ServiceSection services={event.serviceRoles} hasParts={eventShowParts} query={query} />
               )}
             </div>
           </div>

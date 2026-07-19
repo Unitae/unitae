@@ -368,7 +368,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-templates',
       export: () =>
-        db.programmeTemplate.findMany({
+        db.eventTemplate.findMany({
           select: {
             id: true,
             name: true,
@@ -383,7 +383,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-template-parts',
       export: () =>
-        db.programmeTemplatePart.findMany({
+        db.templatePart.findMany({
           select: {
             id: true,
             name: true,
@@ -400,28 +400,28 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-template-part-allowed-roles',
       export: () =>
-        db.programmeTemplatePartAllowedRole.findMany({
+        db.templatePartAllowedRole.findMany({
           select: { partId: true, roleId: true, asKind: true },
         }),
     },
     {
       name: 'programme-template-service-roles',
       export: () =>
-        db.programmeTemplateServiceRole.findMany({
+        db.templateServiceRole.findMany({
           select: { id: true, name: true, key: true, templateId: true },
         }),
     },
     {
       name: 'programme-template-service-role-allowed-roles',
       export: () =>
-        db.programmeTemplateServiceRoleAllowedRole.findMany({
+        db.templateServiceRoleAllowedRole.findMany({
           select: { serviceRoleId: true, roleId: true },
         }),
     },
     {
       name: 'programme-template-responsibles',
       export: () =>
-        db.programmeTemplateResponsible.findMany({
+        db.templateResponsible.findMany({
           select: { id: true, templateId: true, userId: true },
         }),
     },
@@ -444,7 +444,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-part-assignments',
       export: () =>
-        db.programmePartAssignment.findMany({
+        db.eventPart.findMany({
           select: {
             id: true,
             topic: true,
@@ -468,14 +468,14 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-part-assignment-allowed-roles',
       export: () =>
-        db.programmePartAssignmentAllowedRole.findMany({
+        db.eventPartAllowedRole.findMany({
           select: { assignmentId: true, roleId: true, asKind: true },
         }),
     },
     {
       name: 'programme-service-role-assignments',
       export: () =>
-        db.programmeServiceRoleAssignment.findMany({
+        db.eventServiceRole.findMany({
           select: {
             id: true,
             note: true,
@@ -490,7 +490,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-service-role-assignment-allowed-roles',
       export: () =>
-        db.programmeServiceRoleAssignmentAllowedRole.findMany({
+        db.eventServiceRoleAllowedRole.findMany({
           select: { assignmentId: true, roleId: true },
         }),
     },

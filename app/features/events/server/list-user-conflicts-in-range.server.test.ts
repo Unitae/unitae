@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    programmePartAssignment: { findMany: vi.fn() },
-    programmeServiceRoleAssignment: { findMany: vi.fn() },
+    eventPart: { findMany: vi.fn() },
+    eventServiceRole: { findMany: vi.fn() },
   },
 }))
 
@@ -12,8 +12,8 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
 })
 
 describe('listUserConflictsInRange', () => {
@@ -33,7 +33,7 @@ describe('listUserConflictsInRange', () => {
 
     await listUserConflictsInRange(db, memberId, start, end)
 
-    const call = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
@@ -44,7 +44,7 @@ describe('listUserConflictsInRange', () => {
     const memberId = 5000
     await listUserConflictsInRange(db, memberId, new Date(2026, 6, 1), new Date(2026, 6, 3))
 
-    const call = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.assigneeId).toBe(memberId)
@@ -52,7 +52,7 @@ describe('listUserConflictsInRange', () => {
   })
 
   it('resolves the responsible name via accountDisplayName when a template responsible exists', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Discours public',
         event: {
@@ -75,7 +75,7 @@ describe('listUserConflictsInRange', () => {
   // accountDisplayName semantics — matches what shows up everywhere else in
   // the app.
   it("uses the responsible's linked Member name when present", async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([
       {
         name: 'Micros',
         event: {
@@ -101,7 +101,7 @@ describe('listUserConflictsInRange', () => {
   })
 
   it('returns responsibleName as null for untemplated events', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Custom part',
         event: {
@@ -120,7 +120,7 @@ describe('listUserConflictsInRange', () => {
   // shows the generic fallback wording — the query surfaces null the same
   // way as for untemplated events.
   it('returns responsibleName as null when the template has no responsible assigned', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Prière',
         event: {
@@ -139,7 +139,7 @@ describe('listUserConflictsInRange', () => {
   // surface so the absentee knows who to reach. Sorted alphabetically so
   // the modal reads the same across renders.
   it('joins every responsible name when a template has more than one, sorted alphabetically', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Discours public',
         event: {
@@ -160,7 +160,7 @@ describe('listUserConflictsInRange', () => {
   })
 
   it('merges part + service conflicts and sorts by eventDate ascending', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         name: 'Later part',
         event: { startDate: new Date(2026, 6, 10), template: null },
@@ -170,7 +170,7 @@ describe('listUserConflictsInRange', () => {
         event: { startDate: new Date(2026, 6, 2), template: null },
       },
     ] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([
       {
         name: 'Middle service',
         event: { startDate: new Date(2026, 6, 5), template: null },

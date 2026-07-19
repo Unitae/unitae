@@ -16,7 +16,7 @@
 import 'dotenv/config'
 import { randomBytes, scrypt } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { ProgrammeTemplateKey } from '../features/events/model/programme-template.type'
+import { EventTemplateKey } from '../features/events/model/programme-template.type'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
@@ -519,20 +519,20 @@ const BOARD_SECTIONS = [
 // ---------------------------------------------------------------------------
 
 async function cleanCongregationData(congregationId: number) {
-  await prisma.programmeServiceRoleAssignment.deleteMany({
+  await prisma.eventServiceRole.deleteMany({
     where: { congregationId },
   })
-  await prisma.programmePartAssignment.deleteMany({
+  await prisma.eventPart.deleteMany({
     where: { congregationId },
   })
-  await prisma.programmeTemplateResponsible.deleteMany({
+  await prisma.templateResponsible.deleteMany({
     where: { congregationId },
   })
-  await prisma.programmeTemplateServiceRole.deleteMany({
+  await prisma.templateServiceRole.deleteMany({
     where: { congregationId },
   })
-  await prisma.programmeTemplatePart.deleteMany({ where: { congregationId } })
-  await prisma.programmeTemplate.deleteMany({ where: { congregationId } })
+  await prisma.templatePart.deleteMany({ where: { congregationId } })
+  await prisma.eventTemplate.deleteMany({ where: { congregationId } })
   await prisma.event.deleteMany({ where: { congregationId } })
   await prisma.boardDynamicDocumentView.deleteMany({
     where: { settings: { congregationId } },
@@ -628,8 +628,8 @@ async function main() {
   // ── Programme templates ───────────────────────────────────────────────
   await seedDefaultTemplates(prisma, congId, 'fr')
 
-  const dayOffTemplate = await prisma.programmeTemplate.findFirstOrThrow({
-    where: { key: ProgrammeTemplateKey.DayOff, congregationId: congId },
+  const dayOffTemplate = await prisma.eventTemplate.findFirstOrThrow({
+    where: { key: EventTemplateKey.DayOff, congregationId: congId },
   })
 
   console.log('  ✓ Programme templates')
@@ -1078,13 +1078,13 @@ async function main() {
   // ── Events (past meetings + upcoming + days off) ──────────────────────
   let eventCount = 0
 
-  const midweekTemplate = await prisma.programmeTemplate.findFirst({
-    where: { key: ProgrammeTemplateKey.MidweekMeeting, congregationId: congId },
+  const midweekTemplate = await prisma.eventTemplate.findFirst({
+    where: { key: EventTemplateKey.MidweekMeeting, congregationId: congId },
     include: { parts: true, serviceRoles: true },
   })
 
-  const weekendTemplate = await prisma.programmeTemplate.findFirst({
-    where: { key: ProgrammeTemplateKey.WeekendMeeting, congregationId: congId },
+  const weekendTemplate = await prisma.eventTemplate.findFirst({
+    where: { key: EventTemplateKey.WeekendMeeting, congregationId: congId },
     include: { parts: true, serviceRoles: true },
   })
 
@@ -1117,7 +1117,7 @@ async function main() {
       for (const part of midweekTemplate.parts) {
         const assignee = pick(createdUsers)
         const needsAssistant = !part.durationMin && Math.random() > 0.5
-        await prisma.programmePartAssignment.create({
+        await prisma.eventPart.create({
           data: {
             name: part.name,
             section: part.section,
@@ -1135,7 +1135,7 @@ async function main() {
 
       // Create service role assignments
       for (const role of midweekTemplate.serviceRoles) {
-        await prisma.programmeServiceRoleAssignment.create({
+        await prisma.eventServiceRole.create({
           data: {
             name: role.name,
             eventId: event.id,
@@ -1170,7 +1170,7 @@ async function main() {
       })
 
       for (const part of weekendTemplate.parts) {
-        await prisma.programmePartAssignment.create({
+        await prisma.eventPart.create({
           data: {
             name: part.name,
             section: part.section,
@@ -1186,7 +1186,7 @@ async function main() {
       }
 
       for (const role of weekendTemplate.serviceRoles) {
-        await prisma.programmeServiceRoleAssignment.create({
+        await prisma.eventServiceRole.create({
           data: {
             name: role.name,
             eventId: event.id,

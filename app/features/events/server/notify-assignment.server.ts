@@ -21,7 +21,7 @@ export interface AssignmentNotificationContext {
   // yet. Draft events accumulate diffs silently; release re-enqueues them.
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string
-  entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
+  entityType: 'EventPart' | 'EventServiceRole'
   entityId: number
   congregationId: number
   actorId: number
@@ -37,7 +37,7 @@ export type { AssignmentChangeType, ProgrammeRole }
 export function buildAssignmentContext(args: {
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string | undefined
-  entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
+  entityType: 'EventPart' | 'EventServiceRole'
   entityId: number
   congregationId: number
   actorId: number

@@ -58,7 +58,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const assignment = event.serviceRoleAssignments.find(a => a.id === assignmentId)
+    const assignment = event.serviceRoles.find(a => a.id === assignmentId)
 
     const users = await db.member.findMany({
       where: { congregationId, leftAt: null },
@@ -100,7 +100,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const assignmentBefore = await db.programmeServiceRoleAssignment.findFirst({
+    const assignmentBefore = await db.eventServiceRole.findFirst({
       where: { id: assignmentId, congregationId },
       select: { name: true },
     })
@@ -123,7 +123,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       buildAssignmentContext({
         event,
         assignmentName: assignmentBefore?.name,
-        entityType: 'ProgrammeServiceRoleAssignment',
+        entityType: 'EventServiceRole',
         entityId: assignmentId,
         congregationId,
         actorId: currentUser.id,

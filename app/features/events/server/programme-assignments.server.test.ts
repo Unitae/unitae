@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findFirst: vi.fn(), findMany: vi.fn() },
-    programmePartAssignment: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
-    programmeServiceRoleAssignment: {
+    eventPart: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn(), updateMany: vi.fn() },
+    eventServiceRole: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
@@ -75,25 +75,25 @@ describe('checkDayOffConflict', () => {
 
 describe('assignPart', () => {
   it('returns error when assignment not found', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue(null as never)
     const result = await assignPart(db, 999, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('error')
   })
 
   it('acquires a row lock on the assignment before reading it', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
     // $executeRaw MUST fire before findFirst — the lock is the whole point.
     // Assert order via mock.invocationCallOrder.
     const lockOrder = vi.mocked(db.$executeRaw).mock.invocationCallOrder[0]
-    const findOrder = vi.mocked(db.programmePartAssignment.findFirst).mock.invocationCallOrder[0]
+    const findOrder = vi.mocked(db.eventPart.findFirst).mock.invocationCallOrder[0]
     expect(lockOrder).toBeLessThan(findOrder)
   })
 
@@ -101,23 +101,23 @@ describe('assignPart', () => {
   // to draft a schedule freely. The conflict surfaces as hasConflict=true on
   // the assignment and blocks the event's release step downstream.
   it('saves assignment with hasConflict=true when assignee has a day-off conflict', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never) // day-off found
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
     expect(result).toHaveProperty('assignment')
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
   // Symmetric — assistant absent, speaker fine → still saves with hasConflict=true.
   it('saves assignment with hasConflict=true when assistant has a day-off conflict', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -128,25 +128,25 @@ describe('assignPart', () => {
     vi.mocked(db.event.findFirst)
       .mockResolvedValueOnce(null as never)
       .mockResolvedValueOnce({ id: 99 } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, 7, null, 'Topic', 1)
 
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
   it('updates assignment with hasConflict=false when no conflict', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never) // no day-off
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('assignment')
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: false })
   })
 
@@ -154,7 +154,7 @@ describe('assignPart', () => {
   // is still being built); released events must NOT — a manager scheduling
   // over a known absence on a public event is silent scheduling breakage.
   it('BLOCKS assignPart on a RELEASED event when the speaker has a day-off conflict', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -163,11 +163,11 @@ describe('assignPart', () => {
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
     expect(result).toEqual({ error: expect.stringMatching(DAY_OFF_MESSAGE_PATTERN) })
-    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventPart.update).not.toHaveBeenCalled()
   })
 
   it('BLOCKS assignPart on a RELEASED event when the reader has a day-off conflict', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -180,21 +180,21 @@ describe('assignPart', () => {
     const result = await assignPart(db, 1, 5, 7, null, 'Topic', 1)
 
     expect(result).toEqual({ error: expect.stringMatching(DAY_OFF_MESSAGE_PATTERN) })
-    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventPart.update).not.toHaveBeenCalled()
   })
 
   it('still saves with hasConflict=true on a DRAFT event when a day-off conflict exists', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
     expect(result).toHaveProperty('assignment')
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
@@ -202,46 +202,46 @@ describe('assignPart', () => {
   // the new one to decide who to notify. Returning the previous IDs alongside
   // the new assignment keeps the diff logic out of the route.
   it('returns the previous assigneeId and assistantId on success', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: 8,
       assistantId: 9,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
     expect(result).toMatchObject({ previousAssigneeId: 8, previousAssistantId: 9 })
   })
 
   it('returns null previous IDs when the assignment had no prior assignee or assistant', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: null,
       assistantId: null,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
     expect(result).toMatchObject({ previousAssigneeId: null, previousAssistantId: null })
   })
 
   it('allows null assigneeId', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, assigneeId: null } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, assigneeId: null } as never)
 
     const result = await assignPart(db, 1, null, null, null, '', 1)
     expect(result).toHaveProperty('assignment')
   })
 
   it('rejects when speaker is not in the eligible role set', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -250,11 +250,11 @@ describe('assignPart', () => {
 
     const result = await assignPart(db, 1, 5, null, null, 'Topic', 1)
     expect(result).toHaveProperty('error')
-    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventPart.update).not.toHaveBeenCalled()
   })
 
   it('rejects when reader is not in the eligible role set', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -269,7 +269,7 @@ describe('assignPart', () => {
   })
 
   it('skips eligibility checks for external speakers', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -277,7 +277,7 @@ describe('assignPart', () => {
       id: 99,
       name: 'External Bob',
     } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1, externalSpeakerId: 99 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1, externalSpeakerId: 99 } as never)
 
     const result = await assignPart(db, 1, null, null, 99, 'Topic', 1)
 
@@ -289,58 +289,58 @@ describe('assignPart', () => {
   // of a specific part without opening the template editor. The value is
   // always written through — `null` clears the row's duration.
   it('persists durationMin on the internal-speaker update when provided', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1, 12)
 
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ durationMin: 12 })
   })
 
   it('persists durationMin on the external-speaker update when provided', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.externalSpeaker.findFirst).mockResolvedValue({ id: 99, name: 'External Bob' } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, null, null, 99, 'Topic', 1, 45)
 
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ durationMin: 45 })
   })
 
   it('clears durationMin when null is passed', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1, null)
 
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ durationMin: null })
   })
 
   it('defaults durationMin to null when the caller omits it (clears the row)', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
-    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ durationMin: null })
   })
 
@@ -350,7 +350,7 @@ describe('assignPart', () => {
   // validated independently for role eligibility and day-off conflict but
   // never compared to the other.
   it('rejects when the same person is assigned as both speaker and reader', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -360,29 +360,29 @@ describe('assignPart', () => {
     const result = await assignPart(db, 1, 5, 5, null, 'Topic', 1)
 
     expect(result).toHaveProperty('error')
-    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventPart.update).not.toHaveBeenCalled()
   })
 })
 
 describe('assignServiceRole', () => {
   it('returns error when assignment not found', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue(null as never)
     const result = await assignServiceRole(db, 999, 5, 1)
     expect(result).toHaveProperty('error')
   })
 
   it('acquires a row lock on the service-role assignment before reading it', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1 } as never)
 
     await assignServiceRole(db, 1, 5, 1)
 
     const lockOrder = vi.mocked(db.$executeRaw).mock.invocationCallOrder[0]
-    const findOrder = vi.mocked(db.programmeServiceRoleAssignment.findFirst).mock.invocationCallOrder[0]
+    const findOrder = vi.mocked(db.eventServiceRole.findFirst).mock.invocationCallOrder[0]
     expect(lockOrder).toBeLessThan(findOrder)
   })
 
@@ -390,37 +390,37 @@ describe('assignServiceRole', () => {
   // no longer block the save; they surface via hasConflict=true and block
   // release downstream.
   it('saves assignment with hasConflict=true when assignee has a day-off conflict', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServiceRole(db, 1, 5, 1)
 
     expect(result).toHaveProperty('assignment')
-    const updateCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventServiceRole.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
   it('updates assignment with hasConflict=false when no conflict', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServiceRole(db, 1, 5, 1)
     expect(result).toHaveProperty('assignment')
-    const updateCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventServiceRole.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: false })
   })
 
   // Regression pin — same rule as assignPart: released events must block.
   it('BLOCKS assignServiceRole on a RELEASED event when the assignee has a day-off conflict', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       event: { status: 'released', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -429,52 +429,52 @@ describe('assignServiceRole', () => {
     const result = await assignServiceRole(db, 1, 5, 1)
 
     expect(result).toEqual({ error: expect.stringMatching(DAY_OFF_MESSAGE_PATTERN) })
-    expect(db.programmeServiceRoleAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventServiceRole.update).not.toHaveBeenCalled()
   })
 
   it('still saves with hasConflict=true on a DRAFT event when a day-off conflict exists', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       event: { status: 'draft', startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServiceRole(db, 1, 5, 1)
 
     expect(result).toHaveProperty('assignment')
-    const updateCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
+    const updateCall = vi.mocked(db.eventServiceRole.update).mock.calls[0][0]
     expect(updateCall?.data).toMatchObject({ hasConflict: true })
   })
 
   it('returns the previous assigneeId on success', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: 8,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServiceRole(db, 1, 5, 1)
     expect(result).toMatchObject({ previousAssigneeId: 8 })
   })
 
   it('returns null previous ID when the service role had no prior assignee', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: null,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1, assigneeId: 5 } as never)
 
     const result = await assignServiceRole(db, 1, 5, 1)
     expect(result).toMatchObject({ previousAssigneeId: null })
   })
 
   it('rejects when assignee is not in the eligible role set', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     } as never)
@@ -483,98 +483,98 @@ describe('assignServiceRole', () => {
 
     const result = await assignServiceRole(db, 1, 5, 1)
     expect(result).toHaveProperty('error')
-    expect(db.programmeServiceRoleAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventServiceRole.update).not.toHaveBeenCalled()
   })
 })
 
 describe('unassignPart', () => {
   it('resets assignee to null and returns the updated assignment', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: 8,
       assistantId: 9,
     } as never)
     const updated = { id: 1, assigneeId: null, hasConflict: false }
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue(updated as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue(updated as never)
 
     const result = await unassignPart(db, 1, 1)
     expect(result).toMatchObject({ assignment: updated })
   })
 
   it('returns the previous assigneeId and assistantId so the route can notify them', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: 8,
       assistantId: 9,
     } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     const result = await unassignPart(db, 1, 1)
     expect(result).toMatchObject({ previousAssigneeId: 8, previousAssistantId: 9 })
   })
 
   it('returns null previous IDs when the assignment was already empty', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: null,
       assistantId: null,
     } as never)
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 1 } as never)
 
     const result = await unassignPart(db, 1, 1)
     expect(result).toMatchObject({ previousAssigneeId: null, previousAssistantId: null })
   })
 
   it('returns null when the assignment does not exist', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue(null as never)
 
     const result = await unassignPart(db, 999, 1)
     expect(result).toBeNull()
-    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventPart.update).not.toHaveBeenCalled()
   })
 })
 
 describe('unassignServiceRole', () => {
   it('resets assignee to null and returns the updated assignment', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: 8,
     } as never)
     const updated = { id: 1, assigneeId: null, hasConflict: false }
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue(updated as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue(updated as never)
 
     const result = await unassignServiceRole(db, 1, 1)
     expect(result).toMatchObject({ assignment: updated })
   })
 
   it('returns the previous assigneeId so the route can notify them', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: 8,
     } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1 } as never)
 
     const result = await unassignServiceRole(db, 1, 1)
     expect(result).toMatchObject({ previousAssigneeId: 8 })
   })
 
   it('returns null previous ID when the service role was already empty', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
       id: 1,
       assigneeId: null,
     } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 1 } as never)
 
     const result = await unassignServiceRole(db, 1, 1)
     expect(result).toMatchObject({ previousAssigneeId: null })
   })
 
   it('returns null when the assignment does not exist', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue(null as never)
 
     const result = await unassignServiceRole(db, 999, 1)
     expect(result).toBeNull()
-    expect(db.programmeServiceRoleAssignment.update).not.toHaveBeenCalled()
+    expect(db.eventServiceRole.update).not.toHaveBeenCalled()
   })
 })
 
@@ -595,18 +595,16 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
-      { id: 100, assigneeId: 5, assistantId: null },
-    ] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([{ id: 200, assigneeId: 5 }] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([{ id: 100, assigneeId: 5, assistantId: null }] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([{ id: 200, assigneeId: 5 }] as never)
     stubAbsencesFor([5])
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 200 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 100 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 200 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.eventServiceRole.update).mock.calls[0][0]
     expect(partCall?.data).toEqual({ hasConflict: true })
     expect(serviceCall?.data).toEqual({ hasConflict: true })
   })
@@ -615,18 +613,16 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
-      { id: 100, assigneeId: 5, assistantId: null },
-    ] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([{ id: 200, assigneeId: 5 }] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([{ id: 100, assigneeId: 5, assistantId: null }] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([{ id: 200, assigneeId: 5 }] as never)
     stubAbsencesFor([]) // no absences overlap
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
-    vi.mocked(db.programmeServiceRoleAssignment.update).mockResolvedValue({ id: 200 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 100 } as never)
+    vi.mocked(db.eventServiceRole.update).mockResolvedValue({ id: 200 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.update).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.eventServiceRole.update).mock.calls[0][0]
     expect(partCall?.data).toEqual({ hasConflict: false })
     expect(serviceCall?.data).toEqual({ hasConflict: false })
   })
@@ -642,18 +638,16 @@ describe('refreshConflictFlags', () => {
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
     // Alice(5) = speaker (assigneeId), Bob(6) = reader (assistantId).
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
-      { id: 100, assigneeId: 5, assistantId: 6 },
-    ] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([{ id: 100, assigneeId: 5, assistantId: 6 }] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
     // Alice: no absence. Bob: absence present.
     stubAbsencesFor([6])
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 100 } as never)
 
     // Refresh for Alice (her absence just got cleared).
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(partCall?.data).toEqual({ hasConflict: true })
   })
 
@@ -663,16 +657,14 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
-      { id: 100, assigneeId: 5, assistantId: 6 },
-    ] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([{ id: 100, assigneeId: 5, assistantId: 6 }] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
     stubAbsencesFor([]) // nobody has an absence
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 100 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 100 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.update).mock.calls[0][0]
     expect(partCall?.data).toEqual({ hasConflict: false })
   })
 
@@ -681,8 +673,8 @@ describe('refreshConflictFlags', () => {
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    expect(db.programmePartAssignment.update).not.toHaveBeenCalled()
-    expect(db.programmePartAssignment.findMany).not.toHaveBeenCalled()
+    expect(db.eventPart.update).not.toHaveBeenCalled()
+    expect(db.eventPart.findMany).not.toHaveBeenCalled()
   })
 
   // Every overlapping event must be reconciled independently. A regression
@@ -695,18 +687,18 @@ describe('refreshConflictFlags', () => {
       { id: 3, startDate: new Date(2026, 3, 16), endDate: new Date(2026, 3, 16) },
     ] as never)
     // biome-ignore lint/suspicious/noExplicitAny: mock signature needs to match Prisma's generated overloads
-    vi.mocked(db.programmePartAssignment.findMany).mockImplementation(((args: any) => {
+    vi.mocked(db.eventPart.findMany).mockImplementation(((args: any) => {
       const eventId = args?.where?.eventId as number
       return Promise.resolve([{ id: eventId * 10, assigneeId: 5, assistantId: null }])
     }) as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
     stubAbsencesFor([5])
-    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 0 } as never)
+    vi.mocked(db.eventPart.update).mockResolvedValue({ id: 0 } as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 17), 1)
 
-    expect(vi.mocked(db.programmePartAssignment.findMany).mock.calls).toHaveLength(3)
-    expect(vi.mocked(db.programmePartAssignment.update).mock.calls).toHaveLength(3)
+    expect(vi.mocked(db.eventPart.findMany).mock.calls).toHaveLength(3)
+    expect(vi.mocked(db.eventPart.update).mock.calls).toHaveLength(3)
   })
 
   // Regression pin — participants are Members (`assigneeId`, `assistantId`
@@ -716,17 +708,17 @@ describe('refreshConflictFlags', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([
       { id: 1, startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
     ] as never)
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
 
     const memberId = 5000
     await refreshConflictFlags(db, memberId, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
-    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
     expect(partWhere.OR).toEqual([{ assigneeId: memberId }, { assistantId: memberId }])
 
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
     const serviceWhere = serviceCall?.where as Record<string, unknown>
     expect(serviceWhere.assigneeId).toBe(memberId)
   })
@@ -760,7 +752,7 @@ describe('refreshConflictFlags', () => {
 
     const call = vi.mocked(db.event.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
-    expect(where.NOT).toEqual({ template: { key: ProgrammeTemplateKey.DayOff } })
+    expect(where.NOT).toEqual({ template: { key: EventTemplateKey.DayOff } })
     expect(where).not.toHaveProperty('template')
   })
 })

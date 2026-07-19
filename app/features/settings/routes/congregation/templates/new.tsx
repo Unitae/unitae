@@ -2,7 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { data, Form, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { createTemplateSchema } from '~/features/settings/schemas/template.schema'
-import { createProgrammeTemplate } from '~/features/settings/server/programme-template.server'
+import { createEventTemplate } from '~/features/settings/server/programme-template.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -47,7 +47,7 @@ export async function action({ request, context }: Route.ActionArgs) {
   const session = await getSession(request.headers.get('Cookie'))
 
   return withScopeFromContext(context, async db => {
-    const existing = await db.programmeTemplate.findFirst({
+    const existing = await db.eventTemplate.findFirst({
       where: { key, congregationId: currentUser.congregationId },
     })
     if (existing) {
@@ -57,7 +57,7 @@ export async function action({ request, context }: Route.ActionArgs) {
       })
     }
 
-    const template = await createProgrammeTemplate(db, {
+    const template = await createEventTemplate(db, {
       name,
       key,
       weekDay,

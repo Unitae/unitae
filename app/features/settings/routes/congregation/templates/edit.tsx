@@ -61,11 +61,11 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
-    const partAllowedRoles = await db.programmeTemplatePartAllowedRole.findMany({
+    const partAllowedRoles = await db.templatePartAllowedRole.findMany({
       where: { partId: { in: template.parts.map(p => p.id) }, congregationId: currentUser.congregationId },
       select: { partId: true, roleId: true, asKind: true },
     })
-    const serviceRoleAllowed = await db.programmeTemplateServiceRoleAllowedRole.findMany({
+    const serviceRoleAllowed = await db.templateServiceRoleAllowedRole.findMany({
       where: {
         serviceRoleId: { in: template.serviceRoles.map(r => r.id) },
         congregationId: currentUser.congregationId,
@@ -120,7 +120,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     // deleting parts or service roles — is rejected outright, matching the
     // read-only UI. Flashes an error so a stale form submitting `delete-part`
     // gets a visible reason rather than a silent redirect.
-    const guardTarget = await db.programmeTemplate.findFirst({
+    const guardTarget = await db.eventTemplate.findFirst({
       where: { id: templateId, congregationId: currentUser.congregationId },
       select: { key: true },
     })

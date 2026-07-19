@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn() },
-    programmeServiceRoleAssignment: { findMany: vi.fn().mockResolvedValue([]) },
+    eventServiceRole: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
@@ -23,7 +23,7 @@ const DEFAULT_ARGS = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
 })
 
 describe('listUserServiceCadence', () => {
@@ -78,9 +78,9 @@ describe('listUserServiceCadence', () => {
   it('reverses the past query result so entries flow oldest → newest', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 3, startDate: new Date('2026-06-01'), serviceRoleAssignments: [] },
-        { id: 2, startDate: new Date('2026-05-01'), serviceRoleAssignments: [] },
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [] },
+        { id: 3, startDate: new Date('2026-06-01'), serviceRoles: [] },
+        { id: 2, startDate: new Date('2026-05-01'), serviceRoles: [] },
+        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -99,7 +99,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [{ name: 'Sono', assigneeId: 5 }],
+          serviceRoles: [{ name: 'Sono', assigneeId: 5 }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -115,7 +115,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [{ name: 'Sono', assigneeId: 99 }],
+          serviceRoles: [{ name: 'Sono', assigneeId: 99 }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -127,7 +127,7 @@ describe('listUserServiceCadence', () => {
 
   it('marks assigned=false when the event has no matching service role assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoles: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
@@ -141,7 +141,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [
+          serviceRoles: [
             { name: 'Sono', assigneeId: 99 },
             { name: 'Accueil', assigneeId: 5 },
           ],
@@ -157,7 +157,7 @@ describe('listUserServiceCadence', () => {
   it('matches when name lines up exactly', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [{ name: 'Sono', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: 'Sono', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -169,7 +169,7 @@ describe('listUserServiceCadence', () => {
   it('matches when the historical row has surrounding whitespace on the name', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [{ name: '  Sono  ', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: '  Sono  ', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -181,7 +181,7 @@ describe('listUserServiceCadence', () => {
   it('matches when the case of the name differs', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [{ name: 'SONO', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: 'SONO', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -193,7 +193,7 @@ describe('listUserServiceCadence', () => {
   it('matches when diacritics differ (Accueil ↔ accueil)', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [{ name: 'accueil', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: 'accueil', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -208,7 +208,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [{ name: 'Chairman', assigneeId: 5 }],
+          serviceRoles: [{ name: 'Chairman', assigneeId: 5 }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -224,18 +224,14 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [
-            { name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } },
-          ],
+          serviceRoles: [{ name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } }],
         },
       ] as never)
       .mockResolvedValueOnce([
         {
           id: 2,
           startDate: new Date('2026-08-01'),
-          serviceRoleAssignments: [
-            { name: 'Sono', assigneeId: 99, assignee: { firstname: 'Marie', lastname: 'Curie' } },
-          ],
+          serviceRoles: [{ name: 'Sono', assigneeId: 99, assignee: { firstname: 'Marie', lastname: 'Curie' } }],
         },
       ] as never)
 
@@ -254,9 +250,7 @@ describe('listUserServiceCadence', () => {
 
   it("propagates event.status as 'draft' when the past row is a draft", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', serviceRoleAssignments: [] },
-      ] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'draft', serviceRoles: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
@@ -267,7 +261,7 @@ describe('listUserServiceCadence', () => {
   it("buckets unknown Event.status values as 'released' (fallback contract)", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', serviceRoleAssignments: [] },
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', serviceRoles: [] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -279,9 +273,7 @@ describe('listUserServiceCadence', () => {
   it("propagates event.status as 'draft' when the row is still a draft assignment", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-08-01'), status: 'draft', serviceRoleAssignments: [] },
-      ] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-08-01'), status: 'draft', serviceRoles: [] }] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
@@ -294,9 +286,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [
-            { name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } },
-          ],
+          serviceRoles: [{ name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -312,7 +302,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoleAssignments: [{ name: 'Sono', assigneeId: null, assignee: null }],
+          serviceRoles: [{ name: 'Sono', assigneeId: null, assignee: null }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -324,7 +314,7 @@ describe('listUserServiceCadence', () => {
 
   it('returns personName=null when the event has no matching service assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoles: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
@@ -333,7 +323,7 @@ describe('listUserServiceCadence', () => {
   })
 
   it('returns hasHistory=false when the person has never held the service role at any past template instance', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
@@ -341,7 +331,7 @@ describe('listUserServiceCadence', () => {
   })
 
   it('returns hasHistory=true when the person appears on the matching service role (any age)', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([{ name: 'Sono' }] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([{ name: 'Sono' }] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
@@ -349,20 +339,17 @@ describe('listUserServiceCadence', () => {
   })
 
   it('hasHistory ignores rows whose normalized name does not match the anchor', async () => {
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([
-      { name: 'Chairman' },
-      { name: 'Accueil' },
-    ] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([{ name: 'Chairman' }, { name: 'Accueil' }] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
     expect(result.hasHistory).toBe(false)
   })
 
-  it('hasHistory query filters programmeServiceRoleAssignment by assigneeId', async () => {
+  it('hasHistory query filters eventServiceRole by assigneeId', async () => {
     await listUserServiceCadence(db, DEFAULT_ARGS)
 
-    const call = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
     expect(call?.where).toMatchObject({ assigneeId: 5 })
   })
 })

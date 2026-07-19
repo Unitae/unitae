@@ -20,7 +20,7 @@ const mockDb = {
     findFirst: vi.fn(),
     findMany: vi.fn(),
   },
-  programmePartAssignment: {
+  eventPart: {
     findFirst: vi.fn(),
   },
   boardDynamicDocumentView: {
@@ -160,7 +160,7 @@ describe('getContentVersion', () => {
     const eventDate = new Date('2026-04-10')
     const assignmentDate = new Date('2026-04-18')
     mockDb.event.findFirst.mockResolvedValue({ updatedAt: eventDate })
-    mockDb.programmePartAssignment.findFirst.mockResolvedValue({ updatedAt: assignmentDate })
+    mockDb.eventPart.findFirst.mockResolvedValue({ updatedAt: assignmentDate })
 
     const result = await getContentVersion(mockDb as never, 'programme', 'midweek', 10)
 
@@ -224,13 +224,13 @@ describe('getDynamicPreview programme draft filter', () => {
 describe('getContentVersion programme draft filter', () => {
   it('reads latest event / assignment updatedAt from released events only', async () => {
     mockDb.event.findFirst.mockResolvedValue(null)
-    mockDb.programmePartAssignment.findFirst.mockResolvedValue(null)
+    mockDb.eventPart.findFirst.mockResolvedValue(null)
 
     await getContentVersion(mockDb as never, 'programme', 'midweek', 10)
 
     const eventCall = mockDb.event.findFirst.mock.calls[0][0]
     expect(eventCall.where).toMatchObject({ status: 'released' })
-    const assignmentCall = mockDb.programmePartAssignment.findFirst.mock.calls[0][0]
+    const assignmentCall = mockDb.eventPart.findFirst.mock.calls[0][0]
     expect(assignmentCall.where.event).toMatchObject({ status: 'released' })
   })
 })

@@ -102,10 +102,7 @@ describe('computeFilters', () => {
 
     expect(result.AND).toEqual([
       {
-        OR: [
-          { partAssignments: { some: { hasConflict: true } } },
-          { serviceRoleAssignments: { some: { hasConflict: true } } },
-        ],
+        OR: [{ parts: { some: { hasConflict: true } } }, { serviceRoles: { some: { hasConflict: true } } }],
       },
     ])
   })
@@ -168,10 +165,7 @@ describe('computeFilters', () => {
     expect(result.createdById).toBe(42)
     expect(result.AND).toEqual([
       {
-        OR: [
-          { partAssignments: { some: { hasConflict: true } } },
-          { serviceRoleAssignments: { some: { hasConflict: true } } },
-        ],
+        OR: [{ parts: { some: { hasConflict: true } } }, { serviceRoles: { some: { hasConflict: true } } }],
       },
     ])
   })

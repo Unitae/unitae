@@ -32,7 +32,7 @@ interface TemplateWithRelations {
 }
 
 function loadTemplate(db: TransactionClient, templateId: number, congregationId: number) {
-  return db.programmeTemplate.findFirst({
+  return db.eventTemplate.findFirst({
     where: { id: templateId, congregationId },
     include: {
       parts: {
@@ -69,7 +69,7 @@ async function createEventWithAssignments(
   })
 
   for (const part of template.parts) {
-    const assignment = await db.programmePartAssignment.create({
+    const assignment = await db.eventPart.create({
       data: {
         eventId: event.id,
         partId: part.id,
@@ -86,7 +86,7 @@ async function createEventWithAssignments(
       },
     })
     if (part.allowedRoles.length > 0) {
-      await db.programmePartAssignmentAllowedRole.createMany({
+      await db.eventPartAllowedRole.createMany({
         data: part.allowedRoles.map(r => ({
           assignmentId: assignment.id,
           roleId: r.roleId,
@@ -99,7 +99,7 @@ async function createEventWithAssignments(
   }
 
   for (const role of template.serviceRoles) {
-    const assignment = await db.programmeServiceRoleAssignment.create({
+    const assignment = await db.eventServiceRole.create({
       data: {
         eventId: event.id,
         serviceRoleId: role.id,
@@ -108,7 +108,7 @@ async function createEventWithAssignments(
       },
     })
     if (role.allowedRoles.length > 0) {
-      await db.programmeServiceRoleAssignmentAllowedRole.createMany({
+      await db.eventServiceRoleAllowedRole.createMany({
         data: role.allowedRoles.map(r => ({
           assignmentId: assignment.id,
           roleId: r.roleId,

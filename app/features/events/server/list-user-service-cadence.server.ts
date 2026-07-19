@@ -23,7 +23,7 @@ type Options = {
 
 // Sibling of listUserCadence for service-role assignments. Same event-side
 // query pattern (anchored on Event.templateId) but reads the
-// `serviceRoleAssignments` relation instead of `partAssignments`. Service
+// `serviceRoles` relation instead of `parts`. Service
 // assignments have a single slot (assigneeId) and no section, so the anchor
 // and the participant check are both simpler. `hasHistory` reports whether
 // the user was ever on the matching service role at any past event of the
@@ -46,7 +46,7 @@ export async function listUserServiceCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, serviceRoleAssignments: servicesSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, serviceRoles: servicesSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -61,7 +61,7 @@ export async function listUserServiceCadence(
       take: futureCount,
       select: rowSelect,
     }),
-    db.programmeServiceRoleAssignment.findMany({
+    db.eventServiceRole.findMany({
       where: { event: { ...commonWhere, startDate: { lt: event.startDate } }, assigneeId: userId },
       select: { name: true },
     }),
@@ -69,7 +69,7 @@ export async function listUserServiceCadence(
 
   const targetName = normalize(serviceRoleName)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.serviceRoleAssignments.filter(s => normalize(s.name) === targetName)
+    const matches = row.serviceRoles.filter(s => normalize(s.name) === targetName)
     const person = matches.map(s => s.assignee).find(p => p != null)
     return {
       date: row.startDate.toISOString(),

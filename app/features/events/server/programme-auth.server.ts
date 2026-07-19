@@ -23,7 +23,7 @@ export async function getResponsibleTemplateIds(
   userId: number,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.programmeTemplateResponsible.findMany({
+  const rows = await db.templateResponsible.findMany({
     where: { userId, congregationId },
     select: { templateId: true },
   })

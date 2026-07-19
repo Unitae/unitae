@@ -30,19 +30,19 @@ import {
 } from './import-buildings.server'
 import { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
 import {
+  importEventPartAllowedRoles,
+  importEventParts,
+  importEventServiceRoleAllowedRoles,
+  importEventServiceRoles,
   importEvents,
-  importProgrammePartAssignmentAllowedRoles,
-  importProgrammePartAssignments,
-  importProgrammeServiceRoleAssignmentAllowedRoles,
-  importProgrammeServiceRoleAssignments,
 } from './import-programme-events.server'
 import {
-  importProgrammeTemplatePartAllowedRoles,
-  importProgrammeTemplateParts,
-  importProgrammeTemplateResponsibles,
-  importProgrammeTemplateServiceRoleAllowedRoles,
-  importProgrammeTemplateServiceRoles,
-  importProgrammeTemplates,
+  importEventTemplates,
+  importTemplatePartAllowedRoles,
+  importTemplateParts,
+  importTemplateResponsibles,
+  importTemplateServiceRoleAllowedRoles,
+  importTemplateServiceRoles,
 } from './import-programme-templates.server'
 import {
   importExternalSpeakers,
@@ -90,19 +90,19 @@ export {
 } from './import-buildings.server'
 export { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
 export {
+  importEventPartAllowedRoles,
+  importEventParts,
+  importEventServiceRoleAllowedRoles,
+  importEventServiceRoles,
   importEvents,
-  importProgrammePartAssignmentAllowedRoles,
-  importProgrammePartAssignments,
-  importProgrammeServiceRoleAssignmentAllowedRoles,
-  importProgrammeServiceRoleAssignments,
 } from './import-programme-events.server'
 export {
-  importProgrammeTemplatePartAllowedRoles,
-  importProgrammeTemplateParts,
-  importProgrammeTemplateResponsibles,
-  importProgrammeTemplateServiceRoleAllowedRoles,
-  importProgrammeTemplateServiceRoles,
-  importProgrammeTemplates,
+  importEventTemplates,
+  importTemplatePartAllowedRoles,
+  importTemplateParts,
+  importTemplateResponsibles,
+  importTemplateServiceRoleAllowedRoles,
+  importTemplateServiceRoles,
 } from './import-programme-templates.server'
 export {
   importExternalSpeakers,
@@ -234,37 +234,37 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importAttributions(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeTemplates(zip, db, idMap, congregationId)
+      await importEventTemplates(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeTemplateParts(zip, db, idMap, congregationId)
+      await importTemplateParts(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeTemplatePartAllowedRoles(zip, db, idMap, congregationId)
+      await importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeTemplateServiceRoles(zip, db, idMap, congregationId)
+      await importTemplateServiceRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
+      await importTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeTemplateResponsibles(zip, db, idMap, congregationId)
+      await importTemplateResponsibles(zip, db, idMap, congregationId)
       await progress()
 
       await importEvents(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammePartAssignments(zip, db, idMap, congregationId)
+      await importEventParts(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammePartAssignmentAllowedRoles(zip, db, idMap, congregationId)
+      await importEventPartAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeServiceRoleAssignments(zip, db, idMap, congregationId)
+      await importEventServiceRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importProgrammeServiceRoleAssignmentAllowedRoles(zip, db, idMap, congregationId)
+      await importEventServiceRoleAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
       await importBoardSections(zip, db, idMap, congregationId)

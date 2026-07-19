@@ -1,7 +1,7 @@
 import { AlertTriangle, CalendarOff, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import {
   type ConflictingEvent,
@@ -44,7 +44,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
-  selectors.template = { key: ProgrammeTemplateKey.DayOff }
+  selectors.template = { key: EventTemplateKey.DayOff }
 
   const defaults = getDefaultDateRange()
   const defaultFrom = defaults.from.toISOString().split('T')[0]
@@ -81,9 +81,9 @@ export function loader({ request, context }: Route.LoaderArgs) {
     for (const event of events) {
       // Programme assignments are bound to Member ids; resolve via the creator's linked member
       const memberId = event.createdBy.memberId
-      const [partAssignments, serviceAssignments] = memberId
+      const [parts, serviceAssignments] = memberId
         ? await Promise.all([
-            db.programmePartAssignment.findMany({
+            db.eventPart.findMany({
               where: {
                 hasConflict: true,
                 congregationId,
@@ -96,7 +96,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
               },
               select: { event: { select: { id: true, name: true, startDate: true } } },
             }),
-            db.programmeServiceRoleAssignment.findMany({
+            db.eventServiceRole.findMany({
               where: {
                 hasConflict: true,
                 congregationId,
@@ -115,7 +115,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
       // Deduplicate by programme event ID
       const seen = new Set<number>()
       const conflicts: ConflictingEvent[] = []
-      for (const a of [...partAssignments, ...serviceAssignments]) {
+      for (const a of [...parts, ...serviceAssignments]) {
         if (!seen.has(a.event.id)) {
           seen.add(a.event.id)
           conflicts.push({
@@ -131,7 +131,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
     // Check if any day-offs exist at all (for contextual empty state)
     const totalDayOffCount = await db.event.count({
-      where: { congregationId, template: { key: ProgrammeTemplateKey.DayOff } },
+      where: { congregationId, template: { key: EventTemplateKey.DayOff } },
     })
     const hasAnyDaysOff = events.length > 0 || totalDayOffCount > 0
 

@@ -6,8 +6,8 @@ vi.mock('~/shared/infra/db.server', () => ({
     boardDocument: { findMany: vi.fn(), count: vi.fn() },
     boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn() },
-    programmePartAssignment: { findMany: vi.fn() },
-    programmeServiceRoleAssignment: { findMany: vi.fn() },
+    eventPart: { findMany: vi.fn() },
+    eventServiceRole: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
   },
 }))
@@ -147,7 +147,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: { name: 'Midweek', color: '#000' },
-      partAssignments: [
+      parts: [
         {
           id: 10,
           name: 'Talk',
@@ -171,7 +171,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoleAssignments: [
+      serviceRoles: [
         { id: 20, name: 'Sound', assignee: { id: 42, firstname: 'John', lastname: 'Doe' } },
         { id: 21, name: 'Stage', assignee: { id: 50, firstname: 'Bob', lastname: 'Brown' } },
       ],
@@ -195,7 +195,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      partAssignments: [
+      parts: [
         {
           id: 10,
           name: 'Study',
@@ -211,7 +211,7 @@ describe('getNextMeeting', () => {
           assistant: { id: 42, firstname: 'John', lastname: 'Doe' },
         },
       ],
-      serviceRoleAssignments: [],
+      serviceRoles: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
@@ -280,7 +280,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      partAssignments: [
+      parts: [
         {
           id: 10,
           name: 'Talk',
@@ -291,7 +291,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoleAssignments: [],
+      serviceRoles: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
@@ -375,30 +375,30 @@ describe('getUpcomingAbsences', () => {
 
 describe('getUpcomingAssignments', () => {
   it('filters part and service-role assignments to released events', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
 
     await getUpcomingAssignments(db, 42)
 
-    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
     expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
 
-    const [serviceCall] = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0]
+    const [serviceCall] = vi.mocked(db.eventServiceRole.findMany).mock.calls[0]
     expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })
 
 describe('getConflictingAssignments', () => {
   it('only surfaces conflicts on released events', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
 
     await getConflictingAssignments(db, 42)
 
-    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
     expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
 
-    const [serviceCall] = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0]
+    const [serviceCall] = vi.mocked(db.eventServiceRole.findMany).mock.calls[0]
     expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })

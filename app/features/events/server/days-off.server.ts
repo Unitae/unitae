@@ -1,5 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 import * as m from '~/i18n/paraglide/messages'
 import { NotFoundError } from '~/shared/errors/app-error.server'
@@ -11,7 +11,7 @@ export function getNextDaysOffs(db: TransactionClient, userId: number, congregat
       congregationId,
       createdBy: { id: userId },
       template: {
-        key: ProgrammeTemplateKey.DayOff,
+        key: EventTemplateKey.DayOff,
       },
       OR: [{ startDate: { lte: new Date() }, endDate: { gte: new Date() } }, { endDate: { gte: new Date() } }],
     },
@@ -46,8 +46,8 @@ export async function createDayOff(
   // with a null templateId would create a ghost row invisible to every
   // downstream query — including the /me/days-off delete guard. Fail loudly
   // so ops sees the incident instead of a silent success flash.
-  const dayOffTemplate = await db.programmeTemplate.findFirst({
-    where: { key: ProgrammeTemplateKey.DayOff, congregationId },
+  const dayOffTemplate = await db.eventTemplate.findFirst({
+    where: { key: EventTemplateKey.DayOff, congregationId },
   })
   if (!dayOffTemplate) throw new NotFoundError('Day-off template')
 

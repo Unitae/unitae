@@ -143,7 +143,7 @@ beforeAll(async () => {
       },
     })
 
-    const template = await tx.programmeTemplate.create({
+    const template = await tx.eventTemplate.create({
       data: {
         name: 'Test Template',
         key: `template-${ts}`,
@@ -153,7 +153,7 @@ beforeAll(async () => {
       },
     })
 
-    const part = await tx.programmeTemplatePart.create({
+    const part = await tx.templatePart.create({
       data: {
         name: 'Opening',
         section: 'intro',
@@ -164,11 +164,11 @@ beforeAll(async () => {
       },
     })
 
-    const serviceRole = await tx.programmeTemplateServiceRole.create({
+    const serviceRole = await tx.templateServiceRole.create({
       data: { name: 'Sound', key: `sound-${ts}`, templateId: template.id, congregationId: sourceId },
     })
 
-    await tx.programmeTemplateResponsible.create({
+    await tx.templateResponsible.create({
       data: { templateId: template.id, userId: alice.id, congregationId: sourceId },
     })
 
@@ -183,7 +183,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.programmePartAssignment.create({
+    await tx.eventPart.create({
       data: {
         eventId: event.id,
         partId: part.id,
@@ -197,7 +197,7 @@ beforeAll(async () => {
       },
     })
 
-    const serviceRoleAssignment = await tx.programmeServiceRoleAssignment.create({
+    const serviceRoleAssignment = await tx.eventServiceRole.create({
       data: {
         eventId: event.id,
         serviceRoleId: serviceRole.id,
@@ -273,12 +273,12 @@ beforeAll(async () => {
     })
 
     // Wire the external speaker into the existing part-assignment so the FK link survives import.
-    const partAssignment = await tx.programmePartAssignment.findFirst({
+    const partAssignment = await tx.eventPart.findFirst({
       where: { eventId: event.id },
       select: { id: true },
     })
     if (partAssignment != null) {
-      await tx.programmePartAssignment.update({
+      await tx.eventPart.update({
         where: { id: partAssignment.id },
         data: { allowExternalSpeaker: true, externalSpeakerId: externalSpeaker.id, trackOrder: 2 },
       })
@@ -286,11 +286,11 @@ beforeAll(async () => {
 
     // Give the template a distinctive colour and give the part a trackOrder
     // to cover the adjacent leakage gaps.
-    await tx.programmeTemplate.update({
+    await tx.eventTemplate.update({
       where: { id: template.id },
       data: { color: '#ff0000' },
     })
-    await tx.programmeTemplatePart.update({
+    await tx.templatePart.update({
       where: { id: part.id },
       data: { trackOrder: 1 },
     })
@@ -303,16 +303,16 @@ beforeAll(async () => {
       data: { paths: [[{ lat: 48.8, lng: 2.3 }]], congregationId: sourceId },
     })
 
-    await tx.programmeTemplatePartAllowedRole.create({
+    await tx.templatePartAllowedRole.create({
       data: { partId: part.id, roleId: elderRole.id, asKind: 'speaker', congregationId: sourceId },
     })
 
-    await tx.programmeTemplateServiceRoleAllowedRole.create({
+    await tx.templateServiceRoleAllowedRole.create({
       data: { serviceRoleId: serviceRole.id, roleId: elderRole.id, congregationId: sourceId },
     })
 
     if (partAssignment != null) {
-      await tx.programmePartAssignmentAllowedRole.create({
+      await tx.eventPartAllowedRole.create({
         data: {
           assignmentId: partAssignment.id,
           roleId: elderRole.id,
@@ -322,7 +322,7 @@ beforeAll(async () => {
       })
     }
 
-    await tx.programmeServiceRoleAssignmentAllowedRole.create({
+    await tx.eventServiceRoleAllowedRole.create({
       data: { assignmentId: serviceRoleAssignment.id, roleId: elderRole.id, congregationId: sourceId },
     })
 
@@ -355,18 +355,18 @@ afterAll(async () => {
       // v1.1 join tables — must precede their parents. Most cascade on delete, but explicit
       // ordering keeps cleanup deterministic across ad-hoc reruns.
       await tx.boardSectionVisibilityRole.deleteMany({})
-      await tx.programmeServiceRoleAssignmentAllowedRole.deleteMany({})
-      await tx.programmePartAssignmentAllowedRole.deleteMany({})
-      await tx.programmeTemplateServiceRoleAllowedRole.deleteMany({})
-      await tx.programmeTemplatePartAllowedRole.deleteMany({})
-      await tx.programmeServiceRoleAssignment.deleteMany({})
-      await tx.programmePartAssignment.deleteMany({})
+      await tx.eventServiceRoleAllowedRole.deleteMany({})
+      await tx.eventPartAllowedRole.deleteMany({})
+      await tx.templateServiceRoleAllowedRole.deleteMany({})
+      await tx.templatePartAllowedRole.deleteMany({})
+      await tx.eventServiceRole.deleteMany({})
+      await tx.eventPart.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
-      await tx.programmeTemplateResponsible.deleteMany({})
-      await tx.programmeTemplateServiceRole.deleteMany({})
-      await tx.programmeTemplatePart.deleteMany({})
+      await tx.templateResponsible.deleteMany({})
+      await tx.templateServiceRole.deleteMany({})
+      await tx.templatePart.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
       await tx.boardDynamicDocumentSettings.deleteMany({})
       await tx.boardDocumentVersion.deleteMany({})
@@ -474,17 +474,17 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTerritoryEntranceLinks(zip, db, idMap)
     await mod.importBuildingEntranceLinks(zip, db, idMap)
     await mod.importAttributions(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplates(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateParts(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplatePartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateServiceRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateResponsibles(zip, db, idMap, congregationId)
+    await mod.importEventTemplates(zip, db, idMap, congregationId)
+    await mod.importTemplateParts(zip, db, idMap, congregationId)
+    await mod.importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importTemplateServiceRoles(zip, db, idMap, congregationId)
+    await mod.importTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     await mod.importEvents(zip, db, idMap, congregationId)
-    await mod.importProgrammePartAssignments(zip, db, idMap, congregationId)
-    await mod.importProgrammePartAssignmentAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeServiceRoleAssignments(zip, db, idMap, congregationId)
-    await mod.importProgrammeServiceRoleAssignmentAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importEventParts(zip, db, idMap, congregationId)
+    await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importEventServiceRoles(zip, db, idMap, congregationId)
+    await mod.importEventServiceRoleAllowedRoles(zip, db, idMap, congregationId)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
     await mod.importBoardDocuments(zip, db, idMap, congregationId)
@@ -571,18 +571,18 @@ describe('Export/Import round-trip', () => {
     // Delete source users so the emails are free for import (simulates cross-instance migration)
     await withScope(sourceId, async tx => {
       await tx.boardSectionVisibilityRole.deleteMany({})
-      await tx.programmeServiceRoleAssignmentAllowedRole.deleteMany({})
-      await tx.programmePartAssignmentAllowedRole.deleteMany({})
-      await tx.programmeTemplateServiceRoleAllowedRole.deleteMany({})
-      await tx.programmeTemplatePartAllowedRole.deleteMany({})
-      await tx.programmeServiceRoleAssignment.deleteMany({})
-      await tx.programmePartAssignment.deleteMany({})
+      await tx.eventServiceRoleAllowedRole.deleteMany({})
+      await tx.eventPartAllowedRole.deleteMany({})
+      await tx.templateServiceRoleAllowedRole.deleteMany({})
+      await tx.templatePartAllowedRole.deleteMany({})
+      await tx.eventServiceRole.deleteMany({})
+      await tx.eventPart.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
-      await tx.programmeTemplateResponsible.deleteMany({})
-      await tx.programmeTemplateServiceRole.deleteMany({})
-      await tx.programmeTemplatePart.deleteMany({})
+      await tx.templateResponsible.deleteMany({})
+      await tx.templateServiceRole.deleteMany({})
+      await tx.templatePart.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
       await tx.boardDynamicDocumentSettings.deleteMany({})
       await tx.boardDocumentVersion.deleteMany({})
@@ -691,17 +691,17 @@ describe('Export/Import round-trip', () => {
       expect(activities[0].publisherId).toBe(aliceMember.id)
 
       // Programme templates + parts + service roles + responsibles
-      const templates = await tx.programmeTemplate.findMany({})
+      const templates = await tx.eventTemplate.findMany({})
       expect(templates).toHaveLength(1)
       // colour survived the round-trip
       expect(templates[0].color).toBe('#ff0000')
-      const parts = await tx.programmeTemplatePart.findMany({})
-      expect(parts).toHaveLength(1)
-      expect(parts[0].templateId).toBe(templates[0].id)
-      expect(parts[0].trackOrder).toBe(1)
-      const serviceRoles = await tx.programmeTemplateServiceRole.findMany({})
+      const templateParts = await tx.templatePart.findMany({})
+      expect(templateParts).toHaveLength(1)
+      expect(templateParts[0].templateId).toBe(templates[0].id)
+      expect(templateParts[0].trackOrder).toBe(1)
+      const serviceRoles = await tx.templateServiceRole.findMany({})
       expect(serviceRoles).toHaveLength(1)
-      const responsibles = await tx.programmeTemplateResponsible.findMany({})
+      const responsibles = await tx.templateResponsible.findMany({})
       expect(responsibles).toHaveLength(1)
       expect(responsibles[0].userId).toBe(alice.id)
 
@@ -709,14 +709,14 @@ describe('Export/Import round-trip', () => {
       const events = await tx.event.findMany({})
       expect(events).toHaveLength(1)
       expect(events[0].createdById).toBe(alice.id)
-      const partAssignments = await tx.programmePartAssignment.findMany({})
-      expect(partAssignments).toHaveLength(1)
-      expect(partAssignments[0].assigneeId).toBe(aliceMember.id)
-      expect(partAssignments[0].assistantId).toBe(bobMember.id)
-      expect(partAssignments[0].topic).toBe('Welcome')
-      expect(partAssignments[0].trackOrder).toBe(2)
-      expect(partAssignments[0].allowExternalSpeaker).toBe(true)
-      const srAssignments = await tx.programmeServiceRoleAssignment.findMany({})
+      const eventParts = await tx.eventPart.findMany({})
+      expect(eventParts).toHaveLength(1)
+      expect(eventParts[0].assigneeId).toBe(aliceMember.id)
+      expect(eventParts[0].assistantId).toBe(bobMember.id)
+      expect(eventParts[0].topic).toBe('Welcome')
+      expect(eventParts[0].trackOrder).toBe(2)
+      expect(eventParts[0].allowExternalSpeaker).toBe(true)
+      const srAssignments = await tx.eventServiceRole.findMany({})
       expect(srAssignments).toHaveLength(1)
       expect(srAssignments[0].assigneeId).toBe(bobMember.id)
 
@@ -756,7 +756,7 @@ describe('Export/Import round-trip', () => {
       const speakers = await tx.externalSpeaker.findMany({})
       expect(speakers).toHaveLength(1)
       expect(speakers[0].name).toBe('Frère Visiteur')
-      expect(partAssignments[0].externalSpeakerId).toBe(speakers[0].id)
+      expect(eventParts[0].externalSpeakerId).toBe(speakers[0].id)
 
       // Territory card overlay + perimeter
       const overlays = await tx.territoryCardOverlay.findMany({})
@@ -767,22 +767,22 @@ describe('Export/Import round-trip', () => {
 
       // Allowed-role join rows — anchor onto the elder built-in role on target.
       const elderOnTarget = roles.find(r => r.key === 'elder')!
-      const partAllowed = await tx.programmeTemplatePartAllowedRole.findMany({})
+      const partAllowed = await tx.templatePartAllowedRole.findMany({})
       expect(partAllowed).toHaveLength(1)
-      expect(partAllowed[0].partId).toBe(parts[0].id)
+      expect(partAllowed[0].partId).toBe(templateParts[0].id)
       expect(partAllowed[0].roleId).toBe(elderOnTarget.id)
       expect(partAllowed[0].asKind).toBe('speaker')
 
-      const serviceRoleAllowed = await tx.programmeTemplateServiceRoleAllowedRole.findMany({})
+      const serviceRoleAllowed = await tx.templateServiceRoleAllowedRole.findMany({})
       expect(serviceRoleAllowed).toHaveLength(1)
       expect(serviceRoleAllowed[0].serviceRoleId).toBe(serviceRoles[0].id)
 
-      const partAssignmentAllowed = await tx.programmePartAssignmentAllowedRole.findMany({})
+      const partAssignmentAllowed = await tx.eventPartAllowedRole.findMany({})
       expect(partAssignmentAllowed).toHaveLength(1)
-      expect(partAssignmentAllowed[0].assignmentId).toBe(partAssignments[0].id)
+      expect(partAssignmentAllowed[0].assignmentId).toBe(eventParts[0].id)
       expect(partAssignmentAllowed[0].asKind).toBe('speaker')
 
-      const serviceRoleAssignmentAllowed = await tx.programmeServiceRoleAssignmentAllowedRole.findMany({})
+      const serviceRoleAssignmentAllowed = await tx.eventServiceRoleAllowedRole.findMany({})
       expect(serviceRoleAssignmentAllowed).toHaveLength(1)
       expect(serviceRoleAssignmentAllowed[0].assignmentId).toBe(srAssignments[0].id)
 

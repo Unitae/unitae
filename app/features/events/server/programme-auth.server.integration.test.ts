@@ -85,17 +85,17 @@ beforeAll(async () => {
     })
     plainId = plain.id
 
-    const owned = await tx.programmeTemplate.create({
+    const owned = await tx.eventTemplate.create({
       data: { name: 'Owned Template', key: `owned-${ts}`, congregationId: primaryCongId },
     })
     templateOwnedId = owned.id
 
-    const otherTpl = await tx.programmeTemplate.create({
+    const otherTpl = await tx.eventTemplate.create({
       data: { name: 'Other Template', key: `other-${ts}`, congregationId: primaryCongId },
     })
     templateOtherId = otherTpl.id
 
-    await tx.programmeTemplateResponsible.create({
+    await tx.templateResponsible.create({
       data: { templateId: templateOwnedId, userId: responsibleId, congregationId: primaryCongId },
     })
   })
@@ -113,12 +113,12 @@ beforeAll(async () => {
     })
     otherCongResponsibleId = otherCongResp.id
 
-    const otherCongTemplate = await tx.programmeTemplate.create({
+    const otherCongTemplate = await tx.eventTemplate.create({
       data: { name: 'Foreign Template', key: `foreign-${ts}`, congregationId: otherCongId },
     })
     templateOtherCongId = otherCongTemplate.id
 
-    await tx.programmeTemplateResponsible.create({
+    await tx.templateResponsible.create({
       data: { templateId: templateOtherCongId, userId: otherCongResponsibleId, congregationId: otherCongId },
     })
   })
@@ -128,8 +128,8 @@ afterAll(async () => {
   for (const congId of [primaryCongId, otherCongId]) {
     if (!congId) continue
     await withScope(congId, async tx => {
-      await tx.programmeTemplateResponsible.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.templateResponsible.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.userAccount.deleteMany({})
     })
   }

@@ -1,4 +1,4 @@
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/programme-template.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 
@@ -44,7 +44,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
   return [
     {
       name: m.seed_template_midweek({}, { locale }),
-      key: ProgrammeTemplateKey.MidweekMeeting,
+      key: EventTemplateKey.MidweekMeeting,
       weekDay: 2, // Tuesday
       isRecurring: true,
       startTime: '19:00',
@@ -134,7 +134,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     },
     {
       name: m.seed_template_weekend({}, { locale }),
-      key: ProgrammeTemplateKey.WeekendMeeting,
+      key: EventTemplateKey.WeekendMeeting,
       weekDay: 6, // Saturday
       isRecurring: true,
       startTime: '10:00',
@@ -175,7 +175,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     },
     {
       name: m.seed_template_memorial({}, { locale }),
-      key: ProgrammeTemplateKey.Memorial,
+      key: EventTemplateKey.Memorial,
       weekDay: null,
       isRecurring: false,
       startTime: '19:00',
@@ -222,7 +222,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     },
     {
       name: m.seed_template_day_off({}, { locale }),
-      key: ProgrammeTemplateKey.DayOff,
+      key: EventTemplateKey.DayOff,
       weekDay: null,
       isRecurring: false,
       startTime: '00:00',
@@ -233,7 +233,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
     },
     {
       name: m.seed_template_freeform({}, { locale }),
-      key: ProgrammeTemplateKey.Freeform,
+      key: EventTemplateKey.Freeform,
       weekDay: null,
       isRecurring: false,
       startTime: '19:00',
@@ -248,13 +248,13 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and unscoped db
 export async function seedDefaultTemplates(db: any, congregationId: number, locale: Locale) {
   for (const tpl of getTemplates(locale)) {
-    const existing = await db.programmeTemplate.findFirst({
+    const existing = await db.eventTemplate.findFirst({
       where: { key: tpl.key, congregationId },
     })
 
     if (existing) continue
 
-    await db.programmeTemplate.create({
+    await db.eventTemplate.create({
       data: {
         name: tpl.name,
         key: tpl.key,

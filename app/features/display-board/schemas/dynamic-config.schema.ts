@@ -1,13 +1,13 @@
 import { z } from 'zod'
 
-const programmeTemplateConfigSchema = z.object({
+const eventTemplateConfigSchema = z.object({
   templateId: z.number().int().positive(),
   parts: z.boolean(),
   services: z.boolean(),
 })
 
 export const programmeDynamicConfigSchema = z.object({
-  templates: z.array(programmeTemplateConfigSchema),
+  templates: z.array(eventTemplateConfigSchema),
   groupBy: z.enum(['date', 'template']).default('date'),
 })
 

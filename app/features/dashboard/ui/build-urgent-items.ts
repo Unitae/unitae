@@ -59,7 +59,7 @@ export function urgentPartAssignmentItems(nextMeeting: NextMeeting): UrgentItem[
   if (!nextMeeting || nextMeeting.userPartIds.length === 0) return []
   if (new Date(nextMeeting.startDate).getTime() - Date.now() > THREE_DAYS_MS) return []
 
-  const userPart = nextMeeting.partAssignments.find(p => nextMeeting.userPartIds.includes(p.id))
+  const userPart = nextMeeting.parts.find(p => nextMeeting.userPartIds.includes(p.id))
   if (!userPart) return []
 
   return [
@@ -80,7 +80,7 @@ export function urgentServiceRoleItems(nextMeeting: NextMeeting): UrgentItem[] {
   if (!nextMeeting || nextMeeting.userServiceRoleIds.length === 0) return []
   if (new Date(nextMeeting.startDate).getTime() - Date.now() > THREE_DAYS_MS) return []
 
-  const userRole = nextMeeting.serviceRoleAssignments.find(r => nextMeeting.userServiceRoleIds.includes(r.id))
+  const userRole = nextMeeting.serviceRoles.find(r => nextMeeting.userServiceRoleIds.includes(r.id))
   if (!userRole) return []
 
   return [

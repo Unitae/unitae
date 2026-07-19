@@ -134,7 +134,7 @@ beforeAll(async () => {
     })
 
     // Future event with programme assignments
-    const eventKind = await tx.programmeTemplate.create({
+    const eventKind = await tx.eventTemplate.create({
       data: { name: 'Midweek', key: `midweek-${ts}`, color: '#00aa00', congregationId },
     })
 
@@ -150,7 +150,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.programmePartAssignment.create({
+    await tx.eventPart.create({
       data: {
         eventId: futureEvent.id,
         assigneeId: aliceId,
@@ -163,7 +163,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.programmePartAssignment.create({
+    await tx.eventPart.create({
       data: {
         eventId: futureEvent.id,
         assigneeId: bobId,
@@ -174,7 +174,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.programmeServiceRoleAssignment.create({
+    await tx.eventServiceRole.create({
       data: {
         eventId: futureEvent.id,
         assigneeId: bobId,
@@ -200,10 +200,10 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await withScope(congregationId, async tx => {
-    await tx.programmeServiceRoleAssignment.deleteMany({ where: { congregationId } })
-    await tx.programmePartAssignment.deleteMany({ where: { congregationId } })
+    await tx.eventServiceRole.deleteMany({ where: { congregationId } })
+    await tx.eventPart.deleteMany({ where: { congregationId } })
     await tx.event.deleteMany({ where: { congregationId } })
-    await tx.programmeTemplate.deleteMany({ where: { congregationId } })
+    await tx.eventTemplate.deleteMany({ where: { congregationId } })
     await tx.boardDocument.deleteMany({ where: { congregationId } })
     await tx.boardSection.deleteMany({ where: { congregationId } })
     await tx.attribution.deleteMany({ where: { congregationId } })
@@ -268,14 +268,14 @@ describe('getNextMeeting (integration)', () => {
     const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
     expect(result).not.toBeNull()
     expect(result?.name).toContain('Future Meeting')
-    expect(result?.partAssignments.length).toBeGreaterThanOrEqual(2)
-    expect(result?.serviceRoleAssignments.length).toBeGreaterThanOrEqual(1)
+    expect(result?.parts.length).toBeGreaterThanOrEqual(2)
+    expect(result?.serviceRoles.length).toBeGreaterThanOrEqual(1)
   })
 
   it('identifies parts assigned to the user (as assignee)', async () => {
     const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
     expect(result?.userPartIds).toHaveLength(1)
-    const userPart = result?.partAssignments.find(p => result.userPartIds.includes(p.id))
+    const userPart = result?.parts.find(p => result.userPartIds.includes(p.id))
     expect(userPart?.name).toBe('Talk')
   })
 
@@ -293,7 +293,7 @@ describe('getNextMeeting (integration)', () => {
 
   it("ignores another user's day off when picking the next meeting", async () => {
     const offEventId = await withScope(congregationId, async tx => {
-      const offKind = await tx.programmeTemplate.create({
+      const offKind = await tx.eventTemplate.create({
         data: { name: 'Absence', key: 'day-off', color: '#888888', congregationId },
       })
       const off = await tx.event.create({
@@ -316,7 +316,7 @@ describe('getNextMeeting (integration)', () => {
     } finally {
       await withScope(congregationId, async tx => {
         await tx.event.delete({ where: { id_congregationId: { id: offEventId, congregationId } } })
-        await tx.programmeTemplate.deleteMany({ where: { key: 'day-off', congregationId } })
+        await tx.eventTemplate.deleteMany({ where: { key: 'day-off', congregationId } })
       })
     }
   })
@@ -336,7 +336,7 @@ describe('getConflictingAssignments (integration)', () => {
   function seedEvent(opts: SeedOpts) {
     const cong = opts.cong ?? congregationId
     return withScope(cong, async tx => {
-      const eventKind = await tx.programmeTemplate.findFirstOrThrow({
+      const eventKind = await tx.eventTemplate.findFirstOrThrow({
         where: { congregationId: cong, key: { not: 'day-off' } },
       })
       const event = await tx.event.create({
@@ -355,7 +355,7 @@ describe('getConflictingAssignments (integration)', () => {
       })
       const partIds = await Promise.all(
         (opts.parts ?? []).map(async (p, i) => {
-          const created = await tx.programmePartAssignment.create({
+          const created = await tx.eventPart.create({
             data: {
               eventId: event.id,
               assigneeId: p.assigneeId ?? null,
@@ -372,7 +372,7 @@ describe('getConflictingAssignments (integration)', () => {
       )
       const serviceRoleIds = await Promise.all(
         (opts.serviceRoles ?? []).map(async sr => {
-          const created = await tx.programmeServiceRoleAssignment.create({
+          const created = await tx.eventServiceRole.create({
             data: {
               eventId: event.id,
               assigneeId: sr.assigneeId,
@@ -390,8 +390,8 @@ describe('getConflictingAssignments (integration)', () => {
 
   async function cleanupEvent(eventId: number, cong: number = congregationId) {
     await withScope(cong, async tx => {
-      await tx.programmeServiceRoleAssignment.deleteMany({ where: { eventId, congregationId: cong } })
-      await tx.programmePartAssignment.deleteMany({ where: { eventId, congregationId: cong } })
+      await tx.eventServiceRole.deleteMany({ where: { eventId, congregationId: cong } })
+      await tx.eventPart.deleteMany({ where: { eventId, congregationId: cong } })
       await tx.event.delete({ where: { id_congregationId: { id: eventId, congregationId: cong } } })
     })
   }
@@ -503,7 +503,7 @@ describe('getConflictingAssignments (integration)', () => {
     })
 
     const otherSeed = await withScope(otherCong.id, async tx => {
-      const otherKind = await tx.programmeTemplate.create({
+      const otherKind = await tx.eventTemplate.create({
         data: { name: 'Midweek', key: `midweek-other-${otherTs}`, color: '#00aa00', congregationId: otherCong.id },
       })
       const otherMember = await tx.member.create({
@@ -530,7 +530,7 @@ describe('getConflictingAssignments (integration)', () => {
         },
       })
       // Same numeric id range as Alice — guarantees that without RLS the other-cong row would match
-      const part = await tx.programmePartAssignment.create({
+      const part = await tx.eventPart.create({
         data: {
           eventId: event.id,
           assigneeId: otherMember.id,
@@ -561,7 +561,7 @@ describe('getConflictingAssignments (integration)', () => {
       expect(aliceFromHerCong).toBeNull()
     } finally {
       await withScope(otherCong.id, async tx => {
-        await tx.programmePartAssignment.delete({
+        await tx.eventPart.delete({
           where: { id_congregationId: { id: otherSeed.partId, congregationId: otherCong.id } },
         })
         await tx.event.delete({
@@ -569,7 +569,7 @@ describe('getConflictingAssignments (integration)', () => {
         })
         await tx.userAccount.delete({ where: { id: otherSeed.otherAccountId } })
         await tx.member.delete({ where: { id: otherSeed.otherMemberId } })
-        await tx.programmeTemplate.delete({
+        await tx.eventTemplate.delete({
           where: { id_congregationId: { id: otherSeed.otherKindId, congregationId: otherCong.id } },
         })
       })
@@ -584,7 +584,7 @@ describe('getConflictingAssignments (integration)', () => {
   // for templated events or stops touching one of the two assignment tables.
   it('refreshConflictFlags clears stale hasConflict and the alert disappears', async () => {
     const setup = await withScope(congregationId, async tx => {
-      const template = await tx.programmeTemplate.create({
+      const template = await tx.eventTemplate.create({
         data: {
           name: 'Invariant Template',
           key: `invariant-template-${ts}`,
@@ -603,7 +603,7 @@ describe('getConflictingAssignments (integration)', () => {
         },
       })
       // Pre-set the flag to true to simulate a stale conflict left over from a now-deleted day-off.
-      const part = await tx.programmePartAssignment.create({
+      const part = await tx.eventPart.create({
         data: {
           eventId: event.id,
           assigneeId: aliceId,
@@ -614,7 +614,7 @@ describe('getConflictingAssignments (integration)', () => {
           congregationId,
         },
       })
-      const serviceRole = await tx.programmeServiceRoleAssignment.create({
+      const serviceRole = await tx.eventServiceRole.create({
         data: {
           eventId: event.id,
           assigneeId: aliceId,
@@ -641,13 +641,13 @@ describe('getConflictingAssignments (integration)', () => {
       )
 
       const partFlag = await withScope(congregationId, tx =>
-        tx.programmePartAssignment.findUniqueOrThrow({
+        tx.eventPart.findUniqueOrThrow({
           where: { id_congregationId: { id: setup.partId, congregationId } },
           select: { hasConflict: true },
         }),
       )
       const serviceFlag = await withScope(congregationId, tx =>
-        tx.programmeServiceRoleAssignment.findUniqueOrThrow({
+        tx.eventServiceRole.findUniqueOrThrow({
           where: { id_congregationId: { id: setup.serviceRoleId, congregationId } },
           select: { hasConflict: true },
         }),
@@ -659,14 +659,14 @@ describe('getConflictingAssignments (integration)', () => {
       expect(after).toBeNull()
     } finally {
       await withScope(congregationId, async tx => {
-        await tx.programmeServiceRoleAssignment.delete({
+        await tx.eventServiceRole.delete({
           where: { id_congregationId: { id: setup.serviceRoleId, congregationId } },
         })
-        await tx.programmePartAssignment.delete({
+        await tx.eventPart.delete({
           where: { id_congregationId: { id: setup.partId, congregationId } },
         })
         await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
-        await tx.programmeTemplate.delete({
+        await tx.eventTemplate.delete({
           where: { id_congregationId: { id: setup.templateId, congregationId } },
         })
       })
@@ -680,7 +680,7 @@ describe('getConflictingAssignments (integration)', () => {
   // stale hasConflict and the alert disappears" pin earlier in this file.
   it('getResponsibleConflicts drops the entry when hasConflict clears on the underlying assignment', async () => {
     const setup = await withScope(congregationId, async tx => {
-      const template = await tx.programmeTemplate.create({
+      const template = await tx.eventTemplate.create({
         data: {
           name: 'Responsible Invariant Template',
           key: `resp-invariant-template-${ts}`,
@@ -688,7 +688,7 @@ describe('getConflictingAssignments (integration)', () => {
         },
       })
       // Bob is the responsible for this template; Alice is the absentee.
-      await tx.programmeTemplateResponsible.create({
+      await tx.templateResponsible.create({
         data: {
           templateId: template.id,
           userId: bobAccountId,
@@ -706,7 +706,7 @@ describe('getConflictingAssignments (integration)', () => {
           status: 'released',
         },
       })
-      const part = await tx.programmePartAssignment.create({
+      const part = await tx.eventPart.create({
         data: {
           eventId: event.id,
           assigneeId: aliceId,
@@ -729,7 +729,7 @@ describe('getConflictingAssignments (integration)', () => {
       // Simulate resolution: the underlying assignment is no longer in conflict
       // (either the absence went away or the assignment was reassigned).
       await withScope(congregationId, tx =>
-        tx.programmePartAssignment.update({
+        tx.eventPart.update({
           where: { id_congregationId: { id: setup.partId, congregationId } },
           data: { hasConflict: false },
         }),
@@ -739,12 +739,12 @@ describe('getConflictingAssignments (integration)', () => {
       expect(after).toEqual({ count: 0, absenteeNames: [], totalAbsenteesCount: 0 })
     } finally {
       await withScope(congregationId, async tx => {
-        await tx.programmePartAssignment.delete({
+        await tx.eventPart.delete({
           where: { id_congregationId: { id: setup.partId, congregationId } },
         })
         await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
-        await tx.programmeTemplateResponsible.deleteMany({ where: { templateId: setup.templateId } })
-        await tx.programmeTemplate.delete({
+        await tx.templateResponsible.deleteMany({ where: { templateId: setup.templateId } })
+        await tx.eventTemplate.delete({
           where: { id_congregationId: { id: setup.templateId, congregationId } },
         })
       })
@@ -768,7 +768,7 @@ describe('getConflictingAssignments (integration)', () => {
           status: 'released',
         },
       })
-      const part = await tx.programmePartAssignment.create({
+      const part = await tx.eventPart.create({
         data: {
           eventId: event.id,
           assigneeId: aliceId,
@@ -793,7 +793,7 @@ describe('getConflictingAssignments (integration)', () => {
       expect(asManager.absenteeNames).toEqual(['Alice Dupont'])
     } finally {
       await withScope(congregationId, async tx => {
-        await tx.programmePartAssignment.delete({
+        await tx.eventPart.delete({
           where: { id_congregationId: { id: setup.partId, congregationId } },
         })
         await tx.event.delete({ where: { id_congregationId: { id: setup.eventId, congregationId } } })
