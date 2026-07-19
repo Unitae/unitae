@@ -94,7 +94,7 @@ export async function assignPart(
   externalSpeakerId: number | null,
   topic: string,
   congregationId: number,
-  durationMin?: number | null,
+  durationMin: number | null = null,
 ) {
   await lockPartAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmePartAssignment.findFirst({
@@ -111,9 +111,6 @@ export async function assignPart(
   const previousAssistantId = existing.assistantId
 
   const cleanTopic = sanitizeText(topic)
-  // `undefined` means "caller doesn't care about duration" — preserve whatever
-  // value the row already carries. `null` and numeric are pass-through writes.
-  const durationPatch = durationMin === undefined ? {} : { durationMin }
 
   if (externalSpeakerId != null) {
     const speaker = await db.externalSpeaker.findFirst({
@@ -123,16 +120,14 @@ export async function assignPart(
     if (invalidSpeaker) return invalidSpeaker
 
     const assignment = await db.programmePartAssignment.update({
-      where: {
-        id_congregationId: { id: assignmentId, congregationId },
-      },
+      where: { id_congregationId: { id: assignmentId, congregationId } },
       data: {
         assigneeId: null,
         assistantId: null,
         externalSpeakerId,
         topic: cleanTopic,
         hasConflict: false,
-        ...durationPatch,
+        durationMin,
       },
     })
     return { assignment, previousAssigneeId, previousAssistantId }
@@ -171,17 +166,8 @@ export async function assignPart(
   const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
   const assignment = await db.programmePartAssignment.update({
-    where: {
-      id_congregationId: { id: assignmentId, congregationId },
-    },
-    data: {
-      assigneeId,
-      assistantId,
-      externalSpeakerId: null,
-      topic: cleanTopic,
-      hasConflict,
-      ...durationPatch,
-    },
+    where: { id_congregationId: { id: assignmentId, congregationId } },
+    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict, durationMin },
   })
 
   return { assignment, previousAssigneeId, previousAssistantId }
@@ -217,9 +203,7 @@ export async function assignServiceRole(
   }
 
   const assignment = await db.programmeServiceRoleAssignment.update({
-    where: {
-      id_congregationId: { id: assignmentId, congregationId },
-    },
+    where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, hasConflict },
   })
 

@@ -286,9 +286,8 @@ describe('assignPart', () => {
   })
 
   // Duration shortcut: the assign-part sheet lets managers tweak the runtime
-  // of a specific part without opening the template editor. Callers who omit
-  // the value must not touch durationMin so pre-existing tests and callers
-  // (which don't pass it) keep working exactly as before.
+  // of a specific part without opening the template editor. The value is
+  // always written through — `null` clears the row's duration.
   it('persists durationMin on the internal-speaker update when provided', async () => {
     vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
       id: 1,
@@ -331,7 +330,7 @@ describe('assignPart', () => {
     expect(updateCall?.data).toMatchObject({ durationMin: null })
   })
 
-  it('leaves durationMin off the update payload when the caller omits it', async () => {
+  it('defaults durationMin to null when the caller omits it (clears the row)', async () => {
     vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
       id: 1,
       event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
@@ -342,7 +341,7 @@ describe('assignPart', () => {
     await assignPart(db, 1, 5, null, null, 'Topic', 1)
 
     const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
-    expect(updateCall?.data).not.toHaveProperty('durationMin')
+    expect(updateCall?.data).toMatchObject({ durationMin: null })
   })
 
   // Wave 1 bug 4 — regression test.

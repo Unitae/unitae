@@ -189,21 +189,9 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
             <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
-              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
-                  <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="durationMin">{m.programs_edit_part_duration_label()}</Label>
-                  <Input
-                    id="durationMin"
-                    name="durationMin"
-                    type="number"
-                    min={0}
-                    defaultValue={assignment?.durationMin ?? ''}
-                  />
-                </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
+                <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
               </div>
 
               {assignment?.allowExternalSpeaker && (
