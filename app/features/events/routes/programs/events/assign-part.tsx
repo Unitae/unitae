@@ -34,7 +34,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { formatEventDate } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/assign-part'
 
 export const meta: Route.MetaFunction = () => {
@@ -168,7 +167,11 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const { blocker, markDirty } = useUnsavedChanges()
 
   const hasRegistry = externalSpeakers.length > 0
-  const infoCardProps = { eventId: event.id, partName: assignment?.name }
+  const infoCardProps = {
+    eventId: event.id,
+    partName: assignment?.name,
+    excludePartAssignmentId: assignment?.id ?? null,
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -283,13 +286,12 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
           </CardContent>
         </Card>
 
-        {speakerType === 'internal' && (
+        {speakerType === 'internal' ? (
           <div className="flex flex-col gap-6">
             <PublisherInfoCard {...infoCardProps} userId={selectedAssignee} />
             <PublisherInfoCard {...infoCardProps} userId={selectedAssistant} />
           </div>
-        )}
-        {speakerType === 'external' && (
+        ) : (
           <ExternalSpeakerInfoCard {...infoCardProps} externalSpeakerId={selectedExternalSpeaker} />
         )}
       </div>

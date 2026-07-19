@@ -26,9 +26,20 @@ interface PublisherInfoCardProps {
   eventId: number
   userId: string | null
   partName?: string
+  // Used by the assign sheets to drop the assignment being edited from the
+  // "other assignments on the same event" panel — otherwise the picker's own
+  // row shows up as a fake conflict.
+  excludePartAssignmentId?: number | null
+  excludeServiceAssignmentId?: number | null
 }
 
-export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCardProps) {
+export function PublisherInfoCard({
+  eventId,
+  userId,
+  partName,
+  excludePartAssignmentId,
+  excludeServiceAssignmentId,
+}: PublisherInfoCardProps) {
   const fetcher = useFetcher<PublisherInfoData>()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher.load is stable, adding it causes infinite loop
@@ -36,8 +47,12 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
     if (!userId || userId === 'none') return
     const searchParams = new URLSearchParams({ userId })
     if (partName) searchParams.set('partName', partName)
+    if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
+    if (excludeServiceAssignmentId != null) {
+      searchParams.set('excludeServiceAssignmentId', String(excludeServiceAssignmentId))
+    }
     fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)
-  }, [userId, eventId, partName])
+  }, [userId, eventId, partName, excludePartAssignmentId, excludeServiceAssignmentId])
 
   if (!userId || userId === 'none') return null
 

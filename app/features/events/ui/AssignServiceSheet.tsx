@@ -73,7 +73,12 @@ export function AssignServiceSheet({
             />
           </div>
 
-          <PublisherInfoCard eventId={eventId} userId={selectedAssignee || null} partName={assignment.name} />
+          <PublisherInfoCard
+            eventId={eventId}
+            userId={selectedAssignee || null}
+            partName={assignment.name}
+            excludeServiceAssignmentId={assignment.id}
+          />
 
           <SheetFooter>
             <SubmitButton>{m.common_save()}</SubmitButton>

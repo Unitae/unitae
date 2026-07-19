@@ -1,10 +1,17 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { formatGroupName } from '~/shared/utils/format-group-name'
 import { requireParamId } from '~/shared/utils/params.server'
 
 import type { Route } from './+types/publisher-info'
+
+function parseOptionalId(raw: string | null): number | null {
+  if (!raw) return null
+  const value = Number(raw)
+  return Number.isFinite(value) && value > 0 ? value : null
+}
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
@@ -14,6 +21,8 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const userId = Number(url.searchParams.get('userId'))
   const partName = url.searchParams.get('partName') ?? ''
+  const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
+  const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceAssignmentId'))
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
@@ -44,19 +53,12 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         })
       : []
 
-    // Other assignments on the same event
-    const sameEventParts = await db.programmePartAssignment.findMany({
-      where: {
-        eventId,
-        congregationId,
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
-      },
-      select: { id: true, name: true, section: true },
-    })
-
-    const sameEventServices = await db.programmeServiceRoleAssignment.findMany({
-      where: { eventId, assigneeId: userId, congregationId },
-      select: { id: true, name: true },
+    const sameEventAssignments = await listUserSameEventAssignments(db, {
+      userId,
+      eventId,
+      congregationId,
+      excludePartAssignmentId,
+      excludeServiceAssignmentId,
     })
 
     // Recent history: last 5 assignments with the same part name
@@ -88,10 +90,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         startDate: d.startDate.toISOString(),
         endDate: d.endDate.toISOString(),
       })),
-      sameEventAssignments: [
-        ...sameEventParts.map(a => ({ type: 'part' as const, name: a.name, section: a.section })),
-        ...sameEventServices.map(a => ({ type: 'service' as const, name: a.name })),
-      ],
+      sameEventAssignments,
       recentHistory: recentHistory.map(a => ({
         date: a.event.startDate.toISOString(),
       })),
