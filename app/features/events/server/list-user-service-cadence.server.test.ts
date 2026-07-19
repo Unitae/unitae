@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn() },
+    programmeServiceRoleAssignment: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
@@ -22,6 +23,7 @@ const DEFAULT_ARGS = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
 })
 
 describe('listUserServiceCadence', () => {
@@ -31,7 +33,7 @@ describe('listUserServiceCadence', () => {
       event: { ...DEFAULT_ARGS.event, templateId: null },
     })
 
-    expect(result).toEqual({ past: [], future: [] })
+    expect(result).toEqual({ past: [], future: [], hasHistory: false })
     expect(db.event.findMany).not.toHaveBeenCalled()
   })
 
@@ -242,6 +244,7 @@ describe('listUserServiceCadence', () => {
     expect(result).toEqual({
       past: [{ date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT' }],
       future: [{ date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE' }],
+      hasHistory: false,
     })
   })
 
@@ -287,5 +290,39 @@ describe('listUserServiceCadence', () => {
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
     expect(result.past[0].personName).toBeNull()
+  })
+
+  it('returns hasHistory=false when the person has never held the service role at any past template instance', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.hasHistory).toBe(false)
+  })
+
+  it('returns hasHistory=true when the person appears on the matching service role (any age)', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([{ name: 'Sono' }] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.hasHistory).toBe(true)
+  })
+
+  it('hasHistory ignores rows whose normalized name does not match the anchor', async () => {
+    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([
+      { name: 'Chairman' },
+      { name: 'Accueil' },
+    ] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.hasHistory).toBe(false)
+  })
+
+  it('hasHistory query filters programmeServiceRoleAssignment by assigneeId', async () => {
+    await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    const call = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    expect(call?.where).toMatchObject({ assigneeId: 5 })
   })
 })

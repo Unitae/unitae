@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     event: { findMany: vi.fn() },
+    programmePartAssignment: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
 
@@ -24,13 +25,14 @@ const DEFAULT_ARGS = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
 })
 
 describe('listUserCadence', () => {
   it('short-circuits with empty arrays when templateId is null (freeform event)', async () => {
     const result = await listUserCadence(db, { ...DEFAULT_ARGS, event: { ...DEFAULT_ARGS.event, templateId: null } })
 
-    expect(result).toEqual({ past: [], future: [] })
+    expect(result).toEqual({ past: [], future: [], hasHistory: false })
     expect(db.event.findMany).not.toHaveBeenCalled()
   })
 
@@ -329,6 +331,7 @@ describe('listUserCadence', () => {
     expect(result).toEqual({
       past: [{ date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT' }],
       future: [{ date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE' }],
+      hasHistory: false,
     })
   })
 
@@ -390,6 +393,51 @@ describe('listUserCadence', () => {
     const result = await listUserCadence(db, DEFAULT_ARGS)
 
     expect(result.past[0].personName).toBeNull()
+  })
+
+  it('returns hasHistory=false when the person has never been on the slot at any past template instance', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.hasHistory).toBe(false)
+  })
+
+  it('returns hasHistory=true when the person appears on the matching slot in a historical row (any age)', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      { name: 'Bible Reading', section: 'Ministry' },
+    ] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.hasHistory).toBe(true)
+  })
+
+  it('hasHistory ignores rows whose normalized name/section do not match the anchor', async () => {
+    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+      { name: 'Song', section: 'Ministry' },
+      { name: 'Bible Reading', section: 'Weekend' },
+    ] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.hasHistory).toBe(false)
+  })
+
+  it('hasHistory query filters programmePartAssignment by the slot-matching FK', async () => {
+    await listUserCadence(db, DEFAULT_ARGS)
+
+    const call = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    expect(call?.where).toMatchObject({ assigneeId: 5 })
+    expect(call?.where).not.toHaveProperty('assistantId')
+  })
+
+  it("hasHistory query filters on assistantId when slot='assistant'", async () => {
+    await listUserCadence(db, { ...DEFAULT_ARGS, slot: 'assistant' })
+
+    const call = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    expect(call?.where).toMatchObject({ assistantId: 5 })
+    expect(call?.where).not.toHaveProperty('assigneeId')
   })
 
   it('returns personName=null when the matching slot on the historical row is unassigned', async () => {

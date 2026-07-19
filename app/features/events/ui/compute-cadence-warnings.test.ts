@@ -6,10 +6,11 @@ const entry = (assigned: boolean) => ({ date: '2026-01-01', assigned, personName
 
 describe('computeCadenceWarnings', () => {
   describe('firstTime', () => {
-    it('is true when every past and future dot is empty', () => {
+    it('is true when every past and future dot is empty and hasHistory is false', () => {
       const result = computeCadenceWarnings({
         past: [entry(false), entry(false), entry(false)],
         future: [entry(false)],
+        hasHistory: false,
       })
       expect(result.firstTime).toBe(true)
     })
@@ -32,6 +33,49 @@ describe('computeCadenceWarnings', () => {
         future: [entry(true)],
       })
       expect(result.firstTime).toBe(false)
+    })
+
+    it('is false when the visible window is empty but hasHistory is true (that is overdue, not first-time)', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false), entry(false)],
+        future: [entry(false)],
+        hasHistory: true,
+      })
+      expect(result.firstTime).toBe(false)
+    })
+  })
+
+  describe('overdue', () => {
+    it('fires when the visible window has no assigned dot AND hasHistory is true', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false), entry(false)],
+        future: [entry(false)],
+        hasHistory: true,
+      })
+      expect(result.overdue).toBe(true)
+    })
+
+    it('does not fire when the person has any assigned dot in the visible window', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false), entry(true)],
+        future: [],
+        hasHistory: true,
+      })
+      expect(result.overdue).toBe(false)
+    })
+
+    it('does not fire when hasHistory is false (that is first-time, not overdue)', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false)],
+        future: [entry(false)],
+        hasHistory: false,
+      })
+      expect(result.overdue).toBe(false)
+    })
+
+    it('is false when hasHistory defaults to unspecified (backwards compat)', () => {
+      const result = computeCadenceWarnings({ past: [], future: [] })
+      expect(result.overdue).toBe(false)
     })
   })
 

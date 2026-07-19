@@ -22,13 +22,16 @@ type Options = {
 // planned future instances of the same recurring event (anchored on
 // Event.templateId) that carry a part assignment matching `partName +
 // partSection`. Each entry reports whether `userId` was on the assignment.
+// Also reports `hasHistory`: whether the user was ever on the matching slot
+// on any past event of the same template — used to distinguish first-timers
+// from overdue candidates who did the slot before the visible window.
 // Freeform events (templateId=null) short-circuit — they have no recurrence
 // to display.
 export async function listUserCadence(
   db: TransactionClient,
   { userId, event, congregationId, partName, partSection, slot, pastCount, futureCount }: Options,
-): Promise<{ past: CadenceEntry[]; future: CadenceEntry[] }> {
-  if (event.templateId == null) return { past: [], future: [] }
+): Promise<{ past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean }> {
+  if (event.templateId == null) return { past: [], future: [], hasHistory: false }
 
   const partsSelect = {
     select: {
@@ -47,7 +50,7 @@ export async function listUserCadence(
   const commonWhere = { templateId: event.templateId, congregationId } as const
   const rowSelect = { id: true, startDate: true, partAssignments: partsSelect } as const
 
-  const [pastRows, futureRows] = await Promise.all([
+  const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
       where: { ...commonWhere, startDate: { lt: event.startDate } },
       orderBy: { startDate: 'desc' },
@@ -59,6 +62,16 @@ export async function listUserCadence(
       orderBy: { startDate: 'asc' },
       take: futureCount,
       select: rowSelect,
+    }),
+    // Aggregate over ALL past events (not just the visible window) to detect
+    // "used to do this slot, hasn't recently" candidates. Filtered in JS to
+    // reuse the same normalized-name/section comparison.
+    db.programmePartAssignment.findMany({
+      where: {
+        event: { ...commonWhere, startDate: { lt: event.startDate } },
+        ...(slot === 'assignee' ? { assigneeId: userId } : { assistantId: userId }),
+      },
+      select: { name: true, section: true },
     }),
   ])
 
@@ -80,9 +93,14 @@ export async function listUserCadence(
     }
   }
 
+  const hasHistory = historicalAssignments.some(
+    a => normalize(a.name) === targetName && normalize(a.section) === targetSection,
+  )
+
   return {
     // Prisma returned newest-first for past; reverse so the strip renders oldest → newest.
     past: pastRows.map(toEntry).reverse(),
     future: futureRows.map(toEntry),
+    hasHistory,
   }
 }

@@ -20,12 +20,14 @@ type Options = {
 // query pattern (anchored on Event.templateId) but reads the
 // `serviceRoleAssignments` relation instead of `partAssignments`. Service
 // assignments have a single slot (assigneeId) and no section, so the anchor
-// and the participant check are both simpler.
+// and the participant check are both simpler. `hasHistory` reports whether
+// the user was ever on the matching service role at any past event of the
+// same template — used to tell first-timers from overdue candidates.
 export async function listUserServiceCadence(
   db: TransactionClient,
   { userId, event, congregationId, serviceRoleName, pastCount, futureCount }: Options,
-): Promise<{ past: CadenceEntry[]; future: CadenceEntry[] }> {
-  if (event.templateId == null) return { past: [], future: [] }
+): Promise<{ past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean }> {
+  if (event.templateId == null) return { past: [], future: [], hasHistory: false }
 
   const servicesSelect = {
     select: {
@@ -41,7 +43,7 @@ export async function listUserServiceCadence(
   const commonWhere = { templateId: event.templateId, congregationId } as const
   const rowSelect = { id: true, startDate: true, serviceRoleAssignments: servicesSelect } as const
 
-  const [pastRows, futureRows] = await Promise.all([
+  const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
       where: { ...commonWhere, startDate: { lt: event.startDate } },
       orderBy: { startDate: 'desc' },
@@ -53,6 +55,10 @@ export async function listUserServiceCadence(
       orderBy: { startDate: 'asc' },
       take: futureCount,
       select: rowSelect,
+    }),
+    db.programmeServiceRoleAssignment.findMany({
+      where: { event: { ...commonWhere, startDate: { lt: event.startDate } }, assigneeId: userId },
+      select: { name: true },
     }),
   ])
 
@@ -67,9 +73,12 @@ export async function listUserServiceCadence(
     }
   }
 
+  const hasHistory = historicalAssignments.some(a => normalize(a.name) === targetName)
+
   return {
     // Prisma returned newest-first for past; reverse so the strip renders oldest → newest.
     past: pastRows.map(toEntry).reverse(),
     future: futureRows.map(toEntry),
+    hasHistory,
   }
 }
