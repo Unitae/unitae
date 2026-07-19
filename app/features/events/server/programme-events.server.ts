@@ -68,7 +68,6 @@ export function deleteEvent(db: TransactionClient, id: number, congregationId: n
 // invariants and audit trails live with the operation, not here.
 export interface UpdateEventFields {
   name?: string
-  kindId?: number | null
   startDate?: Date
   endDate?: Date
 }

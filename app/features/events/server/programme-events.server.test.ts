@@ -187,8 +187,8 @@ describe('deleteEvent', () => {
 
 describe('updateEvent', () => {
   it('updates an event with the typed field subset using compound key', async () => {
-    const data = { name: 'Assemblee', kindId: 5 }
-    const expected = { id: 2, name: 'Assemblee', kindId: 5 }
+    const data = { name: 'Assemblee', startDate: new Date('2026-05-10T18:00:00Z') }
+    const expected = { id: 2, ...data }
     mockDb.event.update.mockResolvedValue(expected)
 
     const result = await updateEvent(mockDb as never, 2, 10, data, 99)
@@ -203,7 +203,7 @@ describe('updateEvent', () => {
   it('accepts a partial subset — missing optional fields are simply not passed through', async () => {
     // Prisma treats `undefined` in the data object as "do not touch this
     // column", so a partial update with just `name` must not clobber
-    // startDate/endDate/kindId. Assert the exact data shape we forward.
+    // startDate/endDate. Assert the exact data shape we forward.
     mockDb.event.update.mockResolvedValue({ id: 2, name: 'Just the name' })
 
     await updateEvent(mockDb as never, 2, 10, { name: 'Just the name' }, 99)
@@ -215,9 +215,10 @@ describe('updateEvent', () => {
   })
 
   it('writes an EventUpdated audit row with the changed field names as metadata', async () => {
-    mockDb.event.update.mockResolvedValue({ id: 2, name: 'X', kindId: 5 })
+    const startDate = new Date('2026-05-10T18:00:00Z')
+    mockDb.event.update.mockResolvedValue({ id: 2, name: 'X', startDate })
 
-    await updateEvent(mockDb as never, 2, 10, { name: 'X', kindId: 5 }, 99)
+    await updateEvent(mockDb as never, 2, 10, { name: 'X', startDate }, 99)
 
     // Field NAMES only (not values) — enough for forensics ("who touched
     // startDate on Aug 3") without ballooning audit-log volume.
@@ -228,7 +229,7 @@ describe('updateEvent', () => {
         actorId: 99,
         entityType: 'Event',
         entityId: 2,
-        metadata: { fields: ['name', 'kindId'] },
+        metadata: { fields: ['name', 'startDate'] },
       }),
     )
   })
