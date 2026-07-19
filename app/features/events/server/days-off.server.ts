@@ -2,6 +2,7 @@ import { EventStatus } from '~/features/events/model/event-status.type'
 import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 import * as m from '~/i18n/paraglide/messages'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {
@@ -40,13 +41,19 @@ export async function createDayOff(
     return null
   }
 
+  // Day-offs are identified everywhere by `template.key = 'day-off'`. If the
+  // system template is missing (mis-provisioned tenant), writing the event
+  // with a null templateId would create a ghost row invisible to every
+  // downstream query — including the /me/days-off delete guard. Fail loudly
+  // so ops sees the incident instead of a silent success flash.
   const dayOffTemplate = await db.programmeTemplate.findFirst({
     where: { key: ProgrammeTemplateKey.DayOff, congregationId },
   })
+  if (!dayOffTemplate) throw new NotFoundError('Day-off template')
 
   const event = await db.event.create({
     data: {
-      ...(dayOffTemplate ? { template: { connect: { id: dayOffTemplate.id } } } : {}),
+      template: { connect: { id: dayOffTemplate.id } },
       startDate,
       endDate,
       createdBy: { connect: { id: accountId } },

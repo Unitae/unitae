@@ -4,6 +4,7 @@ import {
   setServiceRoleAssignmentAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
 import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
@@ -17,12 +18,16 @@ export async function createFreeformEvent(
     congregationId: number
   },
 ) {
+  // Same reasoning as createDayOff: freeform events are identified by
+  // `template.key = 'freeform'`. A null templateId here silently drops the
+  // event from cadence, board links, and the events list.
   const freeformTemplate = await db.programmeTemplate.findFirst({
     where: { key: ProgrammeTemplateKey.Freeform, congregationId: data.congregationId },
   })
+  if (!freeformTemplate) throw new NotFoundError('Freeform template')
 
   return db.event.create({
-    data: freeformTemplate ? { ...data, templateId: freeformTemplate.id } : data,
+    data: { ...data, templateId: freeformTemplate.id },
   })
 }
 

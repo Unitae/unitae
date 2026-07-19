@@ -72,13 +72,13 @@ describe('createDayOff', () => {
     expect(result).toEqual(fakeEvent)
   })
 
-  it('creates the event even when no day-off template is found', async () => {
-    const fakeEvent = { id: 3, name: 'Absence' }
+  it('throws NotFoundError when the day-off system template is missing', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
-    vi.mocked(db.event.create).mockResolvedValue(fakeEvent as never)
 
-    const result = await createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)
-    expect(result).toEqual(fakeEvent)
+    await expect(createDayOff(db, 1, 1, new Date(2025, 3, 8), new Date(2025, 3, 10), 1)).rejects.toThrow(
+      'Day-off template',
+    )
+    expect(db.event.create).not.toHaveBeenCalled()
   })
 
   it('connects the event to the day-off template when it exists', async () => {

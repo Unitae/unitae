@@ -94,10 +94,10 @@ describe('createFreeformEvent', () => {
     })
   })
 
-  // Defensive: if the freeform template is missing (e.g. legacy tenant that
-  // hasn't been reseeded), we still create the event, just without a template
-  // link. Behaviour matches the pre-refactor "no kind found" branch.
-  it('creates the event without a template link when the freeform template is missing', async () => {
+  // Fail loudly when the freeform template is missing rather than writing a
+  // templateless event that would silently disappear from every
+  // `template.key`-filtered query.
+  it('throws NotFoundError when the freeform system template is missing', async () => {
     const data = {
       name: 'Reunion',
       startDate: new Date('2026-04-20'),
@@ -106,13 +106,9 @@ describe('createFreeformEvent', () => {
       congregationId: 10,
     }
     mockDb.programmeTemplate.findFirst.mockResolvedValue(null)
-    const expected = { id: 1, ...data }
-    mockDb.event.create.mockResolvedValue(expected)
 
-    const result = await createFreeformEvent(mockDb as never, data)
-
-    expect(result).toEqual(expected)
-    expect(mockDb.event.create).toHaveBeenCalledWith({ data })
+    await expect(createFreeformEvent(mockDb as never, data)).rejects.toThrow('Freeform template')
+    expect(mockDb.event.create).not.toHaveBeenCalled()
   })
 })
 
