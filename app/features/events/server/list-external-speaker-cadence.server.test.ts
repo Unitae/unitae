@@ -60,6 +60,13 @@ describe('listExternalSpeakerCadence — event window queries', () => {
     expect(futureCall?.orderBy).toEqual({ startDate: 'asc' })
     expect(futureCall?.take).toBe(6)
   })
+
+  it('queries future events by templateId + congregationId with startDate > currentEvent.startDate', async () => {
+    await listExternalSpeakerCadence(db, DEFAULT_ARGS)
+
+    const futureCall = vi.mocked(db.event.findMany).mock.calls[1][0]
+    expect(futureCall?.where).toMatchObject({ templateId: 7, congregationId: 1, startDate: { gt: NOW } })
+  })
 })
 
 describe('listExternalSpeakerCadence — assigned + personName', () => {
@@ -142,6 +149,76 @@ describe('listExternalSpeakerCadence — assigned + personName', () => {
 
     expect(result.past[0].assigned).toBe(false)
     expect(result.past[0].personName).toBe('Jean DUPONT')
+  })
+
+  // Regression pin: when a historical row has BOTH an external speaker AND an
+  // in-house assignee (via re-purposing), the external speaker name must win.
+  // The FK precedence — not truthiness of the name string — is the identity
+  // signal, so an external speaker with a blank name should still take the
+  // external-speaker branch (yielding null rather than falling through).
+  it('prefers the external speaker over the in-house assignee when both are set', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          status: 'released',
+          partAssignments: [
+            {
+              name: 'Discours public',
+              section: 'Culte',
+              assigneeId: 12,
+              externalSpeakerId: 99,
+              assignee: { firstname: 'Jean', lastname: 'Dupont' },
+              externalSpeaker: { name: 'Frère Martin' },
+            },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBe('Frère Martin')
+  })
+
+  it('returns personName=null when the event has no matching part assignment', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'released', partAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBeNull()
+  })
+
+  // Past events can also carry `status: 'draft'` — the schema doesn't force
+  // released on time-past events. Pin the propagation so future refactors
+  // don't accidentally coerce past status to 'released'.
+  it("propagates event.status as 'draft' when the past row is a draft", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', partAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('draft')
+  })
+
+  it("bucket unknown Event.status values as 'released' (fallback contract)", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', partAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listExternalSpeakerCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('released')
   })
 
   it("propagates event.status as 'draft' when the future row is a draft", async () => {

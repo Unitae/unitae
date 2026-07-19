@@ -1,4 +1,9 @@
-import { type CadenceEntry, normalize } from '~/features/events/server/cadence-shared.server'
+import {
+  type CadenceEntry,
+  type CadenceHelperResult,
+  normalize,
+  toCadenceStatus,
+} from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -26,7 +31,7 @@ type Options = {
 export async function listUserServiceCadence(
   db: TransactionClient,
   { userId, event, congregationId, serviceRoleName, pastCount, futureCount }: Options,
-): Promise<{ past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean }> {
+): Promise<CadenceHelperResult> {
   if (event.templateId == null) return { past: [], future: [], hasHistory: false }
 
   const servicesSelect = {
@@ -69,8 +74,10 @@ export async function listUserServiceCadence(
     return {
       date: row.startDate.toISOString(),
       assigned: matches.some(s => s.assigneeId === userId),
+      // Empty-string fallback on formatPersonName + `|| null` coerces the
+      // both-names-blank Member case to null (no stray '—' in the tooltip).
       personName: person ? formatPersonName(person, '') || null : null,
-      status: row.status === 'draft' ? 'draft' : 'released',
+      status: toCadenceStatus(row.status),
     }
   }
 

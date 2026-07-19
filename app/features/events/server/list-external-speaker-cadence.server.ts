@@ -1,4 +1,9 @@
-import { type CadenceEntry, normalize } from '~/features/events/server/cadence-shared.server'
+import {
+  type CadenceEntry,
+  type CadenceHelperResult,
+  normalize,
+  toCadenceStatus,
+} from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { formatPersonName } from '~/shared/utils/format-person-name'
 
@@ -22,7 +27,7 @@ type Options = {
 export async function listExternalSpeakerCadence(
   db: TransactionClient,
   { externalSpeakerId, event, congregationId, partName, partSection, pastCount, futureCount }: Options,
-): Promise<{ past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean }> {
+): Promise<CadenceHelperResult> {
   if (event.templateId == null) return { past: [], future: [], hasHistory: false }
 
   const partsSelect = {
@@ -64,9 +69,12 @@ export async function listExternalSpeakerCadence(
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
   type PartRow = (typeof pastRows)[number]['partAssignments'][number]
+  // Prefer the external speaker on this row even if their name is empty —
+  // the FK is the identity signal, not the display string. Fall back to
+  // the in-house assignee for rows where the slot was covered internally.
   const nameOf = (p: PartRow): string | null => {
-    if (p.externalSpeaker?.name) return p.externalSpeaker.name
-    if (p.assignee) return formatPersonName(p.assignee, '') || null
+    if (p.externalSpeakerId != null) return p.externalSpeaker?.name || null
+    if (p.assigneeId != null) return p.assignee ? formatPersonName(p.assignee, '') || null : null
     return null
   }
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
@@ -78,7 +86,7 @@ export async function listExternalSpeakerCadence(
       date: row.startDate.toISOString(),
       assigned: matches.some(p => p.externalSpeakerId === externalSpeakerId),
       personName: person ?? null,
-      status: row.status === 'draft' ? 'draft' : 'released',
+      status: toCadenceStatus(row.status),
     }
   }
 

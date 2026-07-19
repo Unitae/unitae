@@ -436,6 +436,30 @@ describe('listUserCadence', () => {
     expect(call?.where).not.toHaveProperty('assistantId')
   })
 
+  it("propagates event.status as 'draft' when the past row is a draft", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', partAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('draft')
+  })
+
+  it("buckets unknown Event.status values as 'released' (fallback contract)", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', partAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('released')
+  })
+
   it("propagates event.status as 'draft' when the future row is a draft", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)

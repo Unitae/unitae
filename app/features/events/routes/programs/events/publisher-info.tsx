@@ -1,8 +1,7 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { EMPTY_CADENCE, type PartSlot } from '~/features/events/server/cadence-shared.server'
-import { listUserCadence } from '~/features/events/server/list-user-cadence.server'
+import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
-import { listUserServiceCadence } from '~/features/events/server/list-user-service-cadence.server'
+import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { formatGroupName } from '~/shared/utils/format-group-name'
@@ -16,59 +15,10 @@ function parseOptionalId(raw: string | null): number | null {
   return Number.isFinite(value) && value > 0 ? value : null
 }
 
-type ResolveCadenceArgs = {
-  userId: number
-  event: { templateId: number | null; id: number; startDate: Date }
-  congregationId: number
-  excludePartAssignmentId: number | null
-  excludeServiceAssignmentId: number | null
-  partSlot: PartSlot
-}
-
-async function resolveCadence(
-  db: Parameters<typeof listUserCadence>[0],
-  { userId, event, congregationId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot }: ResolveCadenceArgs,
-) {
-  if (excludePartAssignmentId != null) {
-    const current = await db.programmePartAssignment.findFirst({
-      where: { id: excludePartAssignmentId, congregationId },
-      select: { name: true, section: true, assigneeId: true, assistantId: true },
-    })
-    if (!current) return EMPTY_CADENCE
-    const savedId = partSlot === 'assignee' ? current.assigneeId : current.assistantId
-    const savedMatchesSelection = savedId != null && savedId === userId
-    const cadence = await listUserCadence(db, {
-      userId,
-      event,
-      congregationId,
-      partName: current.name,
-      partSection: current.section,
-      slot: partSlot,
-      pastCount: 6,
-      futureCount: 6,
-    })
-    return { ...cadence, savedMatchesSelection }
-  }
-
-  if (excludeServiceAssignmentId != null) {
-    const current = await db.programmeServiceRoleAssignment.findFirst({
-      where: { id: excludeServiceAssignmentId, congregationId },
-      select: { name: true, assigneeId: true },
-    })
-    if (!current) return EMPTY_CADENCE
-    const savedMatchesSelection = current.assigneeId != null && current.assigneeId === userId
-    const cadence = await listUserServiceCadence(db, {
-      userId,
-      event,
-      congregationId,
-      serviceRoleName: current.name,
-      pastCount: 6,
-      futureCount: 6,
-    })
-    return { ...cadence, savedMatchesSelection }
-  }
-
-  return EMPTY_CADENCE
+// Default 'assignee' — the more common slot and the only one that matters
+// for services. Unknown / missing values shouldn't 500 the info panel.
+function parsePartSlot(raw: string | null): PartSlot {
+  return raw === 'assistant' ? 'assistant' : 'assignee'
 }
 
 export function loader({ request, params, context }: Route.LoaderArgs) {
@@ -80,7 +30,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const userId = Number(url.searchParams.get('userId'))
   const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
   const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceAssignmentId'))
-  const partSlot = url.searchParams.get('partSlot') === 'assistant' ? 'assistant' : 'assignee'
+  const partSlot = parsePartSlot(url.searchParams.get('partSlot'))
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
@@ -119,11 +69,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       excludeServiceAssignmentId,
     })
 
-    // Look up the canonical anchor (name / section) from the assignment the
-    // sheet is editing rather than trusting client-supplied values — this way
-    // trimming, casing, or accent differences on the client don't leak into
-    // the query, and the SAME normalization runs on both sides in the helper.
-    const cadence = await resolveCadence(db, {
+    const cadence = await resolvePublisherCadence(db, {
       userId,
       event,
       congregationId,

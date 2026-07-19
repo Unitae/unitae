@@ -1,9 +1,8 @@
-import { AlertTriangle, CheckCircle2, Clock, Mail, Phone, Repeat, StickyNote, User } from 'lucide-react'
+import { AlertTriangle, Clock, Mail, Phone, StickyNote, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
-import type { CadenceEntry } from '~/features/events/model/cadence.type'
-import { CadenceStrip } from '~/features/events/ui/CadenceStrip'
-import { computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
+import type { CadencePayload } from '~/features/events/model/cadence.type'
+import { CadencePanel } from '~/features/events/ui/CadencePanel'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Skeleton } from '~/shared/ui/skeleton'
@@ -19,7 +18,7 @@ interface ExternalSpeakerInfoData {
     isIncomplete: boolean
   }
   recentHistory: { date: string; partName: string; topic: string }[]
-  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean; savedMatchesSelection: boolean }
+  cadence: CadencePayload
 }
 
 interface ExternalSpeakerInfoCardProps {
@@ -68,7 +67,6 @@ export function ExternalSpeakerInfoCard({
   if (!data?.profile) return null
 
   const { profile, recentHistory, cadence } = data
-  const hasCadence = cadence.past.length > 0 || cadence.future.length > 0
 
   return (
     <Card className={profile.isIncomplete ? 'border-amber-500/50' : ''}>
@@ -141,58 +139,8 @@ export function ExternalSpeakerInfoCard({
           <p className="text-muted-foreground text-xs italic">{m.external_speakers_first_invitation()}</p>
         )}
 
-        {hasCadence && <CadencePanel cadence={cadence} />}
+        {cadence.anchored && <CadencePanel cadence={cadence} />}
       </CardContent>
     </Card>
-  )
-}
-
-function CadencePanel({
-  cadence,
-}: {
-  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean; savedMatchesSelection: boolean }
-}) {
-  const warnings = computeCadenceWarnings(cadence)
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm">
-        <Repeat className="size-4" />
-        {m.publisher_info_cadence()}
-      </div>
-      {warnings.firstTime && (
-        <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
-          <CheckCircle2 className="size-3.5" />
-          {m.publisher_info_first_time()}
-        </div>
-      )}
-      {warnings.overdue && (
-        <div className="flex items-center gap-1.5 font-medium text-emerald-600 text-xs dark:text-emerald-400">
-          <CheckCircle2 className="size-3.5" />
-          {m.publisher_info_overdue()}
-        </div>
-      )}
-      {!warnings.firstTime && !warnings.overdue && (
-        <CadenceStrip
-          past={cadence.past}
-          future={cadence.future}
-          savedMatchesSelection={cadence.savedMatchesSelection}
-        />
-      )}
-      {warnings.consecutive && (
-        <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-          <AlertTriangle className="size-3.5" />
-          {m.publisher_info_consecutive()}
-        </div>
-      )}
-      {warnings.rotationConcern && (
-        <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-          <AlertTriangle className="size-3.5" />
-          {m.publisher_info_rotation_concern({
-            n: String(warnings.rotationConcern.assigned),
-            m: String(warnings.rotationConcern.window),
-          })}
-        </div>
-      )}
-    </div>
   )
 }

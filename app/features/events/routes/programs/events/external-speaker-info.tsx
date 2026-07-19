@@ -1,5 +1,4 @@
-import { EMPTY_CADENCE } from '~/features/events/server/cadence-shared.server'
-import { listExternalSpeakerCadence } from '~/features/events/server/list-external-speaker-cadence.server'
+import { resolveExternalSpeakerCadence } from '~/features/events/server/resolve-external-speaker-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'
@@ -48,31 +47,12 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       take: 5,
     })
 
-    // Look up the anchor server-side from the assignment the sheet is editing
-    // rather than trusting client-supplied partName / partSection — same
-    // normalized comparison then runs on both sides in the helper.
-    const cadence =
-      excludePartAssignmentId != null
-        ? await (async () => {
-            const current = await db.programmePartAssignment.findFirst({
-              where: { id: excludePartAssignmentId, congregationId },
-              select: { name: true, section: true, externalSpeakerId: true },
-            })
-            if (!current) return EMPTY_CADENCE
-            const savedMatchesSelection =
-              current.externalSpeakerId != null && current.externalSpeakerId === externalSpeakerId
-            const result = await listExternalSpeakerCadence(db, {
-              externalSpeakerId,
-              event,
-              congregationId,
-              partName: current.name,
-              partSection: current.section,
-              pastCount: 6,
-              futureCount: 6,
-            })
-            return { ...result, savedMatchesSelection }
-          })()
-        : EMPTY_CADENCE
+    const cadence = await resolveExternalSpeakerCadence(db, {
+      externalSpeakerId,
+      event,
+      congregationId,
+      excludePartAssignmentId,
+    })
 
     return Response.json({
       profile: {

@@ -1,9 +1,8 @@
-import { AlertTriangle, CheckCircle2, Info, Repeat, User } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Info, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
-import type { CadenceEntry, PartSlot } from '~/features/events/model/cadence.type'
-import { CadenceStrip } from '~/features/events/ui/CadenceStrip'
-import { computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
+import type { CadencePayload, PartSlot } from '~/features/events/model/cadence.type'
+import { CadencePanel } from '~/features/events/ui/CadencePanel'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -22,7 +21,7 @@ interface PublisherInfoData {
   }
   daysOff: { startDate: string; endDate: string }[]
   sameEventAssignments: { type: 'part' | 'service'; name: string; section?: string }[]
-  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean; savedMatchesSelection: boolean }
+  cadence: CadencePayload
 }
 
 interface PublisherInfoCardProps {
@@ -85,7 +84,6 @@ export function PublisherInfoCard({
   const { profile, daysOff, sameEventAssignments, cadence } = data
   const hasDaysOff = daysOff.length > 0
   const hasOtherAssignments = sameEventAssignments.length > 0
-  const hasCadence = cadence.past.length > 0 || cadence.future.length > 0
 
   return (
     <Card className={hasDaysOff ? 'border-destructive/50' : ''}>
@@ -142,58 +140,8 @@ export function PublisherInfoCard({
           </div>
         )}
 
-        {hasCadence && <CadencePanel cadence={cadence} />}
+        {cadence.anchored && <CadencePanel cadence={cadence} />}
       </CardContent>
     </Card>
-  )
-}
-
-function CadencePanel({
-  cadence,
-}: {
-  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean; savedMatchesSelection: boolean }
-}) {
-  const warnings = computeCadenceWarnings(cadence)
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm">
-        <Repeat className="size-4" />
-        {m.publisher_info_cadence()}
-      </div>
-      {warnings.firstTime && (
-        <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
-          <CheckCircle2 className="size-3.5" />
-          {m.publisher_info_first_time()}
-        </div>
-      )}
-      {warnings.overdue && (
-        <div className="flex items-center gap-1.5 font-medium text-emerald-600 text-xs dark:text-emerald-400">
-          <CheckCircle2 className="size-3.5" />
-          {m.publisher_info_overdue()}
-        </div>
-      )}
-      {!warnings.firstTime && !warnings.overdue && (
-        <CadenceStrip
-          past={cadence.past}
-          future={cadence.future}
-          savedMatchesSelection={cadence.savedMatchesSelection}
-        />
-      )}
-      {warnings.consecutive && (
-        <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-          <AlertTriangle className="size-3.5" />
-          {m.publisher_info_consecutive()}
-        </div>
-      )}
-      {warnings.rotationConcern && (
-        <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-          <AlertTriangle className="size-3.5" />
-          {m.publisher_info_rotation_concern({
-            n: String(warnings.rotationConcern.assigned),
-            m: String(warnings.rotationConcern.window),
-          })}
-        </div>
-      )}
-    </div>
   )
 }

@@ -252,6 +252,30 @@ describe('listUserServiceCadence', () => {
     })
   })
 
+  it("propagates event.status as 'draft' when the past row is a draft", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', serviceRoleAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('draft')
+  })
+
+  it("buckets unknown Event.status values as 'released' (fallback contract)", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', serviceRoleAssignments: [] },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].status).toBe('released')
+  })
+
   it("propagates event.status as 'draft' when the row is still a draft assignment", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)
