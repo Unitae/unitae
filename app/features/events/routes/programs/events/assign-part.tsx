@@ -84,7 +84,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerId, topic } = submission.value
+  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerId, topic, durationMin } = submission.value
 
   const resolvedExternalSpeakerId = speakerType === 'external' ? externalSpeakerId : null
   const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
@@ -113,6 +113,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       resolvedExternalSpeakerId,
       topic,
       congregationId,
+      durationMin,
     )
 
     if ('error' in result) {
@@ -188,9 +189,21 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
             <Form method="post" className="flex flex-col gap-4" onChange={markDirty}>
               <input type="hidden" name="assignmentId" value={params.get('assignmentId') ?? ''} />
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
-                <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
+              <div className="grid gap-4 sm:grid-cols-[1fr_10rem]">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
+                  <Input id="topic" name="topic" defaultValue={assignment?.topic ?? ''} />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="durationMin">{m.programs_edit_part_duration_label()}</Label>
+                  <Input
+                    id="durationMin"
+                    name="durationMin"
+                    type="number"
+                    min={0}
+                    defaultValue={assignment?.durationMin ?? ''}
+                  />
+                </div>
               </div>
 
               {assignment?.allowExternalSpeaker && (

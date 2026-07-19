@@ -94,6 +94,7 @@ export async function assignPart(
   externalSpeakerId: number | null,
   topic: string,
   congregationId: number,
+  durationMin?: number | null,
 ) {
   await lockPartAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmePartAssignment.findFirst({
@@ -110,6 +111,9 @@ export async function assignPart(
   const previousAssistantId = existing.assistantId
 
   const cleanTopic = sanitizeText(topic)
+  // `undefined` means "caller doesn't care about duration" — preserve whatever
+  // value the row already carries. `null` and numeric are pass-through writes.
+  const durationPatch = durationMin === undefined ? {} : { durationMin }
 
   if (externalSpeakerId != null) {
     const speaker = await db.externalSpeaker.findFirst({
@@ -122,7 +126,14 @@ export async function assignPart(
       where: {
         id_congregationId: { id: assignmentId, congregationId },
       },
-      data: { assigneeId: null, assistantId: null, externalSpeakerId, topic: cleanTopic, hasConflict: false },
+      data: {
+        assigneeId: null,
+        assistantId: null,
+        externalSpeakerId,
+        topic: cleanTopic,
+        hasConflict: false,
+        ...durationPatch,
+      },
     })
     return { assignment, previousAssigneeId, previousAssistantId }
   }
@@ -163,7 +174,14 @@ export async function assignPart(
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
-    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict },
+    data: {
+      assigneeId,
+      assistantId,
+      externalSpeakerId: null,
+      topic: cleanTopic,
+      hasConflict,
+      ...durationPatch,
+    },
   })
 
   return { assignment, previousAssigneeId, previousAssistantId }

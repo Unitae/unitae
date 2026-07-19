@@ -147,6 +147,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
     section: string
     track: string
     topic: string
+    durationMin: number | null
     assigneeId: number | null
     assistantId: number | null
     allowExternalSpeaker: boolean
@@ -217,6 +218,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
       section: assignment.section,
       track: assignment.track,
       topic: assignment.topic,
+      durationMin: assignment.durationMin,
       assigneeId: assignment.assigneeId,
       assistantId: assignment.assistantId,
       allowExternalSpeaker: assignment.allowExternalSpeaker,

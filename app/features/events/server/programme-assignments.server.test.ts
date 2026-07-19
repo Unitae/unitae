@@ -285,6 +285,66 @@ describe('assignPart', () => {
     expect(allowedRoles.resolveEligibleUserIds).not.toHaveBeenCalled()
   })
 
+  // Duration shortcut: the assign-part sheet lets managers tweak the runtime
+  // of a specific part without opening the template editor. Callers who omit
+  // the value must not touch durationMin so pre-existing tests and callers
+  // (which don't pass it) keep working exactly as before.
+  it('persists durationMin on the internal-speaker update when provided', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    await assignPart(db, 1, 5, null, null, 'Topic', 1, 12)
+
+    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(updateCall?.data).toMatchObject({ durationMin: 12 })
+  })
+
+  it('persists durationMin on the external-speaker update when provided', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.externalSpeaker.findFirst).mockResolvedValue({ id: 99, name: 'External Bob' } as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    await assignPart(db, 1, null, null, 99, 'Topic', 1, 45)
+
+    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(updateCall?.data).toMatchObject({ durationMin: 45 })
+  })
+
+  it('clears durationMin when null is passed', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    await assignPart(db, 1, 5, null, null, 'Topic', 1, null)
+
+    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(updateCall?.data).toMatchObject({ durationMin: null })
+  })
+
+  it('leaves durationMin off the update payload when the caller omits it', async () => {
+    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+      id: 1,
+      event: { startDate: new Date(2026, 3, 14), endDate: new Date(2026, 3, 14) },
+    } as never)
+    vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.programmePartAssignment.update).mockResolvedValue({ id: 1 } as never)
+
+    await assignPart(db, 1, 5, null, null, 'Topic', 1)
+
+    const updateCall = vi.mocked(db.programmePartAssignment.update).mock.calls[0][0]
+    expect(updateCall?.data).not.toHaveProperty('durationMin')
+  })
+
   // Wave 1 bug 4 — regression test.
   // The same person used to be assignable as both speaker (assigneeId) and
   // reader (assistantId) of the same programme part, because each was

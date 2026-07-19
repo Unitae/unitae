@@ -17,6 +17,7 @@ type PartAssignment = {
   section: string
   track: string
   topic: string
+  durationMin: number | null
   assigneeId: number | null
   assistantId: number | null
   allowExternalSpeaker: boolean
@@ -88,9 +89,21 @@ export function AssignPartSheet({
         >
           <input type="hidden" name="assignmentId" value={assignment.id} />
 
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
-            <Input id="topic" name="topic" defaultValue={assignment.topic ?? ''} />
+          <div className="grid gap-4 sm:grid-cols-[1fr_8rem]">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="topic">{m.programs_assign_part_topic_label()}</Label>
+              <Input id="topic" name="topic" defaultValue={assignment.topic ?? ''} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="sheetDurationMin">{m.programs_edit_part_duration_label()}</Label>
+              <Input
+                id="sheetDurationMin"
+                name="durationMin"
+                type="number"
+                min={0}
+                defaultValue={assignment.durationMin ?? ''}
+              />
+            </div>
           </div>
 
           {assignment.allowExternalSpeaker && (
