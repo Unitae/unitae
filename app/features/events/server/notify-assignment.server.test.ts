@@ -51,7 +51,15 @@ describe('notifyAssignment', () => {
 
     expect(db.userAccount.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ memberId: 55, congregationId: 42, active: true }),
+        where: expect.objectContaining({
+          memberId: 55,
+          congregationId: 42,
+          active: true,
+          // notificationRecipientFilter's OR — locked here so a regression
+          // that drops the recipient-eligibility gate is caught by the
+          // primary happy-path test.
+          OR: [{ memberId: null }, { member: { leftAt: null, anonymizedAt: null } }],
+        }),
       }),
     )
     expect(notify).toHaveBeenCalledTimes(1)

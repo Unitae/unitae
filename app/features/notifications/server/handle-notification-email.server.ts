@@ -1,3 +1,4 @@
+import { notificationRecipientFilter } from '~/shared/auth/permissions.server'
 import { type CongregationInfo, resolveCongregation } from '~/shared/domain/congregation.server'
 import { unscopedDb } from '~/shared/infra/db.server'
 import type { EmailJobData } from '~/shared/infra/email-queue.server'
@@ -150,7 +151,7 @@ async function sendInstantToUser(
   congregation: CongregationInfo,
 ): Promise<void> {
   const user = await unscopedDb.userAccount.findFirst({
-    where: { id: recipientId, congregationId: data.congregationId, active: true },
+    where: { id: recipientId, congregationId: data.congregationId, ...notificationRecipientFilter },
     select: { id: true, email: true, firstname: true, member: { select: { firstname: true } } },
   })
 
@@ -228,7 +229,7 @@ async function sendEventEmail(
   }
 
   const user = await unscopedDb.userAccount.findFirst({
-    where: { id: recipientId, congregationId, active: true },
+    where: { id: recipientId, congregationId, ...notificationRecipientFilter },
     select: { id: true, email: true, firstname: true, member: { select: { firstname: true } } },
   })
 

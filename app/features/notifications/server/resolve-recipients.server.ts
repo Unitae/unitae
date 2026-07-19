@@ -1,4 +1,4 @@
-import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
+import { findNotificationRecipientsWithPermission } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import type { Permission } from '~/shared/types/permission'
@@ -12,15 +12,16 @@ export interface ResolvedRecipient {
   firstname: string | null
 }
 
-// Resolves a recipientRole to actual users, filtering out those who opted out
+// Resolves a recipientRole to actual users, filtering out those who opted out.
+// The finder already excludes deactivated accounts and left / anonymized
+// members at the WHERE — no post-fetch filtering needed for those.
 export async function resolveRecipients(
   db: TransactionClient,
   congregationId: number,
   recipientRole: string,
   notificationType: string,
 ): Promise<ResolvedRecipient[]> {
-  const accounts = await findAccountsWithPermission(db, congregationId, recipientRole as Permission)
-  const users = accounts.filter(a => a.active)
+  const users = await findNotificationRecipientsWithPermission(db, congregationId, recipientRole as Permission)
 
   if (users.length === 0) return []
 
