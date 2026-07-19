@@ -2400,6 +2400,8 @@
     "seed_template_midweek": "Midweek meeting",
     "seed_template_weekend": "Weekend meeting",
     "seed_template_memorial": "Memorial",
+    "seed_template_day_off": "Absence",
+    "seed_template_freeform": "Other event",
     "seed_part_song_and_prayer": "Song and prayer",
     "seed_part_discourse": "Talk",
     "seed_part_spiritual_gems": "Spiritual gems",

@@ -24,6 +24,7 @@ interface TemplateDefinition {
   isRecurring: boolean
   startTime: string
   endTime: string
+  color: string
   parts: PartDefinition[]
   serviceRoles: ServiceRoleDefinition[]
 }
@@ -48,6 +49,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       isRecurring: true,
       startTime: '19:00',
       endTime: '20:45',
+      color: '#3b82f6',
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
@@ -137,6 +139,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       isRecurring: true,
       startTime: '10:00',
       endTime: '11:45',
+      color: '#10b981',
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
@@ -177,6 +180,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       isRecurring: false,
       startTime: '19:00',
       endTime: '20:30',
+      color: '#f59e0b',
       parts: [
         {
           name: m.seed_part_song_and_prayer({}, { locale }),
@@ -216,6 +220,28 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       ],
       serviceRoles: sharedServiceRoles,
     },
+    {
+      name: m.seed_template_day_off({}, { locale }),
+      key: ProgrammeTemplateKey.DayOff,
+      weekDay: null,
+      isRecurring: false,
+      startTime: '00:00',
+      endTime: '23:59',
+      color: '#cfcfcf',
+      parts: [],
+      serviceRoles: [],
+    },
+    {
+      name: m.seed_template_freeform({}, { locale }),
+      key: ProgrammeTemplateKey.Freeform,
+      weekDay: null,
+      isRecurring: false,
+      startTime: '19:00',
+      endTime: '21:00',
+      color: '#6366f1',
+      parts: [],
+      serviceRoles: [],
+    },
   ]
 }
 
@@ -236,6 +262,7 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
         isRecurring: tpl.isRecurring,
         startTime: tpl.startTime,
         endTime: tpl.endTime,
+        color: tpl.color,
         congregationId,
         parts: {
           create: tpl.parts.map(part => ({

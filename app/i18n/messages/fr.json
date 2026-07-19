@@ -2403,6 +2403,8 @@
     "seed_template_midweek": "Réunion de semaine",
     "seed_template_weekend": "Réunion du week-end",
     "seed_template_memorial": "Mémorial",
+    "seed_template_day_off": "Absence",
+    "seed_template_freeform": "Autre événement",
     "seed_part_song_and_prayer": "Cantique et prière",
     "seed_part_discourse": "Discours",
     "seed_part_spiritual_gems": "Joyaux spirituels",

@@ -698,6 +698,7 @@ model ProgrammeTemplate {
   isRecurring Boolean @default(true)
   startTime   String  @default("19:00")
   endTime     String  @default("21:00")
+  color       String  @default("#cfcfcf")
 
   kind   EventKind? @relation("templateKind", fields: [kindId], references: [id])
   kindId Int?
