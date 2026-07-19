@@ -1,5 +1,5 @@
-import { EventKind } from '~/features/events/model/event-kind.type'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -261,7 +261,7 @@ export async function checkDayOffConflict(
     where: {
       congregationId,
       createdBy: { memberId },
-      kind: { key: EventKind.Off },
+      template: { key: ProgrammeTemplateKey.DayOff },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },
@@ -278,20 +278,18 @@ export async function refreshConflictFlags(
   congregationId: number,
 ) {
   // Find all programme events (templated OR not) overlapping the range.
-  // Off events themselves have no assignments and are excluded to avoid
+  // Day-off events themselves have no assignments and are excluded to avoid
   // pointless iteration.
   //
-  // The `NOT: { kind: {...} }` shape (rather than `kind: { key: { not } }`)
-  // matters: Prisma's relational filter inner-joins through `kind`, so the
-  // `key: { not: 'off' }` form silently excludes events with a null kindId.
-  // Seeded templates leave kindId null, so generated events inherit that null
-  // and would otherwise never see their hasConflict flag refreshed — the
-  // events-list badge, the view-page absence badge, and the release-blocking
-  // policy all depend on this being right.
+  // The `NOT: { template: {...} }` shape (rather than
+  // `template: { key: { not } }`) matters: Prisma's relational filter
+  // inner-joins through `template`, so the `key: { not: 'day-off' }` form
+  // silently excludes events whose templateId is null — a shape older
+  // legacy rows may still carry until the drop-EventKind migration lands.
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,
-      NOT: { kind: { key: EventKind.Off } },
+      NOT: { template: { key: ProgrammeTemplateKey.DayOff } },
       startDate: { lte: endDate },
       endDate: { gte: startDate },
     },

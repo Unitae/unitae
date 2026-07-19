@@ -1,6 +1,6 @@
 import type { Event, ProgrammePartAssignment, ProgrammeServiceRoleAssignment } from '~/database/generated/client'
-import { EventKind } from '~/features/events/model/event-kind.type'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -57,7 +57,7 @@ export async function getPersonalAssignments(
     db.event.findMany({
       where: {
         createdById: userId,
-        kind: { key: EventKind.Off },
+        template: { key: ProgrammeTemplateKey.DayOff },
         startDate: { gte: since },
       },
     }),

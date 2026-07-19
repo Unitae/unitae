@@ -40,7 +40,7 @@ describe('getPersonalAssignments', () => {
       .calls[0][0] as { where: Record<string, unknown> }
     expect(eventsCall.where).toMatchObject({
       createdById: 42,
-      kind: { key: 'off' },
+      template: { key: 'day-off' },
       startDate: { gte: since },
     })
   })
