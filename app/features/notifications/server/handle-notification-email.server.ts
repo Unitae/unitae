@@ -11,22 +11,31 @@ import { isNotificationDisabledForUser, resolveRecipients } from './resolve-reci
 
 const logger = createLogger('notification-email')
 
-// Return value of the per-event send loop. `permanent-failure` indicates
-// the render couldn't produce an email (unregistered type or invalid payload)
-// — the digest tracks these ids and overrides them to `status: 'failed'` so
-// the drift surfaces in the DB and cleanup can retain them for investigation.
-// `delivered` means mailer.emails.send returned successfully. Transient mailer
-// failures propagate out of sendNotificationToUser as thrown errors; each
-// caller decides whether to re-throw (single-recipient path, safe to retry)
-// or catch-and-log (multi-recipient path, avoid re-mailing successes).
+// Return value of the per-event send loop.
+// - `delivered`: mailer.emails.send returned successfully, OR the send was a
+//   deliberate no-op (recipient not found, preference disabled). The DB row
+//   keeps its current status.
+// - `permanent-failure`: the render layer refused to emit (unregistered type
+//   or Zod-invalid payload). The digest tracks these ids and flips their DB
+//   row to `status: 'failed'`. Callers ALSO coerce transient mailer failures
+//   to this value from their catch blocks — semantically they're different
+//   (render vs. delivery) but both need the row flipped and are logged with
+//   distinct messages, so tracking one shared value keeps the return type
+//   narrow. Transient mailer failures propagate out of sendNotificationToUser
+//   as thrown errors; each caller decides whether to re-throw (single-
+//   recipient path, safe to retry) or catch-and-log (multi-recipient path,
+//   avoid re-mailing successes).
 type EventSendResult = 'delivered' | 'permanent-failure'
 
 // Delivery semantics: a digest is a batch of events pre-marked `sent` by
 // flush-settled. Successful sends require no DB write. Render failures and
 // transient mailer failures are caught per-event and flipped to `failed` so
-// the row survives cleanup and operators can investigate or manually resend.
-// The job itself never throws — throwing would trigger a BullMQ retry that
-// re-mails every event already delivered earlier in the loop.
+// the row survives inside the 30-day cleanup window and shows up in ops
+// queries against `status: 'failed'`. There is no automatic retry for
+// `failed` rows — recovery is manual today (see notifications.md follow-up
+// on resend tooling). The send LOOP itself never throws; the trailing
+// updateMany can throw (DB blip) and would trigger a BullMQ retry, but by
+// then all sends have already happened, so this is the one uncovered edge.
 export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'notification-digest' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
   if (congregation.suspendedAt) {
@@ -53,7 +62,8 @@ export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'not
       } catch (error) {
         // Transient mailer failure. Do NOT re-throw — the retry would re-mail
         // events earlier in this loop that already reached Resend. Mark this
-        // specific event `failed` so cleanup retains it for investigation.
+        // specific event `failed` so it stays queryable in ops until cleanup
+        // deletes it at 30 days.
         logger.error('Digest event failed transiently — marking failed', {
           notificationType: event.type,
           entityType: event.entityType,
@@ -85,6 +95,10 @@ export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'not
 export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'notification-instant' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
   if (congregation.suspendedAt) {
+    // Same account-level gate as handleDigestEmail. No DB row exists for
+    // instant notifications (they bypass NotificationEvent) — nothing to
+    // replay on reinstatement, so the digest's `suppressed`-status
+    // consideration doesn't apply here.
     logger.info('Instant notification suppressed: congregation is suspended', {
       congregationId: data.congregationId,
       notificationType: data.notificationType,

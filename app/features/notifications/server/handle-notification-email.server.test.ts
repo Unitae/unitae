@@ -265,8 +265,13 @@ describe('handleInstantEmail — transient mailer failures', () => {
       }),
     ).resolves.toBeUndefined()
 
-    // All three attempts happened — Bob's failure did not short-circuit.
+    // All three attempts happened, and each targeted its own recipient —
+    // guards against a regression that re-closes-over `recipient` and mails
+    // the same person N times.
     expect(mailer.emails.send).toHaveBeenCalledTimes(3)
+    expect(mailer.emails.send).toHaveBeenNthCalledWith(1, expect.objectContaining({ to: 'a@test.org' }))
+    expect(mailer.emails.send).toHaveBeenNthCalledWith(2, expect.objectContaining({ to: 'b@test.org' }))
+    expect(mailer.emails.send).toHaveBeenNthCalledWith(3, expect.objectContaining({ to: 'c@test.org' }))
   })
 })
 
@@ -457,8 +462,8 @@ describe('handleDigestEmail — success / failure partitioning', () => {
       notificationEventIds: [11, 22],
     })
 
-    // Both events rendered → no failed-marking; the redundant `sent` re-mark
-    // was removed (flush-settled already handles the sent transition).
+    // Both events rendered → no updateMany call. flush-settled already
+    // marked them `sent` before the job ran; only failures need a flip.
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
     expect(mailer.emails.send).toHaveBeenCalledTimes(2)
   })
@@ -556,6 +561,141 @@ describe('handleDigestEmail — success / failure partitioning', () => {
     // stays `sent` (its lifecycle already terminated at flush time). The user
     // simply didn't get an email.
     expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('handleDigestEmail — recipientId=0 role-fanout branch', () => {
+  it('flips the event to failed when one role recipient mailer-fails, other recipients still receive it', async () => {
+    vi.mocked(resolveRecipients).mockResolvedValue([
+      { userId: 1, email: 'a@test.org', firstname: 'Alice' },
+      { userId: 2, email: 'b@test.org', firstname: 'Bob' },
+      { userId: 3, email: 'c@test.org', firstname: 'Carol' },
+    ] as never)
+    // Alice succeeds, Bob fails, Carol succeeds — inside sendEventEmail's
+    // role loop. The per-recipient catch keeps the fan-out going and the
+    // event ends up marked failed.
+    vi.mocked(mailer.emails.send)
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(new Error('Resend 500: upstream'))
+      .mockResolvedValueOnce({} as never)
+
+    await expect(
+      handleDigestEmail({
+        type: 'notification-digest',
+        congregationId: 42,
+        recipientId: 0,
+        events: [
+          {
+            type: 'board.document.created',
+            entityType: 'BoardDocument',
+            entityId: 900,
+            payload: JSON.stringify({ title: 'Doc X', documentId: 900 }),
+          },
+        ],
+        notificationEventIds: [55],
+      }),
+    ).resolves.toBeUndefined()
+
+    expect(mailer.emails.send).toHaveBeenCalledTimes(3)
+    // One transient failure among the three recipients is enough to flip
+    // the event; the other two already received their email.
+    expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: [55] } },
+        data: expect.objectContaining({ status: 'failed' }),
+      }),
+    )
+  })
+
+  it('marks the event failed when its type has no registered recipientRole config', async () => {
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 0,
+      events: [
+        {
+          type: 'unregistered.type.xyz',
+          entityType: 'Nothing',
+          entityId: 999,
+          payload: '{}',
+        },
+      ],
+      notificationEventIds: [66],
+    })
+
+    // Drift between producer and NOTIFICATION_TYPES registry — treat as
+    // permanent so it surfaces in ops rather than silently disappearing.
+    expect(resolveRecipients).not.toHaveBeenCalled()
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: [66] } },
+        data: expect.objectContaining({ status: 'failed' }),
+      }),
+    )
+  })
+})
+
+describe('handleDigestEmail — recipient lookup misses', () => {
+  it('does not flip the event to failed when the recipient is no longer active', async () => {
+    // Recipient was deactivated between flush-settled and this job firing.
+    // Not a delivery failure — nothing to deliver — but the event row must
+    // NOT be flipped to `failed` (that would suggest something went wrong).
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue(null as never)
+
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 7,
+      events: [
+        {
+          type: 'programme.assignment.assigned',
+          entityType: 'ProgrammePartAssignment',
+          entityId: 700,
+          payload: JSON.stringify({
+            eventId: 1,
+            eventName: 'meeting',
+            eventDate: '2026-07-20',
+            assignmentName: 'A',
+            role: 'speaker',
+            link: '/board',
+          }),
+        },
+      ],
+      notificationEventIds: [88],
+    })
+
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+    expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
+  })
+})
+
+describe('handleDigestEmail — notificationEventIds bookkeeping', () => {
+  it('drops the failure quietly when events.length exceeds notificationEventIds.length', async () => {
+    // Defensive: if a producer ever ships mismatched arrays, index-based
+    // lookup returns undefined for the overflow event and the typeof-number
+    // guard drops it. Assert this actually happens — a regression that
+    // e.g. crashes on undefined would ship without this test.
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 0,
+      events: [
+        {
+          // Unregistered type → permanent-failure result → tries to look up
+          // its id in notificationEventIds.
+          type: 'unregistered.type.xyz',
+          entityType: 'Nothing',
+          entityId: 111,
+          payload: '{}',
+        },
+      ],
+      // Empty array — index 0 is undefined.
+      notificationEventIds: [],
+    })
+
+    // No failure ids to update.
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
   })
 })
