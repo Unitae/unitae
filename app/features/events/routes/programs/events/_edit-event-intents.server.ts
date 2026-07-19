@@ -15,6 +15,7 @@ import {
   applyTemplateToEvent,
   deletePartAssignment,
   deleteServiceRoleAssignment,
+  type UpdateEventFields,
   updateEvent,
   updatePartAssignment,
   updateServiceRoleAssignment,
@@ -35,7 +36,7 @@ export function handleEditIntent(
   timezone: string,
 ): Promise<IntentResult | null> {
   const handlers: Partial<Record<string, () => Promise<IntentResult | null>>> = {
-    'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId, timezone),
+    'update-event': () => handleUpdateEvent(formData, db, eventId, congregationId, userId, timezone),
     'add-part': () => handleAddPart(formData, db, eventId, congregationId, userId),
     'update-part': () => handleUpdatePart(formData, db, congregationId, userId),
     'delete-part': () => handleDeletePart(formData, db, congregationId),
@@ -52,13 +53,14 @@ async function handleUpdateEvent(
   db: TransactionClient,
   eventId: number,
   congregationId: number,
+  actorId: number,
   timezone: string,
 ): Promise<IntentResult> {
   const submission = parseWithZod(formData, { schema: updateEventSchema })
   if (submission.status !== 'success') return submission
 
   const { name, date: dateStr, startTime: startTimeStr, endTime: endTimeStr, kindId } = submission.value
-  const payload: Record<string, unknown> = { name, kindId }
+  const payload: UpdateEventFields = { name, kindId }
 
   if (dateStr && startTimeStr) {
     const startDate = combineLocalDateTime(dateStr, startTimeStr, timezone)
@@ -69,7 +71,7 @@ async function handleUpdateEvent(
     if (!Number.isNaN(endDate.getTime())) payload.endDate = endDate
   }
 
-  await updateEvent(db, eventId, congregationId, payload)
+  await updateEvent(db, eventId, congregationId, payload, actorId)
   return { message: m.programs_edit_event_updated() }
 }
 

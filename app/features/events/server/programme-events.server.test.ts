@@ -16,6 +16,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
     PartAllowedRolesChanged: 'part.allowed_roles.changed',
     ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
     EventDeleted: 'event.deleted',
+    EventUpdated: 'event.updated',
   },
 }))
 
@@ -159,18 +160,51 @@ describe('deleteEvent', () => {
 })
 
 describe('updateEvent', () => {
-  it('updates an event with arbitrary data using compound key', async () => {
-    const data = { name: 'Assemblee' }
-    const expected = { id: 2, name: 'Assemblee' }
+  it('updates an event with the typed field subset using compound key', async () => {
+    const data = { name: 'Assemblee', kindId: 5 }
+    const expected = { id: 2, name: 'Assemblee', kindId: 5 }
     mockDb.event.update.mockResolvedValue(expected)
 
-    const result = await updateEvent(mockDb as never, 2, 10, data)
+    const result = await updateEvent(mockDb as never, 2, 10, data, 99)
 
     expect(result).toEqual(expected)
     expect(mockDb.event.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 2, congregationId: 10 } },
       data,
     })
+  })
+
+  it('accepts a partial subset — missing optional fields are simply not passed through', async () => {
+    // Prisma treats `undefined` in the data object as "do not touch this
+    // column", so a partial update with just `name` must not clobber
+    // startDate/endDate/kindId. Assert the exact data shape we forward.
+    mockDb.event.update.mockResolvedValue({ id: 2, name: 'Just the name' })
+
+    await updateEvent(mockDb as never, 2, 10, { name: 'Just the name' }, 99)
+
+    expect(mockDb.event.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 2, congregationId: 10 } },
+      data: { name: 'Just the name' },
+    })
+  })
+
+  it('writes an EventUpdated audit row with the changed field names as metadata', async () => {
+    mockDb.event.update.mockResolvedValue({ id: 2, name: 'X', kindId: 5 })
+
+    await updateEvent(mockDb as never, 2, 10, { name: 'X', kindId: 5 }, 99)
+
+    // Field NAMES only (not values) — enough for forensics ("who touched
+    // startDate on Aug 3") without ballooning audit-log volume.
+    expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'event.updated',
+        congregationId: 10,
+        actorId: 99,
+        entityType: 'Event',
+        entityId: 2,
+        metadata: { fields: ['name', 'kindId'] },
+      }),
+    )
   })
 })
 

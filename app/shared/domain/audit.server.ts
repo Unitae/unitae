@@ -107,6 +107,7 @@ export const AuditAction = {
   EventReleased: 'event.released',
   EventUnreleased: 'event.unreleased',
   EventDeleted: 'event.deleted',
+  EventUpdated: 'event.updated',
 
   // Platform admin
   PlatformCongregationUpdated: 'platform.congregation.updated',
