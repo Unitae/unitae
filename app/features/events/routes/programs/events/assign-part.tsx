@@ -290,7 +290,7 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
           <ExternalSpeakerInfoCard
             eventId={event.id}
             externalSpeakerId={selectedExternalSpeaker}
-            partName={assignment?.name}
+            excludePartAssignmentId={assignment?.id ?? null}
           />
         )}
       </div>

@@ -1,6 +1,9 @@
-import { AlertTriangle, Clock, Mail, Phone, StickyNote, User } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Mail, Phone, Repeat, StickyNote, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
+import type { CadenceEntry } from '~/features/events/model/cadence.type'
+import { CadenceStrip } from '~/features/events/ui/CadenceStrip'
+import { computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Skeleton } from '~/shared/ui/skeleton'
@@ -16,24 +19,31 @@ interface ExternalSpeakerInfoData {
     isIncomplete: boolean
   }
   recentHistory: { date: string; partName: string; topic: string }[]
+  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean }
 }
 
 interface ExternalSpeakerInfoCardProps {
   eventId: number
   externalSpeakerId: string | null
-  partName?: string
+  // Points the loader at the part assignment the sheet is editing. Doubles as
+  // the source for the cadence anchor (server reads name / section).
+  excludePartAssignmentId?: number | null
 }
 
-export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }: ExternalSpeakerInfoCardProps) {
+export function ExternalSpeakerInfoCard({
+  eventId,
+  externalSpeakerId,
+  excludePartAssignmentId,
+}: ExternalSpeakerInfoCardProps) {
   const fetcher = useFetcher<ExternalSpeakerInfoData>()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher.load is stable, adding it causes infinite loop
   useEffect(() => {
     if (!externalSpeakerId || externalSpeakerId === 'none') return
     const searchParams = new URLSearchParams({ externalSpeakerId })
-    if (partName) searchParams.set('partName', partName)
+    if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
     fetcher.load(`/programs/events/${eventId}/external-speaker-info?${searchParams}`)
-  }, [externalSpeakerId, eventId, partName])
+  }, [externalSpeakerId, eventId, excludePartAssignmentId])
 
   if (!externalSpeakerId || externalSpeakerId === 'none') return null
 
@@ -57,7 +67,8 @@ export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }
   const data = fetcher.data
   if (!data?.profile) return null
 
-  const { profile, recentHistory } = data
+  const { profile, recentHistory, cadence } = data
+  const hasCadence = cadence.past.length > 0 || cadence.future.length > 0
 
   return (
     <Card className={profile.isIncomplete ? 'border-amber-500/50' : ''}>
@@ -129,7 +140,49 @@ export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }
         ) : (
           <p className="text-muted-foreground text-xs italic">{m.external_speakers_first_invitation()}</p>
         )}
+
+        {hasCadence && <CadencePanel cadence={cadence} />}
       </CardContent>
     </Card>
+  )
+}
+
+function CadencePanel({ cadence }: { cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean } }) {
+  const warnings = computeCadenceWarnings(cadence)
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm">
+        <Repeat className="size-4" />
+        {m.publisher_info_cadence()}
+      </div>
+      {warnings.firstTime && (
+        <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
+          <CheckCircle2 className="size-3.5" />
+          {m.publisher_info_first_time()}
+        </div>
+      )}
+      {warnings.overdue && (
+        <div className="flex items-center gap-1.5 font-medium text-emerald-600 text-xs dark:text-emerald-400">
+          <CheckCircle2 className="size-3.5" />
+          {m.publisher_info_overdue()}
+        </div>
+      )}
+      {!warnings.firstTime && !warnings.overdue && <CadenceStrip past={cadence.past} future={cadence.future} />}
+      {warnings.consecutive && (
+        <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
+          <AlertTriangle className="size-3.5" />
+          {m.publisher_info_consecutive()}
+        </div>
+      )}
+      {warnings.rotationConcern && (
+        <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
+          <AlertTriangle className="size-3.5" />
+          {m.publisher_info_rotation_concern({
+            n: String(warnings.rotationConcern.assigned),
+            m: String(warnings.rotationConcern.window),
+          })}
+        </div>
+      )}
+    </div>
   )
 }

@@ -164,7 +164,7 @@ export function AssignPartSheet({
               <ExternalSpeakerInfoCard
                 eventId={eventId}
                 externalSpeakerId={selectedExternalSpeaker}
-                partName={assignment.name}
+                excludePartAssignmentId={assignment.id}
               />
             </>
           ) : (
