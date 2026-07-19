@@ -2458,6 +2458,13 @@
     "dashboard_next_meeting_assigned_as_speaker": "Orateur",
     "dashboard_next_meeting_assigned_as_assistant": "Assistant",
     "dashboard_next_meeting_assigned_as_service": "Service",
+    "programs_default_speaker_label": "Orateur",
+    "programs_default_reader_label": "Lecteur",
+    "programs_part_speaker_label_field": "Libellé pour l'orateur (optionnel)",
+    "programs_part_speaker_label_placeholder": "ex : Élève",
+    "programs_part_reader_label_field": "Libellé pour le lecteur (optionnel)",
+    "programs_part_reader_label_placeholder": "ex : Personne visitée",
+    "programs_part_role_label_too_long": "Le libellé doit faire au maximum 50 caractères",
     "dashboard_documents_unread_count": "{count} nouveaux",
 
     "data_transfer_title": "Export / Import",
