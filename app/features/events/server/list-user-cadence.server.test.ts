@@ -202,6 +202,57 @@ describe('listUserCadence', () => {
     expect(result.past[0].assigned).toBe(true)
   })
 
+  it('matches when the historical row has surrounding whitespace in name or section', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: '  Bible Reading  ', section: ' Ministry ', assigneeId: 5, assistantId: null }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].assigned).toBe(true)
+  })
+
+  it('matches when the case of the name or section differs', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'bible reading', section: 'MINISTRY', assigneeId: 5, assistantId: null }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].assigned).toBe(true)
+  })
+
+  it('matches when diacritics differ (e.g. Ministère vs ministere)', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'ministere', assigneeId: 5, assistantId: null }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, {
+      ...DEFAULT_ARGS,
+      partSection: 'Ministère',
+    })
+
+    expect(result.past[0].assigned).toBe(true)
+  })
+
   it('returns both past and future entries in the expected shape', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([

@@ -182,13 +182,7 @@ export function AssignPartSheet({
                 />
               </div>
 
-              <PublisherInfoCard
-                eventId={eventId}
-                userId={selectedAssignee}
-                partName={assignment.name}
-                partSection={assignment.section}
-                excludePartAssignmentId={assignment.id}
-              />
+              <PublisherInfoCard eventId={eventId} userId={selectedAssignee} excludePartAssignmentId={assignment.id} />
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
@@ -203,13 +197,7 @@ export function AssignPartSheet({
                 />
               </div>
 
-              <PublisherInfoCard
-                eventId={eventId}
-                userId={selectedAssistant}
-                partName={assignment.name}
-                partSection={assignment.section}
-                excludePartAssignmentId={assignment.id}
-              />
+              <PublisherInfoCard eventId={eventId} userId={selectedAssistant} excludePartAssignmentId={assignment.id} />
             </>
           )}
 

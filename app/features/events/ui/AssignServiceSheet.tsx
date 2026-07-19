@@ -76,7 +76,6 @@ export function AssignServiceSheet({
           <PublisherInfoCard
             eventId={eventId}
             userId={selectedAssignee || null}
-            partName={assignment.name}
             excludeServiceAssignmentId={assignment.id}
           />
 

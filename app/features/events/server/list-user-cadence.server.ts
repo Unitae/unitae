@@ -1,6 +1,14 @@
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
 export type CadenceEntry = { date: string; assigned: boolean }
+
+// Same-slot comparison is diacritic-insensitive and tolerant of case /
+// surrounding whitespace so trivial drift between the current row and
+// historical rows doesn't split them into two distinct cadences.
+function normalize(input: string): string {
+  return stripDiacritics(input).trim()
+}
 
 type Options = {
   userId: number
@@ -53,10 +61,12 @@ export async function listUserCadence(
     select: { id: true, startDate: true, partAssignments: partsSelect },
   })
 
+  const targetName = normalize(partName)
+  const targetSection = normalize(partSection)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => ({
     date: row.startDate.toISOString(),
     assigned: row.partAssignments
-      .filter(p => p.name === partName && p.section === partSection)
+      .filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
       .some(p => p.assigneeId === userId || p.assistantId === userId),
   })
 
