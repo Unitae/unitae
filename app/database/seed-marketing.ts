@@ -1216,6 +1216,8 @@ async function main() {
         endDate,
         createdById: publisher.accountId,
         congregationId: congId,
+        // Match production: createDayOff bypasses the release workflow.
+        status: 'released',
       },
     })
     eventCount++
