@@ -94,6 +94,7 @@ export async function assignPart(
   externalSpeakerId: number | null,
   topic: string,
   congregationId: number,
+  durationMin: number | null = null,
 ) {
   await lockPartAssignmentRow(db, assignmentId, congregationId)
   const existing = await db.programmePartAssignment.findFirst({
@@ -119,10 +120,15 @@ export async function assignPart(
     if (invalidSpeaker) return invalidSpeaker
 
     const assignment = await db.programmePartAssignment.update({
-      where: {
-        id_congregationId: { id: assignmentId, congregationId },
+      where: { id_congregationId: { id: assignmentId, congregationId } },
+      data: {
+        assigneeId: null,
+        assistantId: null,
+        externalSpeakerId,
+        topic: cleanTopic,
+        hasConflict: false,
+        durationMin,
       },
-      data: { assigneeId: null, assistantId: null, externalSpeakerId, topic: cleanTopic, hasConflict: false },
     })
     return { assignment, previousAssigneeId, previousAssistantId }
   }
@@ -160,10 +166,8 @@ export async function assignPart(
   const hasConflict = speakerCheck.hasConflict || readerCheck.hasConflict
 
   const assignment = await db.programmePartAssignment.update({
-    where: {
-      id_congregationId: { id: assignmentId, congregationId },
-    },
-    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict },
+    where: { id_congregationId: { id: assignmentId, congregationId } },
+    data: { assigneeId, assistantId, externalSpeakerId: null, topic: cleanTopic, hasConflict, durationMin },
   })
 
   return { assignment, previousAssigneeId, previousAssistantId }
@@ -199,9 +203,7 @@ export async function assignServiceRole(
   }
 
   const assignment = await db.programmeServiceRoleAssignment.update({
-    where: {
-      id_congregationId: { id: assignmentId, congregationId },
-    },
+    where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, hasConflict },
   })
 

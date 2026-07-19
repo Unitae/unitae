@@ -19,6 +19,11 @@ export const assignPartSchema = z.object({
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
   topic: z.string().optional().default(''),
+  durationMin: z
+    .string()
+    .optional()
+    .transform(v => (v == null || v === '' ? null : Number(v)))
+    .pipe(z.number().int().min(0).nullable()),
 })
 
 export type AssignPartInput = z.infer<typeof assignPartSchema>

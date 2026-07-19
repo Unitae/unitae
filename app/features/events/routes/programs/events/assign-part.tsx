@@ -84,7 +84,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     return data(submission.reply(), { status: 400 })
   }
 
-  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerId, topic } = submission.value
+  const { assignmentId, speakerType, assigneeId, assistantId, externalSpeakerId, topic, durationMin } = submission.value
 
   const resolvedExternalSpeakerId = speakerType === 'external' ? externalSpeakerId : null
   const resolvedAssigneeId = speakerType === 'external' ? null : assigneeId
@@ -113,6 +113,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       resolvedExternalSpeakerId,
       topic,
       congregationId,
+      durationMin,
     )
 
     if ('error' in result) {
