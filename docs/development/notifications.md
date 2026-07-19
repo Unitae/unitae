@@ -67,8 +67,14 @@ Failure handling (worker side):
   logger.error, don't retry the job.
 - Template callback throws (programmer bug) → propagate to BullMQ, job retries
   3× with exponential backoff, then dead-letters.
-- mailer.emails.send throws (transient SMTP) → caught inside sendNotificationToUser,
-  logger.error, event stays `sent`. BullMQ job-level retries handle re-delivery.
+- mailer.emails.send throws (transient Resend outage / rate limit) → propagates
+  out of sendNotificationToUser. Callers decide:
+  - Instant, single recipient (recipientId branch): let it propagate so BullMQ
+    retries. Duplicate-safe — exactly one email attempted per job.
+  - Instant, role fan-out & digest (per-event or per-recipient): caught in the
+    caller, logged at error, that specific event row flipped to `failed`. The
+    job resolves so BullMQ does not retry — retrying would re-mail every
+    recipient already delivered earlier in the batch.
 ```
 
 ## Files
