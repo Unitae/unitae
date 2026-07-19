@@ -203,6 +203,12 @@ export function PersonDropdown({
                 items[activeIndex] ? `${listboxId}-${items[activeIndex].kind}-${items[activeIndex].id}` : undefined
               }
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              data-1p-ignore
+              data-lpignore="true"
+              data-form-type="other"
             />
           </div>
           <div ref={listRef} id={listboxId} role="listbox" className="max-h-72 overflow-y-auto p-1">
