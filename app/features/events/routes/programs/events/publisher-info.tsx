@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { listUserCadence } from '~/features/events/server/list-user-cadence.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
@@ -61,20 +62,9 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       excludeServiceAssignmentId,
     })
 
-    // Recent history: last 5 assignments with the same part name
-    const recentHistory = partName
-      ? await db.programmePartAssignment.findMany({
-          where: {
-            congregationId,
-            OR: [{ assigneeId: userId }, { assistantId: userId }],
-            name: partName,
-            event: { startDate: { lt: new Date() } },
-          },
-          include: { event: { select: { startDate: true } } },
-          orderBy: { event: { startDate: 'desc' } },
-          take: 5,
-        })
-      : []
+    const cadence = partName
+      ? await listUserCadence(db, { userId, event, congregationId, partName, pastCount: 6 })
+      : { past: [], future: [] }
 
     return Response.json({
       profile: {
@@ -91,9 +81,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         endDate: d.endDate.toISOString(),
       })),
       sameEventAssignments,
-      recentHistory: recentHistory.map(a => ({
-        date: a.event.startDate.toISOString(),
-      })),
+      cadence,
     })
   })
 }
