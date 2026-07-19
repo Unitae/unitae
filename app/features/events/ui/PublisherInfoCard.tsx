@@ -145,6 +145,14 @@ export function PublisherInfoCard({
               <Repeat className="size-4" />
               {m.publisher_info_cadence()}
             </div>
+            {warnings.firstTime ? (
+              <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
+                <CheckCircle2 className="size-3.5" />
+                {m.publisher_info_first_time()}
+              </div>
+            ) : (
+              <CadenceStrip past={cadence.past} future={cadence.future} />
+            )}
             {warnings.consecutive && (
               <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
                 <Info className="size-3.5" />
@@ -159,14 +167,6 @@ export function PublisherInfoCard({
                   m: String(warnings.rotationConcern.window),
                 })}
               </div>
-            )}
-            {warnings.firstTime ? (
-              <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
-                <CheckCircle2 className="size-3.5" />
-                {m.publisher_info_first_time()}
-              </div>
-            ) : (
-              <CadenceStrip past={cadence.past} future={cadence.future} />
             )}
           </div>
         )}
