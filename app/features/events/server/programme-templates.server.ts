@@ -279,6 +279,8 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
           order: part.order,
           durationMin: part.durationMin,
           allowExternalSpeaker: part.allowExternalSpeaker,
+          speakerLabel: part.speakerLabel,
+          readerLabel: part.readerLabel,
           congregationId,
         })),
       },

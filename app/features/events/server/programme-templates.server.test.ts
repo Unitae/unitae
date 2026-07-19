@@ -457,4 +457,60 @@ describe('duplicateTemplate', () => {
     expect(vi.mocked(db.programmeTemplatePartAllowedRole.createMany)).toHaveBeenCalledTimes(2)
     expect(vi.mocked(db.programmeTemplateServiceRoleAllowedRole.createMany)).toHaveBeenCalledTimes(1)
   })
+
+  // A duplicated template must carry the source's per-part role labels; without
+  // this, admins who clone a template lose their custom labels silently.
+  it('copies speakerLabel and readerLabel from source parts to the duplicate (Layer 4)', async () => {
+    const source = {
+      id: 5,
+      name: 'Reunion',
+      key: 'midweek',
+      description: '',
+      weekDay: 2,
+      isRecurring: true,
+      parts: [
+        {
+          id: 10,
+          name: 'Bible reading',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+          speakerLabel: 'STUDENT-SENTINEL',
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Return visit',
+          section: '',
+          track: '',
+          order: 2,
+          durationMin: 10,
+          allowExternalSpeaker: false,
+          speakerLabel: 'STUDENT-SENTINEL',
+          readerLabel: 'HOUSEHOLDER-SENTINEL',
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [],
+    }
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(source as never)
+    vi.mocked(db.programmeTemplate.create).mockResolvedValue({
+      id: 99,
+      name: 'Reunion (copie)',
+      parts: [],
+      serviceRoles: [],
+    } as never)
+
+    await duplicateTemplate(db, 5, 7)
+
+    const createCall = vi.mocked(db.programmeTemplate.create).mock.calls[0][0] as {
+      data: { parts: { create: Array<{ speakerLabel: string | null; readerLabel: string | null }> } }
+    }
+    const createdParts = createCall.data.parts.create
+    expect(createdParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null })
+    expect(createdParts[1]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' })
+  })
 })

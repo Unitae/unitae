@@ -315,8 +315,28 @@ describe('applyTemplateToEvent', () => {
       id: 5,
       name: 'Reunion vie',
       parts: [
-        { id: 10, name: 'Cantique', section: 'intro', track: 'A', order: 1, durationMin: 5, allowedRoles: [] },
-        { id: 11, name: 'Discours', section: 'main', track: 'A', order: 2, durationMin: 30, allowedRoles: [] },
+        {
+          id: 10,
+          name: 'Cantique',
+          section: 'intro',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Discours',
+          section: 'main',
+          track: 'A',
+          order: 2,
+          durationMin: 30,
+          speakerLabel: null,
+          readerLabel: null,
+          allowedRoles: [],
+        },
       ],
       serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
@@ -342,11 +362,62 @@ describe('applyTemplateToEvent', () => {
         track: 'A',
         order: 1,
         durationMin: 5,
+        speakerLabel: null,
+        readerLabel: null,
         congregationId: 10,
       },
     })
     expect(mockDb.programmeServiceRoleAssignment.create).toHaveBeenCalledWith({
       data: { eventId: 1, serviceRoleId: 20, name: 'Son', congregationId: 10 },
+    })
+  })
+
+  // Sentinel test: proves the two label fields are threaded from the template
+  // and not fabricated by the caller. A regression that hardcodes null would
+  // pass the existing shape assertion above (both fields are null there) but
+  // fails this one.
+  it('copies speakerLabel and readerLabel from template parts to assignments (Layer 4)', async () => {
+    const template = {
+      id: 5,
+      name: 'Reunion',
+      parts: [
+        {
+          id: 10,
+          name: 'Bible reading',
+          section: 'main',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: 'STUDENT-SENTINEL',
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Return visit',
+          section: 'main',
+          track: 'A',
+          order: 2,
+          durationMin: 10,
+          speakerLabel: 'STUDENT-SENTINEL',
+          readerLabel: 'HOUSEHOLDER-SENTINEL',
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [],
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.event.update.mockResolvedValue({})
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 999 })
+
+    await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
+
+    const calls = mockDb.programmePartAssignment.create.mock.calls
+    expect(calls.length).toBe(2)
+    expect(calls[0][0].data).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null })
+    expect(calls[1][0].data).toMatchObject({
+      speakerLabel: 'STUDENT-SENTINEL',
+      readerLabel: 'HOUSEHOLDER-SENTINEL',
     })
   })
 
@@ -362,6 +433,8 @@ describe('applyTemplateToEvent', () => {
           track: '',
           order: 1,
           durationMin: 30,
+          speakerLabel: null,
+          readerLabel: null,
           allowedRoles: [
             { roleId: 100, asKind: 'speaker' },
             { roleId: 101, asKind: 'speaker' },
@@ -401,7 +474,19 @@ describe('applyTemplateToEvent', () => {
     const template = {
       id: 5,
       name: 'Reunion',
-      parts: [{ id: 10, name: 'Cantique', section: '', track: '', order: 1, durationMin: 5, allowedRoles: [] }],
+      parts: [
+        {
+          id: 10,
+          name: 'Cantique',
+          section: '',
+          track: '',
+          order: 1,
+          durationMin: 5,
+          speakerLabel: null,
+          readerLabel: null,
+          allowedRoles: [],
+        },
+      ],
       serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
     mockDb.programmeTemplate.findFirst.mockResolvedValue(template)

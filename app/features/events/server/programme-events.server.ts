@@ -320,6 +320,8 @@ export async function applyTemplateToEvent(
         order: part.order,
         durationMin: part.durationMin,
         allowExternalSpeaker: part.allowExternalSpeaker,
+        speakerLabel: part.speakerLabel,
+        readerLabel: part.readerLabel,
         congregationId,
       },
     })

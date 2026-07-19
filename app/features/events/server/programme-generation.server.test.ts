@@ -119,6 +119,61 @@ describe('generateEventsFromTemplate', () => {
     expect((call[0] as { data: { templateId: number } }).data.templateId).toBe(42)
   })
 
+  // Sentinel labels — a fixture that happened to include a real word would
+  // give a false positive. Distinct strings prove the value is threaded from
+  // the template, not fabricated by the caller.
+  it('copies speakerLabel and readerLabel from template parts to assignments (Layer 4)', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      name: 'Réunion du week-end',
+      weekDay: 0,
+      kindId: null,
+      startTime: '10:00',
+      endTime: '12:00',
+      parts: [
+        {
+          id: 10,
+          name: 'Bible reading',
+          section: '',
+          track: 'A',
+          order: 1,
+          durationMin: 5,
+          allowExternalSpeaker: false,
+          speakerLabel: 'STUDENT-SENTINEL',
+          readerLabel: null,
+          allowedRoles: [],
+        },
+        {
+          id: 11,
+          name: 'Return visit',
+          section: '',
+          track: 'B',
+          order: 2,
+          durationMin: 10,
+          allowExternalSpeaker: false,
+          speakerLabel: 'STUDENT-SENTINEL',
+          readerLabel: 'HOUSEHOLDER-SENTINEL',
+          allowedRoles: [],
+        },
+      ],
+      serviceRoles: [],
+    } as never)
+    vi.mocked(db.event.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
+    vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
+
+    await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
+
+    const calls = vi.mocked(db.programmePartAssignment.create).mock.calls
+    expect(calls.length).toBeGreaterThanOrEqual(2)
+    const firstData = (calls[0][0] as { data: { speakerLabel: string | null; readerLabel: string | null } }).data
+    expect(firstData.speakerLabel).toBe('STUDENT-SENTINEL')
+    expect(firstData.readerLabel).toBeNull()
+    const secondData = (calls[1][0] as { data: { speakerLabel: string | null; readerLabel: string | null } }).data
+    expect(secondData.speakerLabel).toBe('STUDENT-SENTINEL')
+    expect(secondData.readerLabel).toBe('HOUSEHOLDER-SENTINEL')
+  })
+
   it('copies allowExternalSpeaker from template parts to assignments', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
       id: 1,
