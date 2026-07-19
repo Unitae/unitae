@@ -34,7 +34,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~
 import { UnsavedChangesDialog } from '~/shared/ui/UnsavedChangesDialog'
 import { formatEventDate } from '~/shared/utils/event-time'
 import { requireParamId } from '~/shared/utils/params.server'
-
 import type { Route } from './+types/assign-part'
 
 export const meta: Route.MetaFunction = () => {
@@ -167,8 +166,9 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   )
   const { blocker, markDirty } = useUnsavedChanges()
 
-  const activeInternalSelection = selectedAssignee || selectedAssistant || null
   const hasRegistry = externalSpeakers.length > 0
+  const { name, section, id } = assignment ?? {}
+  const infoCardProps = { eventId: event.id, partName: name, partSection: section, excludePartAssignmentId: id }
 
   return (
     <div className="flex flex-col gap-6">
@@ -283,15 +283,13 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
           </CardContent>
         </Card>
 
-        {speakerType === 'internal' && (
-          <PublisherInfoCard eventId={event.id} userId={activeInternalSelection} partName={assignment?.name} />
-        )}
-        {speakerType === 'external' && (
-          <ExternalSpeakerInfoCard
-            eventId={event.id}
-            externalSpeakerId={selectedExternalSpeaker}
-            partName={assignment?.name}
-          />
+        {speakerType === 'internal' ? (
+          <div className="flex flex-col gap-6">
+            <PublisherInfoCard {...infoCardProps} userId={selectedAssignee} />
+            <PublisherInfoCard {...infoCardProps} userId={selectedAssistant} />
+          </div>
+        ) : (
+          <ExternalSpeakerInfoCard {...infoCardProps} externalSpeakerId={selectedExternalSpeaker} />
         )}
       </div>
     </div>

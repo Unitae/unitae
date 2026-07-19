@@ -1,6 +1,8 @@
-import { AlertTriangle, Calendar, Clock, Info, User } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Info, Repeat, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
+import { CadenceStrip } from '~/features/events/ui/CadenceStrip'
+import { type CadenceEntry, computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -19,16 +21,31 @@ interface PublisherInfoData {
   }
   daysOff: { startDate: string; endDate: string }[]
   sameEventAssignments: { type: 'part' | 'service'; name: string; section?: string }[]
-  recentHistory: { date: string }[]
+  cadence: { past: CadenceEntry[]; future: CadenceEntry[] }
 }
 
 interface PublisherInfoCardProps {
   eventId: number
   userId: string | null
   partName?: string
+  // Section pairs with partName to anchor the cadence query — identically-named
+  // parts sitting in different sections shouldn't be conflated.
+  partSection?: string
+  // Used by the assign sheets to drop the assignment being edited from the
+  // "other assignments on the same event" panel — otherwise the picker's own
+  // row shows up as a fake conflict.
+  excludePartAssignmentId?: number | null
+  excludeServiceAssignmentId?: number | null
 }
 
-export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCardProps) {
+export function PublisherInfoCard({
+  eventId,
+  userId,
+  partName,
+  partSection,
+  excludePartAssignmentId,
+  excludeServiceAssignmentId,
+}: PublisherInfoCardProps) {
   const fetcher = useFetcher<PublisherInfoData>()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher.load is stable, adding it causes infinite loop
@@ -36,8 +53,13 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
     if (!userId || userId === 'none') return
     const searchParams = new URLSearchParams({ userId })
     if (partName) searchParams.set('partName', partName)
+    if (partSection) searchParams.set('partSection', partSection)
+    if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
+    if (excludeServiceAssignmentId != null) {
+      searchParams.set('excludeServiceAssignmentId', String(excludeServiceAssignmentId))
+    }
     fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)
-  }, [userId, eventId, partName])
+  }, [userId, eventId, partName, partSection, excludePartAssignmentId, excludeServiceAssignmentId])
 
   if (!userId || userId === 'none') return null
 
@@ -61,9 +83,11 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
   const data = fetcher.data
   if (!data?.profile) return null
 
-  const { profile, daysOff, sameEventAssignments, recentHistory } = data
+  const { profile, daysOff, sameEventAssignments, cadence } = data
   const hasDaysOff = daysOff.length > 0
   const hasOtherAssignments = sameEventAssignments.length > 0
+  const hasCadence = cadence.past.length > 0 || cadence.future.length > 0
+  const warnings = computeCadenceWarnings(cadence)
 
   return (
     <Card className={hasDaysOff ? 'border-destructive/50' : ''}>
@@ -114,36 +138,42 @@ export function PublisherInfoCard({ eventId, userId, partName }: PublisherInfoCa
         )}
 
         {!hasDaysOff && !hasOtherAssignments && (
-          <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-            <Calendar className="size-4" />
+          <div className="flex items-center gap-1.5 font-medium text-green-600 text-sm dark:text-green-400">
+            <CheckCircle2 className="size-4" />
             {m.publisher_info_available()}
           </div>
         )}
 
-        {recentHistory.length > 0 && (
+        {hasCadence && (
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm">
-              <Clock className="size-4" />
-              {m.publisher_info_recent_history()}
+              <Repeat className="size-4" />
+              {m.publisher_info_cadence()}
             </div>
-            {recentHistory.map(h => (
-              <p key={h.date} className="text-muted-foreground text-xs">
-                {new Date(h.date).toLocaleDateString('fr-FR', {
-                  weekday: 'long',
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
+            {warnings.firstTime ? (
+              <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
+                <CheckCircle2 className="size-3.5" />
+                {m.publisher_info_first_time()}
+              </div>
+            ) : (
+              <CadenceStrip past={cadence.past} future={cadence.future} />
+            )}
+            {warnings.consecutive && (
+              <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
+                <Info className="size-3.5" />
+                {m.publisher_info_consecutive()}
+              </div>
+            )}
+            {warnings.rotationConcern && (
+              <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
+                <Info className="size-3.5" />
+                {m.publisher_info_rotation_concern({
+                  n: String(warnings.rotationConcern.assigned),
+                  m: String(warnings.rotationConcern.window),
                 })}
-              </p>
-            ))}
-            {recentHistory.length === 0 && (
-              <p className="text-muted-foreground text-xs">{m.publisher_info_first_assignment()}</p>
+              </div>
             )}
           </div>
-        )}
-
-        {recentHistory.length === 0 && (
-          <p className="text-muted-foreground text-xs italic">{m.publisher_info_no_history()}</p>
         )}
       </CardContent>
     </Card>
