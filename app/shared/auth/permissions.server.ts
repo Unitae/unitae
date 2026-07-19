@@ -131,7 +131,7 @@ export async function findAccountsWithPermission(
 // deactivated recipients are excluded. Use this for role-fanout notification
 // delivery; use findAccountsWithPermission for governance (last-admin,
 // permission introspection) where the broader set is intentional.
-export async function findNotificationRecipientsWithPermission(
+export function findNotificationRecipientsWithPermission(
   db: DbClient,
   congregationId: number,
   permissionKey: Permission,
