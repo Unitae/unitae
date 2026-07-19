@@ -46,14 +46,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const [templates, eventKinds, allRoles] = await Promise.all([
-      getTemplates(db, congregationId),
-      db.eventKind.findMany({
-        where: { congregationId, NOT: { key: 'off' } },
-        orderBy: { name: 'asc' },
-      }),
-      listRoles(db, congregationId),
-    ])
+    const [templates, allRoles] = await Promise.all([getTemplates(db, congregationId), listRoles(db, congregationId)])
 
     const partAllowed = await db.programmePartAssignmentAllowedRole.findMany({
       where: { assignmentId: { in: event.partAssignments.map(p => p.id) }, congregationId },
@@ -90,7 +83,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
         serviceRoleAssignments: serviceAssignmentsWithRoles,
       },
       templates,
-      eventKinds,
       roles,
       sectionSuggestions,
       trackSuggestions,
@@ -127,7 +119,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function EditEventPage({ loaderData }: Route.ComponentProps) {
-  const { event, templates, eventKinds, roles, sectionSuggestions, trackSuggestions, timezone } = loaderData
+  const { event, templates, roles, sectionSuggestions, trackSuggestions, timezone } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -193,7 +185,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         backTo={`/programs/events/${event.id}`}
       />
 
-      <EventInfoCard event={event} eventKinds={eventKinds} timezone={timezone} fetcher={infoFetcher} />
+      <EventInfoCard event={event} timezone={timezone} fetcher={infoFetcher} />
 
       <EventPartsCard
         parts={event.partAssignments}

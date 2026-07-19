@@ -1,7 +1,7 @@
 import { AlertTriangle, CalendarOff, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { EventKind } from '~/features/events/model/event-kind.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import {
   type ConflictingEvent,
@@ -44,7 +44,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
 
   const url = new URL(request.url)
   const selectors = computeFilters(url.searchParams)
-  selectors.kind = { key: EventKind.Off }
+  selectors.template = { key: ProgrammeTemplateKey.DayOff }
 
   const defaults = getDefaultDateRange()
   const defaultFrom = defaults.from.toISOString().split('T')[0]
@@ -130,8 +130,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
     }
 
     // Check if any day-offs exist at all (for contextual empty state)
-    const hasAnyDaysOff =
-      events.length > 0 || (await db.event.count({ where: { congregationId, kind: { key: EventKind.Off } } })) > 0
+    const totalDayOffCount = await db.event.count({
+      where: { congregationId, template: { key: ProgrammeTemplateKey.DayOff } },
+    })
+    const hasAnyDaysOff = events.length > 0 || totalDayOffCount > 0
 
     // Total conflict count for summary
     const totalConflicts = Object.values(conflictsByDayOff).reduce((sum, c) => sum + c.length, 0)

@@ -1,4 +1,4 @@
-import { EventKind } from '~/features/events/model/event-kind.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'
@@ -53,7 +53,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
           where: {
             congregationId,
             createdById: accountId,
-            kind: { key: EventKind.Off },
+            template: { key: ProgrammeTemplateKey.DayOff },
             startDate: { lte: event.endDate },
             endDate: { gte: event.startDate },
           },

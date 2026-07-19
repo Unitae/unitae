@@ -68,7 +68,7 @@ beforeEach(() => {
 })
 
 describe('createFreeformEvent', () => {
-  it('creates an event with the given data', async () => {
+  it('creates an event connected to the freeform system template', async () => {
     const data = {
       name: 'Reunion',
       startDate: new Date('2026-04-20'),
@@ -76,6 +76,36 @@ describe('createFreeformEvent', () => {
       createdById: 1,
       congregationId: 10,
     }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue({ id: 99, key: 'freeform' })
+    const expected = { id: 1, ...data }
+    mockDb.event.create.mockResolvedValue(expected)
+
+    const result = await createFreeformEvent(mockDb as never, data)
+
+    expect(result).toEqual(expected)
+    expect(mockDb.programmeTemplate.findFirst).toHaveBeenCalledWith({
+      where: { key: 'freeform', congregationId: 10 },
+    })
+    expect(mockDb.event.create).toHaveBeenCalledWith({
+      data: {
+        ...data,
+        templateId: 99,
+      },
+    })
+  })
+
+  // Defensive: if the freeform template is missing (e.g. legacy tenant that
+  // hasn't been reseeded), we still create the event, just without a template
+  // link. Behaviour matches the pre-refactor "no kind found" branch.
+  it('creates the event without a template link when the freeform template is missing', async () => {
+    const data = {
+      name: 'Reunion',
+      startDate: new Date('2026-04-20'),
+      endDate: new Date('2026-04-20'),
+      createdById: 1,
+      congregationId: 10,
+    }
+    mockDb.programmeTemplate.findFirst.mockResolvedValue(null)
     const expected = { id: 1, ...data }
     mockDb.event.create.mockResolvedValue(expected)
 

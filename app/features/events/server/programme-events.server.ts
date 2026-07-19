@@ -1,3 +1,4 @@
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import {
   setPartAssignmentAllowedRoles,
   setServiceRoleAssignmentAllowedRoles,
@@ -6,7 +7,7 @@ import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.se
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
-export function createFreeformEvent(
+export async function createFreeformEvent(
   db: TransactionClient,
   data: {
     name: string
@@ -14,10 +15,15 @@ export function createFreeformEvent(
     endDate: Date
     createdById: number
     congregationId: number
-    kindId?: number
   },
 ) {
-  return db.event.create({ data })
+  const freeformTemplate = await db.programmeTemplate.findFirst({
+    where: { key: ProgrammeTemplateKey.Freeform, congregationId: data.congregationId },
+  })
+
+  return db.event.create({
+    data: freeformTemplate ? { ...data, templateId: freeformTemplate.id } : data,
+  })
 }
 
 export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {

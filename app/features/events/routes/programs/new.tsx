@@ -65,19 +65,10 @@ export function loader({ context }: Route.LoaderArgs) {
       : await getResponsibleTemplateIds(db, currentUser.id, congregationId)
     if (!isProgramManager && responsibleTemplateIds.length === 0) throw redirect('/programs')
 
-    const [allTemplates, eventKinds] = await Promise.all([
-      getTemplates(db, congregationId),
-      isProgramManager
-        ? db.eventKind.findMany({
-            where: { congregationId, NOT: { key: 'off' } },
-            orderBy: { name: 'asc' },
-          })
-        : Promise.resolve([]),
-    ])
-
+    const allTemplates = await getTemplates(db, congregationId)
     const templates = isProgramManager ? allTemplates : allTemplates.filter(t => responsibleTemplateIds.includes(t.id))
 
-    return { templates, eventKinds, isProgramManager, timezone: context.get(congregationContext).timezone }
+    return { templates, isProgramManager, timezone: context.get(congregationContext).timezone }
   })
 }
 
@@ -136,10 +127,10 @@ async function handleFreeformMode({ db, formData, currentUser, congregationId, t
   const submission = parseWithZod(formData, { schema: freeformEventSchema })
   if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-  const { name, date, startTime, endTime, kindId } = submission.value
+  const { name, date, startTime, endTime } = submission.value
   const startDate = combineLocalDateTime(date, startTime, timezone)
   const endDate = combineLocalDateTime(date, endTime, timezone)
-  await createFreeformEvent(db, { name, startDate, endDate, createdById: currentUser.id, congregationId, kindId })
+  await createFreeformEvent(db, { name, startDate, endDate, createdById: currentUser.id, congregationId })
   logger.info(`Created freeform event "${name}". User ID: ${currentUser.id}.`)
   session.flash('success', m.programs_new_created_success())
   return null
@@ -204,9 +195,7 @@ function groupByMonth(dates: Date[]): Record<string, Date[]> {
   return result
 }
 
-type EventKind = { id: number; name: string }
-
-function FreeformFields({ eventKinds }: { eventKinds: EventKind[] }) {
+function FreeformFields() {
   return (
     <>
       <input type="hidden" name="mode" value="freeform" />
@@ -228,23 +217,6 @@ function FreeformFields({ eventKinds }: { eventKinds: EventKind[] }) {
           <Input id="endTime" name="endTime" type="time" defaultValue="21:00" />
         </div>
       </div>
-      {eventKinds.length > 0 && (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="kindId">{m.programs_new_kind_label()}</Label>
-          <Select name="kindId">
-            <SelectTrigger id="kindId">
-              <SelectValue placeholder={m.programs_new_kind_placeholder()} />
-            </SelectTrigger>
-            <SelectContent>
-              {eventKinds.map(kind => (
-                <SelectItem key={kind.id} value={kind.id.toString()}>
-                  {kind.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
     </>
   )
 }
@@ -395,7 +367,7 @@ function TemplateSelectField({
 }
 
 export default function NewEventPage({ loaderData, actionData }: Route.ComponentProps) {
-  const { templates, eventKinds, isProgramManager } = loaderData
+  const { templates, isProgramManager } = loaderData
   const [selectedValue, setSelectedValue] = useState<string>('')
   const [occurrences, setOccurrences] = useState(8)
   const [startDate, setStartDate] = useState('')
@@ -454,7 +426,7 @@ export default function NewEventPage({ loaderData, actionData }: Route.Component
               }}
             />
 
-            {isNoTemplate && <FreeformFields eventKinds={eventKinds} />}
+            {isNoTemplate && <FreeformFields />}
             {selectedTemplate && isRecurring && (
               <RecurringFields
                 occurrences={occurrences}

@@ -19,5 +19,4 @@ export const freeformEventSchema = z.object({
   date: z.string().min(1),
   startTime: z.string().default('19:00'),
   endTime: z.string().default('21:00'),
-  kindId: z.coerce.number().optional(),
 })
