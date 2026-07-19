@@ -209,7 +209,7 @@ describe('handleInstantEmail — recipientRole branch (targets everyone with a p
 })
 
 describe('handleInstantEmail — SMTP failures (transient)', () => {
-  it('does not propagate a mailer.emails.send throw — logs and returns', async () => {
+  it('propagates a mailer.emails.send throw so BullMQ retries the job', async () => {
     vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
       id: 7,
       email: 'user@test.org',
@@ -218,8 +218,9 @@ describe('handleInstantEmail — SMTP failures (transient)', () => {
     } as never)
     vi.mocked(mailer.emails.send).mockRejectedValue(new Error('SMTP 550: mailbox full'))
 
-    // Transient SMTP errors are caught inside sendNotificationToUser so BullMQ
-    // retries the whole job on backoff — but the immediate call resolves.
+    // If we swallow the error, BullMQ sees a resolved job and never retries;
+    // the notification event stays marked `sent` and the mail is silently
+    // lost. Re-throwing is what triggers the job-level retry.
     await expect(
       handleInstantEmail({
         type: 'notification-instant',
@@ -229,7 +230,67 @@ describe('handleInstantEmail — SMTP failures (transient)', () => {
         recipientRole: null,
         payload: '{}',
       }),
-    ).resolves.not.toThrow()
+    ).rejects.toThrow('SMTP 550: mailbox full')
+  })
+})
+
+describe('suspended congregations are gated out of the pipeline', () => {
+  const SUSPENDED = { ...CONGREGATION, suspendedAt: new Date('2026-07-01T00:00:00Z') }
+
+  it('handleInstantEmail: recipientId branch — does not query the DB or send', async () => {
+    vi.mocked(resolveCongregation).mockResolvedValue(SUSPENDED as never)
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'territory.sync.completed',
+      recipientId: 7,
+      recipientRole: null,
+      payload: '{}',
+    })
+
+    expect(unscopedDb.userAccount.findFirst).not.toHaveBeenCalled()
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+  })
+
+  it('handleInstantEmail: recipientRole branch — does not resolve recipients or send', async () => {
+    vi.mocked(resolveCongregation).mockResolvedValue(SUSPENDED as never)
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'board.document.deleted',
+      recipientId: null,
+      recipientRole: 'board-validator',
+      payload: JSON.stringify({ title: 'Removed doc' }),
+    })
+
+    expect(resolveRecipients).not.toHaveBeenCalled()
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+  })
+
+  it('handleDigestEmail: does not send and does not mark events failed', async () => {
+    vi.mocked(resolveCongregation).mockResolvedValue(SUSPENDED as never)
+
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 0,
+      events: [
+        {
+          type: 'board.document.created',
+          entityType: 'BoardDocument',
+          entityId: 100,
+          payload: JSON.stringify({ title: 'Doc A', documentId: 100 }),
+        },
+      ],
+      notificationEventIds: [11],
+    })
+
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+    // Suspension is not a render failure — leave rows in whatever status
+    // flush-settled left them; do not flip anything to `failed`.
+    expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
   })
 })
 

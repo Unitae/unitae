@@ -15,12 +15,24 @@ const logger = createLogger('notification-email')
 // the render couldn't produce an email (unregistered type or invalid payload)
 // — the digest tracks these ids and overrides them to `status: 'failed'` so
 // the drift surfaces in the DB and cleanup can retain them for investigation.
-// `delivered` means the render was viable and mailer.emails.send was attempted
-// (transient SMTP failures are caught inside sendNotificationToUser).
+// `delivered` means mailer.emails.send returned successfully. Transient SMTP
+// failures propagate out of sendNotificationToUser so BullMQ retries the job.
 type EventSendResult = 'delivered' | 'permanent-failure'
 
 export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'notification-digest' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
+  if (congregation.suspendedAt) {
+    // Suspended tenants must not send email. Rows are left in whatever status
+    // flush-settled set them to — not marked `failed`, since the render side
+    // is fine; suspension is an account-level gate, not a delivery failure.
+    logger.info('Digest suppressed: congregation is suspended', {
+      congregationId: data.congregationId,
+      suspendedAt: congregation.suspendedAt,
+      events: data.events.length,
+    })
+    return
+  }
+
   const failedEventIds: number[] = []
 
   await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
@@ -47,6 +59,14 @@ export async function handleDigestEmail(data: Extract<EmailJobData, { type: 'not
 
 export async function handleInstantEmail(data: Extract<EmailJobData, { type: 'notification-instant' }>): Promise<void> {
   const congregation = await resolveCongregation(data.congregationId)
+  if (congregation.suspendedAt) {
+    logger.info('Instant notification suppressed: congregation is suspended', {
+      congregationId: data.congregationId,
+      notificationType: data.notificationType,
+      suspendedAt: congregation.suspendedAt,
+    })
+    return
+  }
 
   await runInWorkerContext(congregation.locale, congregation.timezone, async () => {
     if (data.recipientRole) {
@@ -176,13 +196,10 @@ async function sendNotificationToUser(
     return 'permanent-failure'
   }
 
-  try {
-    await mailer.emails.send({ to: recipient.email, from: congregation.emailFrom, subject, react })
-  } catch (error) {
-    // Transient SMTP failure — the render was viable; BullMQ's job-level
-    // retry will re-attempt. Log at error level but don't fail the event.
-    logger.error('Mailer send failed', { notificationType, userId: recipient.userId, error })
-  }
+  // Transient SMTP failures propagate so BullMQ retries the job on backoff.
+  // Swallowing them silently marks the event `sent` and the mail is lost —
+  // cleanup then deletes the row 7 days later and no one notices.
+  await mailer.emails.send({ to: recipient.email, from: congregation.emailFrom, subject, react })
 
   return 'delivered'
 }
