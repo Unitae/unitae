@@ -52,13 +52,38 @@ export function deleteEvent(db: TransactionClient, id: number, congregationId: n
   })
 }
 
-export function updateEvent(db: TransactionClient, id: number, congregationId: number, data: Record<string, unknown>) {
-  return db.event.update({
-    where: {
-      id_congregationId: { id, congregationId },
-    },
+// Explicit allowlist. Wider mutations (status, templateId, createdById)
+// belong to dedicated mutators (release/unrelease/applyTemplate) so their
+// invariants and audit trails live with the operation, not here.
+export interface UpdateEventFields {
+  name?: string
+  kindId?: number | null
+  startDate?: Date
+  endDate?: Date
+}
+
+export async function updateEvent(
+  db: TransactionClient,
+  id: number,
+  congregationId: number,
+  data: UpdateEventFields,
+  actorId: number,
+) {
+  const event = await db.event.update({
+    where: { id_congregationId: { id, congregationId } },
     data,
   })
+  // Field names only, no values — enough for forensics ("who touched
+  // startDate on Aug 3") without ballooning audit-log volume.
+  audit({
+    action: AuditAction.EventUpdated,
+    congregationId,
+    actorId,
+    entityType: 'Event',
+    entityId: id,
+    metadata: { fields: Object.keys(data) },
+  })
+  return event
 }
 
 export async function addPartAssignment(
