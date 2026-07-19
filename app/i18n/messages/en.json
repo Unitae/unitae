@@ -1532,6 +1532,7 @@
     "publisher_info_first_time": "First time on this part",
     "publisher_info_consecutive": "Consecutive assignment — watch the streak",
     "publisher_info_rotation_concern": "Assigned {n} of the last {m} — consider rotation",
+    "publisher_info_cadence_current_marker": "Slot currently being edited",
     "territories_meta_title": "Territories - Unitae",
     "territories_list_meta_title": "All territories - Unitae",
     "territories_title": "Territories",

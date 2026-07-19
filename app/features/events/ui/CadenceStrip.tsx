@@ -1,4 +1,5 @@
 import type { CadenceEntry } from '~/features/events/model/cadence.type'
+import * as m from '~/i18n/paraglide/messages'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/shared/ui/tooltip'
 import { formatAbsoluteDate } from '~/shared/utils/relative-time'
 import { cn } from '~/shared/utils/utils'
@@ -15,12 +16,28 @@ export function CadenceStrip({ past, future }: CadenceStripProps) {
         {past.map(entry => (
           <Dot key={`past-${entry.date}`} entry={entry} tone="past" />
         ))}
-        <span aria-hidden className="mx-1 h-3 w-px shrink-0 bg-muted-foreground/40" />
+        <CurrentSlotMarker />
         {future.map(entry => (
           <Dot key={`future-${entry.date}`} entry={entry} tone="future" />
         ))}
       </div>
     </TooltipProvider>
+  )
+}
+
+function CurrentSlotMarker() {
+  const label = m.publisher_info_cadence_current_marker()
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          className="mx-1 size-3 shrink-0 cursor-default rounded-full border-2 border-foreground/60 bg-transparent p-0"
+        />
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   )
 }
 
