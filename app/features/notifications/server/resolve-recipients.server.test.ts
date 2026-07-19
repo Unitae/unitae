@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/auth/permissions.server', () => ({
-  findAccountsWithPermission: vi.fn(),
+  findNotificationRecipientsWithPermission: vi.fn(),
 }))
 
 vi.mock('~/shared/infra/logger.server', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }))
 
-import { findAccountsWithPermission } from '~/shared/auth/permissions.server'
+import { findNotificationRecipientsWithPermission } from '~/shared/auth/permissions.server'
 import { categoryWildcard, resolveRecipients } from './resolve-recipients.server'
 
 const mockDb = {
@@ -22,7 +22,7 @@ beforeEach(() => {
 
 describe('resolveRecipients', () => {
   it('prefers the linked Member firstname over the UserAccount firstname', async () => {
-    vi.mocked(findAccountsWithPermission).mockResolvedValue([
+    vi.mocked(findNotificationRecipientsWithPermission).mockResolvedValue([
       {
         id: 1,
         email: 'linked@test.org',
@@ -45,6 +45,18 @@ describe('resolveRecipients', () => {
       { userId: 1, email: 'linked@test.org', firstname: 'MemberName' },
       { userId: 2, email: 'unlinked@test.org', firstname: 'AdminName' },
     ])
+  })
+
+  it('delegates recipient resolution to the notification-scoped finder so left members are excluded at the DB', async () => {
+    vi.mocked(findNotificationRecipientsWithPermission).mockResolvedValue([] as never)
+
+    await resolveRecipients(mockDb as never, 42, 'board-validator', 'board.document.created')
+
+    // Route through findNotificationRecipientsWithPermission — not the
+    // permission-only findAccountsWithPermission — so left / anonymized
+    // members are gated at the WHERE. Passing the plain finder would
+    // send emails to publishers who left the congregation.
+    expect(findNotificationRecipientsWithPermission).toHaveBeenCalledWith(mockDb, 42, 'board-validator')
   })
 })
 

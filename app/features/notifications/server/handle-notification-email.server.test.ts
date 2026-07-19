@@ -96,6 +96,17 @@ describe('handleInstantEmail — recipientId branch (targets a specific user)', 
         select: expect.objectContaining({ member: { select: { firstname: true } } }),
       }),
     )
+    // The WHERE must gate out left / anonymized members so publishers who
+    // left the congregation don't receive instant notifications, and preserve
+    // admin accounts (memberId: null) which are still valid targets.
+    expect(unscopedDb.userAccount.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          active: true,
+          OR: [{ memberId: null }, { member: { leftAt: null, anonymizedAt: null } }],
+        }),
+      }),
+    )
     expect(mailer.emails.send).toHaveBeenCalledTimes(1)
     const sent = vi.mocked(mailer.emails.send).mock.calls[0][0] as {
       to: string
@@ -562,6 +573,46 @@ describe('handleDigestEmail — success / failure partitioning', () => {
     // simply didn't get an email.
     expect(mailer.emails.send).not.toHaveBeenCalled()
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('gates recipient lookup on notificationRecipientFilter (left/anonymized members excluded, admins preserved)', async () => {
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
+      id: 7,
+      email: 'user@test.org',
+      firstname: 'Jean',
+      member: null,
+    } as never)
+
+    await handleDigestEmail({
+      type: 'notification-digest',
+      congregationId: 42,
+      recipientId: 7,
+      events: [
+        {
+          type: 'programme.assignment.assigned',
+          entityType: 'ProgrammePartAssignment',
+          entityId: 500,
+          payload: JSON.stringify({
+            eventId: 1,
+            eventName: 'meeting',
+            eventDate: '2026-07-20',
+            assignmentName: 'Part',
+            role: 'speaker',
+            link: '/board',
+          }),
+        },
+      ],
+      notificationEventIds: [77],
+    })
+
+    expect(unscopedDb.userAccount.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          active: true,
+          OR: [{ memberId: null }, { member: { leftAt: null, anonymizedAt: null } }],
+        }),
+      }),
+    )
   })
 })
 

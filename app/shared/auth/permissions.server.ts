@@ -51,6 +51,25 @@ function membersWithAnyRoleFilter(roleIds: number[]): Prisma.MemberWhereInput {
   }
 }
 
+// WHERE fragment for UserAccount queries that resolve notification
+// recipients. Excludes deactivated accounts, accounts whose linked Member
+// has left the congregation, and accounts whose linked Member has been
+// anonymized. Admin-only accounts (memberId: null) pass through — they are
+// still valid notification targets.
+//
+// Compose via spread for simple constraints:
+//   where: { id, congregationId, ...notificationRecipientFilter }
+// Or via AND when the caller already has an OR clause (permission fan-out):
+//   where: { congregationId, AND: [accountsWithPermissionFilter(x), notificationRecipientFilter] }
+//
+// This filter is *specifically* about notification delivery. Governance
+// checks (last-admin protection, role membership) intentionally do NOT use
+// it — a left member's account can still count against admin depletion.
+export const notificationRecipientFilter: Prisma.UserAccountWhereInput = {
+  active: true,
+  OR: [{ memberId: null }, { member: { leftAt: null, anonymizedAt: null } }],
+}
+
 type DbClient = TransactionClient | typeof unscopedDb
 
 export async function resolveEffectivePermissions(userId: number, congregationId: number): Promise<Set<Permission>> {
@@ -97,6 +116,31 @@ export async function findAccountsWithPermission(
 ): Promise<AccountWithPermission[]> {
   return db.userAccount.findMany({
     where: { congregationId, ...accountsWithPermissionFilter(permissionKey) },
+    select: {
+      id: true,
+      email: true,
+      firstname: true,
+      active: true,
+      member: { select: { firstname: true } },
+    },
+  })
+}
+
+// Notification-delivery variant of findAccountsWithPermission: additionally
+// gates recipients through notificationRecipientFilter so left / anonymized /
+// deactivated recipients are excluded. Use this for role-fanout notification
+// delivery; use findAccountsWithPermission for governance (last-admin,
+// permission introspection) where the broader set is intentional.
+export async function findNotificationRecipientsWithPermission(
+  db: DbClient,
+  congregationId: number,
+  permissionKey: Permission,
+): Promise<AccountWithPermission[]> {
+  return db.userAccount.findMany({
+    where: {
+      congregationId,
+      AND: [accountsWithPermissionFilter(permissionKey), notificationRecipientFilter],
+    },
     select: {
       id: true,
       email: true,

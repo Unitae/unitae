@@ -15,7 +15,9 @@ const {
   resolveEffectivePermissions,
   resolveEffectiveRoleIds,
   findAccountsWithPermission,
+  findNotificationRecipientsWithPermission,
   findMembersWithAnyRole,
+  notificationRecipientFilter,
   requireNotLastAdmin,
 } = await import('./permissions.server')
 const { unscopedDb } = await import('~/shared/infra/db.server')
@@ -207,6 +209,58 @@ describe('findMembersWithAnyRole', () => {
         ],
       },
       select: { id: true },
+    })
+  })
+})
+
+describe('notificationRecipientFilter', () => {
+  it('excludes deactivated accounts, left members, and anonymized members — admin accounts (no linked Member) pass through', () => {
+    // The filter is a shared Prisma WHERE fragment. Assert its shape so
+    // every caller inherits the same recipient-eligibility semantics.
+    expect(notificationRecipientFilter).toEqual({
+      active: true,
+      OR: [{ memberId: null }, { member: { leftAt: null, anonymizedAt: null } }],
+    })
+  })
+})
+
+describe('findNotificationRecipientsWithPermission', () => {
+  it('composes the permission fan-out with the recipient filter via AND so both must match', async () => {
+    vi.mocked(unscopedDb.userAccount.findMany).mockResolvedValue([] as never)
+
+    await findNotificationRecipientsWithPermission(unscopedDb, 7, Permission.BoardValidator)
+
+    expect(unscopedDb.userAccount.findMany).toHaveBeenCalledWith({
+      where: {
+        congregationId: 7,
+        AND: [
+          {
+            OR: [
+              { congregationPermissions: { some: { permission: { key: Permission.BoardValidator } } } },
+              {
+                roleAssignments: {
+                  some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
+                },
+              },
+              {
+                member: {
+                  roleAssignments: {
+                    some: { role: { permissions: { some: { permission: { key: Permission.BoardValidator } } } } },
+                  },
+                },
+              },
+            ],
+          },
+          notificationRecipientFilter,
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+        firstname: true,
+        active: true,
+        member: { select: { firstname: true } },
+      },
     })
   })
 })

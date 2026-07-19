@@ -1,6 +1,7 @@
 import { resolveProgrammeLink } from '~/features/display-board/index.server'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { notify } from '~/features/notifications/index.server'
+import { notificationRecipientFilter } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { formatEventDate } from '~/shared/utils/event-time'
@@ -150,16 +151,16 @@ export async function notifyAssignment(
   ctx: AssignmentNotificationContext,
   change: { type: AssignmentChangeType; memberId: number; role: ProgrammeRole },
 ): Promise<void> {
-  // `member: { leftAt: null }` gates out members who left the congregation.
-  // Their UserAccount can still be `active: true` (accounts and member
-  // lifecycle are independent), but a left member should not receive
-  // assignment emails — the assignment itself is stale by definition.
+  // notificationRecipientFilter gates out deactivated accounts and left /
+  // anonymized members. UserAccount.active and Member.leftAt are independent
+  // lifecycle states (accounts can outlive membership), so both must be
+  // checked at every recipient-resolution site — the filter is the single
+  // source of truth for that rule.
   const account = await db.userAccount.findFirst({
     where: {
       memberId: change.memberId,
       congregationId: ctx.congregationId,
-      active: true,
-      member: { leftAt: null },
+      ...notificationRecipientFilter,
     },
     select: { id: true },
   })
