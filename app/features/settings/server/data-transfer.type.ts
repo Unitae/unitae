@@ -41,7 +41,6 @@ export interface ImportSummary {
 export const ENTITY_FILES = [
   'congregation',
   'settings',
-  'event-kinds',
   'roles',
   'role-permissions',
   'members',

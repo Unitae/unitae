@@ -459,7 +459,6 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
 
   await withScope(congregationId, async db => {
     await mod.importSettings(zip, db, congregationId)
-    await mod.importEventKinds(zip, db, idMap, congregationId)
     await mod.importRoles(zip, db, idMap, congregationId)
     await mod.importRolePermissions(zip, db, idMap, permissionKeyToId, congregationId)
     await mod.importMembers(zip, db, idMap, congregationId)

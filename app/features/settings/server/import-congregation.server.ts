@@ -28,7 +28,7 @@ import {
   importBuildings,
   importTerritoryEntranceLinks,
 } from './import-buildings.server'
-import { importEventKinds, importRolePermissions, importRoles, importSettings } from './import-configuration.server'
+import { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
 import {
   importEvents,
   importProgrammePartAssignmentAllowedRoles,
@@ -88,12 +88,7 @@ export {
   importBuildings,
   importTerritoryEntranceLinks,
 } from './import-buildings.server'
-export {
-  importEventKinds,
-  importRolePermissions,
-  importRoles,
-  importSettings,
-} from './import-configuration.server'
+export { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
 export {
   importEvents,
   importProgrammePartAssignmentAllowedRoles,
@@ -179,9 +174,6 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       }
 
       await importSettings(zip, db, congregationId)
-      await progress()
-
-      await importEventKinds(zip, db, idMap, congregationId)
       await progress()
 
       await importRoles(zip, db, idMap, congregationId)

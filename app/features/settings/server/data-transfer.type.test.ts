@@ -111,11 +111,11 @@ describe('ENTITY_FILES', () => {
     expect(sectionsIndex).toBeLessThan(documentsIndex)
   })
 
-  it('has event-kinds before events (dependency order)', () => {
-    const kindsIndex = ENTITY_FILES.indexOf('event-kinds')
+  it('has programme-templates before events (dependency order)', () => {
+    const templatesIndex = ENTITY_FILES.indexOf('programme-templates')
     const eventsIndex = ENTITY_FILES.indexOf('events')
 
-    expect(kindsIndex).toBeLessThan(eventsIndex)
+    expect(templatesIndex).toBeLessThan(eventsIndex)
   })
 
   it('has roles before role-permissions (dependency order)', () => {

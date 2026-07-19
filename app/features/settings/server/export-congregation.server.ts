@@ -110,13 +110,6 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
         }),
     },
     {
-      name: 'event-kinds',
-      export: () =>
-        db.eventKind.findMany({
-          select: { id: true, name: true, key: true, color: true, weekDay: true },
-        }),
-    },
-    {
       name: 'roles',
       export: () =>
         db.role.findMany({
@@ -383,7 +376,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             description: true,
             weekDay: true,
             isRecurring: true,
-            kindId: true,
+            color: true,
           },
         }),
     },
@@ -440,7 +433,6 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
             id: true,
             name: true,
             description: true,
-            kindId: true,
             startDate: true,
             endDate: true,
             templateId: true,

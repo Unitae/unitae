@@ -16,11 +16,10 @@ export async function importProgrammeTemplates(
     description: string
     weekDay: number | null
     isRecurring: boolean
-    kindId?: number | null
+    color?: string
   }>(zip, 'programme-templates')
 
   for (const record of records) {
-    const kindId = idMap.getOptional('event-kinds', record.kindId)
     const existing = await db.programmeTemplate.findFirst({ where: { key: record.key } })
     if (existing) {
       await db.programmeTemplate.update({
@@ -30,7 +29,7 @@ export async function importProgrammeTemplates(
           description: record.description,
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
-          kindId,
+          ...(record.color != null ? { color: record.color } : {}),
         },
       })
       idMap.set('programme-templates', record.id, existing.id)
@@ -42,7 +41,7 @@ export async function importProgrammeTemplates(
           description: record.description,
           weekDay: record.weekDay,
           isRecurring: record.isRecurring,
-          kindId,
+          ...(record.color != null ? { color: record.color } : {}),
           congregationId,
         },
       })
