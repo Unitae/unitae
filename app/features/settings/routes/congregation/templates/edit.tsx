@@ -192,6 +192,8 @@ async function handlePartIntent(
       partOrder,
       partDuration,
       partAllowExternalSpeaker,
+      partSpeakerLabel,
+      partReaderLabel,
       allowedSpeakerRoleIds,
       allowedReaderRoleIds,
     } = submission.value
@@ -207,6 +209,8 @@ async function handlePartIntent(
         order: partOrder,
         durationMin: partDuration ?? null,
         allowExternalSpeaker: partAllowExternalSpeaker,
+        speakerLabel: partSpeakerLabel ?? null,
+        readerLabel: partReaderLabel ?? null,
         allowedSpeakerRoleIds,
         allowedReaderRoleIds,
       },
