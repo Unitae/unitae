@@ -133,24 +133,25 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {isSystem ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <span
-                className="inline-block size-4 rounded-full border"
-                style={{ backgroundColor: template.color }}
-                aria-hidden="true"
-              />
-              <CardTitle className="text-base">{m.settings_templates_system_badge()}</CardTitle>
+        <Card className="overflow-hidden">
+          <div className="flex">
+            <div
+              className="w-1.5 shrink-0 self-stretch"
+              style={{ backgroundColor: template.color }}
+              aria-hidden="true"
+            />
+            <div className="flex-1 p-6">
+              <div className="flex items-baseline justify-between gap-4">
+                <h2 className="font-medium text-base">{m.settings_templates_system_badge()}</h2>
+                <span className="font-mono text-muted-foreground text-xs uppercase">{template.color}</span>
+              </div>
+              <p className="mt-3 max-w-prose text-muted-foreground text-sm leading-relaxed">
+                {template.key === 'day-off'
+                  ? m.settings_template_system_body_day_off()
+                  : m.settings_template_system_body_freeform()}
+              </p>
             </div>
-          </CardHeader>
-          <CardContent>
-            <p className="max-w-prose text-muted-foreground text-sm leading-relaxed">
-              {template.key === 'day-off'
-                ? m.settings_template_system_body_day_off()
-                : m.settings_template_system_body_freeform()}
-            </p>
-          </CardContent>
+          </div>
         </Card>
       ) : (
         <>
