@@ -70,7 +70,6 @@ export function AssignPartSheet({
     prevState.current = fetcher.state
   }, [fetcher.state, fetcher.data, onOpenChange])
 
-  const activeInternalSelection = selectedAssignee || selectedAssistant || null
   const hasRegistry = externalSpeakers.length > 0
 
   if (!assignment) return null
@@ -183,6 +182,8 @@ export function AssignPartSheet({
                 />
               </div>
 
+              <PublisherInfoCard eventId={eventId} userId={selectedAssignee} partName={assignment.name} />
+
               <div className="flex flex-col gap-2">
                 <Label htmlFor="assistantId">{m.programs_assign_part_reader_label()}</Label>
                 <PersonDropdown
@@ -196,7 +197,7 @@ export function AssignPartSheet({
                 />
               </div>
 
-              <PublisherInfoCard eventId={eventId} userId={activeInternalSelection} partName={assignment.name} />
+              <PublisherInfoCard eventId={eventId} userId={selectedAssistant} partName={assignment.name} />
             </>
           )}
 
