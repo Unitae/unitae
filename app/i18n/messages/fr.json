@@ -708,6 +708,7 @@
     "settings_template_edit_weekday_none": "Aucun (évènement ponctuel)",
     "settings_template_edit_start_time_label": "Heure de début",
     "settings_template_edit_end_time_label": "Heure de fin",
+    "settings_template_edit_color_label": "Couleur",
     "settings_template_edit_day_sunday": "Dimanche",
     "settings_template_edit_day_monday": "Lundi",
     "settings_template_edit_day_tuesday": "Mardi",

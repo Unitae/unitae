@@ -706,6 +706,7 @@
     "settings_template_edit_weekday_none": "None (one-time event)",
     "settings_template_edit_start_time_label": "Start time",
     "settings_template_edit_end_time_label": "End time",
+    "settings_template_edit_color_label": "Colour",
     "settings_template_edit_day_sunday": "Sunday",
     "settings_template_edit_day_monday": "Monday",
     "settings_template_edit_day_tuesday": "Tuesday",

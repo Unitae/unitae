@@ -22,11 +22,10 @@ export const updateTemplateSchema = z.object({
     .optional()
     .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
     .pipe(z.number().nullable()),
-  kindId: z
+  color: z
     .string()
-    .optional()
-    .transform(v => (v != null && v !== '' && v !== 'none' ? Number(v) : null))
-    .pipe(z.number().nullable()),
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
   startTime: z.string().regex(TIME_REGEX),
   endTime: z.string().regex(TIME_REGEX),
 })

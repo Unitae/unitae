@@ -52,12 +52,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
 
   return withScopeFromContext(context, async db => {
-    const [template, eventKinds, allRoles] = await Promise.all([
+    const [template, allRoles] = await Promise.all([
       getTemplateById(db, templateId, currentUser.congregationId),
-      db.eventKind.findMany({
-        where: { congregationId: currentUser.congregationId, NOT: { key: 'off' } },
-        orderBy: { name: 'asc' },
-      }),
       listRoles(db, currentUser.congregationId),
     ])
     if (!template) throw redirect('/settings/congregation/templates')
@@ -96,7 +92,6 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       template: { ...template, parts: partsWithRoles, serviceRoles: serviceRolesWithRoles },
-      eventKinds,
       roles,
       sectionSuggestions,
       trackSuggestions,
@@ -122,8 +117,8 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       const submission = parseWithZod(formData, { schema: updateTemplateSchema })
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
-      const { name, weekDay, kindId, startTime, endTime } = submission.value
-      await updateTemplate(db, templateId, { name, weekDay, kindId, startTime, endTime }, currentUser.congregationId)
+      const { name, weekDay, color, startTime, endTime } = submission.value
+      await updateTemplate(db, templateId, { name, weekDay, color, startTime, endTime }, currentUser.congregationId)
       session.flash('success', m.settings_template_edit_update_success())
       logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
     }
@@ -251,7 +246,7 @@ async function handleServiceRoleIntent(
 }
 
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
-  const { template, eventKinds, roles, sectionSuggestions, trackSuggestions } = loaderData
+  const { template, roles, sectionSuggestions, trackSuggestions } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -386,24 +381,10 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                 <Input id="endTime" name="endTime" type="time" defaultValue={template.endTime} required />
               </div>
             </div>
-            {eventKinds.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="kindId">{m.programs_new_kind_label()}</Label>
-                <Select name="kindId" defaultValue={template.kindId?.toString() ?? 'none'}>
-                  <SelectTrigger id="kindId">
-                    <SelectValue placeholder={m.programs_new_kind_placeholder()} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{m.programs_edit_kind_none()}</SelectItem>
-                    {eventKinds.map(kind => (
-                      <SelectItem key={kind.id} value={kind.id.toString()}>
-                        {kind.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="color">{m.settings_template_edit_color_label()}</Label>
+              <Input id="color" name="color" type="color" defaultValue={template.color} className="h-10 w-24 p-1" />
+            </div>
             <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
           </infoFetcher.Form>
         </CardContent>

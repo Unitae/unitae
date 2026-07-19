@@ -105,22 +105,13 @@ describe('updateTemplate', () => {
     expect(result).toEqual(updated)
   })
 
-  it('sets kindId when provided', async () => {
+  it('updates the colour when provided', async () => {
     vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
 
-    await updateTemplate(db, 1, { name: 'Réunion', kindId: 5 }, 1)
+    await updateTemplate(db, 1, { name: 'Réunion', color: '#ff00aa' }, 1)
 
     const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
-    expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(5)
-  })
-
-  it('clears kindId when set to null', async () => {
-    vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
-
-    await updateTemplate(db, 1, { name: 'Réunion', kindId: null }, 1)
-
-    const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
-    expect((call[0] as { data: { kindId: null } }).data.kindId).toBeNull()
+    expect((call[0] as { data: { color: string } }).data.color).toBe('#ff00aa')
   })
 })
 

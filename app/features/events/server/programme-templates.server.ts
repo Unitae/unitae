@@ -40,7 +40,7 @@ export function updateTemplate(
     weekDay?: number | null
     isRecurring?: boolean
     description?: string
-    kindId?: number | null
+    color?: string
     startTime?: string
     endTime?: string
   },
