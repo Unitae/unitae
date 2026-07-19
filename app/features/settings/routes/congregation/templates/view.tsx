@@ -1,4 +1,4 @@
-import { Calendar, Clock, Copy, Pencil, UserCog } from 'lucide-react'
+import { Calendar, CalendarOff, CalendarPlus, Clock, Copy, Pencil, UserCog } from 'lucide-react'
 import { Form, Link, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { dayLabel, isSystemTemplate } from '~/features/events'
@@ -15,6 +15,7 @@ import { Permission } from '~/shared/types/permission'
 import { Badge } from '~/shared/ui/badge'
 import { Button } from '~/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
+import { EmptyState } from '~/shared/ui/EmptyState'
 import { PageHeader } from '~/shared/ui/PageHeader'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 import { formatPersonName, resolveAccountName } from '~/shared/utils/format-person-name'
@@ -133,26 +134,15 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {isSystem ? (
-        <Card className="overflow-hidden">
-          <div className="flex">
-            <div
-              className="w-1.5 shrink-0 self-stretch"
-              style={{ backgroundColor: template.color }}
-              aria-hidden="true"
-            />
-            <div className="flex-1 p-6">
-              <div className="flex items-baseline justify-between gap-4">
-                <h2 className="font-medium text-base">{m.settings_templates_system_badge()}</h2>
-                <span className="font-mono text-muted-foreground text-xs uppercase">{template.color}</span>
-              </div>
-              <p className="mt-3 max-w-prose text-muted-foreground text-sm leading-relaxed">
-                {template.key === 'day-off'
-                  ? m.settings_template_system_body_day_off()
-                  : m.settings_template_system_body_freeform()}
-              </p>
-            </div>
-          </div>
-        </Card>
+        <EmptyState
+          icon={template.key === 'day-off' ? CalendarOff : CalendarPlus}
+          title={m.settings_templates_system_badge()}
+          description={
+            template.key === 'day-off'
+              ? m.settings_template_system_body_day_off()
+              : m.settings_template_system_body_freeform()
+          }
+        />
       ) : (
         <>
           <Card>
