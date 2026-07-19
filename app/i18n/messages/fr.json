@@ -711,6 +711,7 @@
     "settings_templates_system_badge": "Système",
     "settings_template_system_body_day_off": "Réservé par l'application pour les absences. Poser un jour d'indisponibilité crée un événement rattaché à ce modèle.",
     "settings_template_system_body_freeform": "Réservé par l'application pour les événements ponctuels qui n'entrent dans aucun modèle récurrent.",
+    "settings_template_system_locked_intent": "Ce modèle est géré par l'application — seule la couleur est modifiable.",
     "settings_template_edit_parts_title": "Parties du programme",
     "settings_template_edit_part_name_label": "Nom",
     "settings_template_edit_part_section_label": "Section",

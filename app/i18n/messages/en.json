@@ -709,6 +709,7 @@
     "settings_templates_system_badge": "System",
     "settings_template_system_body_day_off": "Reserved by the app for absences. Choosing a person for a day off writes an event with this template.",
     "settings_template_system_body_freeform": "Reserved by the app for one-off events that do not fit a recurring template.",
+    "settings_template_system_locked_intent": "This template is managed by the app — only the colour can be changed.",
     "settings_template_edit_parts_title": "Program parts",
     "settings_template_edit_part_name_label": "Name",
     "settings_template_edit_part_section_label": "Section",

@@ -362,6 +362,24 @@ describe('duplicateTemplate', () => {
     expect(vi.mocked(db.programmeTemplate.create)).not.toHaveBeenCalled()
   })
 
+  // System templates are looked up by `key` at runtime. Duplicating them would
+  // produce a row with an untethered `-copy-<ts>` suffix; the UI hides the
+  // action but this is the server-side belt-and-suspenders check.
+  it('returns null when the source is a system template', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      key: 'day-off',
+      name: 'Absence',
+      parts: [],
+      serviceRoles: [],
+    } as never)
+
+    const result = await duplicateTemplate(db, 1, 1)
+
+    expect(result).toBeNull()
+    expect(vi.mocked(db.programmeTemplate.create)).not.toHaveBeenCalled()
+  })
+
   it('copies allowed-role lists from source parts and service roles to the duplicate', async () => {
     const source = {
       id: 5,

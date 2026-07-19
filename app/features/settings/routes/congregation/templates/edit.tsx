@@ -113,10 +113,13 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
+    const session = await getSession(request.headers.get('Cookie'))
+
     // Guard: system templates only accept the `update-template` intent (which
     // itself is scoped to colour on the server). Everything else — adding /
     // deleting parts or service roles — is rejected outright, matching the
-    // read-only UI.
+    // read-only UI. Flashes an error so a stale form submitting `delete-part`
+    // gets a visible reason rather than a silent redirect.
     const guardTarget = await db.programmeTemplate.findFirst({
       where: { id: templateId, congregationId: currentUser.congregationId },
       select: { key: true },
@@ -125,10 +128,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       logger.warn(
         `Rejecting mutation on system template. User ID: ${currentUser.id}. Template ID: ${templateId}. Intent: ${String(intent)}.`,
       )
-      throw redirect(`/settings/congregation/templates/${templateId}/edit`)
+      session.flash('error', m.settings_template_system_locked_intent())
+      throw redirect(`/settings/congregation/templates/${templateId}/edit`, {
+        headers: { 'Set-Cookie': await commitSession(session) },
+      })
     }
-
-    const session = await getSession(request.headers.get('Cookie'))
     if (intent === 'update-template') {
       const submission = parseWithZod(formData, { schema: updateTemplateSchema })
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })

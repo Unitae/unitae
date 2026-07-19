@@ -37,7 +37,6 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
     where: { id: eventId, congregationId },
     include: {
       template: true,
-      kind: true,
       partAssignments: {
         include: {
           assignee: true,
@@ -277,15 +276,15 @@ export async function refreshConflictFlags(
   endDate: Date,
   congregationId: number,
 ) {
-  // Find all programme events (templated OR not) overlapping the range.
-  // Day-off events themselves have no assignments and are excluded to avoid
-  // pointless iteration.
+  // Find all programme events overlapping the range, regardless of whether
+  // they have a template link. Day-off events themselves have no
+  // assignments and are excluded to avoid pointless iteration.
   //
   // The `NOT: { template: {...} }` shape (rather than
   // `template: { key: { not } }`) matters: Prisma's relational filter
   // inner-joins through `template`, so the `key: { not: 'day-off' }` form
-  // silently excludes events whose templateId is null — a shape older
-  // legacy rows may still carry until the drop-EventKind migration lands.
+  // silently excludes events whose templateId is null — a shape legacy
+  // imports and older data may still carry.
   const overlappingEvents = await db.event.findMany({
     where: {
       congregationId,

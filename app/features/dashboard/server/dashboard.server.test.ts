@@ -243,10 +243,9 @@ describe('getNextMeeting', () => {
   })
 
   // Same Prisma inner-join trap the codebase kept hitting with EventKind:
-  // `template: { key: { not 'day-off' } }` silently drops null-template rows,
-  // which older legacy events might carry until the drop-EventKind migration
-  // lands. Must use NOT: { template: { key } } so null-template rows stay in
-  // the result.
+  // `template: { key: { not: 'day-off' } }` silently drops null-template
+  // rows, which legacy imports and older data may still carry. Must use
+  // NOT: { template: { key } } so null-template rows stay in the result.
   it('uses NOT: { template: { key } } so null-template events are not silently dropped', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
 

@@ -256,6 +256,11 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
   })
   if (!source) return null
 
+  // System templates are looked up by key at runtime — duplicating them just
+  // clutters the list with an untethered `-copy-<ts>` row. The UI hides the
+  // Duplicate button; this is the server-side match.
+  if (isSystemTemplate(source.key)) return null
+
   const duplicated = await db.programmeTemplate.create({
     data: {
       name: `${source.name} (copie)`,

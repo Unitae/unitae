@@ -751,8 +751,8 @@ describe('refreshConflictFlags', () => {
   // The filter must use `NOT: { template: { key: 'day-off' } }` (not
   // `template: { key: { not: 'day-off' } }`): Prisma's relational filter
   // inner-joins through `template`, so the second form silently drops
-  // events whose templateId is null — a shape older legacy rows may still
-  // carry until the drop-EventKind migration lands.
+  // events whose templateId is null — a shape legacy imports and older
+  // data may still carry.
   it('excludes day-off events but keeps null-template events in the overlapping-events lookup', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 

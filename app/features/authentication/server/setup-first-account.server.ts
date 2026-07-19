@@ -53,8 +53,9 @@ export async function setupFirstAccount(
     })
   }
 
-  // Create default EventKind and programme templates inside a scoped
-  // transaction so PostgreSQL RLS allows the inserts.
+  // Create default programme templates (including the system day-off and
+  // freeform templates) inside a scoped transaction so PostgreSQL RLS allows
+  // the inserts.
   await withScope(congregation.id, async scopedDb => {
     await seedCongregationDefaults(scopedDb, congregation.id, locale, seedDefaultTemplates)
     await syncBuiltInRoleAssignments(scopedDb, user.id, congregation.id, user.id)
