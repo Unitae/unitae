@@ -35,6 +35,15 @@ const roleIdsField = z.preprocess(
   z.array(z.coerce.number().int().positive()),
 )
 
+// Same rules as the program-edit.schema equivalent — kept local to avoid a
+// cross-feature import from settings to events. Change both together.
+const partRoleLabelField = z
+  .string()
+  .trim()
+  .max(50)
+  .optional()
+  .transform(v => (v == null || v === '' ? undefined : v))
+
 export const upsertPartSchema = z.object({
   intent: z.literal('upsert-part'),
   partId: z.coerce.number().optional(),
@@ -48,6 +57,8 @@ export const upsertPartSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  partSpeakerLabel: partRoleLabelField,
+  partReaderLabel: partRoleLabelField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
 })

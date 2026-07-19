@@ -5,6 +5,16 @@ const roleIdsField = z.preprocess(
   z.array(z.coerce.number().int().positive()),
 )
 
+// Free-text per-part display labels — capped at 50 to keep DB rows sensible
+// and prevent accidental novellas. Blank/empty admin input yields undefined so
+// the fallback default (i18n key) surfaces via the part-labels helper.
+const partRoleLabelField = z
+  .string()
+  .trim()
+  .max(50)
+  .optional()
+  .transform(v => (v == null || v === '' ? undefined : v))
+
 export const updateEventSchema = z.object({
   intent: z.literal('update-event'),
   name: z.string().min(1),
@@ -25,6 +35,8 @@ export const addPartSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  partSpeakerLabel: partRoleLabelField,
+  partReaderLabel: partRoleLabelField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
 })
@@ -58,6 +70,8 @@ export const updatePartSchema = z.object({
     .string()
     .optional()
     .transform(v => v === 'on'),
+  partSpeakerLabel: partRoleLabelField,
+  partReaderLabel: partRoleLabelField,
   allowedSpeakerRoleIds: roleIdsField.default([]),
   allowedReaderRoleIds: roleIdsField.default([]),
 })
