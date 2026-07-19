@@ -1,4 +1,4 @@
-import { AlertTriangle, Calendar, Clock, Info, User } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Clock, Info, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
 import * as m from '~/i18n/paraglide/messages'
@@ -129,8 +129,8 @@ export function PublisherInfoCard({
         )}
 
         {!hasDaysOff && !hasOtherAssignments && (
-          <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-            <Calendar className="size-4" />
+          <div className="flex items-center gap-1.5 font-medium text-green-600 text-sm dark:text-green-400">
+            <CheckCircle2 className="size-4" />
             {m.publisher_info_available()}
           </div>
         )}
