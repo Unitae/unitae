@@ -52,6 +52,7 @@ type PartAssignment = {
   order: number
   assignee: Person | null
   assistant: Person | null
+  viewerRole: 'speaker' | 'reader' | null
 }
 type ServiceRoleAssignment = { id: number; name: string; assignee: Person | null }
 
@@ -148,6 +149,7 @@ describe('urgentPartAssignmentItems', () => {
           order: 1,
           assignee: { id: 1, firstname: 'John', lastname: 'Doe' },
           assistant: null,
+          viewerRole: 'speaker',
         },
       ],
     })
@@ -166,6 +168,7 @@ describe('urgentPartAssignmentItems', () => {
           order: 1,
           assignee: { id: 1, firstname: 'John', lastname: 'Doe' },
           assistant: null,
+          viewerRole: 'speaker',
         },
       ],
     })
@@ -188,6 +191,7 @@ describe('urgentPartAssignmentItems', () => {
           order: 1,
           assignee: { id: 1, firstname: 'John', lastname: 'Doe' },
           assistant: null,
+          viewerRole: 'speaker',
         },
       ],
     })
@@ -378,7 +382,16 @@ describe('buildUrgentItems', () => {
     const meeting = makeNextMeeting(new Date(2026, 3, 25, 19, 0), {
       userPartIds: [10],
       partAssignments: [
-        { id: 10, name: 'Discours', section: 'main', topic: '', order: 1, assignee: null, assistant: null },
+        {
+          id: 10,
+          name: 'Discours',
+          section: 'main',
+          topic: '',
+          order: 1,
+          assignee: null,
+          assistant: null,
+          viewerRole: null,
+        },
       ],
     })
     const items = buildUrgentItems(territories, null, meeting, null, null)
@@ -392,7 +405,16 @@ describe('buildUrgentItems', () => {
       userPartIds: [10],
       userServiceRoleIds: [5],
       partAssignments: [
-        { id: 10, name: 'Discours', section: 'main', topic: '', order: 1, assignee: null, assistant: null },
+        {
+          id: 10,
+          name: 'Discours',
+          section: 'main',
+          topic: '',
+          order: 1,
+          assignee: null,
+          assistant: null,
+          viewerRole: null,
+        },
       ],
       serviceRoleAssignments: [{ id: 5, name: 'Son', assignee: null }],
     })
