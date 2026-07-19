@@ -22,7 +22,7 @@ interface PublisherInfoData {
   }
   daysOff: { startDate: string; endDate: string }[]
   sameEventAssignments: { type: 'part' | 'service'; name: string; section?: string }[]
-  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean }
+  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean; savedMatchesSelection: boolean }
 }
 
 interface PublisherInfoCardProps {
@@ -148,7 +148,11 @@ export function PublisherInfoCard({
   )
 }
 
-function CadencePanel({ cadence }: { cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean } }) {
+function CadencePanel({
+  cadence,
+}: {
+  cadence: { past: CadenceEntry[]; future: CadenceEntry[]; hasHistory: boolean; savedMatchesSelection: boolean }
+}) {
   const warnings = computeCadenceWarnings(cadence)
   return (
     <div className="flex flex-col gap-1.5">
@@ -168,7 +172,13 @@ function CadencePanel({ cadence }: { cadence: { past: CadenceEntry[]; future: Ca
           {m.publisher_info_overdue()}
         </div>
       )}
-      {!warnings.firstTime && !warnings.overdue && <CadenceStrip past={cadence.past} future={cadence.future} />}
+      {!warnings.firstTime && !warnings.overdue && (
+        <CadenceStrip
+          past={cadence.past}
+          future={cadence.future}
+          savedMatchesSelection={cadence.savedMatchesSelection}
+        />
+      )}
       {warnings.consecutive && (
         <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
           <AlertTriangle className="size-3.5" />

@@ -56,10 +56,12 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
         ? await (async () => {
             const current = await db.programmePartAssignment.findFirst({
               where: { id: excludePartAssignmentId, congregationId },
-              select: { name: true, section: true },
+              select: { name: true, section: true, externalSpeakerId: true },
             })
             if (!current) return EMPTY_CADENCE
-            return listExternalSpeakerCadence(db, {
+            const savedMatchesSelection =
+              current.externalSpeakerId != null && current.externalSpeakerId === externalSpeakerId
+            const result = await listExternalSpeakerCadence(db, {
               externalSpeakerId,
               event,
               congregationId,
@@ -68,6 +70,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
               pastCount: 6,
               futureCount: 6,
             })
+            return { ...result, savedMatchesSelection }
           })()
         : EMPTY_CADENCE
 

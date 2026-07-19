@@ -32,10 +32,12 @@ async function resolveCadence(
   if (excludePartAssignmentId != null) {
     const current = await db.programmePartAssignment.findFirst({
       where: { id: excludePartAssignmentId, congregationId },
-      select: { name: true, section: true },
+      select: { name: true, section: true, assigneeId: true, assistantId: true },
     })
     if (!current) return EMPTY_CADENCE
-    return listUserCadence(db, {
+    const savedId = partSlot === 'assignee' ? current.assigneeId : current.assistantId
+    const savedMatchesSelection = savedId != null && savedId === userId
+    const cadence = await listUserCadence(db, {
       userId,
       event,
       congregationId,
@@ -45,15 +47,17 @@ async function resolveCadence(
       pastCount: 6,
       futureCount: 6,
     })
+    return { ...cadence, savedMatchesSelection }
   }
 
   if (excludeServiceAssignmentId != null) {
     const current = await db.programmeServiceRoleAssignment.findFirst({
       where: { id: excludeServiceAssignmentId, congregationId },
-      select: { name: true },
+      select: { name: true, assigneeId: true },
     })
     if (!current) return EMPTY_CADENCE
-    return listUserServiceCadence(db, {
+    const savedMatchesSelection = current.assigneeId != null && current.assigneeId === userId
+    const cadence = await listUserServiceCadence(db, {
       userId,
       event,
       congregationId,
@@ -61,6 +65,7 @@ async function resolveCadence(
       pastCount: 6,
       futureCount: 6,
     })
+    return { ...cadence, savedMatchesSelection }
   }
 
   return EMPTY_CADENCE
