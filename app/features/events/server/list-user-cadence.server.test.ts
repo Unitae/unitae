@@ -15,6 +15,7 @@ const DEFAULT_ARGS = {
   event: { templateId: 42 as number | null, id: 100, startDate: NOW },
   congregationId: 1,
   partName: 'Bible Reading',
+  partSection: 'Ministry',
   pastCount: 6,
 }
 
@@ -91,7 +92,11 @@ describe('listUserCadence', () => {
   it('marks assigned=true when the user is the part assignee', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), partAssignments: [{ assigneeId: 5, assistantId: null }] },
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
+        },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -103,7 +108,11 @@ describe('listUserCadence', () => {
   it('marks assigned=true when the user is the part assistant', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), partAssignments: [{ assigneeId: 99, assistantId: 5 }] },
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: 5 }],
+        },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -115,7 +124,11 @@ describe('listUserCadence', () => {
   it('marks assigned=false when neither slot is the user', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), partAssignments: [{ assigneeId: 99, assistantId: 42 }] },
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: 42 }],
+        },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -134,21 +147,75 @@ describe('listUserCadence', () => {
     expect(result.past[0].assigned).toBe(false)
   })
 
-  it('filters the included partAssignments by name so only the matching part is checked', async () => {
-    await listUserCadence(db, DEFAULT_ARGS)
+  it('ignores same-event parts whose name does not match, even if the user is assigned', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [
+            { name: 'Song', section: 'Ministry', assigneeId: 5, assistantId: null },
+            { name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: null },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
 
-    const pastCall = vi.mocked(db.event.findMany).mock.calls[0][0]
-    const partsInclude = (pastCall?.select as { partAssignments?: { where?: unknown } } | undefined)?.partAssignments
-    expect(partsInclude).toMatchObject({ where: { name: 'Bible Reading' } })
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].assigned).toBe(false)
+  })
+
+  it('ignores parts whose section does not match, even if name matches and the user is assigned', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [
+            // Same name, different section — must NOT feed the cadence.
+            { name: 'Bible Reading', section: 'Weekend', assigneeId: 5, assistantId: null },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].assigned).toBe(false)
+  })
+
+  it('matches when both name and section line up exactly', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].assigned).toBe(true)
   })
 
   it('returns both past and future entries in the expected shape', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), partAssignments: [{ assigneeId: 5, assistantId: null }] },
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
+        },
       ] as never)
       .mockResolvedValueOnce([
-        { id: 2, startDate: new Date('2026-08-01'), partAssignments: [{ assigneeId: 99, assistantId: null }] },
+        {
+          id: 2,
+          startDate: new Date('2026-08-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: null }],
+        },
       ] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)

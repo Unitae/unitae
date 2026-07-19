@@ -167,11 +167,8 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
   const { blocker, markDirty } = useUnsavedChanges()
 
   const hasRegistry = externalSpeakers.length > 0
-  const infoCardProps = {
-    eventId: event.id,
-    partName: assignment?.name,
-    excludePartAssignmentId: assignment?.id ?? null,
-  }
+  const { name, section, id } = assignment ?? {}
+  const infoCardProps = { eventId: event.id, partName: name, partSection: section, excludePartAssignmentId: id }
 
   return (
     <div className="flex flex-col gap-6">

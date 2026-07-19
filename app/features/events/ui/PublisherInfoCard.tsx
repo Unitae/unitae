@@ -28,6 +28,9 @@ interface PublisherInfoCardProps {
   eventId: number
   userId: string | null
   partName?: string
+  // Section pairs with partName to anchor the cadence query — identically-named
+  // parts sitting in different sections shouldn't be conflated.
+  partSection?: string
   // Used by the assign sheets to drop the assignment being edited from the
   // "other assignments on the same event" panel — otherwise the picker's own
   // row shows up as a fake conflict.
@@ -39,6 +42,7 @@ export function PublisherInfoCard({
   eventId,
   userId,
   partName,
+  partSection,
   excludePartAssignmentId,
   excludeServiceAssignmentId,
 }: PublisherInfoCardProps) {
@@ -49,12 +53,13 @@ export function PublisherInfoCard({
     if (!userId || userId === 'none') return
     const searchParams = new URLSearchParams({ userId })
     if (partName) searchParams.set('partName', partName)
+    if (partSection) searchParams.set('partSection', partSection)
     if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
     if (excludeServiceAssignmentId != null) {
       searchParams.set('excludeServiceAssignmentId', String(excludeServiceAssignmentId))
     }
     fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)
-  }, [userId, eventId, partName, excludePartAssignmentId, excludeServiceAssignmentId])
+  }, [userId, eventId, partName, partSection, excludePartAssignmentId, excludeServiceAssignmentId])
 
   if (!userId || userId === 'none') return null
 

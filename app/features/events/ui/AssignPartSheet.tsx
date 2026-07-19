@@ -186,6 +186,7 @@ export function AssignPartSheet({
                 eventId={eventId}
                 userId={selectedAssignee}
                 partName={assignment.name}
+                partSection={assignment.section}
                 excludePartAssignmentId={assignment.id}
               />
 
@@ -206,6 +207,7 @@ export function AssignPartSheet({
                 eventId={eventId}
                 userId={selectedAssistant}
                 partName={assignment.name}
+                partSection={assignment.section}
                 excludePartAssignmentId={assignment.id}
               />
             </>

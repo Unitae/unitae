@@ -22,6 +22,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const url = new URL(request.url)
   const userId = Number(url.searchParams.get('userId'))
   const partName = url.searchParams.get('partName') ?? ''
+  const partSection = url.searchParams.get('partSection') ?? ''
   const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
   const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceAssignmentId'))
 
@@ -63,7 +64,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     })
 
     const cadence = partName
-      ? await listUserCadence(db, { userId, event, congregationId, partName, pastCount: 6 })
+      ? await listUserCadence(db, { userId, event, congregationId, partName, partSection, pastCount: 6 })
       : { past: [], future: [] }
 
     return Response.json({
