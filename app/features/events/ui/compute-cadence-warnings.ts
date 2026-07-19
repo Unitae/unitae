@@ -1,4 +1,6 @@
-export type CadenceEntry = { date: string; assigned: boolean }
+import type { CadenceEntry } from '~/features/events/model/cadence.type'
+
+export type { CadenceEntry }
 
 export type CadenceWarnings = {
   firstTime: boolean

@@ -1,14 +1,7 @@
+import { type CadenceEntry, normalize, type PartSlot } from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
-export type CadenceEntry = { date: string; assigned: boolean }
-
-// Same-slot comparison is diacritic-insensitive and tolerant of case /
-// surrounding whitespace so trivial drift between the current row and
-// historical rows doesn't split them into two distinct cadences.
-function normalize(input: string): string {
-  return stripDiacritics(input).trim()
-}
+export type { CadenceEntry }
 
 type Options = {
   userId: number
@@ -19,10 +12,7 @@ type Options = {
   // sections of the same template (e.g. two "Bible reading" slots) don't
   // collide into the same cadence.
   partSection: string
-  // Which role slot the picker is filling. Speaker (assignee) and reader
-  // (assistant) are distinct rotation buckets — a person who was the speaker
-  // one week shouldn't light up the reader cadence the next week.
-  slot: 'assignee' | 'assistant'
+  slot: PartSlot
   pastCount: number
   futureCount: number
 }
@@ -43,27 +33,23 @@ export async function listUserCadence(
     select: { name: true, section: true, assigneeId: true, assistantId: true },
   } as const
 
-  const pastRows = await db.event.findMany({
-    where: {
-      templateId: event.templateId,
-      congregationId,
-      startDate: { lt: event.startDate },
-    },
-    orderBy: { startDate: 'desc' },
-    take: pastCount,
-    select: { id: true, startDate: true, partAssignments: partsSelect },
-  })
+  const commonWhere = { templateId: event.templateId, congregationId } as const
+  const rowSelect = { id: true, startDate: true, partAssignments: partsSelect } as const
 
-  const futureRows = await db.event.findMany({
-    where: {
-      templateId: event.templateId,
-      congregationId,
-      startDate: { gt: event.startDate },
-    },
-    orderBy: { startDate: 'asc' },
-    take: futureCount,
-    select: { id: true, startDate: true, partAssignments: partsSelect },
-  })
+  const [pastRows, futureRows] = await Promise.all([
+    db.event.findMany({
+      where: { ...commonWhere, startDate: { lt: event.startDate } },
+      orderBy: { startDate: 'desc' },
+      take: pastCount,
+      select: rowSelect,
+    }),
+    db.event.findMany({
+      where: { ...commonWhere, startDate: { gt: event.startDate } },
+      orderBy: { startDate: 'asc' },
+      take: futureCount,
+      select: rowSelect,
+    }),
+  ])
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)

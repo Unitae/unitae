@@ -1,4 +1,5 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
+import { EMPTY_CADENCE, type PartSlot } from '~/features/events/server/cadence-shared.server'
 import { listUserCadence } from '~/features/events/server/list-user-cadence.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { listUserServiceCadence } from '~/features/events/server/list-user-service-cadence.server'
@@ -15,15 +16,13 @@ function parseOptionalId(raw: string | null): number | null {
   return Number.isFinite(value) && value > 0 ? value : null
 }
 
-const EMPTY_CADENCE = { past: [], future: [] } as const
-
 type ResolveCadenceArgs = {
   userId: number
   event: { templateId: number | null; id: number; startDate: Date }
   congregationId: number
   excludePartAssignmentId: number | null
   excludeServiceAssignmentId: number | null
-  partSlot: 'assignee' | 'assistant'
+  partSlot: PartSlot
 }
 
 async function resolveCadence(

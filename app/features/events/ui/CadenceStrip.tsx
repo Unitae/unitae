@@ -1,4 +1,4 @@
-import type { CadenceEntry } from '~/features/events/ui/compute-cadence-warnings'
+import type { CadenceEntry } from '~/features/events/model/cadence.type'
 import { formatAbsoluteDate } from '~/shared/utils/relative-time'
 import { cn } from '~/shared/utils/utils'
 

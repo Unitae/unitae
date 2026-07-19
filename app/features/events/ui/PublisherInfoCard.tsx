@@ -1,8 +1,9 @@
 import { AlertTriangle, CheckCircle2, Info, Repeat, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
+import type { CadenceEntry, PartSlot } from '~/features/events/model/cadence.type'
 import { CadenceStrip } from '~/features/events/ui/CadenceStrip'
-import { type CadenceEntry, computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
+import { computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -32,11 +33,10 @@ interface PublisherInfoCardProps {
   // section server-side) and the "same-event assignments" exclusion.
   excludePartAssignmentId?: number | null
   excludeServiceAssignmentId?: number | null
-  // Which slot the card is rendering for on a part sheet: 'assignee' is the
-  // speaker, 'assistant' is the reader. Speaker and reader are distinct
-  // rotation buckets so the cadence must not conflate them. Ignored for
-  // service assignments (they have only one slot).
-  partSlot?: 'assignee' | 'assistant'
+  // Which slot the card is rendering for on a part sheet. Ignored for service
+  // assignments (they have only one slot). Definition + rotation-bucket
+  // rationale live on the PartSlot type in the shared cadence model.
+  partSlot?: PartSlot
 }
 
 export function PublisherInfoCard({

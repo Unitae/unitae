@@ -1,7 +1,7 @@
+import { type CadenceEntry, normalize } from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
-import { stripDiacritics } from '~/shared/utils/strip-diacritics'
 
-export type CadenceEntry = { date: string; assigned: boolean }
+export type { CadenceEntry }
 
 type Options = {
   userId: number
@@ -13,10 +13,6 @@ type Options = {
   serviceRoleName: string
   pastCount: number
   futureCount: number
-}
-
-function normalize(input: string): string {
-  return stripDiacritics(input).trim()
 }
 
 // Sibling of listUserCadence for service-role assignments. Same event-side
@@ -34,27 +30,23 @@ export async function listUserServiceCadence(
     select: { name: true, assigneeId: true },
   } as const
 
-  const pastRows = await db.event.findMany({
-    where: {
-      templateId: event.templateId,
-      congregationId,
-      startDate: { lt: event.startDate },
-    },
-    orderBy: { startDate: 'desc' },
-    take: pastCount,
-    select: { id: true, startDate: true, serviceRoleAssignments: servicesSelect },
-  })
+  const commonWhere = { templateId: event.templateId, congregationId } as const
+  const rowSelect = { id: true, startDate: true, serviceRoleAssignments: servicesSelect } as const
 
-  const futureRows = await db.event.findMany({
-    where: {
-      templateId: event.templateId,
-      congregationId,
-      startDate: { gt: event.startDate },
-    },
-    orderBy: { startDate: 'asc' },
-    take: futureCount,
-    select: { id: true, startDate: true, serviceRoleAssignments: servicesSelect },
-  })
+  const [pastRows, futureRows] = await Promise.all([
+    db.event.findMany({
+      where: { ...commonWhere, startDate: { lt: event.startDate } },
+      orderBy: { startDate: 'desc' },
+      take: pastCount,
+      select: rowSelect,
+    }),
+    db.event.findMany({
+      where: { ...commonWhere, startDate: { gt: event.startDate } },
+      orderBy: { startDate: 'asc' },
+      take: futureCount,
+      select: rowSelect,
+    }),
+  ])
 
   const targetName = normalize(serviceRoleName)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => ({
