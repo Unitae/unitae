@@ -1,6 +1,6 @@
 import { ChevronRight, Plus } from 'lucide-react'
 import { Link, redirect } from 'react-router'
-import { dayLabelShort } from '~/features/events'
+import { dayLabelShort, isSystemTemplate } from '~/features/events'
 import { getTemplates } from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -67,6 +67,11 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
                   <Link to={`./${template.id}`} className="font-medium hover:underline">
                     {template.name}
                   </Link>
+                  {isSystemTemplate(template.key) && (
+                    <Badge variant="secondary" className="ml-2 align-middle text-xs">
+                      {m.settings_templates_system_badge()}
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">{template._count.parts}</TableCell>
                 <TableCell className="text-center max-sm:hidden">{template._count.serviceRoles}</TableCell>

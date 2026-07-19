@@ -3,7 +3,7 @@
 export { dayLabel, dayLabelShort } from './model/day-label'
 export { EventStatus } from './model/event-status.type'
 export { groupPartsBySlot } from './model/group-parts-by-slot'
-export { ProgrammeTemplateKey } from './model/programme-template.type'
+export { isSystemTemplate, ProgrammeTemplateKey } from './model/programme-template.type'
 export { InlineDeleteDialog } from './ui/InlineDeleteDialog'
 export { PartEditSheet } from './ui/PartEditSheet'
 export { ServiceEditSheet } from './ui/ServiceEditSheet'

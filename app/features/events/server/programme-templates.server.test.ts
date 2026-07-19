@@ -113,6 +113,29 @@ describe('updateTemplate', () => {
     const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
     expect((call[0] as { data: { color: string } }).data.color).toBe('#ff00aa')
   })
+
+  // System templates back domain concepts — the day-off writer looks them up
+  // by `key`, so renaming or restructuring them from the settings UI would
+  // silently break the feature. The server enforces that even if the form
+  // POSTs a full payload, only the colour lands on the row.
+  it('only writes the colour on system templates', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ key: 'day-off' } as never)
+    vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
+
+    await updateTemplate(db, 1, { name: 'Nope', color: '#abcdef', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1)
+
+    const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
+    const written = (call[0] as { data: Record<string, unknown> }).data
+    expect(written).toEqual({ color: '#abcdef' })
+  })
+
+  it('skips the update entirely on system templates when nothing but ignored fields is passed', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ key: 'freeform' } as never)
+
+    await updateTemplate(db, 1, { name: 'Nope', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1)
+
+    expect(db.programmeTemplate.update).not.toHaveBeenCalled()
+  })
 })
 
 describe('upsertTemplatePart', () => {

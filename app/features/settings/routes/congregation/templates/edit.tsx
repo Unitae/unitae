@@ -5,7 +5,7 @@ import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { InlineDeleteDialog, PartEditSheet, ServiceEditSheet, SortableRow } from '~/features/events'
+import { InlineDeleteDialog, isSystemTemplate, PartEditSheet, ServiceEditSheet, SortableRow } from '~/features/events'
 import {
   deleteTemplatePart,
   deleteTemplateServiceRole,
@@ -92,6 +92,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
 
     return {
       template: { ...template, parts: partsWithRoles, serviceRoles: serviceRolesWithRoles },
+      isSystem: isSystemTemplate(template.key),
       roles,
       sectionSuggestions,
       trackSuggestions,
@@ -111,6 +112,21 @@ export async function action({ request, params, context }: Route.ActionArgs) {
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
+
+    // Guard: system templates only accept the `update-template` intent (which
+    // itself is scoped to colour on the server). Everything else — adding /
+    // deleting parts or service roles — is rejected outright, matching the
+    // read-only UI.
+    const guardTarget = await db.programmeTemplate.findFirst({
+      where: { id: templateId, congregationId: currentUser.congregationId },
+      select: { key: true },
+    })
+    if (guardTarget != null && isSystemTemplate(guardTarget.key) && intent !== 'update-template') {
+      logger.warn(
+        `Rejecting mutation on system template. User ID: ${currentUser.id}. Template ID: ${templateId}. Intent: ${String(intent)}.`,
+      )
+      throw redirect(`/settings/congregation/templates/${templateId}/edit`)
+    }
 
     const session = await getSession(request.headers.get('Cookie'))
     if (intent === 'update-template') {
@@ -246,7 +262,7 @@ async function handleServiceRoleIntent(
 }
 
 export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
-  const { template, roles, sectionSuggestions, trackSuggestions } = loaderData
+  const { template, isSystem, roles, sectionSuggestions, trackSuggestions } = loaderData
 
   const infoFetcher = useFetcher()
   const partFetcher = useFetcher()
@@ -347,40 +363,55 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
           <CardTitle className="text-base">{m.settings_template_edit_general_info()}</CardTitle>
         </CardHeader>
         <CardContent>
+          {isSystem && (
+            <div
+              role="note"
+              className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-amber-900 text-sm dark:text-amber-200"
+            >
+              <p className="font-medium">{m.settings_template_edit_system_banner_title()}</p>
+              <p className="mt-0.5 text-amber-900/80 dark:text-amber-200/80">
+                {m.settings_template_edit_system_banner_body()}
+              </p>
+            </div>
+          )}
           <infoFetcher.Form method="post" className="flex flex-col gap-4">
             <input type="hidden" name="intent" value="update-template" />
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="name">{m.settings_template_edit_name_label()}</Label>
-              <Input id="name" name="name" defaultValue={template.name} required />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="weekDay">{m.settings_template_edit_weekday_label()}</Label>
-              <Select name="weekDay" defaultValue={template.weekDay?.toString() ?? 'none'}>
-                <SelectTrigger>
-                  <SelectValue placeholder={m.settings_template_edit_weekday_none()} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{m.settings_template_edit_weekday_none()}</SelectItem>
-                  <SelectItem value="0">{m.settings_template_edit_day_sunday()}</SelectItem>
-                  <SelectItem value="1">{m.settings_template_edit_day_monday()}</SelectItem>
-                  <SelectItem value="2">{m.settings_template_edit_day_tuesday()}</SelectItem>
-                  <SelectItem value="3">{m.settings_template_edit_day_wednesday()}</SelectItem>
-                  <SelectItem value="4">{m.settings_template_edit_day_thursday()}</SelectItem>
-                  <SelectItem value="5">{m.settings_template_edit_day_friday()}</SelectItem>
-                  <SelectItem value="6">{m.settings_template_edit_day_saturday()}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="startTime">{m.settings_template_edit_start_time_label()}</Label>
-                <Input id="startTime" name="startTime" type="time" defaultValue={template.startTime} required />
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="endTime">{m.settings_template_edit_end_time_label()}</Label>
-                <Input id="endTime" name="endTime" type="time" defaultValue={template.endTime} required />
-              </div>
-            </div>
+            {!isSystem && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="name">{m.settings_template_edit_name_label()}</Label>
+                  <Input id="name" name="name" defaultValue={template.name} required />
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="weekDay">{m.settings_template_edit_weekday_label()}</Label>
+                  <Select name="weekDay" defaultValue={template.weekDay?.toString() ?? 'none'}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={m.settings_template_edit_weekday_none()} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">{m.settings_template_edit_weekday_none()}</SelectItem>
+                      <SelectItem value="0">{m.settings_template_edit_day_sunday()}</SelectItem>
+                      <SelectItem value="1">{m.settings_template_edit_day_monday()}</SelectItem>
+                      <SelectItem value="2">{m.settings_template_edit_day_tuesday()}</SelectItem>
+                      <SelectItem value="3">{m.settings_template_edit_day_wednesday()}</SelectItem>
+                      <SelectItem value="4">{m.settings_template_edit_day_thursday()}</SelectItem>
+                      <SelectItem value="5">{m.settings_template_edit_day_friday()}</SelectItem>
+                      <SelectItem value="6">{m.settings_template_edit_day_saturday()}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="startTime">{m.settings_template_edit_start_time_label()}</Label>
+                    <Input id="startTime" name="startTime" type="time" defaultValue={template.startTime} required />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="endTime">{m.settings_template_edit_end_time_label()}</Label>
+                    <Input id="endTime" name="endTime" type="time" defaultValue={template.endTime} required />
+                  </div>
+                </div>
+              </>
+            )}
             <div className="flex flex-col gap-2">
               <Label htmlFor="color">{m.settings_template_edit_color_label()}</Label>
               <Input id="color" name="color" type="color" defaultValue={template.color} className="h-10 w-24 p-1" />
@@ -390,181 +421,185 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
         </CardContent>
       </Card>
 
-      {/* Program parts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{m.settings_template_edit_parts_title()}</CardTitle>
-          <CardAction>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingPart(null)
-                setPartSheetOpen(true)
-              }}
-            >
-              <Plus className="size-4" />
-              {m.programs_edit_add_part_button()}
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {template.parts.length > 0 ? (
-            <DndContext collisionDetection={closestCenter} onDragEnd={handlePartDragEnd}>
-              <SortableContext items={template.parts.map(p => p.id)} strategy={verticalListSortingStrategy}>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-8" />
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>{m.settings_template_view_part_column()}</TableHead>
-                      <TableHead className="w-24">{m.settings_template_view_duration_column()}</TableHead>
-                      <TableHead className="w-20">{m.common_actions()}</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {partsBySection.map(group => (
-                      <>
-                        {group.section && (
-                          <TableRow key={`section-${group.section}`} className="bg-muted/50">
-                            <TableCell colSpan={5} className="py-1.5">
-                              <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                                {group.section}
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {group.parts.map(part => (
-                          <SortableRow key={part.id} id={part.id}>
-                            <TableCell className="text-muted-foreground">{part.order}</TableCell>
-                            <TableCell>
-                              <span className="font-medium text-sm">{part.name}</span>
-                            </TableCell>
-                            <TableCell>
-                              {part.durationMin ? (
-                                <span className="flex items-center gap-1 text-muted-foreground text-sm">
-                                  <Clock className="size-3" />
-                                  {part.durationMin} min
+      {/* Program parts — hidden for system templates */}
+      {!isSystem && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{m.settings_template_edit_parts_title()}</CardTitle>
+            <CardAction>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingPart(null)
+                  setPartSheetOpen(true)
+                }}
+              >
+                <Plus className="size-4" />
+                {m.programs_edit_add_part_button()}
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            {template.parts.length > 0 ? (
+              <DndContext collisionDetection={closestCenter} onDragEnd={handlePartDragEnd}>
+                <SortableContext items={template.parts.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8" />
+                        <TableHead className="w-12">#</TableHead>
+                        <TableHead>{m.settings_template_view_part_column()}</TableHead>
+                        <TableHead className="w-24">{m.settings_template_view_duration_column()}</TableHead>
+                        <TableHead className="w-20">{m.common_actions()}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {partsBySection.map(group => (
+                        <>
+                          {group.section && (
+                            <TableRow key={`section-${group.section}`} className="bg-muted/50">
+                              <TableCell colSpan={5} className="py-1.5">
+                                <span className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                                  {group.section}
                                 </span>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-7"
-                                  onClick={() => {
-                                    setEditingPart({
-                                      id: part.id,
-                                      name: part.name,
-                                      section: part.section,
-                                      track: part.track,
-                                      trackOrder: part.trackOrder,
-                                      order: part.order,
-                                      durationMin: part.durationMin,
-                                      allowExternalSpeaker: part.allowExternalSpeaker,
-                                      allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
-                                      allowedReaderRoleIds: part.allowedReaderRoleIds,
-                                    })
-                                    setPartSheetOpen(true)
-                                  }}
-                                >
-                                  <Pencil className="size-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="size-7 text-destructive hover:text-destructive"
-                                  onClick={() => setDeleteTarget({ type: 'part', id: part.id, name: part.name })}
-                                >
-                                  <Trash2 className="size-3" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </SortableRow>
-                        ))}
-                      </>
-                    ))}
-                  </TableBody>
-                </Table>
-              </SortableContext>
-            </DndContext>
-          ) : (
-            <p className="text-muted-foreground text-sm italic">{m.settings_template_edit_part_new_placeholder()}</p>
-          )}
-        </CardContent>
-      </Card>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                          {group.parts.map(part => (
+                            <SortableRow key={part.id} id={part.id}>
+                              <TableCell className="text-muted-foreground">{part.order}</TableCell>
+                              <TableCell>
+                                <span className="font-medium text-sm">{part.name}</span>
+                              </TableCell>
+                              <TableCell>
+                                {part.durationMin ? (
+                                  <span className="flex items-center gap-1 text-muted-foreground text-sm">
+                                    <Clock className="size-3" />
+                                    {part.durationMin} min
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7"
+                                    onClick={() => {
+                                      setEditingPart({
+                                        id: part.id,
+                                        name: part.name,
+                                        section: part.section,
+                                        track: part.track,
+                                        trackOrder: part.trackOrder,
+                                        order: part.order,
+                                        durationMin: part.durationMin,
+                                        allowExternalSpeaker: part.allowExternalSpeaker,
+                                        allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
+                                        allowedReaderRoleIds: part.allowedReaderRoleIds,
+                                      })
+                                      setPartSheetOpen(true)
+                                    }}
+                                  >
+                                    <Pencil className="size-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="size-7 text-destructive hover:text-destructive"
+                                    onClick={() => setDeleteTarget({ type: 'part', id: part.id, name: part.name })}
+                                  >
+                                    <Trash2 className="size-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </SortableRow>
+                          ))}
+                        </>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </SortableContext>
+              </DndContext>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">{m.settings_template_edit_part_new_placeholder()}</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Service roles */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{m.settings_template_edit_service_roles_title()}</CardTitle>
-          <CardAction>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingService(null)
-                setServiceSheetOpen(true)
-              }}
-            >
-              <Plus className="size-4" />
-              {m.programs_edit_add_service_button()}
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {template.serviceRoles.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{m.settings_template_edit_role_name_label()}</TableHead>
-                  <TableHead className="w-20">{m.common_actions()}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {template.serviceRoles.map(role => (
-                  <TableRow key={role.id}>
-                    <TableCell className="font-medium text-sm">{role.name}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7"
-                          onClick={() => {
-                            setEditingService({
-                              id: role.id,
-                              name: role.name,
-                              allowedRoleIds: role.allowedRoleIds,
-                            })
-                            setServiceSheetOpen(true)
-                          }}
-                        >
-                          <Pencil className="size-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="size-7 text-destructive hover:text-destructive"
-                          onClick={() => setDeleteTarget({ type: 'service', id: role.id, name: role.name })}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
+      {/* Service roles — hidden for system templates */}
+      {!isSystem && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">{m.settings_template_edit_service_roles_title()}</CardTitle>
+            <CardAction>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingService(null)
+                  setServiceSheetOpen(true)
+                }}
+              >
+                <Plus className="size-4" />
+                {m.programs_edit_add_service_button()}
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            {template.serviceRoles.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{m.settings_template_edit_role_name_label()}</TableHead>
+                    <TableHead className="w-20">{m.common_actions()}</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <p className="text-muted-foreground text-sm italic">
-              {m.settings_template_edit_role_new_name_placeholder()}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {template.serviceRoles.map(role => (
+                    <TableRow key={role.id}>
+                      <TableCell className="font-medium text-sm">{role.name}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            onClick={() => {
+                              setEditingService({
+                                id: role.id,
+                                name: role.name,
+                                allowedRoleIds: role.allowedRoleIds,
+                              })
+                              setServiceSheetOpen(true)
+                            }}
+                          >
+                            <Pencil className="size-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-destructive hover:text-destructive"
+                            onClick={() => setDeleteTarget({ type: 'service', id: role.id, name: role.name })}
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-muted-foreground text-sm italic">
+                {m.settings_template_edit_role_new_name_placeholder()}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Sheets */}
       <PartEditSheet
