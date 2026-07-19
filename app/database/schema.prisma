@@ -701,6 +701,10 @@ model ProgrammeTemplatePart {
   order                Int
   durationMin          Int?
   allowExternalSpeaker Boolean @default(false)
+  // Per-part display labels for the two role slots. Null means "use the
+  // generic i18n default" — see app/features/events/model/part-labels.ts.
+  speakerLabel         String?
+  readerLabel          String?
 
   template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
@@ -738,12 +742,17 @@ model ProgrammePartAssignment {
   hasConflict Boolean @default(false)
 
   // Inline fields (copied from template part on generation, or set manually for custom parts)
-  name        String @default("")
-  section     String @default("")
-  track       String @default("")
-  trackOrder  Int?
-  order       Int    @default(0)
-  durationMin Int?
+  name         String  @default("")
+  section      String  @default("")
+  track        String  @default("")
+  trackOrder   Int?
+  order        Int     @default(0)
+  durationMin  Int?
+  // Per-part display labels for the two role slots. Denormalized from the
+  // template at apply time so historical assignments stay stable when the
+  // template later changes. Null → i18n default (part-labels.ts helper).
+  speakerLabel String?
+  readerLabel  String?
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
