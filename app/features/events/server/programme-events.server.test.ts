@@ -25,6 +25,7 @@ const {
   deleteEvent,
   updateEvent,
   addPartAssignment,
+  updatePartAssignment,
   deletePartAssignment,
   addServiceRoleAssignment,
   deleteServiceRoleAssignment,
@@ -42,6 +43,7 @@ const mockDb = {
   programmePartAssignment: {
     create: vi.fn(),
     delete: vi.fn(),
+    update: vi.fn(),
   },
   programmeServiceRoleAssignment: {
     create: vi.fn(),
@@ -258,6 +260,33 @@ describe('addPartAssignment', () => {
     expect(result).toEqual(expected)
     expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({ data: createData })
   })
+
+  it('passes speakerLabel and readerLabel to create when supplied (Layer 5)', async () => {
+    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 1 })
+
+    await addPartAssignment(
+      mockDb as never,
+      {
+        eventId: 1,
+        name: 'Bible reading',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: 'HOUSEHOLDER-SENTINEL',
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+        congregationId: 10,
+      },
+      99,
+    )
+
+    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
+    })
+  })
 })
 
 describe('deletePartAssignment', () => {
@@ -269,6 +298,36 @@ describe('deletePartAssignment', () => {
     expect(result).toEqual({ id: 5 })
     expect(mockDb.programmePartAssignment.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
+    })
+  })
+})
+
+describe('updatePartAssignment', () => {
+  it('passes speakerLabel and readerLabel to the update when supplied (Layer 5)', async () => {
+    mockDb.programmePartAssignment.update.mockResolvedValue({ id: 5 })
+
+    await updatePartAssignment(
+      mockDb as never,
+      5,
+      {
+        name: 'Bible reading',
+        section: 'main',
+        track: 'A',
+        order: 1,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: 'HOUSEHOLDER-SENTINEL',
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      10,
+      99,
+    )
+
+    expect(mockDb.programmePartAssignment.update).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 5, congregationId: 10 } },
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
   })
 })

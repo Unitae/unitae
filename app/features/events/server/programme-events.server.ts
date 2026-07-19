@@ -63,9 +63,9 @@ export function deleteEvent(db: TransactionClient, id: number, congregationId: n
   })
 }
 
-// Explicit allowlist. Wider mutations (status, templateId, createdById)
-// belong to dedicated mutators (release/unrelease/applyTemplate) so their
-// invariants and audit trails live with the operation, not here.
+// Explicit allowlist. Wider mutations (status, templateId, createdById) belong to
+// dedicated mutators (release/unrelease/applyTemplate) so their invariants and audit
+// trails live with the operation. Metadata logs field names only — no values.
 export interface UpdateEventFields {
   name?: string
   startDate?: Date
@@ -79,12 +79,7 @@ export async function updateEvent(
   data: UpdateEventFields,
   actorId: number,
 ) {
-  const event = await db.event.update({
-    where: { id_congregationId: { id, congregationId } },
-    data,
-  })
-  // Field names only, no values — enough for forensics ("who touched
-  // startDate on Aug 3") without ballooning audit-log volume.
+  const event = await db.event.update({ where: { id_congregationId: { id, congregationId } }, data })
   audit({
     action: AuditAction.EventUpdated,
     congregationId,
@@ -107,6 +102,8 @@ export async function addPartAssignment(
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    speakerLabel?: string | null
+    readerLabel?: string | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
     congregationId: number
@@ -197,6 +194,8 @@ export async function updatePartAssignment(
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    speakerLabel?: string | null
+    readerLabel?: string | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
   },

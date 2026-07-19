@@ -267,6 +267,64 @@ describe('isTemplateResponsible', () => {
   })
 })
 
+describe('upsertTemplatePart role labels', () => {
+  it('passes speakerLabel and readerLabel through to the create data (Layer 5)', async () => {
+    vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 42 } as never)
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        name: 'Bible reading',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 5,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: null,
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      7,
+      99,
+    )
+
+    expect(vi.mocked(db.programmeTemplatePart.create)).toHaveBeenCalledWith({
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null }),
+    })
+  })
+
+  it('passes speakerLabel and readerLabel through to the update data (Layer 5)', async () => {
+    vi.mocked(db.programmeTemplatePart.update).mockResolvedValue({ id: 42 } as never)
+
+    await upsertTemplatePart(
+      db,
+      1,
+      {
+        id: 42,
+        name: 'Return visit',
+        section: '',
+        track: '',
+        order: 1,
+        durationMin: 10,
+        allowExternalSpeaker: false,
+        speakerLabel: 'STUDENT-SENTINEL',
+        readerLabel: 'HOUSEHOLDER-SENTINEL',
+        allowedSpeakerRoleIds: [],
+        allowedReaderRoleIds: [],
+      },
+      7,
+      99,
+    )
+
+    expect(vi.mocked(db.programmeTemplatePart.update)).toHaveBeenCalledWith({
+      where: { id_congregationId: { id: 42, congregationId: 7 } },
+      data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
+    })
+  })
+})
+
 describe('upsertTemplatePart audit firing', () => {
   it('fires PartAllowedRolesChanged audit when role lists change', async () => {
     vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 50 } as never)
