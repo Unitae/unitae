@@ -30,7 +30,7 @@ function Dot({ entry, tone }: { entry: CadenceEntry; tone: 'past' | 'future' }) 
       className={cn(
         'size-2.5 shrink-0 rounded-full border',
         filledPast && 'border-green-600 bg-green-600 dark:border-green-400 dark:bg-green-400',
-        filledFuture && 'border-green-600 bg-transparent dark:border-green-400',
+        filledFuture && 'border-green-600 bg-green-500/30 dark:border-green-400',
         !entry.assigned && 'border-muted-foreground/40 bg-transparent',
       )}
     />
