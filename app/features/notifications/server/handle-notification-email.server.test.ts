@@ -30,7 +30,9 @@ vi.mock('~/shared/infra/logger.server', () => ({
 }))
 
 vi.mock('~/shared/utils/worker-locale.server', () => ({
-  runInWorkerContext: (_locale: string, _timezone: string, fn: () => Promise<unknown>) => fn(),
+  // Spy that still passes through, so tests can assert whether the handler
+  // even reached the worker context (used by the suspension-ordering test).
+  runInWorkerContext: vi.fn((_locale: string, _timezone: string, fn: () => Promise<unknown>) => fn()),
 }))
 
 vi.mock('./resolve-recipients.server', async () => {
@@ -48,6 +50,7 @@ const { unscopedDb } = await import('~/shared/infra/db.server')
 const { resolveCongregation } = await import('~/shared/domain/congregation.server')
 const { mailer } = await import('~/shared/infra/mailer.server')
 const { resolveRecipients } = await import('./resolve-recipients.server')
+const { runInWorkerContext } = await import('~/shared/utils/worker-locale.server')
 
 const CONGREGATION = {
   id: 42,
@@ -56,11 +59,17 @@ const CONGREGATION = {
   displayName: 'Test Assembly',
   locale: 'en',
   timezone: 'UTC',
+  suspendedAt: null,
 }
 
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(resolveCongregation).mockResolvedValue(CONGREGATION as never)
+  // resetAllMocks() clears the pass-through implementation; restore it so
+  // handlers that reach the worker context actually execute their fn arg.
+  vi.mocked(runInWorkerContext).mockImplementation(<T>(_locale: string, _timezone: string, fn: () => T | Promise<T>) =>
+    fn(),
+  )
 })
 
 describe('handleInstantEmail — recipientId branch (targets a specific user)', () => {
@@ -208,19 +217,17 @@ describe('handleInstantEmail — recipientRole branch (targets everyone with a p
   })
 })
 
-describe('handleInstantEmail — SMTP failures (transient)', () => {
-  it('propagates a mailer.emails.send throw so BullMQ retries the job', async () => {
+describe('handleInstantEmail — transient mailer failures', () => {
+  it('recipientId branch: propagates the throw so BullMQ retries (safe, single recipient)', async () => {
     vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
       id: 7,
       email: 'user@test.org',
       firstname: 'Jean',
       member: null,
     } as never)
-    vi.mocked(mailer.emails.send).mockRejectedValue(new Error('SMTP 550: mailbox full'))
+    vi.mocked(mailer.emails.send).mockRejectedValue(new Error('Resend 429: rate limited'))
 
-    // If we swallow the error, BullMQ sees a resolved job and never retries;
-    // the notification event stays marked `sent` and the mail is silently
-    // lost. Re-throwing is what triggers the job-level retry.
+    // Single recipient per job → retry cannot double-send. Let BullMQ redrive.
     await expect(
       handleInstantEmail({
         type: 'notification-instant',
@@ -230,7 +237,133 @@ describe('handleInstantEmail — SMTP failures (transient)', () => {
         recipientRole: null,
         payload: '{}',
       }),
-    ).rejects.toThrow('SMTP 550: mailbox full')
+    ).rejects.toThrow('Resend 429: rate limited')
+  })
+
+  it('recipientRole branch: one failure does not abort the fan-out or trigger a retry', async () => {
+    vi.mocked(resolveRecipients).mockResolvedValue([
+      { userId: 1, email: 'a@test.org', firstname: 'Alice' },
+      { userId: 2, email: 'b@test.org', firstname: 'Bob' },
+      { userId: 3, email: 'c@test.org', firstname: 'Carol' },
+    ] as never)
+    // Alice succeeds, Bob fails transiently, Carol succeeds.
+    vi.mocked(mailer.emails.send)
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(new Error('Resend 500: upstream'))
+      .mockResolvedValueOnce({} as never)
+
+    // If we let Bob's throw propagate, BullMQ retries the whole job and
+    // re-mails Alice. The fan-out MUST swallow per-recipient failures.
+    await expect(
+      handleInstantEmail({
+        type: 'notification-instant',
+        congregationId: 42,
+        notificationType: 'board.document.deleted',
+        recipientId: null,
+        recipientRole: 'board-validator',
+        payload: JSON.stringify({ title: 'Removed doc' }),
+      }),
+    ).resolves.toBeUndefined()
+
+    // All three attempts happened — Bob's failure did not short-circuit.
+    expect(mailer.emails.send).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe('handleInstantEmail — missing recipient', () => {
+  it('warns and skips when the recipient user is deactivated or not found', async () => {
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue(null as never)
+
+    await handleInstantEmail({
+      type: 'notification-instant',
+      congregationId: 42,
+      notificationType: 'territory.sync.completed',
+      recipientId: 9999,
+      recipientRole: null,
+      payload: '{}',
+    })
+
+    expect(mailer.emails.send).not.toHaveBeenCalled()
+    // No preference check either — we exit before that lookup.
+    expect(unscopedDb.notificationPreference.findFirst).not.toHaveBeenCalled()
+  })
+})
+
+describe('handleDigestEmail — transient mailer failures partition per event', () => {
+  it('marks the failing event failed, sends the others, and does not throw', async () => {
+    vi.mocked(unscopedDb.userAccount.findFirst).mockResolvedValue({
+      id: 7,
+      email: 'user@test.org',
+      firstname: 'Jean',
+      member: null,
+    } as never)
+    // Event 1 succeeds, event 2 fails transiently, event 3 succeeds.
+    vi.mocked(mailer.emails.send)
+      .mockResolvedValueOnce({} as never)
+      .mockRejectedValueOnce(new Error('Resend 500: upstream'))
+      .mockResolvedValueOnce({} as never)
+
+    await expect(
+      handleDigestEmail({
+        type: 'notification-digest',
+        congregationId: 42,
+        recipientId: 7,
+        events: [
+          {
+            type: 'programme.assignment.assigned',
+            entityType: 'ProgrammePartAssignment',
+            entityId: 501,
+            payload: JSON.stringify({
+              eventId: 1,
+              eventName: 'meeting',
+              eventDate: '2026-07-20',
+              assignmentName: 'A',
+              role: 'speaker',
+              link: '/board',
+            }),
+          },
+          {
+            type: 'programme.assignment.assigned',
+            entityType: 'ProgrammePartAssignment',
+            entityId: 502,
+            payload: JSON.stringify({
+              eventId: 1,
+              eventName: 'meeting',
+              eventDate: '2026-07-20',
+              assignmentName: 'B',
+              role: 'speaker',
+              link: '/board',
+            }),
+          },
+          {
+            type: 'programme.assignment.assigned',
+            entityType: 'ProgrammePartAssignment',
+            entityId: 503,
+            payload: JSON.stringify({
+              eventId: 1,
+              eventName: 'meeting',
+              eventDate: '2026-07-20',
+              assignmentName: 'C',
+              role: 'speaker',
+              link: '/board',
+            }),
+          },
+        ],
+        notificationEventIds: [11, 22, 33],
+      }),
+    ).resolves.toBeUndefined()
+
+    // All three send attempts happened — event 2's failure did not abort.
+    expect(mailer.emails.send).toHaveBeenCalledTimes(3)
+    // Only event 22 is flipped to failed; events 11 and 33 stay `sent` from
+    // flush-settled. If we retried, events 11 and 33 would be re-mailed.
+    expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledTimes(1)
+    expect(unscopedDb.notificationEvent.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: { in: [22] } },
+        data: expect.objectContaining({ status: 'failed' }),
+      }),
+    )
   })
 })
 
@@ -251,6 +384,9 @@ describe('suspended congregations are gated out of the pipeline', () => {
 
     expect(unscopedDb.userAccount.findFirst).not.toHaveBeenCalled()
     expect(mailer.emails.send).not.toHaveBeenCalled()
+    // The guard runs BEFORE runInWorkerContext — moving it inside would waste
+    // an AsyncLocalStorage frame and this assertion would catch the drift.
+    expect(runInWorkerContext).not.toHaveBeenCalled()
   })
 
   it('handleInstantEmail: recipientRole branch — does not resolve recipients or send', async () => {
@@ -291,6 +427,8 @@ describe('suspended congregations are gated out of the pipeline', () => {
     // Suspension is not a render failure — leave rows in whatever status
     // flush-settled left them; do not flip anything to `failed`.
     expect(unscopedDb.notificationEvent.updateMany).not.toHaveBeenCalled()
+    // Same guard-before-context invariant as the instant path.
+    expect(runInWorkerContext).not.toHaveBeenCalled()
   })
 })
 
