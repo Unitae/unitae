@@ -51,7 +51,12 @@ describe('notifyAssignment', () => {
 
     expect(db.userAccount.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ memberId: 55, congregationId: 42, active: true }),
+        where: expect.objectContaining({
+          memberId: 55,
+          congregationId: 42,
+          active: true,
+          member: { leftAt: null },
+        }),
       }),
     )
     expect(notify).toHaveBeenCalledTimes(1)
@@ -100,6 +105,25 @@ describe('notifyAssignment', () => {
 
     await notifyAssignment(db, CTX, { type: 'programme.assignment.assigned', memberId: 55, role: 'speaker' })
 
+    expect(notify).not.toHaveBeenCalled()
+  })
+
+  // Members who left the congregation must not receive assignment emails —
+  // even if their UserAccount is still `active: true`. The `member.leftAt`
+  // filter lives in the WHERE, so if a member has left, findFirst returns
+  // null and we short-circuit through the no-linked-account branch.
+  it('filters out members who have left the congregation (member.leftAt is null)', async () => {
+    vi.mocked(db.userAccount.findFirst).mockResolvedValue(null as never)
+
+    await notifyAssignment(db, CTX, { type: 'programme.assignment.assigned', memberId: 55, role: 'speaker' })
+
+    // The query must include the leftAt=null filter — otherwise a still-
+    // active UserAccount tied to a left Member would receive the email.
+    expect(db.userAccount.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ member: { leftAt: null } }),
+      }),
+    )
     expect(notify).not.toHaveBeenCalled()
   })
 

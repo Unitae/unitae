@@ -150,8 +150,17 @@ export async function notifyAssignment(
   ctx: AssignmentNotificationContext,
   change: { type: AssignmentChangeType; memberId: number; role: ProgrammeRole },
 ): Promise<void> {
+  // `member: { leftAt: null }` gates out members who left the congregation.
+  // Their UserAccount can still be `active: true` (accounts and member
+  // lifecycle are independent), but a left member should not receive
+  // assignment emails — the assignment itself is stale by definition.
   const account = await db.userAccount.findFirst({
-    where: { memberId: change.memberId, congregationId: ctx.congregationId, active: true },
+    where: {
+      memberId: change.memberId,
+      congregationId: ctx.congregationId,
+      active: true,
+      member: { leftAt: null },
+    },
     select: { id: true },
   })
   if (!account) {
