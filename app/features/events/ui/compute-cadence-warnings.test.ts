@@ -1,15 +1,23 @@
 import { describe, expect, it } from 'vitest'
 import { computeCadenceWarnings } from './compute-cadence-warnings'
 
-// Convenience: build a cadence entry. Only `assigned` matters for these tests.
-const entry = (assigned: boolean) => ({ date: '2026-01-01', assigned })
+// Convenience: build a cadence entry. Only `assigned` matters for most tests;
+// callers override `status` when the draft-vs-released distinction is what's
+// under test.
+const entry = (assigned: boolean, status: 'draft' | 'released' = 'released') => ({
+  date: '2026-01-01',
+  assigned,
+  personName: null,
+  status,
+})
 
 describe('computeCadenceWarnings', () => {
   describe('firstTime', () => {
-    it('is true when every past and future dot is empty', () => {
+    it('is true when every past and future dot is empty and hasHistory is false', () => {
       const result = computeCadenceWarnings({
         past: [entry(false), entry(false), entry(false)],
         future: [entry(false)],
+        hasHistory: false,
       })
       expect(result.firstTime).toBe(true)
     })
@@ -32,6 +40,49 @@ describe('computeCadenceWarnings', () => {
         future: [entry(true)],
       })
       expect(result.firstTime).toBe(false)
+    })
+
+    it('is false when the visible window is empty but hasHistory is true (that is overdue, not first-time)', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false), entry(false)],
+        future: [entry(false)],
+        hasHistory: true,
+      })
+      expect(result.firstTime).toBe(false)
+    })
+  })
+
+  describe('overdue', () => {
+    it('fires when the visible window has no assigned dot AND hasHistory is true', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false), entry(false)],
+        future: [entry(false)],
+        hasHistory: true,
+      })
+      expect(result.overdue).toBe(true)
+    })
+
+    it('does not fire when the person has any assigned dot in the visible window', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false), entry(true)],
+        future: [],
+        hasHistory: true,
+      })
+      expect(result.overdue).toBe(false)
+    })
+
+    it('does not fire when hasHistory is false (that is first-time, not overdue)', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false)],
+        future: [entry(false)],
+        hasHistory: false,
+      })
+      expect(result.overdue).toBe(false)
+    })
+
+    it('is false when hasHistory defaults to unspecified (backwards compat)', () => {
+      const result = computeCadenceWarnings({ past: [], future: [] })
+      expect(result.overdue).toBe(false)
     })
   })
 
@@ -66,6 +117,25 @@ describe('computeCadenceWarnings', () => {
         future: [entry(false)],
       })
       expect(result.consecutive).toBe(false)
+    })
+
+    // Draft future assignments are still editable by the picker in the same
+    // session, so we don't fire the "consecutive" warning on them — that
+    // warning is for real commitments.
+    it('does not fire from the very next future dot when it is still a draft', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false)],
+        future: [entry(true, 'draft'), entry(false)],
+      })
+      expect(result.consecutive).toBe(false)
+    })
+
+    it('still fires from the past even when the next future dot is a draft assignment', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(true)],
+        future: [entry(true, 'draft')],
+      })
+      expect(result.consecutive).toBe(true)
     })
   })
 

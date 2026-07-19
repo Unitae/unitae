@@ -164,7 +164,7 @@ export function AssignPartSheet({
               <ExternalSpeakerInfoCard
                 eventId={eventId}
                 externalSpeakerId={selectedExternalSpeaker}
-                partName={assignment.name}
+                excludePartAssignmentId={assignment.id}
               />
             </>
           ) : (
@@ -185,9 +185,8 @@ export function AssignPartSheet({
               <PublisherInfoCard
                 eventId={eventId}
                 userId={selectedAssignee}
-                partName={assignment.name}
-                partSection={assignment.section}
                 excludePartAssignmentId={assignment.id}
+                partSlot="assignee"
               />
 
               <div className="flex flex-col gap-2">
@@ -206,9 +205,8 @@ export function AssignPartSheet({
               <PublisherInfoCard
                 eventId={eventId}
                 userId={selectedAssistant}
-                partName={assignment.name}
-                partSection={assignment.section}
                 excludePartAssignmentId={assignment.id}
+                partSlot="assistant"
               />
             </>
           )}

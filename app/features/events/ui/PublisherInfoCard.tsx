@@ -1,8 +1,8 @@
-import { AlertTriangle, CheckCircle2, Info, Repeat, User } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Info, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
-import { CadenceStrip } from '~/features/events/ui/CadenceStrip'
-import { type CadenceEntry, computeCadenceWarnings } from '~/features/events/ui/compute-cadence-warnings'
+import type { CadencePayload, PartSlot } from '~/features/events/model/cadence.type'
+import { CadencePanel } from '~/features/events/ui/CadencePanel'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
@@ -21,30 +21,29 @@ interface PublisherInfoData {
   }
   daysOff: { startDate: string; endDate: string }[]
   sameEventAssignments: { type: 'part' | 'service'; name: string; section?: string }[]
-  cadence: { past: CadenceEntry[]; future: CadenceEntry[] }
+  cadence: CadencePayload
 }
 
 interface PublisherInfoCardProps {
   eventId: number
   userId: string | null
-  partName?: string
-  // Section pairs with partName to anchor the cadence query — identically-named
-  // parts sitting in different sections shouldn't be conflated.
-  partSection?: string
-  // Used by the assign sheets to drop the assignment being edited from the
-  // "other assignments on the same event" panel — otherwise the picker's own
-  // row shows up as a fake conflict.
+  // Points the loader at the part/service assignment the sheet is editing.
+  // Doubles as the source for the cadence anchor (the loader reads name /
+  // section server-side) and the "same-event assignments" exclusion.
   excludePartAssignmentId?: number | null
   excludeServiceAssignmentId?: number | null
+  // Which slot the card is rendering for on a part sheet. Ignored for service
+  // assignments (they have only one slot). Definition + rotation-bucket
+  // rationale live on the PartSlot type in the shared cadence model.
+  partSlot?: PartSlot
 }
 
 export function PublisherInfoCard({
   eventId,
   userId,
-  partName,
-  partSection,
   excludePartAssignmentId,
   excludeServiceAssignmentId,
+  partSlot,
 }: PublisherInfoCardProps) {
   const fetcher = useFetcher<PublisherInfoData>()
 
@@ -52,14 +51,13 @@ export function PublisherInfoCard({
   useEffect(() => {
     if (!userId || userId === 'none') return
     const searchParams = new URLSearchParams({ userId })
-    if (partName) searchParams.set('partName', partName)
-    if (partSection) searchParams.set('partSection', partSection)
     if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
     if (excludeServiceAssignmentId != null) {
       searchParams.set('excludeServiceAssignmentId', String(excludeServiceAssignmentId))
     }
+    if (partSlot) searchParams.set('partSlot', partSlot)
     fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)
-  }, [userId, eventId, partName, partSection, excludePartAssignmentId, excludeServiceAssignmentId])
+  }, [userId, eventId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot])
 
   if (!userId || userId === 'none') return null
 
@@ -86,8 +84,6 @@ export function PublisherInfoCard({
   const { profile, daysOff, sameEventAssignments, cadence } = data
   const hasDaysOff = daysOff.length > 0
   const hasOtherAssignments = sameEventAssignments.length > 0
-  const hasCadence = cadence.past.length > 0 || cadence.future.length > 0
-  const warnings = computeCadenceWarnings(cadence)
 
   return (
     <Card className={hasDaysOff ? 'border-destructive/50' : ''}>
@@ -144,37 +140,7 @@ export function PublisherInfoCard({
           </div>
         )}
 
-        {hasCadence && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5 font-medium text-muted-foreground text-sm">
-              <Repeat className="size-4" />
-              {m.publisher_info_cadence()}
-            </div>
-            {warnings.firstTime ? (
-              <div className="flex items-center gap-1.5 font-medium text-green-600 text-xs dark:text-green-400">
-                <CheckCircle2 className="size-3.5" />
-                {m.publisher_info_first_time()}
-              </div>
-            ) : (
-              <CadenceStrip past={cadence.past} future={cadence.future} />
-            )}
-            {warnings.consecutive && (
-              <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-                <Info className="size-3.5" />
-                {m.publisher_info_consecutive()}
-              </div>
-            )}
-            {warnings.rotationConcern && (
-              <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-                <Info className="size-3.5" />
-                {m.publisher_info_rotation_concern({
-                  n: String(warnings.rotationConcern.assigned),
-                  m: String(warnings.rotationConcern.window),
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        {cadence.anchored && <CadencePanel cadence={cadence} />}
       </CardContent>
     </Card>
   )

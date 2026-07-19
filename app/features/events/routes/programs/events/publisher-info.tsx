@@ -1,6 +1,7 @@
 import { EventKind } from '~/features/events/model/event-kind.type'
-import { listUserCadence } from '~/features/events/server/list-user-cadence.server'
+import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
+import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import { Permission } from '~/shared/types/permission'
 import { formatGroupName } from '~/shared/utils/format-group-name'
@@ -14,6 +15,12 @@ function parseOptionalId(raw: string | null): number | null {
   return Number.isFinite(value) && value > 0 ? value : null
 }
 
+// Default 'assignee' — the more common slot and the only one that matters
+// for services. Unknown / missing values shouldn't 500 the info panel.
+function parsePartSlot(raw: string | null): PartSlot {
+  return raw === 'assistant' ? 'assistant' : 'assignee'
+}
+
 export function loader({ request, params, context }: Route.LoaderArgs) {
   const permissions = context.get(permissionsContext)
   if (!permissions.has(Permission.ProgramViewer)) return Response.json(null, { status: 403 })
@@ -21,10 +28,9 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const eventId = requireParamId(params.eventId, '/programs')
   const url = new URL(request.url)
   const userId = Number(url.searchParams.get('userId'))
-  const partName = url.searchParams.get('partName') ?? ''
-  const partSection = url.searchParams.get('partSection') ?? ''
   const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
   const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceAssignmentId'))
+  const partSlot = parsePartSlot(url.searchParams.get('partSlot'))
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
@@ -63,9 +69,14 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       excludeServiceAssignmentId,
     })
 
-    const cadence = partName
-      ? await listUserCadence(db, { userId, event, congregationId, partName, partSection, pastCount: 6 })
-      : { past: [], future: [] }
+    const cadence = await resolvePublisherCadence(db, {
+      userId,
+      event,
+      congregationId,
+      excludePartAssignmentId,
+      excludeServiceAssignmentId,
+      partSlot,
+    })
 
     return Response.json({
       profile: {

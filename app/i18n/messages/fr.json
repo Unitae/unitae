@@ -1535,6 +1535,8 @@
     "publisher_info_first_time": "Première fois pour cette partie",
     "publisher_info_consecutive": "Assignement consécutif — attention à l'enchaînement",
     "publisher_info_rotation_concern": "Assigné {n} des {m} dernières fois — considérer une rotation",
+    "publisher_info_cadence_current_marker": "Emplacement en cours d'édition",
+    "publisher_info_overdue": "Absent(e) de cette rotation depuis longtemps",
     "territories_meta_title": "Territoires - Unitae",
     "territories_list_meta_title": "Tous les territoires - Unitae",
     "territories_title": "Territoires",

@@ -193,7 +193,6 @@ export default function AssignServicePage({ loaderData }: Route.ComponentProps) 
         <PublisherInfoCard
           eventId={event.id}
           userId={selectedAssignee}
-          partName={assignment?.name}
           excludeServiceAssignmentId={assignment?.id ?? null}
         />
       </div>

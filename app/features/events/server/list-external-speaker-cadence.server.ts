@@ -2,7 +2,6 @@ import {
   type CadenceEntry,
   type CadenceHelperResult,
   normalize,
-  type PartSlot,
   toCadenceStatus,
 } from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -11,31 +10,23 @@ import { formatPersonName } from '~/shared/utils/format-person-name'
 export type { CadenceEntry }
 
 type Options = {
-  userId: number
+  externalSpeakerId: number
   event: { templateId: number | null; id: number; startDate: Date }
   congregationId: number
   partName: string
-  // Section is part of the anchor so identically-named parts in different
-  // sections of the same template (e.g. two "Bible reading" slots) don't
-  // collide into the same cadence.
   partSection: string
-  slot: PartSlot
   pastCount: number
   futureCount: number
 }
 
-// Fetches the last `pastCount` past instances and the next `futureCount`
-// planned future instances of the same recurring event (anchored on
-// Event.templateId) that carry a part assignment matching `partName +
-// partSection`. Each entry reports whether `userId` was on the assignment.
-// Also reports `hasHistory`: whether the user was ever on the matching slot
-// on any past event of the same template — used to distinguish first-timers
-// from overdue candidates who did the slot before the visible window.
-// Freeform events (templateId=null) short-circuit — they have no recurrence
-// to display.
-export async function listUserCadence(
+// Sibling of listUserCadence for external-speaker assignments. Same event-side
+// query pattern (anchored on Event.templateId + normalized partName +
+// partSection) but the "assigned" check follows the historical part row's
+// externalSpeakerId. Tooltip name resolves to whoever was on the slot on that
+// instance — could be another external speaker OR an in-house assignee.
+export async function listExternalSpeakerCadence(
   db: TransactionClient,
-  { userId, event, congregationId, partName, partSection, slot, pastCount, futureCount }: Options,
+  { externalSpeakerId, event, congregationId, partName, partSection, pastCount, futureCount }: Options,
 ): Promise<CadenceHelperResult> {
   if (event.templateId == null) return { past: [], future: [], hasHistory: false }
 
@@ -44,12 +35,9 @@ export async function listUserCadence(
       name: true,
       section: true,
       assigneeId: true,
-      assistantId: true,
-      // Names are used for the dot tooltip so the picker can see "who did this
-      // last time?" without leaving the sheet. Read only what formatPersonName
-      // needs; RLS scopes the join to the same congregation.
+      externalSpeakerId: true,
       assignee: { select: { firstname: true, lastname: true } },
-      assistant: { select: { firstname: true, lastname: true } },
+      externalSpeaker: { select: { name: true } },
     },
   } as const
 
@@ -69,13 +57,10 @@ export async function listUserCadence(
       take: futureCount,
       select: rowSelect,
     }),
-    // Aggregate over ALL past events (not just the visible window) to detect
-    // "used to do this slot, hasn't recently" candidates. Filtered in JS to
-    // reuse the same normalized-name/section comparison.
     db.programmePartAssignment.findMany({
       where: {
         event: { ...commonWhere, startDate: { lt: event.startDate } },
-        ...(slot === 'assignee' ? { assigneeId: userId } : { assistantId: userId }),
+        externalSpeakerId,
       },
       select: { name: true, section: true },
     }),
@@ -84,21 +69,23 @@ export async function listUserCadence(
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
   type PartRow = (typeof pastRows)[number]['partAssignments'][number]
-  const isOnSlot =
-    slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
-  const personOnSlot = (p: PartRow) => (slot === 'assignee' ? p.assignee : p.assistant)
+  // Prefer the external speaker on this row even if their name is empty —
+  // the FK is the identity signal, not the display string. Fall back to
+  // the in-house assignee for rows where the slot was covered internally.
+  const nameOf = (p: PartRow): string | null => {
+    if (p.externalSpeakerId != null) return p.externalSpeaker?.name || null
+    if (p.assigneeId != null) return p.assignee ? formatPersonName(p.assignee, '') || null : null
+    return null
+  }
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
     const matches = row.partAssignments.filter(
       p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
     )
-    const person = matches.map(personOnSlot).find(p => p != null)
+    const person = matches.map(nameOf).find(n => n != null)
     return {
       date: row.startDate.toISOString(),
-      assigned: matches.some(isOnSlot),
-      // Empty-string fallback on formatPersonName + `|| null` coerces the
-      // both-names-blank Member case to null (no stray '—' fallback in the
-      // tooltip). Only reached when we resolved a real Member row.
-      personName: person ? formatPersonName(person, '') || null : null,
+      assigned: matches.some(p => p.externalSpeakerId === externalSpeakerId),
+      personName: person ?? null,
       status: toCadenceStatus(row.status),
     }
   }
@@ -108,7 +95,6 @@ export async function listUserCadence(
   )
 
   return {
-    // Prisma returned newest-first for past; reverse so the strip renders oldest → newest.
     past: pastRows.map(toEntry).reverse(),
     future: futureRows.map(toEntry),
     hasHistory,

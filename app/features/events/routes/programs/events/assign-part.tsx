@@ -165,10 +165,8 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
     assignment?.externalSpeakerId ? 'external' : 'internal',
   )
   const { blocker, markDirty } = useUnsavedChanges()
-
   const hasRegistry = externalSpeakers.length > 0
-  const { name, section, id } = assignment ?? {}
-  const infoCardProps = { eventId: event.id, partName: name, partSection: section, excludePartAssignmentId: id }
+  const commonCardProps = { eventId: event.id, excludePartAssignmentId: assignment?.id ?? null }
 
   return (
     <div className="flex flex-col gap-6">
@@ -285,11 +283,15 @@ export default function AssignPartPage({ loaderData }: Route.ComponentProps) {
 
         {speakerType === 'internal' ? (
           <div className="flex flex-col gap-6">
-            <PublisherInfoCard {...infoCardProps} userId={selectedAssignee} />
-            <PublisherInfoCard {...infoCardProps} userId={selectedAssistant} />
+            <PublisherInfoCard {...commonCardProps} userId={selectedAssignee} partSlot="assignee" />
+            <PublisherInfoCard {...commonCardProps} userId={selectedAssistant} partSlot="assistant" />
           </div>
         ) : (
-          <ExternalSpeakerInfoCard {...infoCardProps} externalSpeakerId={selectedExternalSpeaker} />
+          <ExternalSpeakerInfoCard
+            eventId={event.id}
+            externalSpeakerId={selectedExternalSpeaker}
+            excludePartAssignmentId={assignment?.id ?? null}
+          />
         )}
       </div>
     </div>

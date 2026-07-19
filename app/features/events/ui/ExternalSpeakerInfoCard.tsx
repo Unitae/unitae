@@ -1,6 +1,8 @@
 import { AlertTriangle, Clock, Mail, Phone, StickyNote, User } from 'lucide-react'
 import { useEffect } from 'react'
 import { useFetcher } from 'react-router'
+import type { CadencePayload } from '~/features/events/model/cadence.type'
+import { CadencePanel } from '~/features/events/ui/CadencePanel'
 import * as m from '~/i18n/paraglide/messages'
 import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Skeleton } from '~/shared/ui/skeleton'
@@ -16,24 +18,31 @@ interface ExternalSpeakerInfoData {
     isIncomplete: boolean
   }
   recentHistory: { date: string; partName: string; topic: string }[]
+  cadence: CadencePayload
 }
 
 interface ExternalSpeakerInfoCardProps {
   eventId: number
   externalSpeakerId: string | null
-  partName?: string
+  // Points the loader at the part assignment the sheet is editing. Doubles as
+  // the source for the cadence anchor (server reads name / section).
+  excludePartAssignmentId?: number | null
 }
 
-export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }: ExternalSpeakerInfoCardProps) {
+export function ExternalSpeakerInfoCard({
+  eventId,
+  externalSpeakerId,
+  excludePartAssignmentId,
+}: ExternalSpeakerInfoCardProps) {
   const fetcher = useFetcher<ExternalSpeakerInfoData>()
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher.load is stable, adding it causes infinite loop
   useEffect(() => {
     if (!externalSpeakerId || externalSpeakerId === 'none') return
     const searchParams = new URLSearchParams({ externalSpeakerId })
-    if (partName) searchParams.set('partName', partName)
+    if (excludePartAssignmentId != null) searchParams.set('excludePartAssignmentId', String(excludePartAssignmentId))
     fetcher.load(`/programs/events/${eventId}/external-speaker-info?${searchParams}`)
-  }, [externalSpeakerId, eventId, partName])
+  }, [externalSpeakerId, eventId, excludePartAssignmentId])
 
   if (!externalSpeakerId || externalSpeakerId === 'none') return null
 
@@ -57,7 +66,7 @@ export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }
   const data = fetcher.data
   if (!data?.profile) return null
 
-  const { profile, recentHistory } = data
+  const { profile, recentHistory, cadence } = data
 
   return (
     <Card className={profile.isIncomplete ? 'border-amber-500/50' : ''}>
@@ -129,6 +138,8 @@ export function ExternalSpeakerInfoCard({ eventId, externalSpeakerId, partName }
         ) : (
           <p className="text-muted-foreground text-xs italic">{m.external_speakers_first_invitation()}</p>
         )}
+
+        {cadence.anchored && <CadencePanel cadence={cadence} />}
       </CardContent>
     </Card>
   )
