@@ -17,6 +17,7 @@ const DEFAULT_ARGS = {
   partName: 'Bible Reading',
   partSection: 'Ministry',
   pastCount: 6,
+  futureCount: 6,
 }
 
 beforeEach(() => {
@@ -62,12 +63,12 @@ describe('listUserCadence', () => {
     })
   })
 
-  it('orders future events by startDate asc with no take (uncapped)', async () => {
+  it('orders future events by startDate asc and caps at futureCount', async () => {
     await listUserCadence(db, DEFAULT_ARGS)
 
     const futureCall = vi.mocked(db.event.findMany).mock.calls[1][0]
     expect(futureCall?.orderBy).toEqual({ startDate: 'asc' })
-    expect(futureCall?.take).toBeUndefined()
+    expect(futureCall?.take).toBe(6)
   })
 
   it('reverses the past query result so entries flow oldest → newest', async () => {

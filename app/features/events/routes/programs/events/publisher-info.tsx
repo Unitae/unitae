@@ -64,7 +64,15 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
     })
 
     const cadence = partName
-      ? await listUserCadence(db, { userId, event, congregationId, partName, partSection, pastCount: 6 })
+      ? await listUserCadence(db, {
+          userId,
+          event,
+          congregationId,
+          partName,
+          partSection,
+          pastCount: 6,
+          futureCount: 6,
+        })
       : { past: [], future: [] }
 
     return Response.json({

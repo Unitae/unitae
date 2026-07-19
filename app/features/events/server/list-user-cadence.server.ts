@@ -12,16 +12,18 @@ type Options = {
   // collide into the same cadence.
   partSection: string
   pastCount: number
+  futureCount: number
 }
 
-// Fetches the last `pastCount` past instances and every planned future instance
-// of the same recurring event (anchored on Event.templateId) that carry a part
-// assignment matching `partName + partSection`. Each entry reports whether
-// `userId` was on the assignment. Freeform events (templateId=null)
-// short-circuit — they have no recurrence to display.
+// Fetches the last `pastCount` past instances and the next `futureCount`
+// planned future instances of the same recurring event (anchored on
+// Event.templateId) that carry a part assignment matching `partName +
+// partSection`. Each entry reports whether `userId` was on the assignment.
+// Freeform events (templateId=null) short-circuit — they have no recurrence
+// to display.
 export async function listUserCadence(
   db: TransactionClient,
-  { userId, event, congregationId, partName, partSection, pastCount }: Options,
+  { userId, event, congregationId, partName, partSection, pastCount, futureCount }: Options,
 ): Promise<{ past: CadenceEntry[]; future: CadenceEntry[] }> {
   if (event.templateId == null) return { past: [], future: [] }
 
@@ -47,6 +49,7 @@ export async function listUserCadence(
       startDate: { gt: event.startDate },
     },
     orderBy: { startDate: 'asc' },
+    take: futureCount,
     select: { id: true, startDate: true, partAssignments: partsSelect },
   })
 
