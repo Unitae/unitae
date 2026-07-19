@@ -219,17 +219,73 @@ describe('listUserServiceCadence', () => {
   it('returns both past and future entries in the expected shape', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [{ name: 'Sono', assigneeId: 5 }] },
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          serviceRoleAssignments: [
+            { name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } },
+          ],
+        },
       ] as never)
       .mockResolvedValueOnce([
-        { id: 2, startDate: new Date('2026-08-01'), serviceRoleAssignments: [{ name: 'Sono', assigneeId: 99 }] },
+        {
+          id: 2,
+          startDate: new Date('2026-08-01'),
+          serviceRoleAssignments: [
+            { name: 'Sono', assigneeId: 99, assignee: { firstname: 'Marie', lastname: 'Curie' } },
+          ],
+        },
       ] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
     expect(result).toEqual({
-      past: [{ date: new Date('2026-04-01').toISOString(), assigned: true }],
-      future: [{ date: new Date('2026-08-01').toISOString(), assigned: false }],
+      past: [{ date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT' }],
+      future: [{ date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE' }],
     })
+  })
+
+  it('resolves personName from the historical assignee', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          serviceRoleAssignments: [
+            { name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBe('Jean DUPONT')
+  })
+
+  it('returns personName=null when the historical row has no assignee', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          serviceRoleAssignments: [{ name: 'Sono', assigneeId: null, assignee: null }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBeNull()
+  })
+
+  it('returns personName=null when the event has no matching service assignment', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoleAssignments: [] }] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBeNull()
   })
 })

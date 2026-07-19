@@ -295,22 +295,125 @@ describe('listUserCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
+          partAssignments: [
+            {
+              name: 'Bible Reading',
+              section: 'Ministry',
+              assigneeId: 5,
+              assistantId: null,
+              assignee: { firstname: 'Jean', lastname: 'Dupont' },
+              assistant: null,
+            },
+          ],
         },
       ] as never)
       .mockResolvedValueOnce([
         {
           id: 2,
           startDate: new Date('2026-08-01'),
-          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: null }],
+          partAssignments: [
+            {
+              name: 'Bible Reading',
+              section: 'Ministry',
+              assigneeId: 99,
+              assistantId: null,
+              assignee: { firstname: 'Marie', lastname: 'Curie' },
+              assistant: null,
+            },
+          ],
         },
       ] as never)
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
 
     expect(result).toEqual({
-      past: [{ date: new Date('2026-04-01').toISOString(), assigned: true }],
-      future: [{ date: new Date('2026-08-01').toISOString(), assigned: false }],
+      past: [{ date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT' }],
+      future: [{ date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE' }],
     })
+  })
+
+  it("resolves personName from the assignee when slot='assignee'", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [
+            {
+              name: 'Bible Reading',
+              section: 'Ministry',
+              assigneeId: 5,
+              assistantId: 7,
+              assignee: { firstname: 'Jean', lastname: 'Dupont' },
+              assistant: { firstname: 'Marie', lastname: 'Curie' },
+            },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBe('Jean DUPONT')
+  })
+
+  it("resolves personName from the assistant when slot='assistant'", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [
+            {
+              name: 'Bible Reading',
+              section: 'Ministry',
+              assigneeId: 5,
+              assistantId: 7,
+              assignee: { firstname: 'Jean', lastname: 'Dupont' },
+              assistant: { firstname: 'Marie', lastname: 'Curie' },
+            },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, { ...DEFAULT_ARGS, slot: 'assistant' })
+
+    expect(result.past[0].personName).toBe('Marie CURIE')
+  })
+
+  it('returns personName=null when no matching part assignment exists on the historical event', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), partAssignments: [] }] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBeNull()
+  })
+
+  it('returns personName=null when the matching slot on the historical row is unassigned', async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [
+            {
+              name: 'Bible Reading',
+              section: 'Ministry',
+              assigneeId: null,
+              assistantId: 7,
+              assignee: null,
+              assistant: { firstname: 'Marie', lastname: 'Curie' },
+            },
+          ],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.past[0].personName).toBeNull()
   })
 })

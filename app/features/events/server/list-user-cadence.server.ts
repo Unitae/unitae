@@ -1,5 +1,6 @@
 import { type CadenceEntry, normalize, type PartSlot } from '~/features/events/server/cadence-shared.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
+import { formatPersonName } from '~/shared/utils/format-person-name'
 
 export type { CadenceEntry }
 
@@ -30,7 +31,17 @@ export async function listUserCadence(
   if (event.templateId == null) return { past: [], future: [] }
 
   const partsSelect = {
-    select: { name: true, section: true, assigneeId: true, assistantId: true },
+    select: {
+      name: true,
+      section: true,
+      assigneeId: true,
+      assistantId: true,
+      // Names are used for the dot tooltip so the picker can see "who did this
+      // last time?" without leaving the sheet. Read only what formatPersonName
+      // needs; RLS scopes the join to the same congregation.
+      assignee: { select: { firstname: true, lastname: true } },
+      assistant: { select: { firstname: true, lastname: true } },
+    },
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
@@ -53,15 +64,21 @@ export async function listUserCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
-  type PartRow = { assigneeId: number | null; assistantId: number | null }
+  type PartRow = (typeof pastRows)[number]['partAssignments'][number]
   const isOnSlot =
     slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
-  const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => ({
-    date: row.startDate.toISOString(),
-    assigned: row.partAssignments
-      .filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
-      .some(isOnSlot),
-  })
+  const personOnSlot = (p: PartRow) => (slot === 'assignee' ? p.assignee : p.assistant)
+  const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
+    const matches = row.partAssignments.filter(
+      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
+    )
+    const person = matches.map(personOnSlot).find(p => p != null)
+    return {
+      date: row.startDate.toISOString(),
+      assigned: matches.some(isOnSlot),
+      personName: person ? formatPersonName(person, '') || null : null,
+    }
+  }
 
   return {
     // Prisma returned newest-first for past; reverse so the strip renders oldest → newest.

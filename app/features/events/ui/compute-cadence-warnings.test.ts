@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { computeCadenceWarnings } from './compute-cadence-warnings'
 
 // Convenience: build a cadence entry. Only `assigned` matters for these tests.
-const entry = (assigned: boolean) => ({ date: '2026-01-01', assigned })
+const entry = (assigned: boolean) => ({ date: '2026-01-01', assigned, personName: null })
 
 describe('computeCadenceWarnings', () => {
   describe('firstTime', () => {
