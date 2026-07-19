@@ -13,8 +13,8 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { toast } from 'sonner'
-import { EventKind } from '~/features/events/model/event-kind.type'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
 import EventFilters from '~/features/events/ui/EventFilters'
@@ -80,11 +80,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
       where: {
         ...filters,
         congregationId,
-        NOT: { kind: { key: EventKind.Off } },
+        NOT: { template: { key: ProgrammeTemplateKey.DayOff } },
       },
       include: {
         template: true,
-        kind: true,
         _count: {
           select: {
             partAssignments: { where: { hasConflict: true } },
@@ -195,8 +194,8 @@ function EventRow({
   const isUpcoming = new Date(event.startDate) >= new Date()
   const showConflictBadge = isUpcoming && event.conflictCount > 0
   const isDraft = event.status === EventStatus.Draft
-  const cardStyle = { borderLeftColor: event.kind?.color ?? 'transparent', borderLeftWidth: '4px' }
-  const kindLabel = event.kind ? ` · ${event.kind.name}` : ''
+  const cardStyle = { borderLeftColor: event.template?.color ?? 'transparent', borderLeftWidth: '4px' }
+  const kindLabel = event.template ? ` · ${event.template.name}` : ''
   const timeLabel = time ? ` · ${time}` : ''
 
   return (

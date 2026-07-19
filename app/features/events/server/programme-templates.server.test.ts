@@ -105,22 +105,36 @@ describe('updateTemplate', () => {
     expect(result).toEqual(updated)
   })
 
-  it('sets kindId when provided', async () => {
+  it('updates the colour when provided', async () => {
     vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
 
-    await updateTemplate(db, 1, { name: 'Réunion', kindId: 5 }, 1)
+    await updateTemplate(db, 1, { name: 'Réunion', color: '#ff00aa' }, 1)
 
     const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
-    expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(5)
+    expect((call[0] as { data: { color: string } }).data.color).toBe('#ff00aa')
   })
 
-  it('clears kindId when set to null', async () => {
+  // System templates back domain concepts — the day-off writer looks them up
+  // by `key`, so renaming or restructuring them from the settings UI would
+  // silently break the feature. The server enforces that even if the form
+  // POSTs a full payload, only the colour lands on the row.
+  it('only writes the colour on system templates', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ key: 'day-off' } as never)
     vi.mocked(db.programmeTemplate.update).mockResolvedValue({ id: 1 } as never)
 
-    await updateTemplate(db, 1, { name: 'Réunion', kindId: null }, 1)
+    await updateTemplate(db, 1, { name: 'Nope', color: '#abcdef', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1)
 
     const call = vi.mocked(db.programmeTemplate.update).mock.calls[0]
-    expect((call[0] as { data: { kindId: null } }).data.kindId).toBeNull()
+    const written = (call[0] as { data: Record<string, unknown> }).data
+    expect(written).toEqual({ color: '#abcdef' })
+  })
+
+  it('skips the update entirely on system templates when nothing but ignored fields is passed', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({ key: 'freeform' } as never)
+
+    await updateTemplate(db, 1, { name: 'Nope', weekDay: 3, startTime: '20:00', endTime: '22:00' }, 1)
+
+    expect(db.programmeTemplate.update).not.toHaveBeenCalled()
   })
 })
 
@@ -343,6 +357,24 @@ describe('duplicateTemplate', () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(null as never)
 
     const result = await duplicateTemplate(db, 99, 1)
+
+    expect(result).toBeNull()
+    expect(vi.mocked(db.programmeTemplate.create)).not.toHaveBeenCalled()
+  })
+
+  // System templates are looked up by `key` at runtime. Duplicating them would
+  // produce a row with an untethered `-copy-<ts>` suffix; the UI hides the
+  // action but this is the server-side belt-and-suspenders check.
+  it('returns null when the source is a system template', async () => {
+    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+      id: 1,
+      key: 'day-off',
+      name: 'Absence',
+      parts: [],
+      serviceRoles: [],
+    } as never)
+
+    const result = await duplicateTemplate(db, 1, 1)
 
     expect(result).toBeNull()
     expect(vi.mocked(db.programmeTemplate.create)).not.toHaveBeenCalled()

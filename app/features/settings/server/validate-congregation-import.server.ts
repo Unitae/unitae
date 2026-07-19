@@ -110,23 +110,6 @@ async function collectScopedConflicts(zip: JsZip, congregationId: number, confli
       }
     }
 
-    const eventKindsNdjson = await readNdjsonFile<{ key: string }>(zip, 'event-kinds')
-    if (eventKindsNdjson.length > 0) {
-      const importedKeys = eventKindsNdjson.map(e => e.key)
-      const existingKinds = await db.eventKind.findMany({
-        where: { key: { in: importedKeys } },
-        select: { id: true, key: true },
-      })
-      for (const existing of existingKinds) {
-        conflicts.push({
-          entityType: 'event-kinds',
-          naturalKey: { key: existing.key },
-          existingId: existing.id,
-          action: 'update',
-        })
-      }
-    }
-
     const settingsNdjson = await readNdjsonFile<{ key: string }>(zip, 'settings')
     if (settingsNdjson.length > 0) {
       const importedKeys = settingsNdjson.map(s => s.key)

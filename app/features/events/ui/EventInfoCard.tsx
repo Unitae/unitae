@@ -4,17 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Input } from '~/shared/ui/input'
 import { Label } from '~/shared/ui/label'
 import { SubmitButton } from '~/shared/ui/SubmitButton'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/shared/ui/select'
 import { formatDateForInput, formatTimeForInput } from '~/shared/utils/event-time'
 
 type EventInfoCardProps = {
-  event: { name: string; startDate: Date; endDate: Date; kindId: number | null }
-  eventKinds: { id: number; name: string }[]
+  event: { name: string; startDate: Date; endDate: Date }
   timezone: string
   fetcher: ReturnType<typeof useFetcher>
 }
 
-export function EventInfoCard({ event, eventKinds, timezone, fetcher }: EventInfoCardProps) {
+export function EventInfoCard({ event, timezone, fetcher }: EventInfoCardProps) {
   return (
     <Card className="max-w-lg">
       <CardHeader>
@@ -59,24 +57,6 @@ export function EventInfoCard({ event, eventKinds, timezone, fetcher }: EventInf
               />
             </div>
           </div>
-          {eventKinds.length > 0 && (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="kindId">{m.programs_new_kind_label()}</Label>
-              <Select name="kindId" defaultValue={event.kindId?.toString() ?? 'none'}>
-                <SelectTrigger id="kindId">
-                  <SelectValue placeholder={m.programs_new_kind_placeholder()} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{m.programs_edit_kind_none()}</SelectItem>
-                  {eventKinds.map(kind => (
-                    <SelectItem key={kind.id} value={kind.id.toString()}>
-                      {kind.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
           <SubmitButton className="w-fit">{m.common_save()}</SubmitButton>
         </fetcher.Form>
       </CardContent>

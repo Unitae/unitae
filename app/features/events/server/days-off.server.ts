@@ -1,7 +1,8 @@
-import { EventKind } from '~/features/events/model/event-kind.type'
 import { EventStatus } from '~/features/events/model/event-status.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
 import * as m from '~/i18n/paraglide/messages'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
 export function getNextDaysOffs(db: TransactionClient, userId: number, congregationId: number) {
@@ -9,8 +10,8 @@ export function getNextDaysOffs(db: TransactionClient, userId: number, congregat
     where: {
       congregationId,
       createdBy: { id: userId },
-      kind: {
-        key: EventKind.Off,
+      template: {
+        key: ProgrammeTemplateKey.DayOff,
       },
       OR: [{ startDate: { lte: new Date() }, endDate: { gte: new Date() } }, { endDate: { gte: new Date() } }],
     },
@@ -40,15 +41,23 @@ export async function createDayOff(
     return null
   }
 
-  const eventKind = await db.eventKind.findFirst({ where: { key: EventKind.Off, congregationId } })
+  // Day-offs are identified everywhere by `template.key = 'day-off'`. If the
+  // system template is missing (mis-provisioned tenant), writing the event
+  // with a null templateId would create a ghost row invisible to every
+  // downstream query — including the /me/days-off delete guard. Fail loudly
+  // so ops sees the incident instead of a silent success flash.
+  const dayOffTemplate = await db.programmeTemplate.findFirst({
+    where: { key: ProgrammeTemplateKey.DayOff, congregationId },
+  })
+  if (!dayOffTemplate) throw new NotFoundError('Day-off template')
 
   const event = await db.event.create({
     data: {
-      ...(eventKind ? { kind: { connect: { id: eventKind.id } } } : {}),
+      template: { connect: { id: dayOffTemplate.id } },
       startDate,
       endDate,
       createdBy: { connect: { id: accountId } },
-      name: m.seed_event_kind_absence(),
+      name: m.seed_template_day_off(),
       congregation: { connect: { id: congregationId } },
       // Days-off never go through the release workflow — they must be visible
       // to the conflict pipeline immediately.

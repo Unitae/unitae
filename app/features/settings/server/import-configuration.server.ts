@@ -14,42 +14,6 @@ export async function importSettings(zip: JsZip, db: TransactionClient, congrega
   }
 }
 
-export async function importEventKinds(
-  zip: JsZip,
-  db: TransactionClient,
-  idMap: EntityIdMap,
-  congregationId: number,
-): Promise<void> {
-  const records = await readNdjsonFile<{
-    id: number
-    name: string
-    key: string
-    color: string
-    weekDay: number | null
-  }>(zip, 'event-kinds')
-  for (const record of records) {
-    const existing = await db.eventKind.findFirst({ where: { key: record.key } })
-    if (existing) {
-      await db.eventKind.update({
-        where: { id: existing.id },
-        data: { name: record.name, color: record.color, weekDay: record.weekDay },
-      })
-      idMap.set('event-kinds', record.id, existing.id)
-    } else {
-      const created = await db.eventKind.create({
-        data: {
-          name: record.name,
-          key: record.key,
-          color: record.color,
-          weekDay: record.weekDay,
-          congregationId,
-        },
-      })
-      idMap.set('event-kinds', record.id, created.id)
-    }
-  }
-}
-
 export async function importRoles(
   zip: JsZip,
   db: TransactionClient,

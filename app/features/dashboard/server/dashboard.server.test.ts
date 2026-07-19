@@ -146,7 +146,7 @@ describe('getNextMeeting', () => {
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
-      kind: { name: 'Midweek', color: '#000' },
+      template: { name: 'Midweek', color: '#000' },
       partAssignments: [
         {
           id: 10,
@@ -185,7 +185,7 @@ describe('getNextMeeting', () => {
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
-      kind: null,
+      template: null,
       partAssignments: [
         {
           id: 10,
@@ -210,7 +210,7 @@ describe('getNextMeeting', () => {
       name: 'Midweek',
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
-      kind: null,
+      template: null,
       partAssignments: [
         {
           id: 10,
@@ -242,19 +242,19 @@ describe('getNextMeeting', () => {
     expect(where.status).toBe('released')
   })
 
-  // Same Prisma inner-join trap as refreshConflictFlags: `kind: { key: { not
-  // 'off' } }` silently excludes events with a null kindId, which seeded
-  // templates produce. Must use NOT: { kind: { key } } so null-kind rows
-  // stay in the result.
-  it('uses NOT: { kind: { key } } so null-kind events are not silently dropped', async () => {
+  // Same Prisma inner-join trap the codebase kept hitting with EventKind:
+  // `template: { key: { not: 'day-off' } }` silently drops null-template
+  // rows, which legacy imports and older data may still carry. Must use
+  // NOT: { template: { key } } so null-template rows stay in the result.
+  it('uses NOT: { template: { key } } so null-template events are not silently dropped', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
 
     await getNextMeeting(db, 42)
 
     const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
-    expect(where.NOT).toEqual({ kind: { key: 'off' } })
-    expect(where).not.toHaveProperty('kind')
+    expect(where.NOT).toEqual({ template: { key: 'day-off' } })
+    expect(where).not.toHaveProperty('template')
   })
 })
 

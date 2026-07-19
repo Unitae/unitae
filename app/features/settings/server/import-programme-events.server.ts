@@ -13,7 +13,6 @@ export async function importEvents(
     id: number
     name: string
     description: string
-    kindId: number | null
     startDate: string
     endDate: string
     templateId: number | null
@@ -25,14 +24,12 @@ export async function importEvents(
     const createdById = idMap.getOptional('user-accounts', record.createdById)
     if (!createdById) continue
 
-    const kindId = idMap.getOptional('event-kinds', record.kindId)
     const templateId = idMap.getOptional('programme-templates', record.templateId)
 
     const created = await db.event.create({
       data: {
         name: record.name,
         description: record.description,
-        kindId,
         startDate: new Date(record.startDate),
         endDate: new Date(record.endDate),
         templateId,

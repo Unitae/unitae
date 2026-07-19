@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { EventKind } from '~/features/events/model/event-kind.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import { getPersonalAssignments } from '~/features/events/server/personal-assignments.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
@@ -60,11 +60,15 @@ beforeAll(async () => {
     aliceId = alice.id
     const aliceMemberId = aliceMember.id
 
-    const offKind = await tx.eventKind.create({
+    const dayOffTemplate = await tx.programmeTemplate.create({
       data: {
-        name: 'Off',
-        key: EventKind.Off,
-        color: '#000000',
+        name: 'Day off',
+        key: ProgrammeTemplateKey.DayOff,
+        color: '#cfcfcf',
+        weekDay: null,
+        isRecurring: false,
+        startTime: '00:00',
+        endTime: '23:59',
         congregationId: congAId,
       },
     })
@@ -85,7 +89,7 @@ beforeAll(async () => {
         name: 'Absence',
         startDate: new Date('2026-06-15T00:00:00Z'),
         endDate: new Date('2026-06-17T00:00:00Z'),
-        kindId: offKind.id,
+        templateId: dayOffTemplate.id,
         createdById: aliceId,
         congregationId: congAId,
         status: 'released',
@@ -168,7 +172,7 @@ afterAll(async () => {
     where: { congregationId: { in: [congAId, congBId] } },
   })
   await testDb.event.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
-  await testDb.eventKind.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
+  await testDb.programmeTemplate.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.member.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congAId, congBId] } } })

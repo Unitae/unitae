@@ -1,12 +1,14 @@
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 import {
   setPartAssignmentAllowedRoles,
   setServiceRoleAssignmentAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
 import { AuditAction, audit, auditInTransaction } from '~/shared/domain/audit.server'
+import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import logger from '~/shared/infra/logger.server'
 
-export function createFreeformEvent(
+export async function createFreeformEvent(
   db: TransactionClient,
   data: {
     name: string
@@ -14,10 +16,19 @@ export function createFreeformEvent(
     endDate: Date
     createdById: number
     congregationId: number
-    kindId?: number
   },
 ) {
-  return db.event.create({ data })
+  // Same reasoning as createDayOff: freeform events are identified by
+  // `template.key = 'freeform'`. A null templateId here silently drops the
+  // event from cadence, board links, and the events list.
+  const freeformTemplate = await db.programmeTemplate.findFirst({
+    where: { key: ProgrammeTemplateKey.Freeform, congregationId: data.congregationId },
+  })
+  if (!freeformTemplate) throw new NotFoundError('Freeform template')
+
+  return db.event.create({
+    data: { ...data, templateId: freeformTemplate.id },
+  })
 }
 
 export async function bulkDeleteEvents(db: TransactionClient, ids: number[], congregationId: number, actorId: number) {
@@ -57,7 +68,6 @@ export function deleteEvent(db: TransactionClient, id: number, congregationId: n
 // invariants and audit trails live with the operation, not here.
 export interface UpdateEventFields {
   name?: string
-  kindId?: number | null
   startDate?: Date
   endDate?: Date
 }

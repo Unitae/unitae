@@ -1,5 +1,5 @@
 // Intentional cross-feature import: dashboard aggregates data from events and the board for the overview
-import { EventKind, EventStatus } from '~/features/events'
+import { EventStatus, ProgrammeTemplateKey } from '~/features/events'
 import { getNextDaysOffs } from '~/features/events/index.server'
 import { resolveEffectiveRoleIds } from '~/shared/auth/permissions.server'
 import { TWO_WEEKS_MS } from '~/shared/constants/limits'
@@ -315,10 +315,10 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   const event = await db.event.findFirst({
     where: {
       startDate: { gte: now },
-      // NOT: { kind: {...} } instead of kind: { key: { not } } — the second
-      // form inner-joins through kind and silently drops null-kind rows,
-      // which seeded templates produce.
-      NOT: { kind: { key: EventKind.Off } },
+      // NOT: { template: {...} } instead of template: { key: { not } } — the
+      // second form inner-joins through template and silently drops null-
+      // template rows, which older legacy events might still carry.
+      NOT: { template: { key: ProgrammeTemplateKey.DayOff } },
       // Publisher-facing dashboard — drafts must stay hidden.
       status: EventStatus.Released,
     },
@@ -327,7 +327,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
       name: true,
       startDate: true,
       endDate: true,
-      kind: { select: { name: true, color: true } },
+      template: { select: { name: true, color: true } },
       partAssignments: {
         select: {
           id: true,

@@ -59,8 +59,8 @@ async function handleUpdateEvent(
   const submission = parseWithZod(formData, { schema: updateEventSchema })
   if (submission.status !== 'success') return submission
 
-  const { name, date: dateStr, startTime: startTimeStr, endTime: endTimeStr, kindId } = submission.value
-  const payload: UpdateEventFields = { name, kindId }
+  const { name, date: dateStr, startTime: startTimeStr, endTime: endTimeStr } = submission.value
+  const payload: UpdateEventFields = { name }
 
   if (dateStr && startTimeStr) {
     const startDate = combineLocalDateTime(dateStr, startTimeStr, timezone)

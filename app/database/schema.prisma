@@ -81,7 +81,6 @@ model Congregation {
   boardDocumentVersions        BoardDocumentVersion[]
   boardDynamicDocumentSettings BoardDynamicDocumentSettings[]
   events                       Event[]
-  eventKinds                   EventKind[]
   settings                     Setting[]
   userPermissions              CongregationUserPermission[]
   roles                        Role[]
@@ -646,8 +645,6 @@ model Event {
   id          Int        @id @default(autoincrement())
   name        String
   description String     @default("")
-  kind        EventKind? @relation("kind", fields: [kindId], references: [id])
-  kindId      Int?
   startDate   DateTime
   endDate     DateTime
   status      String     @default("draft")
@@ -669,26 +666,6 @@ model Event {
   @@unique([id, congregationId])
 }
 
-model EventKind {
-  id      Int    @id @default(autoincrement())
-  name    String
-  key     String
-  color   String
-  weekDay Int?
-
-  events    Event[]             @relation("kind")
-  templates ProgrammeTemplate[] @relation("templateKind")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  congregation   Congregation @relation(fields: [congregationId], references: [id])
-  congregationId Int
-
-  @@unique([key, congregationId])
-  @@unique([id, congregationId])
-}
-
 model ProgrammeTemplate {
   id          Int     @id @default(autoincrement())
   name        String
@@ -698,9 +675,7 @@ model ProgrammeTemplate {
   isRecurring Boolean @default(true)
   startTime   String  @default("19:00")
   endTime     String  @default("21:00")
-
-  kind   EventKind? @relation("templateKind", fields: [kindId], references: [id])
-  kindId Int?
+  color       String  @default("#cfcfcf")
 
   parts        ProgrammeTemplatePart[]
   serviceRoles ProgrammeTemplateServiceRole[]

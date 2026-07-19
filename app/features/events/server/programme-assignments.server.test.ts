@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EventKind } from '~/features/events/model/event-kind.type'
+import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -744,23 +744,23 @@ describe('refreshConflictFlags', () => {
     expect(where).not.toHaveProperty('templateId')
   })
 
-  // The Off events themselves are just date ranges — they have no part or
+  // Day-off events themselves are just date ranges — they have no part or
   // service assignments. Iterating over them is wasted work and semantically
-  // odd (an Off event isn't a programme event that can conflict with itself).
+  // odd (a day-off isn't a programme event that can conflict with itself).
   //
-  // The filter must use `NOT: { kind: { key: 'off' } }` (not
-  // `kind: { key: { not: 'off' } }`): Prisma's relational filter inner-joins
-  // through `kind`, so the second form silently drops events with a null
-  // kindId — which is exactly what seeded templates produce. This test also
-  // pins that shape.
-  it('excludes Off events but keeps null-kind events in the overlapping-events lookup', async () => {
+  // The filter must use `NOT: { template: { key: 'day-off' } }` (not
+  // `template: { key: { not: 'day-off' } }`): Prisma's relational filter
+  // inner-joins through `template`, so the second form silently drops
+  // events whose templateId is null — a shape legacy imports and older
+  // data may still carry.
+  it('excludes day-off events but keeps null-template events in the overlapping-events lookup', async () => {
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 
     await refreshConflictFlags(db, 5, new Date(2026, 3, 13), new Date(2026, 3, 15), 1)
 
     const call = vi.mocked(db.event.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
-    expect(where.NOT).toEqual({ kind: { key: EventKind.Off } })
-    expect(where).not.toHaveProperty('kind')
+    expect(where.NOT).toEqual({ template: { key: ProgrammeTemplateKey.DayOff } })
+    expect(where).not.toHaveProperty('template')
   })
 })

@@ -17,7 +17,6 @@ import type { Route } from './+types/import-confirm'
 const ENTITY_LABELS: Record<string, () => string> = {
   congregation: () => m.data_transfer_entity_congregation(),
   settings: () => m.data_transfer_entity_settings(),
-  'event-kinds': () => m.data_transfer_entity_event_kinds(),
   users: () => m.data_transfer_entity_users(),
   'congregation-user-permissions': () => m.data_transfer_entity_permissions(),
   'publisher-groups': () => m.data_transfer_entity_publisher_groups(),

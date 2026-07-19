@@ -84,14 +84,9 @@ beforeAll(async () => {
       data: { name: `Midweek ${ts}`, key: `midweek-${ts}`, congregationId },
     })
 
-    const eventKind = await tx.eventKind.create({
-      data: { name: `Midweek ${ts}`, key: `midweek-kind-${ts}`, color: '#00aa00', congregationId },
-    })
-
     await tx.event.create({
       data: {
         name: `Future Meeting ${ts}`,
-        kindId: eventKind.id,
         templateId: template.id,
         startDate: new Date('2027-06-01T19:00:00Z'),
         endDate: new Date('2027-06-01T21:00:00Z'),
@@ -125,7 +120,6 @@ afterAll(async () => {
     await tx.boardSection.deleteMany({ where: { congregationId } })
     await tx.programmePartAssignment.deleteMany({ where: { congregationId } })
     await tx.event.deleteMany({ where: { congregationId } })
-    await tx.eventKind.deleteMany({ where: { congregationId } })
     await tx.programmeTemplate.deleteMany({ where: { congregationId } })
     await tx.publisherGroup.deleteMany({ where: { congregationId } })
     await tx.userAccount.deleteMany({ where: { congregationId } })

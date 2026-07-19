@@ -1,3 +1,4 @@
+import { isSystemTemplate } from '~/features/events/model/programme-template.type'
 import {
   setTemplatePartAllowedRoles,
   setTemplateServiceRoleAllowedRoles,
@@ -32,7 +33,7 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
   })
 }
 
-export function updateTemplate(
+export async function updateTemplate(
   db: TransactionClient,
   templateId: number,
   data: {
@@ -40,20 +41,32 @@ export function updateTemplate(
     weekDay?: number | null
     isRecurring?: boolean
     description?: string
-    kindId?: number | null
+    color?: string
     startTime?: string
     endTime?: string
   },
   congregationId: number,
 ) {
+  // System templates (day-off, freeform) back domain concepts referenced by
+  // key. Renaming, restructuring, or rescheduling them would silently break
+  // the createDayOff / createFreeformEvent lookups. The settings UI already
+  // presents them as read-only except for the colour swatch; this is the
+  // belt-and-suspenders check on the writer.
+  const existing = await db.programmeTemplate.findFirst({
+    where: { id: templateId, congregationId },
+    select: { key: true },
+  })
+  const scoped = existing != null && isSystemTemplate(existing.key) ? { color: data.color } : data
+  if (Object.values(scoped).every(v => v === undefined)) return null
+
   return db.programmeTemplate.update({
     where: {
       id_congregationId: { id: templateId, congregationId },
     },
     data: {
-      ...data,
-      ...(data.name != null ? { name: sanitizeText(data.name) } : {}),
-      ...(data.description != null ? { description: sanitizeText(data.description) } : {}),
+      ...scoped,
+      ...(scoped.name != null ? { name: sanitizeText(scoped.name) } : {}),
+      ...(scoped.description != null ? { description: sanitizeText(scoped.description) } : {}),
     },
   })
 }
@@ -242,6 +255,11 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
     },
   })
   if (!source) return null
+
+  // System templates are looked up by key at runtime — duplicating them just
+  // clutters the list with an untethered `-copy-<ts>` row. The UI hides the
+  // Duplicate button; this is the server-side match.
+  if (isSystemTemplate(source.key)) return null
 
   const duplicated = await db.programmeTemplate.create({
     data: {
