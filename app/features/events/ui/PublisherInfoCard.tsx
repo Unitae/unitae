@@ -32,6 +32,11 @@ interface PublisherInfoCardProps {
   // section server-side) and the "same-event assignments" exclusion.
   excludePartAssignmentId?: number | null
   excludeServiceAssignmentId?: number | null
+  // Which slot the card is rendering for on a part sheet: 'assignee' is the
+  // speaker, 'assistant' is the reader. Speaker and reader are distinct
+  // rotation buckets so the cadence must not conflate them. Ignored for
+  // service assignments (they have only one slot).
+  partSlot?: 'assignee' | 'assistant'
 }
 
 export function PublisherInfoCard({
@@ -39,6 +44,7 @@ export function PublisherInfoCard({
   userId,
   excludePartAssignmentId,
   excludeServiceAssignmentId,
+  partSlot,
 }: PublisherInfoCardProps) {
   const fetcher = useFetcher<PublisherInfoData>()
 
@@ -50,8 +56,9 @@ export function PublisherInfoCard({
     if (excludeServiceAssignmentId != null) {
       searchParams.set('excludeServiceAssignmentId', String(excludeServiceAssignmentId))
     }
+    if (partSlot) searchParams.set('partSlot', partSlot)
     fetcher.load(`/programs/events/${eventId}/publisher-info?${searchParams}`)
-  }, [userId, eventId, excludePartAssignmentId, excludeServiceAssignmentId])
+  }, [userId, eventId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot])
 
   if (!userId || userId === 'none') return null
 

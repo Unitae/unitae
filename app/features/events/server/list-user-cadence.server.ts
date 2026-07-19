@@ -19,6 +19,10 @@ type Options = {
   // sections of the same template (e.g. two "Bible reading" slots) don't
   // collide into the same cadence.
   partSection: string
+  // Which role slot the picker is filling. Speaker (assignee) and reader
+  // (assistant) are distinct rotation buckets — a person who was the speaker
+  // one week shouldn't light up the reader cadence the next week.
+  slot: 'assignee' | 'assistant'
   pastCount: number
   futureCount: number
 }
@@ -31,7 +35,7 @@ type Options = {
 // to display.
 export async function listUserCadence(
   db: TransactionClient,
-  { userId, event, congregationId, partName, partSection, pastCount, futureCount }: Options,
+  { userId, event, congregationId, partName, partSection, slot, pastCount, futureCount }: Options,
 ): Promise<{ past: CadenceEntry[]; future: CadenceEntry[] }> {
   if (event.templateId == null) return { past: [], future: [] }
 
@@ -63,11 +67,14 @@ export async function listUserCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
+  type PartRow = { assigneeId: number | null; assistantId: number | null }
+  const isOnSlot =
+    slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => ({
     date: row.startDate.toISOString(),
     assigned: row.partAssignments
       .filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
-      .some(p => p.assigneeId === userId || p.assistantId === userId),
+      .some(isOnSlot),
   })
 
   return {

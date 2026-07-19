@@ -16,6 +16,7 @@ const DEFAULT_ARGS = {
   congregationId: 1,
   partName: 'Bible Reading',
   partSection: 'Ministry',
+  slot: 'assignee' as 'assignee' | 'assistant',
   pastCount: 6,
   futureCount: 6,
 }
@@ -90,7 +91,7 @@ describe('listUserCadence', () => {
     ])
   })
 
-  it('marks assigned=true when the user is the part assignee', async () => {
+  it("marks assigned=true when slot='assignee' and the user was the assignee", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
         {
@@ -106,7 +107,26 @@ describe('listUserCadence', () => {
     expect(result.past[0].assigned).toBe(true)
   })
 
-  it('marks assigned=true when the user is the part assistant', async () => {
+  it("marks assigned=true when slot='assistant' and the user was the assistant", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 99, assistantId: 5 }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, { ...DEFAULT_ARGS, slot: 'assistant' })
+
+    expect(result.past[0].assigned).toBe(true)
+  })
+
+  // Regression pin: speaker one week ≠ reader another week for rotation purposes.
+  // The two roles are distinct rotation buckets, so cross-role matches must NOT
+  // light up cadence dots.
+  it("marks assigned=false when slot='assignee' but the user was only the assistant", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
         {
@@ -119,7 +139,23 @@ describe('listUserCadence', () => {
 
     const result = await listUserCadence(db, DEFAULT_ARGS)
 
-    expect(result.past[0].assigned).toBe(true)
+    expect(result.past[0].assigned).toBe(false)
+  })
+
+  it("marks assigned=false when slot='assistant' but the user was only the assignee", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([
+        {
+          id: 1,
+          startDate: new Date('2026-04-01'),
+          partAssignments: [{ name: 'Bible Reading', section: 'Ministry', assigneeId: 5, assistantId: null }],
+        },
+      ] as never)
+      .mockResolvedValueOnce([] as never)
+
+    const result = await listUserCadence(db, { ...DEFAULT_ARGS, slot: 'assistant' })
+
+    expect(result.past[0].assigned).toBe(false)
   })
 
   it('marks assigned=false when neither slot is the user', async () => {

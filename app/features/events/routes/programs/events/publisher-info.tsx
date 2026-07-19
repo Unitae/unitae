@@ -23,11 +23,12 @@ type ResolveCadenceArgs = {
   congregationId: number
   excludePartAssignmentId: number | null
   excludeServiceAssignmentId: number | null
+  partSlot: 'assignee' | 'assistant'
 }
 
 async function resolveCadence(
   db: Parameters<typeof listUserCadence>[0],
-  { userId, event, congregationId, excludePartAssignmentId, excludeServiceAssignmentId }: ResolveCadenceArgs,
+  { userId, event, congregationId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot }: ResolveCadenceArgs,
 ) {
   if (excludePartAssignmentId != null) {
     const current = await db.programmePartAssignment.findFirst({
@@ -41,6 +42,7 @@ async function resolveCadence(
       congregationId,
       partName: current.name,
       partSection: current.section,
+      slot: partSlot,
       pastCount: 6,
       futureCount: 6,
     })
@@ -74,6 +76,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
   const userId = Number(url.searchParams.get('userId'))
   const excludePartAssignmentId = parseOptionalId(url.searchParams.get('excludePartAssignmentId'))
   const excludeServiceAssignmentId = parseOptionalId(url.searchParams.get('excludeServiceAssignmentId'))
+  const partSlot = url.searchParams.get('partSlot') === 'assistant' ? 'assistant' : 'assignee'
 
   if (!userId || Number.isNaN(userId)) return Response.json(null)
 
@@ -122,6 +125,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       congregationId,
       excludePartAssignmentId,
       excludeServiceAssignmentId,
+      partSlot,
     })
 
     return Response.json({
