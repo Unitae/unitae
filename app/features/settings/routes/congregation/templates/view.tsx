@@ -133,72 +133,25 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
       )}
 
       {isSystem ? (
-        <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-          <div className="grid gap-0 md:min-h-[340px] md:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
-            {/* Specimen — the colour is the identity. Clicking it edits it. */}
-            <Link
-              to="./edit"
-              className="group relative flex aspect-[5/3] items-end justify-start p-6 outline-none transition-[filter] duration-200 md:aspect-auto hover:brightness-[0.97] focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
-              style={{ backgroundColor: template.color }}
-              aria-label={m.settings_template_edit_colour_action()}
-            >
-              <span className="pointer-events-none inline-flex translate-y-1 items-center gap-1.5 rounded-full border bg-card/95 px-3 py-1 font-medium text-card-foreground text-xs opacity-85 shadow-sm backdrop-blur-sm transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-hover:shadow-md group-focus-visible:translate-y-0 group-focus-visible:opacity-100">
-                <Pencil className="size-3" aria-hidden="true" />
-                {m.settings_template_edit_colour_action()}
-              </span>
-            </Link>
-
-            {/* Museum label */}
-            <div className="flex flex-col gap-6 border-t p-6 md:border-t-0 md:border-l md:p-10">
-              <div className="inline-flex w-fit items-baseline gap-1 font-mono text-[11px] text-muted-foreground uppercase tracking-[0.2em]">
-                <span aria-hidden="true" className="opacity-60">
-                  [
-                </span>
-                {m.settings_template_system_tag()}
-                <span aria-hidden="true" className="opacity-60">
-                  ]
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <h2 className="font-display font-normal text-4xl text-foreground leading-none tracking-tight md:text-5xl">
-                  {template.name}
-                </h2>
-                <div className="h-px w-12 bg-foreground/25" aria-hidden="true" />
-                <p className="max-w-prose text-muted-foreground text-sm leading-relaxed">
-                  {template.key === 'day-off'
-                    ? m.settings_template_system_body_day_off()
-                    : m.settings_template_system_body_freeform()}
-                </p>
-              </div>
-
-              <dl className="mt-auto grid grid-cols-1 gap-x-8 gap-y-5 border-t pt-6 sm:grid-cols-3">
-                <div className="flex flex-col gap-1.5">
-                  <dt className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.18em]">
-                    {m.settings_template_identifier_label()}
-                  </dt>
-                  <dd className="font-mono text-sm">{template.key}</dd>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <dt className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.18em]">
-                    {m.settings_template_usage_label()}
-                  </dt>
-                  <dd className="text-sm">
-                    {template.key === 'day-off'
-                      ? m.settings_template_usage_day_off()
-                      : m.settings_template_usage_freeform()}
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <dt className="font-mono text-[10px] text-muted-foreground uppercase tracking-[0.18em]">
-                    {m.settings_template_colour_label()}
-                  </dt>
-                  <dd className="font-mono text-sm uppercase">{template.color}</dd>
-                </div>
-              </dl>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <span
+                className="inline-block size-4 rounded-full border"
+                style={{ backgroundColor: template.color }}
+                aria-hidden="true"
+              />
+              <CardTitle className="text-base">{m.settings_templates_system_badge()}</CardTitle>
             </div>
-          </div>
-        </div>
+          </CardHeader>
+          <CardContent>
+            <p className="max-w-prose text-muted-foreground text-sm leading-relaxed">
+              {template.key === 'day-off'
+                ? m.settings_template_system_body_day_off()
+                : m.settings_template_system_body_freeform()}
+            </p>
+          </CardContent>
+        </Card>
       ) : (
         <>
           <Card>
