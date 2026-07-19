@@ -18,6 +18,8 @@ type PartData = {
   order: number
   durationMin: number | null
   allowExternalSpeaker?: boolean
+  speakerLabel?: string | null
+  readerLabel?: string | null
   allowedSpeakerRoleIds: number[]
   allowedReaderRoleIds: number[]
 }
@@ -161,6 +163,16 @@ export function PartEditSheet({
           <section>
             <GroupHeading>{m.programs_edit_group_speaker()}</GroupHeading>
             <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="partSpeakerLabel">{m.programs_part_speaker_label_field()}</Label>
+                <Input
+                  id="partSpeakerLabel"
+                  name="partSpeakerLabel"
+                  defaultValue={part?.speakerLabel ?? ''}
+                  placeholder={m.programs_part_speaker_label_placeholder()}
+                  maxLength={50}
+                />
+              </div>
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="partAllowExternalSpeaker"
@@ -187,16 +199,28 @@ export function PartEditSheet({
           {/* Deuxième orateur */}
           <section>
             <GroupHeading>{m.programs_edit_group_second_speaker()}</GroupHeading>
-            <div className="flex flex-col gap-2">
-              <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
-              <RolePicker
-                key={`reader-${pickerKey}`}
-                roles={roles}
-                selectedIds={part?.allowedReaderRoleIds ?? []}
-                name="allowedReaderRoleIds"
-                idPrefix={`part-reader-${pickerKey}`}
-                defaultLabel={defaultChipLabel}
-              />
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="partReaderLabel">{m.programs_part_reader_label_field()}</Label>
+                <Input
+                  id="partReaderLabel"
+                  name="partReaderLabel"
+                  defaultValue={part?.readerLabel ?? ''}
+                  placeholder={m.programs_part_reader_label_placeholder()}
+                  maxLength={50}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label>{m.programs_edit_part_allowed_reader_label()}</Label>
+                <RolePicker
+                  key={`reader-${pickerKey}`}
+                  roles={roles}
+                  selectedIds={part?.allowedReaderRoleIds ?? []}
+                  name="allowedReaderRoleIds"
+                  idPrefix={`part-reader-${pickerKey}`}
+                  defaultLabel={defaultChipLabel}
+                />
+              </div>
             </div>
           </section>
         </fetcher.Form>
