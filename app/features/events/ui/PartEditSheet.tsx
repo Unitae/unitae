@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useFetcher } from 'react-router'
+import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import * as m from '~/i18n/paraglide/messages'
 import { Combobox } from '~/shared/ui/Combobox'
 import { Checkbox } from '~/shared/ui/checkbox'
@@ -161,7 +162,7 @@ export function PartEditSheet({
 
           {/* Orateur */}
           <section>
-            <GroupHeading>{m.programs_edit_group_speaker()}</GroupHeading>
+            <GroupHeading>{partSpeakerLabel({ speakerLabel: part?.speakerLabel, readerLabel: null })}</GroupHeading>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="partSpeakerLabel">{m.programs_part_speaker_label_field()}</Label>
@@ -198,7 +199,7 @@ export function PartEditSheet({
 
           {/* Deuxième orateur */}
           <section>
-            <GroupHeading>{m.programs_edit_group_second_speaker()}</GroupHeading>
+            <GroupHeading>{partReaderLabel({ speakerLabel: null, readerLabel: part?.readerLabel })}</GroupHeading>
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="partReaderLabel">{m.programs_part_reader_label_field()}</Label>

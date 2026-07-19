@@ -13,6 +13,7 @@ import {
 import { getResponsibleConflicts } from '~/features/dashboard/server/get-responsible-conflicts.server'
 import { buildUrgentItems } from '~/features/dashboard/ui/build-urgent-items'
 import { OnboardingChecklist } from '~/features/dashboard/ui/OnboardingChecklist'
+import { partReaderLabel, partSpeakerLabel } from '~/features/events/model/part-labels'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'
@@ -350,10 +351,7 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
             {meeting.partAssignments
               .filter(p => meeting.userPartIds.includes(p.id))
               .map(part => {
-                const roleLabel =
-                  part.viewerRole === 'reader'
-                    ? m.dashboard_next_meeting_assigned_as_assistant()
-                    : m.dashboard_next_meeting_assigned_as_speaker()
+                const roleLabel = part.viewerRole === 'reader' ? partReaderLabel(part) : partSpeakerLabel(part)
 
                 return (
                   <div key={part.id} className="rounded-lg bg-primary/5 px-3 py-2">
