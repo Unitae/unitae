@@ -69,7 +69,7 @@ function makeNextMeeting(
     name: 'Réunion de semaine',
     startDate,
     endDate: new Date(startDate.getTime() + 2 * 60 * 60 * 1000), // +2h
-    kind: { name: 'Midweek', color: '#000' } as { name: string; color: string } | null,
+    template: { name: 'Midweek', color: '#000' } as { name: string; color: string } | null,
     partAssignments,
     serviceRoleAssignments,
     userPartIds,
