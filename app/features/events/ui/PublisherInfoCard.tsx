@@ -166,13 +166,13 @@ function CadencePanel({ cadence }: { cadence: { past: CadenceEntry[]; future: Ca
       )}
       {warnings.consecutive && (
         <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-          <Info className="size-3.5" />
+          <AlertTriangle className="size-3.5" />
           {m.publisher_info_consecutive()}
         </div>
       )}
       {warnings.rotationConcern && (
         <div className="flex items-center gap-1.5 text-orange-600 text-xs dark:text-orange-400">
-          <Info className="size-3.5" />
+          <AlertTriangle className="size-3.5" />
           {m.publisher_info_rotation_concern({
             n: String(warnings.rotationConcern.assigned),
             m: String(warnings.rotationConcern.window),
