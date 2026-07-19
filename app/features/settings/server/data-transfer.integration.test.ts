@@ -143,10 +143,6 @@ beforeAll(async () => {
       },
     })
 
-    const eventKind = await tx.eventKind.create({
-      data: { name: 'Test Kind', key: `kind-${ts}`, color: '#ff0000', congregationId: sourceId },
-    })
-
     const template = await tx.programmeTemplate.create({
       data: {
         name: 'Test Template',
@@ -179,7 +175,6 @@ beforeAll(async () => {
     const event = await tx.event.create({
       data: {
         name: 'Test Event',
-        kindId: eventKind.id,
         templateId: template.id,
         startDate: new Date('2025-06-01T19:00:00Z'),
         endDate: new Date('2025-06-01T21:00:00Z'),
@@ -289,10 +284,11 @@ beforeAll(async () => {
       })
     }
 
-    // Set kindId on the template + trackOrder on the part to cover the adjacent leakage gaps.
+    // Give the template a distinctive colour and give the part a trackOrder
+    // to cover the adjacent leakage gaps.
     await tx.programmeTemplate.update({
       where: { id: template.id },
-      data: { kindId: eventKind.id },
+      data: { color: '#ff0000' },
     })
     await tx.programmeTemplatePart.update({
       where: { id: part.id },
@@ -370,7 +366,6 @@ afterAll(async () => {
       await tx.programmeTemplateServiceRole.deleteMany({})
       await tx.programmeTemplatePart.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.eventKind.deleteMany({})
       await tx.programmeTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
       await tx.boardDynamicDocumentSettings.deleteMany({})
@@ -519,7 +514,6 @@ describe('Export/Import round-trip', () => {
     expect(entityCounts['building-accesses']).toBe(1)
     expect(entityCounts.attributions).toBe(1)
     expect(entityCounts['publisher-activities']).toBe(1)
-    expect(entityCounts['event-kinds']).toBe(1)
     expect(entityCounts.events).toBe(1)
     expect(entityCounts['board-sections']).toBe(1)
     expect(entityCounts['board-documents']).toBe(1)
@@ -588,7 +582,6 @@ describe('Export/Import round-trip', () => {
       await tx.programmeTemplateServiceRole.deleteMany({})
       await tx.programmeTemplatePart.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.eventKind.deleteMany({})
       await tx.programmeTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
       await tx.boardDynamicDocumentSettings.deleteMany({})
@@ -697,16 +690,11 @@ describe('Export/Import round-trip', () => {
       expect(activities[0].hours).toBe(10)
       expect(activities[0].publisherId).toBe(aliceMember.id)
 
-      // Event kinds
-      const eventKinds = await tx.eventKind.findMany({})
-      expect(eventKinds).toHaveLength(1)
-      expect(eventKinds[0].color).toBe('#ff0000')
-
       // Programme templates + parts + service roles + responsibles
       const templates = await tx.programmeTemplate.findMany({})
       expect(templates).toHaveLength(1)
-      // kindId remap: must point to the imported event kind, not the source's id.
-      expect(templates[0].kindId).toBe(eventKinds[0].id)
+      // colour survived the round-trip
+      expect(templates[0].color).toBe('#ff0000')
       const parts = await tx.programmeTemplatePart.findMany({})
       expect(parts).toHaveLength(1)
       expect(parts[0].templateId).toBe(templates[0].id)

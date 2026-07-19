@@ -16,7 +16,6 @@
 import 'dotenv/config'
 import { randomBytes, scrypt } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { EventKind } from '../features/events/model/event-kind.type'
 import { ProgrammeTemplateKey } from '../features/events/model/programme-template.type'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
@@ -561,7 +560,6 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.publisherGroup.deleteMany({ where: { congregationId } })
   await prisma.consentRecord.deleteMany({ where: { congregationId } })
   await prisma.setting.deleteMany({ where: { congregationId } })
-  await prisma.eventKind.deleteMany({ where: { congregationId } })
   await prisma.dataDeletionRecord.deleteMany({ where: { congregationId } })
   await prisma.auditLog.deleteMany({ where: { congregationId } })
 }
@@ -627,37 +625,14 @@ async function main() {
 
   console.log(`  ✓ Congregation "${congregation.name}" (id=${congId})`)
 
-  // ── EventKinds ────────────────────────────────────────────────────────
-  const offKind = await prisma.eventKind.upsert({
-    where: {
-      key_congregationId: { key: EventKind.Off, congregationId: congId },
-    },
-    update: {},
-    create: {
-      name: 'Absence',
-      color: '#cfcfcf',
-      key: EventKind.Off,
-      congregationId: congId,
-    },
-  })
-
-  const meetingKind = await prisma.eventKind.upsert({
-    where: {
-      key_congregationId: { key: EventKind.Meeting, congregationId: congId },
-    },
-    update: {},
-    create: {
-      name: 'Réunion',
-      color: '#4f46e5',
-      key: EventKind.Meeting,
-      congregationId: congId,
-    },
-  })
-
   // ── Programme templates ───────────────────────────────────────────────
   await seedDefaultTemplates(prisma, congId, 'fr')
 
-  console.log('  ✓ Event kinds & programme templates')
+  const dayOffTemplate = await prisma.programmeTemplate.findFirstOrThrow({
+    where: { key: ProgrammeTemplateKey.DayOff, congregationId: congId },
+  })
+
+  console.log('  ✓ Programme templates')
 
   // ── Users / Publishers ────────────────────────────────────────────────
   // `id` = Member id (used as publisherId/assigneeId everywhere); `accountId` =
@@ -1130,7 +1105,6 @@ async function main() {
       const event = await prisma.event.create({
         data: {
           name: 'Réunion de semaine',
-          kindId: meetingKind.id,
           startDate: tuesday,
           endDate: endTuesday,
           templateId: midweekTemplate.id,
@@ -1187,7 +1161,6 @@ async function main() {
       const event = await prisma.event.create({
         data: {
           name: 'Réunion du week-end',
-          kindId: meetingKind.id,
           startDate: saturday,
           endDate: endSaturday,
           templateId: weekendTemplate.id,
@@ -1238,7 +1211,7 @@ async function main() {
     await prisma.event.create({
       data: {
         name: pick(['Vacances', 'Congé', 'Indisponible', 'Assemblée de circonscription']),
-        kindId: offKind.id,
+        templateId: dayOffTemplate.id,
         startDate,
         endDate,
         createdById: publisher.accountId,

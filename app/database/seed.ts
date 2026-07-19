@@ -1,7 +1,6 @@
 import 'dotenv/config'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
-import * as m from '../i18n/paraglide/messages'
 import { seedBuiltInRoles, seedPermissions } from '../shared/domain/setup.server'
 import { PrismaClient } from './generated/client'
 
@@ -11,9 +10,10 @@ async function main() {
   await seedPermissions(prisma)
 
   // Single-tenant installations: pre-create a default congregation with its
-  // EventKind and programme templates. In multi-tenant mode, congregations
-  // are created through the /register flow (registerCongregation), which
-  // already seeds templates for each new tenant.
+  // programme templates (which include the system `day-off` and `freeform`
+  // templates). In multi-tenant mode, congregations are created through the
+  // /register flow (registerCongregation), which already seeds templates for
+  // each new tenant.
   if (process.env.UNITAE_MULTI_TENANT !== 'true') {
     const seedLocale = 'fr'
 
@@ -24,22 +24,6 @@ async function main() {
         name: 'Ma Congrégation',
         slug: 'ma-congregation',
         domain: 'ma-congregation.example.com',
-      },
-    })
-
-    await prisma.eventKind.upsert({
-      where: {
-        key_congregationId: { key: 'off', congregationId: defaultCongregation.id },
-      },
-      update: {
-        name: m.seed_event_kind_absence({}, { locale: seedLocale }),
-        color: '#cfcfcf',
-      },
-      create: {
-        name: m.seed_event_kind_absence({}, { locale: seedLocale }),
-        color: '#cfcfcf',
-        key: 'off',
-        congregationId: defaultCongregation.id,
       },
     })
 

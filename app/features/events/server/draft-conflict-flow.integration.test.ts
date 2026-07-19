@@ -47,11 +47,20 @@ async function provisionCongregation(suffix: string) {
 
   return withScope(cong.id, async tx => {
     // Off is the sentinel absence kind. We do NOT create a meeting kind — the
-    // event is left with `kindId: null`, mirroring the seeded-template case
+    // event is left with `templateId: null`, mirroring the older-legacy case
     // that surfaced the bug (Prisma's inner-join filter would silently drop
-    // null-kind events from the refresh loop).
-    await tx.eventKind.create({
-      data: { name: 'Off', key: 'off', color: '#888888', congregationId: cong.id },
+    // null-template events from the refresh loop).
+    await tx.programmeTemplate.create({
+      data: {
+        name: 'Day off',
+        key: 'day-off',
+        color: '#888888',
+        weekDay: null,
+        isRecurring: false,
+        startTime: '00:00',
+        endTime: '23:59',
+        congregationId: cong.id,
+      },
     })
 
     const manager = await tx.userAccount.create({
@@ -116,7 +125,7 @@ afterAll(async () => {
   for (const congId of createdCongIds) {
     await testDb.programmePartAssignment.deleteMany({ where: { congregationId: congId } })
     await testDb.event.deleteMany({ where: { congregationId: congId } })
-    await testDb.eventKind.deleteMany({ where: { congregationId: congId } })
+    await testDb.programmeTemplate.deleteMany({ where: { congregationId: congId } })
     await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
     await testDb.member.deleteMany({ where: { congregationId: congId } })
     await testDb.congregation.delete({ where: { id: congId } })
@@ -166,14 +175,16 @@ describe('refreshConflictFlags co-participant preservation (integration)', () =>
     // A refresh keyed on Alice must NOT clear the flag that Bob's absence
     // still legitimately owns.
     await withScope(congId, async tx => {
-      const kind = await tx.eventKind.findFirstOrThrow({ where: { key: 'off', congregationId: congId } })
+      const template = await tx.programmeTemplate.findFirstOrThrow({
+        where: { key: 'day-off', congregationId: congId },
+      })
       const aliceAccount = await tx.userAccount.findFirstOrThrow({
         where: { memberId: aliceId, congregationId: congId },
       })
       await tx.event.create({
         data: {
           name: `Alice absence ${congId}`,
-          kindId: kind.id,
+          templateId: template.id,
           startDate: new Date('2027-08-10T00:00:00Z'),
           endDate: new Date('2027-08-11T00:00:00Z'),
           createdById: aliceAccount.id,

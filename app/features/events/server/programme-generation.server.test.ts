@@ -100,12 +100,11 @@ describe('generateEventsFromTemplate', () => {
     expect(result.length).toBeGreaterThan(0)
   })
 
-  it('propagates template kindId to created events', async () => {
+  it('links every created event to the source template', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
-      id: 1,
+      id: 42,
       name: 'Réunion de semaine',
       weekDay: 2,
-      kindId: 7,
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
@@ -114,30 +113,10 @@ describe('generateEventsFromTemplate', () => {
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
 
-    await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
+    await generateEventsFromTemplate(db, 42, 1, 1, 1, TZ)
 
     const call = vi.mocked(db.event.create).mock.calls[0]
-    expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(7)
-  })
-
-  it('does not set kindId when template has none', async () => {
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
-      id: 1,
-      name: 'Réunion de semaine',
-      weekDay: 2,
-      kindId: null,
-      startTime: '19:00',
-      endTime: '21:00',
-      parts: [],
-      serviceRoles: [],
-    } as never)
-    vi.mocked(db.event.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
-
-    await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
-
-    const call = vi.mocked(db.event.create).mock.calls[0]
-    expect((call[0] as { data: { kindId: unknown } }).data.kindId).toBeUndefined()
+    expect((call[0] as { data: { templateId: number } }).data.templateId).toBe(42)
   })
 
   it('copies allowExternalSpeaker from template parts to assignments', async () => {
@@ -145,7 +124,6 @@ describe('generateEventsFromTemplate', () => {
       id: 1,
       name: 'Réunion du week-end',
       weekDay: 0,
-      kindId: null,
       startTime: '10:00',
       endTime: '12:00',
       parts: [
@@ -296,11 +274,10 @@ describe('createSingleEventFromTemplate', () => {
     expect(result).toEqual({ id: 1, name: 'Mémorial' })
   })
 
-  it('propagates template kindId to the created event', async () => {
+  it('links the created event to the source template', async () => {
     vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
       id: 3,
       name: 'Mémorial',
-      kindId: 9,
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
@@ -312,7 +289,7 @@ describe('createSingleEventFromTemplate', () => {
     await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1, TZ)
 
     const call = vi.mocked(db.event.create).mock.calls[0]
-    expect((call[0] as { data: { kindId: number } }).data.kindId).toBe(9)
+    expect((call[0] as { data: { templateId: number } }).data.templateId).toBe(3)
   })
 
   it('copies allowExternalSpeaker from template parts to assignments', async () => {

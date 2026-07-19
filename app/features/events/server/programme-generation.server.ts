@@ -13,7 +13,6 @@ interface PartAllowedRoleRow extends AllowedRoleRow {
 interface TemplateWithRelations {
   id: number
   name: string
-  kindId: number | null
   startTime: string
   endTime: string
   parts: {
@@ -39,7 +38,6 @@ function loadTemplate(db: TransactionClient, templateId: number, congregationId:
         include: { allowedRoles: true },
       },
       serviceRoles: { include: { allowedRoles: true } },
-      kind: true,
     },
   })
 }
@@ -50,7 +48,6 @@ async function createEventWithAssignments(
   date: Date,
   createdById: number,
   congregationId: number,
-  meetingKindId: number | null,
   timezone: string,
 ) {
   const { hour: startHour, minute: startMinute } = parseTimeString(template.startTime)
@@ -64,7 +61,6 @@ async function createEventWithAssignments(
       startDate,
       endDate,
       templateId: template.id,
-      ...(meetingKindId != null ? { kindId: meetingKindId } : {}),
       createdById,
       congregationId,
     },
@@ -145,15 +141,7 @@ export async function generateEventsFromTemplate(
   const createdEvents = []
   for (const date of dates) {
     if (existingDateStrings.has(toDateString(date, timezone))) continue
-    const event = await createEventWithAssignments(
-      db,
-      template,
-      date,
-      createdById,
-      congregationId,
-      template.kindId,
-      timezone,
-    )
+    const event = await createEventWithAssignments(db, template, date, createdById, congregationId, timezone)
     createdEvents.push(event)
   }
 
@@ -177,7 +165,7 @@ export async function createSingleEventFromTemplate(
   })
   if (existing) return null
 
-  return createEventWithAssignments(db, template, date, createdById, congregationId, template.kindId, timezone)
+  return createEventWithAssignments(db, template, date, createdById, congregationId, timezone)
 }
 
 function toDateString(date: Date, timezone: string): string {

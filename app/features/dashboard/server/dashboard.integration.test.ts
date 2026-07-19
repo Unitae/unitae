@@ -1,7 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { EventKind } from '~/features/events/model/event-kind.type'
 import { TerritoryKind } from '~/features/territories/model/territory-kind.type'
 
 const adapter = new PrismaPg({
@@ -135,14 +134,14 @@ beforeAll(async () => {
     })
 
     // Future event with programme assignments
-    const eventKind = await tx.eventKind.create({
+    const eventKind = await tx.programmeTemplate.create({
       data: { name: 'Midweek', key: `midweek-${ts}`, color: '#00aa00', congregationId },
     })
 
     const futureEvent = await tx.event.create({
       data: {
         name: `Future Meeting ${ts}`,
-        kindId: eventKind.id,
+        templateId: eventKind.id,
         startDate: new Date('2027-06-01T19:00:00Z'),
         endDate: new Date('2027-06-01T21:00:00Z'),
         createdById: aliceAccountId,
@@ -204,7 +203,7 @@ afterAll(async () => {
     await tx.programmeServiceRoleAssignment.deleteMany({ where: { congregationId } })
     await tx.programmePartAssignment.deleteMany({ where: { congregationId } })
     await tx.event.deleteMany({ where: { congregationId } })
-    await tx.eventKind.deleteMany({ where: { congregationId } })
+    await tx.programmeTemplate.deleteMany({ where: { congregationId } })
     await tx.boardDocument.deleteMany({ where: { congregationId } })
     await tx.boardSection.deleteMany({ where: { congregationId } })
     await tx.attribution.deleteMany({ where: { congregationId } })
@@ -294,13 +293,13 @@ describe('getNextMeeting (integration)', () => {
 
   it("ignores another user's day off when picking the next meeting", async () => {
     const offEventId = await withScope(congregationId, async tx => {
-      const offKind = await tx.eventKind.create({
-        data: { name: 'Absence', key: EventKind.Off, color: '#888888', congregationId },
+      const offKind = await tx.programmeTemplate.create({
+        data: { name: 'Absence', key: 'day-off', color: '#888888', congregationId },
       })
       const off = await tx.event.create({
         data: {
           name: 'Absence',
-          kindId: offKind.id,
+          templateId: offKind.id,
           startDate: new Date('2027-05-01T00:00:00Z'),
           endDate: new Date('2027-05-03T00:00:00Z'),
           createdById: bobAccountId,
@@ -317,7 +316,7 @@ describe('getNextMeeting (integration)', () => {
     } finally {
       await withScope(congregationId, async tx => {
         await tx.event.delete({ where: { id_congregationId: { id: offEventId, congregationId } } })
-        await tx.eventKind.deleteMany({ where: { key: EventKind.Off, congregationId } })
+        await tx.programmeTemplate.deleteMany({ where: { key: 'day-off', congregationId } })
       })
     }
   })
@@ -337,13 +336,13 @@ describe('getConflictingAssignments (integration)', () => {
   function seedEvent(opts: SeedOpts) {
     const cong = opts.cong ?? congregationId
     return withScope(cong, async tx => {
-      const eventKind = await tx.eventKind.findFirstOrThrow({
-        where: { congregationId: cong, key: { not: EventKind.Off } },
+      const eventKind = await tx.programmeTemplate.findFirstOrThrow({
+        where: { congregationId: cong, key: { not: 'day-off' } },
       })
       const event = await tx.event.create({
         data: {
           name: opts.name,
-          kindId: eventKind.id,
+          templateId: eventKind.id,
           startDate: opts.startDate,
           endDate: opts.endDate ?? new Date(opts.startDate.getTime() + 2 * 60 * 60 * 1000),
           createdById: opts.createdById ?? aliceAccountId,
@@ -504,7 +503,7 @@ describe('getConflictingAssignments (integration)', () => {
     })
 
     const otherSeed = await withScope(otherCong.id, async tx => {
-      const otherKind = await tx.eventKind.create({
+      const otherKind = await tx.programmeTemplate.create({
         data: { name: 'Midweek', key: `midweek-other-${otherTs}`, color: '#00aa00', congregationId: otherCong.id },
       })
       const otherMember = await tx.member.create({
@@ -522,7 +521,7 @@ describe('getConflictingAssignments (integration)', () => {
       const event = await tx.event.create({
         data: {
           name: 'Other Cong Event',
-          kindId: otherKind.id,
+          templateId: otherKind.id,
           startDate: new Date('2027-11-01T19:00:00Z'),
           endDate: new Date('2027-11-01T21:00:00Z'),
           createdById: otherAccount.id,
@@ -570,7 +569,7 @@ describe('getConflictingAssignments (integration)', () => {
         })
         await tx.userAccount.delete({ where: { id: otherSeed.otherAccountId } })
         await tx.member.delete({ where: { id: otherSeed.otherMemberId } })
-        await tx.eventKind.delete({
+        await tx.programmeTemplate.delete({
           where: { id_congregationId: { id: otherSeed.otherKindId, congregationId: otherCong.id } },
         })
       })
@@ -585,21 +584,16 @@ describe('getConflictingAssignments (integration)', () => {
   // for templated events or stops touching one of the two assignment tables.
   it('refreshConflictFlags clears stale hasConflict and the alert disappears', async () => {
     const setup = await withScope(congregationId, async tx => {
-      const eventKind = await tx.eventKind.findFirstOrThrow({
-        where: { congregationId, key: { not: EventKind.Off } },
-      })
       const template = await tx.programmeTemplate.create({
         data: {
           name: 'Invariant Template',
           key: `invariant-template-${ts}`,
-          kindId: eventKind.id,
           congregationId,
         },
       })
       const event = await tx.event.create({
         data: {
           name: 'Invariant Event',
-          kindId: eventKind.id,
           templateId: template.id,
           startDate: new Date('2027-12-01T19:00:00Z'),
           endDate: new Date('2027-12-01T21:00:00Z'),
@@ -686,14 +680,10 @@ describe('getConflictingAssignments (integration)', () => {
   // stale hasConflict and the alert disappears" pin earlier in this file.
   it('getResponsibleConflicts drops the entry when hasConflict clears on the underlying assignment', async () => {
     const setup = await withScope(congregationId, async tx => {
-      const eventKind = await tx.eventKind.findFirstOrThrow({
-        where: { congregationId, key: { not: EventKind.Off } },
-      })
       const template = await tx.programmeTemplate.create({
         data: {
           name: 'Responsible Invariant Template',
           key: `resp-invariant-template-${ts}`,
-          kindId: eventKind.id,
           congregationId,
         },
       })
@@ -708,7 +698,6 @@ describe('getConflictingAssignments (integration)', () => {
       const event = await tx.event.create({
         data: {
           name: 'Responsible Invariant Event',
-          kindId: eventKind.id,
           templateId: template.id,
           startDate: new Date('2028-01-05T19:00:00Z'),
           endDate: new Date('2028-01-05T21:00:00Z'),
@@ -768,13 +757,9 @@ describe('getConflictingAssignments (integration)', () => {
   // the filter (the non-manager path is covered by unit tests).
   it('getResponsibleConflicts includes untemplated events for ProgramManager users', async () => {
     const setup = await withScope(congregationId, async tx => {
-      const eventKind = await tx.eventKind.findFirstOrThrow({
-        where: { congregationId, key: { not: EventKind.Off } },
-      })
       const event = await tx.event.create({
         data: {
           name: 'Untemplated Manager Event',
-          kindId: eventKind.id,
           templateId: null,
           startDate: new Date('2028-02-10T19:00:00Z'),
           endDate: new Date('2028-02-10T21:00:00Z'),
