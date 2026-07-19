@@ -29,7 +29,12 @@ export function computeCadenceWarnings({
   const firstTime = emptyWindow && !hasHistory
   const overdue = emptyWindow && hasHistory
 
-  const consecutive = past.at(-1)?.assigned === true || future[0]?.assigned === true
+  const previousIsThem = past.at(-1)?.assigned === true
+  // The very next future dot only counts as a "consecutive" concern when it's
+  // a real commitment (released). Drafts are still editable in-session and
+  // shouldn't fire the warning.
+  const nextIsThem = future[0]?.assigned === true && future[0]?.status === 'released'
+  const consecutive = previousIsThem || nextIsThem
 
   let rotationConcern: CadenceWarnings['rotationConcern'] = null
   if (past.length >= ROTATION_WINDOW) {

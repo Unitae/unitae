@@ -242,10 +242,26 @@ describe('listUserServiceCadence', () => {
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
     expect(result).toEqual({
-      past: [{ date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT' }],
-      future: [{ date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE' }],
+      past: [
+        { date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT', status: 'released' },
+      ],
+      future: [
+        { date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE', status: 'released' },
+      ],
       hasHistory: false,
     })
+  })
+
+  it("propagates event.status as 'draft' when the row is still a draft assignment", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-08-01'), status: 'draft', serviceRoleAssignments: [] },
+      ] as never)
+
+    const result = await listUserServiceCadence(db, DEFAULT_ARGS)
+
+    expect(result.future[0].status).toBe('draft')
   })
 
   it('resolves personName from the historical assignee', async () => {

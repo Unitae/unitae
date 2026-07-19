@@ -1,8 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { computeCadenceWarnings } from './compute-cadence-warnings'
 
-// Convenience: build a cadence entry. Only `assigned` matters for these tests.
-const entry = (assigned: boolean) => ({ date: '2026-01-01', assigned, personName: null })
+// Convenience: build a cadence entry. Only `assigned` matters for most tests;
+// callers override `status` when the draft-vs-released distinction is what's
+// under test.
+const entry = (assigned: boolean, status: 'draft' | 'released' = 'released') => ({
+  date: '2026-01-01',
+  assigned,
+  personName: null,
+  status,
+})
 
 describe('computeCadenceWarnings', () => {
   describe('firstTime', () => {
@@ -110,6 +117,25 @@ describe('computeCadenceWarnings', () => {
         future: [entry(false)],
       })
       expect(result.consecutive).toBe(false)
+    })
+
+    // Draft future assignments are still editable by the picker in the same
+    // session, so we don't fire the "consecutive" warning on them — that
+    // warning is for real commitments.
+    it('does not fire from the very next future dot when it is still a draft', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(false)],
+        future: [entry(true, 'draft'), entry(false)],
+      })
+      expect(result.consecutive).toBe(false)
+    })
+
+    it('still fires from the past even when the next future dot is a draft assignment', () => {
+      const result = computeCadenceWarnings({
+        past: [entry(true)],
+        future: [entry(true, 'draft')],
+      })
+      expect(result.consecutive).toBe(true)
     })
   })
 

@@ -329,8 +329,12 @@ describe('listUserCadence', () => {
     const result = await listUserCadence(db, DEFAULT_ARGS)
 
     expect(result).toEqual({
-      past: [{ date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT' }],
-      future: [{ date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE' }],
+      past: [
+        { date: new Date('2026-04-01').toISOString(), assigned: true, personName: 'Jean DUPONT', status: 'released' },
+      ],
+      future: [
+        { date: new Date('2026-08-01').toISOString(), assigned: false, personName: 'Marie CURIE', status: 'released' },
+      ],
       hasHistory: false,
     })
   })
@@ -430,6 +434,18 @@ describe('listUserCadence', () => {
     const call = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
     expect(call?.where).toMatchObject({ assigneeId: 5 })
     expect(call?.where).not.toHaveProperty('assistantId')
+  })
+
+  it("propagates event.status as 'draft' when the future row is a draft", async () => {
+    vi.mocked(db.event.findMany)
+      .mockResolvedValueOnce([] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-08-01'), status: 'draft', partAssignments: [] },
+      ] as never)
+
+    const result = await listUserCadence(db, DEFAULT_ARGS)
+
+    expect(result.future[0].status).toBe('draft')
   })
 
   it("hasHistory query filters on assistantId when slot='assistant'", async () => {

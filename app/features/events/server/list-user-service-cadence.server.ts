@@ -41,7 +41,7 @@ export async function listUserServiceCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, serviceRoleAssignments: servicesSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, serviceRoleAssignments: servicesSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -70,6 +70,7 @@ export async function listUserServiceCadence(
       date: row.startDate.toISOString(),
       assigned: matches.some(s => s.assigneeId === userId),
       personName: person ? formatPersonName(person, '') || null : null,
+      status: row.status === 'draft' ? 'draft' : 'released',
     }
   }
 

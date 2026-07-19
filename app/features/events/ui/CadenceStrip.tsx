@@ -46,6 +46,9 @@ function Dot({ entry, tone }: { entry: CadenceEntry; tone: 'past' | 'future' }) 
   const filledFuture = entry.assigned && tone === 'future'
   const dateLabel = formatAbsoluteDate(new Date(entry.date))
   const tooltip = entry.personName ? `${entry.personName} — ${dateLabel}` : dateLabel
+  // Draft future events are the picker's own scratch space — mark them dashed
+  // so a solid green fill can't be misread as a hard commitment.
+  const isDraftFuture = tone === 'future' && entry.status === 'draft'
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -54,6 +57,7 @@ function Dot({ entry, tone }: { entry: CadenceEntry; tone: 'past' | 'future' }) 
           aria-label={tooltip}
           className={cn(
             'size-2.5 shrink-0 cursor-default rounded-full border bg-transparent p-0',
+            isDraftFuture && 'border-dashed',
             filledPast && 'border-green-600 bg-green-600 dark:border-green-400 dark:bg-green-400',
             filledFuture && 'border-green-600 bg-green-500/30 dark:border-green-400',
             !entry.assigned && 'border-muted-foreground/40',

@@ -48,7 +48,7 @@ export async function listUserCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, partAssignments: partsSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, partAssignments: partsSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -90,6 +90,7 @@ export async function listUserCadence(
       date: row.startDate.toISOString(),
       assigned: matches.some(isOnSlot),
       personName: person ? formatPersonName(person, '') || null : null,
+      status: row.status === 'draft' ? 'draft' : 'released',
     }
   }
 
