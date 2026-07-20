@@ -94,7 +94,7 @@ export async function importEventParts(
   }
 }
 
-export async function importEventServiceRoles(
+export async function importEventServiceParts(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -106,7 +106,7 @@ export async function importEventServiceRoles(
     hasConflict: boolean
     name: string
     eventId: number
-    serviceRoleId: number | null
+    servicePartId: number | null
     assigneeId: number | null
   }>(zip, 'programme-service-role-assignments')
 
@@ -114,13 +114,13 @@ export async function importEventServiceRoles(
     const eventId = idMap.getOptional('events', record.eventId)
     if (!eventId) continue
 
-    const created = await db.eventServiceRole.create({
+    const created = await db.eventServicePart.create({
       data: {
         note: record.note,
         hasConflict: record.hasConflict,
         name: record.name,
         eventId,
-        serviceRoleId: idMap.getOptional('programme-template-service-roles', record.serviceRoleId),
+        servicePartId: idMap.getOptional('programme-template-service-roles', record.servicePartId),
         assigneeId: idMap.getOptional('members', record.assigneeId),
         congregationId,
       },
@@ -153,7 +153,7 @@ export async function importEventPartAllowedRoles(
   }
 }
 
-export async function importEventServiceRoleAllowedRoles(
+export async function importEventServicePartAllowedRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -163,16 +163,16 @@ export async function importEventServiceRoleAllowedRoles(
     zip,
     'programme-service-role-assignment-allowed-roles',
   )
-  const data: { eventServiceRoleId: number; roleId: number; congregationId: number }[] = []
+  const data: { eventServicePartId: number; roleId: number; congregationId: number }[] = []
 
   for (const record of records) {
-    const eventServiceRoleId = idMap.getOptional('programme-service-role-assignments', record.assignmentId)
+    const eventServicePartId = idMap.getOptional('programme-service-role-assignments', record.assignmentId)
     const roleId = idMap.getOptional('roles', record.roleId)
-    if (!eventServiceRoleId || !roleId) continue
-    data.push({ eventServiceRoleId, roleId, congregationId })
+    if (!eventServicePartId || !roleId) continue
+    data.push({ eventServicePartId, roleId, congregationId })
   }
 
   if (data.length > 0) {
-    await db.eventServiceRoleAllowedRole.createMany({ data, skipDuplicates: true })
+    await db.eventServicePartAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }

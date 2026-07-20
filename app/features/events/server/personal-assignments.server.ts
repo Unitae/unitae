@@ -1,4 +1,4 @@
-import type { Event, EventPart, EventServiceRole } from '~/database/generated/client'
+import type { Event, EventPart, EventServicePart } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import * as m from '~/i18n/paraglide/messages'
@@ -16,7 +16,7 @@ export type PersonalCalendarItem = {
 }
 
 type PartWithEvent = EventPart & { event: Event }
-type ServiceRoleWithEvent = EventServiceRole & { event: Event }
+type ServicePartWithEvent = EventServicePart & { event: Event }
 
 /**
  * `userId` is a UserAccount id. Days-off events are account-bound (createdById),
@@ -34,7 +34,7 @@ export async function getPersonalAssignments(
   })
   const memberId = account?.memberId ?? null
 
-  const [parts, serviceRoles, daysOff] = await Promise.all([
+  const [parts, serviceParts, daysOff] = await Promise.all([
     memberId != null
       ? db.eventPart.findMany({
           where: {
@@ -46,7 +46,7 @@ export async function getPersonalAssignments(
         })
       : Promise.resolve([]),
     memberId != null
-      ? db.eventServiceRole.findMany({
+      ? db.eventServicePart.findMany({
           where: {
             assigneeId: memberId,
             event: { startDate: { gte: since }, status: EventStatus.Released },
@@ -65,7 +65,7 @@ export async function getPersonalAssignments(
 
   return [
     ...parts.map(p => partAssignmentToItem(p, memberId ?? userId)),
-    ...serviceRoles.map(serviceRoleAssignmentToItem),
+    ...serviceParts.map(servicePartAssignmentToItem),
     ...daysOff.map(dayOffToItem),
   ]
 }
@@ -91,7 +91,7 @@ function partAssignmentToItem(assignment: PartWithEvent, userId: number): Person
   }
 }
 
-function serviceRoleAssignmentToItem(assignment: ServiceRoleWithEvent): PersonalCalendarItem {
+function servicePartAssignmentToItem(assignment: ServicePartWithEvent): PersonalCalendarItem {
   const role = m.calendar_feed_role_service()
   const summaryParts = [assignment.event.name, assignment.name].filter(Boolean)
 

@@ -89,7 +89,7 @@ export async function importTemplateParts(
   }
 }
 
-export async function importTemplateServiceRoles(
+export async function importTemplateServiceParts(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
@@ -106,7 +106,7 @@ export async function importTemplateServiceRoles(
     const templateId = idMap.getOptional('programme-templates', record.templateId)
     if (!templateId) continue
 
-    const created = await db.templateServiceRole.create({
+    const created = await db.templateServicePart.create({
       data: {
         name: record.name,
         key: record.key,
@@ -164,26 +164,26 @@ export async function importTemplatePartAllowedRoles(
   }
 }
 
-export async function importTemplateServiceRoleAllowedRoles(
+export async function importTemplateServicePartAllowedRoles(
   zip: JsZip,
   db: TransactionClient,
   idMap: EntityIdMap,
   congregationId: number,
 ): Promise<void> {
-  const records = await readNdjsonFile<{ serviceRoleId: number; roleId: number }>(
+  const records = await readNdjsonFile<{ servicePartId: number; roleId: number }>(
     zip,
     'programme-template-service-role-allowed-roles',
   )
-  const data: { serviceRoleId: number; roleId: number; congregationId: number }[] = []
+  const data: { servicePartId: number; roleId: number; congregationId: number }[] = []
 
   for (const record of records) {
-    const serviceRoleId = idMap.getOptional('programme-template-service-roles', record.serviceRoleId)
+    const servicePartId = idMap.getOptional('programme-template-service-roles', record.servicePartId)
     const roleId = idMap.getOptional('roles', record.roleId)
-    if (!serviceRoleId || !roleId) continue
-    data.push({ serviceRoleId, roleId, congregationId })
+    if (!servicePartId || !roleId) continue
+    data.push({ servicePartId, roleId, congregationId })
   }
 
   if (data.length > 0) {
-    await db.templateServiceRoleAllowedRole.createMany({ data, skipDuplicates: true })
+    await db.templateServicePartAllowedRole.createMany({ data, skipDuplicates: true })
   }
 }

@@ -68,7 +68,7 @@ export const deletePartSchema = z.object({
   partId: z.coerce.number(),
 })
 
-export const upsertServiceRoleSchema = z.object({
+export const upsertServicePartSchema = z.object({
   intent: z.literal('upsert-service-role'),
   roleId: z.coerce.number().optional(),
   roleName: z.string().min(1),
@@ -76,7 +76,7 @@ export const upsertServiceRoleSchema = z.object({
   allowedRoleIds: roleIdsField.default([]),
 })
 
-export const deleteServiceRoleSchema = z.object({
+export const deleteServicePartSchema = z.object({
   intent: z.literal('delete-service-role'),
   roleId: z.coerce.number(),
 })

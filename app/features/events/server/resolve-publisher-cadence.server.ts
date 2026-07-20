@@ -46,7 +46,7 @@ export async function resolvePublisherCadence(
   }
 
   if (excludeServiceAssignmentId != null) {
-    const current = await db.eventServiceRole.findFirst({
+    const current = await db.eventServicePart.findFirst({
       where: { id: excludeServiceAssignmentId, congregationId },
       select: { name: true, assigneeId: true },
     })
@@ -56,7 +56,7 @@ export async function resolvePublisherCadence(
       userId,
       event,
       congregationId,
-      serviceRoleName: current.name,
+      servicePartName: current.name,
       pastCount: PAST_COUNT,
       futureCount: FUTURE_COUNT,
     })

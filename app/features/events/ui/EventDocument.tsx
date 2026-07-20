@@ -42,7 +42,7 @@ interface PartAssignment {
   externalSpeaker: { name: string } | null
 }
 
-interface ServiceRoleAssignment {
+interface ServicePartAssignment {
   name: string
   assignee: { firstname: string | null; lastname: string | null } | null
 }
@@ -51,7 +51,7 @@ interface ProgrammeEvent {
   name: string
   startDate: Date | string
   eventParts: PartAssignment[]
-  eventServiceRoles: ServiceRoleAssignment[]
+  eventServiceParts: ServicePartAssignment[]
 }
 
 interface EventDocumentProps {
@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 2,
   },
-  serviceRoleName: {
+  servicePartName: {
     fontSize: 7.5,
     color: '#64748b',
     width: '45%',
@@ -309,15 +309,15 @@ function EventBlock({
           )
         })}
 
-      {showServices && event.eventServiceRoles.length > 0 && (
+      {showServices && event.eventServiceParts.length > 0 && (
         <View style={styles.serviceSection}>
           <Text style={styles.serviceSectionTitle}>Services</Text>
           <View style={styles.serviceGrid}>
-            {event.eventServiceRoles.map((role, roleIdx) => {
+            {event.eventServiceParts.map((role, roleIdx) => {
               const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
-                  <Text style={styles.serviceRoleName}>{role.name}</Text>
+                  <Text style={styles.servicePartName}>{role.name}</Text>
                   {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}
                 </View>
               )

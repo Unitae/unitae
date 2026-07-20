@@ -10,7 +10,7 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 //                the existing `{ error } | { assignment }` return type.
 //
 // Every user-visible error string flows through PROGRAMME_ASSIGNMENT_ERRORS
-// so message drift between the two writers (assignPart / assignServiceRole)
+// so message drift between the two writers (assignPart / assignServicePart)
 // is impossible.
 
 export const PROGRAMME_ASSIGNMENT_ERRORS = {

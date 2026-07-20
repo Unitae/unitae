@@ -28,7 +28,7 @@ interface TemplateWithRelations {
     readerLabel: string | null
     allowedRoles: PartAllowedRoleRow[]
   }[]
-  serviceRoles: { id: number; name: string; allowedRoles: AllowedRoleRow[] }[]
+  serviceParts: { id: number; name: string; allowedRoles: AllowedRoleRow[] }[]
 }
 
 function loadTemplate(db: TransactionClient, templateId: number, congregationId: number) {
@@ -39,7 +39,7 @@ function loadTemplate(db: TransactionClient, templateId: number, congregationId:
         orderBy: { order: 'asc' },
         include: { allowedRoles: true },
       },
-      serviceRoles: { include: { allowedRoles: true } },
+      serviceParts: { include: { allowedRoles: true } },
     },
   })
 }
@@ -98,19 +98,19 @@ async function createEventWithAssignments(
     }
   }
 
-  for (const role of template.serviceRoles) {
-    const assignment = await db.eventServiceRole.create({
+  for (const role of template.serviceParts) {
+    const assignment = await db.eventServicePart.create({
       data: {
         eventId: event.id,
-        serviceRoleId: role.id,
+        servicePartId: role.id,
         name: role.name,
         congregationId,
       },
     })
     if (role.allowedRoles.length > 0) {
-      await db.eventServiceRoleAllowedRole.createMany({
+      await db.eventServicePartAllowedRole.createMany({
         data: role.allowedRoles.map(r => ({
-          eventServiceRoleId: assignment.id,
+          eventServicePartId: assignment.id,
           roleId: r.roleId,
           congregationId,
         })),

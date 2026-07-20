@@ -3,7 +3,7 @@
 export { getNextDaysOffs } from './server/days-off.server'
 export {
   deleteTemplatePart,
-  deleteTemplateServiceRole,
+  deleteTemplateServicePart,
   duplicateTemplate,
   getTemplateById,
   getTemplates,
@@ -13,7 +13,7 @@ export {
   setTemplateResponsible,
   updateTemplate,
   upsertTemplatePart,
-  upsertTemplateServiceRole,
+  upsertTemplateServicePart,
 } from './server/event-templates.server'
 export { eventsNotifications } from './server/notifications.server'
 export { seedDefaultTemplates } from './server/seed-templates.server'

@@ -519,7 +519,7 @@ const BOARD_SECTIONS = [
 // ---------------------------------------------------------------------------
 
 async function cleanCongregationData(congregationId: number) {
-  await prisma.eventServiceRole.deleteMany({
+  await prisma.eventServicePart.deleteMany({
     where: { congregationId },
   })
   await prisma.eventPart.deleteMany({
@@ -528,7 +528,7 @@ async function cleanCongregationData(congregationId: number) {
   await prisma.templateResponsible.deleteMany({
     where: { congregationId },
   })
-  await prisma.templateServiceRole.deleteMany({
+  await prisma.templateServicePart.deleteMany({
     where: { congregationId },
   })
   await prisma.templatePart.deleteMany({ where: { congregationId } })
@@ -1080,12 +1080,12 @@ async function main() {
 
   const midweekTemplate = await prisma.eventTemplate.findFirst({
     where: { key: EventTemplateKey.MidweekMeeting, congregationId: congId },
-    include: { parts: true, serviceRoles: true },
+    include: { parts: true, serviceParts: true },
   })
 
   const weekendTemplate = await prisma.eventTemplate.findFirst({
     where: { key: EventTemplateKey.WeekendMeeting, congregationId: congId },
-    include: { parts: true, serviceRoles: true },
+    include: { parts: true, serviceParts: true },
   })
 
   // Generate 8 weeks of meetings (past 4 + future 4)
@@ -1134,12 +1134,12 @@ async function main() {
       }
 
       // Create service role assignments
-      for (const role of midweekTemplate.serviceRoles) {
-        await prisma.eventServiceRole.create({
+      for (const role of midweekTemplate.serviceParts) {
+        await prisma.eventServicePart.create({
           data: {
             name: role.name,
             eventId: event.id,
-            serviceRoleId: role.id,
+            servicePartId: role.id,
             assigneeId: pick(createdUsers).id,
             congregationId: congId,
           },
@@ -1185,12 +1185,12 @@ async function main() {
         })
       }
 
-      for (const role of weekendTemplate.serviceRoles) {
-        await prisma.eventServiceRole.create({
+      for (const role of weekendTemplate.serviceParts) {
+        await prisma.eventServicePart.create({
           data: {
             name: role.name,
             eventId: event.id,
-            serviceRoleId: role.id,
+            servicePartId: role.id,
             assigneeId: pick(createdUsers).id,
             congregationId: congId,
           },

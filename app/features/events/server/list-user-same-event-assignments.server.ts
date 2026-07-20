@@ -26,7 +26,7 @@ export async function listUserSameEventAssignments(
     select: { id: true, name: true, section: true },
   })
 
-  const services = await db.eventServiceRole.findMany({
+  const services = await db.eventServicePart.findMany({
     where: {
       eventId,
       congregationId,

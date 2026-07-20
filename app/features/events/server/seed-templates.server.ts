@@ -12,7 +12,7 @@ interface PartDefinition {
   allowExternalSpeaker: boolean
 }
 
-interface ServiceRoleDefinition {
+interface ServicePartDefinition {
   name: string
   key: string
 }
@@ -26,10 +26,10 @@ interface TemplateDefinition {
   endTime: string
   color: string
   parts: PartDefinition[]
-  serviceRoles: ServiceRoleDefinition[]
+  serviceParts: ServicePartDefinition[]
 }
 
-function getSharedServiceRoles(locale: Locale): ServiceRoleDefinition[] {
+function getSharedServiceParts(locale: Locale): ServicePartDefinition[] {
   return [
     { name: m.seed_service_sound({}, { locale }), key: 'sono' },
     { name: m.seed_service_stage({}, { locale }), key: 'stage' },
@@ -39,7 +39,7 @@ function getSharedServiceRoles(locale: Locale): ServiceRoleDefinition[] {
 }
 
 function getTemplates(locale: Locale): TemplateDefinition[] {
-  const sharedServiceRoles = getSharedServiceRoles(locale)
+  const sharedServiceParts = getSharedServiceParts(locale)
 
   return [
     {
@@ -130,7 +130,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           allowExternalSpeaker: false,
         },
       ],
-      serviceRoles: sharedServiceRoles,
+      serviceParts: sharedServiceParts,
     },
     {
       name: m.seed_template_weekend({}, { locale }),
@@ -171,7 +171,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           allowExternalSpeaker: false,
         },
       ],
-      serviceRoles: sharedServiceRoles,
+      serviceParts: sharedServiceParts,
     },
     {
       name: m.seed_template_memorial({}, { locale }),
@@ -218,7 +218,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           allowExternalSpeaker: false,
         },
       ],
-      serviceRoles: sharedServiceRoles,
+      serviceParts: sharedServiceParts,
     },
     {
       name: m.seed_template_day_off({}, { locale }),
@@ -229,7 +229,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       endTime: '23:59',
       color: '#cfcfcf',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     },
     {
       name: m.seed_template_freeform({}, { locale }),
@@ -240,7 +240,7 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
       endTime: '21:00',
       color: '#6366f1',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     },
   ]
 }
@@ -274,8 +274,8 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
             congregationId,
           })),
         },
-        serviceRoles: {
-          create: tpl.serviceRoles.map(role => ({
+        serviceParts: {
+          create: tpl.serviceParts.map(role => ({
             name: role.name,
             key: role.key,
             congregationId,

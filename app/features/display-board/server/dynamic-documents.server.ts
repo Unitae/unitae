@@ -354,7 +354,7 @@ function fetchProgrammeByIds(
           externalSpeaker: { select: { name: true } },
         },
       },
-      eventServiceRoles: includeServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceParts: includeServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })
@@ -384,7 +384,7 @@ function fetchProgrammeByKey(
           externalSpeaker: { select: { name: true } },
         },
       },
-      eventServiceRoles: showServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceParts: showServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })

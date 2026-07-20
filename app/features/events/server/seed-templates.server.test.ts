@@ -86,14 +86,14 @@ describe('seedDefaultTemplates', () => {
     expect(dayOff.weekDay).toBeNull()
     expect(dayOff.color).toBe('#cfcfcf')
     expect((dayOff.parts as { create: unknown[] }).create).toEqual([])
-    expect((dayOff.serviceRoles as { create: unknown[] }).create).toEqual([])
+    expect((dayOff.serviceParts as { create: unknown[] }).create).toEqual([])
 
     expect(freeform.key).toBe('freeform')
     expect(freeform.isRecurring).toBe(false)
     expect(freeform.weekDay).toBeNull()
     expect(freeform.color).toBe('#6366f1')
     expect((freeform.parts as { create: unknown[] }).create).toEqual([])
-    expect((freeform.serviceRoles as { create: unknown[] }).create).toEqual([])
+    expect((freeform.serviceParts as { create: unknown[] }).create).toEqual([])
   })
 
   it('creates parts with correct structure', async () => {
@@ -140,7 +140,7 @@ describe('seedDefaultTemplates', () => {
     // Only the meeting-style templates (first 3) carry the shared service roles;
     // the day-off and freeform templates are structural placeholders with none.
     for (const call of db.eventTemplate.create.mock.calls.slice(0, 3)) {
-      const roles = call[0].data.serviceRoles.create
+      const roles = call[0].data.serviceParts.create
       expect(roles.length).toBe(4)
       expect(roles.map((r: { key: string }) => r.key)).toEqual(['sono', 'stage', 'welcome', 'cleaning'])
     }
@@ -161,7 +161,7 @@ describe('seedDefaultTemplates', () => {
         expect(part.congregationId).toBe(7)
       }
 
-      for (const role of data.serviceRoles.create) {
+      for (const role of data.serviceParts.create) {
         expect(role.congregationId).toBe(7)
       }
     }

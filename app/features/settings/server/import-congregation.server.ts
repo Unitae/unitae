@@ -34,14 +34,14 @@ import {
   importTemplatePartAllowedRoles,
   importTemplateParts,
   importTemplateResponsibles,
-  importTemplateServiceRoleAllowedRoles,
-  importTemplateServiceRoles,
+  importTemplateServicePartAllowedRoles,
+  importTemplateServiceParts,
 } from './import-event-templates.server'
 import {
   importEventPartAllowedRoles,
   importEventParts,
-  importEventServiceRoleAllowedRoles,
-  importEventServiceRoles,
+  importEventServicePartAllowedRoles,
+  importEventServiceParts,
   importEvents,
 } from './import-events.server'
 import {
@@ -94,14 +94,14 @@ export {
   importTemplatePartAllowedRoles,
   importTemplateParts,
   importTemplateResponsibles,
-  importTemplateServiceRoleAllowedRoles,
-  importTemplateServiceRoles,
+  importTemplateServicePartAllowedRoles,
+  importTemplateServiceParts,
 } from './import-event-templates.server'
 export {
   importEventPartAllowedRoles,
   importEventParts,
-  importEventServiceRoleAllowedRoles,
-  importEventServiceRoles,
+  importEventServicePartAllowedRoles,
+  importEventServiceParts,
   importEvents,
 } from './import-events.server'
 export {
@@ -243,10 +243,10 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importTemplateServiceRoles(zip, db, idMap, congregationId)
+      await importTemplateServiceParts(zip, db, idMap, congregationId)
       await progress()
 
-      await importTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
+      await importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
       await importTemplateResponsibles(zip, db, idMap, congregationId)
@@ -261,10 +261,10 @@ export async function runImport(job: Job<ImportJobData>): Promise<void> {
       await importEventPartAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
-      await importEventServiceRoles(zip, db, idMap, congregationId)
+      await importEventServiceParts(zip, db, idMap, congregationId)
       await progress()
 
-      await importEventServiceRoleAllowedRoles(zip, db, idMap, congregationId)
+      await importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
       await progress()
 
       await importBoardSections(zip, db, idMap, congregationId)

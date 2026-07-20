@@ -186,7 +186,7 @@ export async function getConflictingAssignments(db: TransactionClient, userId: n
       orderBy: { event: { startDate: 'asc' } },
       take: 1,
     }),
-    db.eventServiceRole.findMany({
+    db.eventServicePart.findMany({
       where: {
         hasConflict: true,
         assigneeId: userId,
@@ -257,7 +257,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
         },
         orderBy: { order: 'asc' },
       },
-      eventServiceRoles: {
+      eventServiceParts: {
         select: {
           id: true,
           name: true,
@@ -281,12 +281,12 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   }))
 
   const userPartIds = new Set(eventParts.filter(p => p.viewerRole !== null).map(p => p.id))
-  const userServiceRoleIds = new Set(event.eventServiceRoles.filter(r => r.assignee?.id === userId).map(r => r.id))
+  const userServicePartIds = new Set(event.eventServiceParts.filter(r => r.assignee?.id === userId).map(r => r.id))
 
   return {
     ...event,
     eventParts,
     userPartIds: [...userPartIds],
-    userServiceRoleIds: [...userServiceRoleIds],
+    userServicePartIds: [...userServicePartIds],
   }
 }

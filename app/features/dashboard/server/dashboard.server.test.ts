@@ -7,7 +7,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn() },
     eventPart: { findMany: vi.fn() },
-    eventServiceRole: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
   },
 }))
@@ -170,7 +170,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      eventServiceRoles: [
+      eventServiceParts: [
         { id: 20, name: 'Sound', assignee: { id: 42, firstname: 'John', lastname: 'Doe' } },
         { id: 21, name: 'Stage', assignee: { id: 50, firstname: 'Bob', lastname: 'Brown' } },
       ],
@@ -179,7 +179,7 @@ describe('getNextMeeting', () => {
     const result = await getNextMeeting(db, 42)
     expect(result).not.toBeNull()
     expect(result?.userPartIds).toEqual([10])
-    expect(result?.userServiceRoleIds).toEqual([20])
+    expect(result?.userServicePartIds).toEqual([20])
     // Viewer is the assignee on part 10 → speaker. Part 11 belongs to someone
     // else so the viewer has no role there.
     const parts = result?.eventParts ?? []
@@ -210,7 +210,7 @@ describe('getNextMeeting', () => {
           assistant: { id: 42, firstname: 'John', lastname: 'Doe' },
         },
       ],
-      eventServiceRoles: [],
+      eventServiceParts: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
@@ -254,7 +254,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      eventServiceRoles: [],
+      eventServiceParts: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
@@ -290,12 +290,12 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      eventServiceRoles: [],
+      eventServiceParts: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
     expect(result?.userPartIds).toEqual([])
-    expect(result?.userServiceRoleIds).toEqual([])
+    expect(result?.userServicePartIds).toEqual([])
   })
 
   // The dashboard is publisher-facing. Drafts must not surface — same
@@ -370,14 +370,14 @@ describe('getUpcomingAbsences', () => {
 describe('getConflictingAssignments', () => {
   it('only surfaces conflicts on released events', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 
     await getConflictingAssignments(db, 42)
 
     const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
     expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
 
-    const [serviceCall] = vi.mocked(db.eventServiceRole.findMany).mock.calls[0]
+    const [serviceCall] = vi.mocked(db.eventServicePart.findMany).mock.calls[0]
     expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })

@@ -66,25 +66,25 @@ export async function getPartAssignmentAllowedRoleIds(
   return rows.map(r => r.roleId)
 }
 
-export async function getTemplateServiceRoleAllowedRoleIds(
+export async function getTemplateServicePartAllowedRoleIds(
   db: TransactionClient,
-  serviceRoleId: number,
+  servicePartId: number,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.templateServiceRoleAllowedRole.findMany({
-    where: { serviceRoleId, congregationId },
+  const rows = await db.templateServicePartAllowedRole.findMany({
+    where: { servicePartId, congregationId },
     select: { roleId: true },
   })
   return rows.map(r => r.roleId)
 }
 
-export async function getServiceRoleAssignmentAllowedRoleIds(
+export async function getServicePartAssignmentAllowedRoleIds(
   db: TransactionClient,
-  eventServiceRoleId: number,
+  eventServicePartId: number,
   congregationId: number,
 ): Promise<number[]> {
-  const rows = await db.eventServiceRoleAllowedRole.findMany({
-    where: { eventServiceRoleId, congregationId },
+  const rows = await db.eventServicePartAllowedRole.findMany({
+    where: { eventServicePartId, congregationId },
     select: { roleId: true },
   })
   return rows.map(r => r.roleId)
@@ -154,48 +154,48 @@ export async function setPartAssignmentAllowedRoles(
   return diff
 }
 
-export async function setTemplateServiceRoleAllowedRoles(
+export async function setTemplateServicePartAllowedRoles(
   db: TransactionClient,
-  serviceRoleId: number,
+  servicePartId: number,
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
-  const previous = await getTemplateServiceRoleAllowedRoleIds(db, serviceRoleId, congregationId)
+  const previous = await getTemplateServicePartAllowedRoleIds(db, servicePartId, congregationId)
   const diff = diffRoleIds(previous, desiredRoleIds)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
-    await db.templateServiceRoleAllowedRole.deleteMany({
-      where: { serviceRoleId, congregationId, roleId: { in: diff.removed } },
+    await db.templateServicePartAllowedRole.deleteMany({
+      where: { servicePartId, congregationId, roleId: { in: diff.removed } },
     })
   }
   if (diff.added.length > 0) {
-    await db.templateServiceRoleAllowedRole.createMany({
-      data: diff.added.map(roleId => ({ serviceRoleId, roleId, congregationId })),
+    await db.templateServicePartAllowedRole.createMany({
+      data: diff.added.map(roleId => ({ servicePartId, roleId, congregationId })),
       skipDuplicates: true,
     })
   }
   return diff
 }
 
-export async function setServiceRoleAssignmentAllowedRoles(
+export async function setServicePartAssignmentAllowedRoles(
   db: TransactionClient,
-  eventServiceRoleId: number,
+  eventServicePartId: number,
   desiredRoleIds: number[],
   congregationId: number,
 ): Promise<DiffResult> {
-  const previous = await getServiceRoleAssignmentAllowedRoleIds(db, eventServiceRoleId, congregationId)
+  const previous = await getServicePartAssignmentAllowedRoleIds(db, eventServicePartId, congregationId)
   const diff = diffRoleIds(previous, desiredRoleIds)
   if (diff.added.length === 0 && diff.removed.length === 0) return diff
 
   if (diff.removed.length > 0) {
-    await db.eventServiceRoleAllowedRole.deleteMany({
-      where: { eventServiceRoleId, congregationId, roleId: { in: diff.removed } },
+    await db.eventServicePartAllowedRole.deleteMany({
+      where: { eventServicePartId, congregationId, roleId: { in: diff.removed } },
     })
   }
   if (diff.added.length > 0) {
-    await db.eventServiceRoleAllowedRole.createMany({
-      data: diff.added.map(roleId => ({ eventServiceRoleId, roleId, congregationId })),
+    await db.eventServicePartAllowedRole.createMany({
+      data: diff.added.map(roleId => ({ eventServicePartId, roleId, congregationId })),
       skipDuplicates: true,
     })
   }

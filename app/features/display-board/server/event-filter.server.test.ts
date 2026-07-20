@@ -5,9 +5,9 @@ import { filterDynamicDataToEvent } from './event-filter.server'
 const PROGRAMME_DATA = {
   type: DynamicType.Programme,
   events: [
-    { id: 100, name: 'Meeting A', parts: [], serviceRoles: [] },
-    { id: 200, name: 'Meeting B', parts: [], serviceRoles: [] },
-    { id: 300, name: 'Meeting C', parts: [], serviceRoles: [] },
+    { id: 100, name: 'Meeting A', parts: [], serviceParts: [] },
+    { id: 200, name: 'Meeting B', parts: [], serviceParts: [] },
+    { id: 300, name: 'Meeting C', parts: [], serviceParts: [] },
   ],
   config: null,
   templateKey: null,

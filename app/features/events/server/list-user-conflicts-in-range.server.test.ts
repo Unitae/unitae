@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventPart: { findMany: vi.fn() },
-    eventServiceRole: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
   },
 }))
 
@@ -13,7 +13,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 })
 
 describe('listUserConflictsInRange', () => {
@@ -44,7 +44,7 @@ describe('listUserConflictsInRange', () => {
     const memberId = 5000
     await listUserConflictsInRange(db, memberId, new Date(2026, 6, 1), new Date(2026, 6, 3))
 
-    const call = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     const where = call?.where as Record<string, unknown>
     expect(where.hasConflict).toBe(true)
     expect(where.assigneeId).toBe(memberId)
@@ -75,7 +75,7 @@ describe('listUserConflictsInRange', () => {
   // accountDisplayName semantics — matches what shows up everywhere else in
   // the app.
   it("uses the responsible's linked Member name when present", async () => {
-    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
       {
         name: 'Micros',
         event: {
@@ -170,7 +170,7 @@ describe('listUserConflictsInRange', () => {
         event: { startDate: new Date(2026, 6, 2), template: null },
       },
     ] as never)
-    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
       {
         name: 'Middle service',
         event: { startDate: new Date(2026, 6, 5), template: null },

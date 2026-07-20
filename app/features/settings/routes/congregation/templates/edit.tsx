@@ -8,19 +8,19 @@ import { commitSession, getSession } from '~/features/authentication/index.serve
 import { InlineDeleteDialog, isSystemTemplate, PartEditSheet, ServiceEditSheet, SortableRow } from '~/features/events'
 import {
   deleteTemplatePart,
-  deleteTemplateServiceRole,
+  deleteTemplateServicePart,
   getTemplateById,
   isTemplateResponsible,
   updateTemplate,
   upsertTemplatePart,
-  upsertTemplateServiceRole,
+  upsertTemplateServicePart,
 } from '~/features/events/index.server'
 import {
   deletePartSchema,
-  deleteServiceRoleSchema,
+  deleteServicePartSchema,
   updateTemplateSchema,
   upsertPartSchema,
-  upsertServiceRoleSchema,
+  upsertServicePartSchema,
 } from '~/features/settings/schemas/template.schema'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
@@ -65,12 +65,12 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: { partId: { in: template.parts.map(p => p.id) }, congregationId: currentUser.congregationId },
       select: { partId: true, roleId: true, asKind: true },
     })
-    const serviceRoleAllowed = await db.templateServiceRoleAllowedRole.findMany({
+    const servicePartAllowed = await db.templateServicePartAllowedRole.findMany({
       where: {
-        serviceRoleId: { in: template.serviceRoles.map(r => r.id) },
+        servicePartId: { in: template.serviceParts.map(r => r.id) },
         congregationId: currentUser.congregationId,
       },
-      select: { serviceRoleId: true, roleId: true },
+      select: { servicePartId: true, roleId: true },
     })
 
     const partsWithRoles = template.parts.map(p => ({
@@ -80,9 +80,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
         .map(r => r.roleId),
       allowedReaderRoleIds: partAllowedRoles.filter(r => r.partId === p.id && r.asKind === 'reader').map(r => r.roleId),
     }))
-    const serviceRolesWithRoles = template.serviceRoles.map(r => ({
+    const servicePartsWithRoles = template.serviceParts.map(r => ({
       ...r,
-      allowedRoleIds: serviceRoleAllowed.filter(s => s.serviceRoleId === r.id).map(s => s.roleId),
+      allowedRoleIds: servicePartAllowed.filter(s => s.servicePartId === r.id).map(s => s.roleId),
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
@@ -91,7 +91,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const trackSuggestions = distinct(template.parts.map(p => p.track))
 
     return {
-      template: { ...template, parts: partsWithRoles, serviceRoles: serviceRolesWithRoles },
+      template: { ...template, parts: partsWithRoles, serviceParts: servicePartsWithRoles },
       isSystem: isSystemTemplate(template.key),
       roles,
       sectionSuggestions,
@@ -154,7 +154,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     if (partResult && 'reply' in partResult) return data(partResult.reply(), { status: 400 })
     if (partResult?.message) session.flash('success', partResult.message)
 
-    const serviceResult = await handleServiceRoleIntent(
+    const serviceResult = await handleServicePartIntent(
       intent,
       formData,
       db,
@@ -229,7 +229,7 @@ async function handlePartIntent(
   return null
 }
 
-async function handleServiceRoleIntent(
+async function handleServicePartIntent(
   intent: FormDataEntryValue | null,
   formData: FormData,
   db: TransactionClient,
@@ -238,7 +238,7 @@ async function handleServiceRoleIntent(
   actorId: number,
 ): Promise<IntentResult | null> {
   if (intent === 'upsert-service-role') {
-    const submission = parseWithZod(formData, { schema: upsertServiceRoleSchema })
+    const submission = parseWithZod(formData, { schema: upsertServicePartSchema })
     if (submission.status !== 'success') return submission
 
     const { roleId, roleName, roleKey, allowedRoleIds } = submission.value
@@ -248,7 +248,7 @@ async function handleServiceRoleIntent(
         .toLowerCase()
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '')
-    await upsertTemplateServiceRole(
+    await upsertTemplateServicePart(
       db,
       templateId,
       { id: roleId, name: roleName, key, allowedRoleIds },
@@ -260,10 +260,10 @@ async function handleServiceRoleIntent(
     }
   }
   if (intent === 'delete-service-role') {
-    const submission = parseWithZod(formData, { schema: deleteServiceRoleSchema })
+    const submission = parseWithZod(formData, { schema: deleteServicePartSchema })
     if (submission.status !== 'success') return submission
 
-    await deleteTemplateServiceRole(db, submission.value.roleId, congregationId)
+    await deleteTemplateServicePart(db, submission.value.roleId, congregationId)
     return { message: m.settings_template_edit_service_role_deleted() }
   }
   return null
@@ -557,7 +557,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
             </CardAction>
           </CardHeader>
           <CardContent>
-            {template.serviceRoles.length > 0 ? (
+            {template.serviceParts.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -566,7 +566,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {template.serviceRoles.map(role => (
+                  {template.serviceParts.map(role => (
                     <TableRow key={role.id}>
                       <TableCell className="font-medium text-sm">{role.name}</TableCell>
                       <TableCell>

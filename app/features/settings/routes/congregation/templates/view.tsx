@@ -188,7 +188,7 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {template.serviceRoles.map(role => (
+                {template.serviceParts.map(role => (
                   <Badge key={role.id} variant="outline">
                     {role.name}
                   </Badge>

@@ -407,15 +407,15 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-template-service-roles',
       export: () =>
-        db.templateServiceRole.findMany({
+        db.templateServicePart.findMany({
           select: { id: true, name: true, key: true, templateId: true },
         }),
     },
     {
       name: 'programme-template-service-role-allowed-roles',
       export: () =>
-        db.templateServiceRoleAllowedRole.findMany({
-          select: { serviceRoleId: true, roleId: true },
+        db.templateServicePartAllowedRole.findMany({
+          select: { servicePartId: true, roleId: true },
         }),
     },
     {
@@ -480,14 +480,14 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-service-role-assignments',
       export: () =>
-        db.eventServiceRole.findMany({
+        db.eventServicePart.findMany({
           select: {
             id: true,
             note: true,
             hasConflict: true,
             name: true,
             eventId: true,
-            serviceRoleId: true,
+            servicePartId: true,
             assigneeId: true,
           },
         }),
@@ -497,10 +497,10 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
       // See comment on programme-part-assignment-allowed-roles above — archive
       // field name stays `assignmentId` even after the column rename.
       export: async () => {
-        const rows = await db.eventServiceRoleAllowedRole.findMany({
-          select: { eventServiceRoleId: true, roleId: true },
+        const rows = await db.eventServicePartAllowedRole.findMany({
+          select: { eventServicePartId: true, roleId: true },
         })
-        return rows.map(r => ({ assignmentId: r.eventServiceRoleId, roleId: r.roleId }))
+        return rows.map(r => ({ assignmentId: r.eventServicePartId, roleId: r.roleId }))
       },
     },
     {

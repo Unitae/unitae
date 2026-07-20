@@ -36,7 +36,7 @@ export const programmeExportInclude = {
     include: { assignee: true, assistant: true, externalSpeaker: true },
     orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
   },
-  eventServiceRoles: {
+  eventServiceParts: {
     include: { assignee: true },
     orderBy: { name: 'asc' },
   },

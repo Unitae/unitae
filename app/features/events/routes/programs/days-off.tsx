@@ -96,7 +96,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
               },
               select: { event: { select: { id: true, name: true, startDate: true } } },
             }),
-            db.eventServiceRole.findMany({
+            db.eventServicePart.findMany({
               where: {
                 hasConflict: true,
                 congregationId,

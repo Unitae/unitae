@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
 
 vi.mock('~/features/events/server/allowed-roles.server', () => ({
   setPartAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
-  setServiceRoleAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+  setServicePartAssignmentAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
 }))
 
 vi.mock('~/shared/domain/audit.server', () => ({
@@ -14,7 +14,7 @@ vi.mock('~/shared/domain/audit.server', () => ({
   auditInTransaction: vi.fn(),
   AuditAction: {
     PartAllowedRolesChanged: 'part.allowed_roles.changed',
-    ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
+    ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
     EventDeleted: 'event.deleted',
     EventUpdated: 'event.updated',
   },
@@ -27,8 +27,8 @@ const {
   addPartAssignment,
   updatePartAssignment,
   deletePartAssignment,
-  addServiceRoleAssignment,
-  deleteServiceRoleAssignment,
+  addServicePartAssignment,
+  deleteServicePartAssignment,
   applyTemplateToEvent,
   bulkDeleteEvents,
 } = await import('./event-parts.server')
@@ -45,14 +45,14 @@ const mockDb = {
     delete: vi.fn(),
     update: vi.fn(),
   },
-  eventServiceRole: {
+  eventServicePart: {
     create: vi.fn(),
     delete: vi.fn(),
   },
   eventPartAllowedRole: {
     createMany: vi.fn(),
   },
-  eventServiceRoleAllowedRole: {
+  eventServicePartAllowedRole: {
     createMany: vi.fn(),
   },
   eventTemplate: {
@@ -66,7 +66,7 @@ const auditModule = await import('~/shared/domain/audit.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(allowedRoles.setPartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
-  vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })
 
 describe('createFreeformEvent', () => {
@@ -332,28 +332,28 @@ describe('updatePartAssignment', () => {
   })
 })
 
-describe('addServiceRoleAssignment', () => {
+describe('addServicePartAssignment', () => {
   it('creates a service role assignment', async () => {
     const data = { eventId: 1, name: 'Son', allowedRoleIds: [], congregationId: 10 }
     const { allowedRoleIds: _a, ...createData } = data
     const expected = { id: 1, ...createData }
-    mockDb.eventServiceRole.create.mockResolvedValue(expected)
+    mockDb.eventServicePart.create.mockResolvedValue(expected)
 
-    const result = await addServiceRoleAssignment(mockDb as never, data, 99)
+    const result = await addServicePartAssignment(mockDb as never, data, 99)
 
     expect(result).toEqual(expected)
-    expect(mockDb.eventServiceRole.create).toHaveBeenCalledWith({ data: createData })
+    expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({ data: createData })
   })
 })
 
-describe('deleteServiceRoleAssignment', () => {
+describe('deleteServicePartAssignment', () => {
   it('deletes a service role assignment using compound key', async () => {
-    mockDb.eventServiceRole.delete.mockResolvedValue({ id: 8 })
+    mockDb.eventServicePart.delete.mockResolvedValue({ id: 8 })
 
-    const result = await deleteServiceRoleAssignment(mockDb as never, 8, 10)
+    const result = await deleteServicePartAssignment(mockDb as never, 8, 10)
 
     expect(result).toEqual({ id: 8 })
-    expect(mockDb.eventServiceRole.delete).toHaveBeenCalledWith({
+    expect(mockDb.eventServicePart.delete).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 8, congregationId: 10 } },
     })
   })
@@ -397,12 +397,12 @@ describe('applyTemplateToEvent', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
+      serviceParts: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
     mockDb.eventPart.create.mockResolvedValue({ id: 999 })
-    mockDb.eventServiceRole.create.mockResolvedValue({ id: 998 })
+    mockDb.eventServicePart.create.mockResolvedValue({ id: 998 })
 
     const result = await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
@@ -426,8 +426,8 @@ describe('applyTemplateToEvent', () => {
         congregationId: 10,
       },
     })
-    expect(mockDb.eventServiceRole.create).toHaveBeenCalledWith({
-      data: { eventId: 1, serviceRoleId: 20, name: 'Son', congregationId: 10 },
+    expect(mockDb.eventServicePart.create).toHaveBeenCalledWith({
+      data: { eventId: 1, servicePartId: 20, name: 'Son', congregationId: 10 },
     })
   })
 
@@ -465,7 +465,7 @@ describe('applyTemplateToEvent', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [],
+      serviceParts: [],
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
@@ -503,14 +503,14 @@ describe('applyTemplateToEvent', () => {
           ],
         },
       ],
-      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [{ roleId: 300 }, { roleId: 301 }] }],
+      serviceParts: [{ id: 20, name: 'Son', allowedRoles: [{ roleId: 300 }, { roleId: 301 }] }],
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
     mockDb.eventPart.create.mockResolvedValue({ id: 555 })
-    mockDb.eventServiceRole.create.mockResolvedValue({ id: 666 })
+    mockDb.eventServicePart.create.mockResolvedValue({ id: 666 })
     mockDb.eventPartAllowedRole.createMany.mockResolvedValue({ count: 3 })
-    mockDb.eventServiceRoleAllowedRole.createMany.mockResolvedValue({ count: 2 })
+    mockDb.eventServicePartAllowedRole.createMany.mockResolvedValue({ count: 2 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
@@ -522,10 +522,10 @@ describe('applyTemplateToEvent', () => {
       ],
       skipDuplicates: true,
     })
-    expect(mockDb.eventServiceRoleAllowedRole.createMany).toHaveBeenCalledWith({
+    expect(mockDb.eventServicePartAllowedRole.createMany).toHaveBeenCalledWith({
       data: [
-        { eventServiceRoleId: 666, roleId: 300, congregationId: 10 },
-        { eventServiceRoleId: 666, roleId: 301, congregationId: 10 },
+        { eventServicePartId: 666, roleId: 300, congregationId: 10 },
+        { eventServicePartId: 666, roleId: 301, congregationId: 10 },
       ],
       skipDuplicates: true,
     })
@@ -548,17 +548,17 @@ describe('applyTemplateToEvent', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [{ id: 20, name: 'Son', allowedRoles: [] }],
+      serviceParts: [{ id: 20, name: 'Son', allowedRoles: [] }],
     }
     mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
     mockDb.eventPart.create.mockResolvedValue({ id: 555 })
-    mockDb.eventServiceRole.create.mockResolvedValue({ id: 666 })
+    mockDb.eventServicePart.create.mockResolvedValue({ id: 666 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
     expect(mockDb.eventPartAllowedRole.createMany).not.toHaveBeenCalled()
-    expect(mockDb.eventServiceRoleAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(mockDb.eventServicePartAllowedRole.createMany).not.toHaveBeenCalled()
   })
 })
 
@@ -620,12 +620,12 @@ describe('addPartAssignment audit firing', () => {
   })
 })
 
-describe('addServiceRoleAssignment audit firing', () => {
-  it('fires ServiceRoleAllowedRolesChanged when role list changes', async () => {
-    mockDb.eventServiceRole.create.mockResolvedValue({ id: 200 })
-    vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValueOnce({ added: [7], removed: [] })
+describe('addServicePartAssignment audit firing', () => {
+  it('fires ServicePartAllowedRolesChanged when role list changes', async () => {
+    mockDb.eventServicePart.create.mockResolvedValue({ id: 200 })
+    vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValueOnce({ added: [7], removed: [] })
 
-    await addServiceRoleAssignment(
+    await addServicePartAssignment(
       mockDb as never,
       { eventId: 1, name: 'Son', allowedRoleIds: [7], congregationId: 10 },
       42,
@@ -634,7 +634,7 @@ describe('addServiceRoleAssignment audit firing', () => {
     expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'service_role.allowed_roles.changed',
-        entityType: 'EventServiceRole',
+        entityType: 'EventServicePart',
         entityId: 200,
         actorId: 42,
       }),
@@ -642,10 +642,10 @@ describe('addServiceRoleAssignment audit firing', () => {
   })
 
   it('does not fire audit when role list does not change', async () => {
-    mockDb.eventServiceRole.create.mockResolvedValue({ id: 200 })
-    vi.mocked(allowedRoles.setServiceRoleAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+    mockDb.eventServicePart.create.mockResolvedValue({ id: 200 })
+    vi.mocked(allowedRoles.setServicePartAssignmentAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 
-    await addServiceRoleAssignment(
+    await addServicePartAssignment(
       mockDb as never,
       { eventId: 1, name: 'Son', allowedRoleIds: [], congregationId: 10 },
       42,

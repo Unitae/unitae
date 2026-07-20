@@ -5,9 +5,9 @@ describe('rewriteLegacyEntityType', () => {
   it('rewrites every Programme* entityType to its Event*/Template* counterpart', () => {
     expect(rewriteLegacyEntityType('ProgrammeTemplate')).toBe('EventTemplate')
     expect(rewriteLegacyEntityType('ProgrammeTemplatePart')).toBe('TemplatePart')
-    expect(rewriteLegacyEntityType('ProgrammeTemplateServiceRole')).toBe('TemplateServiceRole')
+    expect(rewriteLegacyEntityType('ProgrammeTemplateServicePart')).toBe('TemplateServicePart')
     expect(rewriteLegacyEntityType('ProgrammePartAssignment')).toBe('EventPart')
-    expect(rewriteLegacyEntityType('ProgrammeServiceRoleAssignment')).toBe('EventServiceRole')
+    expect(rewriteLegacyEntityType('ProgrammeServicePartAssignment')).toBe('EventServicePart')
     expect(rewriteLegacyEntityType('ProgrammeTemplateResponsible')).toBe('TemplateResponsible')
   })
 

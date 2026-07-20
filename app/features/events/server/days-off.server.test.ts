@@ -5,7 +5,7 @@ vi.mock('~/shared/infra/db.server', () => ({
     event: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), delete: vi.fn() },
     eventTemplate: { findFirst: vi.fn() },
     eventPart: { updateMany: vi.fn() },
-    eventServiceRole: { updateMany: vi.fn() },
+    eventServicePart: { updateMany: vi.fn() },
   },
 }))
 

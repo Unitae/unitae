@@ -94,14 +94,14 @@ model Congregation {
 
   eventTemplates                  EventTemplate[]
   templateParts                   TemplatePart[]
-  templateServiceRoles            TemplateServiceRole[]
+  templateServiceParts            TemplateServicePart[]
   eventParts                      EventPart[]
-  eventServiceRoles               EventServiceRole[]
+  eventServiceParts               EventServicePart[]
   templateResponsibles            TemplateResponsible[]
   templatePartAllowedRoles        TemplatePartAllowedRole[]
   eventPartAllowedRoles           EventPartAllowedRole[]
-  templateServiceRoleAllowedRoles TemplateServiceRoleAllowedRole[]
-  eventServiceRoleAllowedRoles    EventServiceRoleAllowedRole[]
+  templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
+  eventServicePartAllowedRoles    EventServicePartAllowedRole[]
   externalSpeakers                           ExternalSpeaker[]
 
   notificationEvents      NotificationEvent[]
@@ -177,7 +177,7 @@ model Member {
   activities               PublisherActivity[]              @relation("publisherActivity")
   eventPartsAsAssignee        EventPart[]        @relation("partAssignee")
   eventPartsAsAssistant       EventPart[]        @relation("partAssistant")
-  eventServiceRolesAsAssignee EventServiceRole[] @relation("serviceRoleAssignee")
+  eventServicePartsAsAssignee EventServicePart[] @relation("servicePartAssignee")
 
   // Identity-role assignments (built-in roles like brother/elder/pioneer plus
   // any custom role the user may add later that expresses identity)
@@ -261,8 +261,8 @@ model Role {
 
   allowedForTemplateParts         TemplatePartAllowedRole[]
   allowedForEventParts            EventPartAllowedRole[]
-  allowedForTemplateServiceRoles  TemplateServiceRoleAllowedRole[]
-  allowedForEventServiceRoles     EventServiceRoleAllowedRole[]
+  allowedForTemplateServiceParts  TemplateServicePartAllowedRole[]
+  allowedForEventServiceParts     EventServicePartAllowedRole[]
   allowedForBoardSections          BoardSectionVisibilityRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
@@ -653,7 +653,7 @@ model Event {
   templateId Int?
 
   eventParts        EventPart[]
-  eventServiceRoles EventServiceRole[]
+  eventServiceParts EventServicePart[]
 
   createdBy   UserAccount @relation("createdBy", fields: [createdById], references: [id])
   createdById Int
@@ -678,7 +678,7 @@ model EventTemplate {
   color       String  @default("#cfcfcf")
 
   parts        TemplatePart[]
-  serviceRoles TemplateServiceRole[]
+  serviceParts TemplateServicePart[]
   events       Event[]                        @relation("templateEvents")
   responsibles TemplateResponsible[]
 
@@ -718,7 +718,7 @@ model TemplatePart {
   @@unique([id, congregationId])
 }
 
-model TemplateServiceRole {
+model TemplateServicePart {
   id   Int    @id @default(autoincrement())
   name String
   key  String
@@ -726,8 +726,8 @@ model TemplateServiceRole {
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  eventServiceRoles EventServiceRole[]
-  allowedRoles      TemplateServiceRoleAllowedRole[]
+  eventServiceParts EventServicePart[]
+  allowedRoles      TemplateServicePartAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -804,24 +804,24 @@ model ExternalSpeaker {
   @@index([congregationId, archivedAt])
 }
 
-model EventServiceRole {
+model EventServicePart {
   id          Int     @id @default(autoincrement())
   note        String  @default("")
   hasConflict Boolean @default(false)
 
-  // Inline field (copied from template service role on generation, or set manually)
+  // Inline field (copied from template service part on generation, or set manually)
   name String @default("")
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  serviceRole   TemplateServiceRole? @relation(fields: [serviceRoleId], references: [id], onDelete: SetNull)
-  serviceRoleId Int?
+  servicePart   TemplateServicePart? @relation(fields: [servicePartId], references: [id], onDelete: SetNull)
+  servicePartId Int?
 
-  assignee   Member? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
+  assignee   Member? @relation("servicePartAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
 
-  allowedRoles EventServiceRoleAllowedRole[]
+  allowedRoles EventServicePartAllowedRole[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -862,30 +862,30 @@ model EventPartAllowedRole {
   @@index([congregationId])
 }
 
-model TemplateServiceRoleAllowedRole {
-  serviceRole   TemplateServiceRole @relation(fields: [serviceRoleId], references: [id], onDelete: Cascade)
-  serviceRoleId Int
-  role          Role                         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+model TemplateServicePartAllowedRole {
+  servicePart   TemplateServicePart @relation(fields: [servicePartId], references: [id], onDelete: Cascade)
+  servicePartId Int
+  role          Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId        Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([serviceRoleId, roleId])
+  @@id([servicePartId, roleId])
   @@index([roleId])
   @@index([congregationId])
 }
 
-model EventServiceRoleAllowedRole {
-  eventServiceRole   EventServiceRole @relation(fields: [eventServiceRoleId], references: [id], onDelete: Cascade)
-  eventServiceRoleId Int
+model EventServicePartAllowedRole {
+  eventServicePart   EventServicePart @relation(fields: [eventServicePartId], references: [id], onDelete: Cascade)
+  eventServicePartId Int
   role               Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId             Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([eventServiceRoleId, roleId])
+  @@id([eventServicePartId, roleId])
   @@index([roleId])
   @@index([congregationId])
 }

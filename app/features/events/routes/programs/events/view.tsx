@@ -15,7 +15,7 @@ import { Link, redirect, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
-  getServiceRoleAssignmentAllowedRoleIds,
+  getServicePartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
 import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
@@ -117,8 +117,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
           readerIds: readerIds.filter(id => userById.has(id)),
         }
       }
-      for (const assignment of event.eventServiceRoles) {
-        const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignment.id, congregationId)
+      for (const assignment of event.eventServiceParts) {
+        const allowed = await getServicePartAssignmentAllowedRoleIds(db, assignment.id, congregationId)
         const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
         serviceCandidates[assignment.id] = eligible.filter(id => userById.has(id))
       }
@@ -176,7 +176,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   // Derived values
   const hasAnyTopic = event.eventParts.some(a => a.topic)
   const partAssignedCount = event.eventParts.filter(a => a.assigneeId ?? a.externalSpeakerId).length
-  const serviceAssignedCount = event.eventServiceRoles.filter(a => a.assigneeId).length
+  const serviceAssignedCount = event.eventServiceParts.filter(a => a.assigneeId).length
 
   // Group parts by section, then by track within each section
   type PartAssignment = (typeof event.eventParts)[number]
@@ -354,7 +354,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             <Badge variant="outline">
               {m.programs_view_assigned_count({
                 count: String(serviceAssignedCount),
-                total: String(event.eventServiceRoles.length),
+                total: String(event.eventServiceParts.length),
               })}
             </Badge>
           </CardAction>
@@ -369,7 +369,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {event.eventServiceRoles.map(assignment => (
+              {event.eventServiceParts.map(assignment => (
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
                   <TableCell

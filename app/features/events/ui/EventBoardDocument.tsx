@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 2,
   },
-  serviceRoleName: {
+  servicePartName: {
     fontSize: 8,
     color: '#64748b',
     width: '45%',
@@ -325,15 +325,15 @@ function EventCard({
           </View>
         ))}
 
-      {showServices && event.eventServiceRoles.length > 0 && (
+      {showServices && event.eventServiceParts.length > 0 && (
         <View style={showParts ? styles.servicesDivider : styles.servicesNoDivider}>
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
-            {event.eventServiceRoles.map((role, roleIdx) => {
+            {event.eventServiceParts.map((role, roleIdx) => {
               const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>
-                  <Text style={styles.serviceRoleName}>{role.name}</Text>
+                  <Text style={styles.servicePartName}>{role.name}</Text>
                   {name ? <Text style={styles.serviceAssignee}>{name}</Text> : <Text style={styles.unassigned}>—</Text>}
                 </View>
               )

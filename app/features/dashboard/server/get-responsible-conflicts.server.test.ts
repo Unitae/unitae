@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventPart: { findMany: vi.fn() },
-    eventServiceRole: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
   },
 }))
 
@@ -13,7 +13,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 })
 
 describe('getResponsibleConflicts', () => {
@@ -43,7 +43,7 @@ describe('getResponsibleConflicts', () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, false)
 
-    const serviceCall = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     const serviceWhere = serviceCall?.where as Record<string, unknown>
     expect(serviceWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
@@ -133,7 +133,7 @@ describe('getResponsibleConflicts', () => {
         assistant: null,
       },
     ] as never)
-    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
       { eventId: 2, assigneeId: 100, assignee: { firstname: 'Alice', lastname: 'Dupont' } },
     ] as never)
 

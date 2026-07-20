@@ -2,7 +2,7 @@ import { EventStatus } from '~/features/events/model/event-status.type'
 import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import {
   getPartAssignmentAllowedRoleIds,
-  getServiceRoleAssignmentAllowedRoleIds,
+  getServicePartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
 import {
@@ -28,8 +28,8 @@ async function lockPartAssignmentRow(db: TransactionClient, id: number, congrega
   await db.$executeRaw`SELECT id FROM "EventPart" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
 }
 
-async function lockServiceRoleAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
-  await db.$executeRaw`SELECT id FROM "EventServiceRole" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
+async function lockServicePartAssignmentRow(db: TransactionClient, id: number, congregationId: number): Promise<void> {
+  await db.$executeRaw`SELECT id FROM "EventServicePart" WHERE id = ${id} AND "congregationId" = ${congregationId} FOR UPDATE`
 }
 
 export function getEventProgramme(db: TransactionClient, eventId: number, congregationId: number) {
@@ -45,7 +45,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
         },
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
       },
-      eventServiceRoles: {
+      eventServiceParts: {
         include: {
           assignee: true,
         },
@@ -172,14 +172,14 @@ export async function assignPart(
   return { assignment, previousAssigneeId, previousAssistantId }
 }
 
-export async function assignServiceRole(
+export async function assignServicePart(
   db: TransactionClient,
   assignmentId: number,
   assigneeId: number | null,
   congregationId: number,
 ) {
-  await lockServiceRoleAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.eventServiceRole.findFirst({
+  await lockServicePartAssignmentRow(db, assignmentId, congregationId)
+  const existing = await db.eventServicePart.findFirst({
     where: { id: assignmentId, congregationId },
     include: { event: true },
   })
@@ -191,7 +191,7 @@ export async function assignServiceRole(
   let hasConflict = false
 
   if (assigneeId != null) {
-    const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignmentId, congregationId)
+    const allowed = await getServicePartAssignmentAllowedRoleIds(db, assignmentId, congregationId)
     const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
     const ineligible = checkEligibleForRole(eligible, assigneeId, 'servant')
     if (ineligible) return ineligible
@@ -201,7 +201,7 @@ export async function assignServiceRole(
     }
   }
 
-  const assignment = await db.eventServiceRole.update({
+  const assignment = await db.eventServicePart.update({
     where: { id_congregationId: { id: assignmentId, congregationId } },
     data: { assigneeId, hasConflict },
   })
@@ -227,15 +227,15 @@ export async function unassignPart(db: TransactionClient, assignmentId: number, 
   return { assignment, previousAssigneeId: existing.assigneeId, previousAssistantId: existing.assistantId }
 }
 
-export async function unassignServiceRole(db: TransactionClient, assignmentId: number, congregationId: number) {
-  await lockServiceRoleAssignmentRow(db, assignmentId, congregationId)
-  const existing = await db.eventServiceRole.findFirst({
+export async function unassignServicePart(db: TransactionClient, assignmentId: number, congregationId: number) {
+  await lockServicePartAssignmentRow(db, assignmentId, congregationId)
+  const existing = await db.eventServicePart.findFirst({
     where: { id: assignmentId, congregationId },
     select: { assigneeId: true },
   })
   if (!existing) return null
 
-  const assignment = await db.eventServiceRole.update({
+  const assignment = await db.eventServicePart.update({
     where: {
       id_congregationId: { id: assignmentId, congregationId },
     },
@@ -327,7 +327,7 @@ export async function refreshConflictFlags(
 
     // Service-role rows have a single assignee, so a plain per-row recompute
     // is enough — no clobber scenario.
-    const services = await db.eventServiceRole.findMany({
+    const services = await db.eventServicePart.findMany({
       where: { eventId: event.id, assigneeId: memberId, congregationId },
       select: { id: true, assigneeId: true },
     })
@@ -336,7 +336,7 @@ export async function refreshConflictFlags(
       const hasConflict =
         service.assigneeId != null &&
         (await checkDayOffConflict(db, service.assigneeId, event.startDate, event.endDate, congregationId))
-      await db.eventServiceRole.update({
+      await db.eventServicePart.update({
         where: { id_congregationId: { id: service.id, congregationId } },
         data: { hasConflict },
       })

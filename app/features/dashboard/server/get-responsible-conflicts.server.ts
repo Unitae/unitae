@@ -45,7 +45,7 @@ export async function getResponsibleConflicts(
         assistant: { select: { firstname: true, lastname: true } },
       },
     }),
-    db.eventServiceRole.findMany({
+    db.eventServicePart.findMany({
       where: { hasConflict: true, event: eventFilter },
       select: {
         eventId: true,

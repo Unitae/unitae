@@ -4,15 +4,15 @@ import { data, Form, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignServiceSchema } from '~/features/events/schemas/assign-service.schema'
 import {
-  getServiceRoleAssignmentAllowedRoleIds,
+  getServicePartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
-import { assignServiceRole, getEventProgramme } from '~/features/events/server/event-part-assignments.server'
+import { assignServicePart, getEventProgramme } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
-  serviceRoleAssignmentDiffs,
+  servicePartAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
@@ -58,7 +58,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const assignment = event.eventServiceRoles.find(a => a.id === assignmentId)
+    const assignment = event.eventServiceParts.find(a => a.id === assignmentId)
 
     const users = await db.member.findMany({
       where: { congregationId, leftAt: null },
@@ -68,7 +68,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
 
     let assigneeCandidates = users
     if (assignment) {
-      const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignment.id, congregationId)
+      const allowed = await getServicePartAssignmentAllowedRoleIds(db, assignment.id, congregationId)
       const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
       assigneeCandidates = eligible.map(id => userById.get(id)).filter((u): u is (typeof users)[number] => u != null)
     }
@@ -100,12 +100,12 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       throw redirect('/programs')
     }
 
-    const assignmentBefore = await db.eventServiceRole.findFirst({
+    const assignmentBefore = await db.eventServicePart.findFirst({
       where: { id: assignmentId, congregationId },
       select: { name: true },
     })
 
-    const result = await assignServiceRole(db, assignmentId, assigneeId, congregationId)
+    const result = await assignServicePart(db, assignmentId, assigneeId, congregationId)
 
     if ('error' in result) {
       session.flash('error', result.error)
@@ -123,14 +123,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       buildAssignmentContext({
         event,
         assignmentName: assignmentBefore?.name,
-        entityType: 'EventServiceRole',
+        entityType: 'EventServicePart',
         entityId: assignmentId,
         congregationId,
         actorId: currentUser.id,
         locale: cong.locale,
         timezone: cong.timezone,
       }),
-      serviceRoleAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId }),
+      servicePartAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId }),
     ).catch(err =>
       logger.error('Failed to dispatch programme-assignment notifications', {
         err,

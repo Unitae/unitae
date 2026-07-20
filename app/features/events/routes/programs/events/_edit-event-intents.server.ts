@@ -11,14 +11,14 @@ import {
 } from '~/features/events/schemas/program-edit.schema'
 import {
   addPartAssignment,
-  addServiceRoleAssignment,
+  addServicePartAssignment,
   applyTemplateToEvent,
   deletePartAssignment,
-  deleteServiceRoleAssignment,
+  deleteServicePartAssignment,
   type UpdateEventFields,
   updateEvent,
   updatePartAssignment,
-  updateServiceRoleAssignment,
+  updateServicePartAssignment,
 } from '~/features/events/server/event-parts.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -187,7 +187,7 @@ async function handleAddService(
   const submission = parseWithZod(formData, { schema: addServiceSchema })
   if (submission.status !== 'success') return submission
 
-  await addServiceRoleAssignment(
+  await addServicePartAssignment(
     db,
     {
       eventId,
@@ -209,7 +209,7 @@ async function handleUpdateService(
   const submission = parseWithZod(formData, { schema: updateServiceSchema })
   if (submission.status !== 'success') return submission
 
-  await updateServiceRoleAssignment(
+  await updateServicePartAssignment(
     db,
     submission.value.serviceAssignmentId,
     { name: submission.value.serviceName, allowedRoleIds: submission.value.allowedRoleIds },
@@ -227,7 +227,7 @@ async function handleDeleteService(
   const submission = parseWithZod(formData, { schema: deleteServiceSchema })
   if (submission.status !== 'success') return submission
 
-  await deleteServiceRoleAssignment(db, submission.value.serviceAssignmentId, congregationId)
+  await deleteServicePartAssignment(db, submission.value.serviceAssignmentId, congregationId)
   return { message: m.programs_edit_service_deleted() }
 }
 

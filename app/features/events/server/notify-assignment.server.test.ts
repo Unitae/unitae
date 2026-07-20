@@ -14,7 +14,7 @@ vi.mock('~/features/display-board/index.server', () => ({
   resolveProgrammeLink: vi.fn(),
 }))
 
-const { dispatchAssignmentDiffs, notifyAssignment, partAssignmentDiffs, serviceRoleAssignmentDiffs } = await import(
+const { dispatchAssignmentDiffs, notifyAssignment, partAssignmentDiffs, servicePartAssignmentDiffs } = await import(
   './notify-assignment.server'
 )
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -223,14 +223,14 @@ describe('partAssignmentDiffs (pure)', () => {
   })
 })
 
-describe('serviceRoleAssignmentDiffs (pure)', () => {
+describe('servicePartAssignmentDiffs (pure)', () => {
   it('maps previousAssigneeId → servant slot', () => {
-    const diffs = serviceRoleAssignmentDiffs({ previousAssigneeId: 5 }, { assigneeId: 9 })
+    const diffs = servicePartAssignmentDiffs({ previousAssigneeId: 5 }, { assigneeId: 9 })
     expect(diffs).toEqual([{ role: 'servant', previousMemberId: 5, newMemberId: 9 }])
   })
 
   it('produces exactly one diff', () => {
-    const diffs = serviceRoleAssignmentDiffs({ previousAssigneeId: null }, { assigneeId: null })
+    const diffs = servicePartAssignmentDiffs({ previousAssigneeId: null }, { assigneeId: null })
     expect(diffs).toHaveLength(1)
     expect(diffs[0].role).toBe('servant')
   })

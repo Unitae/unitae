@@ -102,7 +102,7 @@ describe('computeFilters', () => {
 
     expect(result.AND).toEqual([
       {
-        OR: [{ eventParts: { some: { hasConflict: true } } }, { eventServiceRoles: { some: { hasConflict: true } } }],
+        OR: [{ eventParts: { some: { hasConflict: true } } }, { eventServiceParts: { some: { hasConflict: true } } }],
       },
     ])
   })
@@ -165,7 +165,7 @@ describe('computeFilters', () => {
     expect(result.createdById).toBe(42)
     expect(result.AND).toEqual([
       {
-        OR: [{ eventParts: { some: { hasConflict: true } } }, { eventServiceRoles: { some: { hasConflict: true } } }],
+        OR: [{ eventParts: { some: { hasConflict: true } } }, { eventServiceParts: { some: { hasConflict: true } } }],
       },
     ])
   })

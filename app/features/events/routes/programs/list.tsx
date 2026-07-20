@@ -87,7 +87,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
         _count: {
           select: {
             eventParts: { where: { hasConflict: true } },
-            eventServiceRoles: { where: { hasConflict: true } },
+            eventServiceParts: { where: { hasConflict: true } },
           },
         },
       },
@@ -97,7 +97,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const upcomingEvents = events.map(event => ({
       ...event,
       canEdit: isProgramManager || (event.templateId != null && responsibleTemplateIdSet.has(event.templateId)),
-      conflictCount: event._count.eventParts + event._count.eventServiceRoles,
+      conflictCount: event._count.eventParts + event._count.eventServiceParts,
     }))
 
     return {

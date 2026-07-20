@@ -108,7 +108,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.eventServiceRole.create({
+    await tx.eventServicePart.create({
       data: {
         name: 'Sono',
         eventId: meetingEvent.id,
@@ -168,7 +168,7 @@ afterAll(async () => {
   await testDb.eventPart.deleteMany({
     where: { congregationId: { in: [congAId, congBId] } },
   })
-  await testDb.eventServiceRole.deleteMany({
+  await testDb.eventServicePart.deleteMany({
     where: { congregationId: { in: [congAId, congBId] } },
   })
   await testDb.event.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })

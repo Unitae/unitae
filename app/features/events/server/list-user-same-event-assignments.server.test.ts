@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventPart: { findMany: vi.fn() },
-    eventServiceRole: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
   },
 }))
 
@@ -13,7 +13,7 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 })
 
 describe('listUserSameEventAssignments', () => {
@@ -44,20 +44,20 @@ describe('listUserSameEventAssignments', () => {
       excludeServiceAssignmentId: 77,
     })
 
-    const call = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     expect(call?.where).toMatchObject({ id: { not: 77 } })
   })
 
   it('does not filter the service query when excludeServiceAssignmentId is omitted', async () => {
     await listUserSameEventAssignments(db, { userId: 5, eventId: 10, congregationId: 1 })
 
-    const call = vi.mocked(db.eventServiceRole.findMany).mock.calls[0][0]
+    const call = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     expect(call?.where).not.toHaveProperty('id')
   })
 
   it('returns parts tagged "part" and services tagged "service", parts first', async () => {
     vi.mocked(db.eventPart.findMany).mockResolvedValue([{ id: 1, name: 'Reading', section: 'Ministry' }] as never)
-    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([{ id: 2, name: 'Sound' }] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([{ id: 2, name: 'Sound' }] as never)
 
     const result = await listUserSameEventAssignments(db, { userId: 5, eventId: 10, congregationId: 1 })
 

@@ -56,7 +56,7 @@ export async function listUserConflictsInRange(
         event: { select: eventWithResponsiblesSelect },
       },
     }),
-    db.eventServiceRole.findMany({
+    db.eventServicePart.findMany({
       where: {
         hasConflict: true,
         assigneeId: memberId,

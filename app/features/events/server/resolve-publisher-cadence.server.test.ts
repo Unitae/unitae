@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventPart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
-    eventServiceRole: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+    eventServicePart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
     event: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
@@ -24,7 +24,7 @@ const DEFAULT_ARGS = {
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 })
 
@@ -49,7 +49,7 @@ describe('resolvePublisherCadence — dispatch', () => {
   })
 
   it('returns EMPTY_CADENCE (anchored=false) when the service assignment cannot be found', async () => {
-    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue(null as never)
 
     const result = await resolvePublisherCadence(db, {
       ...DEFAULT_ARGS,
@@ -74,7 +74,7 @@ describe('resolvePublisherCadence — dispatch', () => {
   })
 
   it('returns anchored=true when a service assignment resolves', async () => {
-    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue({
       name: 'Sono',
       assigneeId: 5,
     } as never)
@@ -158,7 +158,7 @@ describe('resolvePublisherCadence — savedMatchesSelection (parts)', () => {
 
 describe('resolvePublisherCadence — savedMatchesSelection (services)', () => {
   it('fires when the saved service assigneeId matches userId', async () => {
-    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue({
       name: 'Sono',
       assigneeId: 5,
     } as never)
@@ -173,7 +173,7 @@ describe('resolvePublisherCadence — savedMatchesSelection (services)', () => {
   })
 
   it('does not fire when the service slot is unassigned', async () => {
-    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue({
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue({
       name: 'Sono',
       assigneeId: null,
     } as never)
@@ -200,7 +200,7 @@ describe('resolvePublisherCadence — anchor lookup filters', () => {
   })
 
   it('scopes the service assignment lookup to id + congregationId', async () => {
-    vi.mocked(db.eventServiceRole.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventServicePart.findFirst).mockResolvedValue(null as never)
 
     await resolvePublisherCadence(db, {
       ...DEFAULT_ARGS,
@@ -208,7 +208,7 @@ describe('resolvePublisherCadence — anchor lookup filters', () => {
       excludeServiceAssignmentId: 55,
     })
 
-    const call = vi.mocked(db.eventServiceRole.findFirst).mock.calls[0][0]
+    const call = vi.mocked(db.eventServicePart.findFirst).mock.calls[0][0]
     expect(call?.where).toEqual({ id: 55, congregationId: 1 })
     expect(call?.select).toMatchObject({ name: true, assigneeId: true })
   })

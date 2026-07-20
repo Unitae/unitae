@@ -5,10 +5,10 @@ import { resolveEligibleUserIds } from '~/features/events/server/allowed-roles.s
 import {
   applyTemplateToEvent,
   updatePartAssignment,
-  updateServiceRoleAssignment,
+  updateServicePartAssignment,
 } from '~/features/events/server/event-parts.server'
 import { createSingleEventFromTemplate } from '~/features/events/server/event-template-generation.server'
-import { upsertTemplatePart, upsertTemplateServiceRole } from '~/features/events/server/event-templates.server'
+import { upsertTemplatePart, upsertTemplateServicePart } from '~/features/events/server/event-templates.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -38,7 +38,7 @@ let plainPublisherUserId: number
 let nonPublisherUserId: number
 let templateId: number
 let speakerPartId: number
-let serviceRoleId: number
+let servicePartId: number
 let foreignTemplatePartId: number
 let customRoleId: number
 
@@ -163,10 +163,10 @@ beforeAll(async () => {
     })
     speakerPartId = speakerPart.id
 
-    const service = await tx.templateServiceRole.create({
+    const service = await tx.templateServicePart.create({
       data: { name: 'Son', key: `son-${ts}`, templateId, congregationId: primaryCongId },
     })
-    serviceRoleId = service.id
+    servicePartId = service.id
   })
 
   await withScope(foreignCongId, async tx => {
@@ -207,13 +207,13 @@ afterAll(async () => {
     if (!congId) continue
     await withScope(congId, async tx => {
       await tx.eventPartAllowedRole.deleteMany({})
-      await tx.eventServiceRoleAllowedRole.deleteMany({})
+      await tx.eventServicePartAllowedRole.deleteMany({})
       await tx.templatePartAllowedRole.deleteMany({})
-      await tx.templateServiceRoleAllowedRole.deleteMany({})
+      await tx.templateServicePartAllowedRole.deleteMany({})
       await tx.eventPart.deleteMany({})
-      await tx.eventServiceRole.deleteMany({})
+      await tx.eventServicePart.deleteMany({})
       await tx.templatePart.deleteMany({})
-      await tx.templateServiceRole.deleteMany({})
+      await tx.templateServicePart.deleteMany({})
       await tx.eventTemplate.deleteMany({})
       await tx.event.deleteMany({})
       await tx.memberRoleAssignment.deleteMany({})
@@ -293,29 +293,29 @@ describe('upsertTemplatePart + RLS (integration)', () => {
   })
 })
 
-describe('upsertTemplateServiceRole + RLS (integration)', () => {
+describe('upsertTemplateServicePart + RLS (integration)', () => {
   it('persists allowed-role rows for service role', async () => {
     await withScope(primaryCongId, tx =>
-      upsertTemplateServiceRole(
+      upsertTemplateServicePart(
         tx,
         templateId,
-        { id: serviceRoleId, name: 'Son', key: `son-${ts}`, allowedRoleIds: [elderRoleId] },
+        { id: servicePartId, name: 'Son', key: `son-${ts}`, allowedRoleIds: [elderRoleId] },
         primaryCongId,
         elderAccountId,
       ),
     )
 
     const rows = await withScope(primaryCongId, tx =>
-      tx.templateServiceRoleAllowedRole.findMany({ where: { serviceRoleId } }),
+      tx.templateServicePartAllowedRole.findMany({ where: { servicePartId } }),
     )
-    expect(rows).toEqual([{ serviceRoleId, roleId: elderRoleId, congregationId: primaryCongId }])
+    expect(rows).toEqual([{ servicePartId, roleId: elderRoleId, congregationId: primaryCongId }])
   })
 })
 
 describe('createSingleEventFromTemplate copies allowed roles (integration)', () => {
   it('copies template-part and service-role allowed-role lists onto the new event assignments', async () => {
     // Pre-condition: speakerPart has [elderRoleId speaker, publisherRoleId reader] from previous test
-    // serviceRole has [elderRoleId] from previous test
+    // servicePart has [elderRoleId] from previous test
     const event = await withScope(primaryCongId, tx =>
       createSingleEventFromTemplate(tx, templateId, new Date('2099-01-15'), elderAccountId, primaryCongId, 'UTC'),
     )
@@ -334,8 +334,8 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
     ])
 
     const serviceAllowed = await withScope(primaryCongId, tx =>
-      tx.eventServiceRoleAllowedRole.findMany({
-        where: { eventServiceRole: { eventId: event.id } },
+      tx.eventServicePartAllowedRole.findMany({
+        where: { eventServicePart: { eventId: event.id } },
       }),
     )
     expect(serviceAllowed.map(r => r.roleId)).toEqual([elderRoleId])
@@ -368,7 +368,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
   })
 })
 
-describe('updatePartAssignment + updateServiceRoleAssignment update allowed roles (integration)', () => {
+describe('updatePartAssignment + updateServicePartAssignment update allowed roles (integration)', () => {
   it('replaces existing allowed-role rows on update', async () => {
     const event = await withScope(primaryCongId, tx =>
       createSingleEventFromTemplate(tx, templateId, new Date('2099-03-15'), elderAccountId, primaryCongId, 'UTC'),
@@ -417,12 +417,12 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     if (!event) throw new Error('event not created')
 
     const serviceAssignment = await withScope(primaryCongId, tx =>
-      tx.eventServiceRole.findFirst({ where: { eventId: event.id } }),
+      tx.eventServicePart.findFirst({ where: { eventId: event.id } }),
     )
     if (!serviceAssignment) throw new Error('service assignment missing')
 
     await withScope(primaryCongId, tx =>
-      updateServiceRoleAssignment(
+      updateServicePartAssignment(
         tx,
         serviceAssignment.id,
         { name: 'Son', allowedRoleIds: [] }, // clear allowed roles
@@ -432,7 +432,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     )
 
     const after = await withScope(primaryCongId, tx =>
-      tx.eventServiceRoleAllowedRole.findMany({ where: { eventServiceRoleId: serviceAssignment.id } }),
+      tx.eventServicePartAllowedRole.findMany({ where: { eventServicePartId: serviceAssignment.id } }),
     )
     expect(after).toEqual([])
   })

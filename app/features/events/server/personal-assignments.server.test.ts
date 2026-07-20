@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from 'vitest'
 import { getPersonalAssignments } from './personal-assignments.server'
 
-function makeDb(rows: { parts?: unknown[]; serviceRoles?: unknown[]; daysOff?: unknown[]; memberId?: number }) {
+function makeDb(rows: { parts?: unknown[]; serviceParts?: unknown[]; daysOff?: unknown[]; memberId?: number }) {
   // Mirror the new id-resolution: getPersonalAssignments looks up the linked
   // member id from the UserAccount before issuing member-bound queries.
   return {
     userAccount: { findUnique: vi.fn().mockResolvedValue({ memberId: rows.memberId ?? 42 }) },
     eventPart: { findMany: vi.fn().mockResolvedValue(rows.parts ?? []) },
-    eventServiceRole: { findMany: vi.fn().mockResolvedValue(rows.serviceRoles ?? []) },
+    eventServicePart: { findMany: vi.fn().mockResolvedValue(rows.serviceParts ?? []) },
     event: { findMany: vi.fn().mockResolvedValue(rows.daysOff ?? []) },
   } as never
 }
@@ -28,8 +28,8 @@ describe('getPersonalAssignments', () => {
       event: { startDate: { gte: since }, status: 'released' },
     })
 
-    const rolesCall = (db as never as { eventServiceRole: { findMany: { mock: { calls: unknown[][] } } } })
-      .eventServiceRole.findMany.mock.calls[0][0] as { where: Record<string, unknown> }
+    const rolesCall = (db as never as { eventServicePart: { findMany: { mock: { calls: unknown[][] } } } })
+      .eventServicePart.findMany.mock.calls[0][0] as { where: Record<string, unknown> }
     expect(rolesCall.where).toMatchObject({
       assigneeId: 42,
       event: { startDate: { gte: since }, status: 'released' },
@@ -128,7 +128,7 @@ describe('getPersonalAssignments', () => {
           event,
         },
       ],
-      serviceRoles: [{ id: 2, assigneeId: 42, name: 'Sono', note: '', updatedAt: new Date(), event }],
+      serviceParts: [{ id: 2, assigneeId: 42, name: 'Sono', note: '', updatedAt: new Date(), event }],
       daysOff: [
         {
           id: 3,

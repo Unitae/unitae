@@ -76,11 +76,11 @@ export function urgentPartAssignmentItems(nextMeeting: NextMeeting): UrgentItem[
   ]
 }
 
-export function urgentServiceRoleItems(nextMeeting: NextMeeting): UrgentItem[] {
-  if (!nextMeeting || nextMeeting.userServiceRoleIds.length === 0) return []
+export function urgentServicePartItems(nextMeeting: NextMeeting): UrgentItem[] {
+  if (!nextMeeting || nextMeeting.userServicePartIds.length === 0) return []
   if (new Date(nextMeeting.startDate).getTime() - Date.now() > THREE_DAYS_MS) return []
 
-  const userRole = nextMeeting.eventServiceRoles.find(r => nextMeeting.userServiceRoleIds.includes(r.id))
+  const userRole = nextMeeting.eventServiceParts.find(r => nextMeeting.userServicePartIds.includes(r.id))
   if (!userRole) return []
 
   return [
@@ -170,7 +170,7 @@ export function buildUrgentItems(
   const items = [
     ...urgentTerritoriesItems(territories),
     ...urgentPartAssignmentItems(nextMeeting),
-    ...urgentServiceRoleItems(nextMeeting),
+    ...urgentServicePartItems(nextMeeting),
     ...urgentDayoffConflictItems(dayoffConflict),
     ...urgentResponsibleConflictItems(responsibleConflicts),
     ...urgentDocumentsItem(unreadDocumentCount),

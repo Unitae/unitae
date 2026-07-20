@@ -1,12 +1,12 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { unassignPart, unassignServiceRole } from '~/features/events/server/event-part-assignments.server'
+import { unassignPart, unassignServicePart } from '~/features/events/server/event-part-assignments.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
   partAssignmentDiffs,
-  serviceRoleAssignmentDiffs,
+  servicePartAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -87,11 +87,11 @@ export async function action({ request, params, context }: Route.ActionArgs) {
         )
       }
     } else if (type === 'service') {
-      const assignmentBefore = await db.eventServiceRole.findFirst({
+      const assignmentBefore = await db.eventServicePart.findFirst({
         where: { id: assignmentId, congregationId },
         select: { name: true },
       })
-      const result = await unassignServiceRole(db, assignmentId, congregationId)
+      const result = await unassignServicePart(db, assignmentId, congregationId)
       logger.info(`Unassigned service role. User ID: ${currentUser.id}. Assignment: ${assignmentId}.`)
 
       if (result) {
@@ -101,14 +101,14 @@ export async function action({ request, params, context }: Route.ActionArgs) {
           buildAssignmentContext({
             event,
             assignmentName: assignmentBefore?.name,
-            entityType: 'EventServiceRole',
+            entityType: 'EventServicePart',
             entityId: assignmentId,
             congregationId,
             actorId: currentUser.id,
             locale: cong.locale,
             timezone: cong.timezone,
           }),
-          serviceRoleAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId: null }),
+          servicePartAssignmentDiffs({ previousAssigneeId: result.previousAssigneeId }, { assigneeId: null }),
         ).catch(err =>
           logger.error('Failed to dispatch programme-assignment notifications', {
             err,

@@ -6,7 +6,7 @@ import { getTemplates } from '~/features/events/server/event-templates.server'
 import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { EventInfoCard } from '~/features/events/ui/EventInfoCard'
 import { EventPartsCard, type PartAssignment, reorderPartIds } from '~/features/events/ui/EventPartsCard'
-import { EventServicesCard, type ServiceRoleAssignment } from '~/features/events/ui/EventServicesCard'
+import { EventServicesCard, type ServicePartAssignment } from '~/features/events/ui/EventServicesCard'
 import { InlineDeleteDialog } from '~/features/events/ui/InlineDeleteDialog'
 import { PartEditSheet } from '~/features/events/ui/PartEditSheet'
 import { ServiceEditSheet } from '~/features/events/ui/ServiceEditSheet'
@@ -52,9 +52,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
       where: { eventPartId: { in: event.eventParts.map(p => p.id) }, congregationId },
       select: { eventPartId: true, roleId: true, asKind: true },
     })
-    const serviceAllowed = await db.eventServiceRoleAllowedRole.findMany({
-      where: { eventServiceRoleId: { in: event.eventServiceRoles.map(s => s.id) }, congregationId },
-      select: { eventServiceRoleId: true, roleId: true },
+    const serviceAllowed = await db.eventServicePartAllowedRole.findMany({
+      where: { eventServicePartId: { in: event.eventServiceParts.map(s => s.id) }, congregationId },
+      select: { eventServicePartId: true, roleId: true },
     })
 
     const partsWithRoles = event.eventParts.map(p => ({
@@ -64,9 +64,9 @@ export function loader({ params, context }: Route.LoaderArgs) {
         .map(r => r.roleId),
       allowedReaderRoleIds: partAllowed.filter(r => r.eventPartId === p.id && r.asKind === 'reader').map(r => r.roleId),
     }))
-    const serviceAssignmentsWithRoles = event.eventServiceRoles.map(s => ({
+    const serviceAssignmentsWithRoles = event.eventServiceParts.map(s => ({
       ...s,
-      allowedRoleIds: serviceAllowed.filter(r => r.eventServiceRoleId === s.id).map(r => r.roleId),
+      allowedRoleIds: serviceAllowed.filter(r => r.eventServicePartId === s.id).map(r => r.roleId),
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
@@ -78,7 +78,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
       event: {
         ...event,
         eventParts: partsWithRoles,
-        eventServiceRoles: serviceAssignmentsWithRoles,
+        eventServiceParts: serviceAssignmentsWithRoles,
       },
       templates,
       roles,
@@ -129,7 +129,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
   const [editingPart, setEditingPart] = useState<PartAssignment | null>(null)
   const [partSheetOpen, setPartSheetOpen] = useState(false)
 
-  const [editingService, setEditingService] = useState<ServiceRoleAssignment | null>(null)
+  const [editingService, setEditingService] = useState<ServicePartAssignment | null>(null)
   const [serviceSheetOpen, setServiceSheetOpen] = useState(false)
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'part' | 'service'; id: number; name: string } | null>(null)
@@ -205,7 +205,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
       />
 
       <EventServicesCard
-        services={event.eventServiceRoles}
+        services={event.eventServiceParts}
         onAddService={() => {
           setEditingService(null)
           setServiceSheetOpen(true)

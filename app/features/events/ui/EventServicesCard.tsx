@@ -4,16 +4,16 @@ import { Button } from '~/shared/ui/button'
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from '~/shared/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '~/shared/ui/table'
 
-export type ServiceRoleAssignment = {
+export type ServicePartAssignment = {
   id: number
   name: string
   allowedRoleIds: number[]
 }
 
 type EventServicesCardProps = {
-  services: ServiceRoleAssignment[]
+  services: ServicePartAssignment[]
   onAddService: () => void
-  onEditService: (service: ServiceRoleAssignment) => void
+  onEditService: (service: ServicePartAssignment) => void
   onDeleteService: (service: { id: number; name: string }) => void
 }
 

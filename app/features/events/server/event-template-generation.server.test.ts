@@ -6,9 +6,9 @@ vi.mock('~/shared/infra/db.server', () => ({
     eventTemplate: { findFirst: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     eventPart: { create: vi.fn() },
-    eventServiceRole: { create: vi.fn() },
+    eventServicePart: { create: vi.fn() },
     eventPartAllowedRole: { createMany: vi.fn() },
-    eventServiceRoleAllowedRole: { createMany: vi.fn() },
+    eventServicePartAllowedRole: { createMany: vi.fn() },
   },
 }))
 
@@ -67,7 +67,7 @@ describe('generateEventsFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     const result = await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ)
     expect(result).toEqual([])
@@ -85,7 +85,7 @@ describe('generateEventsFromTemplate', () => {
         { id: 10, order: 1, allowedRoles: [] },
         { id: 11, order: 2, allowedRoles: [] },
       ],
-      serviceRoles: [{ id: 20, allowedRoles: [] }],
+      serviceParts: [{ id: 20, allowedRoles: [] }],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     let eventCounter = 0
@@ -94,7 +94,7 @@ describe('generateEventsFromTemplate', () => {
       return Promise.resolve({ id: eventCounter, name: 'Réunion de semaine' })
     }) as never)
     vi.mocked(db.eventPart.create).mockResolvedValue({} as never)
-    vi.mocked(db.eventServiceRole.create).mockResolvedValue({} as never)
+    vi.mocked(db.eventServicePart.create).mockResolvedValue({} as never)
 
     const result = await generateEventsFromTemplate(db, 1, 2, 1, 1, TZ)
     expect(result.length).toBeGreaterThan(0)
@@ -108,7 +108,7 @@ describe('generateEventsFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
@@ -158,7 +158,7 @@ describe('generateEventsFromTemplate', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
@@ -195,7 +195,7 @@ describe('generateEventsFromTemplate', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
@@ -219,7 +219,7 @@ describe('generateEventsFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([{ startDate: new Date(2026, 3, 14) }] as never)
     let createCount = 0
@@ -242,7 +242,7 @@ describe('generateEventsFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     const createdDates: Date[] = []
@@ -267,7 +267,7 @@ describe('generateEventsFromTemplate', () => {
       startTime: '17:30',
       endTime: '19:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     const startDates: Date[] = []
@@ -304,7 +304,7 @@ describe('createSingleEventFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue({ id: 99 } as never)
 
@@ -320,12 +320,12 @@ describe('createSingleEventFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [{ id: 30, allowedRoles: [] }],
-      serviceRoles: [{ id: 40, allowedRoles: [] }],
+      serviceParts: [{ id: 40, allowedRoles: [] }],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1, name: 'Mémorial' } as never)
     vi.mocked(db.eventPart.create).mockResolvedValue({} as never)
-    vi.mocked(db.eventServiceRole.create).mockResolvedValue({} as never)
+    vi.mocked(db.eventServicePart.create).mockResolvedValue({} as never)
 
     const result = await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 1, 1, TZ)
     expect(result).toEqual({ id: 1, name: 'Mémorial' })
@@ -338,7 +338,7 @@ describe('createSingleEventFromTemplate', () => {
       startTime: '19:00',
       endTime: '21:00',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
@@ -368,7 +368,7 @@ describe('createSingleEventFromTemplate', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
@@ -403,14 +403,14 @@ describe('createSingleEventFromTemplate', () => {
           ],
         },
       ],
-      serviceRoles: [{ id: 40, name: 'Son', allowedRoles: [{ roleId: 9 }] }],
+      serviceParts: [{ id: 40, name: 'Son', allowedRoles: [{ roleId: 9 }] }],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 555 } as never)
     vi.mocked(db.eventPart.create).mockResolvedValue({ id: 700 } as never)
-    vi.mocked(db.eventServiceRole.create).mockResolvedValue({ id: 800 } as never)
+    vi.mocked(db.eventServicePart.create).mockResolvedValue({ id: 800 } as never)
     vi.mocked(db.eventPartAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
-    vi.mocked(db.eventServiceRoleAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.eventServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
     await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7, TZ)
 
@@ -421,8 +421,8 @@ describe('createSingleEventFromTemplate', () => {
       ],
       skipDuplicates: true,
     })
-    expect(vi.mocked(db.eventServiceRoleAllowedRole.createMany)).toHaveBeenCalledWith({
-      data: [{ eventServiceRoleId: 800, roleId: 9, congregationId: 7 }],
+    expect(vi.mocked(db.eventServicePartAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [{ eventServicePartId: 800, roleId: 9, congregationId: 7 }],
       skipDuplicates: true,
     })
   })
@@ -447,16 +447,16 @@ describe('createSingleEventFromTemplate', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [{ id: 40, name: 'Son', allowedRoles: [] }],
+      serviceParts: [{ id: 40, name: 'Son', allowedRoles: [] }],
     } as never)
     vi.mocked(db.event.findFirst).mockResolvedValue(null as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 555 } as never)
     vi.mocked(db.eventPart.create).mockResolvedValue({ id: 700 } as never)
-    vi.mocked(db.eventServiceRole.create).mockResolvedValue({ id: 800 } as never)
+    vi.mocked(db.eventServicePart.create).mockResolvedValue({ id: 800 } as never)
 
     await createSingleEventFromTemplate(db, 3, new Date(2026, 3, 20), 42, 7, TZ)
 
     expect(vi.mocked(db.eventPartAllowedRole.createMany)).not.toHaveBeenCalled()
-    expect(vi.mocked(db.eventServiceRoleAllowedRole.createMany)).not.toHaveBeenCalled()
+    expect(vi.mocked(db.eventServicePartAllowedRole.createMany)).not.toHaveBeenCalled()
   })
 })

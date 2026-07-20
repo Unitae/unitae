@@ -21,7 +21,7 @@ export interface AssignmentNotificationContext {
   // yet. Draft events accumulate diffs silently; release re-enqueues them.
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string
-  entityType: 'EventPart' | 'EventServiceRole'
+  entityType: 'EventPart' | 'EventServicePart'
   entityId: number
   congregationId: number
   actorId: number
@@ -37,7 +37,7 @@ export type { AssignmentChangeType, ProgrammeRole }
 export function buildAssignmentContext(args: {
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string | undefined
-  entityType: 'EventPart' | 'EventServiceRole'
+  entityType: 'EventPart' | 'EventServicePart'
   entityId: number
   congregationId: number
   actorId: number
@@ -90,7 +90,7 @@ export function partAssignmentDiffs(
 }
 
 // Service-role assignment: single slot (servant = assignee).
-export function serviceRoleAssignmentDiffs(
+export function servicePartAssignmentDiffs(
   before: { previousAssigneeId: number | null },
   after: { assigneeId: number | null },
 ): AssignmentDiff[] {

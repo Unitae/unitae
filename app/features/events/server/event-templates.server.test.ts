@@ -4,23 +4,23 @@ vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
     eventTemplate: { findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     templatePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
-    templateServiceRole: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    templateServicePart: { create: vi.fn(), update: vi.fn(), delete: vi.fn() },
     templateResponsible: { upsert: vi.fn(), deleteMany: vi.fn(), findFirst: vi.fn() },
     templatePartAllowedRole: { createMany: vi.fn() },
-    templateServiceRoleAllowedRole: { createMany: vi.fn() },
+    templateServicePartAllowedRole: { createMany: vi.fn() },
   },
 }))
 
 vi.mock('~/features/events/server/allowed-roles.server', () => ({
   setTemplatePartAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
-  setTemplateServiceRoleAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
+  setTemplateServicePartAllowedRoles: vi.fn().mockResolvedValue({ added: [], removed: [] }),
 }))
 
 vi.mock('~/shared/domain/audit.server', () => ({
   audit: vi.fn(),
   AuditAction: {
     PartAllowedRolesChanged: 'part.allowed_roles.changed',
-    ServiceRoleAllowedRolesChanged: 'service_role.allowed_roles.changed',
+    ServicePartAllowedRolesChanged: 'service_role.allowed_roles.changed',
   },
 }))
 
@@ -30,8 +30,8 @@ const {
   updateTemplate,
   upsertTemplatePart,
   deleteTemplatePart,
-  upsertTemplateServiceRole,
-  deleteTemplateServiceRole,
+  upsertTemplateServicePart,
+  deleteTemplateServicePart,
   setTemplateResponsible,
   removeTemplateResponsible,
   isTemplateResponsible,
@@ -44,7 +44,7 @@ const auditModule = await import('~/shared/domain/audit.server')
 beforeEach(() => {
   vi.resetAllMocks()
   vi.mocked(allowedRoles.setTemplatePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
-  vi.mocked(allowedRoles.setTemplateServiceRoleAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+  vi.mocked(allowedRoles.setTemplateServicePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 })
 
 describe('getTemplates', () => {
@@ -70,7 +70,7 @@ describe('getTemplates', () => {
 
 describe('getTemplateById', () => {
   it('returns a template with parts and service roles', async () => {
-    const fakeTemplate = { id: 1, name: 'Réunion de semaine', parts: [], serviceRoles: [] }
+    const fakeTemplate = { id: 1, name: 'Réunion de semaine', parts: [], serviceParts: [] }
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(fakeTemplate as never)
 
     const result = await getTemplateById(db, 1, 1)
@@ -197,20 +197,20 @@ describe('deleteTemplatePart', () => {
   })
 })
 
-describe('upsertTemplateServiceRole', () => {
+describe('upsertTemplateServicePart', () => {
   it('creates a new service role when no id provided', async () => {
     const newRole = { id: 10, name: 'Sono', key: 'sono' }
-    vi.mocked(db.templateServiceRole.create).mockResolvedValue(newRole as never)
+    vi.mocked(db.templateServicePart.create).mockResolvedValue(newRole as never)
 
-    const result = await upsertTemplateServiceRole(db, 1, { name: 'Sono', key: 'sono', allowedRoleIds: [] }, 1, 99)
+    const result = await upsertTemplateServicePart(db, 1, { name: 'Sono', key: 'sono', allowedRoleIds: [] }, 1, 99)
     expect(result).toEqual(newRole)
   })
 
   it('updates an existing service role when id is provided', async () => {
     const updatedRole = { id: 3, name: 'Updated' }
-    vi.mocked(db.templateServiceRole.update).mockResolvedValue(updatedRole as never)
+    vi.mocked(db.templateServicePart.update).mockResolvedValue(updatedRole as never)
 
-    const result = await upsertTemplateServiceRole(
+    const result = await upsertTemplateServicePart(
       db,
       1,
       { id: 3, name: 'Updated', key: 'updated', allowedRoleIds: [] },
@@ -221,12 +221,12 @@ describe('upsertTemplateServiceRole', () => {
   })
 })
 
-describe('deleteTemplateServiceRole', () => {
+describe('deleteTemplateServicePart', () => {
   it('deletes a service role', async () => {
     const deleted = { id: 3 }
-    vi.mocked(db.templateServiceRole.delete).mockResolvedValue(deleted as never)
+    vi.mocked(db.templateServicePart.delete).mockResolvedValue(deleted as never)
 
-    const result = await deleteTemplateServiceRole(db, 3, 1)
+    const result = await deleteTemplateServicePart(db, 3, 1)
     expect(result).toEqual(deleted)
   })
 })
@@ -383,17 +383,17 @@ describe('upsertTemplatePart audit firing', () => {
   })
 })
 
-describe('upsertTemplateServiceRole audit firing', () => {
-  it('fires ServiceRoleAllowedRolesChanged audit when role list changes', async () => {
-    vi.mocked(db.templateServiceRole.create).mockResolvedValue({ id: 60 } as never)
-    vi.mocked(allowedRoles.setTemplateServiceRoleAllowedRoles).mockResolvedValueOnce({ added: [11], removed: [] })
+describe('upsertTemplateServicePart audit firing', () => {
+  it('fires ServicePartAllowedRolesChanged audit when role list changes', async () => {
+    vi.mocked(db.templateServicePart.create).mockResolvedValue({ id: 60 } as never)
+    vi.mocked(allowedRoles.setTemplateServicePartAllowedRoles).mockResolvedValueOnce({ added: [11], removed: [] })
 
-    await upsertTemplateServiceRole(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [11] }, 1, 99)
+    await upsertTemplateServicePart(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [11] }, 1, 99)
 
     expect(vi.mocked(auditModule.audit)).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'service_role.allowed_roles.changed',
-        entityType: 'TemplateServiceRole',
+        entityType: 'TemplateServicePart',
         entityId: 60,
         actorId: 99,
       }),
@@ -401,10 +401,10 @@ describe('upsertTemplateServiceRole audit firing', () => {
   })
 
   it('does not fire audit when role list is unchanged', async () => {
-    vi.mocked(db.templateServiceRole.create).mockResolvedValue({ id: 60 } as never)
-    vi.mocked(allowedRoles.setTemplateServiceRoleAllowedRoles).mockResolvedValue({ added: [], removed: [] })
+    vi.mocked(db.templateServicePart.create).mockResolvedValue({ id: 60 } as never)
+    vi.mocked(allowedRoles.setTemplateServicePartAllowedRoles).mockResolvedValue({ added: [], removed: [] })
 
-    await upsertTemplateServiceRole(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [] }, 1, 99)
+    await upsertTemplateServicePart(db, 1, { name: 'Son', key: 'sono', allowedRoleIds: [] }, 1, 99)
 
     expect(vi.mocked(auditModule.audit)).not.toHaveBeenCalled()
   })
@@ -429,7 +429,7 @@ describe('duplicateTemplate', () => {
       key: 'day-off',
       name: 'Absence',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
 
     const result = await duplicateTemplate(db, 1, 1)
@@ -471,7 +471,7 @@ describe('duplicateTemplate', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [
+      serviceParts: [
         { id: 20, name: 'Son', key: 'sono', allowedRoles: [{ roleId: 300 }] },
         { id: 21, name: 'Stage', key: 'stage', allowedRoles: [] },
       ],
@@ -485,14 +485,14 @@ describe('duplicateTemplate', () => {
         { id: 510, order: 1 },
         { id: 511, order: 2 },
       ],
-      serviceRoles: [
+      serviceParts: [
         { id: 520, name: 'Son' },
         { id: 521, name: 'Stage' },
       ],
     }
     vi.mocked(db.eventTemplate.create).mockResolvedValue(duplicated as never)
     vi.mocked(db.templatePartAllowedRole.createMany).mockResolvedValue({ count: 2 } as never)
-    vi.mocked(db.templateServiceRoleAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.templateServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
     await duplicateTemplate(db, 5, 7)
 
@@ -507,13 +507,13 @@ describe('duplicateTemplate', () => {
       skipDuplicates: true,
     })
     // Service-role allowed-roles for the first service role
-    expect(vi.mocked(db.templateServiceRoleAllowedRole.createMany)).toHaveBeenCalledWith({
-      data: [{ serviceRoleId: 520, roleId: 300, congregationId: 7 }],
+    expect(vi.mocked(db.templateServicePartAllowedRole.createMany)).toHaveBeenCalledWith({
+      data: [{ servicePartId: 520, roleId: 300, congregationId: 7 }],
       skipDuplicates: true,
     })
     // Empty lists are skipped
     expect(vi.mocked(db.templatePartAllowedRole.createMany)).toHaveBeenCalledTimes(2)
-    expect(vi.mocked(db.templateServiceRoleAllowedRole.createMany)).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(db.templateServicePartAllowedRole.createMany)).toHaveBeenCalledTimes(1)
   })
 
   // A duplicated template must carry the source's per-part role labels; without
@@ -554,14 +554,14 @@ describe('duplicateTemplate', () => {
           allowedRoles: [],
         },
       ],
-      serviceRoles: [],
+      serviceParts: [],
     }
     vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source as never)
     vi.mocked(db.eventTemplate.create).mockResolvedValue({
       id: 99,
       name: 'Reunion (copie)',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     } as never)
 
     await duplicateTemplate(db, 5, 7)

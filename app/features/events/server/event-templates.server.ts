@@ -1,7 +1,7 @@
 import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import {
   setTemplatePartAllowedRoles,
-  setTemplateServiceRoleAllowedRoles,
+  setTemplateServicePartAllowedRoles,
 } from '~/features/events/server/allowed-roles.server'
 import { AuditAction, audit } from '~/shared/domain/audit.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
@@ -15,7 +15,7 @@ export function getTemplates(db: TransactionClient, congregationId: number) {
   return db.eventTemplate.findMany({
     where: { congregationId },
     include: {
-      _count: { select: { parts: true, serviceRoles: true, events: true } },
+      _count: { select: { parts: true, serviceParts: true, events: true } },
       responsibles: responsibleInclude,
     },
     orderBy: { name: 'asc' },
@@ -27,7 +27,7 @@ export function getTemplateById(db: TransactionClient, templateId: number, congr
     where: { id: templateId, congregationId },
     include: {
       parts: { orderBy: { order: 'asc' } },
-      serviceRoles: { orderBy: { name: 'asc' } },
+      serviceParts: { orderBy: { name: 'asc' } },
       responsibles: responsibleInclude,
     },
   })
@@ -154,40 +154,40 @@ export function deleteTemplatePart(db: TransactionClient, partId: number, congre
   })
 }
 
-export async function upsertTemplateServiceRole(
+export async function upsertTemplateServicePart(
   db: TransactionClient,
   templateId: number,
   roleData: { id?: number; name: string; key: string; allowedRoleIds: number[] },
   congregationId: number,
   actorId: number,
 ) {
-  const serviceRole = roleData.id
-    ? await db.templateServiceRole.update({
+  const servicePart = roleData.id
+    ? await db.templateServicePart.update({
         where: { id_congregationId: { id: roleData.id, congregationId } },
         data: { name: roleData.name, key: roleData.key },
       })
-    : await db.templateServiceRole.create({
+    : await db.templateServicePart.create({
         data: { name: roleData.name, key: roleData.key, templateId, congregationId },
       })
 
-  const diff = await setTemplateServiceRoleAllowedRoles(db, serviceRole.id, roleData.allowedRoleIds, congregationId)
+  const diff = await setTemplateServicePartAllowedRoles(db, servicePart.id, roleData.allowedRoleIds, congregationId)
 
   if (diff.added.length > 0 || diff.removed.length > 0) {
     audit({
-      action: AuditAction.ServiceRoleAllowedRolesChanged,
+      action: AuditAction.ServicePartAllowedRolesChanged,
       congregationId,
       actorId,
-      entityType: 'TemplateServiceRole',
-      entityId: serviceRole.id,
+      entityType: 'TemplateServicePart',
+      entityId: servicePart.id,
       metadata: { added: diff.added, removed: diff.removed },
     })
   }
 
-  return serviceRole
+  return servicePart
 }
 
-export function deleteTemplateServiceRole(db: TransactionClient, roleId: number, congregationId: number) {
-  return db.templateServiceRole.delete({
+export function deleteTemplateServicePart(db: TransactionClient, roleId: number, congregationId: number) {
+  return db.templateServicePart.delete({
     where: {
       id_congregationId: { id: roleId, congregationId },
     },
@@ -255,7 +255,7 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
         orderBy: { order: 'asc' },
         include: { allowedRoles: true },
       },
-      serviceRoles: { include: { allowedRoles: true } },
+      serviceParts: { include: { allowedRoles: true } },
     },
   })
   if (!source) return null
@@ -288,8 +288,8 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
           congregationId,
         })),
       },
-      serviceRoles: {
-        create: source.serviceRoles.map(role => ({
+      serviceParts: {
+        create: source.serviceParts.map(role => ({
           name: role.name,
           key: `${role.key}-copy-${Date.now()}`,
           congregationId,
@@ -298,12 +298,12 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
     },
     include: {
       parts: { orderBy: { order: 'asc' } },
-      serviceRoles: { orderBy: { name: 'asc' } },
+      serviceParts: { orderBy: { name: 'asc' } },
     },
   })
 
   const sourcePartsByOrder = new Map(source.parts.map(p => [p.order, p]))
-  const sourceServiceRolesByName = new Map(source.serviceRoles.map(r => [r.name, r]))
+  const sourceServicePartsByName = new Map(source.serviceParts.map(r => [r.name, r]))
 
   for (const newPart of duplicated.parts) {
     const sourcePart = sourcePartsByOrder.get(newPart.order)
@@ -324,11 +324,11 @@ export async function duplicateTemplate(db: TransactionClient, templateId: numbe
     }
   }
 
-  for (const newRole of duplicated.serviceRoles) {
-    const sourceRole = sourceServiceRolesByName.get(newRole.name)
+  for (const newRole of duplicated.serviceParts) {
+    const sourceRole = sourceServicePartsByName.get(newRole.name)
     if (!sourceRole || sourceRole.allowedRoles.length === 0) continue
-    await db.templateServiceRoleAllowedRole.createMany({
-      data: sourceRole.allowedRoles.map(r => ({ serviceRoleId: newRole.id, roleId: r.roleId, congregationId })),
+    await db.templateServicePartAllowedRole.createMany({
+      data: sourceRole.allowedRoles.map(r => ({ servicePartId: newRole.id, roleId: r.roleId, congregationId })),
       skipDuplicates: true,
     })
   }

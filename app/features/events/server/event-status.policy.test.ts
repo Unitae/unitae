@@ -4,23 +4,23 @@ import { assertCanRelease, EVENT_STATUS_ERRORS } from './event-status.policy'
 
 describe('assertCanRelease', () => {
   it('does not throw when there are no assignments', () => {
-    expect(() => assertCanRelease({ eventParts: [], eventServiceRoles: [] })).not.toThrow()
+    expect(() => assertCanRelease({ eventParts: [], eventServiceParts: [] })).not.toThrow()
   })
 
   it('does not throw when every assignment is conflict-free', () => {
     expect(() =>
-      assertCanRelease({ eventParts: [{ hasConflict: false }], eventServiceRoles: [{ hasConflict: false }] }),
+      assertCanRelease({ eventParts: [{ hasConflict: false }], eventServiceParts: [{ hasConflict: false }] }),
     ).not.toThrow()
   })
 
   it('throws ConflictError when a part assignment has a conflict', () => {
-    expect(() => assertCanRelease({ eventParts: [{ hasConflict: true }], eventServiceRoles: [] })).toThrow(
+    expect(() => assertCanRelease({ eventParts: [{ hasConflict: true }], eventServiceParts: [] })).toThrow(
       ConflictError,
     )
   })
 
   it('throws ConflictError when a service role assignment has a conflict', () => {
-    expect(() => assertCanRelease({ eventParts: [], eventServiceRoles: [{ hasConflict: true }] })).toThrow(
+    expect(() => assertCanRelease({ eventParts: [], eventServiceParts: [{ hasConflict: true }] })).toThrow(
       ConflictError,
     )
   })
@@ -33,7 +33,7 @@ describe('assertCanRelease', () => {
     try {
       assertCanRelease({
         eventParts: [{ hasConflict: true }, { hasConflict: true }],
-        eventServiceRoles: [{ hasConflict: true }],
+        eventServiceParts: [{ hasConflict: true }],
       })
       throw new Error('expected assertCanRelease to throw')
     } catch (e) {

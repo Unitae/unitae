@@ -69,7 +69,7 @@ interface PartAssignment {
   } | null
 }
 
-interface ServiceRoleAssignment {
+interface ServicePartAssignment {
   id: number
   name: string
   assignee?: {
@@ -86,7 +86,7 @@ interface ProgrammeEvent {
   startDate: Date
   templateId?: number | null
   eventParts: PartAssignment[]
-  eventServiceRoles?: ServiceRoleAssignment[]
+  eventServiceParts?: ServicePartAssignment[]
 }
 
 export interface ProgrammeViewData {
@@ -243,7 +243,7 @@ function ServiceSection({
   hasParts,
   query,
 }: {
-  services: ServiceRoleAssignment[]
+  services: ServicePartAssignment[]
   hasParts: boolean
   query: string
 }) {
@@ -519,8 +519,8 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                 })}
 
               {/* Services */}
-              {eventShowServices && event.eventServiceRoles && event.eventServiceRoles.length > 0 && (
-                <ServiceSection services={event.eventServiceRoles} hasParts={eventShowParts} query={query} />
+              {eventShowServices && event.eventServiceParts && event.eventServiceParts.length > 0 && (
+                <ServiceSection services={event.eventServiceParts} hasParts={eventShowParts} query={query} />
               )}
             </div>
           </div>

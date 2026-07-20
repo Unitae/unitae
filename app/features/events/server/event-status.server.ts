@@ -19,7 +19,7 @@ export type ReleaseNotificationContext = {
 // notification when the event flips to released. Computed from the event
 // under the release tx and fired OUTSIDE the tx by fireReleaseNotifications.
 export type NotifyTarget = {
-  entityType: 'EventPart' | 'EventServiceRole'
+  entityType: 'EventPart' | 'EventServicePart'
   entityId: number
   assignmentName: string
   memberId: number
@@ -51,7 +51,7 @@ const eventWithAssignmentsInclude = {
       assistantId: true,
     },
   },
-  eventServiceRoles: {
+  eventServiceParts: {
     select: {
       id: true,
       name: true,
@@ -62,9 +62,9 @@ const eventWithAssignmentsInclude = {
 }
 
 type PartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null; assistantId: number | null }
-type ServiceRoleRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null }
+type ServicePartRow = { id: number; name: string; hasConflict: boolean; assigneeId: number | null }
 
-function computeNotifyTargets(parts: PartRow[], services: ServiceRoleRow[]): NotifyTarget[] {
+function computeNotifyTargets(parts: PartRow[], services: ServicePartRow[]): NotifyTarget[] {
   const targets: NotifyTarget[] = []
   for (const part of parts) {
     if (part.assigneeId != null) {
@@ -89,7 +89,7 @@ function computeNotifyTargets(parts: PartRow[], services: ServiceRoleRow[]): Not
   for (const service of services) {
     if (service.assigneeId != null) {
       targets.push({
-        entityType: 'EventServiceRole',
+        entityType: 'EventServicePart',
         entityId: service.id,
         assignmentName: service.name,
         memberId: service.assigneeId,
@@ -122,11 +122,11 @@ export async function releaseEvent(
   if (event.status === EventStatus.Released) return { event, notifyTargets: [] }
 
   try {
-    assertCanRelease({ eventParts: event.eventParts, eventServiceRoles: event.eventServiceRoles })
+    assertCanRelease({ eventParts: event.eventParts, eventServiceParts: event.eventServiceParts })
   } catch (e) {
     if (e instanceof ConflictError) {
       const conflictingParts = event.eventParts.filter(p => p.hasConflict).length
-      const conflictingServices = event.eventServiceRoles.filter(s => s.hasConflict).length
+      const conflictingServices = event.eventServiceParts.filter(s => s.hasConflict).length
       logger.warn('release blocked by conflicts', {
         eventId,
         congregationId,
@@ -158,10 +158,10 @@ export async function releaseEvent(
     congregationId,
     actorId,
     partCount: event.eventParts.length,
-    serviceRoleCount: event.eventServiceRoles.length,
+    servicePartCount: event.eventServiceParts.length,
   })
 
-  const notifyTargets = computeNotifyTargets(event.eventParts, event.eventServiceRoles)
+  const notifyTargets = computeNotifyTargets(event.eventParts, event.eventServiceParts)
   return { event: updated, notifyTargets }
 }
 
@@ -235,7 +235,7 @@ export async function unreleaseEvent(
     where: { id: eventId, congregationId },
     include: {
       eventParts: { select: { id: true } },
-      eventServiceRoles: { select: { id: true } },
+      eventServiceParts: { select: { id: true } },
     },
   })
   if (!event) return null
@@ -248,7 +248,7 @@ export async function unreleaseEvent(
   })
 
   const partIds = event.eventParts.map(p => p.id)
-  const serviceIds = event.eventServiceRoles.map(s => s.id)
+  const serviceIds = event.eventServiceParts.map(s => s.id)
 
   // Skip the notificationEvent updateMany entirely when there are no
   // assignments — an empty `in: []` matches nothing under Prisma today, but
@@ -262,7 +262,7 @@ export async function unreleaseEvent(
         status: 'pending',
         OR: [
           { entityType: 'EventPart', entityId: { in: partIds } },
-          { entityType: 'EventServiceRole', entityId: { in: serviceIds } },
+          { entityType: 'EventServicePart', entityId: { in: serviceIds } },
         ],
       },
       data: { status: 'cancelled', processedAt: new Date() },
@@ -283,7 +283,7 @@ export async function unreleaseEvent(
     actorId,
     cancelledCount,
     partCount: partIds.length,
-    serviceRoleCount: serviceIds.length,
+    servicePartCount: serviceIds.length,
   })
 
   return { event: updated }

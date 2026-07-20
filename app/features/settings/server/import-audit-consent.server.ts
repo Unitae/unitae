@@ -45,9 +45,9 @@ export async function importConsentRecords(
 const LEGACY_PROGRAMME_ENTITY_TYPES: Record<string, string> = {
   ProgrammeTemplate: 'EventTemplate',
   ProgrammeTemplatePart: 'TemplatePart',
-  ProgrammeTemplateServiceRole: 'TemplateServiceRole',
+  ProgrammeTemplateServicePart: 'TemplateServicePart',
   ProgrammePartAssignment: 'EventPart',
-  ProgrammeServiceRoleAssignment: 'EventServiceRole',
+  ProgrammeServicePartAssignment: 'EventServicePart',
   ProgrammeTemplateResponsible: 'TemplateResponsible',
 }
 
