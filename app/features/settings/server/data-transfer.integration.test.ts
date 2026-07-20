@@ -937,3 +937,73 @@ describe('Export cross-congregation isolation', () => {
     }
   })
 })
+
+// AuditLog `entityType` values from older archives use pre-rename Prisma
+// model names. The importer's `rewriteLegacyEntityType` shim must map them
+// to the current names on write — otherwise `AuditLog` rows land with dead
+// entity strings and any UI that groups history by entity type breaks
+// silently. Round-trips a synthetic archive containing one row per legacy
+// name (both pre-2.1 Programme* and 2.1-era ServiceRole*) through the real
+// `importAuditLogs` path and asserts every written row carries the current
+// model name.
+describe('AuditLog importer rewrites legacy entityType strings', () => {
+  it('rewrites pre-2.1 Programme* and 2.1 ServiceRole* entityTypes on import', async () => {
+    // The mapping is intentionally exhaustive — every string that could
+    // appear in a legacy archive plus one current name (Member) to prove
+    // non-legacy strings pass through untouched.
+    const cases: { legacy: string; expected: string }[] = [
+      { legacy: 'ProgrammeTemplate', expected: 'EventTemplate' },
+      { legacy: 'ProgrammeTemplatePart', expected: 'TemplatePart' },
+      { legacy: 'ProgrammeTemplateServiceRole', expected: 'TemplateServicePart' },
+      { legacy: 'ProgrammePartAssignment', expected: 'EventPart' },
+      { legacy: 'ProgrammeServiceRoleAssignment', expected: 'EventServicePart' },
+      { legacy: 'ProgrammeTemplateResponsible', expected: 'TemplateResponsible' },
+      { legacy: 'TemplateServiceRole', expected: 'TemplateServicePart' },
+      { legacy: 'EventServiceRole', expected: 'EventServicePart' },
+      { legacy: 'Member', expected: 'Member' },
+    ]
+
+    // Isolated congregation so we can assert on the exact rows we seeded
+    // without noise from beforeAll-created data.
+    const cong = await testDb.congregation.create({
+      data: { name: `Audit ${ts}`, slug: `audit-${ts}`, active: true },
+    })
+
+    try {
+      const zip = new JsZip()
+      const ndjsonLines = cases.map((c, i) =>
+        JSON.stringify({
+          id: 1000 + i,
+          action: 'legacy.action',
+          entityType: c.legacy,
+          entityId: 42,
+          actorId: null,
+          actorEmail: null,
+          metadata: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }),
+      )
+      zip.file('data/audit-logs.ndjson', `${ndjsonLines.join('\n')}\n`)
+
+      const { importAuditLogs } = await import('./import-audit-consent.server')
+      await withScope(cong.id, async db => {
+        await importAuditLogs(zip, db, new EntityIdMap(), cong.id)
+      })
+
+      const rows = await testDb.auditLog.findMany({
+        where: { congregationId: cong.id, action: 'legacy.action' },
+        select: { entityType: true, entityId: true },
+        orderBy: { entityId: 'asc' },
+      })
+
+      expect(rows).toHaveLength(cases.length)
+      // Sort both by the LEGACY string for a stable pairwise comparison.
+      const gotEntityTypes = rows.map(r => r.entityType)
+      const expectedEntityTypes = cases.map(c => c.expected)
+      expect(gotEntityTypes).toEqual(expectedEntityTypes)
+    } finally {
+      await testDb.auditLog.deleteMany({ where: { congregationId: cong.id } })
+      await testDb.congregation.delete({ where: { id: cong.id } })
+    }
+  })
+})
