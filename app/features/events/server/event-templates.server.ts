@@ -1,4 +1,4 @@
-import { isSystemTemplate } from '~/features/events/model/programme-template.type'
+import { isSystemTemplate } from '~/features/events/model/event-template.type'
 import {
   setTemplatePartAllowedRoles,
   setTemplateServiceRoleAllowedRoles,

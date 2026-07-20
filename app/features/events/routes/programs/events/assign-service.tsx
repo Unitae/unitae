@@ -7,13 +7,13 @@ import {
   getServiceRoleAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
+import { assignServiceRole, getEventProgramme } from '~/features/events/server/event-part-assignments.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
   serviceRoleAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
-import { assignServiceRole, getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -58,7 +58,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const assignment = event.serviceRoles.find(a => a.id === assignmentId)
+    const assignment = event.eventServiceRoles.find(a => a.id === assignmentId)
 
     const users = await db.member.findMany({
       where: { congregationId, leftAt: null },

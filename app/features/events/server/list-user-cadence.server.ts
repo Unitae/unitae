@@ -54,7 +54,7 @@ export async function listUserCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, parts: partsSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, eventParts: partsSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -83,12 +83,14 @@ export async function listUserCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
-  type PartRow = (typeof pastRows)[number]['parts'][number]
+  type PartRow = (typeof pastRows)[number]['eventParts'][number]
   const isOnSlot =
     slot === 'assignee' ? (p: PartRow) => p.assigneeId === userId : (p: PartRow) => p.assistantId === userId
   const personOnSlot = (p: PartRow) => (slot === 'assignee' ? p.assignee : p.assistant)
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.parts.filter(p => normalize(p.name) === targetName && normalize(p.section) === targetSection)
+    const matches = row.eventParts.filter(
+      p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
+    )
     const person = matches.map(personOnSlot).find(p => p != null)
     return {
       date: row.startDate.toISOString(),

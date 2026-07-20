@@ -1,4 +1,4 @@
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import type { PartSlot } from '~/features/events/server/cadence-shared.server'
 import { listUserSameEventAssignments } from '~/features/events/server/list-user-same-event-assignments.server'
 import { resolvePublisherCadence } from '~/features/events/server/resolve-publisher-cadence.server'

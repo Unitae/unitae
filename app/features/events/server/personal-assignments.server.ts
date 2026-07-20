@@ -1,6 +1,6 @@
 import type { Event, EventPart, EventServiceRole } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -20,8 +20,8 @@ type ServiceRoleWithEvent = EventServiceRole & { event: Event }
 
 /**
  * `userId` is a UserAccount id. Days-off events are account-bound (createdById),
- * while programme assignments are member-bound (assigneeId/assistantId), so we
- * resolve the linked member id internally.
+ * while event parts and service roles are member-bound (assigneeId/assistantId),
+ * so we resolve the linked member id internally.
  */
 export async function getPersonalAssignments(
   db: TransactionClient,

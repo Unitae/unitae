@@ -314,7 +314,7 @@ beforeAll(async () => {
     if (partAssignment != null) {
       await tx.eventPartAllowedRole.create({
         data: {
-          assignmentId: partAssignment.id,
+          eventPartId: partAssignment.id,
           roleId: elderRole.id,
           asKind: 'speaker',
           congregationId: sourceId,
@@ -323,7 +323,7 @@ beforeAll(async () => {
     }
 
     await tx.eventServiceRoleAllowedRole.create({
-      data: { assignmentId: serviceRoleAssignment.id, roleId: elderRole.id, congregationId: sourceId },
+      data: { eventServiceRoleId: serviceRoleAssignment.id, roleId: elderRole.id, congregationId: sourceId },
     })
 
     await tx.boardSectionVisibilityRole.create({
@@ -779,12 +779,12 @@ describe('Export/Import round-trip', () => {
 
       const partAssignmentAllowed = await tx.eventPartAllowedRole.findMany({})
       expect(partAssignmentAllowed).toHaveLength(1)
-      expect(partAssignmentAllowed[0].assignmentId).toBe(eventParts[0].id)
+      expect(partAssignmentAllowed[0].eventPartId).toBe(eventParts[0].id)
       expect(partAssignmentAllowed[0].asKind).toBe('speaker')
 
       const serviceRoleAssignmentAllowed = await tx.eventServiceRoleAllowedRole.findMany({})
       expect(serviceRoleAssignmentAllowed).toHaveLength(1)
-      expect(serviceRoleAssignmentAllowed[0].assignmentId).toBe(srAssignments[0].id)
+      expect(serviceRoleAssignmentAllowed[0].eventServiceRoleId).toBe(srAssignments[0].id)
 
       // Board section visibility role
       const visibility = await tx.boardSectionVisibilityRole.findMany({})

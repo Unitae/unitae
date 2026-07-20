@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DynamicType } from '~/features/display-board/model/dynamic-document.type'
-import { filterDynamicDataToEvent } from './programme-event-filter.server'
+import { filterDynamicDataToEvent } from './event-filter.server'
 
 const PROGRAMME_DATA = {
   type: DynamicType.Programme,

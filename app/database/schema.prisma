@@ -652,8 +652,8 @@ model Event {
   template   EventTemplate? @relation("templateEvents", fields: [templateId], references: [id])
   templateId Int?
 
-  parts        EventPart[]
-  serviceRoles EventServiceRole[]
+  eventParts        EventPart[]
+  eventServiceRoles EventServiceRole[]
 
   createdBy   UserAccount @relation("createdBy", fields: [createdById], references: [id])
   createdById Int
@@ -709,7 +709,7 @@ model TemplatePart {
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  assignments  EventPart[]
+  eventParts   EventPart[]
   allowedRoles TemplatePartAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
@@ -726,8 +726,8 @@ model TemplateServiceRole {
   template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  assignments  EventServiceRole[]
-  allowedRoles TemplateServiceRoleAllowedRole[]
+  eventServiceRoles EventServiceRole[]
+  allowedRoles      TemplateServiceRoleAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -848,16 +848,16 @@ model TemplatePartAllowedRole {
 }
 
 model EventPartAllowedRole {
-  assignment   EventPart @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  assignmentId Int
-  role         Role                    @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId       Int
-  asKind       String
+  eventPart   EventPart @relation(fields: [eventPartId], references: [id], onDelete: Cascade)
+  eventPartId Int
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId      Int
+  asKind      String
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([assignmentId, roleId, asKind])
+  @@id([eventPartId, roleId, asKind])
   @@index([roleId])
   @@index([congregationId])
 }
@@ -877,15 +877,15 @@ model TemplateServiceRoleAllowedRole {
 }
 
 model EventServiceRoleAllowedRole {
-  assignment   EventServiceRole @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  assignmentId Int
-  role         Role                           @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId       Int
+  eventServiceRole   EventServiceRole @relation(fields: [eventServiceRoleId], references: [id], onDelete: Cascade)
+  eventServiceRoleId Int
+  role               Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId             Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([assignmentId, roleId])
+  @@id([eventServiceRoleId, roleId])
   @@index([roleId])
   @@index([congregationId])
 }

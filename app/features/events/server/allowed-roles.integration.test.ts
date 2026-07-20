@@ -6,9 +6,9 @@ import {
   applyTemplateToEvent,
   updatePartAssignment,
   updateServiceRoleAssignment,
-} from '~/features/events/server/programme-events.server'
-import { createSingleEventFromTemplate } from '~/features/events/server/programme-generation.server'
-import { upsertTemplatePart, upsertTemplateServiceRole } from '~/features/events/server/programme-templates.server'
+} from '~/features/events/server/event-parts.server'
+import { createSingleEventFromTemplate } from '~/features/events/server/event-template-generation.server'
+import { upsertTemplatePart, upsertTemplateServiceRole } from '~/features/events/server/event-templates.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -324,7 +324,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
 
     const partAllowed = await withScope(primaryCongId, tx =>
       tx.eventPartAllowedRole.findMany({
-        where: { assignment: { eventId: event.id } },
+        where: { eventPart: { eventId: event.id } },
         orderBy: { asKind: 'asc' },
       }),
     )
@@ -335,7 +335,7 @@ describe('createSingleEventFromTemplate copies allowed roles (integration)', () 
 
     const serviceAllowed = await withScope(primaryCongId, tx =>
       tx.eventServiceRoleAllowedRole.findMany({
-        where: { assignment: { eventId: event.id } },
+        where: { eventServiceRole: { eventId: event.id } },
       }),
     )
     expect(serviceAllowed.map(r => r.roleId)).toEqual([elderRoleId])
@@ -360,7 +360,7 @@ describe('applyTemplateToEvent copies allowed roles (integration)', () => {
 
     const partAllowed = await withScope(primaryCongId, tx =>
       tx.eventPartAllowedRole.findMany({
-        where: { assignment: { eventId: freeform.id } },
+        where: { eventPart: { eventId: freeform.id } },
         orderBy: { asKind: 'asc' },
       }),
     )
@@ -401,12 +401,12 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
 
     const after = await withScope(primaryCongId, tx =>
       tx.eventPartAllowedRole.findMany({
-        where: { assignmentId: partAssignment.id },
+        where: { eventPartId: partAssignment.id },
         orderBy: { asKind: 'asc' },
       }),
     )
     expect(after).toEqual([
-      { assignmentId: partAssignment.id, roleId: publisherRoleId, asKind: 'speaker', congregationId: primaryCongId },
+      { eventPartId: partAssignment.id, roleId: publisherRoleId, asKind: 'speaker', congregationId: primaryCongId },
     ])
   })
 
@@ -432,7 +432,7 @@ describe('updatePartAssignment + updateServiceRoleAssignment update allowed role
     )
 
     const after = await withScope(primaryCongId, tx =>
-      tx.eventServiceRoleAllowedRole.findMany({ where: { assignmentId: serviceAssignment.id } }),
+      tx.eventServiceRoleAllowedRole.findMany({ where: { eventServiceRoleId: serviceAssignment.id } }),
     )
     expect(after).toEqual([])
   })

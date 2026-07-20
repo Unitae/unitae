@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
@@ -24,7 +24,7 @@ vi.mock('~/features/events/server/allowed-roles.server', () => ({
 }))
 
 const { assignPart, assignServiceRole, unassignPart, unassignServiceRole, checkDayOffConflict, refreshConflictFlags } =
-  await import('./programme-assignments.server')
+  await import('./event-part-assignments.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
 

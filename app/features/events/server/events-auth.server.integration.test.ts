@@ -35,7 +35,7 @@ const allowAll = (_p: Permission) => true
 const allowNone = (_p: Permission) => false
 const allowOnly = (allowed: Permission) => (p: Permission) => p === allowed
 
-const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram } = await import('./programme-auth.server')
+const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram } = await import('./events-auth.server')
 
 beforeAll(async () => {
   const primary = await testDb.congregation.create({

@@ -6,7 +6,7 @@ import { ConflictError } from '~/shared/errors/app-error.server'
 //   • assert*  — throws AppError subclasses. Kept for callers that prefer
 //                throw semantics (Wave 1 pattern).
 //   • check*   — returns `{ error } | null`. Used by writers in
-//                programme-assignments.server.ts that surface errors via
+//                event-part-assignments.server.ts that surface errors via
 //                the existing `{ error } | { assignment }` return type.
 //
 // Every user-visible error string flows through PROGRAMME_ASSIGNMENT_ERRORS

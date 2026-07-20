@@ -134,9 +134,9 @@ await notify(db, {
 
 The function is fire-and-forget — failures are logged but never block the calling operation.
 
-## Programme assignment dispatch gate
+## Event part dispatch gate
 
-`programme.assignment.{assigned,unassigned}` are **whitelist-gated on `Event.status === 'released'`** in `notify-assignment.server.ts` (`dispatchAssignmentDiffs`). Assignments on a draft event never call `notify()` — no `NotificationEvent` row is created, no debounce is armed, nothing shows up in the queue.
+`programme.assignment.{assigned,unassigned}` (event-part notifications — the type strings kept the legacy `programme.assignment.*` name so pending `NotificationEvent` rows survive the model rename) are **whitelist-gated on `Event.status === 'released'`** in `notify-assignment.server.ts` (`dispatchAssignmentDiffs`). Assignments on a draft event never call `notify()` — no `NotificationEvent` row is created, no debounce is armed, nothing shows up in the queue.
 
 When a manager releases an event, `fireReleaseNotifications` (`app/features/events/server/event-status.server.ts`) iterates every current part / service-role assignee and calls `notifyAssignment` for each — the *same* code path that runs during a live edit, so the debounce, cancellation, and preference filter all apply uniformly. Un-releasing the event calls `unreleaseEvent`, which marks every `pending` `NotificationEvent` row targeting the event's assignments as `cancelled`.
 

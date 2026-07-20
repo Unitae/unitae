@@ -22,7 +22,6 @@ const {
   getUnreadDocumentCount,
   getNextMeeting,
   getUpcomingAbsences,
-  getUpcomingAssignments,
   getConflictingAssignments,
 } = await import('./dashboard.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -147,7 +146,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: { name: 'Midweek', color: '#000' },
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Talk',
@@ -171,7 +170,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoles: [
+      eventServiceRoles: [
         { id: 20, name: 'Sound', assignee: { id: 42, firstname: 'John', lastname: 'Doe' } },
         { id: 21, name: 'Stage', assignee: { id: 50, firstname: 'Bob', lastname: 'Brown' } },
       ],
@@ -195,7 +194,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Study',
@@ -211,7 +210,7 @@ describe('getNextMeeting', () => {
           assistant: { id: 42, firstname: 'John', lastname: 'Doe' },
         },
       ],
-      serviceRoles: [],
+      eventServiceRoles: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
@@ -280,7 +279,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Talk',
@@ -291,7 +290,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoles: [],
+      eventServiceRoles: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
@@ -365,26 +364,6 @@ describe('getUpcomingAbsences', () => {
 
     const result = await getUpcomingAbsences(db, 1, 1)
     expect(result.shouldNudge).toBe(false)
-  })
-})
-
-// --- getUpcomingAssignments: draft events hidden ---
-//
-// The publisher dashboard is a public view of the schedule; draft assignments
-// must not preview here or a publisher sees a mid-edit programme.
-
-describe('getUpcomingAssignments', () => {
-  it('filters part and service-role assignments to released events', async () => {
-    vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.eventServiceRole.findMany).mockResolvedValue([] as never)
-
-    await getUpcomingAssignments(db, 42)
-
-    const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
-    expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
-
-    const [serviceCall] = vi.mocked(db.eventServiceRole.findMany).mock.calls[0]
-    expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })
 

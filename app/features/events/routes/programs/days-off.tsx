@@ -1,7 +1,7 @@
 import { AlertTriangle, CalendarOff, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { Link, redirect } from 'react-router'
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
 import {
   type ConflictingEvent,
@@ -76,10 +76,10 @@ export function loader({ request, context }: Route.LoaderArgs) {
       },
     }))
 
-    // Find conflicting programme events for each day-off (with dates for per-week scoping)
+    // Find conflicting events for each day-off (with dates for per-week scoping)
     const conflictsByDayOff: Record<number, ConflictingEvent[]> = {}
     for (const event of events) {
-      // Programme assignments are bound to Member ids; resolve via the creator's linked member
+      // Event parts and service roles are bound to Member ids; resolve via the creator's linked member
       const memberId = event.createdBy.memberId
       const [parts, serviceAssignments] = memberId
         ? await Promise.all([
@@ -112,7 +112,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
           ])
         : [[], []]
 
-      // Deduplicate by programme event ID
+      // Deduplicate by event ID
       const seen = new Set<number>()
       const conflicts: ConflictingEvent[] = []
       for (const a of [...parts, ...serviceAssignments]) {

@@ -109,7 +109,7 @@ describe('setPartAssignmentAllowedRoles', () => {
     await setPartAssignmentAllowedRoles(db, 200, 'speaker', [9], 1)
 
     expect(db.eventPartAllowedRole.createMany).toHaveBeenCalledWith({
-      data: [{ assignmentId: 200, roleId: 9, asKind: 'speaker', congregationId: 1 }],
+      data: [{ eventPartId: 200, roleId: 9, asKind: 'speaker', congregationId: 1 }],
       skipDuplicates: true,
     })
   })
@@ -140,7 +140,7 @@ describe('setServiceRoleAssignmentAllowedRoles', () => {
     await setServiceRoleAssignmentAllowedRoles(db, 400, [6], 1)
 
     expect(db.eventServiceRoleAllowedRole.createMany).toHaveBeenCalledWith({
-      data: [{ assignmentId: 400, roleId: 6, congregationId: 1 }],
+      data: [{ eventServiceRoleId: 400, roleId: 6, congregationId: 1 }],
       skipDuplicates: true,
     })
   })

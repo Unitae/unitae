@@ -220,7 +220,7 @@ afterAll(async () => {
 const { getUserTerritories, getRecentDocuments, getUnreadDocumentCount, getNextMeeting, getConflictingAssignments } =
   await import('./dashboard.server')
 const { getResponsibleConflicts } = await import('./get-responsible-conflicts.server')
-const { refreshConflictFlags } = await import('~/features/events/server/programme-assignments.server')
+const { refreshConflictFlags } = await import('~/features/events/server/event-part-assignments.server')
 
 // --- Tests ---
 
@@ -268,14 +268,14 @@ describe('getNextMeeting (integration)', () => {
     const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
     expect(result).not.toBeNull()
     expect(result?.name).toContain('Future Meeting')
-    expect(result?.parts.length).toBeGreaterThanOrEqual(2)
-    expect(result?.serviceRoles.length).toBeGreaterThanOrEqual(1)
+    expect(result?.eventParts.length).toBeGreaterThanOrEqual(2)
+    expect(result?.eventServiceRoles.length).toBeGreaterThanOrEqual(1)
   })
 
   it('identifies parts assigned to the user (as assignee)', async () => {
     const result = await withScope(congregationId, tx => getNextMeeting(tx, aliceId))
     expect(result?.userPartIds).toHaveLength(1)
-    const userPart = result?.parts.find(p => result.userPartIds.includes(p.id))
+    const userPart = result?.eventParts.find(p => result.userPartIds.includes(p.id))
     expect(userPart?.name).toBe('Talk')
   })
 
@@ -327,8 +327,8 @@ describe('getConflictingAssignments (integration)', () => {
     name: string
     startDate: Date
     endDate?: Date
-    parts?: { assigneeId?: number | null; assistantId?: number | null; hasConflict?: boolean; name?: string }[]
-    serviceRoles?: { assigneeId: number; hasConflict?: boolean; name?: string }[]
+    eventParts?: { assigneeId?: number | null; assistantId?: number | null; hasConflict?: boolean; name?: string }[]
+    eventServiceRoles?: { assigneeId: number; hasConflict?: boolean; name?: string }[]
     cong?: number
     createdById?: number
   }
@@ -354,7 +354,7 @@ describe('getConflictingAssignments (integration)', () => {
         },
       })
       const partIds = await Promise.all(
-        (opts.parts ?? []).map(async (p, i) => {
+        (opts.eventParts ?? []).map(async (p, i) => {
           const created = await tx.eventPart.create({
             data: {
               eventId: event.id,
@@ -371,7 +371,7 @@ describe('getConflictingAssignments (integration)', () => {
         }),
       )
       const serviceRoleIds = await Promise.all(
-        (opts.serviceRoles ?? []).map(async sr => {
+        (opts.eventServiceRoles ?? []).map(async sr => {
           const created = await tx.eventServiceRole.create({
             data: {
               eventId: event.id,
@@ -400,7 +400,7 @@ describe('getConflictingAssignments (integration)', () => {
     const seeded = await seedEvent({
       name: 'Assignee Conflict',
       startDate: new Date('2027-08-01T19:00:00Z'),
-      parts: [{ assigneeId: aliceId, hasConflict: true, name: 'Discours' }],
+      eventParts: [{ assigneeId: aliceId, hasConflict: true, name: 'Discours' }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
@@ -417,7 +417,7 @@ describe('getConflictingAssignments (integration)', () => {
     const seeded = await seedEvent({
       name: 'Assistant Conflict',
       startDate: new Date('2027-08-02T19:00:00Z'),
-      parts: [{ assigneeId: bobId, assistantId: aliceId, hasConflict: true, name: 'Lecture' }],
+      eventParts: [{ assigneeId: bobId, assistantId: aliceId, hasConflict: true, name: 'Lecture' }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
@@ -432,7 +432,7 @@ describe('getConflictingAssignments (integration)', () => {
     const seeded = await seedEvent({
       name: 'Service Role Conflict',
       startDate: new Date('2027-08-03T19:00:00Z'),
-      serviceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Son' }],
+      eventServiceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Son' }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
@@ -448,12 +448,12 @@ describe('getConflictingAssignments (integration)', () => {
     const later = await seedEvent({
       name: 'Later Part',
       startDate: new Date('2027-09-15T19:00:00Z'),
-      parts: [{ assigneeId: aliceId, hasConflict: true }],
+      eventParts: [{ assigneeId: aliceId, hasConflict: true }],
     })
     const earlier = await seedEvent({
       name: 'Earlier Service Role',
       startDate: new Date('2027-09-01T19:00:00Z'),
-      serviceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Early Sound' }],
+      eventServiceRoles: [{ assigneeId: aliceId, hasConflict: true, name: 'Early Sound' }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
@@ -470,8 +470,8 @@ describe('getConflictingAssignments (integration)', () => {
     const seeded = await seedEvent({
       name: 'No Conflict',
       startDate: new Date('2027-10-01T19:00:00Z'),
-      parts: [{ assigneeId: aliceId, hasConflict: false }],
-      serviceRoles: [{ assigneeId: aliceId, hasConflict: false }],
+      eventParts: [{ assigneeId: aliceId, hasConflict: false }],
+      eventServiceRoles: [{ assigneeId: aliceId, hasConflict: false }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))
@@ -486,7 +486,7 @@ describe('getConflictingAssignments (integration)', () => {
       name: 'Past Conflict',
       startDate: new Date('2024-01-01T19:00:00Z'),
       endDate: new Date('2024-01-01T21:00:00Z'),
-      parts: [{ assigneeId: aliceId, hasConflict: true }],
+      eventParts: [{ assigneeId: aliceId, hasConflict: true }],
     })
     try {
       const result = await withScope(congregationId, tx => getConflictingAssignments(tx, aliceId))

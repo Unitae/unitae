@@ -32,11 +32,11 @@ export function parseExportConfigs(raw: string): TemplateExportConfig[] {
 
 export const programmeExportInclude = {
   template: true,
-  parts: {
+  eventParts: {
     include: { assignee: true, assistant: true, externalSpeaker: true },
     orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
   },
-  serviceRoles: {
+  eventServiceRoles: {
     include: { assignee: true },
     orderBy: { name: 'asc' },
   },

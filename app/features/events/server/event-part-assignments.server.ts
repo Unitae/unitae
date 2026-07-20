@@ -1,5 +1,5 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import {
   getPartAssignmentAllowedRoleIds,
   getServiceRoleAssignmentAllowedRoleIds,
@@ -11,7 +11,7 @@ import {
   checkParticipantsDistinct,
   DAY_OFF_MESSAGE,
   PROGRAMME_ASSIGNMENT_ERRORS,
-} from '~/features/events/server/programme-assignment.policy'
+} from '~/features/events/server/event-part.policy'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -37,7 +37,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
     where: { id: eventId, congregationId },
     include: {
       template: true,
-      parts: {
+      eventParts: {
         include: {
           assignee: true,
           assistant: true,
@@ -45,7 +45,7 @@ export function getEventProgramme(db: TransactionClient, eventId: number, congre
         },
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
       },
-      serviceRoles: {
+      eventServiceRoles: {
         include: {
           assignee: true,
         },

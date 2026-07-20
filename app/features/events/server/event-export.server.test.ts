@@ -6,7 +6,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { getEventsForExport, programmeExportInclude } = await import('./programme-export.server')
+const { getEventsForExport, programmeExportInclude } = await import('./event-export.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 describe('getEventsForExport', () => {
@@ -16,8 +16,8 @@ describe('getEventsForExport', () => {
     getEventsForExport(db, [1], new Date('2026-01-01'), new Date('2026-01-31'))
 
     const call = vi.mocked(db.event.findMany).mock.calls[0]?.[0]
-    expect(call?.include?.parts).toBeDefined()
-    const parts = call?.include?.parts as { include: Record<string, unknown> }
+    expect(call?.include?.eventParts).toBeDefined()
+    const parts = call?.include?.eventParts as { include: Record<string, unknown> }
     expect(parts.include.externalSpeaker).toBe(true)
     expect(parts.include.assignee).toBe(true)
     expect(parts.include.assistant).toBe(true)
@@ -26,7 +26,7 @@ describe('getEventsForExport', () => {
 
 describe('programmeExportInclude', () => {
   it('is the canonical include shape for export queries', () => {
-    expect(programmeExportInclude.parts.include).toEqual({
+    expect(programmeExportInclude.eventParts.include).toEqual({
       assignee: true,
       assistant: true,
       externalSpeaker: true,

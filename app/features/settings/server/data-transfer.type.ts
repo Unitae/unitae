@@ -1,4 +1,4 @@
-export const ARCHIVE_VERSION = '2.0'
+export const ARCHIVE_VERSION = '2.1'
 
 // Older archive versions an import will still accept. v1.0 archives miss every
 // post-shipping feature table (custom roles, allowed-roles, external speakers,
@@ -6,11 +6,13 @@ export const ARCHIVE_VERSION = '2.0'
 // and proceeds. v1.0 archives created before PR #152 also use the legacy
 // `congregation-user-roles.ndjson` filename; the import handles that fallback.
 // v2.0 splits `users.ndjson` into `members.ndjson` + `user-accounts.ndjson`
-// and adds `member-role-assignments.ndjson`. v1.x archives are listed here so
+// and adds `member-role-assignments.ndjson`. v2.1 renames the domain models
+// from `Programme*` to `Event*` / `Template*`; the AuditLog importer rewrites
+// pre-2.1 `entityType` strings on the fly. v1.x archives are listed here so
 // the import path reports them with a warning rather than rejecting outright;
 // a compatibility shim that splits legacy `users.ndjson` is a deferred
 // follow-up.
-export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0'] as const
+export const SUPPORTED_ARCHIVE_VERSIONS = ['1.0', '1.1', '2.0', '2.1'] as const
 
 export interface ManifestJson {
   version: string

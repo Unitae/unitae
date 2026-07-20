@@ -12,7 +12,7 @@ vi.mock('~/shared/infra/logger.server', () => ({
   createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: warnSpy, error: vi.fn() }),
 }))
 
-const { resolveProgrammeLink } = await import('./programme-link.server')
+const { resolveProgrammeLink } = await import('./event-link.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {

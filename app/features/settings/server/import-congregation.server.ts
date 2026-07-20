@@ -30,20 +30,20 @@ import {
 } from './import-buildings.server'
 import { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
 import {
-  importEventPartAllowedRoles,
-  importEventParts,
-  importEventServiceRoleAllowedRoles,
-  importEventServiceRoles,
-  importEvents,
-} from './import-programme-events.server'
-import {
   importEventTemplates,
   importTemplatePartAllowedRoles,
   importTemplateParts,
   importTemplateResponsibles,
   importTemplateServiceRoleAllowedRoles,
   importTemplateServiceRoles,
-} from './import-programme-templates.server'
+} from './import-event-templates.server'
+import {
+  importEventPartAllowedRoles,
+  importEventParts,
+  importEventServiceRoleAllowedRoles,
+  importEventServiceRoles,
+  importEvents,
+} from './import-events.server'
 import {
   importExternalSpeakers,
   importPublisherActivities,
@@ -90,20 +90,20 @@ export {
 } from './import-buildings.server'
 export { importRolePermissions, importRoles, importSettings } from './import-configuration.server'
 export {
-  importEventPartAllowedRoles,
-  importEventParts,
-  importEventServiceRoleAllowedRoles,
-  importEventServiceRoles,
-  importEvents,
-} from './import-programme-events.server'
-export {
   importEventTemplates,
   importTemplatePartAllowedRoles,
   importTemplateParts,
   importTemplateResponsibles,
   importTemplateServiceRoleAllowedRoles,
   importTemplateServiceRoles,
-} from './import-programme-templates.server'
+} from './import-event-templates.server'
+export {
+  importEventPartAllowedRoles,
+  importEventParts,
+  importEventServiceRoleAllowedRoles,
+  importEventServiceRoles,
+  importEvents,
+} from './import-events.server'
 export {
   importExternalSpeakers,
   importPublisherActivities,

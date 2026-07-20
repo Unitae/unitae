@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { canEditEvent } from '~/features/events/server/programme-auth.server'
-import { getTemplates } from '~/features/events/server/programme-templates.server'
+import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
+import { getTemplates } from '~/features/events/server/event-templates.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { EventInfoCard } from '~/features/events/ui/EventInfoCard'
 import { EventPartsCard, type PartAssignment, reorderPartIds } from '~/features/events/ui/EventPartsCard'
 import { EventServicesCard, type ServiceRoleAssignment } from '~/features/events/ui/EventServicesCard'
@@ -49,15 +49,15 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const [templates, allRoles] = await Promise.all([getTemplates(db, congregationId), listRoles(db, congregationId)])
 
     const partAllowed = await db.eventPartAllowedRole.findMany({
-      where: { assignmentId: { in: event.parts.map(p => p.id) }, congregationId },
+      where: { assignmentId: { in: event.eventParts.map(p => p.id) }, congregationId },
       select: { assignmentId: true, roleId: true, asKind: true },
     })
     const serviceAllowed = await db.eventServiceRoleAllowedRole.findMany({
-      where: { assignmentId: { in: event.serviceRoles.map(s => s.id) }, congregationId },
+      where: { assignmentId: { in: event.eventServiceRoles.map(s => s.id) }, congregationId },
       select: { assignmentId: true, roleId: true },
     })
 
-    const partsWithRoles = event.parts.map(p => ({
+    const partsWithRoles = event.eventParts.map(p => ({
       ...p,
       allowedSpeakerRoleIds: partAllowed
         .filter(r => r.assignmentId === p.id && r.asKind === 'speaker')
@@ -66,21 +66,21 @@ export function loader({ params, context }: Route.LoaderArgs) {
         .filter(r => r.assignmentId === p.id && r.asKind === 'reader')
         .map(r => r.roleId),
     }))
-    const serviceAssignmentsWithRoles = event.serviceRoles.map(s => ({
+    const serviceAssignmentsWithRoles = event.eventServiceRoles.map(s => ({
       ...s,
       allowedRoleIds: serviceAllowed.filter(r => r.assignmentId === s.id).map(r => r.roleId),
     }))
 
     const roles = allRoles.map(r => ({ id: r.id, key: r.key, name: r.name, isBuiltIn: r.isBuiltIn }))
 
-    const sectionSuggestions = distinct(event.parts.map(p => p.section))
-    const trackSuggestions = distinct(event.parts.map(p => p.track))
+    const sectionSuggestions = distinct(event.eventParts.map(p => p.section))
+    const trackSuggestions = distinct(event.eventParts.map(p => p.track))
 
     return {
       event: {
         ...event,
-        parts: partsWithRoles,
-        serviceRoles: serviceAssignmentsWithRoles,
+        eventParts: partsWithRoles,
+        eventServiceRoles: serviceAssignmentsWithRoles,
       },
       templates,
       roles,
@@ -140,7 +140,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
 
   function handlePartDragEnd(e: { active: { id: number | string }; over: { id: number | string } | null }) {
     if (!e.over) return
-    const ids = event.parts.map(p => p.id)
+    const ids = event.eventParts.map(p => p.id)
     const reordered = reorderPartIds(ids, Number(e.active.id), Number(e.over.id))
     if (reordered === ids) return
 
@@ -188,7 +188,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
       <EventInfoCard event={event} timezone={timezone} fetcher={infoFetcher} />
 
       <EventPartsCard
-        parts={event.parts}
+        parts={event.eventParts}
         templates={templates}
         selectedTemplateId={selectedTemplateId}
         onTemplateChange={setSelectedTemplateId}
@@ -207,7 +207,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
       />
 
       <EventServicesCard
-        services={event.serviceRoles}
+        services={event.eventServiceRoles}
         onAddService={() => {
           setEditingService(null)
           setServiceSheetOpen(true)
@@ -225,7 +225,7 @@ export default function EditEventPage({ loaderData }: Route.ComponentProps) {
         part={editingPart}
         mode="event"
         fetcher={partFetcher}
-        defaultOrder={event.parts.length + 1}
+        defaultOrder={event.eventParts.length + 1}
         roles={roles}
         sectionSuggestions={sectionSuggestions}
         trackSuggestions={trackSuggestions}

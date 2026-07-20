@@ -1,6 +1,6 @@
 import { redirect } from 'react-router'
-import { canEditEvent } from '~/features/events/server/programme-auth.server'
-import { reorderPartAssignments } from '~/features/events/server/programme-events.server'
+import { reorderPartAssignments } from '~/features/events/server/event-parts.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import type { Permission } from '~/shared/types/permission'
 import { requireParamId } from '~/shared/utils/params.server'

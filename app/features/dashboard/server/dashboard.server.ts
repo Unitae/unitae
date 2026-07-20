@@ -165,91 +165,6 @@ export async function getUpcomingAbsences(db: TransactionClient, userId: number,
   return { upcoming, shouldNudge }
 }
 
-export async function getUpcomingAssignments(db: TransactionClient, userId: number) {
-  const now = new Date()
-
-  const [parts, serviceRoles] = await Promise.all([
-    db.eventPart.findMany({
-      where: {
-        OR: [{ assigneeId: userId }, { assistantId: userId }],
-        // Drafts are the manager's scratch space — never previewed to
-        // publishers.
-        event: { startDate: { gte: now }, status: EventStatus.Released },
-      },
-      select: {
-        id: true,
-        name: true,
-        topic: true,
-        assigneeId: true,
-        assistantId: true,
-        event: {
-          select: {
-            name: true,
-            startDate: true,
-          },
-        },
-      },
-      orderBy: { event: { startDate: 'asc' } },
-      take: DASHBOARD_RECENT_ITEMS_LIMIT,
-    }),
-    db.eventServiceRole.findMany({
-      where: {
-        assigneeId: userId,
-        event: { startDate: { gte: now }, status: EventStatus.Released },
-      },
-      select: {
-        id: true,
-        name: true,
-        event: {
-          select: {
-            name: true,
-            startDate: true,
-          },
-        },
-      },
-      orderBy: { event: { startDate: 'asc' } },
-      take: DASHBOARD_RECENT_ITEMS_LIMIT,
-    }),
-  ])
-
-  type Assignment = {
-    kind: 'part' | 'service-role'
-    id: number
-    name: string
-    topic?: string | null
-    role: 'speaker' | 'assistant' | 'service'
-    eventName: string
-    eventDate: Date
-  }
-
-  const assignments: Assignment[] = [
-    ...parts.map(
-      (a): Assignment => ({
-        kind: 'part',
-        id: a.id,
-        name: a.name,
-        topic: a.topic,
-        role: a.assigneeId === userId ? 'speaker' : 'assistant',
-        eventName: a.event.name,
-        eventDate: a.event.startDate,
-      }),
-    ),
-    ...serviceRoles.map(
-      (a): Assignment => ({
-        kind: 'service-role',
-        id: a.id,
-        name: a.name,
-        role: 'service',
-        eventName: a.event.name,
-        eventDate: a.event.startDate,
-      }),
-    ),
-  ]
-
-  assignments.sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
-  return assignments.slice(0, 5)
-}
-
 export async function getConflictingAssignments(db: TransactionClient, userId: number) {
   const now = new Date()
 
@@ -328,7 +243,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
       startDate: true,
       endDate: true,
       template: { select: { name: true, color: true } },
-      parts: {
+      eventParts: {
         select: {
           id: true,
           name: true,
@@ -342,7 +257,7 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
         },
         orderBy: { order: 'asc' },
       },
-      serviceRoles: {
+      eventServiceRoles: {
         select: {
           id: true,
           name: true,
@@ -359,18 +274,18 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
   // engineer it. `null` means "viewer has no role on this part" — the UI
   // filters on userPartIds so nulls never render, but keeping the field
   // present makes the shape uniform and typed.
-  const parts = event.parts.map(p => ({
+  const eventParts = event.eventParts.map(p => ({
     ...p,
     viewerRole:
       p.assignee?.id === userId ? ('speaker' as const) : p.assistant?.id === userId ? ('reader' as const) : null,
   }))
 
-  const userPartIds = new Set(parts.filter(p => p.viewerRole !== null).map(p => p.id))
-  const userServiceRoleIds = new Set(event.serviceRoles.filter(r => r.assignee?.id === userId).map(r => r.id))
+  const userPartIds = new Set(eventParts.filter(p => p.viewerRole !== null).map(p => p.id))
+  const userServiceRoleIds = new Set(event.eventServiceRoles.filter(r => r.assignee?.id === userId).map(r => r.id))
 
   return {
     ...event,
-    parts,
+    eventParts,
     userPartIds: [...userPartIds],
     userServiceRoleIds: [...userServiceRoleIds],
   }

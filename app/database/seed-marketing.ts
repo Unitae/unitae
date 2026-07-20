@@ -10,13 +10,13 @@
  * - 18 territories with buildings & entrances
  * - 12 months of activity reports
  * - Board sections with documents
- * - Events with programme assignments
+ * - Events with parts and service roles
  * - Attributions (active + historical)
  */
 import 'dotenv/config'
 import { randomBytes, scrypt } from 'node:crypto'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { EventTemplateKey } from '../features/events/model/programme-template.type'
+import { EventTemplateKey } from '../features/events/model/event-template.type'
 import { seedDefaultTemplates } from '../features/events/server/seed-templates.server'
 import { EntranceKind } from '../features/territories/model/entrance-kind.type'
 import { TerritoryAttributionKind } from '../features/territories/model/territory-attribution-kind.type'
@@ -625,14 +625,14 @@ async function main() {
 
   console.log(`  ✓ Congregation "${congregation.name}" (id=${congId})`)
 
-  // ── Programme templates ───────────────────────────────────────────────
+  // ── Event templates ───────────────────────────────────────────────────
   await seedDefaultTemplates(prisma, congId, 'fr')
 
   const dayOffTemplate = await prisma.eventTemplate.findFirstOrThrow({
     where: { key: EventTemplateKey.DayOff, congregationId: congId },
   })
 
-  console.log('  ✓ Programme templates')
+  console.log('  ✓ Event templates')
 
   // ── Users / Publishers ────────────────────────────────────────────────
   // `id` = Member id (used as publisherId/assigneeId everywhere); `accountId` =
@@ -1223,7 +1223,7 @@ async function main() {
     eventCount++
   }
 
-  console.log(`  ✓ ${eventCount} events with programme assignments`)
+  console.log(`  ✓ ${eventCount} events with parts and service roles`)
 
   console.log('\n✅ Marketing seed complete!')
   console.log(`   Login: marc.dupont@demo.unitae.app / demo1234`)

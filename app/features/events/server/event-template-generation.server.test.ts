@@ -12,7 +12,7 @@ vi.mock('~/shared/infra/db.server', () => ({
   },
 }))
 
-const { generateEventsFromTemplate, createSingleEventFromTemplate } = await import('./programme-generation.server')
+const { generateEventsFromTemplate, createSingleEventFromTemplate } = await import('./event-template-generation.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
@@ -416,13 +416,13 @@ describe('createSingleEventFromTemplate', () => {
 
     expect(vi.mocked(db.eventPartAllowedRole.createMany)).toHaveBeenCalledWith({
       data: [
-        { assignmentId: 700, roleId: 7, asKind: 'speaker', congregationId: 7 },
-        { assignmentId: 700, roleId: 8, asKind: 'reader', congregationId: 7 },
+        { eventPartId: 700, roleId: 7, asKind: 'speaker', congregationId: 7 },
+        { eventPartId: 700, roleId: 8, asKind: 'reader', congregationId: 7 },
       ],
       skipDuplicates: true,
     })
     expect(vi.mocked(db.eventServiceRoleAllowedRole.createMany)).toHaveBeenCalledWith({
-      data: [{ assignmentId: 800, roleId: 9, congregationId: 7 }],
+      data: [{ eventServiceRoleId: 800, roleId: 9, congregationId: 7 }],
       skipDuplicates: true,
     })
   })

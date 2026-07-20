@@ -37,6 +37,25 @@ export async function importConsentRecords(
   }
 }
 
+// Pre-2.1 archives store `entityType` under the old `Programme*` model names.
+// The runtime schema and every fresh audit row uses the new `Event*`/`Template*`
+// names (see migration `20260720300000_rename_programme_to_event`), so history
+// exported from a pre-2.1 archive would show the wrong entity strings without
+// a rewrite on import. The mapping is closed — no ambiguity, no lookup needed.
+const LEGACY_PROGRAMME_ENTITY_TYPES: Record<string, string> = {
+  ProgrammeTemplate: 'EventTemplate',
+  ProgrammeTemplatePart: 'TemplatePart',
+  ProgrammeTemplateServiceRole: 'TemplateServiceRole',
+  ProgrammePartAssignment: 'EventPart',
+  ProgrammeServiceRoleAssignment: 'EventServiceRole',
+  ProgrammeTemplateResponsible: 'TemplateResponsible',
+}
+
+export function rewriteLegacyEntityType(entityType: string | null): string | null {
+  if (entityType == null) return null
+  return LEGACY_PROGRAMME_ENTITY_TYPES[entityType] ?? entityType
+}
+
 export async function importAuditLogs(
   zip: JsZip,
   db: TransactionClient,
@@ -58,7 +77,7 @@ export async function importAuditLogs(
     await db.auditLog.create({
       data: {
         action: record.action,
-        entityType: record.entityType,
+        entityType: rewriteLegacyEntityType(record.entityType),
         entityId: record.entityId,
         actorId: idMap.getOptional('user-accounts', record.actorId),
         actorEmail: record.actorEmail,

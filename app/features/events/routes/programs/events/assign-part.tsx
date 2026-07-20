@@ -4,13 +4,13 @@ import { data, Form, Link, redirect, useSearchParams } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { assignPartSchema } from '~/features/events/schemas/assign-part.schema'
 import { loadPartAssignmentCandidates } from '~/features/events/server/assign-part-loader.server'
+import { assignPart, getEventProgramme } from '~/features/events/server/event-part-assignments.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import {
   buildAssignmentContext,
   dispatchAssignmentDiffs,
   partAssignmentDiffs,
 } from '~/features/events/server/notify-assignment.server'
-import { assignPart, getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { ExternalSpeakerInfoCard } from '~/features/events/ui/ExternalSpeakerInfoCard'
 import { PublisherInfoCard } from '~/features/events/ui/PublisherInfoCard'
 import * as m from '~/i18n/paraglide/messages'
@@ -58,7 +58,7 @@ export function loader({ request, params, context }: Route.LoaderArgs) {
       throw redirect('/programs')
     }
 
-    const assignment = event.parts.find(a => a.id === assignmentId)
+    const assignment = event.eventParts.find(a => a.id === assignmentId)
     const candidates = await loadPartAssignmentCandidates(db, assignment, congregationId)
 
     return {

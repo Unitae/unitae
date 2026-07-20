@@ -346,7 +346,7 @@ function fetchProgrammeByIds(
     },
     include: {
       template: true,
-      parts: {
+      eventParts: {
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
         include: {
           assignee: { select: userSelect },
@@ -354,7 +354,7 @@ function fetchProgrammeByIds(
           externalSpeaker: { select: { name: true } },
         },
       },
-      serviceRoles: includeServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceRoles: includeServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })
@@ -376,7 +376,7 @@ function fetchProgrammeByKey(
       status: EventStatus.Released,
     },
     include: {
-      parts: {
+      eventParts: {
         orderBy: [{ order: 'asc' }, { trackOrder: { sort: 'asc', nulls: 'last' } }],
         include: {
           assignee: { select: userSelect },
@@ -384,7 +384,7 @@ function fetchProgrammeByKey(
           externalSpeaker: { select: { name: true } },
         },
       },
-      serviceRoles: showServices ? { include: { assignee: { select: userSelect } } } : false,
+      eventServiceRoles: showServices ? { include: { assignee: { select: userSelect } } } : false,
     },
     orderBy: { startDate: 'asc' },
   })

@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { Document, Font, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import { groupPartsBySlot } from '~/features/events/model/group-parts-by-slot'
-import type { ExportEvent, TemplateExportConfig } from '~/features/events/server/programme-export.server'
+import type { ExportEvent, TemplateExportConfig } from '~/features/events/server/event-export.server'
 import { formatMemberName, getPartAssigneeDisplay } from '~/features/events/ui/part-display'
 import { sanitizeText } from '~/shared/utils/sanitize-text'
 
@@ -38,7 +38,7 @@ function formatDate(date: Date | string): string {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-interface ProgrammeBoardDocumentProps {
+interface EventBoardDocumentProps {
   events: ExportEvent[]
   configMap: Map<number, Omit<TemplateExportConfig, 'templateId'>>
   groupBy: 'date' | 'template'
@@ -46,7 +46,7 @@ interface ProgrammeBoardDocumentProps {
   congregationName: string
 }
 
-type PartAssignment = ExportEvent['parts'][number]
+type PartAssignment = ExportEvent['eventParts'][number]
 
 const styles = StyleSheet.create({
   page: {
@@ -244,13 +244,7 @@ const styles = StyleSheet.create({
   },
 })
 
-export function ProgrammeBoardDocument({
-  events,
-  configMap,
-  groupBy,
-  title,
-  congregationName,
-}: ProgrammeBoardDocumentProps) {
+export function EventBoardDocument({ events, configMap, groupBy, title, congregationName }: EventBoardDocumentProps) {
   ensureFontsRegistered()
 
   const orderedEvents =
@@ -310,7 +304,7 @@ function EventCard({
   showParts: boolean
   showServices: boolean
 }) {
-  const sectionGroups = groupPartsBySlot(event.parts)
+  const sectionGroups = groupPartsBySlot(event.eventParts)
 
   return (
     <View style={styles.eventCard}>
@@ -331,11 +325,11 @@ function EventCard({
           </View>
         ))}
 
-      {showServices && event.serviceRoles.length > 0 && (
+      {showServices && event.eventServiceRoles.length > 0 && (
         <View style={showParts ? styles.servicesDivider : styles.servicesNoDivider}>
           <Text style={styles.servicesTitle}>Services</Text>
           <View style={styles.servicesGrid}>
-            {event.serviceRoles.map((role, roleIdx) => {
+            {event.eventServiceRoles.map((role, roleIdx) => {
               const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>

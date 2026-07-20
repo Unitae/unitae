@@ -69,6 +69,12 @@ When the rules are duplicated across multiple writers but extracting an aggregat
 - An **aggregate** owns the mutation: callers invoke `member.aggregate.updateFlags(...)`; the aggregate writes, asserts, audits.
 - A **policy** owns the rule: callers still write directly (or via existing service functions) but call `programmeAssignmentPolicy.assertAssignable(...)` before the write.
 
+> **Naming note — Programme vs Event:** the Prisma models were renamed from `ProgrammeXxx` to `EventXxx` / `TemplateXxx` (see migration `20260720300000_rename_programme_to_event`) and the code files were renamed to match (`event-parts.server.ts`, `event-templates.server.ts`, `event-part.policy.ts`, etc.). Two callouts:
+> - URL paths under `/programs/*` are preserved intentionally to keep bookmarks and calendar-feed URLs valid.
+> - The NDJSON archive filenames inside data-transfer ZIPs (`programme-templates.ndjson`, `programme-part-assignments.ndjson`, …) are frozen for backward compatibility with pre-2.1 archives. `ARCHIVE_VERSION` bumped from 2.0 to 2.1 for the AuditLog `entityType` shim; the archive filenames themselves stay stable.
+>
+> Now, `templatePart` refers to the part slot defined on a template, and `eventPart` refers to the concrete part row on a materialised event.
+
 Promote a policy to an aggregate when a third writer appears or when the rule set grows beyond pure assertions.
 
 ### Current aggregates and policies
@@ -77,7 +83,7 @@ Promote a policy to an aggregate when a third writer appears or when the rule se
 |---|---|---|---|
 | `Member` | aggregate | `app/features/publishers/server/member.aggregate.ts` | 12 mutation sites route through it so `syncBuiltInRoleAssignments` fires after every identity-flag change |
 | `Attribution` | aggregate | `app/features/territories/server/attribution.aggregate.ts` | State machine (assigned → returned → archived) + overlap invariant (one active per publisher × territory time-window) |
-| `ProgrammeAssignment` | policy | `app/features/events/server/programme-assignment.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServiceRole` |
+| `EventPart` | policy | `app/features/events/server/event-part.policy.ts` | Eligibility + distinctness + day-off + external-speaker rules shared by `assignPart` and `assignServiceRole` |
 
 ### Aggregate contract
 
@@ -276,7 +282,7 @@ import { EventKind, dayLabel } from '~/features/events'
 import { getTemplates, seedDefaultTemplates } from '~/features/events/index.server'
 
 // Forbidden — fails `pnpm test:boundaries`
-import { getTemplates } from '~/features/events/server/programme-templates.server'
+import { getTemplates } from '~/features/events/server/event-templates.server'
 ```
 
 ### Why the split?

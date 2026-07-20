@@ -2,7 +2,7 @@ import { parseProgrammeConfig } from '~/features/display-board/model/dynamic-doc
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 
-const logger = createLogger('programme-link')
+const logger = createLogger('event-link')
 
 // Resolves the best-effort public URL where an assignee can view their upcoming
 // event. Preferred target is a Programme dynamic document on the board that

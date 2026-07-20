@@ -50,11 +50,11 @@ interface ServiceRoleAssignment {
 interface ProgrammeEvent {
   name: string
   startDate: Date | string
-  parts: PartAssignment[]
-  serviceRoles: ServiceRoleAssignment[]
+  eventParts: PartAssignment[]
+  eventServiceRoles: ServiceRoleAssignment[]
 }
 
-interface ProgrammeDocumentProps {
+interface EventDocumentProps {
   events: ProgrammeEvent[]
   title: string
   showParts: boolean
@@ -221,7 +221,7 @@ function formatDate(date: Date | string): string {
   return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-export function ProgrammeDocument({ events, title, showParts, showServices }: ProgrammeDocumentProps) {
+export function EventDocument({ events, title, showParts, showServices }: EventDocumentProps) {
   const pages: ProgrammeEvent[][] = []
   for (let i = 0; i < events.length; i += 2) {
     pages.push(events.slice(i, i + 2))
@@ -267,7 +267,7 @@ function EventBlock({
   showParts: boolean
   showServices: boolean
 }) {
-  const sortedParts = [...event.parts].sort((a, b) => a.order - b.order)
+  const sortedParts = [...event.eventParts].sort((a, b) => a.order - b.order)
 
   // Group parts by section for colored headers
   const groupedParts: { section: string; parts: PartAssignment[] }[] = []
@@ -309,11 +309,11 @@ function EventBlock({
           )
         })}
 
-      {showServices && event.serviceRoles.length > 0 && (
+      {showServices && event.eventServiceRoles.length > 0 && (
         <View style={styles.serviceSection}>
           <Text style={styles.serviceSectionTitle}>Services</Text>
           <View style={styles.serviceGrid}>
-            {event.serviceRoles.map((role, roleIdx) => {
+            {event.eventServiceRoles.map((role, roleIdx) => {
               const name = formatMemberName(role.assignee)
               return (
                 <View key={roleIdx} style={styles.serviceItem}>

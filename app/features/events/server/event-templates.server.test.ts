@@ -36,7 +36,7 @@ const {
   removeTemplateResponsible,
   isTemplateResponsible,
   duplicateTemplate,
-} = await import('./programme-templates.server')
+} = await import('./event-templates.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 const allowedRoles = await import('~/features/events/server/allowed-roles.server')
 const auditModule = await import('~/shared/domain/audit.server')

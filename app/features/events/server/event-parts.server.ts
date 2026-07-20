@@ -1,4 +1,4 @@
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import {
   setPartAssignmentAllowedRoles,
   setServiceRoleAssignmentAllowedRoles,
@@ -327,7 +327,7 @@ export async function applyTemplateToEvent(
     if (part.allowedRoles.length > 0) {
       await db.eventPartAllowedRole.createMany({
         data: part.allowedRoles.map(r => ({
-          assignmentId: assignment.id,
+          eventPartId: assignment.id,
           roleId: r.roleId,
           asKind: r.asKind,
           congregationId,
@@ -344,7 +344,7 @@ export async function applyTemplateToEvent(
     if (role.allowedRoles.length > 0) {
       await db.eventServiceRoleAllowedRole.createMany({
         data: role.allowedRoles.map(r => ({
-          assignmentId: assignment.id,
+          eventServiceRoleId: assignment.id,
           roleId: r.roleId,
           congregationId,
         })),

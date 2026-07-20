@@ -7,7 +7,7 @@ import {
   checkExternalSpeakerValid,
   checkParticipantsDistinct,
   PROGRAMME_ASSIGNMENT_ERRORS,
-} from './programme-assignment.policy'
+} from './event-part.policy'
 
 describe('areParticipantsDistinct', () => {
   it('returns true when both null', () => {

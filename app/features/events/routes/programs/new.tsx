@@ -9,13 +9,13 @@ import {
   recurringEventSchema,
   singleEventSchema,
 } from '~/features/events/schemas/program-new.schema'
-import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
-import { createFreeformEvent } from '~/features/events/server/programme-events.server'
+import { createFreeformEvent } from '~/features/events/server/event-parts.server'
 import {
   createSingleEventFromTemplate,
   generateEventsFromTemplate,
-} from '~/features/events/server/programme-generation.server'
-import { getTemplates } from '~/features/events/server/programme-templates.server'
+} from '~/features/events/server/event-template-generation.server'
+import { getTemplates } from '~/features/events/server/event-templates.server'
+import { canManageAnyProgram, getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,

@@ -88,7 +88,7 @@ async function createEventWithAssignments(
     if (part.allowedRoles.length > 0) {
       await db.eventPartAllowedRole.createMany({
         data: part.allowedRoles.map(r => ({
-          assignmentId: assignment.id,
+          eventPartId: assignment.id,
           roleId: r.roleId,
           asKind: r.asKind,
           congregationId,
@@ -110,7 +110,7 @@ async function createEventWithAssignments(
     if (role.allowedRoles.length > 0) {
       await db.eventServiceRoleAllowedRole.createMany({
         data: role.allowedRoles.map(r => ({
-          assignmentId: assignment.id,
+          eventServiceRoleId: assignment.id,
           roleId: r.roleId,
           congregationId,
         })),

@@ -31,7 +31,7 @@ const {
   deleteServiceRoleAssignment,
   applyTemplateToEvent,
   bulkDeleteEvents,
-} = await import('./programme-events.server')
+} = await import('./event-parts.server')
 
 const mockDb = {
   event: {
@@ -516,16 +516,16 @@ describe('applyTemplateToEvent', () => {
 
     expect(mockDb.eventPartAllowedRole.createMany).toHaveBeenCalledWith({
       data: [
-        { assignmentId: 555, roleId: 100, asKind: 'speaker', congregationId: 10 },
-        { assignmentId: 555, roleId: 101, asKind: 'speaker', congregationId: 10 },
-        { assignmentId: 555, roleId: 200, asKind: 'reader', congregationId: 10 },
+        { eventPartId: 555, roleId: 100, asKind: 'speaker', congregationId: 10 },
+        { eventPartId: 555, roleId: 101, asKind: 'speaker', congregationId: 10 },
+        { eventPartId: 555, roleId: 200, asKind: 'reader', congregationId: 10 },
       ],
       skipDuplicates: true,
     })
     expect(mockDb.eventServiceRoleAllowedRole.createMany).toHaveBeenCalledWith({
       data: [
-        { assignmentId: 666, roleId: 300, congregationId: 10 },
-        { assignmentId: 666, roleId: 301, congregationId: 10 },
+        { eventServiceRoleId: 666, roleId: 300, congregationId: 10 },
+        { eventServiceRoleId: 666, roleId: 301, congregationId: 10 },
       ],
       skipDuplicates: true,
     })

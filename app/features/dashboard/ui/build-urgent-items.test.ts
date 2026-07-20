@@ -63,8 +63,8 @@ function makeNextMeeting(
   {
     userPartIds = [] as number[],
     userServiceRoleIds = [] as number[],
-    parts = [] as PartAssignment[],
-    serviceRoles = [] as ServiceRoleAssignment[],
+    eventParts = [] as PartAssignment[],
+    eventServiceRoles = [] as ServiceRoleAssignment[],
   } = {},
 ) {
   return {
@@ -73,8 +73,8 @@ function makeNextMeeting(
     startDate,
     endDate: new Date(startDate.getTime() + 2 * 60 * 60 * 1000), // +2h
     template: { name: 'Midweek', color: '#000' } as { name: string; color: string } | null,
-    parts,
-    serviceRoles,
+    eventParts,
+    eventServiceRoles,
     userPartIds,
     userServiceRoleIds,
   }
@@ -142,7 +142,7 @@ describe('urgentPartAssignmentItems', () => {
   it('returns empty array when meeting is more than 3 days away', () => {
     const meeting = makeNextMeeting(new Date(2026, 3, 28), {
       userPartIds: [10],
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Discours',
@@ -163,7 +163,7 @@ describe('urgentPartAssignmentItems', () => {
   it('returns item when meeting is within 3 days', () => {
     const meeting = makeNextMeeting(new Date(2026, 3, 26, 19, 0), {
       userPartIds: [10],
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Discours',
@@ -188,7 +188,7 @@ describe('urgentPartAssignmentItems', () => {
   it('returns item when meeting is today', () => {
     const meeting = makeNextMeeting(new Date(2026, 3, 24, 19, 0), {
       userPartIds: [10],
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Discours',
@@ -222,7 +222,7 @@ describe('urgentServiceRoleItems', () => {
   it('returns empty array when meeting is more than 3 days away', () => {
     const meeting = makeNextMeeting(new Date(2026, 3, 28), {
       userServiceRoleIds: [5],
-      serviceRoles: [{ id: 5, name: 'Son', assignee: { id: 1, firstname: 'John', lastname: 'Doe' } }],
+      eventServiceRoles: [{ id: 5, name: 'Son', assignee: { id: 1, firstname: 'John', lastname: 'Doe' } }],
     })
     expect(urgentServiceRoleItems(meeting)).toEqual([])
   })
@@ -230,7 +230,7 @@ describe('urgentServiceRoleItems', () => {
   it('returns item with priority 3 when meeting is within 3 days', () => {
     const meeting = makeNextMeeting(new Date(2026, 3, 25, 19, 0), {
       userServiceRoleIds: [5],
-      serviceRoles: [{ id: 5, name: 'Son', assignee: { id: 1, firstname: 'John', lastname: 'Doe' } }],
+      eventServiceRoles: [{ id: 5, name: 'Son', assignee: { id: 1, firstname: 'John', lastname: 'Doe' } }],
     })
     const items = urgentServiceRoleItems(meeting)
     expect(items).toHaveLength(1)
@@ -389,7 +389,7 @@ describe('buildUrgentItems', () => {
     const territories = [makeTerritory(1, 'T-1', 'overdue', new Date(2026, 3, 20))]
     const meeting = makeNextMeeting(new Date(2026, 3, 25, 19, 0), {
       userPartIds: [10],
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Discours',
@@ -414,7 +414,7 @@ describe('buildUrgentItems', () => {
     const meeting = makeNextMeeting(meetingDate, {
       userPartIds: [10],
       userServiceRoleIds: [5],
-      parts: [
+      eventParts: [
         {
           id: 10,
           name: 'Discours',
@@ -428,7 +428,7 @@ describe('buildUrgentItems', () => {
           readerLabel: null,
         },
       ],
-      serviceRoles: [{ id: 5, name: 'Son', assignee: null }],
+      eventServiceRoles: [{ id: 5, name: 'Son', assignee: null }],
     })
     const conflict = makeConflict(7, 'Discours public', meetingDate)
     const items = buildUrgentItems(null, null, meeting, conflict, null)

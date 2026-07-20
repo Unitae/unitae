@@ -348,7 +348,7 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
           <p className="text-muted-foreground text-sm">{m.dashboard_next_meeting_no_assignments()}</p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {meeting.parts
+            {meeting.eventParts
               .filter(p => meeting.userPartIds.includes(p.id))
               .map(part => {
                 const roleLabel = part.viewerRole === 'reader' ? partReaderLabel(part) : partSpeakerLabel(part)
@@ -365,7 +365,7 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
                   </div>
                 )
               })}
-            {meeting.serviceRoles
+            {meeting.eventServiceRoles
               .filter(r => meeting.userServiceRoleIds.includes(r.id))
               .map(role => (
                 <div key={role.id} className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2">

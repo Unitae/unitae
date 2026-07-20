@@ -42,7 +42,7 @@ export type ReleaseResult = { event: EventWithStatus; notifyTargets: NotifyTarge
 export type UnreleaseResult = { event: EventWithStatus }
 
 const eventWithAssignmentsInclude = {
-  parts: {
+  eventParts: {
     select: {
       id: true,
       name: true,
@@ -51,7 +51,7 @@ const eventWithAssignmentsInclude = {
       assistantId: true,
     },
   },
-  serviceRoles: {
+  eventServiceRoles: {
     select: {
       id: true,
       name: true,
@@ -122,11 +122,11 @@ export async function releaseEvent(
   if (event.status === EventStatus.Released) return { event, notifyTargets: [] }
 
   try {
-    assertCanRelease({ parts: event.parts, serviceRoles: event.serviceRoles })
+    assertCanRelease({ eventParts: event.eventParts, eventServiceRoles: event.eventServiceRoles })
   } catch (e) {
     if (e instanceof ConflictError) {
-      const conflictingParts = event.parts.filter(p => p.hasConflict).length
-      const conflictingServices = event.serviceRoles.filter(s => s.hasConflict).length
+      const conflictingParts = event.eventParts.filter(p => p.hasConflict).length
+      const conflictingServices = event.eventServiceRoles.filter(s => s.hasConflict).length
       logger.warn('release blocked by conflicts', {
         eventId,
         congregationId,
@@ -157,11 +157,11 @@ export async function releaseEvent(
     eventId,
     congregationId,
     actorId,
-    partCount: event.parts.length,
-    serviceRoleCount: event.serviceRoles.length,
+    partCount: event.eventParts.length,
+    serviceRoleCount: event.eventServiceRoles.length,
   })
 
-  const notifyTargets = computeNotifyTargets(event.parts, event.serviceRoles)
+  const notifyTargets = computeNotifyTargets(event.eventParts, event.eventServiceRoles)
   return { event: updated, notifyTargets }
 }
 
@@ -234,8 +234,8 @@ export async function unreleaseEvent(
   const event = await db.event.findFirst({
     where: { id: eventId, congregationId },
     include: {
-      parts: { select: { id: true } },
-      serviceRoles: { select: { id: true } },
+      eventParts: { select: { id: true } },
+      eventServiceRoles: { select: { id: true } },
     },
   })
   if (!event) return null
@@ -247,8 +247,8 @@ export async function unreleaseEvent(
     data: { status: EventStatus.Draft },
   })
 
-  const partIds = event.parts.map(p => p.id)
-  const serviceIds = event.serviceRoles.map(s => s.id)
+  const partIds = event.eventParts.map(p => p.id)
+  const serviceIds = event.eventServiceRoles.map(s => s.id)
 
   // Skip the notificationEvent updateMany entirely when there are no
   // assignments — an empty `in: []` matches nothing under Prisma today, but

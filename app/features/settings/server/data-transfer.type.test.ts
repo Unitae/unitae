@@ -75,8 +75,8 @@ describe('EntityIdMap', () => {
 })
 
 describe('ARCHIVE_VERSION', () => {
-  it('is the current 2.0 schema version', () => {
-    expect(ARCHIVE_VERSION).toBe('2.0')
+  it('is the current 2.1 schema version', () => {
+    expect(ARCHIVE_VERSION).toBe('2.1')
   })
 })
 

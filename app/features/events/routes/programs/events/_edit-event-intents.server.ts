@@ -19,7 +19,7 @@ import {
   updateEvent,
   updatePartAssignment,
   updateServiceRoleAssignment,
-} from '~/features/events/server/programme-events.server'
+} from '~/features/events/server/event-parts.server'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { combineLocalDateTime } from '~/shared/utils/event-time'

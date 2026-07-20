@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createEventTemplate } from './programme-template.server'
+import { createEventTemplate } from './event-template.server'
 
 const mockDb = {
   eventTemplate: {

@@ -2,12 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import { BookOpen, Calendar, ChevronRight, Gem, HeartHandshake } from 'lucide-react'
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
-import {
-  formatName,
-  getPartDisplay,
-  nameMatches,
-  partMatchesQuery,
-} from '~/features/display-board/model/programme-display'
+import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
 import { groupPartsBySlot } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -90,8 +85,8 @@ interface ProgrammeEvent {
   name: string
   startDate: Date
   templateId?: number | null
-  parts: PartAssignment[]
-  serviceRoles?: ServiceRoleAssignment[]
+  eventParts: PartAssignment[]
+  eventServiceRoles?: ServiceRoleAssignment[]
 }
 
 export interface ProgrammeViewData {
@@ -451,7 +446,7 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
         const eventShowParts = templateConfig?.parts ?? true
         const eventShowServices = templateConfig?.services ?? showServices
 
-        const sections = groupPartsBySlot(event.parts)
+        const sections = groupPartsBySlot(event.eventParts)
         const isFirstOfWeek = firstEventIdPerWeek.has(event.id)
         const weekKey = getWeekKey(new Date(event.startDate))
 
@@ -524,8 +519,8 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                 })}
 
               {/* Services */}
-              {eventShowServices && event.serviceRoles && event.serviceRoles.length > 0 && (
-                <ServiceSection services={event.serviceRoles} hasParts={eventShowParts} query={query} />
+              {eventShowServices && event.eventServiceRoles && event.eventServiceRoles.length > 0 && (
+                <ServiceSection services={event.eventServiceRoles} hasParts={eventShowParts} query={query} />
               )}
             </div>
           </div>

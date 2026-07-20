@@ -9,7 +9,7 @@ vi.mock('~/shared/infra/db.server', () => ({
 }))
 
 const { canEditEvent, getResponsibleTemplateIds, canManageAnyProgram, filterToManageableEventIds } = await import(
-  './programme-auth.server'
+  './events-auth.server'
 )
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 

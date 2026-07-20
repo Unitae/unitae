@@ -139,13 +139,13 @@ export async function importEventPartAllowedRoles(
     zip,
     'programme-part-assignment-allowed-roles',
   )
-  const data: { assignmentId: number; roleId: number; asKind: string; congregationId: number }[] = []
+  const data: { eventPartId: number; roleId: number; asKind: string; congregationId: number }[] = []
 
   for (const record of records) {
-    const assignmentId = idMap.getOptional('programme-part-assignments', record.assignmentId)
+    const eventPartId = idMap.getOptional('programme-part-assignments', record.assignmentId)
     const roleId = idMap.getOptional('roles', record.roleId)
-    if (!assignmentId || !roleId) continue
-    data.push({ assignmentId, roleId, asKind: record.asKind, congregationId })
+    if (!eventPartId || !roleId) continue
+    data.push({ eventPartId, roleId, asKind: record.asKind, congregationId })
   }
 
   if (data.length > 0) {
@@ -163,13 +163,13 @@ export async function importEventServiceRoleAllowedRoles(
     zip,
     'programme-service-role-assignment-allowed-roles',
   )
-  const data: { assignmentId: number; roleId: number; congregationId: number }[] = []
+  const data: { eventServiceRoleId: number; roleId: number; congregationId: number }[] = []
 
   for (const record of records) {
-    const assignmentId = idMap.getOptional('programme-service-role-assignments', record.assignmentId)
+    const eventServiceRoleId = idMap.getOptional('programme-service-role-assignments', record.assignmentId)
     const roleId = idMap.getOptional('roles', record.roleId)
-    if (!assignmentId || !roleId) continue
-    data.push({ assignmentId, roleId, congregationId })
+    if (!eventServiceRoleId || !roleId) continue
+    data.push({ eventServiceRoleId, roleId, congregationId })
   }
 
   if (data.length > 0) {

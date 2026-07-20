@@ -78,9 +78,9 @@ describe('listUserServiceCadence', () => {
   it('reverses the past query result so entries flow oldest → newest', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 3, startDate: new Date('2026-06-01'), serviceRoles: [] },
-        { id: 2, startDate: new Date('2026-05-01'), serviceRoles: [] },
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [] },
+        { id: 3, startDate: new Date('2026-06-01'), eventServiceRoles: [] },
+        { id: 2, startDate: new Date('2026-05-01'), eventServiceRoles: [] },
+        { id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -99,7 +99,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [{ name: 'Sono', assigneeId: 5 }],
+          eventServiceRoles: [{ name: 'Sono', assigneeId: 5 }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -115,7 +115,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [{ name: 'Sono', assigneeId: 99 }],
+          eventServiceRoles: [{ name: 'Sono', assigneeId: 99 }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -127,7 +127,7 @@ describe('listUserServiceCadence', () => {
 
   it('marks assigned=false when the event has no matching service role assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoles: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
@@ -141,7 +141,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [
+          eventServiceRoles: [
             { name: 'Sono', assigneeId: 99 },
             { name: 'Accueil', assigneeId: 5 },
           ],
@@ -157,7 +157,7 @@ describe('listUserServiceCadence', () => {
   it('matches when name lines up exactly', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: 'Sono', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [{ name: 'Sono', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -169,7 +169,7 @@ describe('listUserServiceCadence', () => {
   it('matches when the historical row has surrounding whitespace on the name', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: '  Sono  ', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [{ name: '  Sono  ', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -181,7 +181,7 @@ describe('listUserServiceCadence', () => {
   it('matches when the case of the name differs', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: 'SONO', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [{ name: 'SONO', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -193,7 +193,7 @@ describe('listUserServiceCadence', () => {
   it('matches when diacritics differ (Accueil ↔ accueil)', async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), serviceRoles: [{ name: 'accueil', assigneeId: 5 }] },
+        { id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [{ name: 'accueil', assigneeId: 5 }] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -208,7 +208,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [{ name: 'Chairman', assigneeId: 5 }],
+          eventServiceRoles: [{ name: 'Chairman', assigneeId: 5 }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -224,14 +224,14 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [{ name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } }],
+          eventServiceRoles: [{ name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } }],
         },
       ] as never)
       .mockResolvedValueOnce([
         {
           id: 2,
           startDate: new Date('2026-08-01'),
-          serviceRoles: [{ name: 'Sono', assigneeId: 99, assignee: { firstname: 'Marie', lastname: 'Curie' } }],
+          eventServiceRoles: [{ name: 'Sono', assigneeId: 99, assignee: { firstname: 'Marie', lastname: 'Curie' } }],
         },
       ] as never)
 
@@ -250,7 +250,9 @@ describe('listUserServiceCadence', () => {
 
   it("propagates event.status as 'draft' when the past row is a draft", async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), status: 'draft', serviceRoles: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-04-01'), status: 'draft', eventServiceRoles: [] },
+      ] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
@@ -261,7 +263,7 @@ describe('listUserServiceCadence', () => {
   it("buckets unknown Event.status values as 'released' (fallback contract)", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([
-        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', serviceRoles: [] },
+        { id: 1, startDate: new Date('2026-04-01'), status: 'cancelled', eventServiceRoles: [] },
       ] as never)
       .mockResolvedValueOnce([] as never)
 
@@ -273,7 +275,9 @@ describe('listUserServiceCadence', () => {
   it("propagates event.status as 'draft' when the row is still a draft assignment", async () => {
     vi.mocked(db.event.findMany)
       .mockResolvedValueOnce([] as never)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-08-01'), status: 'draft', serviceRoles: [] }] as never)
+      .mockResolvedValueOnce([
+        { id: 1, startDate: new Date('2026-08-01'), status: 'draft', eventServiceRoles: [] },
+      ] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)
 
@@ -286,7 +290,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [{ name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } }],
+          eventServiceRoles: [{ name: 'Sono', assigneeId: 5, assignee: { firstname: 'Jean', lastname: 'Dupont' } }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -302,7 +306,7 @@ describe('listUserServiceCadence', () => {
         {
           id: 1,
           startDate: new Date('2026-04-01'),
-          serviceRoles: [{ name: 'Sono', assigneeId: null, assignee: null }],
+          eventServiceRoles: [{ name: 'Sono', assigneeId: null, assignee: null }],
         },
       ] as never)
       .mockResolvedValueOnce([] as never)
@@ -314,7 +318,7 @@ describe('listUserServiceCadence', () => {
 
   it('returns personName=null when the event has no matching service assignment', async () => {
     vi.mocked(db.event.findMany)
-      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), serviceRoles: [] }] as never)
+      .mockResolvedValueOnce([{ id: 1, startDate: new Date('2026-04-01'), eventServiceRoles: [] }] as never)
       .mockResolvedValueOnce([] as never)
 
     const result = await listUserServiceCadence(db, DEFAULT_ARGS)

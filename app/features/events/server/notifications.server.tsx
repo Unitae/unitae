@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { defineNotificationType, manifest } from '~/features/notifications'
 import * as m from '~/i18n/paraglide/messages'
-import ProgrammeAssignmentAssigned from '../emails/programme-assignment-assigned'
-import ProgrammeAssignmentUnassigned from '../emails/programme-assignment-unassigned'
-import { PROGRAMME_ROLES } from '../model/programme-role'
+import ProgrammeAssignmentAssigned from '../emails/event-part-assigned'
+import ProgrammeAssignmentUnassigned from '../emails/event-part-unassigned'
+import { PROGRAMME_ROLES } from '../model/template-role'
 
 const PROGRAMME_CATEGORY = { key: 'programme', label: () => m.notification_category_programme() }
 

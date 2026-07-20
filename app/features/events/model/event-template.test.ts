@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EventTemplateKey, isSystemTemplate } from './programme-template.type'
+import { EventTemplateKey, isSystemTemplate } from './event-template.type'
 
 describe('isSystemTemplate', () => {
   it('recognises the day-off template', () => {

@@ -23,7 +23,7 @@ function withScope<T>(congregationId: number, fn: (tx: Tx) => Promise<T>): Promi
   })
 }
 
-const { resolveProgrammeLink } = await import('./programme-link.server')
+const { resolveProgrammeLink } = await import('./event-link.server')
 
 const ts = Date.now()
 let congId: number

@@ -5,7 +5,7 @@ vi.mock('~/i18n/paraglide/messages', () => ({
 }))
 
 const { formatName, formatAssigneeWithAssistant, nameMatches, getPartDisplay, partMatchesQuery } = await import(
-  './programme-display'
+  './event-display'
 )
 
 function makeUser(firstname: string | null, lastname: string | null, anonymizedAt: Date | null = null) {

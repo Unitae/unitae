@@ -1,6 +1,6 @@
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { EventTemplateKey } from '~/features/events/model/programme-template.type'
-import { refreshConflictFlags } from '~/features/events/server/programme-assignments.server'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
+import { refreshConflictFlags } from '~/features/events/server/event-part-assignments.server'
 import * as m from '~/i18n/paraglide/messages'
 import { NotFoundError } from '~/shared/errors/app-error.server'
 import type { TransactionClient } from '~/shared/infra/db.server'

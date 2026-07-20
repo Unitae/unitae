@@ -1,9 +1,9 @@
-import { isTemplateResponsible } from '~/features/events/server/programme-templates.server'
+import { isTemplateResponsible } from '~/features/events/server/event-templates.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { Permission } from '~/shared/types/permission'
 
-const logger = createLogger('programme-auth')
+const logger = createLogger('events-auth')
 
 export async function canEditEvent(
   db: TransactionClient,
