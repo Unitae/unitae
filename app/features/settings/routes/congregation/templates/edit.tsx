@@ -138,9 +138,22 @@ export async function action({ request, params, context }: Route.ActionArgs) {
       if (submission.status !== 'success') return data(submission.reply(), { status: 400 })
 
       const { name, weekDay, color, startTime, endTime } = submission.value
-      await updateTemplate(db, templateId, { name, weekDay, color, startTime, endTime }, currentUser.congregationId)
-      session.flash('success', m.settings_template_edit_update_success())
-      logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
+      const updated = await updateTemplate(
+        db,
+        templateId,
+        { name, weekDay, color, startTime, endTime },
+        currentUser.congregationId,
+      )
+      // updateTemplate returns null when the payload has no writable fields
+      // (e.g. a system-template submission missing `color`, or a bypass of the
+      // form's HTML `required` attributes). Flashing "success" and logging an
+      // update in that case pollutes the audit trail with phantom writes.
+      if (updated == null) {
+        logger.warn(`Template update produced no changes. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
+      } else {
+        session.flash('success', m.settings_template_edit_update_success())
+        logger.info(`Updated template. User ID: ${currentUser.id}. Template ID: ${templateId}.`)
+      }
     }
 
     const partResult = await handlePartIntent(

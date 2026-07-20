@@ -17,8 +17,8 @@ export const createTemplateSchema = z.object({
 // System templates (day-off, freeform) render a read-only info card whose
 // only editable field is the colour swatch; the form only submits intent +
 // color. Requiring name / start / end here would 400 that submission and
-// silently drop the colour save. The service (`updateTemplate`) treats
-// undefined as "no change" and enforces the system-template stripping.
+// silently drop the colour save. The service layer treats undefined as
+// "no change" and enforces the system-template stripping.
 export const updateTemplateSchema = z.object({
   intent: z.literal('update-template'),
   name: z.string().min(1).optional(),
