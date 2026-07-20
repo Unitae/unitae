@@ -37,23 +37,31 @@ export async function importConsentRecords(
   }
 }
 
-// Pre-2.1 archives store `entityType` under the old `Programme*` model names.
-// The runtime schema and every fresh audit row uses the new `Event*`/`Template*`
-// names (see migration `20260720300000_rename_programme_to_event`), so history
-// exported from a pre-2.1 archive would show the wrong entity strings without
-// a rewrite on import. The mapping is closed — no ambiguity, no lookup needed.
-const LEGACY_PROGRAMME_ENTITY_TYPES: Record<string, string> = {
+// Pre-2.1 archives store `entityType` under the old `Programme*` model names;
+// 2.1 archives (the interim between the Programme rename and the ServiceRole
+// rename that landed later in the same PR) still use `EventServiceRole` /
+// `TemplateServiceRole`. The runtime schema and every fresh audit row uses the
+// current `Event*` / `Template*` / `EventServicePart` / `TemplateServicePart`
+// names, so history exported from any older archive would show a nonexistent
+// entity string without a rewrite on import.
+const LEGACY_ENTITY_TYPES: Record<string, string> = {
+  // Pre-2.1: Programme* model names.
   ProgrammeTemplate: 'EventTemplate',
   ProgrammeTemplatePart: 'TemplatePart',
-  ProgrammeTemplateServicePart: 'TemplateServicePart',
+  ProgrammeTemplateServiceRole: 'TemplateServicePart',
   ProgrammePartAssignment: 'EventPart',
-  ProgrammeServicePartAssignment: 'EventServicePart',
+  ProgrammeServiceRoleAssignment: 'EventServicePart',
   ProgrammeTemplateResponsible: 'TemplateResponsible',
+  // Post-Programme, pre-ServicePart: the ServiceRole tables kept their name
+  // until the follow-up rename in this same PR. Cover both so a 2.1 archive
+  // still round-trips cleanly.
+  TemplateServiceRole: 'TemplateServicePart',
+  EventServiceRole: 'EventServicePart',
 }
 
 export function rewriteLegacyEntityType(entityType: string | null): string | null {
   if (entityType == null) return null
-  return LEGACY_PROGRAMME_ENTITY_TYPES[entityType] ?? entityType
+  return LEGACY_ENTITY_TYPES[entityType] ?? entityType
 }
 
 export async function importAuditLogs(

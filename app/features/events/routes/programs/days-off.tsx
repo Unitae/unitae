@@ -79,7 +79,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     // Find conflicting events for each day-off (with dates for per-week scoping)
     const conflictsByDayOff: Record<number, ConflictingEvent[]> = {}
     for (const event of events) {
-      // Event parts and service roles are bound to Member ids; resolve via the creator's linked member
+      // Event parts and event service parts are bound to Member ids; resolve via the creator's linked member
       const memberId = event.createdBy.memberId
       const [parts, serviceAssignments] = memberId
         ? await Promise.all([

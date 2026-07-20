@@ -1,4 +1,4 @@
--- Follow-up cleanup for `20260720300000_rename_programme_to_event`:
+-- Follow-up cleanup for `20260720350000_rename_programme_to_event`:
 --
 -- 1. Rewrites `NotificationEvent.debounceKey` for still-pending rows so the
 --    new event-part debounce lookup (`buildDebounceKey('EventPart', ...)`)
@@ -8,9 +8,10 @@
 --    by `debounceKey`, which was computed from the old entityType string.
 --
 -- 2. Renames the FK columns on the two join tables from `assignmentId` (the
---    old `Programme*Assignment*AllowedRole` name) to the target model name
---    (`eventPartId` / `eventServiceRoleId`). Keeps table/PK/FK/index rename
---    consistent with the model rename.
+--    original `ProgrammePartAssignmentAllowedRole` and
+--    `ProgrammeServiceRoleAssignmentAllowedRole` column) to the target model
+--    name (`eventPartId` / `eventServiceRoleId`). Keeps table/PK/FK/index
+--    rename consistent with the model rename.
 
 -- 1. NotificationEvent.debounceKey rewrite — only for pending rows (sent
 --    rows are historical and get auto-cleaned in 7-30 days).
