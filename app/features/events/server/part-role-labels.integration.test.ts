@@ -8,9 +8,9 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
+import { duplicateTemplate } from '~/features/events/server/duplicate-template.server'
 import { applyTemplateToEvent } from '~/features/events/server/event-parts.server'
 import { generateEventsFromTemplate } from '~/features/events/server/event-template-generation.server'
-import { duplicateTemplate } from '~/features/events/server/event-templates.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,

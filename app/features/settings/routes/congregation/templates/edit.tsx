@@ -2,7 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import { closestCenter, DndContext, type DragEndEvent } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Clock, Pencil, Plus, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { data, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { InlineDeleteDialog, isSystemTemplate, PartEditSheet, ServiceEditSheet, SortableRow } from '~/features/events'
@@ -463,7 +463,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                     </TableHeader>
                     <TableBody>
                       {partsBySection.map(group => (
-                        <>
+                        <Fragment key={group.parts[0]?.id ?? `section-${group.section}`}>
                           {group.section && (
                             <TableRow key={`section-${group.section}`} className="bg-muted/50">
                               <TableCell colSpan={5} className="py-1.5">
@@ -525,7 +525,7 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                               </TableCell>
                             </SortableRow>
                           ))}
-                        </>
+                        </Fragment>
                       ))}
                     </TableBody>
                   </Table>
