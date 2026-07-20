@@ -350,11 +350,10 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
             {meeting.partAssignments
               .filter(p => meeting.userPartIds.includes(p.id))
               .map(part => {
-                const isAssignee =
-                  part.assignee && meeting.userPartIds.includes(part.id) && part.assignee.id !== part.assistant?.id
-                const roleLabel = isAssignee
-                  ? m.dashboard_next_meeting_assigned_as_speaker()
-                  : m.dashboard_next_meeting_assigned_as_assistant()
+                const roleLabel =
+                  part.viewerRole === 'reader'
+                    ? m.dashboard_next_meeting_assigned_as_assistant()
+                    : m.dashboard_next_meeting_assigned_as_speaker()
 
                 return (
                   <div key={part.id} className="rounded-lg bg-primary/5 px-3 py-2">

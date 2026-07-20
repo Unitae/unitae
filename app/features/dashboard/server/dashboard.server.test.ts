@@ -140,7 +140,7 @@ describe('getNextMeeting', () => {
     expect(result).toBeNull()
   })
 
-  it('returns event with user part IDs identified', async () => {
+  it('returns event with user part IDs identified and viewerRole tagged as speaker when viewer is the assignee', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       id: 1,
       name: 'Midweek',
@@ -177,9 +177,14 @@ describe('getNextMeeting', () => {
     expect(result).not.toBeNull()
     expect(result?.userPartIds).toEqual([10])
     expect(result?.userServiceRoleIds).toEqual([20])
+    // Viewer is the assignee on part 10 → speaker. Part 11 belongs to someone
+    // else so the viewer has no role there.
+    const parts = result?.partAssignments ?? []
+    expect(parts.find(p => p.id === 10)?.viewerRole).toBe('speaker')
+    expect(parts.find(p => p.id === 11)?.viewerRole).toBeNull()
   })
 
-  it('identifies user as assistant', async () => {
+  it('tags viewerRole as reader when viewer is the assistant (previously mislabeled speaker in the UI)', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       id: 1,
       name: 'Midweek',
@@ -193,6 +198,9 @@ describe('getNextMeeting', () => {
           section: 'main',
           topic: null,
           order: 1,
+          // Different people in the two slots — this is the exact shape the
+          // NextMeetingCard used to compare assignee.id vs assistant.id and
+          // always return "speaker" for. The viewer here is the assistant.
           assignee: { id: 99, firstname: 'Jane', lastname: 'Smith' },
           assistant: { id: 42, firstname: 'John', lastname: 'Doe' },
         },
@@ -202,6 +210,7 @@ describe('getNextMeeting', () => {
 
     const result = await getNextMeeting(db, 42)
     expect(result?.userPartIds).toEqual([10])
+    expect(result?.partAssignments[0].viewerRole).toBe('reader')
   })
 
   it('returns empty arrays when user has no assignments', async () => {

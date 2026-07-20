@@ -353,13 +353,22 @@ export async function getNextMeeting(db: TransactionClient, userId: number) {
 
   if (!event) return null
 
-  const userPartIds = new Set(
-    event.partAssignments.filter(p => p.assignee?.id === userId || p.assistant?.id === userId).map(p => p.id),
-  )
+  // Tag each part with the viewer's role so the UI doesn't have to reverse-
+  // engineer it. `null` means "viewer has no role on this part" — the UI
+  // filters on userPartIds so nulls never render, but keeping the field
+  // present makes the shape uniform and typed.
+  const partAssignments = event.partAssignments.map(p => ({
+    ...p,
+    viewerRole:
+      p.assignee?.id === userId ? ('speaker' as const) : p.assistant?.id === userId ? ('reader' as const) : null,
+  }))
+
+  const userPartIds = new Set(partAssignments.filter(p => p.viewerRole !== null).map(p => p.id))
   const userServiceRoleIds = new Set(event.serviceRoleAssignments.filter(r => r.assignee?.id === userId).map(r => r.id))
 
   return {
     ...event,
+    partAssignments,
     userPartIds: [...userPartIds],
     userServiceRoleIds: [...userServiceRoleIds],
   }
