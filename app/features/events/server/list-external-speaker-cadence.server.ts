@@ -42,7 +42,7 @@ export async function listExternalSpeakerCadence(
   } as const
 
   const commonWhere = { templateId: event.templateId, congregationId } as const
-  const rowSelect = { id: true, startDate: true, status: true, partAssignments: partsSelect } as const
+  const rowSelect = { id: true, startDate: true, status: true, eventParts: partsSelect } as const
 
   const [pastRows, futureRows, historicalAssignments] = await Promise.all([
     db.event.findMany({
@@ -57,7 +57,7 @@ export async function listExternalSpeakerCadence(
       take: futureCount,
       select: rowSelect,
     }),
-    db.programmePartAssignment.findMany({
+    db.eventPart.findMany({
       where: {
         event: { ...commonWhere, startDate: { lt: event.startDate } },
         externalSpeakerId,
@@ -68,7 +68,7 @@ export async function listExternalSpeakerCadence(
 
   const targetName = normalize(partName)
   const targetSection = normalize(partSection)
-  type PartRow = (typeof pastRows)[number]['partAssignments'][number]
+  type PartRow = (typeof pastRows)[number]['eventParts'][number]
   // Prefer the external speaker on this row even if their name is empty —
   // the FK is the identity signal, not the display string. Fall back to
   // the in-house assignee for rows where the slot was covered internally.
@@ -78,7 +78,7 @@ export async function listExternalSpeakerCadence(
     return null
   }
   const toEntry = (row: (typeof pastRows)[number]): CadenceEntry => {
-    const matches = row.partAssignments.filter(
+    const matches = row.eventParts.filter(
       p => normalize(p.name) === targetName && normalize(p.section) === targetSection,
     )
     const person = matches.map(nameOf).find(n => n != null)

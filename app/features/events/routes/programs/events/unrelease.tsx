@@ -1,7 +1,7 @@
 import { data, redirect } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
 import { unreleaseEvent } from '~/features/events/server/event-status.server'
-import { canEditEvent } from '~/features/events/server/programme-auth.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import * as m from '~/i18n/paraglide/messages'
 import { currentAccountContext, permissionsContext, withScopeFromContext } from '~/shared/auth/route-context.server'
 import logger from '~/shared/infra/logger.server'

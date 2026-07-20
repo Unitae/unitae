@@ -143,7 +143,7 @@ beforeAll(async () => {
       },
     })
 
-    const template = await tx.programmeTemplate.create({
+    const template = await tx.eventTemplate.create({
       data: {
         name: 'Test Template',
         key: `template-${ts}`,
@@ -153,7 +153,7 @@ beforeAll(async () => {
       },
     })
 
-    const part = await tx.programmeTemplatePart.create({
+    const part = await tx.templatePart.create({
       data: {
         name: 'Opening',
         section: 'intro',
@@ -164,11 +164,11 @@ beforeAll(async () => {
       },
     })
 
-    const serviceRole = await tx.programmeTemplateServiceRole.create({
+    const servicePart = await tx.templateServicePart.create({
       data: { name: 'Sound', key: `sound-${ts}`, templateId: template.id, congregationId: sourceId },
     })
 
-    await tx.programmeTemplateResponsible.create({
+    await tx.templateResponsible.create({
       data: { templateId: template.id, userId: alice.id, congregationId: sourceId },
     })
 
@@ -183,7 +183,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.programmePartAssignment.create({
+    await tx.eventPart.create({
       data: {
         eventId: event.id,
         partId: part.id,
@@ -197,10 +197,10 @@ beforeAll(async () => {
       },
     })
 
-    const serviceRoleAssignment = await tx.programmeServiceRoleAssignment.create({
+    const servicePartAssignment = await tx.eventServicePart.create({
       data: {
         eventId: event.id,
-        serviceRoleId: serviceRole.id,
+        servicePartId: servicePart.id,
         assigneeId: bobMember.id,
         name: 'Sound',
         congregationId: sourceId,
@@ -273,12 +273,12 @@ beforeAll(async () => {
     })
 
     // Wire the external speaker into the existing part-assignment so the FK link survives import.
-    const partAssignment = await tx.programmePartAssignment.findFirst({
+    const partAssignment = await tx.eventPart.findFirst({
       where: { eventId: event.id },
       select: { id: true },
     })
     if (partAssignment != null) {
-      await tx.programmePartAssignment.update({
+      await tx.eventPart.update({
         where: { id: partAssignment.id },
         data: { allowExternalSpeaker: true, externalSpeakerId: externalSpeaker.id, trackOrder: 2 },
       })
@@ -286,11 +286,11 @@ beforeAll(async () => {
 
     // Give the template a distinctive colour and give the part a trackOrder
     // to cover the adjacent leakage gaps.
-    await tx.programmeTemplate.update({
+    await tx.eventTemplate.update({
       where: { id: template.id },
       data: { color: '#ff0000' },
     })
-    await tx.programmeTemplatePart.update({
+    await tx.templatePart.update({
       where: { id: part.id },
       data: { trackOrder: 1 },
     })
@@ -303,18 +303,18 @@ beforeAll(async () => {
       data: { paths: [[{ lat: 48.8, lng: 2.3 }]], congregationId: sourceId },
     })
 
-    await tx.programmeTemplatePartAllowedRole.create({
+    await tx.templatePartAllowedRole.create({
       data: { partId: part.id, roleId: elderRole.id, asKind: 'speaker', congregationId: sourceId },
     })
 
-    await tx.programmeTemplateServiceRoleAllowedRole.create({
-      data: { serviceRoleId: serviceRole.id, roleId: elderRole.id, congregationId: sourceId },
+    await tx.templateServicePartAllowedRole.create({
+      data: { servicePartId: servicePart.id, roleId: elderRole.id, congregationId: sourceId },
     })
 
     if (partAssignment != null) {
-      await tx.programmePartAssignmentAllowedRole.create({
+      await tx.eventPartAllowedRole.create({
         data: {
-          assignmentId: partAssignment.id,
+          eventPartId: partAssignment.id,
           roleId: elderRole.id,
           asKind: 'speaker',
           congregationId: sourceId,
@@ -322,8 +322,8 @@ beforeAll(async () => {
       })
     }
 
-    await tx.programmeServiceRoleAssignmentAllowedRole.create({
-      data: { assignmentId: serviceRoleAssignment.id, roleId: elderRole.id, congregationId: sourceId },
+    await tx.eventServicePartAllowedRole.create({
+      data: { eventServicePartId: servicePartAssignment.id, roleId: elderRole.id, congregationId: sourceId },
     })
 
     await tx.boardSectionVisibilityRole.create({
@@ -355,18 +355,18 @@ afterAll(async () => {
       // v1.1 join tables — must precede their parents. Most cascade on delete, but explicit
       // ordering keeps cleanup deterministic across ad-hoc reruns.
       await tx.boardSectionVisibilityRole.deleteMany({})
-      await tx.programmeServiceRoleAssignmentAllowedRole.deleteMany({})
-      await tx.programmePartAssignmentAllowedRole.deleteMany({})
-      await tx.programmeTemplateServiceRoleAllowedRole.deleteMany({})
-      await tx.programmeTemplatePartAllowedRole.deleteMany({})
-      await tx.programmeServiceRoleAssignment.deleteMany({})
-      await tx.programmePartAssignment.deleteMany({})
+      await tx.eventServicePartAllowedRole.deleteMany({})
+      await tx.eventPartAllowedRole.deleteMany({})
+      await tx.templateServicePartAllowedRole.deleteMany({})
+      await tx.templatePartAllowedRole.deleteMany({})
+      await tx.eventServicePart.deleteMany({})
+      await tx.eventPart.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
-      await tx.programmeTemplateResponsible.deleteMany({})
-      await tx.programmeTemplateServiceRole.deleteMany({})
-      await tx.programmeTemplatePart.deleteMany({})
+      await tx.templateResponsible.deleteMany({})
+      await tx.templateServicePart.deleteMany({})
+      await tx.templatePart.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
       await tx.boardDynamicDocumentSettings.deleteMany({})
       await tx.boardDocumentVersion.deleteMany({})
@@ -474,17 +474,17 @@ async function importFromZip(buffer: Buffer, congregationId: number): Promise<vo
     await mod.importTerritoryEntranceLinks(zip, db, idMap)
     await mod.importBuildingEntranceLinks(zip, db, idMap)
     await mod.importAttributions(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplates(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateParts(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplatePartAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateServiceRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateServiceRoleAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeTemplateResponsibles(zip, db, idMap, congregationId)
+    await mod.importEventTemplates(zip, db, idMap, congregationId)
+    await mod.importTemplateParts(zip, db, idMap, congregationId)
+    await mod.importTemplatePartAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importTemplateServiceParts(zip, db, idMap, congregationId)
+    await mod.importTemplateServicePartAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importTemplateResponsibles(zip, db, idMap, congregationId)
     await mod.importEvents(zip, db, idMap, congregationId)
-    await mod.importProgrammePartAssignments(zip, db, idMap, congregationId)
-    await mod.importProgrammePartAssignmentAllowedRoles(zip, db, idMap, congregationId)
-    await mod.importProgrammeServiceRoleAssignments(zip, db, idMap, congregationId)
-    await mod.importProgrammeServiceRoleAssignmentAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importEventParts(zip, db, idMap, congregationId)
+    await mod.importEventPartAllowedRoles(zip, db, idMap, congregationId)
+    await mod.importEventServiceParts(zip, db, idMap, congregationId)
+    await mod.importEventServicePartAllowedRoles(zip, db, idMap, congregationId)
     await mod.importBoardSections(zip, db, idMap, congregationId)
     await mod.importBoardSectionVisibilityRoles(zip, db, idMap, congregationId)
     await mod.importBoardDocuments(zip, db, idMap, congregationId)
@@ -571,18 +571,18 @@ describe('Export/Import round-trip', () => {
     // Delete source users so the emails are free for import (simulates cross-instance migration)
     await withScope(sourceId, async tx => {
       await tx.boardSectionVisibilityRole.deleteMany({})
-      await tx.programmeServiceRoleAssignmentAllowedRole.deleteMany({})
-      await tx.programmePartAssignmentAllowedRole.deleteMany({})
-      await tx.programmeTemplateServiceRoleAllowedRole.deleteMany({})
-      await tx.programmeTemplatePartAllowedRole.deleteMany({})
-      await tx.programmeServiceRoleAssignment.deleteMany({})
-      await tx.programmePartAssignment.deleteMany({})
+      await tx.eventServicePartAllowedRole.deleteMany({})
+      await tx.eventPartAllowedRole.deleteMany({})
+      await tx.templateServicePartAllowedRole.deleteMany({})
+      await tx.templatePartAllowedRole.deleteMany({})
+      await tx.eventServicePart.deleteMany({})
+      await tx.eventPart.deleteMany({})
       await tx.externalSpeaker.deleteMany({})
-      await tx.programmeTemplateResponsible.deleteMany({})
-      await tx.programmeTemplateServiceRole.deleteMany({})
-      await tx.programmeTemplatePart.deleteMany({})
+      await tx.templateResponsible.deleteMany({})
+      await tx.templateServicePart.deleteMany({})
+      await tx.templatePart.deleteMany({})
       await tx.event.deleteMany({})
-      await tx.programmeTemplate.deleteMany({})
+      await tx.eventTemplate.deleteMany({})
       await tx.consentRecord.deleteMany({})
       await tx.boardDynamicDocumentSettings.deleteMany({})
       await tx.boardDocumentVersion.deleteMany({})
@@ -691,17 +691,17 @@ describe('Export/Import round-trip', () => {
       expect(activities[0].publisherId).toBe(aliceMember.id)
 
       // Programme templates + parts + service roles + responsibles
-      const templates = await tx.programmeTemplate.findMany({})
+      const templates = await tx.eventTemplate.findMany({})
       expect(templates).toHaveLength(1)
       // colour survived the round-trip
       expect(templates[0].color).toBe('#ff0000')
-      const parts = await tx.programmeTemplatePart.findMany({})
-      expect(parts).toHaveLength(1)
-      expect(parts[0].templateId).toBe(templates[0].id)
-      expect(parts[0].trackOrder).toBe(1)
-      const serviceRoles = await tx.programmeTemplateServiceRole.findMany({})
-      expect(serviceRoles).toHaveLength(1)
-      const responsibles = await tx.programmeTemplateResponsible.findMany({})
+      const templateParts = await tx.templatePart.findMany({})
+      expect(templateParts).toHaveLength(1)
+      expect(templateParts[0].templateId).toBe(templates[0].id)
+      expect(templateParts[0].trackOrder).toBe(1)
+      const serviceParts = await tx.templateServicePart.findMany({})
+      expect(serviceParts).toHaveLength(1)
+      const responsibles = await tx.templateResponsible.findMany({})
       expect(responsibles).toHaveLength(1)
       expect(responsibles[0].userId).toBe(alice.id)
 
@@ -709,14 +709,14 @@ describe('Export/Import round-trip', () => {
       const events = await tx.event.findMany({})
       expect(events).toHaveLength(1)
       expect(events[0].createdById).toBe(alice.id)
-      const partAssignments = await tx.programmePartAssignment.findMany({})
-      expect(partAssignments).toHaveLength(1)
-      expect(partAssignments[0].assigneeId).toBe(aliceMember.id)
-      expect(partAssignments[0].assistantId).toBe(bobMember.id)
-      expect(partAssignments[0].topic).toBe('Welcome')
-      expect(partAssignments[0].trackOrder).toBe(2)
-      expect(partAssignments[0].allowExternalSpeaker).toBe(true)
-      const srAssignments = await tx.programmeServiceRoleAssignment.findMany({})
+      const eventParts = await tx.eventPart.findMany({})
+      expect(eventParts).toHaveLength(1)
+      expect(eventParts[0].assigneeId).toBe(aliceMember.id)
+      expect(eventParts[0].assistantId).toBe(bobMember.id)
+      expect(eventParts[0].topic).toBe('Welcome')
+      expect(eventParts[0].trackOrder).toBe(2)
+      expect(eventParts[0].allowExternalSpeaker).toBe(true)
+      const srAssignments = await tx.eventServicePart.findMany({})
       expect(srAssignments).toHaveLength(1)
       expect(srAssignments[0].assigneeId).toBe(bobMember.id)
 
@@ -756,7 +756,7 @@ describe('Export/Import round-trip', () => {
       const speakers = await tx.externalSpeaker.findMany({})
       expect(speakers).toHaveLength(1)
       expect(speakers[0].name).toBe('Frère Visiteur')
-      expect(partAssignments[0].externalSpeakerId).toBe(speakers[0].id)
+      expect(eventParts[0].externalSpeakerId).toBe(speakers[0].id)
 
       // Territory card overlay + perimeter
       const overlays = await tx.territoryCardOverlay.findMany({})
@@ -767,24 +767,24 @@ describe('Export/Import round-trip', () => {
 
       // Allowed-role join rows — anchor onto the elder built-in role on target.
       const elderOnTarget = roles.find(r => r.key === 'elder')!
-      const partAllowed = await tx.programmeTemplatePartAllowedRole.findMany({})
+      const partAllowed = await tx.templatePartAllowedRole.findMany({})
       expect(partAllowed).toHaveLength(1)
-      expect(partAllowed[0].partId).toBe(parts[0].id)
+      expect(partAllowed[0].partId).toBe(templateParts[0].id)
       expect(partAllowed[0].roleId).toBe(elderOnTarget.id)
       expect(partAllowed[0].asKind).toBe('speaker')
 
-      const serviceRoleAllowed = await tx.programmeTemplateServiceRoleAllowedRole.findMany({})
-      expect(serviceRoleAllowed).toHaveLength(1)
-      expect(serviceRoleAllowed[0].serviceRoleId).toBe(serviceRoles[0].id)
+      const servicePartAllowed = await tx.templateServicePartAllowedRole.findMany({})
+      expect(servicePartAllowed).toHaveLength(1)
+      expect(servicePartAllowed[0].servicePartId).toBe(serviceParts[0].id)
 
-      const partAssignmentAllowed = await tx.programmePartAssignmentAllowedRole.findMany({})
+      const partAssignmentAllowed = await tx.eventPartAllowedRole.findMany({})
       expect(partAssignmentAllowed).toHaveLength(1)
-      expect(partAssignmentAllowed[0].assignmentId).toBe(partAssignments[0].id)
+      expect(partAssignmentAllowed[0].eventPartId).toBe(eventParts[0].id)
       expect(partAssignmentAllowed[0].asKind).toBe('speaker')
 
-      const serviceRoleAssignmentAllowed = await tx.programmeServiceRoleAssignmentAllowedRole.findMany({})
-      expect(serviceRoleAssignmentAllowed).toHaveLength(1)
-      expect(serviceRoleAssignmentAllowed[0].assignmentId).toBe(srAssignments[0].id)
+      const servicePartAssignmentAllowed = await tx.eventServicePartAllowedRole.findMany({})
+      expect(servicePartAssignmentAllowed).toHaveLength(1)
+      expect(servicePartAssignmentAllowed[0].eventServicePartId).toBe(srAssignments[0].id)
 
       // Board section visibility role
       const visibility = await tx.boardSectionVisibilityRole.findMany({})
@@ -934,6 +934,109 @@ describe('Export cross-congregation isolation', () => {
     // RLS must ensure each congregation only sees its own settings
     for (const key of sourceKeys) {
       expect(targetKeys).not.toContain(key)
+    }
+  })
+})
+
+// AuditLog `entityType` values from older archives use pre-rename Prisma
+// model names. The importer's `rewriteLegacyEntityType` shim must map them
+// to the current names on write — otherwise `AuditLog` rows land with dead
+// entity strings and any UI that groups history by entity type breaks
+// silently. Round-trips a synthetic archive containing one row per legacy
+// name (both pre-2.1 Programme* and 2.1-era ServiceRole*) through the real
+// `importAuditLogs` path and asserts every written row carries the current
+// model name.
+describe('AuditLog importer rewrites legacy entityType strings', () => {
+  it('rewrites pre-2.1 Programme* and 2.1 ServiceRole* entityTypes on import', async () => {
+    // The mapping is intentionally exhaustive — every string that could
+    // appear in a legacy archive plus one current name (Member) to prove
+    // non-legacy strings pass through untouched.
+    const cases: { legacy: string; expected: string }[] = [
+      { legacy: 'ProgrammeTemplate', expected: 'EventTemplate' },
+      { legacy: 'ProgrammeTemplatePart', expected: 'TemplatePart' },
+      { legacy: 'ProgrammeTemplateServiceRole', expected: 'TemplateServicePart' },
+      { legacy: 'ProgrammePartAssignment', expected: 'EventPart' },
+      { legacy: 'ProgrammeServiceRoleAssignment', expected: 'EventServicePart' },
+      { legacy: 'ProgrammeTemplateResponsible', expected: 'TemplateResponsible' },
+      { legacy: 'TemplateServiceRole', expected: 'TemplateServicePart' },
+      { legacy: 'EventServiceRole', expected: 'EventServicePart' },
+      { legacy: 'Member', expected: 'Member' },
+    ]
+
+    // Isolated congregation so we can assert on the exact rows we seeded
+    // without noise from beforeAll-created data.
+    const cong = await testDb.congregation.create({
+      data: { name: `Audit ${ts}`, slug: `audit-${ts}`, active: true },
+    })
+
+    // Seed a UserAccount in the target congregation so the actorId remap
+    // path has a hit — the importer calls `idMap.getOptional('user-accounts',
+    // record.actorId)` and would silently null-out actors if the mapping
+    // didn't wire up. Row 0 uses this mapped actor; rows 1..N-1 use
+    // `actorId: null` (also a valid archive shape). Row N maps to an actor
+    // that isn't in `idMap` — expected to land as `actorId: null`.
+    let sourceActorId = 500
+    let targetActorId = 0
+    try {
+      const targetAlice = await testDb.userAccount.create({
+        data: {
+          email: `audit-alice-${ts}@test.com`,
+          password: 'x',
+          active: true,
+          congregationId: cong.id,
+        },
+      })
+      targetActorId = targetAlice.id
+
+      const idMap = new EntityIdMap()
+      idMap.set('user-accounts', sourceActorId, targetActorId)
+      const unmappedSourceActorId = 999
+
+      const zip = new JsZip()
+      const ndjsonLines = cases.map((c, i) =>
+        JSON.stringify({
+          id: 1000 + i,
+          action: 'legacy.action',
+          entityType: c.legacy,
+          entityId: 42,
+          actorId: i === 0 ? sourceActorId : i === cases.length - 1 ? unmappedSourceActorId : null,
+          actorEmail: null,
+          metadata: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+        }),
+      )
+      zip.file('data/audit-logs.ndjson', `${ndjsonLines.join('\n')}\n`)
+
+      const { importAuditLogs } = await import('./import-audit-consent.server')
+      await withScope(cong.id, async db => {
+        await importAuditLogs(zip, db, idMap, cong.id)
+      })
+
+      const rows = await testDb.auditLog.findMany({
+        where: { congregationId: cong.id, action: 'legacy.action' },
+        select: { entityType: true, entityId: true, actorId: true },
+        // Read order matches the seed order (id monotonic via `1000 + i`)
+        // so `rows[i]` corresponds to `cases[i]`.
+        orderBy: { entityId: 'asc' },
+      })
+
+      expect(rows).toHaveLength(cases.length)
+      const gotEntityTypes = rows.map(r => r.entityType)
+      const expectedEntityTypes = cases.map(c => c.expected)
+      expect(gotEntityTypes).toEqual(expectedEntityTypes)
+
+      // Row 0: mapped source actor → target actor id
+      expect(rows[0].actorId).toBe(targetActorId)
+      // Middle rows: null actorId round-trips as null
+      expect(rows[1].actorId).toBeNull()
+      // Last row: unmapped source actor lands as null (getOptional fallback)
+      expect(rows[rows.length - 1].actorId).toBeNull()
+    } finally {
+      await testDb.auditLog.deleteMany({ where: { congregationId: cong.id } })
+      if (targetActorId > 0) {
+        await testDb.userAccount.delete({ where: { id: targetActorId } })
+      }
+      await testDb.congregation.delete({ where: { id: cong.id } })
     }
   })
 })

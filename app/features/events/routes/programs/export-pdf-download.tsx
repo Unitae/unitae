@@ -4,9 +4,9 @@ import {
   parseExportConfigs,
   programmeExportInclude,
   type TemplateExportConfig,
-} from '~/features/events/server/programme-export.server'
-import { ProgrammeBoardDocument } from '~/features/events/ui/ProgrammeBoardDocument'
-import { ProgrammeDocument } from '~/features/events/ui/ProgrammeDocument'
+} from '~/features/events/server/event-export.server'
+import { EventBoardDocument } from '~/features/events/ui/EventBoardDocument'
+import { EventDocument } from '~/features/events/ui/EventDocument'
 import * as m from '~/i18n/paraglide/messages'
 import {
   congregationContext,
@@ -72,7 +72,7 @@ function handleNewFormat(
     const filename = `programme_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
 
     return renderPdfResponse(
-      <ProgrammeBoardDocument
+      <EventBoardDocument
         events={events}
         configMap={configMap}
         groupBy={groupBy}
@@ -116,7 +116,7 @@ function handleLegacyFormat(
     const filename = `programme-${templateId ?? 'tous'}_${startDate.toISOString().split('T')[0]}_${endDate.toISOString().split('T')[0]}.pdf`
 
     return renderPdfResponse(
-      <ProgrammeDocument
+      <EventDocument
         events={events}
         title={title}
         showParts={contentType === 'both' || contentType === 'parts'}

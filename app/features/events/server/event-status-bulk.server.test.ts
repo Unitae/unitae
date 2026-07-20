@@ -36,8 +36,8 @@ const draftEvent = {
   status: 'draft',
   startDate: new Date(2026, 3, 14),
   templateId: 7,
-  partAssignments: [] as unknown[],
-  serviceRoleAssignments: [] as unknown[],
+  eventParts: [] as unknown[],
+  eventServiceParts: [] as unknown[],
 }
 const releasedEvent = { ...draftEvent, status: 'released' }
 
@@ -56,8 +56,8 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
         return Promise.resolve({
           ...draftEvent,
           id: 20,
-          partAssignments: [{ id: 100, name: 'Part', hasConflict: true, assigneeId: 5, assistantId: null }],
-          serviceRoleAssignments: [],
+          eventParts: [{ id: 100, name: 'Part', hasConflict: true, assigneeId: 5, assistantId: null }],
+          eventServiceParts: [],
         })
       }
       return Promise.resolve({ ...draftEvent, id: 30 })
@@ -98,8 +98,8 @@ describe('bulkReleaseEvents (per-event scope + post-tx notifications)', () => {
   it('fires notifyAssignment for each target of every released event', async () => {
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...draftEvent,
-      partAssignments: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: null }],
-      serviceRoleAssignments: [],
+      eventParts: [{ id: 100, name: 'Perle', hasConflict: false, assigneeId: 5, assistantId: null }],
+      eventServiceParts: [],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(releasedEvent as never)
 
@@ -122,7 +122,7 @@ describe('bulkUnreleaseEvents (per-event scope)', () => {
     vi.mocked(db.event.findFirst).mockImplementation(((args: any) => {
       const id = args?.where?.id as number
       if (id === 10) return Promise.resolve(null)
-      return Promise.resolve({ ...releasedEvent, id, partAssignments: [], serviceRoleAssignments: [] })
+      return Promise.resolve({ ...releasedEvent, id, eventParts: [], eventServiceParts: [] })
     }) as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
 
@@ -137,8 +137,8 @@ describe('bulkUnreleaseEvents (per-event scope)', () => {
     const { withScope } = await import('~/shared/infra/db.server')
     vi.mocked(db.event.findFirst).mockResolvedValue({
       ...releasedEvent,
-      partAssignments: [],
-      serviceRoleAssignments: [],
+      eventParts: [],
+      eventServiceParts: [],
     } as never)
     vi.mocked(db.event.update).mockResolvedValue(draftEvent as never)
     vi.mocked(withScope)

@@ -101,8 +101,8 @@
         },
         {
             "includes": [
-                "app/features/events/ui/ProgrammeDocument.tsx",
-                "app/features/events/ui/ProgrammeBoardDocument.tsx",
+                "app/features/events/ui/EventDocument.tsx",
+                "app/features/events/ui/EventBoardDocument.tsx",
                 "app/features/territories/ui/TerritoryAttributionDocument.tsx"
             ],
             "linter": {

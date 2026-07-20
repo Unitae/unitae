@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const scopedDb = {
   eventKind: { upsert: vi.fn() },
-  programmeTemplate: { findFirst: vi.fn(), create: vi.fn() },
+  eventTemplate: { findFirst: vi.fn(), create: vi.fn() },
   role: { upsert: vi.fn(), findUnique: vi.fn() },
   permission: { findUnique: vi.fn() },
   rolePermission: { upsert: vi.fn() },
@@ -40,8 +40,8 @@ beforeEach(() => {
   vi.mocked(db.permission.findUnique).mockResolvedValue({ id: 5, key: 'admin' } as never)
   vi.mocked(db.congregationUserPermission.create).mockResolvedValue({} as never)
   scopedDb.eventKind.upsert.mockResolvedValue({} as never)
-  scopedDb.programmeTemplate.findFirst.mockResolvedValue(null as never)
-  scopedDb.programmeTemplate.create.mockResolvedValue({} as never)
+  scopedDb.eventTemplate.findFirst.mockResolvedValue(null as never)
+  scopedDb.eventTemplate.create.mockResolvedValue({} as never)
 })
 
 describe('registerCongregation', () => {

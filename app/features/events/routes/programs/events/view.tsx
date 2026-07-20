@@ -15,12 +15,12 @@ import { Link, redirect, useFetcher } from 'react-router'
 import { EventStatus } from '~/features/events/model/event-status.type'
 import {
   getPartAssignmentAllowedRoleIds,
-  getServiceRoleAssignmentAllowedRoleIds,
+  getServicePartAssignmentAllowedRoleIds,
   resolveEligibleUserIds,
 } from '~/features/events/server/allowed-roles.server'
+import { getEventProgramme } from '~/features/events/server/event-part-assignments.server'
+import { canEditEvent } from '~/features/events/server/events-auth.server'
 import { listExternalSpeakers } from '~/features/events/server/external-speakers.server'
-import { getEventProgramme } from '~/features/events/server/programme-assignments.server'
-import { canEditEvent } from '~/features/events/server/programme-auth.server'
 import { AssignPartSheet } from '~/features/events/ui/AssignPartSheet'
 import { AssignServiceSheet } from '~/features/events/ui/AssignServiceSheet'
 import { UnassignConfirmDialog } from '~/features/events/ui/UnassignConfirmDialog'
@@ -107,7 +107,7 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const serviceCandidates: Record<number, number[]> = {}
     if (canEdit) {
       const userById = new Map(users.map(u => [u.id, u]))
-      for (const assignment of event.partAssignments) {
+      for (const assignment of event.eventParts) {
         const speakerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'speaker', congregationId)
         const readerAllowed = await getPartAssignmentAllowedRoleIds(db, assignment.id, 'reader', congregationId)
         const speakerIds = await resolveEligibleUserIds(db, speakerAllowed, congregationId)
@@ -117,8 +117,8 @@ export function loader({ params, context }: Route.LoaderArgs) {
           readerIds: readerIds.filter(id => userById.has(id)),
         }
       }
-      for (const assignment of event.serviceRoleAssignments) {
-        const allowed = await getServiceRoleAssignmentAllowedRoleIds(db, assignment.id, congregationId)
+      for (const assignment of event.eventServiceParts) {
+        const allowed = await getServicePartAssignmentAllowedRoleIds(db, assignment.id, congregationId)
         const eligible = await resolveEligibleUserIds(db, allowed, congregationId)
         serviceCandidates[assignment.id] = eligible.filter(id => userById.has(id))
       }
@@ -174,34 +174,34 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
   } | null>(null)
 
   // Derived values
-  const hasAnyTopic = event.partAssignments.some(a => a.topic)
-  const partAssignedCount = event.partAssignments.filter(a => a.assigneeId ?? a.externalSpeakerId).length
-  const serviceAssignedCount = event.serviceRoleAssignments.filter(a => a.assigneeId).length
+  const hasAnyTopic = event.eventParts.some(a => a.topic)
+  const partAssignedCount = event.eventParts.filter(a => a.assigneeId ?? a.externalSpeakerId).length
+  const serviceAssignedCount = event.eventServiceParts.filter(a => a.assigneeId).length
 
   // Group parts by section, then by track within each section
-  type PartAssignment = (typeof event.partAssignments)[number]
-  type TrackGroup = { track: string; parts: PartAssignment[] }
+  type PartAssignment = (typeof event.eventParts)[number]
+  type TrackGroup = { track: string; eventParts: PartAssignment[] }
   type SectionGroup = { section: string; tracks: TrackGroup[] }
 
   const partsBySection: SectionGroup[] = []
   let currentSection: string | null = null
   let currentTrack: string | null = null
 
-  for (const part of event.partAssignments) {
+  for (const part of event.eventParts) {
     const section = part.section || ''
     const track = part.track || ''
 
     if (section !== currentSection) {
-      partsBySection.push({ section, tracks: [{ track, parts: [] }] })
+      partsBySection.push({ section, tracks: [{ track, eventParts: [] }] })
       currentSection = section
       currentTrack = track
     } else if (track !== currentTrack) {
-      partsBySection.at(-1)?.tracks.push({ track, parts: [] })
+      partsBySection.at(-1)?.tracks.push({ track, eventParts: [] })
       currentTrack = track
     }
 
     const lastSection = partsBySection.at(-1)
-    lastSection?.tracks.at(-1)?.parts.push(part)
+    lastSection?.tracks.at(-1)?.eventParts.push(part)
   }
 
   const colCount = 4 + (hasAnyTopic ? 1 : 0) + (canEdit ? 1 : 0)
@@ -286,7 +286,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             <Badge variant="outline">
               {m.programs_view_assigned_count({
                 count: String(partAssignedCount),
-                total: String(event.partAssignments.length),
+                total: String(event.eventParts.length),
               })}
             </Badge>
           </CardAction>
@@ -326,7 +326,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
                             </TableCell>
                           </TableRow>
                         )}
-                        {trackGroup.parts.map(assignment => (
+                        {trackGroup.eventParts.map(assignment => (
                           <PartRow
                             key={assignment.id}
                             assignment={assignment}
@@ -354,7 +354,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
             <Badge variant="outline">
               {m.programs_view_assigned_count({
                 count: String(serviceAssignedCount),
-                total: String(event.serviceRoleAssignments.length),
+                total: String(event.eventServiceParts.length),
               })}
             </Badge>
           </CardAction>
@@ -369,7 +369,7 @@ export default function EventViewPage({ loaderData }: Route.ComponentProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {event.serviceRoleAssignments.map(assignment => (
+              {event.eventServiceParts.map(assignment => (
                 <TableRow key={assignment.id}>
                   <TableCell className="font-medium text-sm">{assignment.name}</TableCell>
                   <TableCell

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    programmePartAssignment: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
+    eventPart: { findFirst: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
     event: { findMany: vi.fn().mockResolvedValue([]) },
   },
 }))
@@ -20,7 +20,7 @@ const DEFAULT_ARGS = {
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
   vi.mocked(db.event.findMany).mockResolvedValue([] as never)
 })
 
@@ -33,7 +33,7 @@ describe('resolveExternalSpeakerCadence — dispatch', () => {
   })
 
   it('returns EMPTY_CADENCE when the anchor row is missing', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue(null as never)
 
     const result = await resolveExternalSpeakerCadence(db, DEFAULT_ARGS)
 
@@ -41,7 +41,7 @@ describe('resolveExternalSpeakerCadence — dispatch', () => {
   })
 
   it('returns anchored=true when the anchor row is found', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       name: 'Discours',
       section: 'Culte',
       externalSpeakerId: 42,
@@ -55,7 +55,7 @@ describe('resolveExternalSpeakerCadence — dispatch', () => {
 
 describe('resolveExternalSpeakerCadence — savedMatchesSelection', () => {
   it('fires when the saved external speaker matches the URL speaker', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       name: 'Discours',
       section: 'Culte',
       externalSpeakerId: 42,
@@ -67,7 +67,7 @@ describe('resolveExternalSpeakerCadence — savedMatchesSelection', () => {
   })
 
   it('does not fire when the saved slot is unassigned', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       name: 'Discours',
       section: 'Culte',
       externalSpeakerId: null,
@@ -79,7 +79,7 @@ describe('resolveExternalSpeakerCadence — savedMatchesSelection', () => {
   })
 
   it('does not fire when the saved external speaker is a different one', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue({
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue({
       name: 'Discours',
       section: 'Culte',
       externalSpeakerId: 99,
@@ -93,11 +93,11 @@ describe('resolveExternalSpeakerCadence — savedMatchesSelection', () => {
 
 describe('resolveExternalSpeakerCadence — anchor lookup filter', () => {
   it('scopes the anchor lookup to id + congregationId', async () => {
-    vi.mocked(db.programmePartAssignment.findFirst).mockResolvedValue(null as never)
+    vi.mocked(db.eventPart.findFirst).mockResolvedValue(null as never)
 
     await resolveExternalSpeakerCadence(db, DEFAULT_ARGS)
 
-    const call = vi.mocked(db.programmePartAssignment.findFirst).mock.calls[0][0]
+    const call = vi.mocked(db.eventPart.findFirst).mock.calls[0][0]
     expect(call?.where).toEqual({ id: 77, congregationId: 1 })
     expect(call?.select).toMatchObject({ name: true, section: true, externalSpeakerId: true })
   })

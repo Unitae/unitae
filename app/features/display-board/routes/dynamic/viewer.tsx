@@ -7,7 +7,7 @@ import {
   getDynamicDocumentData,
   markDynamicDocumentViewed,
 } from '~/features/display-board/server/dynamic-documents.server'
-import { filterDynamicDataToEvent } from '~/features/display-board/server/programme-event-filter.server'
+import { filterDynamicDataToEvent } from '~/features/display-board/server/event-filter.server'
 import { PioneersView } from '~/features/display-board/ui/dynamic/PioneersView'
 import { ProgrammeView } from '~/features/display-board/ui/dynamic/ProgrammeView'
 import { PublisherGroupsView } from '~/features/display-board/ui/dynamic/PublisherGroupsView'

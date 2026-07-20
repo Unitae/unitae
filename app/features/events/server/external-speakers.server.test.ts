@@ -17,7 +17,7 @@ const mockDb = {
     create: vi.fn(),
     update: vi.fn(),
   },
-  programmePartAssignment: {
+  eventPart: {
     findMany: vi.fn(),
   },
 }
@@ -141,7 +141,7 @@ describe('listExternalSpeakers', () => {
         email: null,
         notes: null,
         archivedAt: null,
-        partAssignments: [{ event: { startDate: lastDate } }],
+        eventParts: [{ event: { startDate: lastDate } }],
       },
     ])
 
@@ -159,7 +159,7 @@ describe('listExternalSpeakers', () => {
         email: null,
         notes: null,
         archivedAt: null,
-        partAssignments: [],
+        eventParts: [],
       },
     ])
 
@@ -189,7 +189,7 @@ describe('getExternalSpeaker', () => {
       name: 'Pierre',
       congregationName: 'Marseille',
     })
-    mockDb.programmePartAssignment.findMany.mockResolvedValue([
+    mockDb.eventPart.findMany.mockResolvedValue([
       { name: 'Discours public', topic: 'Foi', event: { startDate: new Date('2025-09-01') } },
     ])
 

@@ -19,7 +19,7 @@ Four valid combinations, all real personas:
 FK target rule of thumb:
 
 - **Action requires a login** → FK targets `UserAccount`. Examples: audit `actorId`, `Event.createdBy`, `BoardDocument.viewedBy`, `BoardDocumentVersion.uploadedBy`, all token tables, `CongregationUserPermission.user`, `UserRoleAssignment.user`.
-- **Subject is a person in the congregation** → FK targets `Member`. Examples: `Attribution.publisherId`, `PublisherActivity.publisherId`, `ProgrammePartAssignment.{assigneeId,assistantId}`, `ProgrammeServiceRoleAssignment.assigneeId`, `PublisherGroup.{members,responsible,deputy}`, `MemberRoleAssignment.member`.
+- **Subject is a person in the congregation** → FK targets `Member`. Examples: `Attribution.publisherId`, `PublisherActivity.publisherId`, `EventPart.{assigneeId,assistantId}`, `EventServicePart.assigneeId`, `PublisherGroup.{members,responsible,deputy}`, `MemberRoleAssignment.member`.
 
 Helpers: `account.member?.firstname ?? account.firstname` for display (use the `accountDisplayName` helper in `app/shared/utils/display-name.ts`); `currentUser.member?.id` to get the linked member id from the session-loaded account.
 
@@ -132,7 +132,7 @@ When to use each:
 - **Board**: BoardSection, BoardSectionVisibilityRole, BoardDocument, BoardDocumentVersion, BoardDynamicDocumentSettings
 - **Territories**: Territory, Attribution, Building, BuildingEntrance, BuildingAccess, BuildingResidentialData, TerritoryCardOverlay, TerritoryPerimeter
 - **Publishers**: PublisherGroup, PublisherActivity
-- **Events**: Event, EventKind, ProgrammeTemplate, ProgrammeTemplatePart, ProgrammeTemplateServiceRole, ProgrammePartAssignment, ProgrammeServiceRoleAssignment, ProgrammeTemplateResponsible, ExternalSpeaker
+- **Events**: Event, EventTemplate, TemplatePart, TemplateServicePart, EventPart, EventServicePart, TemplateResponsible, ExternalSpeaker
 - **Settings**: Setting
 - **Notifications**: NotificationEvent, NotificationPreference
 - **GDPR / Audit**: AuditLog, DataDeletionRecord, ConsentRecord

@@ -18,7 +18,7 @@ const MAX_ABSENTEE_NAMES = 3
 
 // Scoping:
 //   - non-manager → only events on templates where the user is the documented
-//     responsible (ProgrammeTemplateResponsible.userId);
+//     responsible (TemplateResponsible.userId);
 //   - ProgramManager → all events, including untemplated ones which have
 //     no responsible relation at all.
 export async function getResponsibleConflicts(
@@ -35,7 +35,7 @@ export async function getResponsibleConflicts(
     : { startDate: { gte: now }, status: EventStatus.Released, template: { responsibles: { some: { userId } } } }
 
   const [partRows, serviceRows] = await Promise.all([
-    db.programmePartAssignment.findMany({
+    db.eventPart.findMany({
       where: { hasConflict: true, event: eventFilter },
       select: {
         eventId: true,
@@ -45,7 +45,7 @@ export async function getResponsibleConflicts(
         assistant: { select: { firstname: true, lastname: true } },
       },
     }),
-    db.programmeServiceRoleAssignment.findMany({
+    db.eventServicePart.findMany({
       where: { hasConflict: true, event: eventFilter },
       select: {
         eventId: true,

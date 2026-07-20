@@ -25,7 +25,7 @@ export async function resolvePublisherCadence(
   { userId, event, congregationId, excludePartAssignmentId, excludeServiceAssignmentId, partSlot }: Options,
 ): Promise<CadencePayload> {
   if (excludePartAssignmentId != null) {
-    const current = await db.programmePartAssignment.findFirst({
+    const current = await db.eventPart.findFirst({
       where: { id: excludePartAssignmentId, congregationId },
       select: { name: true, section: true, assigneeId: true, assistantId: true },
     })
@@ -46,7 +46,7 @@ export async function resolvePublisherCadence(
   }
 
   if (excludeServiceAssignmentId != null) {
-    const current = await db.programmeServiceRoleAssignment.findFirst({
+    const current = await db.eventServicePart.findFirst({
       where: { id: excludeServiceAssignmentId, congregationId },
       select: { name: true, assigneeId: true },
     })
@@ -56,7 +56,7 @@ export async function resolvePublisherCadence(
       userId,
       event,
       congregationId,
-      serviceRoleName: current.name,
+      servicePartName: current.name,
       pastCount: PAST_COUNT,
       futureCount: FUTURE_COUNT,
     })

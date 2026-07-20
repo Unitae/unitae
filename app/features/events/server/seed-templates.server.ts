@@ -1,4 +1,4 @@
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { locales } from '~/i18n/paraglide/runtime'
 
@@ -12,7 +12,7 @@ interface PartDefinition {
   allowExternalSpeaker: boolean
 }
 
-interface ServiceRoleDefinition {
+interface ServicePartDefinition {
   name: string
   key: string
 }
@@ -26,10 +26,10 @@ interface TemplateDefinition {
   endTime: string
   color: string
   parts: PartDefinition[]
-  serviceRoles: ServiceRoleDefinition[]
+  serviceParts: ServicePartDefinition[]
 }
 
-function getSharedServiceRoles(locale: Locale): ServiceRoleDefinition[] {
+function getSharedServiceParts(locale: Locale): ServicePartDefinition[] {
   return [
     { name: m.seed_service_sound({}, { locale }), key: 'sono' },
     { name: m.seed_service_stage({}, { locale }), key: 'stage' },
@@ -39,12 +39,12 @@ function getSharedServiceRoles(locale: Locale): ServiceRoleDefinition[] {
 }
 
 function getTemplates(locale: Locale): TemplateDefinition[] {
-  const sharedServiceRoles = getSharedServiceRoles(locale)
+  const sharedServiceParts = getSharedServiceParts(locale)
 
   return [
     {
       name: m.seed_template_midweek({}, { locale }),
-      key: ProgrammeTemplateKey.MidweekMeeting,
+      key: EventTemplateKey.MidweekMeeting,
       weekDay: 2, // Tuesday
       isRecurring: true,
       startTime: '19:00',
@@ -130,11 +130,11 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           allowExternalSpeaker: false,
         },
       ],
-      serviceRoles: sharedServiceRoles,
+      serviceParts: sharedServiceParts,
     },
     {
       name: m.seed_template_weekend({}, { locale }),
-      key: ProgrammeTemplateKey.WeekendMeeting,
+      key: EventTemplateKey.WeekendMeeting,
       weekDay: 6, // Saturday
       isRecurring: true,
       startTime: '10:00',
@@ -171,11 +171,11 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           allowExternalSpeaker: false,
         },
       ],
-      serviceRoles: sharedServiceRoles,
+      serviceParts: sharedServiceParts,
     },
     {
       name: m.seed_template_memorial({}, { locale }),
-      key: ProgrammeTemplateKey.Memorial,
+      key: EventTemplateKey.Memorial,
       weekDay: null,
       isRecurring: false,
       startTime: '19:00',
@@ -218,29 +218,29 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
           allowExternalSpeaker: false,
         },
       ],
-      serviceRoles: sharedServiceRoles,
+      serviceParts: sharedServiceParts,
     },
     {
       name: m.seed_template_day_off({}, { locale }),
-      key: ProgrammeTemplateKey.DayOff,
+      key: EventTemplateKey.DayOff,
       weekDay: null,
       isRecurring: false,
       startTime: '00:00',
       endTime: '23:59',
       color: '#cfcfcf',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     },
     {
       name: m.seed_template_freeform({}, { locale }),
-      key: ProgrammeTemplateKey.Freeform,
+      key: EventTemplateKey.Freeform,
       weekDay: null,
       isRecurring: false,
       startTime: '19:00',
       endTime: '21:00',
       color: '#6366f1',
       parts: [],
-      serviceRoles: [],
+      serviceParts: [],
     },
   ]
 }
@@ -248,13 +248,13 @@ function getTemplates(locale: Locale): TemplateDefinition[] {
 // biome-ignore lint/suspicious/noExplicitAny: accepts both PrismaClient and unscoped db
 export async function seedDefaultTemplates(db: any, congregationId: number, locale: Locale) {
   for (const tpl of getTemplates(locale)) {
-    const existing = await db.programmeTemplate.findFirst({
+    const existing = await db.eventTemplate.findFirst({
       where: { key: tpl.key, congregationId },
     })
 
     if (existing) continue
 
-    await db.programmeTemplate.create({
+    await db.eventTemplate.create({
       data: {
         name: tpl.name,
         key: tpl.key,
@@ -274,8 +274,8 @@ export async function seedDefaultTemplates(db: any, congregationId: number, loca
             congregationId,
           })),
         },
-        serviceRoles: {
-          create: tpl.serviceRoles.map(role => ({
+        serviceParts: {
+          create: tpl.serviceParts.map(role => ({
             name: role.name,
             key: role.key,
             congregationId,

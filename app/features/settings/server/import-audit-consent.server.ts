@@ -37,6 +37,35 @@ export async function importConsentRecords(
   }
 }
 
+// Pre-2.1 archives store `entityType` under the old `Programme*` model names.
+// The `TemplateServiceRole` / `EventServiceRole` entries below are defensive:
+// no released 2.1 archive can carry those strings (both renames ship in the
+// same PR), but pre-merge / dev / preview archives produced between the two
+// rename commits in this PR could — cheap insurance so an in-flight archive
+// doesn't need a re-export. The runtime schema and every fresh audit row uses
+// the current `Event*` / `Template*` / `EventServicePart` / `TemplateServicePart`
+// names, so history exported from any older archive would show a nonexistent
+// entity string without a rewrite on import.
+const LEGACY_ENTITY_TYPES: Record<string, string> = {
+  // Pre-2.1: Programme* model names.
+  ProgrammeTemplate: 'EventTemplate',
+  ProgrammeTemplatePart: 'TemplatePart',
+  ProgrammeTemplateServiceRole: 'TemplateServicePart',
+  ProgrammePartAssignment: 'EventPart',
+  ProgrammeServiceRoleAssignment: 'EventServicePart',
+  ProgrammeTemplateResponsible: 'TemplateResponsible',
+  // Post-Programme, pre-ServicePart: the ServiceRole tables kept their name
+  // until the follow-up rename in this same PR. Cover both so a 2.1 archive
+  // still round-trips cleanly.
+  TemplateServiceRole: 'TemplateServicePart',
+  EventServiceRole: 'EventServicePart',
+}
+
+export function rewriteLegacyEntityType(entityType: string | null): string | null {
+  if (entityType == null) return null
+  return LEGACY_ENTITY_TYPES[entityType] ?? entityType
+}
+
 export async function importAuditLogs(
   zip: JsZip,
   db: TransactionClient,
@@ -58,7 +87,7 @@ export async function importAuditLogs(
     await db.auditLog.create({
       data: {
         action: record.action,
-        entityType: record.entityType,
+        entityType: rewriteLegacyEntityType(record.entityType),
         entityId: record.entityId,
         actorId: idMap.getOptional('user-accounts', record.actorId),
         actorEmail: record.actorEmail,

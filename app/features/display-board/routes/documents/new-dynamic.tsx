@@ -137,7 +137,7 @@ export async function action({ request, context }: Route.ActionArgs) {
     // For programme documents, build default config with all templates selected
     let dynamicConfig: ProgrammeDynamicConfig | undefined
     if (dynamicType === DynamicType.Programme) {
-      const templates = await db.programmeTemplate.findMany({
+      const templates = await db.eventTemplate.findMany({
         where: { congregationId },
         select: { id: true },
       })

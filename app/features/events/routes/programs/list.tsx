@@ -14,9 +14,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, redirect, useFetcher } from 'react-router'
 import { toast } from 'sonner'
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { computeFilters, getDefaultDateRange } from '~/features/events/server/event-filters.server'
-import { getResponsibleTemplateIds } from '~/features/events/server/programme-auth.server'
+import { getResponsibleTemplateIds } from '~/features/events/server/events-auth.server'
 import EventFilters from '~/features/events/ui/EventFilters'
 import * as m from '~/i18n/paraglide/messages'
 import {
@@ -80,14 +80,14 @@ export function loader({ request, context }: Route.LoaderArgs) {
       where: {
         ...filters,
         congregationId,
-        NOT: { template: { key: ProgrammeTemplateKey.DayOff } },
+        NOT: { template: { key: EventTemplateKey.DayOff } },
       },
       include: {
         template: true,
         _count: {
           select: {
-            partAssignments: { where: { hasConflict: true } },
-            serviceRoleAssignments: { where: { hasConflict: true } },
+            eventParts: { where: { hasConflict: true } },
+            eventServiceParts: { where: { hasConflict: true } },
           },
         },
       },
@@ -97,7 +97,7 @@ export function loader({ request, context }: Route.LoaderArgs) {
     const upcomingEvents = events.map(event => ({
       ...event,
       canEdit: isProgramManager || (event.templateId != null && responsibleTemplateIdSet.has(event.templateId)),
-      conflictCount: event._count.partAssignments + event._count.serviceRoleAssignments,
+      conflictCount: event._count.eventParts + event._count.eventServiceParts,
     }))
 
     return {

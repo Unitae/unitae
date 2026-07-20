@@ -22,7 +22,7 @@ export async function resolveExternalSpeakerCadence(
 ): Promise<CadencePayload> {
   if (excludePartAssignmentId == null) return EMPTY_CADENCE
 
-  const current = await db.programmePartAssignment.findFirst({
+  const current = await db.eventPart.findFirst({
     where: { id: excludePartAssignmentId, congregationId },
     select: { name: true, section: true, externalSpeakerId: true },
   })

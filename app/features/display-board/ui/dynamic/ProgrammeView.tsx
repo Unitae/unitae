@@ -2,12 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import { BookOpen, Calendar, ChevronRight, Gem, HeartHandshake } from 'lucide-react'
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import type { ProgrammeDynamicConfig } from '~/features/display-board/model/dynamic-document.type'
-import {
-  formatName,
-  getPartDisplay,
-  nameMatches,
-  partMatchesQuery,
-} from '~/features/display-board/model/programme-display'
+import { formatName, getPartDisplay, nameMatches, partMatchesQuery } from '~/features/display-board/model/event-display'
 import { groupPartsBySlot } from '~/features/events'
 import * as m from '~/i18n/paraglide/messages'
 import { Badge } from '~/shared/ui/badge'
@@ -74,7 +69,7 @@ interface PartAssignment {
   } | null
 }
 
-interface ServiceRoleAssignment {
+interface ServicePartAssignment {
   id: number
   name: string
   assignee?: {
@@ -90,8 +85,8 @@ interface ProgrammeEvent {
   name: string
   startDate: Date
   templateId?: number | null
-  partAssignments: PartAssignment[]
-  serviceRoleAssignments?: ServiceRoleAssignment[]
+  eventParts: PartAssignment[]
+  eventServiceParts?: ServicePartAssignment[]
 }
 
 export interface ProgrammeViewData {
@@ -248,7 +243,7 @@ function ServiceSection({
   hasParts,
   query,
 }: {
-  services: ServiceRoleAssignment[]
+  services: ServicePartAssignment[]
   hasParts: boolean
   query: string
 }) {
@@ -451,7 +446,7 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
         const eventShowParts = templateConfig?.parts ?? true
         const eventShowServices = templateConfig?.services ?? showServices
 
-        const sections = groupPartsBySlot(event.partAssignments)
+        const sections = groupPartsBySlot(event.eventParts)
         const isFirstOfWeek = firstEventIdPerWeek.has(event.id)
         const weekKey = getWeekKey(new Date(event.startDate))
 
@@ -524,8 +519,8 @@ export function ProgrammeView({ events, showServices, config, highlightQuery, sc
                 })}
 
               {/* Services */}
-              {eventShowServices && event.serviceRoleAssignments && event.serviceRoleAssignments.length > 0 && (
-                <ServiceSection services={event.serviceRoleAssignments} hasParts={eventShowParts} query={query} />
+              {eventShowServices && event.eventServiceParts && event.eventServiceParts.length > 0 && (
+                <ServiceSection services={event.eventServiceParts} hasParts={eventShowParts} query={query} />
               )}
             </div>
           </div>

@@ -5,7 +5,7 @@ import { notificationRecipientFilter } from '~/shared/auth/permissions.server'
 import type { TransactionClient } from '~/shared/infra/db.server'
 import { createLogger } from '~/shared/infra/logger.server'
 import { formatEventDate } from '~/shared/utils/event-time'
-import type { ProgrammeRole } from '../model/programme-role'
+import type { ProgrammeRole } from '../model/template-role'
 import { type AssignmentChangeType, PROGRAMME_ASSIGNMENT_TYPE } from './notifications.server'
 
 const logger = createLogger('notify-assignment')
@@ -13,7 +13,7 @@ const logger = createLogger('notify-assignment')
 // Shared shape both routes (assign-part, assign-service, remove-assignment)
 // hand to notifyAssignment. `event.startDate` is the raw DB Date; we format it
 // with the congregation's locale + timezone before it enters the payload so the
-// worker doesn't need to know either. `templateId` feeds the programme-link
+// worker doesn't need to know either. `templateId` feeds the event-link
 // resolver — null means the event was created ad-hoc without a template, in
 // which case the resolver falls back to /board.
 export interface AssignmentNotificationContext {
@@ -21,7 +21,7 @@ export interface AssignmentNotificationContext {
   // yet. Draft events accumulate diffs silently; release re-enqueues them.
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string
-  entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
+  entityType: 'EventPart' | 'EventServicePart'
   entityId: number
   congregationId: number
   actorId: number
@@ -37,7 +37,7 @@ export type { AssignmentChangeType, ProgrammeRole }
 export function buildAssignmentContext(args: {
   event: { id: number; name: string; startDate: Date; templateId: number | null; status: string }
   assignmentName: string | undefined
-  entityType: 'ProgrammePartAssignment' | 'ProgrammeServiceRoleAssignment'
+  entityType: 'EventPart' | 'EventServicePart'
   entityId: number
   congregationId: number
   actorId: number
@@ -90,7 +90,7 @@ export function partAssignmentDiffs(
 }
 
 // Service-role assignment: single slot (servant = assignee).
-export function serviceRoleAssignmentDiffs(
+export function servicePartAssignmentDiffs(
   before: { previousAssigneeId: number | null },
   after: { assigneeId: number | null },
 ): AssignmentDiff[] {

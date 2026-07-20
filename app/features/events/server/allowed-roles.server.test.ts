@@ -5,10 +5,10 @@ vi.mock('~/shared/infra/db.server', () => ({
     role: { findFirst: vi.fn() },
     member: { findMany: vi.fn() },
     memberRoleAssignment: { findMany: vi.fn() },
-    programmeTemplatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    programmePartAssignmentAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    programmeTemplateServiceRoleAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
-    programmeServiceRoleAssignmentAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    templatePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    eventPartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    templateServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
+    eventServicePartAllowedRole: { findMany: vi.fn(), createMany: vi.fn(), deleteMany: vi.fn() },
   },
 }))
 
@@ -16,8 +16,8 @@ const {
   resolveEligibleUserIds,
   setTemplatePartAllowedRoles,
   setPartAssignmentAllowedRoles,
-  setTemplateServiceRoleAllowedRoles,
-  setServiceRoleAssignmentAllowedRoles,
+  setTemplateServicePartAllowedRoles,
+  setServicePartAssignmentAllowedRoles,
 } = await import('./allowed-roles.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
@@ -73,28 +73,28 @@ describe('resolveEligibleUserIds', () => {
 
 describe('setTemplatePartAllowedRoles', () => {
   it('does nothing when desired matches previous', async () => {
-    vi.mocked(db.programmeTemplatePartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 2 }] as never)
+    vi.mocked(db.templatePartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 2 }] as never)
 
     const result = await setTemplatePartAllowedRoles(db, 100, 'speaker', [1, 2], 1)
 
     expect(result).toEqual({ added: [], removed: [] })
-    expect(db.programmeTemplatePartAllowedRole.createMany).not.toHaveBeenCalled()
-    expect(db.programmeTemplatePartAllowedRole.deleteMany).not.toHaveBeenCalled()
+    expect(db.templatePartAllowedRole.createMany).not.toHaveBeenCalled()
+    expect(db.templatePartAllowedRole.deleteMany).not.toHaveBeenCalled()
   })
 
   it('adds and removes the diff', async () => {
-    vi.mocked(db.programmeTemplatePartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 2 }] as never)
-    vi.mocked(db.programmeTemplatePartAllowedRole.deleteMany).mockResolvedValue({ count: 1 } as never)
-    vi.mocked(db.programmeTemplatePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.templatePartAllowedRole.findMany).mockResolvedValue([{ roleId: 1 }, { roleId: 2 }] as never)
+    vi.mocked(db.templatePartAllowedRole.deleteMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.templatePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
     const result = await setTemplatePartAllowedRoles(db, 100, 'reader', [2, 3], 1)
 
     expect(result.added).toEqual([3])
     expect(result.removed).toEqual([1])
-    expect(db.programmeTemplatePartAllowedRole.deleteMany).toHaveBeenCalledWith({
+    expect(db.templatePartAllowedRole.deleteMany).toHaveBeenCalledWith({
       where: { partId: 100, asKind: 'reader', congregationId: 1, roleId: { in: [1] } },
     })
-    expect(db.programmeTemplatePartAllowedRole.createMany).toHaveBeenCalledWith({
+    expect(db.templatePartAllowedRole.createMany).toHaveBeenCalledWith({
       data: [{ partId: 100, roleId: 3, asKind: 'reader', congregationId: 1 }],
       skipDuplicates: true,
     })
@@ -103,44 +103,44 @@ describe('setTemplatePartAllowedRoles', () => {
 
 describe('setPartAssignmentAllowedRoles', () => {
   it('writes to the assignment table with asKind', async () => {
-    vi.mocked(db.programmePartAssignmentAllowedRole.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmePartAssignmentAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.eventPartAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
     await setPartAssignmentAllowedRoles(db, 200, 'speaker', [9], 1)
 
-    expect(db.programmePartAssignmentAllowedRole.createMany).toHaveBeenCalledWith({
-      data: [{ assignmentId: 200, roleId: 9, asKind: 'speaker', congregationId: 1 }],
+    expect(db.eventPartAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [{ eventPartId: 200, roleId: 9, asKind: 'speaker', congregationId: 1 }],
       skipDuplicates: true,
     })
   })
 })
 
-describe('setTemplateServiceRoleAllowedRoles', () => {
+describe('setTemplateServicePartAllowedRoles', () => {
   it('writes service-role rows without asKind', async () => {
-    vi.mocked(db.programmeTemplateServiceRoleAllowedRole.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeTemplateServiceRoleAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.templateServicePartAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.templateServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
-    await setTemplateServiceRoleAllowedRoles(db, 300, [4, 5], 1)
+    await setTemplateServicePartAllowedRoles(db, 300, [4, 5], 1)
 
-    expect(db.programmeTemplateServiceRoleAllowedRole.createMany).toHaveBeenCalledWith({
+    expect(db.templateServicePartAllowedRole.createMany).toHaveBeenCalledWith({
       data: [
-        { serviceRoleId: 300, roleId: 4, congregationId: 1 },
-        { serviceRoleId: 300, roleId: 5, congregationId: 1 },
+        { servicePartId: 300, roleId: 4, congregationId: 1 },
+        { servicePartId: 300, roleId: 5, congregationId: 1 },
       ],
       skipDuplicates: true,
     })
   })
 })
 
-describe('setServiceRoleAssignmentAllowedRoles', () => {
+describe('setServicePartAssignmentAllowedRoles', () => {
   it('writes service-role-assignment rows', async () => {
-    vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeServiceRoleAssignmentAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
+    vi.mocked(db.eventServicePartAllowedRole.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServicePartAllowedRole.createMany).mockResolvedValue({ count: 1 } as never)
 
-    await setServiceRoleAssignmentAllowedRoles(db, 400, [6], 1)
+    await setServicePartAssignmentAllowedRoles(db, 400, [6], 1)
 
-    expect(db.programmeServiceRoleAssignmentAllowedRole.createMany).toHaveBeenCalledWith({
-      data: [{ assignmentId: 400, roleId: 6, congregationId: 1 }],
+    expect(db.eventServicePartAllowedRole.createMany).toHaveBeenCalledWith({
+      data: [{ eventServicePartId: 400, roleId: 6, congregationId: 1 }],
       skipDuplicates: true,
     })
   })

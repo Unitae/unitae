@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('~/shared/infra/db.server', () => ({
   unscopedDb: {
-    programmePartAssignment: { findMany: vi.fn() },
-    programmeServiceRoleAssignment: { findMany: vi.fn() },
+    eventPart: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
   },
 }))
 
@@ -12,8 +12,8 @@ const { unscopedDb: db } = await import('~/shared/infra/db.server')
 
 beforeEach(() => {
   vi.resetAllMocks()
-  vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-  vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+  vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 })
 
 describe('getResponsibleConflicts', () => {
@@ -29,7 +29,7 @@ describe('getResponsibleConflicts', () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, false)
 
-    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
     expect(partWhere.hasConflict).toBe(true)
     expect(partWhere.event).toEqual({
@@ -43,7 +43,7 @@ describe('getResponsibleConflicts', () => {
     const userId = 100
     await getResponsibleConflicts(db, userId, false)
 
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
+    const serviceCall = vi.mocked(db.eventServicePart.findMany).mock.calls[0][0]
     const serviceWhere = serviceCall?.where as Record<string, unknown>
     expect(serviceWhere.event).toEqual({
       startDate: { gte: expect.any(Date) },
@@ -59,7 +59,7 @@ describe('getResponsibleConflicts', () => {
   it('drops the template filter for ProgramManager users but keeps the released filter', async () => {
     await getResponsibleConflicts(db, 100, true)
 
-    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
+    const partCall = vi.mocked(db.eventPart.findMany).mock.calls[0][0]
     const partWhere = partCall?.where as Record<string, unknown>
     expect(partWhere.event).toEqual({ startDate: { gte: expect.any(Date) }, status: 'released' })
     expect(partWhere.event).not.toHaveProperty('template')
@@ -68,7 +68,7 @@ describe('getResponsibleConflicts', () => {
   it('only considers upcoming events (startDate >= now)', async () => {
     await getResponsibleConflicts(db, 100, true)
 
-    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
     const event = (partCall as { where: { event: { startDate: { gte: Date } } } }).where.event
     expect(event.startDate.gte.getTime()).toBeGreaterThan(Date.now() - 5000)
   })
@@ -78,7 +78,7 @@ describe('getResponsibleConflicts', () => {
   // the same event) collapse to one conflict. Otherwise a member appearing
   // twice double-counts the badge.
   it('dedupes by (memberId, eventId) when computing count', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         eventId: 1,
         assigneeId: 100,
@@ -101,7 +101,7 @@ describe('getResponsibleConflicts', () => {
   })
 
   it('counts one conflict per (member × event) — same member on two events counts twice', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         eventId: 1,
         assigneeId: 100,
@@ -124,7 +124,7 @@ describe('getResponsibleConflicts', () => {
   })
 
   it('merges names across part and service assignments (deduped)', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         eventId: 1,
         assigneeId: 100,
@@ -133,7 +133,7 @@ describe('getResponsibleConflicts', () => {
         assistant: null,
       },
     ] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([
       { eventId: 2, assigneeId: 100, assignee: { firstname: 'Alice', lastname: 'Dupont' } },
     ] as never)
 
@@ -143,7 +143,7 @@ describe('getResponsibleConflicts', () => {
   })
 
   it('caps absenteeNames at 3, sorted alphabetically; count still reflects all conflicts', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         eventId: 1,
         assigneeId: 100,
@@ -192,7 +192,7 @@ describe('getResponsibleConflicts', () => {
   // related member could not be joined. Either way it must not corrupt the
   // aggregation. This pin guards the `record()` null-skip at line 66.
   it('silently skips rows whose assignee is null (no assignee booked or join failed)', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         eventId: 1,
         assigneeId: null,
@@ -219,7 +219,7 @@ describe('getResponsibleConflicts', () => {
   // potentially the absentee, so both are enumerated. Downstream the
   // responsible sees them and can click through for detail.
   it('includes both assignee and assistant of a part row', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([
       {
         eventId: 1,
         assigneeId: 100,

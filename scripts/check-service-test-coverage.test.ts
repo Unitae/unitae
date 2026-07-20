@@ -71,7 +71,7 @@ describe('classifyServiceFile', () => {
       'app/features/publishers/server/member.aggregate.ts',
       'app/features/settings/server/anonymize.workflow.ts',
       'app/features/settings/server/territory-settings.queries.ts',
-      'app/features/events/server/programme-assignment.policy.ts',
+      'app/features/events/server/event-part.policy.ts',
     ]) {
       const v = classifyServiceFile(rel, siblingFiles([rel]), EXEMPT)
       expect(v.status, `expected ${rel} to be a service file`).toBe('violation')

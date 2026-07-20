@@ -74,7 +74,7 @@ export default function TemplateListPage({ loaderData }: Route.ComponentProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-center max-sm:hidden">{template._count.parts}</TableCell>
-                <TableCell className="text-center max-sm:hidden">{template._count.serviceRoles}</TableCell>
+                <TableCell className="text-center max-sm:hidden">{template._count.serviceParts}</TableCell>
                 <TableCell className="text-center max-sm:hidden">
                   {template.weekDay != null ? (
                     <Badge variant="outline">{dayLabelShort(template.weekDay)}</Badge>

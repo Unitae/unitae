@@ -1,6 +1,6 @@
-import type { Event, ProgrammePartAssignment, ProgrammeServiceRoleAssignment } from '~/database/generated/client'
+import type { Event, EventPart, EventServicePart } from '~/database/generated/client'
 import { EventStatus } from '~/features/events/model/event-status.type'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import * as m from '~/i18n/paraglide/messages'
 import type { TransactionClient } from '~/shared/infra/db.server'
 
@@ -15,13 +15,13 @@ export type PersonalCalendarItem = {
   updatedAt: Date
 }
 
-type PartWithEvent = ProgrammePartAssignment & { event: Event }
-type ServiceRoleWithEvent = ProgrammeServiceRoleAssignment & { event: Event }
+type PartWithEvent = EventPart & { event: Event }
+type ServicePartWithEvent = EventServicePart & { event: Event }
 
 /**
  * `userId` is a UserAccount id. Days-off events are account-bound (createdById),
- * while programme assignments are member-bound (assigneeId/assistantId), so we
- * resolve the linked member id internally.
+ * while event parts and service roles are member-bound (assigneeId/assistantId),
+ * so we resolve the linked member id internally.
  */
 export async function getPersonalAssignments(
   db: TransactionClient,
@@ -34,9 +34,9 @@ export async function getPersonalAssignments(
   })
   const memberId = account?.memberId ?? null
 
-  const [partAssignments, serviceRoleAssignments, daysOff] = await Promise.all([
+  const [parts, serviceParts, daysOff] = await Promise.all([
     memberId != null
-      ? db.programmePartAssignment.findMany({
+      ? db.eventPart.findMany({
           where: {
             OR: [{ assigneeId: memberId }, { assistantId: memberId }],
             // Drafts stay off the publisher's calendar and ICS feed.
@@ -46,7 +46,7 @@ export async function getPersonalAssignments(
         })
       : Promise.resolve([]),
     memberId != null
-      ? db.programmeServiceRoleAssignment.findMany({
+      ? db.eventServicePart.findMany({
           where: {
             assigneeId: memberId,
             event: { startDate: { gte: since }, status: EventStatus.Released },
@@ -57,15 +57,15 @@ export async function getPersonalAssignments(
     db.event.findMany({
       where: {
         createdById: userId,
-        template: { key: ProgrammeTemplateKey.DayOff },
+        template: { key: EventTemplateKey.DayOff },
         startDate: { gte: since },
       },
     }),
   ])
 
   return [
-    ...partAssignments.map(p => partAssignmentToItem(p, memberId ?? userId)),
-    ...serviceRoleAssignments.map(serviceRoleAssignmentToItem),
+    ...parts.map(p => partAssignmentToItem(p, memberId ?? userId)),
+    ...serviceParts.map(servicePartAssignmentToItem),
     ...daysOff.map(dayOffToItem),
   ]
 }
@@ -91,7 +91,7 @@ function partAssignmentToItem(assignment: PartWithEvent, userId: number): Person
   }
 }
 
-function serviceRoleAssignmentToItem(assignment: ServiceRoleWithEvent): PersonalCalendarItem {
+function servicePartAssignmentToItem(assignment: ServicePartWithEvent): PersonalCalendarItem {
   const role = m.calendar_feed_role_service()
   const summaryParts = [assignment.event.name, assignment.name].filter(Boolean)
 

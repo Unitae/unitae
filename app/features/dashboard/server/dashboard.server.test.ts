@@ -6,8 +6,8 @@ vi.mock('~/shared/infra/db.server', () => ({
     boardDocument: { findMany: vi.fn(), count: vi.fn() },
     boardDynamicDocumentSettings: { findMany: vi.fn(), count: vi.fn() },
     event: { findFirst: vi.fn(), findMany: vi.fn() },
-    programmePartAssignment: { findMany: vi.fn() },
-    programmeServiceRoleAssignment: { findMany: vi.fn() },
+    eventPart: { findMany: vi.fn() },
+    eventServicePart: { findMany: vi.fn() },
     role: { findMany: vi.fn() },
   },
 }))
@@ -22,7 +22,6 @@ const {
   getUnreadDocumentCount,
   getNextMeeting,
   getUpcomingAbsences,
-  getUpcomingAssignments,
   getConflictingAssignments,
 } = await import('./dashboard.server')
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -147,7 +146,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: { name: 'Midweek', color: '#000' },
-      partAssignments: [
+      eventParts: [
         {
           id: 10,
           name: 'Talk',
@@ -171,7 +170,7 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoleAssignments: [
+      eventServiceParts: [
         { id: 20, name: 'Sound', assignee: { id: 42, firstname: 'John', lastname: 'Doe' } },
         { id: 21, name: 'Stage', assignee: { id: 50, firstname: 'Bob', lastname: 'Brown' } },
       ],
@@ -180,10 +179,10 @@ describe('getNextMeeting', () => {
     const result = await getNextMeeting(db, 42)
     expect(result).not.toBeNull()
     expect(result?.userPartIds).toEqual([10])
-    expect(result?.userServiceRoleIds).toEqual([20])
+    expect(result?.userServicePartIds).toEqual([20])
     // Viewer is the assignee on part 10 → speaker. Part 11 belongs to someone
     // else so the viewer has no role there.
-    const parts = result?.partAssignments ?? []
+    const parts = result?.eventParts ?? []
     expect(parts.find(p => p.id === 10)?.viewerRole).toBe('speaker')
     expect(parts.find(p => p.id === 11)?.viewerRole).toBeNull()
   })
@@ -195,7 +194,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      partAssignments: [
+      eventParts: [
         {
           id: 10,
           name: 'Study',
@@ -211,12 +210,12 @@ describe('getNextMeeting', () => {
           assistant: { id: 42, firstname: 'John', lastname: 'Doe' },
         },
       ],
-      serviceRoleAssignments: [],
+      eventServiceParts: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
     expect(result?.userPartIds).toEqual([10])
-    expect(result?.partAssignments[0].viewerRole).toBe('reader')
+    expect(result?.eventParts[0].viewerRole).toBe('reader')
   })
 
   // Locks the shape: the Prisma select MUST project speakerLabel and readerLabel
@@ -231,7 +230,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      partAssignments: [
+      eventParts: [
         {
           id: 10,
           name: 'Bible reading',
@@ -255,13 +254,13 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoleAssignments: [],
+      eventServiceParts: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
 
-    expect(result?.partAssignments[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-42', readerLabel: null })
-    expect(result?.partAssignments[1]).toMatchObject({
+    expect(result?.eventParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-42', readerLabel: null })
+    expect(result?.eventParts[1]).toMatchObject({
       speakerLabel: 'STUDENT-SENTINEL-99',
       readerLabel: 'HOUSEHOLDER-SENTINEL-99',
     })
@@ -269,8 +268,8 @@ describe('getNextMeeting', () => {
     // Also assert the Prisma select requested the fields — a fixture that
     // happened to include the sentinels would pass without this.
     const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
-    const select = call?.select as { partAssignments?: { select?: Record<string, unknown> } }
-    expect(select.partAssignments?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
+    const select = call?.select as { eventParts?: { select?: Record<string, unknown> } }
+    expect(select.eventParts?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
   })
 
   it('returns empty arrays when user has no assignments', async () => {
@@ -280,7 +279,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      partAssignments: [
+      eventParts: [
         {
           id: 10,
           name: 'Talk',
@@ -291,12 +290,12 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoleAssignments: [],
+      eventServiceParts: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
     expect(result?.userPartIds).toEqual([])
-    expect(result?.userServiceRoleIds).toEqual([])
+    expect(result?.userServicePartIds).toEqual([])
   })
 
   // The dashboard is publisher-facing. Drafts must not surface — same
@@ -368,37 +367,17 @@ describe('getUpcomingAbsences', () => {
   })
 })
 
-// --- getUpcomingAssignments: draft events hidden ---
-//
-// The publisher dashboard is a public view of the schedule; draft assignments
-// must not preview here or a publisher sees a mid-edit programme.
-
-describe('getUpcomingAssignments', () => {
-  it('filters part and service-role assignments to released events', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
-
-    await getUpcomingAssignments(db, 42)
-
-    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
-    expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
-
-    const [serviceCall] = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0]
-    expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
-  })
-})
-
 describe('getConflictingAssignments', () => {
   it('only surfaces conflicts on released events', async () => {
-    vi.mocked(db.programmePartAssignment.findMany).mockResolvedValue([] as never)
-    vi.mocked(db.programmeServiceRoleAssignment.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventPart.findMany).mockResolvedValue([] as never)
+    vi.mocked(db.eventServicePart.findMany).mockResolvedValue([] as never)
 
     await getConflictingAssignments(db, 42)
 
-    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    const [partCall] = vi.mocked(db.eventPart.findMany).mock.calls[0]
     expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
 
-    const [serviceCall] = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0]
+    const [serviceCall] = vi.mocked(db.eventServicePart.findMany).mock.calls[0]
     expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })

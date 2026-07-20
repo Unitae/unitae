@@ -13,15 +13,16 @@ export const EVENT_STATUS_ERRORS = {
 } as const
 
 export type PartReleaseAssignment = { hasConflict: boolean }
-export type ServiceRoleReleaseAssignment = { hasConflict: boolean }
+export type ServicePartReleaseAssignment = { hasConflict: boolean }
 
 export type ReleaseAssignments = {
-  parts: PartReleaseAssignment[]
-  serviceRoles: ServiceRoleReleaseAssignment[]
+  eventParts: PartReleaseAssignment[]
+  eventServiceParts: ServicePartReleaseAssignment[]
 }
 
 export function assertCanRelease(assignments: ReleaseAssignments): void {
-  const hasAny = assignments.parts.some(p => p.hasConflict) || assignments.serviceRoles.some(s => s.hasConflict)
+  const hasAny =
+    assignments.eventParts.some(p => p.hasConflict) || assignments.eventServiceParts.some(s => s.hasConflict)
   if (!hasAny) return
   throw new ConflictError(EVENT_STATUS_ERRORS.releaseBlockedByConflicts)
 }

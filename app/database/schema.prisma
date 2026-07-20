@@ -92,16 +92,16 @@ model Congregation {
   consentRecords               ConsentRecord[]
   auditLogs                    AuditLog[]
 
-  programmeTemplates                         ProgrammeTemplate[]
-  programmeTemplateParts                     ProgrammeTemplatePart[]
-  programmeTemplateServiceRoles              ProgrammeTemplateServiceRole[]
-  programmePartAssignments                   ProgrammePartAssignment[]
-  programmeServiceRoleAssignments            ProgrammeServiceRoleAssignment[]
-  programmeTemplateResponsibles              ProgrammeTemplateResponsible[]
-  programmeTemplatePartAllowedRoles          ProgrammeTemplatePartAllowedRole[]
-  programmePartAssignmentAllowedRoles        ProgrammePartAssignmentAllowedRole[]
-  programmeTemplateServiceRoleAllowedRoles   ProgrammeTemplateServiceRoleAllowedRole[]
-  programmeServiceRoleAssignmentAllowedRoles ProgrammeServiceRoleAssignmentAllowedRole[]
+  eventTemplates                  EventTemplate[]
+  templateParts                   TemplatePart[]
+  templateServiceParts            TemplateServicePart[]
+  eventParts                      EventPart[]
+  eventServiceParts               EventServicePart[]
+  templateResponsibles            TemplateResponsible[]
+  templatePartAllowedRoles        TemplatePartAllowedRole[]
+  eventPartAllowedRoles           EventPartAllowedRole[]
+  templateServicePartAllowedRoles TemplateServicePartAllowedRole[]
+  eventServicePartAllowedRoles    EventServicePartAllowedRole[]
   externalSpeakers                           ExternalSpeaker[]
 
   notificationEvents      NotificationEvent[]
@@ -175,9 +175,9 @@ model Member {
   // Domain relations (FK target Member.id)
   attributions             Attribution[]                    @relation("publisher")
   activities               PublisherActivity[]              @relation("publisherActivity")
-  partAssignments          ProgrammePartAssignment[]        @relation("partAssignee")
-  partAssistantAssignments ProgrammePartAssignment[]        @relation("partAssistant")
-  serviceRoleAssignments   ProgrammeServiceRoleAssignment[] @relation("serviceRoleAssignee")
+  eventPartsAsAssignee        EventPart[]        @relation("partAssignee")
+  eventPartsAsAssistant       EventPart[]        @relation("partAssistant")
+  eventServicePartsAsAssignee EventServicePart[] @relation("servicePartAssignee")
 
   // Identity-role assignments (built-in roles like brother/elder/pioneer plus
   // any custom role the user may add later that expresses identity)
@@ -228,7 +228,7 @@ model UserAccount {
   documentsViewed          BoardDocument[]                @relation("viewedBy")
   documentVersionUploads   BoardDocumentVersion[]         @relation("boardDocumentVersionUploader")
   dynamicDocumentViews     BoardDynamicDocumentView[]
-  templateResponsibilities ProgrammeTemplateResponsible[] @relation("templateResponsible")
+  templateResponsibilities TemplateResponsible[] @relation("templateResponsible")
   passwordResetTokens      PasswordResetToken[]
   emailVerificationTokens  EmailVerificationToken[]
   calendarFeedTokens       CalendarFeedToken[]
@@ -259,10 +259,10 @@ model Role {
   members           UserRoleAssignment[]
   memberAssignments MemberRoleAssignment[]
 
-  allowedForTemplateParts          ProgrammeTemplatePartAllowedRole[]
-  allowedForPartAssignments        ProgrammePartAssignmentAllowedRole[]
-  allowedForTemplateServiceRoles   ProgrammeTemplateServiceRoleAllowedRole[]
-  allowedForServiceRoleAssignments ProgrammeServiceRoleAssignmentAllowedRole[]
+  allowedForTemplateParts         TemplatePartAllowedRole[]
+  allowedForEventParts            EventPartAllowedRole[]
+  allowedForTemplateServiceParts  TemplateServicePartAllowedRole[]
+  allowedForEventServiceParts     EventServicePartAllowedRole[]
   allowedForBoardSections          BoardSectionVisibilityRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
@@ -649,11 +649,11 @@ model Event {
   endDate     DateTime
   status      String     @default("draft")
 
-  template   ProgrammeTemplate? @relation("templateEvents", fields: [templateId], references: [id])
+  template   EventTemplate? @relation("templateEvents", fields: [templateId], references: [id])
   templateId Int?
 
-  partAssignments        ProgrammePartAssignment[]
-  serviceRoleAssignments ProgrammeServiceRoleAssignment[]
+  eventParts        EventPart[]
+  eventServiceParts EventServicePart[]
 
   createdBy   UserAccount @relation("createdBy", fields: [createdById], references: [id])
   createdById Int
@@ -666,7 +666,7 @@ model Event {
   @@unique([id, congregationId])
 }
 
-model ProgrammeTemplate {
+model EventTemplate {
   id          Int     @id @default(autoincrement())
   name        String
   key         String
@@ -677,10 +677,10 @@ model ProgrammeTemplate {
   endTime     String  @default("21:00")
   color       String  @default("#cfcfcf")
 
-  parts        ProgrammeTemplatePart[]
-  serviceRoles ProgrammeTemplateServiceRole[]
+  parts        TemplatePart[]
+  serviceParts TemplateServicePart[]
   events       Event[]                        @relation("templateEvents")
-  responsibles ProgrammeTemplateResponsible[]
+  responsibles TemplateResponsible[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -692,7 +692,7 @@ model ProgrammeTemplate {
   @@unique([id, congregationId])
 }
 
-model ProgrammeTemplatePart {
+model TemplatePart {
   id                   Int     @id @default(autoincrement())
   name                 String
   section              String  @default("")
@@ -706,11 +706,11 @@ model ProgrammeTemplatePart {
   speakerLabel         String?
   readerLabel          String?
 
-  template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  assignments  ProgrammePartAssignment[]
-  allowedRoles ProgrammeTemplatePartAllowedRole[]
+  eventParts   EventPart[]
+  allowedRoles TemplatePartAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -718,16 +718,16 @@ model ProgrammeTemplatePart {
   @@unique([id, congregationId])
 }
 
-model ProgrammeTemplateServiceRole {
+model TemplateServicePart {
   id   Int    @id @default(autoincrement())
   name String
   key  String
 
-  template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
-  assignments  ProgrammeServiceRoleAssignment[]
-  allowedRoles ProgrammeTemplateServiceRoleAllowedRole[]
+  eventServiceParts EventServicePart[]
+  allowedRoles      TemplateServicePartAllowedRole[]
 
   congregation   Congregation @relation(fields: [congregationId], references: [id])
   congregationId Int
@@ -735,7 +735,7 @@ model ProgrammeTemplateServiceRole {
   @@unique([id, congregationId])
 }
 
-model ProgrammePartAssignment {
+model EventPart {
   id          Int     @id @default(autoincrement())
   topic       String  @default("")
   note        String  @default("")
@@ -757,7 +757,7 @@ model ProgrammePartAssignment {
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  part   ProgrammeTemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
+  part   TemplatePart? @relation(fields: [partId], references: [id], onDelete: SetNull)
   partId Int?
 
   assignee   Member? @relation("partAssignee", fields: [assigneeId], references: [id])
@@ -771,7 +771,7 @@ model ProgrammePartAssignment {
   externalSpeaker   ExternalSpeaker? @relation(fields: [externalSpeakerId], references: [id], onDelete: SetNull)
   externalSpeakerId Int?
 
-  allowedRoles ProgrammePartAssignmentAllowedRole[]
+  allowedRoles EventPartAllowedRole[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -792,7 +792,7 @@ model ExternalSpeaker {
   notes            String?
   archivedAt       DateTime?
 
-  partAssignments ProgrammePartAssignment[]
+  eventParts EventPart[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -804,24 +804,24 @@ model ExternalSpeaker {
   @@index([congregationId, archivedAt])
 }
 
-model ProgrammeServiceRoleAssignment {
+model EventServicePart {
   id          Int     @id @default(autoincrement())
   note        String  @default("")
   hasConflict Boolean @default(false)
 
-  // Inline field (copied from template service role on generation, or set manually)
+  // Inline field (copied from template service part on generation, or set manually)
   name String @default("")
 
   event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
   eventId Int
 
-  serviceRole   ProgrammeTemplateServiceRole? @relation(fields: [serviceRoleId], references: [id], onDelete: SetNull)
-  serviceRoleId Int?
+  servicePart   TemplateServicePart? @relation(fields: [servicePartId], references: [id], onDelete: SetNull)
+  servicePartId Int?
 
-  assignee   Member? @relation("serviceRoleAssignee", fields: [assigneeId], references: [id])
+  assignee   Member? @relation("servicePartAssignee", fields: [assigneeId], references: [id])
   assigneeId Int?
 
-  allowedRoles ProgrammeServiceRoleAssignmentAllowedRole[]
+  allowedRoles EventServicePartAllowedRole[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -832,8 +832,8 @@ model ProgrammeServiceRoleAssignment {
   @@unique([id, congregationId])
 }
 
-model ProgrammeTemplatePartAllowedRole {
-  part   ProgrammeTemplatePart @relation(fields: [partId], references: [id], onDelete: Cascade)
+model TemplatePartAllowedRole {
+  part   TemplatePart @relation(fields: [partId], references: [id], onDelete: Cascade)
   partId Int
   role   Role                  @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId Int
@@ -847,53 +847,53 @@ model ProgrammeTemplatePartAllowedRole {
   @@index([congregationId])
 }
 
-model ProgrammePartAssignmentAllowedRole {
-  assignment   ProgrammePartAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  assignmentId Int
-  role         Role                    @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId       Int
-  asKind       String
+model EventPartAllowedRole {
+  eventPart   EventPart @relation(fields: [eventPartId], references: [id], onDelete: Cascade)
+  eventPartId Int
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId      Int
+  asKind      String
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([assignmentId, roleId, asKind])
+  @@id([eventPartId, roleId, asKind])
   @@index([roleId])
   @@index([congregationId])
 }
 
-model ProgrammeTemplateServiceRoleAllowedRole {
-  serviceRole   ProgrammeTemplateServiceRole @relation(fields: [serviceRoleId], references: [id], onDelete: Cascade)
-  serviceRoleId Int
-  role          Role                         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+model TemplateServicePartAllowedRole {
+  servicePart   TemplateServicePart @relation(fields: [servicePartId], references: [id], onDelete: Cascade)
+  servicePartId Int
+  role          Role                @relation(fields: [roleId], references: [id], onDelete: Cascade)
   roleId        Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([serviceRoleId, roleId])
+  @@id([servicePartId, roleId])
   @@index([roleId])
   @@index([congregationId])
 }
 
-model ProgrammeServiceRoleAssignmentAllowedRole {
-  assignment   ProgrammeServiceRoleAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  assignmentId Int
-  role         Role                           @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  roleId       Int
+model EventServicePartAllowedRole {
+  eventServicePart   EventServicePart @relation(fields: [eventServicePartId], references: [id], onDelete: Cascade)
+  eventServicePartId Int
+  role               Role             @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId             Int
 
   congregation   Congregation @relation(fields: [congregationId], references: [id], onDelete: Cascade)
   congregationId Int
 
-  @@id([assignmentId, roleId])
+  @@id([eventServicePartId, roleId])
   @@index([roleId])
   @@index([congregationId])
 }
 
-model ProgrammeTemplateResponsible {
+model TemplateResponsible {
   id Int @id @default(autoincrement())
 
-  template   ProgrammeTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template   EventTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
   templateId Int
 
   user   UserAccount @relation("templateResponsible", fields: [userId], references: [id], onDelete: Cascade)

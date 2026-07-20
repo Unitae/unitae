@@ -368,7 +368,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-templates',
       export: () =>
-        db.programmeTemplate.findMany({
+        db.eventTemplate.findMany({
           select: {
             id: true,
             name: true,
@@ -383,7 +383,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-template-parts',
       export: () =>
-        db.programmeTemplatePart.findMany({
+        db.templatePart.findMany({
           select: {
             id: true,
             name: true,
@@ -400,28 +400,28 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-template-part-allowed-roles',
       export: () =>
-        db.programmeTemplatePartAllowedRole.findMany({
+        db.templatePartAllowedRole.findMany({
           select: { partId: true, roleId: true, asKind: true },
         }),
     },
     {
       name: 'programme-template-service-roles',
       export: () =>
-        db.programmeTemplateServiceRole.findMany({
+        db.templateServicePart.findMany({
           select: { id: true, name: true, key: true, templateId: true },
         }),
     },
     {
       name: 'programme-template-service-role-allowed-roles',
       export: () =>
-        db.programmeTemplateServiceRoleAllowedRole.findMany({
-          select: { serviceRoleId: true, roleId: true },
+        db.templateServicePartAllowedRole.findMany({
+          select: { servicePartId: true, roleId: true },
         }),
     },
     {
       name: 'programme-template-responsibles',
       export: () =>
-        db.programmeTemplateResponsible.findMany({
+        db.templateResponsible.findMany({
           select: { id: true, templateId: true, userId: true },
         }),
     },
@@ -444,7 +444,7 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     {
       name: 'programme-part-assignments',
       export: () =>
-        db.programmePartAssignment.findMany({
+        db.eventPart.findMany({
           select: {
             id: true,
             topic: true,
@@ -467,32 +467,41 @@ export function buildExportSteps(db: TransactionClient, congregationId: number, 
     },
     {
       name: 'programme-part-assignment-allowed-roles',
-      export: () =>
-        db.programmePartAssignmentAllowedRole.findMany({
-          select: { assignmentId: true, roleId: true, asKind: true },
-        }),
+      // Renaming `eventPartId` back to `assignmentId` on write keeps the NDJSON
+      // format stable for pre-2.1 importers — the column was renamed in the
+      // 20260720400000 migration, but the archive schema stays frozen.
+      export: async () => {
+        const rows = await db.eventPartAllowedRole.findMany({
+          select: { eventPartId: true, roleId: true, asKind: true },
+        })
+        return rows.map(r => ({ assignmentId: r.eventPartId, roleId: r.roleId, asKind: r.asKind }))
+      },
     },
     {
       name: 'programme-service-role-assignments',
       export: () =>
-        db.programmeServiceRoleAssignment.findMany({
+        db.eventServicePart.findMany({
           select: {
             id: true,
             note: true,
             hasConflict: true,
             name: true,
             eventId: true,
-            serviceRoleId: true,
+            servicePartId: true,
             assigneeId: true,
           },
         }),
     },
     {
       name: 'programme-service-role-assignment-allowed-roles',
-      export: () =>
-        db.programmeServiceRoleAssignmentAllowedRole.findMany({
-          select: { assignmentId: true, roleId: true },
-        }),
+      // See comment on programme-part-assignment-allowed-roles above — archive
+      // field name stays `assignmentId` even after the column rename.
+      export: async () => {
+        const rows = await db.eventServicePartAllowedRole.findMany({
+          select: { eventServicePartId: true, roleId: true },
+        })
+        return rows.map(r => ({ assignmentId: r.eventServicePartId, roleId: r.roleId }))
+      },
     },
     {
       name: 'board-sections',

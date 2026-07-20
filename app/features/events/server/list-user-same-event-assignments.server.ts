@@ -16,7 +16,7 @@ export async function listUserSameEventAssignments(
   db: TransactionClient,
   { userId, eventId, congregationId, excludePartAssignmentId, excludeServiceAssignmentId }: Options,
 ): Promise<SameEventAssignment[]> {
-  const parts = await db.programmePartAssignment.findMany({
+  const parts = await db.eventPart.findMany({
     where: {
       eventId,
       congregationId,
@@ -26,7 +26,7 @@ export async function listUserSameEventAssignments(
     select: { id: true, name: true, section: true },
   })
 
-  const services = await db.programmeServiceRoleAssignment.findMany({
+  const services = await db.eventServicePart.findMany({
     where: {
       eventId,
       congregationId,

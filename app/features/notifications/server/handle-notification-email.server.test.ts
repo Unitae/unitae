@@ -327,7 +327,7 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
         events: [
           {
             type: 'programme.assignment.assigned',
-            entityType: 'ProgrammePartAssignment',
+            entityType: 'EventPart',
             entityId: 501,
             payload: JSON.stringify({
               eventId: 1,
@@ -340,7 +340,7 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
           },
           {
             type: 'programme.assignment.assigned',
-            entityType: 'ProgrammePartAssignment',
+            entityType: 'EventPart',
             entityId: 502,
             payload: JSON.stringify({
               eventId: 1,
@@ -353,7 +353,7 @@ describe('handleDigestEmail — transient mailer failures partition per event', 
           },
           {
             type: 'programme.assignment.assigned',
-            entityType: 'ProgrammePartAssignment',
+            entityType: 'EventPart',
             entityId: 503,
             payload: JSON.stringify({
               eventId: 1,
@@ -553,7 +553,7 @@ describe('handleDigestEmail — success / failure partitioning', () => {
       events: [
         {
           type: 'programme.assignment.assigned',
-          entityType: 'ProgrammePartAssignment',
+          entityType: 'EventPart',
           entityId: 500,
           payload: JSON.stringify({
             eventId: 1,
@@ -590,7 +590,7 @@ describe('handleDigestEmail — success / failure partitioning', () => {
       events: [
         {
           type: 'programme.assignment.assigned',
-          entityType: 'ProgrammePartAssignment',
+          entityType: 'EventPart',
           entityId: 500,
           payload: JSON.stringify({
             eventId: 1,
@@ -702,7 +702,7 @@ describe('handleDigestEmail — recipient lookup misses', () => {
       events: [
         {
           type: 'programme.assignment.assigned',
-          entityType: 'ProgrammePartAssignment',
+          entityType: 'EventPart',
           entityId: 700,
           payload: JSON.stringify({
             eventId: 1,

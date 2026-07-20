@@ -42,7 +42,7 @@ export async function listUserConflictsInRange(
   endDate: Date,
 ): Promise<UserConflictInRange[]> {
   const [partConflicts, serviceConflicts] = await Promise.all([
-    db.programmePartAssignment.findMany({
+    db.eventPart.findMany({
       where: {
         hasConflict: true,
         OR: [{ assigneeId: memberId }, { assistantId: memberId }],
@@ -56,7 +56,7 @@ export async function listUserConflictsInRange(
         event: { select: eventWithResponsiblesSelect },
       },
     }),
-    db.programmeServiceRoleAssignment.findMany({
+    db.eventServicePart.findMany({
       where: {
         hasConflict: true,
         assigneeId: memberId,

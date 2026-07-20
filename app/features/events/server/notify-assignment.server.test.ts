@@ -14,7 +14,7 @@ vi.mock('~/features/display-board/index.server', () => ({
   resolveProgrammeLink: vi.fn(),
 }))
 
-const { dispatchAssignmentDiffs, notifyAssignment, partAssignmentDiffs, serviceRoleAssignmentDiffs } = await import(
+const { dispatchAssignmentDiffs, notifyAssignment, partAssignmentDiffs, servicePartAssignmentDiffs } = await import(
   './notify-assignment.server'
 )
 const { unscopedDb: db } = await import('~/shared/infra/db.server')
@@ -30,7 +30,7 @@ const CTX = {
     status: 'released' as const,
   },
   assignmentName: 'Perles de la Parole',
-  entityType: 'ProgrammePartAssignment' as const,
+  entityType: 'EventPart' as const,
   entityId: 100,
   congregationId: 42,
   actorId: 7,
@@ -66,7 +66,7 @@ describe('notifyAssignment', () => {
     const call = vi.mocked(notify).mock.calls[0][1]
     expect(call).toMatchObject({
       type: 'programme.assignment.assigned',
-      entityType: 'ProgrammePartAssignment',
+      entityType: 'EventPart',
       entityId: 100,
       congregationId: 42,
       recipientId: 33,
@@ -223,14 +223,14 @@ describe('partAssignmentDiffs (pure)', () => {
   })
 })
 
-describe('serviceRoleAssignmentDiffs (pure)', () => {
+describe('servicePartAssignmentDiffs (pure)', () => {
   it('maps previousAssigneeId → servant slot', () => {
-    const diffs = serviceRoleAssignmentDiffs({ previousAssigneeId: 5 }, { assigneeId: 9 })
+    const diffs = servicePartAssignmentDiffs({ previousAssigneeId: 5 }, { assigneeId: 9 })
     expect(diffs).toEqual([{ role: 'servant', previousMemberId: 5, newMemberId: 9 }])
   })
 
   it('produces exactly one diff', () => {
-    const diffs = serviceRoleAssignmentDiffs({ previousAssigneeId: null }, { assigneeId: null })
+    const diffs = servicePartAssignmentDiffs({ previousAssigneeId: null }, { assigneeId: null })
     expect(diffs).toHaveLength(1)
     expect(diffs[0].role).toBe('servant')
   })

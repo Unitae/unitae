@@ -1,7 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { ProgrammeTemplateKey } from '~/features/events/model/programme-template.type'
+import { EventTemplateKey } from '~/features/events/model/event-template.type'
 import { getPersonalAssignments } from '~/features/events/server/personal-assignments.server'
 import { PublisherType } from '~/shared/types/publisher-type'
 
@@ -60,10 +60,10 @@ beforeAll(async () => {
     aliceId = alice.id
     const aliceMemberId = aliceMember.id
 
-    const dayOffTemplate = await tx.programmeTemplate.create({
+    const dayOffTemplate = await tx.eventTemplate.create({
       data: {
         name: 'Day off',
-        key: ProgrammeTemplateKey.DayOff,
+        key: EventTemplateKey.DayOff,
         color: '#cfcfcf',
         weekDay: null,
         isRecurring: false,
@@ -97,7 +97,7 @@ beforeAll(async () => {
     })
     evergreenId = dayOff.id
 
-    await tx.programmePartAssignment.create({
+    await tx.eventPart.create({
       data: {
         name: 'Trésors',
         section: 'Section 1',
@@ -108,7 +108,7 @@ beforeAll(async () => {
       },
     })
 
-    await tx.programmeServiceRoleAssignment.create({
+    await tx.eventServicePart.create({
       data: {
         name: 'Sono',
         eventId: meetingEvent.id,
@@ -150,7 +150,7 @@ beforeAll(async () => {
       },
     })
 
-    const foreign = await tx.programmePartAssignment.create({
+    const foreign = await tx.eventPart.create({
       data: {
         name: 'Foreign',
         section: 'X',
@@ -165,14 +165,14 @@ beforeAll(async () => {
 
 afterAll(async () => {
   // FK-safe deletion order: assignments → events → kinds → users → congregations
-  await testDb.programmePartAssignment.deleteMany({
+  await testDb.eventPart.deleteMany({
     where: { congregationId: { in: [congAId, congBId] } },
   })
-  await testDb.programmeServiceRoleAssignment.deleteMany({
+  await testDb.eventServicePart.deleteMany({
     where: { congregationId: { in: [congAId, congBId] } },
   })
   await testDb.event.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
-  await testDb.programmeTemplate.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
+  await testDb.eventTemplate.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.userAccount.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.member.deleteMany({ where: { congregationId: { in: [congAId, congBId] } } })
   await testDb.congregation.deleteMany({ where: { id: { in: [congAId, congBId] } } })

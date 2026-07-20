@@ -33,7 +33,7 @@ export async function action({ request, params, context }: Route.ActionArgs) {
     // Mirror the guard on /edit — system templates have no parts today, but
     // if that ever changes we don't want a stale endpoint to be the loose
     // thread.
-    const target = await db.programmeTemplate.findFirst({
+    const target = await db.eventTemplate.findFirst({
       where: { id: templateId, congregationId },
       select: { key: true },
     })

@@ -331,7 +331,7 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
     month: 'long',
   })
 
-  const hasUserAssignments = meeting.userPartIds.length > 0 || meeting.userServiceRoleIds.length > 0
+  const hasUserAssignments = meeting.userPartIds.length > 0 || meeting.userServicePartIds.length > 0
 
   return (
     <Card className="h-full">
@@ -348,7 +348,7 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
           <p className="text-muted-foreground text-sm">{m.dashboard_next_meeting_no_assignments()}</p>
         ) : (
           <div className="flex flex-col gap-1.5">
-            {meeting.partAssignments
+            {meeting.eventParts
               .filter(p => meeting.userPartIds.includes(p.id))
               .map(part => {
                 const roleLabel = part.viewerRole === 'reader' ? partReaderLabel(part) : partSpeakerLabel(part)
@@ -365,8 +365,8 @@ function NextMeetingCard({ meeting }: { meeting: Awaited<ReturnType<typeof getNe
                   </div>
                 )
               })}
-            {meeting.serviceRoleAssignments
-              .filter(r => meeting.userServiceRoleIds.includes(r.id))
+            {meeting.eventServiceParts
+              .filter(r => meeting.userServicePartIds.includes(r.id))
               .map(role => (
                 <div key={role.id} className="flex items-center justify-between rounded-lg bg-primary/5 px-3 py-2">
                   <span className="font-medium text-sm">{role.name}</span>

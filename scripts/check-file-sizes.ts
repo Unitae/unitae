@@ -59,7 +59,7 @@ const EXEMPT_FILES = new Set<string>([
   // Service files >350L (6) — remaining after Wave 4.
   'app/features/dashboard/server/dashboard.server.ts', //                  351
   'app/features/display-board/server/dynamic-documents.server.ts', //      375
-  'app/features/events/server/programme-events.server.ts', //              358
+  'app/features/events/server/event-parts.server.ts', //                   358
   'app/features/settings/server/export-congregation.server.ts', //         657
   'app/features/territories/server/buildings.server.ts', //                366
   'app/shared/domain/roles.server.ts', //                                  421
@@ -88,7 +88,7 @@ const EXEMPT_FILES = new Set<string>([
 
   // UI components >400L (4) — remaining after Wave 4.
   'app/features/display-board/ui/dynamic/ProgrammeView.tsx', //            536
-  'app/features/events/ui/ProgrammeBoardDocument.tsx', //                  432
+  'app/features/events/ui/EventBoardDocument.tsx', //                      432
   'app/features/territories/ui/BuildingEntranceMapEditor.tsx', //          412
   'app/features/territories/ui/TerritoryAttributionDocument.tsx', //       409
 ])
