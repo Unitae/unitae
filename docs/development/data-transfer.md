@@ -12,7 +12,7 @@ A `.unitae` archive is a ZIP with three top-level entries:
 | `data/<entity>.ndjson` | One file per entity type, in newline-delimited JSON. Each line is one row. Empty files are omitted from the archive |
 | `files/` | Uploaded user files (board PDFs, territory cards). Only present when the export was created with `includeFiles: true` |
 
-The archive version is a constant at the top of `app/features/settings/server/data-transfer.type.ts` (`ARCHIVE_VERSION`, currently `2.0` — bumped from `1.1` when `User` was split into `Member` + `UserAccount`). The list of accepted versions on import lives in `SUPPORTED_ARCHIVE_VERSIONS` in the same file — versions outside that list are reported as a warning and skipped. Bump the constant when the on-disk shape changes; add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` when the format remains compatible enough to import-with-warning.
+The archive version is a constant at the top of `app/features/settings/server/data-transfer.type.ts` (`ARCHIVE_VERSION`, currently `2.1` — bumped from `2.0` for the `AuditLog.entityType` rewrite shim that maps pre-rename `Programme*` model names to their current `Event*` / `Template*` / `EventServicePart` / `TemplateServicePart` counterparts on import; `2.0` itself was bumped from `1.1` when `User` was split into `Member` + `UserAccount`). The list of accepted versions on import lives in `SUPPORTED_ARCHIVE_VERSIONS` in the same file — versions outside that list are reported as a warning and skipped. Bump the constant when the on-disk shape changes; add the previous value to `SUPPORTED_ARCHIVE_VERSIONS` when the format remains compatible enough to import-with-warning.
 
 v1.x archives are importable through `migrateLegacyUsersNdjson` (in `import-congregation.server.ts`), which runs at the top of `validateImport` / `runImport` and synthesizes `members.ndjson` + `user-accounts.ndjson` from the legacy `users.ndjson` directly inside the in-memory zip. The split mirrors the schema migration heuristic: rows with publisher signals (`isPublisher`, baptism date, helder/servant/anointed flag, group membership) yield a Member, and rows whose email isn't `*.placeholder.unitae.app` yield a UserAccount linked to that Member via the preserved id space. Downstream import functions then read the v2.0 layout uniformly — no v1.x branch beyond the shim. Placeholder-email accounts are dropped, and the operator receives a warning summarising the split counts.
 
@@ -24,7 +24,7 @@ Entities are exported in dependency order so an import can replay them top-down 
 
 ## Backward compatibility — pre-1.1 archives
 
-`1.0` archives are missing every feature table added after the export first shipped (custom roles, role-permissions, user-role-assignments, board section visibility, allowed-roles on programme parts/service-roles and their per-event copies, external speakers, territory card overlays, territory perimeter). The import accepts them with a warning and proceeds — those tables stay empty on the target.
+`1.0` archives are missing every feature table added after the export first shipped (custom roles, role-permissions, user-role-assignments, board section visibility, allowed-roles on template parts / template service parts and their per-event copies, external speakers, territory card overlays, territory perimeter). The import accepts them with a warning and proceeds — those tables stay empty on the target.
 
 A subset of `1.0` archives, created before [PR #152](https://github.com/Unitae/unitae/pull/152), use the legacy filename `data/congregation-user-roles.ndjson` with a `roleKey` field instead of `data/congregation-user-permissions.ndjson` with `permissionKey`. The rename was a pure terminology change (`UserRole` → `Permission`, key values preserved); `importCongregationUserPermissions` falls back to the legacy filename when the current one is missing.
 
@@ -39,7 +39,7 @@ The validator scans for natural-key collisions before any write. Decisions per e
 | User accounts | matching `email` | Update in place (link to imported member when present) | Skip with warning |
 | Members | (none — fresh ids per import) | Always insert | n/a |
 | Territories | matching `number` | Update in place | n/a (RLS-scoped) |
-| Event kinds | matching compound key `(key, congregationId)` | Skip | n/a |
+| Event templates | matching compound key `(key, congregationId)` | Skip | n/a |
 
 Other entities are inserted as-is; the import flow reassigns primary keys and stitches relationships through `EntityIdMap`.
 

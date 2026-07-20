@@ -276,7 +276,7 @@ A feature with only server exports may leave `index.ts` empty (with `export {}`)
 
 ```typescript
 // Allowed — client-safe barrel
-import { EventKind, dayLabel } from '~/features/events'
+import { EventTemplateKey, dayLabel } from '~/features/events'
 
 // Allowed — server-only barrel (called from a route loader or another .server file)
 import { getTemplates, seedDefaultTemplates } from '~/features/events/index.server'
