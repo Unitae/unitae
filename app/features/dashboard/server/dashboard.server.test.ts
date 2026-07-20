@@ -380,11 +380,11 @@ describe('getUpcomingAssignments', () => {
 
     await getUpcomingAssignments(db, 42)
 
-    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
-    expect((partCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
 
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
-    expect((serviceCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+    const [serviceCall] = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0]
+    expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })
 
@@ -395,10 +395,10 @@ describe('getConflictingAssignments', () => {
 
     await getConflictingAssignments(db, 42)
 
-    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
-    expect((partCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    expect((partCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
 
-    const serviceCall = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0][0]
-    expect((serviceCall?.where as { event: unknown }).event).toMatchObject({ status: 'released' })
+    const [serviceCall] = vi.mocked(db.programmeServiceRoleAssignment.findMany).mock.calls[0]
+    expect((serviceCall as { where: { event: unknown } }).where.event).toMatchObject({ status: 'released' })
   })
 })

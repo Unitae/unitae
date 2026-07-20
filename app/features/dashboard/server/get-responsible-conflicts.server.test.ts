@@ -68,8 +68,8 @@ describe('getResponsibleConflicts', () => {
   it('only considers upcoming events (startDate >= now)', async () => {
     await getResponsibleConflicts(db, 100, true)
 
-    const partCall = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0][0]
-    const event = (partCall?.where as { event: { startDate: { gte: Date } } }).event
+    const [partCall] = vi.mocked(db.programmePartAssignment.findMany).mock.calls[0]
+    const event = (partCall as { where: { event: { startDate: { gte: Date } } } }).where.event
     expect(event.startDate.gte.getTime()).toBeGreaterThan(Date.now() - 5000)
   })
 
