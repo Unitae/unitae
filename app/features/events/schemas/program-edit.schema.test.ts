@@ -78,6 +78,25 @@ describe('addPartSchema role labels (Layer 6)', () => {
 
     expect(parsed.success).toBe(true)
   })
+
+  // Locks the empty-string→undefined round-trip. The route action does
+  // `partSpeakerLabel ?? null` to normalize, so undefined here becomes null
+  // at the DB (i.e. "clear the value"). A regression that yielded '' instead
+  // of undefined would slip an empty string into the DB and the label helper
+  // would return '' (falsy) instead of the i18n default.
+  it('coerces an empty-string input to undefined so the caller can normalize to null', () => {
+    const parsed = addPartSchema.safeParse({
+      ...baseAddInput(),
+      partSpeakerLabel: '',
+      partReaderLabel: '',
+    })
+
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.partSpeakerLabel).toBeUndefined()
+      expect(parsed.data.partReaderLabel).toBeUndefined()
+    }
+  })
 })
 
 describe('updatePartSchema role labels (Layer 6)', () => {

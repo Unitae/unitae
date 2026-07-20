@@ -56,4 +56,21 @@ describe('upsertPartSchema role labels (Layer 6)', () => {
 
     expect(parsed.success).toBe(false)
   })
+
+  // Same round-trip contract as program-edit.schema: empty-string collapses to
+  // undefined so the caller's `?? null` normalization produces DB NULL (clear
+  // the value) rather than storing '' (which would look "set" but read empty).
+  it('coerces an empty-string input to undefined so the caller can normalize to null', () => {
+    const parsed = upsertPartSchema.safeParse({
+      ...baseInput(),
+      partSpeakerLabel: '',
+      partReaderLabel: '',
+    })
+
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data.partSpeakerLabel).toBeUndefined()
+      expect(parsed.data.partReaderLabel).toBeUndefined()
+    }
+  })
 })

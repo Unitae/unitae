@@ -139,7 +139,9 @@ describe('generateEventsFromTemplate', () => {
           order: 1,
           durationMin: 5,
           allowExternalSpeaker: false,
-          speakerLabel: 'STUDENT-SENTINEL',
+          // Distinct sentinels per part so an ordering regression (swapping
+          // parts[0] and parts[1] during the copy) fails visibly.
+          speakerLabel: 'STUDENT-SENTINEL-P1',
           readerLabel: null,
           allowedRoles: [],
         },
@@ -151,8 +153,8 @@ describe('generateEventsFromTemplate', () => {
           order: 2,
           durationMin: 10,
           allowExternalSpeaker: false,
-          speakerLabel: 'STUDENT-SENTINEL',
-          readerLabel: 'HOUSEHOLDER-SENTINEL',
+          speakerLabel: 'STUDENT-SENTINEL-P2',
+          readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
           allowedRoles: [],
         },
       ],
@@ -167,11 +169,11 @@ describe('generateEventsFromTemplate', () => {
     const calls = vi.mocked(db.programmePartAssignment.create).mock.calls
     expect(calls.length).toBeGreaterThanOrEqual(2)
     const firstData = (calls[0][0] as { data: { speakerLabel: string | null; readerLabel: string | null } }).data
-    expect(firstData.speakerLabel).toBe('STUDENT-SENTINEL')
+    expect(firstData.speakerLabel).toBe('STUDENT-SENTINEL-P1')
     expect(firstData.readerLabel).toBeNull()
     const secondData = (calls[1][0] as { data: { speakerLabel: string | null; readerLabel: string | null } }).data
-    expect(secondData.speakerLabel).toBe('STUDENT-SENTINEL')
-    expect(secondData.readerLabel).toBe('HOUSEHOLDER-SENTINEL')
+    expect(secondData.speakerLabel).toBe('STUDENT-SENTINEL-P2')
+    expect(secondData.readerLabel).toBe('HOUSEHOLDER-SENTINEL-P2')
   })
 
   it('copies allowExternalSpeaker from template parts to assignments', async () => {

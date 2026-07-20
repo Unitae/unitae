@@ -535,7 +535,9 @@ describe('duplicateTemplate', () => {
           order: 1,
           durationMin: 5,
           allowExternalSpeaker: false,
-          speakerLabel: 'STUDENT-SENTINEL',
+          // Distinct sentinels per part so an ordering regression in the copy
+          // loop (swapping parts[0] and parts[1]) fails visibly.
+          speakerLabel: 'STUDENT-SENTINEL-P1',
           readerLabel: null,
           allowedRoles: [],
         },
@@ -547,8 +549,8 @@ describe('duplicateTemplate', () => {
           order: 2,
           durationMin: 10,
           allowExternalSpeaker: false,
-          speakerLabel: 'STUDENT-SENTINEL',
-          readerLabel: 'HOUSEHOLDER-SENTINEL',
+          speakerLabel: 'STUDENT-SENTINEL-P2',
+          readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
           allowedRoles: [],
         },
       ],
@@ -568,7 +570,10 @@ describe('duplicateTemplate', () => {
       data: { parts: { create: Array<{ speakerLabel: string | null; readerLabel: string | null }> } }
     }
     const createdParts = createCall.data.parts.create
-    expect(createdParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null })
-    expect(createdParts[1]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' })
+    expect(createdParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
+    expect(createdParts[1]).toMatchObject({
+      speakerLabel: 'STUDENT-SENTINEL-P2',
+      readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
+    })
   })
 })

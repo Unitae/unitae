@@ -436,6 +436,8 @@ describe('applyTemplateToEvent', () => {
   // pass the existing shape assertion above (both fields are null there) but
   // fails this one.
   it('copies speakerLabel and readerLabel from template parts to assignments (Layer 4)', async () => {
+    // Distinct sentinels per part — a regression that swaps parts[0] and parts[1]
+    // during the copy would produce a false positive if both used the same value.
     const template = {
       id: 5,
       name: 'Reunion',
@@ -447,7 +449,7 @@ describe('applyTemplateToEvent', () => {
           track: 'A',
           order: 1,
           durationMin: 5,
-          speakerLabel: 'STUDENT-SENTINEL',
+          speakerLabel: 'STUDENT-SENTINEL-P1',
           readerLabel: null,
           allowedRoles: [],
         },
@@ -458,8 +460,8 @@ describe('applyTemplateToEvent', () => {
           track: 'A',
           order: 2,
           durationMin: 10,
-          speakerLabel: 'STUDENT-SENTINEL',
-          readerLabel: 'HOUSEHOLDER-SENTINEL',
+          speakerLabel: 'STUDENT-SENTINEL-P2',
+          readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
           allowedRoles: [],
         },
       ],
@@ -473,10 +475,10 @@ describe('applyTemplateToEvent', () => {
 
     const calls = mockDb.programmePartAssignment.create.mock.calls
     expect(calls.length).toBe(2)
-    expect(calls[0][0].data).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null })
+    expect(calls[0][0].data).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
     expect(calls[1][0].data).toMatchObject({
-      speakerLabel: 'STUDENT-SENTINEL',
-      readerLabel: 'HOUSEHOLDER-SENTINEL',
+      speakerLabel: 'STUDENT-SENTINEL-P2',
+      readerLabel: 'HOUSEHOLDER-SENTINEL-P2',
     })
   })
 
