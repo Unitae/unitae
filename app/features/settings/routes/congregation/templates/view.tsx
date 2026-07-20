@@ -1,8 +1,14 @@
-import { Calendar, CalendarOff, CalendarPlus, Clock, Copy, Pencil, UserCog } from 'lucide-react'
-import { Form, Link, redirect } from 'react-router'
+import { Calendar, CalendarOff, CalendarPlus, Clock, Copy, Pencil, Trash2, UserCog } from 'lucide-react'
+import { useState } from 'react'
+import { Form, Link, redirect, useFetcher } from 'react-router'
 import { commitSession, getSession } from '~/features/authentication/index.server'
-import { dayLabel, isSystemTemplate } from '~/features/events'
-import { duplicateTemplate, getTemplateById, isTemplateResponsible } from '~/features/events/index.server'
+import { dayLabel, InlineDeleteDialog, isSystemTemplate } from '~/features/events'
+import {
+  deleteTemplate,
+  duplicateTemplate,
+  getTemplateById,
+  isTemplateResponsible,
+} from '~/features/events/index.server'
 import * as m from '~/i18n/paraglide/messages'
 import {
   currentAccountContext,
@@ -39,26 +45,61 @@ export function loader({ params, context }: Route.LoaderArgs) {
     const template = await getTemplateById(db, templateId, currentUser.congregationId)
     if (!template) throw redirect('/settings/congregation/templates')
 
-    const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
+    const [responsible, eventCount] = await Promise.all([
+      isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId),
+      db.event.count({ where: { templateId, congregationId: currentUser.congregationId } }),
+    ])
     const canEdit = permissions.has(Permission.ProgramManager) || responsible != null
+    const isSystem = isSystemTemplate(template.key)
+    // Deleting a whole template is manager-only and never allowed for system
+    // rows; responsibles may edit content but not remove the template.
+    const canDelete = permissions.has(Permission.ProgramManager) && !isSystem
 
     logger.info(`Loading template view. User ID: ${currentUser.id}. Template: ${template.name}.`)
 
-    return { template, canEdit, isSystem: isSystemTemplate(template.key) }
+    return { template, canEdit, canDelete, eventCount, isSystem }
   })
 }
 
-export function action({ request, params, context }: Route.ActionArgs) {
+export async function action({ request, params, context }: Route.ActionArgs) {
   const permissions = context.get(permissionsContext)
   const currentUser = context.get(currentAccountContext)
 
   const templateId = requireParamId(params.templateId, '/settings/congregation/templates')
+  const formData = await request.formData()
+  const intent = formData.get('intent')
 
+  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: handles duplicate + delete intents in a single scoped transaction
   return withScopeFromContext(context, async db => {
     const responsible = await isTemplateResponsible(db, templateId, currentUser.id, currentUser.congregationId)
     if (!permissions.has(Permission.ProgramManager) && !responsible) throw redirect('/settings/congregation/templates')
 
     const session = await getSession(request.headers.get('Cookie'))
+
+    if (intent === 'delete') {
+      // Whole-template removal is manager-only; responsibles edit content only.
+      if (!permissions.has(Permission.ProgramManager)) {
+        throw redirect(`/settings/congregation/templates/${templateId}`)
+      }
+      const result = await deleteTemplate(db, templateId, currentUser.congregationId)
+      if (result.ok) {
+        session.flash('success', m.settings_template_view_delete_success({ name: result.name }))
+        logger.info(`Deleted template ${templateId}. User ID: ${currentUser.id}.`)
+        return redirect('/settings/congregation/templates', {
+          headers: { 'Set-Cookie': await commitSession(session) },
+        })
+      }
+      session.flash(
+        'error',
+        result.reason === 'in-use'
+          ? m.settings_template_view_delete_in_use({ count: String(result.eventCount) })
+          : m.settings_template_view_delete_error(),
+      )
+      return redirect(`/settings/congregation/templates/${templateId}`, {
+        headers: { 'Set-Cookie': await commitSession(session) },
+      })
+    }
+
     const copy = await duplicateTemplate(db, templateId, currentUser.congregationId)
     if (copy) {
       session.flash('success', m.settings_template_view_duplicate_success({ name: copy.name }))
@@ -76,7 +117,9 @@ export function action({ request, params, context }: Route.ActionArgs) {
 }
 
 export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
-  const { template, canEdit, isSystem } = loaderData
+  const { template, canEdit, canDelete, eventCount, isSystem } = loaderData
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const deleteFetcher = useFetcher()
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,6 +152,21 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
                     {m.settings_template_view_duplicate_button()}
                   </Button>
                 </Form>
+              )}
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => setConfirmOpen(true)}
+                  disabled={eventCount > 0}
+                  title={
+                    eventCount > 0 ? m.settings_template_view_delete_in_use({ count: String(eventCount) }) : undefined
+                  }
+                >
+                  <Trash2 className="size-4" />
+                  {m.common_delete()}
+                </Button>
               )}
             </div>
           )
@@ -198,6 +256,14 @@ export default function TemplateViewPage({ loaderData }: Route.ComponentProps) {
           </Card>
         </>
       )}
+
+      <InlineDeleteDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        itemName={template.name}
+        onConfirm={() => deleteFetcher.submit({ intent: 'delete' }, { method: 'post' })}
+        isDeleting={deleteFetcher.state !== 'idle'}
+      />
     </div>
   )
 }

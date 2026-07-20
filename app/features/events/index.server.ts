@@ -1,10 +1,11 @@
 // Public server-only surface of the events feature.
 
 export { getNextDaysOffs } from './server/days-off.server'
+export { duplicateTemplate } from './server/duplicate-template.server'
 export {
+  deleteTemplate,
   deleteTemplatePart,
   deleteTemplateServicePart,
-  duplicateTemplate,
   getTemplateById,
   getTemplates,
   isTemplateResponsible,
