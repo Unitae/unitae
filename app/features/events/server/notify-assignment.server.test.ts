@@ -78,8 +78,9 @@ describe('notifyAssignment', () => {
       assignmentName: 'Perles de la Parole',
       role: 'speaker',
     })
-    expect(typeof call.payload?.eventDate).toBe('string')
-    expect((call.payload?.eventDate as string).length).toBeGreaterThan(0)
+    const payload = call.payload as { eventDate?: string }
+    expect(typeof payload.eventDate).toBe('string')
+    expect((payload.eventDate as string).length).toBeGreaterThan(0)
   })
 
   it('includes the resolved programme link in the payload', async () => {
