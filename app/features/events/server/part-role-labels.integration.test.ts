@@ -8,9 +8,9 @@
 import { PrismaPg } from '@prisma/adapter-pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { PrismaClient } from '~/database/generated/client'
-import { applyTemplateToEvent } from '~/features/events/server/programme-events.server'
-import { generateEventsFromTemplate } from '~/features/events/server/programme-generation.server'
-import { duplicateTemplate } from '~/features/events/server/programme-templates.server'
+import { applyTemplateToEvent } from '~/features/events/server/event-parts.server'
+import { generateEventsFromTemplate } from '~/features/events/server/event-template-generation.server'
+import { duplicateTemplate } from '~/features/events/server/event-templates.server'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DB_RUNTIME_URL ?? process.env.DB_URL,
@@ -44,7 +44,7 @@ interface SeedTemplateResult {
 
 function seedTemplate(key: string, weekDay: number | null = null): Promise<SeedTemplateResult> {
   return withScope(congId, async tx => {
-    const template = await tx.programmeTemplate.create({
+    const template = await tx.eventTemplate.create({
       data: {
         name: `Midweek ${key}`,
         key,
@@ -103,12 +103,12 @@ beforeAll(async () => {
 })
 
 afterAll(async () => {
-  await testDb.programmePartAssignmentAllowedRole.deleteMany({ where: { congregationId: congId } })
-  await testDb.programmePartAssignment.deleteMany({ where: { congregationId: congId } })
-  await testDb.programmeTemplatePartAllowedRole.deleteMany({ where: { congregationId: congId } })
-  await testDb.programmeTemplatePart.deleteMany({ where: { congregationId: congId } })
+  await testDb.eventPartAllowedRole.deleteMany({ where: { congregationId: congId } })
+  await testDb.eventPart.deleteMany({ where: { congregationId: congId } })
+  await testDb.templatePartAllowedRole.deleteMany({ where: { congregationId: congId } })
+  await testDb.templatePart.deleteMany({ where: { congregationId: congId } })
   await testDb.event.deleteMany({ where: { congregationId: congId } })
-  await testDb.programmeTemplate.deleteMany({ where: { congregationId: congId } })
+  await testDb.eventTemplate.deleteMany({ where: { congregationId: congId } })
   await testDb.auditLog.deleteMany({ where: { congregationId: congId } })
   await testDb.userAccount.deleteMany({ where: { congregationId: congId } })
   await testDb.congregation.delete({ where: { id: congId } })
@@ -134,7 +134,7 @@ describe('per-part role labels — end-to-end', () => {
 
     await withScope(congId, tx => applyTemplateToEvent(tx, event.id, templateId, congId, managerAccountId))
 
-    const assignments = await testDb.programmePartAssignment.findMany({
+    const assignments = await testDb.eventPart.findMany({
       where: { eventId: event.id, congregationId: congId },
       orderBy: { order: 'asc' },
       select: { name: true, speakerLabel: true, readerLabel: true },
@@ -156,7 +156,7 @@ describe('per-part role labels — end-to-end', () => {
     )
     expect(events.length).toBeGreaterThan(0)
 
-    const assignments = await testDb.programmePartAssignment.findMany({
+    const assignments = await testDb.eventPart.findMany({
       where: { eventId: events[0].id, congregationId: congId },
       orderBy: { order: 'asc' },
       select: { name: true, speakerLabel: true, readerLabel: true },
@@ -175,7 +175,7 @@ describe('per-part role labels — end-to-end', () => {
     const duplicated = await withScope(congId, tx => duplicateTemplate(tx, templateId, congId))
     expect(duplicated).not.toBeNull()
 
-    const parts = await testDb.programmeTemplatePart.findMany({
+    const parts = await testDb.templatePart.findMany({
       where: { templateId: duplicated?.id, congregationId: congId },
       orderBy: { order: 'asc' },
       select: { name: true, speakerLabel: true, readerLabel: true },

@@ -262,7 +262,7 @@ describe('addPartAssignment', () => {
   })
 
   it('passes speakerLabel and readerLabel to create when supplied (Layer 5)', async () => {
-    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 1 })
+    mockDb.eventPart.create.mockResolvedValue({ id: 1 })
 
     await addPartAssignment(
       mockDb as never,
@@ -283,7 +283,7 @@ describe('addPartAssignment', () => {
       99,
     )
 
-    expect(mockDb.programmePartAssignment.create).toHaveBeenCalledWith({
+    expect(mockDb.eventPart.create).toHaveBeenCalledWith({
       data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
   })
@@ -304,7 +304,7 @@ describe('deletePartAssignment', () => {
 
 describe('updatePartAssignment', () => {
   it('passes speakerLabel and readerLabel to the update when supplied (Layer 5)', async () => {
-    mockDb.programmePartAssignment.update.mockResolvedValue({ id: 5 })
+    mockDb.eventPart.update.mockResolvedValue({ id: 5 })
 
     await updatePartAssignment(
       mockDb as never,
@@ -325,7 +325,7 @@ describe('updatePartAssignment', () => {
       99,
     )
 
-    expect(mockDb.programmePartAssignment.update).toHaveBeenCalledWith({
+    expect(mockDb.eventPart.update).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 5, congregationId: 10 } },
       data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
@@ -467,13 +467,13 @@ describe('applyTemplateToEvent', () => {
       ],
       serviceRoles: [],
     }
-    mockDb.programmeTemplate.findFirst.mockResolvedValue(template)
+    mockDb.eventTemplate.findFirst.mockResolvedValue(template)
     mockDb.event.update.mockResolvedValue({})
-    mockDb.programmePartAssignment.create.mockResolvedValue({ id: 999 })
+    mockDb.eventPart.create.mockResolvedValue({ id: 999 })
 
     await applyTemplateToEvent(mockDb as never, 1, 5, 10, 42)
 
-    const calls = mockDb.programmePartAssignment.create.mock.calls
+    const calls = mockDb.eventPart.create.mock.calls
     expect(calls.length).toBe(2)
     expect(calls[0][0].data).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-P1', readerLabel: null })
     expect(calls[1][0].data).toMatchObject({

@@ -269,7 +269,7 @@ describe('isTemplateResponsible', () => {
 
 describe('upsertTemplatePart role labels', () => {
   it('passes speakerLabel and readerLabel through to the create data (Layer 5)', async () => {
-    vi.mocked(db.programmeTemplatePart.create).mockResolvedValue({ id: 42 } as never)
+    vi.mocked(db.templatePart.create).mockResolvedValue({ id: 42 } as never)
 
     await upsertTemplatePart(
       db,
@@ -290,13 +290,13 @@ describe('upsertTemplatePart role labels', () => {
       99,
     )
 
-    expect(vi.mocked(db.programmeTemplatePart.create)).toHaveBeenCalledWith({
+    expect(vi.mocked(db.templatePart.create)).toHaveBeenCalledWith({
       data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: null }),
     })
   })
 
   it('passes speakerLabel and readerLabel through to the update data (Layer 5)', async () => {
-    vi.mocked(db.programmeTemplatePart.update).mockResolvedValue({ id: 42 } as never)
+    vi.mocked(db.templatePart.update).mockResolvedValue({ id: 42 } as never)
 
     await upsertTemplatePart(
       db,
@@ -318,7 +318,7 @@ describe('upsertTemplatePart role labels', () => {
       99,
     )
 
-    expect(vi.mocked(db.programmeTemplatePart.update)).toHaveBeenCalledWith({
+    expect(vi.mocked(db.templatePart.update)).toHaveBeenCalledWith({
       where: { id_congregationId: { id: 42, congregationId: 7 } },
       data: expect.objectContaining({ speakerLabel: 'STUDENT-SENTINEL', readerLabel: 'HOUSEHOLDER-SENTINEL' }),
     })
@@ -556,8 +556,8 @@ describe('duplicateTemplate', () => {
       ],
       serviceRoles: [],
     }
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue(source as never)
-    vi.mocked(db.programmeTemplate.create).mockResolvedValue({
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue(source as never)
+    vi.mocked(db.eventTemplate.create).mockResolvedValue({
       id: 99,
       name: 'Reunion (copie)',
       parts: [],
@@ -566,7 +566,7 @@ describe('duplicateTemplate', () => {
 
     await duplicateTemplate(db, 5, 7)
 
-    const createCall = vi.mocked(db.programmeTemplate.create).mock.calls[0][0] as {
+    const createCall = vi.mocked(db.eventTemplate.create).mock.calls[0][0] as {
       data: { parts: { create: Array<{ speakerLabel: string | null; readerLabel: string | null }> } }
     }
     const createdParts = createCall.data.parts.create

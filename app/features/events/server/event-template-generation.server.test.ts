@@ -123,7 +123,7 @@ describe('generateEventsFromTemplate', () => {
   // give a false positive. Distinct strings prove the value is threaded from
   // the template, not fabricated by the caller.
   it('copies speakerLabel and readerLabel from template parts to assignments (Layer 4)', async () => {
-    vi.mocked(db.programmeTemplate.findFirst).mockResolvedValue({
+    vi.mocked(db.eventTemplate.findFirst).mockResolvedValue({
       id: 1,
       name: 'Réunion du week-end',
       weekDay: 0,
@@ -162,11 +162,11 @@ describe('generateEventsFromTemplate', () => {
     } as never)
     vi.mocked(db.event.findMany).mockResolvedValue([] as never)
     vi.mocked(db.event.create).mockResolvedValue({ id: 1 } as never)
-    vi.mocked(db.programmePartAssignment.create).mockResolvedValue({} as never)
+    vi.mocked(db.eventPart.create).mockResolvedValue({} as never)
 
     await generateEventsFromTemplate(db, 1, 1, 1, 1, TZ)
 
-    const calls = vi.mocked(db.programmePartAssignment.create).mock.calls
+    const calls = vi.mocked(db.eventPart.create).mock.calls
     expect(calls.length).toBeGreaterThanOrEqual(2)
     const firstData = (calls[0][0] as { data: { speakerLabel: string | null; readerLabel: string | null } }).data
     expect(firstData.speakerLabel).toBe('STUDENT-SENTINEL-P1')

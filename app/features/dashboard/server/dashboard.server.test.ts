@@ -182,7 +182,7 @@ describe('getNextMeeting', () => {
     expect(result?.userServiceRoleIds).toEqual([20])
     // Viewer is the assignee on part 10 → speaker. Part 11 belongs to someone
     // else so the viewer has no role there.
-    const parts = result?.partAssignments ?? []
+    const parts = result?.eventParts ?? []
     expect(parts.find(p => p.id === 10)?.viewerRole).toBe('speaker')
     expect(parts.find(p => p.id === 11)?.viewerRole).toBeNull()
   })
@@ -215,7 +215,7 @@ describe('getNextMeeting', () => {
 
     const result = await getNextMeeting(db, 42)
     expect(result?.userPartIds).toEqual([10])
-    expect(result?.partAssignments[0].viewerRole).toBe('reader')
+    expect(result?.eventParts[0].viewerRole).toBe('reader')
   })
 
   // Locks the shape: the Prisma select MUST project speakerLabel and readerLabel
@@ -230,7 +230,7 @@ describe('getNextMeeting', () => {
       startDate: new Date(2026, 3, 25),
       endDate: new Date(2026, 3, 25),
       template: null,
-      partAssignments: [
+      eventParts: [
         {
           id: 10,
           name: 'Bible reading',
@@ -254,13 +254,13 @@ describe('getNextMeeting', () => {
           assistant: null,
         },
       ],
-      serviceRoleAssignments: [],
+      eventServiceRoles: [],
     } as never)
 
     const result = await getNextMeeting(db, 42)
 
-    expect(result?.partAssignments[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-42', readerLabel: null })
-    expect(result?.partAssignments[1]).toMatchObject({
+    expect(result?.eventParts[0]).toMatchObject({ speakerLabel: 'STUDENT-SENTINEL-42', readerLabel: null })
+    expect(result?.eventParts[1]).toMatchObject({
       speakerLabel: 'STUDENT-SENTINEL-99',
       readerLabel: 'HOUSEHOLDER-SENTINEL-99',
     })
@@ -268,8 +268,8 @@ describe('getNextMeeting', () => {
     // Also assert the Prisma select requested the fields — a fixture that
     // happened to include the sentinels would pass without this.
     const call = vi.mocked(db.event.findFirst).mock.calls[0][0]
-    const select = call?.select as { partAssignments?: { select?: Record<string, unknown> } }
-    expect(select.partAssignments?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
+    const select = call?.select as { eventParts?: { select?: Record<string, unknown> } }
+    expect(select.eventParts?.select).toMatchObject({ speakerLabel: true, readerLabel: true })
   })
 
   it('returns empty arrays when user has no assignments', async () => {
