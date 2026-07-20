@@ -969,7 +969,29 @@ describe('AuditLog importer rewrites legacy entityType strings', () => {
       data: { name: `Audit ${ts}`, slug: `audit-${ts}`, active: true },
     })
 
+    // Seed a UserAccount in the target congregation so the actorId remap
+    // path has a hit — the importer calls `idMap.getOptional('user-accounts',
+    // record.actorId)` and would silently null-out actors if the mapping
+    // didn't wire up. Row 0 uses this mapped actor; rows 1..N-1 use
+    // `actorId: null` (also a valid archive shape). Row N maps to an actor
+    // that isn't in `idMap` — expected to land as `actorId: null`.
+    let sourceActorId = 500
+    let targetActorId = 0
     try {
+      const targetAlice = await testDb.userAccount.create({
+        data: {
+          email: `audit-alice-${ts}@test.com`,
+          password: 'x',
+          active: true,
+          congregationId: cong.id,
+        },
+      })
+      targetActorId = targetAlice.id
+
+      const idMap = new EntityIdMap()
+      idMap.set('user-accounts', sourceActorId, targetActorId)
+      const unmappedSourceActorId = 999
+
       const zip = new JsZip()
       const ndjsonLines = cases.map((c, i) =>
         JSON.stringify({
@@ -977,7 +999,7 @@ describe('AuditLog importer rewrites legacy entityType strings', () => {
           action: 'legacy.action',
           entityType: c.legacy,
           entityId: 42,
-          actorId: null,
+          actorId: i === 0 ? sourceActorId : i === cases.length - 1 ? unmappedSourceActorId : null,
           actorEmail: null,
           metadata: null,
           createdAt: '2026-01-01T00:00:00.000Z',
@@ -987,22 +1009,33 @@ describe('AuditLog importer rewrites legacy entityType strings', () => {
 
       const { importAuditLogs } = await import('./import-audit-consent.server')
       await withScope(cong.id, async db => {
-        await importAuditLogs(zip, db, new EntityIdMap(), cong.id)
+        await importAuditLogs(zip, db, idMap, cong.id)
       })
 
       const rows = await testDb.auditLog.findMany({
         where: { congregationId: cong.id, action: 'legacy.action' },
-        select: { entityType: true, entityId: true },
+        select: { entityType: true, entityId: true, actorId: true },
+        // Read order matches the seed order (id monotonic via `1000 + i`)
+        // so `rows[i]` corresponds to `cases[i]`.
         orderBy: { entityId: 'asc' },
       })
 
       expect(rows).toHaveLength(cases.length)
-      // Sort both by the LEGACY string for a stable pairwise comparison.
       const gotEntityTypes = rows.map(r => r.entityType)
       const expectedEntityTypes = cases.map(c => c.expected)
       expect(gotEntityTypes).toEqual(expectedEntityTypes)
+
+      // Row 0: mapped source actor → target actor id
+      expect(rows[0].actorId).toBe(targetActorId)
+      // Middle rows: null actorId round-trips as null
+      expect(rows[1].actorId).toBeNull()
+      // Last row: unmapped source actor lands as null (getOptional fallback)
+      expect(rows[rows.length - 1].actorId).toBeNull()
     } finally {
       await testDb.auditLog.deleteMany({ where: { congregationId: cong.id } })
+      if (targetActorId > 0) {
+        await testDb.userAccount.delete({ where: { id: targetActorId } })
+      }
       await testDb.congregation.delete({ where: { id: cong.id } })
     }
   })

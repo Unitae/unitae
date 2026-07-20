@@ -37,11 +37,13 @@ export async function importConsentRecords(
   }
 }
 
-// Pre-2.1 archives store `entityType` under the old `Programme*` model names;
-// 2.1 archives (the interim between the Programme rename and the ServiceRole
-// rename that landed later in the same PR) still use `EventServiceRole` /
-// `TemplateServiceRole`. The runtime schema and every fresh audit row uses the
-// current `Event*` / `Template*` / `EventServicePart` / `TemplateServicePart`
+// Pre-2.1 archives store `entityType` under the old `Programme*` model names.
+// The `TemplateServiceRole` / `EventServiceRole` entries below are defensive:
+// no released 2.1 archive can carry those strings (both renames ship in the
+// same PR), but pre-merge / dev / preview archives produced between the two
+// rename commits in this PR could — cheap insurance so an in-flight archive
+// doesn't need a re-export. The runtime schema and every fresh audit row uses
+// the current `Event*` / `Template*` / `EventServicePart` / `TemplateServicePart`
 // names, so history exported from any older archive would show a nonexistent
 // entity string without a rewrite on import.
 const LEGACY_ENTITY_TYPES: Record<string, string> = {
