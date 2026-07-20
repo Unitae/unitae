@@ -287,6 +287,8 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
     order: number
     durationMin: number | null
     allowExternalSpeaker: boolean
+    speakerLabel: string | null
+    readerLabel: string | null
     allowedSpeakerRoleIds: number[]
     allowedReaderRoleIds: number[]
   } | null>(null)
@@ -505,6 +507,8 @@ export default function TemplateEditPage({ loaderData }: Route.ComponentProps) {
                                         order: part.order,
                                         durationMin: part.durationMin,
                                         allowExternalSpeaker: part.allowExternalSpeaker,
+                                        speakerLabel: part.speakerLabel,
+                                        readerLabel: part.readerLabel,
                                         allowedSpeakerRoleIds: part.allowedSpeakerRoleIds,
                                         allowedReaderRoleIds: part.allowedReaderRoleIds,
                                       })
